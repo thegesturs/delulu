@@ -11,7 +11,8 @@
       "packages/design-system/hooks/**",
       "packages/collaboration/config.ts",
       "apps/docs/**/*.json",
-      "apps/email/.react-email/**"
+      "apps/email/.react-email/**",
+      "apps/app/wrangler.jsonc"
     ]
   }
 }

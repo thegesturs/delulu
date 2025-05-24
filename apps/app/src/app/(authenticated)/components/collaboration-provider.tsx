@@ -1,7 +1,7 @@
 'use client';
 
-import { getUsers } from '@/app/actions/users/get';
-import { searchUsers } from '@/app/actions/users/search';
+import { getUsers } from '@/src/app/actions/users/get';
+import { searchUsers } from '@/src/app/actions/users/search';
 import { Room } from '@delulu/collaboration/room';
 import type { ReactNode } from 'react';
 
