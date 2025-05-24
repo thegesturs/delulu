@@ -231,7 +231,9 @@ storybook-static/
 # Turborepo task cache
 .turbo
 
-### Vercel ###
+### Cloudflare ###
+.wrangler
+.open-next
 
 ### Windows ###
 # Windows thumbnail cache files

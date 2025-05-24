@@ -7,12 +7,9 @@ import { keys as flags } from '@delulu/feature-flags/keys';
 import { keys as core } from '@delulu/next-config/keys';
 import { keys as notifications } from '@delulu/notifications/keys';
 import { keys as observability } from '@delulu/observability/keys';
-import { keys as payments } from '@delulu/payments/keys';
 import { keys as security } from '@delulu/security/keys';
 import { keys as webhooks } from '@delulu/webhooks/keys';
 import { createEnv } from '@t3-oss/env-nextjs';
-
-console.log(process.env);
 
 export const env = createEnv({
   extends: [
