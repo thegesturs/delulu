@@ -93,12 +93,12 @@ const data = {
   },
   teams: [
     {
-      name: 'Acme Inc',
+      name: 'Delulu Inc',
       logo: GalleryVerticalEnd,
       plan: 'Enterprise',
     },
     {
-      name: 'Acme Corp.',
+      name: 'Delulu Corp.',
       logo: AudioWaveform,
       plan: 'Startup',
     },

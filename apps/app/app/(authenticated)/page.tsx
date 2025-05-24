@@ -8,7 +8,7 @@ import { AvatarStack } from './components/avatar-stack';
 import { Cursors } from './components/cursors';
 import { Header } from './components/header';
 
-const title = 'Acme Inc';
+const title = 'Delulu Inc';
 const description = 'My application.';
 
 const CollaborationProvider = dynamic(() =>
