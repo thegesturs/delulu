@@ -2,21 +2,28 @@ import 'server-only';
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaClient } from '@prisma/client';
+import { cache } from 'react';
 import ws from 'ws';
-import { PrismaClient } from './generated/client';
 import { keys } from './keys';
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+import { prefixedIdExtension } from './prisma/middleware';
 
 neonConfig.webSocketConstructor = ws;
 
-const pool = new Pool({ connectionString: keys().DATABASE_URL });
-const adapter = new PrismaNeon(pool);
+export const getDb = cache(() => {
+  const pool = new Pool({ connectionString: keys().DATABASE_URL });
+  const adapter = new PrismaNeon(pool);
+  const client = new PrismaClient({ adapter }).$extends(prefixedIdExtension);
+  return client;
+});
 
-export const database = globalForPrisma.prisma || new PrismaClient({ adapter });
+export const database = getDb();
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = database;
-}
+// For static routes (ISR/SSG)
+export const getDbAsync = () => {
+  const pool = new Pool({ connectionString: keys().DATABASE_URL });
+  const adapter = new PrismaNeon(pool);
+  return new PrismaClient({ adapter }).$extends(prefixedIdExtension);
+};
 
-export * from './generated/client';
+export * from '@prisma/client';

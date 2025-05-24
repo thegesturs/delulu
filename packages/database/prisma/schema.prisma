@@ -1,0 +1,312 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+generator prefixedId {
+  provider = "ts-node --transpile-only ./prisma/generator/prefixed-id.ts"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+enum CurrentPlan {
+  FREE
+  PRO
+  PRO2
+  PRO3
+}
+
+enum PostStatus {
+  SAVED
+  PUBLISHED
+  SCHEDULED
+  DELETED
+  FAILED
+}
+
+enum PostReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PrivacyStatus {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+enum PostType {
+  NORMAL
+  SHORT
+  LONG_VIDEO
+}
+
+enum SocialType {
+  TWITTER
+  LINKEDIN
+  LENS
+  GITHUB
+  YOUTUBE
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  MEMBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  clerkUserId    String      @id @db.VarChar(256)
+  userDetails    Json?
+  currentPlan    CurrentPlan @default(FREE)
+  personalization Json?
+  createdAt      DateTime    @default(now()) @db.Timestamptz
+  updatedAt      DateTime    @updatedAt @db.Timestamptz
+  lsCustomerId   String?     @unique @db.VarChar(256) @map("ls_customer_id")
+
+  // Relations
+  userUsage      UserUsage?
+  ownedOrganizations  Organization[]    // Owned organizations
+  memberships OrganizationMember[] // Organizations where user is a member
+  posts          Post[]
+  socialProviders SocialProvider[]
+  subscriptions  Subscription[]
+  organizationInvites OrganizationInvites[] @relation("InvitedBy")
+  youtubeTokens  YoutubeToken[]
+}
+
+model UserUsage {
+  clerkUserId    String   @id @db.VarChar(256)
+  scheduledposts Int      @default(15)
+  scheduledtime  Int      @default(10)
+  projects       Int      @default(3)
+  socialaccounts Int      @default(4)
+  generatedposts Int      @default(50)
+  drafts         Int      @default(15)
+  ideas          Int      @default(15)
+  organisation   Int      @default(0)
+  createdAt      DateTime @default(now()) @db.Timestamptz
+  updatedAt      DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  user           User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+}
+
+model Organization {
+  clerkOrgId    String   @id @db.VarChar(256)
+  ownerClerkId  String   @db.VarChar(256)
+  name          String   @db.VarChar(256)
+  logo          String?  @db.VarChar(256)
+  category      String   @default("personal") @db.VarChar(256)
+  createdAt     DateTime @default(now()) @db.Timestamptz
+  updatedAt     DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  owner         User     @relation(fields: [ownerClerkId], references: [clerkUserId], onDelete: Cascade)
+  invites       OrganizationInvites[]
+  members       OrganizationMember[]
+  posts         Post[]
+  socialProviders SocialProvider[]
+  youtubeTokens YoutubeToken[]
+
+  @@index([ownerClerkId])
+}
+
+model OrganizationInvites {
+  id             String       @id @db.VarChar(256)
+  name           String       @db.VarChar(256)
+  email          String       @db.VarChar(256)
+  organizationId String       @db.VarChar(256)
+  role           Role
+  status         InviteStatus
+  inviterClerkId String       @db.VarChar(256)
+  inviterName    String       @db.VarChar(256)
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @db.Timestamptz
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  invitedBy      User        @relation("InvitedBy", fields: [inviterClerkId], references: [clerkUserId])
+
+  @@index([organizationId])
+}
+
+model OrganizationMember {
+  id             String     @id  @db.VarChar(32)
+  organizationId String     @db.VarChar(256)
+  clerkUserId    String     @db.VarChar(256)
+  role           Role       @default(MEMBER)
+  createdAt      DateTime   @default(now()) @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @db.Timestamptz
+
+  // Relations with improved names
+  organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  member         User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  @@unique([organizationId, clerkUserId])
+  @@index([organizationId, clerkUserId])
+  @@index([clerkUserId])
+}
+
+model Post {
+  id              String           @id @db.VarChar(191)
+  clerkUserId     String           @db.VarChar(256)
+  postType        PostType         @default(NORMAL)
+  status          PostStatus
+  scheduledAt     DateTime?        @db.Timestamptz
+  reviewStatus    PostReviewStatus @default(PENDING)
+  organizationId  String?          @db.VarChar(256)
+  isDeleted       Boolean          @default(false)
+  postFailureReason String?        @db.Text
+  privacyStatus   PrivacyStatus    @default(UNLISTED)
+  content         Json             @default("[]")
+  createdAt       DateTime         @default(now()) @db.Timestamptz
+  updatedAt       DateTime         @updatedAt @db.Timestamptz
+
+  // Relations
+  organization    Organization?    @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  user            User            @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  alternateContents AlternatePostContent[]
+  socialProviders PostToSocialProvider[]
+  platformPosts   PlatformPost[]
+  youtubeContent  YoutubeContent[]
+
+  @@index([clerkUserId])
+  @@index([organizationId])
+}
+
+model PostToSocialProvider {
+  postId          String @db.VarChar(191)
+  socialProviderId String @db.VarChar(191)
+
+  // Relations
+  post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialProvider  SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
+
+  @@id([postId, socialProviderId])
+}
+
+model AlternatePostContent {
+  postId          String @db.VarChar(191)
+  socialProviderId String @db.VarChar(191)
+  content         Json   @default("[]")
+
+  // Relations
+  post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialProvider  SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
+
+  @@id([postId, socialProviderId])
+}
+
+model PlatformPost {
+  id              String @id @db.VarChar(191)
+  postId          String @db.VarChar(191)
+  platformId      String @db.VarChar(191)
+  platformPostId  String @db.VarChar(191)
+  platformPostUrl String @db.Text
+
+  // Relations
+  post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialProvider  SocialProvider @relation(fields: [platformId], references: [id], onDelete: Cascade)
+}
+
+model YoutubeToken {
+  id              String   @id @db.VarChar(191)
+  channelId       String   @db.VarChar(191)
+  accessToken     String   @db.Text
+  refreshToken    String   @db.Text
+  organizationId  String?  @db.VarChar(256)
+  clerkUserId     String   @db.VarChar(191)
+  expiresIn       DateTime @db.Timestamptz
+  channelName     String   @default("") @db.VarChar(191)
+  channelPicture  String?  @default("") @db.VarChar(191)
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  updatedAt       DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  organization    Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  user            User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  youtubeContents YoutubeContent[]
+
+  @@unique([organizationId, clerkUserId, channelId])
+  @@index([clerkUserId])
+  @@index([organizationId])
+  @@index([channelId])
+}
+
+model YoutubeContent {
+  id              String   @id @db.VarChar(191)
+  YoutubeTokenId  String   @db.VarChar(256)
+  postId          String   @db.VarChar(191)
+  videoTags       Json
+  title           String   @db.VarChar(256)
+  description     String   @db.VarChar(256)
+  thumbnail       String   @db.VarChar(256)
+  video           String   @db.VarChar(256)
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  updatedAt       DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  post            Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  youtubeToken    YoutubeToken @relation(fields: [YoutubeTokenId], references: [id], onDelete: Cascade)
+
+  @@index([YoutubeTokenId])
+  @@index([postId])
+}
+
+model SocialProvider {
+  id                    String    @id @db.VarChar(191)
+  organizationId        String?   @db.VarChar(256)
+  clerkUserId          String    @db.VarChar(191)
+  clientId             String?   @db.VarChar(191)
+  clientSecret         String?   @db.VarChar(191)
+  accessToken          String    @db.Text
+  refreshToken         String?   @db.Text
+  expiresIn            DateTime  @db.Timestamptz
+  refreshTokenExpiresIn DateTime? @db.Timestamptz
+  profileId            String    @db.VarChar(191)
+  username             String?   @db.VarChar(191)
+  fullName             String    @default("") @db.VarChar(191)
+  profileImage         String    @default("") @db.Text
+  socialType           SocialType
+  createdAt            DateTime  @default(now()) @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  organization         Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  user                User         @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  posts               PostToSocialProvider[]
+  alternateContents   AlternatePostContent[]
+  platformPosts       PlatformPost[]
+
+  @@unique([profileId, organizationId])
+  @@unique([clerkUserId, profileId])
+  @@index([clerkUserId])
+  @@index([organizationId])
+}
+
+model Subscription {
+  id String @id
+  // Other fields will be defined in subscription.ts
+  user User @relation(fields: [userId], references: [clerkUserId])
+  userId String
+}
+

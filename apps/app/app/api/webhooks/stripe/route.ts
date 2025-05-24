@@ -1,11 +1,6 @@
-import { env } from '@/env';
 import { analytics } from '@delulu/analytics/posthog/server';
 import { clerkClient } from '@delulu/auth/server';
-import { parseError } from '@delulu/observability/error';
-import { log } from '@delulu/observability/log';
-import { stripe } from '@delulu/payments';
 import type { Stripe } from '@delulu/payments';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 const getUserFromCustomerId = async (customerId: string) => {
@@ -62,53 +57,54 @@ const handleSubscriptionScheduleCanceled = async (
 };
 
 export const POST = async (request: Request): Promise<Response> => {
-  if (!env.STRIPE_WEBHOOK_SECRET) {
-    return NextResponse.json({ message: 'Not configured', ok: false });
-  }
+  // if (!env.STRIPE_WEBHOOK_SECRET) {
+  //   return NextResponse.json({ message: 'Not configured', ok: false });
+  // }
+  return await NextResponse.json({ message: 'Not configured', ok: false });
 
-  try {
-    const body = await request.text();
-    const headerPayload = await headers();
-    const signature = headerPayload.get('stripe-signature');
+  // try {
+  //   const body = await request.text();
+  //   const headerPayload = await headers();
+  //   const signature = headerPayload.get('stripe-signature');
 
-    if (!signature) {
-      throw new Error('missing stripe-signature header');
-    }
+  //   if (!signature) {
+  //     throw new Error('missing stripe-signature header');
+  //   }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      env.STRIPE_WEBHOOK_SECRET
-    );
+  //   const event = stripe.webhooks.constructEvent(
+  //     body,
+  //     signature,
+  //     env.STRIPE_WEBHOOK_SECRET
+  //   );
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        await handleCheckoutSessionCompleted(event.data.object);
-        break;
-      }
-      case 'subscription_schedule.canceled': {
-        await handleSubscriptionScheduleCanceled(event.data.object);
-        break;
-      }
-      default: {
-        log.warn(`Unhandled event type ${event.type}`);
-      }
-    }
+  //   switch (event.type) {
+  //     case 'checkout.session.completed': {
+  //       await handleCheckoutSessionCompleted(event.data.object);
+  //       break;
+  //     }
+  //     case 'subscription_schedule.canceled': {
+  //       await handleSubscriptionScheduleCanceled(event.data.object);
+  //       break;
+  //     }
+  //     default: {
+  //       log.warn(`Unhandled event type ${event.type}`);
+  //     }
+  //   }
 
-    await analytics.shutdown();
+  //   await analytics.shutdown();
 
-    return NextResponse.json({ result: event, ok: true });
-  } catch (error) {
-    const message = parseError(error);
+  //   return NextResponse.json({ result: event, ok: true });
+  // } catch (error) {
+  //   const message = parseError(error);
 
-    log.error(message);
+  //   log.error(message);
 
-    return NextResponse.json(
-      {
-        message: 'something went wrong',
-        ok: false,
-      },
-      { status: 500 }
-    );
-  }
+  //   return NextResponse.json(
+  //     {
+  //       message: 'something went wrong',
+  //       ok: false,
+  //     },
+  //     { status: 500 }
+  //   );
+  // }
 };
