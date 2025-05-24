@@ -1,15 +1,18 @@
-import { keys as analytics } from '@repo/analytics/keys';
-import { keys as auth } from '@repo/auth/keys';
-import { keys as collaboration } from '@repo/collaboration/keys';
-import { keys as database } from '@repo/database/keys';
-import { keys as email } from '@repo/email/keys';
-import { keys as flags } from '@repo/feature-flags/keys';
-import { keys as core } from '@repo/next-config/keys';
-import { keys as notifications } from '@repo/notifications/keys';
-import { keys as observability } from '@repo/observability/keys';
-import { keys as security } from '@repo/security/keys';
-import { keys as webhooks } from '@repo/webhooks/keys';
+import { keys as analytics } from '@delulu/analytics/keys';
+import { keys as auth } from '@delulu/auth/keys';
+import { keys as collaboration } from '@delulu/collaboration/keys';
+import { keys as database } from '@delulu/database/keys';
+import { keys as email } from '@delulu/email/keys';
+import { keys as flags } from '@delulu/feature-flags/keys';
+import { keys as core } from '@delulu/next-config/keys';
+import { keys as notifications } from '@delulu/notifications/keys';
+import { keys as observability } from '@delulu/observability/keys';
+import { keys as payments } from '@delulu/payments/keys';
+import { keys as security } from '@delulu/security/keys';
+import { keys as webhooks } from '@delulu/webhooks/keys';
 import { createEnv } from '@t3-oss/env-nextjs';
+
+console.log(process.env);
 
 export const env = createEnv({
   extends: [
@@ -24,6 +27,7 @@ export const env = createEnv({
     observability(),
     security(),
     webhooks(),
+    // payments(),
   ],
   server: {},
   client: {},

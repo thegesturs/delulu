@@ -16,7 +16,7 @@ import {
   MenubarSubContent,
   MenubarSubTrigger,
   MenubarTrigger,
-} from '@repo/design-system/components/ui/menubar';
+} from '@delulu/design-system/components/ui/menubar';
 
 /**
  * A visually persistent menu common in desktop applications that provides

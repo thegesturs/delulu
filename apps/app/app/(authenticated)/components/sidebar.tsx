@@ -1,20 +1,20 @@
 'use client';
 
-import { OrganizationSwitcher, UserButton } from '@repo/auth/client';
-import { ModeToggle } from '@repo/design-system/components/mode-toggle';
-import { Button } from '@repo/design-system/components/ui/button';
+import { OrganizationSwitcher, UserButton } from '@delulu/auth/client';
+import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
+import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@repo/design-system/components/ui/collapsible';
+} from '@delulu/design-system/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@repo/design-system/components/ui/dropdown-menu';
+} from '@delulu/design-system/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -32,9 +32,9 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
-} from '@repo/design-system/components/ui/sidebar';
-import { cn } from '@repo/design-system/lib/utils';
-import { NotificationsTrigger } from '@repo/notifications/components/trigger';
+} from '@delulu/design-system/components/ui/sidebar';
+import { cn } from '@delulu/design-system/lib/utils';
+import { NotificationsTrigger } from '@delulu/notifications/components/trigger';
 import {
   AnchorIcon,
   BookOpenIcon,

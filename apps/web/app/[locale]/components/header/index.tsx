@@ -1,8 +1,8 @@
 'use client';
 
 import { env } from '@/env';
-import { ModeToggle } from '@repo/design-system/components/mode-toggle';
-import { Button } from '@repo/design-system/components/ui/button';
+import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
+import { Button } from '@delulu/design-system/components/ui/button';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -10,12 +10,12 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-} from '@repo/design-system/components/ui/navigation-menu';
+} from '@delulu/design-system/components/ui/navigation-menu';
 import { Menu, MoveRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import type { Dictionary } from '@repo/internationalization';
+import type { Dictionary } from '@delulu/internationalization';
 import Image from 'next/image';
 import { LanguageSwitcher } from './language-switcher';
 import Logo from './logo.svg';

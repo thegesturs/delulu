@@ -21,7 +21,7 @@ importers:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:packages/typescript-config
       '@turbo/gen':
@@ -48,28 +48,28 @@ importers:
 
   apps/api:
     dependencies:
-      '@repo/analytics':
+      '@delulu/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
-      '@repo/auth':
+      '@delulu/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@repo/database':
+      '@delulu/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@repo/design-system':
+      '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@repo/next-config':
+      '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
-      '@repo/observability':
+      '@delulu/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@repo/payments':
+      '@delulu/payments':
         specifier: workspace:*
         version: link:../../packages/payments
-      '@repo/testing':
+      '@delulu/testing':
         specifier: workspace:*
         version: link:../../packages/testing
       '@sentry/nextjs':
@@ -97,7 +97,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
@@ -118,40 +118,40 @@ importers:
 
   apps/app:
     dependencies:
-      '@repo/analytics':
+      '@delulu/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
-      '@repo/auth':
+      '@delulu/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@repo/collaboration':
+      '@delulu/collaboration':
         specifier: workspace:*
         version: link:../../packages/collaboration
-      '@repo/database':
+      '@delulu/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@repo/design-system':
+      '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@repo/feature-flags':
+      '@delulu/feature-flags':
         specifier: workspace:*
         version: link:../../packages/feature-flags
-      '@repo/next-config':
+      '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
-      '@repo/notifications':
+      '@delulu/notifications':
         specifier: workspace:*
         version: link:../../packages/notifications
-      '@repo/observability':
+      '@delulu/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@repo/security':
+      '@delulu/security':
         specifier: workspace:*
         version: link:../../packages/security
-      '@repo/seo':
+      '@delulu/seo':
         specifier: workspace:*
         version: link:../../packages/seo
-      '@repo/webhooks':
+      '@delulu/webhooks':
         specifier: workspace:*
         version: link:../../packages/webhooks
       '@sentry/nextjs':
@@ -188,10 +188,10 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/testing':
+      '@delulu/testing':
         specifier: workspace:*
         version: link:../../packages/testing
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@testing-library/dom':
@@ -230,12 +230,12 @@ importers:
 
   apps/email:
     dependencies:
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@react-email/components':
         specifier: 0.0.36
         version: 0.0.36(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@repo/email':
-        specifier: workspace:*
-        version: link:../../packages/email
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -243,7 +243,7 @@ importers:
         specifier: 4.0.7
         version: 4.0.7(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
@@ -261,7 +261,7 @@ importers:
 
   apps/storybook:
     dependencies:
-      '@repo/design-system':
+      '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
       '@storybook/addon-actions':
@@ -304,7 +304,7 @@ importers:
       '@chromatic-com/storybook':
         specifier: ^3.2.6
         version: 3.2.6(react@19.1.0)(storybook@8.6.12(bufferutil@4.0.9)(prettier@3.5.3))
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@storybook/addon-essentials':
@@ -367,39 +367,39 @@ importers:
       '@arcjet/next':
         specifier: 1.0.0-beta.5
         version: 1.0.0-beta.5(next@15.3.0(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))
+      '@delulu/cms':
+        specifier: workspace:*
+        version: link:../../packages/cms
+      '@delulu/design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../../packages/email
+      '@delulu/feature-flags':
+        specifier: workspace:*
+        version: link:../../packages/feature-flags
+      '@delulu/internationalization':
+        specifier: workspace:*
+        version: link:../../packages/internationalization
+      '@delulu/next-config':
+        specifier: workspace:*
+        version: link:../../packages/next-config
+      '@delulu/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
+      '@delulu/rate-limit':
+        specifier: workspace:*
+        version: link:../../packages/rate-limit
+      '@delulu/security':
+        specifier: workspace:*
+        version: link:../../packages/security
+      '@delulu/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
       '@radix-ui/react-icons':
         specifier: ^1.3.2
         version: 1.3.2(react@19.1.0)
-      '@repo/cms':
-        specifier: workspace:*
-        version: link:../../packages/cms
-      '@repo/design-system':
-        specifier: workspace:*
-        version: link:../../packages/design-system
-      '@repo/email':
-        specifier: workspace:*
-        version: link:../../packages/email
-      '@repo/feature-flags':
-        specifier: workspace:*
-        version: link:../../packages/feature-flags
-      '@repo/internationalization':
-        specifier: workspace:*
-        version: link:../../packages/internationalization
-      '@repo/next-config':
-        specifier: workspace:*
-        version: link:../../packages/next-config
-      '@repo/observability':
-        specifier: workspace:*
-        version: link:../../packages/observability
-      '@repo/rate-limit':
-        specifier: workspace:*
-        version: link:../../packages/rate-limit
-      '@repo/security':
-        specifier: workspace:*
-        version: link:../../packages/security
-      '@repo/seo':
-        specifier: workspace:*
-        version: link:../../packages/seo
       '@sentry/nextjs':
         specifier: ^9.12.0
         version: 9.12.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.0(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)(webpack@5.98.0(esbuild@0.25.2))
@@ -446,7 +446,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
@@ -489,7 +489,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -529,7 +529,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -569,7 +569,7 @@ importers:
       '@clerk/types':
         specifier: ^4.53.0
         version: 4.53.0
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -600,7 +600,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -640,7 +640,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -680,9 +680,12 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@prisma/generator-helper':
+        specifier: ^6.8.2
+        version: 6.8.2
       '@types/node':
         specifier: 22.14.1
         version: 22.14.1
@@ -692,15 +695,30 @@ importers:
       bufferutil:
         specifier: ^4.0.9
         version: 4.0.9
+      nanoid:
+        specifier: ^5.1.5
+        version: 5.1.5
       prisma:
         specifier: 6.4.1
         version: 6.4.1(typescript@5.8.3)
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.14.1)(typescript@5.8.3)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
 
   packages/design-system:
     dependencies:
+      '@delulu/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@delulu/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@delulu/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.0.1(react-hook-form@7.55.0(react@19.1.0))
@@ -785,15 +803,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.0
         version: 1.2.0(@types/react-dom@19.1.2(@types/react@19.1.1))(@types/react@19.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@repo/analytics':
-        specifier: workspace:*
-        version: link:../analytics
-      '@repo/auth':
-        specifier: workspace:*
-        version: link:../auth
-      '@repo/observability':
-        specifier: workspace:*
-        version: link:../observability
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -858,7 +867,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@tailwindcss/postcss':
@@ -904,7 +913,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -922,13 +931,13 @@ importers:
 
   packages/feature-flags:
     dependencies:
-      '@repo/analytics':
+      '@delulu/analytics':
         specifier: workspace:*
         version: link:../analytics
-      '@repo/auth':
+      '@delulu/auth':
         specifier: workspace:*
         version: link:../auth
-      '@repo/design-system':
+      '@delulu/design-system':
         specifier: workspace:*
         version: link:../design-system
       '@t3-oss/env-nextjs':
@@ -950,7 +959,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -981,7 +990,7 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/negotiator':
@@ -1018,7 +1027,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       next:
@@ -1043,7 +1052,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -1080,7 +1089,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
@@ -1114,7 +1123,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       typescript:
@@ -1136,7 +1145,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       typescript:
@@ -1158,7 +1167,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       typescript:
@@ -1177,7 +1186,7 @@ importers:
         specifier: ^1.1.5
         version: 1.1.5
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@types/lodash.merge':
@@ -1208,7 +1217,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
 
@@ -1225,7 +1234,7 @@ importers:
 
   packages/webhooks:
     dependencies:
-      '@repo/auth':
+      '@delulu/auth':
         specifier: workspace:*
         version: link:../auth
       '@t3-oss/env-nextjs':
@@ -1241,7 +1250,7 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@repo/typescript-config':
+      '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       typescript:
@@ -2026,6 +2035,7 @@ packages:
   '@clerk/backend@1.27.3':
     resolution: {integrity: sha512-Epuhej19VcBnPfDenQoDvj+MpExs/OhJRsFM0jM1TmTt75tE6UFJwJHD5byAPX0TuGvncHKqv5FjcuPEF8zu5Q==}
     engines: {node: '>=18.17.0'}
+    deprecated: Incorrect parsing of the experimental JWT v2 claims. Please update to the latest version. For more information about JWT v2, see https://clerk.com/docs/backend-requests/resources/session-tokens
     peerDependencies:
       svix: ^1.62.0
     peerDependenciesMeta:
@@ -2042,6 +2052,7 @@ packages:
   '@clerk/nextjs@6.14.3':
     resolution: {integrity: sha512-HMZPn8Rv9waatoKihH0HcRjiZKzTO1OmrZxkFdFwbLlyQBeOYe5u85qgTZR0elvIp6zD5kGjj+l3b6HVLqrMrw==}
     engines: {node: '>=18.17.0'}
+    deprecated: Incorrect parsing of the experimental JWT v2 claims. Please update to the latest version. For more information about JWT v2, see https://clerk.com/docs/backend-requests/resources/session-tokens
     peerDependencies:
       next: ^13.5.7 || ^14.2.25 || ^15.2.3
       react: ^18.0.0 || ^19.0.0 || ^19.0.0-0
@@ -3455,6 +3466,12 @@ packages:
   '@prisma/debug@6.4.1':
     resolution: {integrity: sha512-Q9xk6yjEGIThjSD8zZegxd5tBRNHYd13GOIG0nLsanbTXATiPXCLyvlYEfvbR2ft6dlRsziQXfQGxAgv7zcMUA==}
 
+  '@prisma/debug@6.8.2':
+    resolution: {integrity: sha512-4muBSSUwJJ9BYth5N8tqts8JtiLT8QI/RSAzEogwEfpbYGFo9mYsInsVo8dqXdPO2+Rm5OG5q0qWDDE3nyUbVg==}
+
+  '@prisma/dmmf@6.8.2':
+    resolution: {integrity: sha512-okGJF/7hQZam/2wt+Y0hPyNxyY5S+L0FzAgtL932Q3YxUWHusRllrN39bCV45oF3QWY992g7rTWYdL2Rynt1qg==}
+
   '@prisma/driver-adapter-utils@6.4.1':
     resolution: {integrity: sha512-WIVq6QUzz9HJXNa+6LmyLrW/KHOFQwmXYvpaVVECjwAUaAQXFw4g85i68GFPTYrfozwz5CntdHVVzXxInkk0fA==}
 
@@ -3466,6 +3483,12 @@ packages:
 
   '@prisma/fetch-engine@6.4.1':
     resolution: {integrity: sha512-uZ5hVeTmDspx7KcaRCNoXmcReOD+84nwlO2oFvQPRQh9xiFYnnUKDz7l9bLxp8t4+25CsaNlgrgilXKSQwrIGQ==}
+
+  '@prisma/generator-helper@6.8.2':
+    resolution: {integrity: sha512-KBLW47sbwFBKKYMiICIAEWsG6TdpPapPT7e7hpmpF3xMgYAm6YIXu4JGwfQVDY9Vbcb+0vPdPdSEQtInYOOe5g==}
+
+  '@prisma/generator@6.8.2':
+    resolution: {integrity: sha512-yExkvgqiKg1WHzjYttz40g5DsOtud8RhapM0Mum6pw+wrDoQyhSAxs5NHyFCV+9VPvRd2v+jAP2CTT07bsibjw==}
 
   '@prisma/get-platform@6.4.1':
     resolution: {integrity: sha512-gXqZaDI5scDkBF8oza7fOD3Q3QMD0e0rBynlzDDZdTWbWmzjuW58PRZtj+jkvKje2+ZigCWkH8SsWZAsH6q1Yw==}
@@ -8737,9 +8760,9 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@3.3.8:
-    resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+  nanoid@5.1.5:
+    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+    engines: {node: ^18 || >=20}
     hasBin: true
 
   native-fetch@4.0.2:
@@ -8853,6 +8876,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-fetch@2.6.7:
     resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
@@ -11218,7 +11242,7 @@ snapshots:
   '@ai-sdk/provider-utils@2.2.6(zod@3.24.2)':
     dependencies:
       '@ai-sdk/provider': 1.1.2
-      nanoid: 3.3.8
+      nanoid: 3.3.11
       secure-json-parse: 2.7.0
       zod: 3.24.2
 
@@ -13517,6 +13541,10 @@ snapshots:
 
   '@prisma/debug@6.4.1': {}
 
+  '@prisma/debug@6.8.2': {}
+
+  '@prisma/dmmf@6.8.2': {}
+
   '@prisma/driver-adapter-utils@6.4.1':
     dependencies:
       '@prisma/debug': 6.4.1
@@ -13535,6 +13563,14 @@ snapshots:
       '@prisma/debug': 6.4.1
       '@prisma/engines-version': 6.4.0-29.a9055b89e58b4b5bfb59600785423b1db3d0e75d
       '@prisma/get-platform': 6.4.1
+
+  '@prisma/generator-helper@6.8.2':
+    dependencies:
+      '@prisma/debug': 6.8.2
+      '@prisma/dmmf': 6.8.2
+      '@prisma/generator': 6.8.2
+
+  '@prisma/generator@6.8.2': {}
 
   '@prisma/get-platform@6.4.1':
     dependencies:
@@ -19873,7 +19909,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nanoid@3.3.8: {}
+  nanoid@5.1.5: {}
 
   native-fetch@4.0.2(undici@5.28.5):
     dependencies:
@@ -20488,13 +20524,13 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.8
+      nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
   postcss@8.5.3:
     dependencies:
-      nanoid: 3.3.8
+      nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
 

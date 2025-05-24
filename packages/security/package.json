@@ -1,5 +1,5 @@
 {
-  "name": "@repo/security",
+  "name": "@delulu/security",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
+    "@delulu/typescript-config": "workspace:*",
     "typescript": "^5.8.3"
   }
 }

@@ -1,11 +1,11 @@
-import { blog } from '@repo/cms';
-import { Feed } from '@repo/cms/components/feed';
-import { Image } from '@repo/cms/components/image';
-import { cn } from '@repo/design-system/lib/utils';
-import { getDictionary } from '@repo/internationalization';
-import type { Blog, WithContext } from '@repo/seo/json-ld';
-import { JsonLd } from '@repo/seo/json-ld';
-import { createMetadata } from '@repo/seo/metadata';
+import { blog } from '@delulu/cms';
+import { Feed } from '@delulu/cms/components/feed';
+import { Image } from '@delulu/cms/components/image';
+import { cn } from '@delulu/design-system/lib/utils';
+import { getDictionary } from '@delulu/internationalization';
+import type { Blog, WithContext } from '@delulu/seo/json-ld';
+import { JsonLd } from '@delulu/seo/json-ld';
+import { createMetadata } from '@delulu/seo/metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 

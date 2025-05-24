@@ -11,12 +11,12 @@
   },
   "dependencies": {
     "@react-email/components": "0.0.36",
-    "@repo/email": "workspace:*",
+    "@delulu/email": "workspace:*",
     "react": "19.1.0",
     "react-email": "4.0.7"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
+    "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
     "@types/react": "19.1.1",
     "next": "15.3.0",

@@ -1,12 +1,12 @@
 'use client';
 
-import { Button } from '@repo/design-system/components/ui/button';
+import { Button } from '@delulu/design-system/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@repo/design-system/components/ui/dropdown-menu';
+} from '@delulu/design-system/components/ui/dropdown-menu';
 import { Languages } from 'lucide-react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 

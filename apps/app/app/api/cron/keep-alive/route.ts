@@ -1,4 +1,4 @@
-import { database } from '@repo/database';
+import { database } from '@delulu/database';
 
 export const GET = async () => {
   const newPage = await database.page.create({

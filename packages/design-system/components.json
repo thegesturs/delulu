@@ -11,11 +11,11 @@
     "prefix": ""
   },
   "aliases": {
-    "components": "@repo/design-system/components",
-    "utils": "@repo/design-system/lib/utils",
-    "hooks": "@repo/design-system/hooks",
-    "lib": "@repo/design-system/lib",
-    "ui": "@repo/design-system/components/ui"
+    "components": "@delulu/design-system/components",
+    "utils": "@delulu/design-system/lib/utils",
+    "hooks": "@delulu/design-system/hooks",
+    "lib": "@delulu/design-system/lib",
+    "ui": "@delulu/design-system/components/ui"
   },
   "iconLibrary": "lucide"
 }

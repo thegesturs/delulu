@@ -4,7 +4,7 @@ import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from '@repo/design-system/components/ui/hover-card';
+} from '@delulu/design-system/components/ui/hover-card';
 
 /**
  * For sighted users to preview content available behind a link.

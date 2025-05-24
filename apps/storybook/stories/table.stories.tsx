@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@repo/design-system/components/ui/table';
+} from '@delulu/design-system/components/ui/table';
 
 const invoices = [
   {

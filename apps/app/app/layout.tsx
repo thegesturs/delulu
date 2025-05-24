@@ -1,8 +1,8 @@
 import { env } from '@/env';
 import './styles.css';
-import { DesignSystemProvider } from '@repo/design-system';
-import { fonts } from '@repo/design-system/lib/fonts';
-import { Toolbar } from '@repo/feature-flags/components/toolbar';
+import { DesignSystemProvider } from '@delulu/design-system';
+import { fonts } from '@delulu/design-system/lib/fonts';
+import { Toolbar } from '@delulu/feature-flags/components/toolbar';
 import type { ReactNode } from 'react';
 
 type RootLayoutProperties = {
