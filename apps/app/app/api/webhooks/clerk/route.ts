@@ -22,7 +22,7 @@ const handleUserCreated = async (data: UserJSON) => {
       lastName: data.last_name,
       createdAt: new Date(data.created_at),
       avatar: data.image_url,
-      phoneNumber: data.phone_numbers.at(0)?.phone_number,
+      // phoneNumber: data.phone_numbers.at(0)?.phone_number,
     },
   });
 
@@ -160,6 +160,28 @@ const handleOrganizationUpdated = async (data: OrganizationJSON) => {
   return new Response('Organization updated', { status: 201 });
 };
 
+const handleOrganizationDeleted = async (data: DeletedObjectJSON) => {
+  const deleted = await database.organization.delete({
+    where: {
+      clerkOrgId: data.id,
+    },
+  });
+  analytics.groupIdentify({
+    groupKey: data.id!,
+    groupType: 'company',
+    distinctId: deleted.ownerId,
+    properties: {
+      deleted: new Date(),
+    },
+  });
+  analytics.capture({
+    event: 'Organization Deleted',
+    distinctId: deleted.ownerId,
+  });
+
+  return new Response('Organization deleted', { status: 201 });
+};
+
 const handleOrganizationMembershipCreated = async (
   data: OrganizationMembershipJSON
 ) => {
@@ -275,6 +297,10 @@ export const POST = async (request: Request): Promise<Response> => {
     }
     case 'organization.updated': {
       response = await handleOrganizationUpdated(event.data);
+      break;
+    }
+    case 'organization.deleted': {
+      response = await handleOrganizationDeleted(event.data);
       break;
     }
     case 'organizationMembership.created': {

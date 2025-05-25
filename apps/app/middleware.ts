@@ -1,19 +1,13 @@
 import { authMiddleware } from '@delulu/auth/middleware';
-import {
-  noseconeMiddleware,
-  noseconeOptions,
-  noseconeOptionsWithToolbar,
-} from '@delulu/security/middleware';
-import type { NextMiddleware } from 'next/server';
-import { env } from './env';
+import {} from '@delulu/security/middleware';
 
-const securityHeaders = env.FLAGS_SECRET
-  ? noseconeMiddleware(noseconeOptionsWithToolbar)
-  : noseconeMiddleware(noseconeOptions);
+// const securityHeaders = env.FLAGS_SECRET
+//   ? noseconeMiddleware(noseconeOptionsWithToolbar)
+//   : noseconeMiddleware(noseconeOptions);
 
-export default authMiddleware(() =>
-  securityHeaders()
-) as unknown as NextMiddleware;
+export default authMiddleware(() => {
+  // securityHeaders()
+});
 
 export const config = {
   matcher: [
