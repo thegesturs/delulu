@@ -1,6 +1,6 @@
 'use client';
 
-import { superjson } from '@delulu/api';
+import { type AppRouter, superjson } from '@delulu/api/client';
 import type { QueryClient } from '@tanstack/react-query';
 import { QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -10,8 +10,6 @@ import {
 } from '@trpc/client';
 import { createTRPCContext } from '@trpc/tanstack-react-query';
 import { useState } from 'react';
-
-import type { AppRouter } from '@delulu/api';
 
 import { env } from '@/env';
 import { createQueryClient } from './query-client';
@@ -24,7 +22,7 @@ const getQueryClient = () => {
   }
   // Browser: use singleton pattern to keep the same query client
   // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-    return (clientQueryClientSingleton ??= createQueryClient());
+  return (clientQueryClientSingleton ??= createQueryClient());
 };
 
 export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>();

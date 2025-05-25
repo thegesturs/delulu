@@ -1,4 +1,4 @@
-import { superjson } from '@delulu/api';
+import { superjson } from '@delulu/api/client';
 import {
   QueryClient,
   defaultShouldDehydrateQuery,
