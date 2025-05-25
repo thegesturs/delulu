@@ -82,8 +82,10 @@ enum SubscriptionStatus {
 }
 
 model User {
-  clerkUserId             String      @id @map("clerk_user_id") @db.VarChar(256)
-  userDetails    Json?      @map("user_details")
+  clerkUserId    String     @id @map("clerk_user_id") @db.VarChar(256)
+  email          String     @map("email") @db.VarChar(256)
+  name           String     @map("name") @db.VarChar(256)
+  image          String     @map("image") @db.VarChar(256)
   currentPlan    CurrentPlan @default(FREE) @map("current_plan")
   personalization Json?      @map("personalization")
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
@@ -158,7 +160,6 @@ model Organization {
 // }
 
 model OrganizationMember {
-  id             String     @id  @db.VarChar(32)
   organizationId String     @map("organization_id") @db.VarChar(256)
   userId         String     @map("user_id") @db.VarChar(256)
   role           Role       @default(MEMBER)
@@ -169,6 +170,7 @@ model OrganizationMember {
   organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
   member         User        @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
 
+  @@id([organizationId, userId])
   @@unique([organizationId, userId])
   @@index([organizationId, userId])
   @@index([userId])
