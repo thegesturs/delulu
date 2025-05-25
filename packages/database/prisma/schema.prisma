@@ -6,14 +6,12 @@ generator client {
   previewFeatures = ["driverAdapters"]
 }
 
-generator prefixedId {
-  provider = "ts-node --transpile-only ./prisma/generator/prefixed-id.ts"
-}
+
 
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  relationMode = "foreignKeys"
 }
 
 enum CurrentPlan {
@@ -66,21 +64,30 @@ enum Role {
   MEMBER
 }
 
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  CANCELLED
+// enum InviteStatus {
+//   PENDING
+//   ACCEPTED
+//   REJECTED
+//   CANCELLED
+// }
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
 }
 
 model User {
-  clerkUserId    String      @id @db.VarChar(256)
-  userDetails    Json?
-  currentPlan    CurrentPlan @default(FREE)
-  personalization Json?
-  createdAt      DateTime    @default(now()) @db.Timestamptz
-  updatedAt      DateTime    @updatedAt @db.Timestamptz
-  lsCustomerId   String?     @unique @db.VarChar(256) @map("ls_customer_id")
+  clerkUserId             String      @id @map("clerk_user_id") @db.VarChar(256)
+  userDetails    Json?      @map("user_details")
+  currentPlan    CurrentPlan @default(FREE) @map("current_plan")
+  personalization Json?      @map("personalization")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   userUsage      UserUsage?
@@ -89,124 +96,119 @@ model User {
   posts          Post[]
   socialProviders SocialProvider[]
   subscriptions  Subscription[]
-  organizationInvites OrganizationInvites[] @relation("InvitedBy")
-  youtubeTokens  YoutubeToken[]
+  orders         Order[]
+  // organizationInvites OrganizationInvites[] @relation("InvitedBy")
+
+  @@map("users")
 }
 
 model UserUsage {
-  clerkUserId    String   @id @db.VarChar(256)
-  scheduledposts Int      @default(15)
-  scheduledtime  Int      @default(10)
-  projects       Int      @default(3)
-  socialaccounts Int      @default(4)
-  generatedposts Int      @default(50)
-  drafts         Int      @default(15)
-  ideas          Int      @default(15)
-  organisation   Int      @default(0)
-  createdAt      DateTime @default(now()) @db.Timestamptz
-  updatedAt      DateTime @updatedAt @db.Timestamptz
+  clerkUserId         String   @unique @map("clerk_user_id") @db.VarChar(256)
+  socialAccounts Int      @default(4) @map("social_accounts")
+  generatedPosts Int      @default(50) @map("generated_posts")
+  drafts         Int      @default(15) @map("drafts")
+  organization   Int      @default(0) @map("organization")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user           User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  @@map("user_usage")
 }
 
 model Organization {
-  clerkOrgId    String   @id @db.VarChar(256)
-  ownerClerkId  String   @db.VarChar(256)
+  clerkOrgId    String   @id @map("clerk_org_id") @db.VarChar(256)
+  ownerId       String   @map("owner_id") @db.VarChar(256)
   name          String   @db.VarChar(256)
   logo          String?  @db.VarChar(256)
   category      String   @default("personal") @db.VarChar(256)
-  createdAt     DateTime @default(now()) @db.Timestamptz
-  updatedAt     DateTime @updatedAt @db.Timestamptz
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  owner         User     @relation(fields: [ownerClerkId], references: [clerkUserId], onDelete: Cascade)
-  invites       OrganizationInvites[]
+  owner         User     @relation(fields: [ownerId], references: [clerkUserId], onDelete: Cascade)
+  // invites       OrganizationInvites[]
   members       OrganizationMember[]
   posts         Post[]
   socialProviders SocialProvider[]
-  youtubeTokens YoutubeToken[]
 
-  @@index([ownerClerkId])
+  @@index([ownerId])
+  @@map("organizations")
 }
 
-model OrganizationInvites {
-  id             String       @id @db.VarChar(256)
-  name           String       @db.VarChar(256)
-  email          String       @db.VarChar(256)
-  organizationId String       @db.VarChar(256)
-  role           Role
-  status         InviteStatus
-  inviterClerkId String       @db.VarChar(256)
-  inviterName    String       @db.VarChar(256)
-  createdAt      DateTime     @default(now()) @db.Timestamptz
-  updatedAt      DateTime     @updatedAt @db.Timestamptz
+// model OrganizationInvites {
+//   id             String       @id @db.VarChar(256)
+//   name           String       @db.VarChar(256)
+//   email          String       @db.VarChar(256)
+//   organizationId String       @map("organization_id") @db.VarChar(256)
+//   role           Role
+//   status         InviteStatus
+//   inviterId      String       @map("inviter_id") @db.VarChar(256)
+//   inviterName    String       @map("inviter_name") @db.VarChar(256)
+//   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+//   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  invitedBy      User        @relation("InvitedBy", fields: [inviterClerkId], references: [clerkUserId])
+//   // Relations
+//   organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+//   invitedBy      User        @relation("InvitedBy", fields: [inviterId], references: [clerkUserId])
 
-  @@index([organizationId])
-}
+//   @@index([organizationId])
+//   @@map("organization_invites")
+// }
 
 model OrganizationMember {
   id             String     @id  @db.VarChar(32)
-  organizationId String     @db.VarChar(256)
-  clerkUserId    String     @db.VarChar(256)
+  organizationId String     @map("organization_id") @db.VarChar(256)
+  userId         String     @map("user_id") @db.VarChar(256)
   role           Role       @default(MEMBER)
-  createdAt      DateTime   @default(now()) @db.Timestamptz
-  updatedAt      DateTime   @updatedAt @db.Timestamptz
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  // Relations with improved names
+  // Relations
   organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  member         User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  member         User        @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
 
-  @@unique([organizationId, clerkUserId])
-  @@index([organizationId, clerkUserId])
-  @@index([clerkUserId])
+  @@unique([organizationId, userId])
+  @@index([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
 }
 
 model Post {
-  id              String           @id @db.VarChar(191)
-  clerkUserId     String           @db.VarChar(256)
-  postType        PostType         @default(NORMAL)
-  status          PostStatus
-  scheduledAt     DateTime?        @db.Timestamptz
-  reviewStatus    PostReviewStatus @default(PENDING)
-  organizationId  String?          @db.VarChar(256)
-  isDeleted       Boolean          @default(false)
-  postFailureReason String?        @db.Text
-  privacyStatus   PrivacyStatus    @default(UNLISTED)
-  content         Json             @default("[]")
-  createdAt       DateTime         @default(now()) @db.Timestamptz
-  updatedAt       DateTime         @updatedAt @db.Timestamptz
+  id                String           @id @db.VarChar(191)
+  userId           String           @map("user_id") @db.VarChar(256)
+  postType         PostType         @default(NORMAL) @map("post_type")
+  status           PostStatus
+  scheduledAt      DateTime?        @map("scheduled_at") @db.Timestamptz
+  reviewStatus     PostReviewStatus @default(PENDING) @map("review_status")
+  organizationId   String?          @map("organization_id") @db.VarChar(256)
+  isDeleted        Boolean          @default(false) @map("is_deleted")
+  postFailureReason String?         @map("post_failure_reason") @db.Text
+  privacyStatus    PrivacyStatus    @default(UNLISTED) @map("privacy_status")
+  content          Json             @default("[]")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  publishedAt      DateTime?        @map("published_at") @db.Timestamptz
+  lastFailedAt     DateTime?        @map("last_failed_at") @db.Timestamptz
+  retryCount       Int              @default(0) @map("retry_count")
 
   // Relations
-  organization    Organization?    @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  user            User            @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  organization     Organization?    @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
   alternateContents AlternatePostContent[]
-  socialProviders PostToSocialProvider[]
-  platformPosts   PlatformPost[]
-  youtubeContent  YoutubeContent[]
+  socialProviders  SocialProvider[] @relation("PostToSocialProvider")
+  platformPosts    PlatformPost[]
 
-  @@index([clerkUserId])
+  @@index([userId])
   @@index([organizationId])
-}
-
-model PostToSocialProvider {
-  postId          String @db.VarChar(191)
-  socialProviderId String @db.VarChar(191)
-
-  // Relations
-  post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  socialProvider  SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
-
-  @@id([postId, socialProviderId])
+  @@index([status, scheduledAt])
+  @@map("posts")
 }
 
 model AlternatePostContent {
-  postId          String @db.VarChar(191)
-  socialProviderId String @db.VarChar(191)
+  postId          String @map("post_id") @db.VarChar(191)
+  socialProviderId String @map("social_provider_id") @db.VarChar(191)
   content         Json   @default("[]")
 
   // Relations
@@ -214,99 +216,120 @@ model AlternatePostContent {
   socialProvider  SocialProvider @relation(fields: [socialProviderId], references: [id], onDelete: Cascade)
 
   @@id([postId, socialProviderId])
+  @@map("alternate_post_content")
+  @@index([socialProviderId])
 }
 
 model PlatformPost {
   id              String @id @db.VarChar(191)
-  postId          String @db.VarChar(191)
-  platformId      String @db.VarChar(191)
-  platformPostId  String @db.VarChar(191)
-  platformPostUrl String @db.Text
+  postId          String @map("post_id") @db.VarChar(191)
+  platformId      String @map("platform_id") @db.VarChar(191)
+  platformPostId  String @map("platform_post_id") @db.VarChar(191)
+  platformPostUrl String @map("platform_post_url") @db.Text
 
   // Relations
   post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   socialProvider  SocialProvider @relation(fields: [platformId], references: [id], onDelete: Cascade)
-}
 
-model YoutubeToken {
-  id              String   @id @db.VarChar(191)
-  channelId       String   @db.VarChar(191)
-  accessToken     String   @db.Text
-  refreshToken    String   @db.Text
-  organizationId  String?  @db.VarChar(256)
-  clerkUserId     String   @db.VarChar(191)
-  expiresIn       DateTime @db.Timestamptz
-  channelName     String   @default("") @db.VarChar(191)
-  channelPicture  String?  @default("") @db.VarChar(191)
-  createdAt       DateTime @default(now()) @db.Timestamptz
-  updatedAt       DateTime @updatedAt @db.Timestamptz
-
-  // Relations
-  organization    Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  user            User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  youtubeContents YoutubeContent[]
-
-  @@unique([organizationId, clerkUserId, channelId])
-  @@index([clerkUserId])
-  @@index([organizationId])
-  @@index([channelId])
-}
-
-model YoutubeContent {
-  id              String   @id @db.VarChar(191)
-  YoutubeTokenId  String   @db.VarChar(256)
-  postId          String   @db.VarChar(191)
-  videoTags       Json
-  title           String   @db.VarChar(256)
-  description     String   @db.VarChar(256)
-  thumbnail       String   @db.VarChar(256)
-  video           String   @db.VarChar(256)
-  createdAt       DateTime @default(now()) @db.Timestamptz
-  updatedAt       DateTime @updatedAt @db.Timestamptz
-
-  // Relations
-  post            Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  youtubeToken    YoutubeToken @relation(fields: [YoutubeTokenId], references: [id], onDelete: Cascade)
-
-  @@index([YoutubeTokenId])
+  @@map("platform_posts")
   @@index([postId])
+  @@index([platformId])
 }
+
+
 
 model SocialProvider {
   id                    String    @id @db.VarChar(191)
-  organizationId        String?   @db.VarChar(256)
-  clerkUserId          String    @db.VarChar(191)
-  clientId             String?   @db.VarChar(191)
-  clientSecret         String?   @db.VarChar(191)
-  accessToken          String    @db.Text
-  refreshToken         String?   @db.Text
-  expiresIn            DateTime  @db.Timestamptz
-  refreshTokenExpiresIn DateTime? @db.Timestamptz
-  profileId            String    @db.VarChar(191)
+  organizationId        String?   @map("organization_id") @db.VarChar(256)
+  userId               String    @map("user_id") @db.VarChar(191)
+  clientId             String?   @map("client_id") @db.VarChar(191)
+  clientSecret         String?   @map("client_secret") @db.VarChar(191)
+  accessToken          String    @map("access_token") @db.Text
+  refreshToken         String?   @map("refresh_token") @db.Text
+  expiresIn            DateTime  @map("expires_in") @db.Timestamptz
+  refreshTokenExpiresIn DateTime? @map("refresh_token_expires_in") @db.Timestamptz
+  profileId            String    @map("profile_id") @db.VarChar(191)
   username             String?   @db.VarChar(191)
-  fullName             String    @default("") @db.VarChar(191)
-  profileImage         String    @default("") @db.Text
-  socialType           SocialType
-  createdAt            DateTime  @default(now()) @db.Timestamptz
-  updatedAt            DateTime  @updatedAt @db.Timestamptz
+  fullName             String    @default("") @map("full_name") @db.VarChar(191)
+  profileImage         String    @default("") @map("profile_image") @db.Text
+  socialType           SocialType @map("social_type")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  isActive             Boolean   @default(true) @map("is_active")
+  lastSyncedAt         DateTime? @map("last_synced_at") @db.Timestamptz
 
   // Relations
   organization         Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  user                User         @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  posts               PostToSocialProvider[]
+  user                User         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  posts               Post[]       @relation("PostToSocialProvider")
   alternateContents   AlternatePostContent[]
   platformPosts       PlatformPost[]
 
   @@unique([profileId, organizationId])
-  @@unique([clerkUserId, profileId])
-  @@index([clerkUserId])
+  @@unique([userId, profileId])
+  @@index([userId])
   @@index([organizationId])
+  @@map("social_providers")
 }
 
 model Subscription {
-  id String @id
-  // Other fields will be defined in subscription.ts
-  user User @relation(fields: [userId], references: [clerkUserId])
-  userId String
+  id                 String            @id @map("id")
+  userId             String            @map("user_id")
+  status             SubscriptionStatus @map("status")
+  priceId            String            @map("price_id")
+  productId          String            @map("product_id")
+  amount             Int               @map("amount")
+  currency           String            @map("currency")
+  reoccurringInterval String           @map("reoccurring_interval")
+  customerId         String            @map("customer_id")
+  currentPeriodStart DateTime          @map("current_period_start")
+  currentPeriodEnd   DateTime          @map("current_period_end")
+  cancelAtPeriodEnd  Boolean           @map("cancel_at_period_end")
+  endsAt             DateTime?         @map("ends_at")
+  endedAt            DateTime?         @map("ended_at")
+  startedAt          DateTime?         @map("started_at")
+  canceledAt         DateTime?         @map("canceled_at")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Order {
+  id                String   @id @map("id")
+  userId            String   @map("user_id")
+  status            String   @map("status")
+  paid              Boolean  @map("paid")
+  subtotalAmount    Int      @map("subtotal_amount")
+  discountAmount    Int      @map("discount_amount")
+  netAmount         Int      @map("net_amount")
+  amount            Int      @map("amount")
+  taxAmount         Int      @map("tax_amount")
+  totalAmount       Int      @map("total_amount")
+  refundedAmount    Int      @map("refunded_amount")
+  refundedTaxAmount Int      @map("refunded_tax_amount")
+  currency          String   @map("currency") @db.VarChar(5)
+  billingReason     String   @map("billing_reason")
+  customerId        String   @map("customer_id")
+  productId         String   @map("product_id")
+  productPriceId    String   @map("product_price_id")
+  discountId        String?  @map("discount_id")
+  subscriptionId    String?  @map("subscription_id")
+  checkoutId        String?  @map("checkout_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@map("orders")
 }
 

@@ -7,7 +7,29 @@
     "analyze": "prisma generate --no-hints --schema=./prisma/schema.prisma",
     "build": "prisma generate --no-hints --schema=./prisma/schema.prisma",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+
+    "migrate:dev": "prisma migrate dev --name init",
+    "migrate:dev:create-only": "prisma migrate dev --create-only",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset",
+    "migrate:resolve:applied": "prisma migrate resolve --applied <migration-name>",
+    "migrate:resolve:rolled-back": "prisma migrate resolve --rolled-back <migration-name>",
+    "migrate:status": "prisma migrate status",
+    "migrate:diff": "prisma migrate diff",
+
+    "db:pull": "prisma db pull",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:execute": "prisma db execute --file <file.sql>",
+
+    "client:generate": "prisma generate",
+    "client:validate": "prisma validate",
+    "client:format": "prisma format",
+
+    "utils:init": "prisma init",
+    "utils:studio": "prisma studio",
+    "utils:version": "prisma version"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
