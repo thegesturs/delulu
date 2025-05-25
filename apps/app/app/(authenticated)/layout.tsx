@@ -1,10 +1,10 @@
-import { PostHogIdentifier } from '@/components/layout/posthog-identifier';
-import { GlobalSidebar } from '@/components/layout/sidebar';
-import { env } from '@/env';
 import { auth, currentUser } from '@delulu/auth/server';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { NotificationsProvider } from '@delulu/notifications/components/provider';
 import { secure } from '@delulu/security';
+import { PostHogIdentifier } from 'components/layout/posthog-identifier';
+import { GlobalSidebar } from 'components/layout/sidebar';
+import { env } from 'env';
 import type { ReactNode } from 'react';
 
 type AppLayoutProperties = {

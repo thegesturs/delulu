@@ -1,4 +1,4 @@
-import { env } from '@/env';
+import { env } from 'env';
 import './styles.css';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';

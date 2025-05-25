@@ -3,7 +3,9 @@
   "main": ".open-next/worker.js",
   "name": "delulu-social",
   "compatibility_date": "2024-12-30",
-  "placement": "smart",
+  "placement": {
+    "mode": "smart"
+  },
   "compatibility_flags": [
     // Enable Node.js API
     // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
