@@ -3,6 +3,7 @@
   "main": ".open-next/worker.js",
   "name": "delulu-social",
   "compatibility_date": "2024-12-30",
+  "placement": "smart",
   "compatibility_flags": [
     // Enable Node.js API
     // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
@@ -19,7 +20,7 @@
     {
       "binding": "WORKER_SELF_REFERENCE",
       // The service should match the "name" of your worker
-      "service": "my-app"
+      "service": "delulu-social"
     }
   ],
   "r2_buckets": [
