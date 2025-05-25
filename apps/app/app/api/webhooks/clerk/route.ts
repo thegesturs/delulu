@@ -6,13 +6,14 @@ import type {
   UserJSON,
   WebhookEvent,
 } from '@delulu/auth/server';
+import { type Role, database } from '@delulu/database';
 import { log } from '@delulu/observability/log';
 import { env } from 'env';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 
-const handleUserCreated = (data: UserJSON) => {
+const handleUserCreated = async (data: UserJSON) => {
   analytics.identify({
     distinctId: data.id,
     properties: {
@@ -22,6 +23,15 @@ const handleUserCreated = (data: UserJSON) => {
       createdAt: new Date(data.created_at),
       avatar: data.image_url,
       phoneNumber: data.phone_numbers.at(0)?.phone_number,
+    },
+  });
+
+  await database.user.create({
+    data: {
+      clerkUserId: data.id,
+      email: data.email_addresses.at(0)?.email_address!,
+      name: data.first_name!,
+      image: data.image_url,
     },
   });
 
@@ -33,7 +43,7 @@ const handleUserCreated = (data: UserJSON) => {
   return new Response('User created', { status: 201 });
 };
 
-const handleUserUpdated = (data: UserJSON) => {
+const handleUserUpdated = async (data: UserJSON) => {
   analytics.identify({
     distinctId: data.id,
     properties: {
@@ -46,6 +56,17 @@ const handleUserUpdated = (data: UserJSON) => {
     },
   });
 
+  await database.user.update({
+    where: {
+      clerkUserId: data.id,
+    },
+    data: {
+      email: data.email_addresses.at(0)?.email_address,
+      name: data.first_name!,
+      image: data.image_url!,
+    },
+  });
+
   analytics.capture({
     event: 'User Updated',
     distinctId: data.id,
@@ -54,12 +75,18 @@ const handleUserUpdated = (data: UserJSON) => {
   return new Response('User updated', { status: 201 });
 };
 
-const handleUserDeleted = (data: DeletedObjectJSON) => {
+const handleUserDeleted = async (data: DeletedObjectJSON) => {
   if (data.id) {
     analytics.identify({
       distinctId: data.id,
       properties: {
         deleted: new Date(),
+      },
+    });
+
+    await database.user.delete({
+      where: {
+        clerkUserId: data.id,
       },
     });
 
@@ -72,7 +99,7 @@ const handleUserDeleted = (data: DeletedObjectJSON) => {
   return new Response('User deleted', { status: 201 });
 };
 
-const handleOrganizationCreated = (data: OrganizationJSON) => {
+const handleOrganizationCreated = async (data: OrganizationJSON) => {
   analytics.groupIdentify({
     groupKey: data.id,
     groupType: 'company',
@@ -80,6 +107,15 @@ const handleOrganizationCreated = (data: OrganizationJSON) => {
     properties: {
       name: data.name,
       avatar: data.image_url,
+    },
+  });
+
+  await database.organization.create({
+    data: {
+      clerkOrgId: data.id,
+      name: data.name,
+      ownerId: data.created_by!,
+      logo: data.image_url,
     },
   });
 
@@ -93,7 +129,7 @@ const handleOrganizationCreated = (data: OrganizationJSON) => {
   return new Response('Organization created', { status: 201 });
 };
 
-const handleOrganizationUpdated = (data: OrganizationJSON) => {
+const handleOrganizationUpdated = async (data: OrganizationJSON) => {
   analytics.groupIdentify({
     groupKey: data.id,
     groupType: 'company',
@@ -101,6 +137,16 @@ const handleOrganizationUpdated = (data: OrganizationJSON) => {
     properties: {
       name: data.name,
       avatar: data.image_url,
+    },
+  });
+
+  await database.organization.update({
+    where: {
+      clerkOrgId: data.id,
+    },
+    data: {
+      name: data.name!,
+      logo: data.image_url!,
     },
   });
 
@@ -114,13 +160,21 @@ const handleOrganizationUpdated = (data: OrganizationJSON) => {
   return new Response('Organization updated', { status: 201 });
 };
 
-const handleOrganizationMembershipCreated = (
+const handleOrganizationMembershipCreated = async (
   data: OrganizationMembershipJSON
 ) => {
   analytics.groupIdentify({
     groupKey: data.organization.id,
     groupType: 'company',
     distinctId: data.public_user_data.user_id,
+  });
+
+  await database.organizationMember.create({
+    data: {
+      organizationId: data.organization.id,
+      userId: data.public_user_data.user_id,
+      role: data.role as Role,
+    },
   });
 
   analytics.capture({
@@ -131,10 +185,19 @@ const handleOrganizationMembershipCreated = (
   return new Response('Organization membership created', { status: 201 });
 };
 
-const handleOrganizationMembershipDeleted = (
+const handleOrganizationMembershipDeleted = async (
   data: OrganizationMembershipJSON
 ) => {
   // Need to unlink the user from the group
+
+  await database.organizationMember.delete({
+    where: {
+      organizationId_userId: {
+        organizationId: data.organization.id,
+        userId: data.public_user_data.user_id,
+      },
+    },
+  });
 
   analytics.capture({
     event: 'Organization Member Deleted',
@@ -195,31 +258,31 @@ export const POST = async (request: Request): Promise<Response> => {
 
   switch (eventType) {
     case 'user.created': {
-      response = handleUserCreated(event.data);
+      response = await handleUserCreated(event.data);
       break;
     }
     case 'user.updated': {
-      response = handleUserUpdated(event.data);
+      response = await handleUserUpdated(event.data);
       break;
     }
     case 'user.deleted': {
-      response = handleUserDeleted(event.data);
+      response = await handleUserDeleted(event.data);
       break;
     }
     case 'organization.created': {
-      response = handleOrganizationCreated(event.data);
+      response = await handleOrganizationCreated(event.data);
       break;
     }
     case 'organization.updated': {
-      response = handleOrganizationUpdated(event.data);
+      response = await handleOrganizationUpdated(event.data);
       break;
     }
     case 'organizationMembership.created': {
-      response = handleOrganizationMembershipCreated(event.data);
+      response = await handleOrganizationMembershipCreated(event.data);
       break;
     }
     case 'organizationMembership.deleted': {
-      response = handleOrganizationMembershipDeleted(event.data);
+      response = await handleOrganizationMembershipDeleted(event.data);
       break;
     }
     default: {

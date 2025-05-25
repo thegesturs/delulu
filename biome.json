@@ -14,5 +14,41 @@
       "apps/email/.react-email/**",
       "apps/app/wrangler.jsonc"
     ]
+  },
+  "organizeImports": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "useTemplate": "off",
+        "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "noAriaUnsupportedElements": "warn",
+        "noBlankTarget": "off",
+        "useAltText": "warn",
+        "useAriaPropsForRole": "warn",
+        "useValidAriaProps": "warn",
+        "useValidAriaValues": "warn",
+        "noSvgWithoutTitle": "off"
+      },
+      "correctness": {
+        "noChildrenProp": "error",
+        "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "error",
+        "useJsxKeyInIterable": "error",
+        "noUnusedImports": "warn"
+      },
+      "complexity": {
+        "noBannedTypes": "off",
+        "noForEach": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error",
+        "noDangerouslySetInnerHtml": "warn"
+      },
+      "suspicious": { "noCommentText": "error", "noDuplicateJsxProps": "error" }
+    }
   }
 }
