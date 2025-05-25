@@ -11,25 +11,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
 import { cn } from '@delulu/design-system/lib/utils';
-import { NotificationsTrigger } from '@delulu/notifications/components/trigger';
 import {
   BookOpenIcon,
   CalendarIcon,
-  ImageIcon,
   LayoutDashboardIcon,
   LineChartIcon,
   PencilIcon,
-  UserIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -47,11 +37,6 @@ const navigationItems = [
     icon: LayoutDashboardIcon,
   },
   {
-    title: 'Sources',
-    url: '/sources',
-    icon: PencilIcon,
-  },
-  {
     title: 'Posts',
     url: '/posts',
     icon: BookOpenIcon,
@@ -62,29 +47,29 @@ const navigationItems = [
     icon: CalendarIcon,
   },
   {
-    title: 'Analytics',
-    url: '/analytics',
+    title: 'Connected Accounts',
+    url: '/connected-accounts',
     icon: LineChartIcon,
   },
 ];
 
-const configurationItems = [
-  {
-    title: 'Knowledge Base',
-    url: '/knowledge',
-    icon: BookOpenIcon,
-  },
-  {
-    title: 'Tone of Voice',
-    url: '/tone',
-    icon: UserIcon,
-  },
-  {
-    title: 'AI Photos',
-    url: '/photos',
-    icon: ImageIcon,
-  },
-];
+// const configurationItems = [
+//   {
+//     title: 'Knowledge Base',
+//     url: '/knowledge',
+//     icon: BookOpenIcon,
+//   },
+//   {
+//     title: 'Tone of Voice',
+//     url: '/tone',
+//     icon: UserIcon,
+//   },
+//   {
+//     title: 'AI Photos',
+//     url: '/photos',
+//     icon: ImageIcon,
+//   },
+// ];
 
 export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
@@ -92,19 +77,26 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
 
   return (
     <>
-      <Sidebar variant="inset" className="dark:bg-sidebar" collapsible="icon">
+      <Sidebar
+        variant="inset"
+        className="group dark:bg-sidebar"
+        collapsible="icon"
+      >
         <SidebarHeader className="p-4">
           <OrganizationSwitcher />
-          <Button asChild className="group-data-[collapsed=true]:hidden">
+          <Button
+            asChild
+            className="flex w-full items-center group-data-[state=collapsed]:hidden"
+          >
             <Link href="/">
-              <PencilIcon className="h-5 w-5" />
-              <span className="ml-2">Create Post</span>
+              <PencilIcon className="mr-2 h-4 w-4" />
+              Create Post
             </Link>
           </Button>
           <Button
             asChild
             size="icon"
-            className="group-data-[collapsed=false]:hidden"
+            className="w-full group-data-[state=expanded]:hidden"
           >
             <Link href="/">
               <PencilIcon className="h-5 w-5" />
@@ -113,102 +105,117 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         </SidebarHeader>
 
         <SidebarContent className="px-3">
-          <TooltipProvider delayDuration={0}>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        asChild
-                        size="lg"
-                        className={cn(
-                          'group rounded-lg px-3 transition-all hover:bg-accent hover:shadow-bevel-accent',
-                          pathname === item.url &&
-                            'bg-accent text-accent-foreground shadow-bevel-secondary',
-                          'group-data-[collapsed=true]:justify-center group-data-[collapsed=true]:px-2'
-                        )}
-                      >
-                        <Link
-                          href={item.url}
-                          className="py-3 group-data-[collapsed=true]:py-3"
-                        >
-                          <item.icon
-                            className={cn(
-                              'h-5 w-5',
-                              pathname === item.url
-                                ? 'text-sidebar-primary'
-                                : 'text-sidebar-foreground'
-                            )}
-                          />
-                          <span
-                            className={cn(
-                              'ml-3 text-base group-data-[collapsed=true]:hidden',
-                              pathname === item.url && 'font-medium'
-                            )}
-                          >
-                            {item.title}
-                          </span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="right"
-                      align="center"
-                      sideOffset={10}
-                      className="group-data-[collapsed=false]:hidden"
+          <SidebarMenu className="group-data-[state=collapsed]:items-center">
+            {navigationItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    'group rounded-md px-3 transition-all hover:bg-accent hover:shadow-bevel-accent group-data-[state=collapsed]:hover:shadow-none',
+                    pathname === item.url &&
+                      'bg-accent text-accent-foreground shadow-bevel-secondary group-data-[state=collapsed]:shadow-none',
+                    'group-data-[state=collapsed]:justify-center'
+                  )}
+                  tooltip={{
+                    children: item.title,
+                    side: 'right',
+                    align: 'center',
+                    sideOffset: 10,
+                  }}
+                >
+                  <Link
+                    href={item.url}
+                    className={cn(
+                      'py-3',
+                      'flex group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0'
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5',
+                        pathname === item.url
+                          ? 'text-sidebar-primary'
+                          : 'text-sidebar-foreground'
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'ml-3 text-base',
+                        pathname === item.url && 'font-medium',
+                        'group-data-[state=collapsed]:hidden'
+                      )}
                     >
                       {item.title}
-                    </TooltipContent>
-                  </Tooltip>
-                </SidebarMenuItem>
-              ))}
-              <SidebarSeparator />
-              {configurationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        asChild
-                        className="group-data-[collapsed=true]:justify-center group-data-[collapsed=true]:px-2"
-                      >
-                        <Link href={item.url}>
-                          <item.icon className="h-5 w-5 group-data-[collapsed=false]:mr-3" />
-                          <span className="group-data-[collapsed=true]:hidden">
-                            {item.title}
-                          </span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="right"
-                      align="center"
-                      sideOffset={10}
-                      className="group-data-[collapsed=false]:hidden"
+                    </span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            {/* <SidebarSeparator />
+            {configurationItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={cn(
+                    'group rounded-lg px-3 transition-all hover:bg-accent hover:shadow-bevel-accent',
+                    pathname === item.url &&
+                      'bg-accent text-accent-foreground shadow-bevel-secondary',
+                    'group-data-[state=collapsed]:justify-center'
+                  )}
+                  tooltip={{
+                    children: item.title,
+                    side: 'right',
+                    align: 'center',
+                    sideOffset: 10,
+                  }}
+                >
+                  <Link
+                    href={item.url}
+                    className={cn(
+                      'py-3',
+                      'flex group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0'
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5',
+                        pathname === item.url
+                          ? 'text-sidebar-primary'
+                          : 'text-sidebar-foreground'
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'ml-3 text-base',
+                        pathname === item.url && 'font-medium',
+                        'group-data-[state=collapsed]:hidden'
+                      )}
                     >
                       {item.title}
-                    </TooltipContent>
-                  </Tooltip>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </TooltipProvider>
+                    </span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))} */}
+          </SidebarMenu>
         </SidebarContent>
 
         <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem className="flex items-center justify-between gap-2 group-data-[collapsed=true]:flex-col group-data-[collapsed=true]:items-center group-data-[collapsed=true]:p-2">
-              <div className="group-data-[collapsed=true]:mb-2">
+          <SidebarMenu className="group-data-[state=collapsed]:items-center">
+            <SidebarMenuItem className="flex items-center justify-between gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:items-center group-data-[state=collapsed]:p-2">
+              <div className="group-data-[state=collapsed]:mb-2">
                 <UserButton
                   showName={sidebar?.state !== 'collapsed'}
                   appearance={{
                     elements: {
                       rootBox:
-                        'flex overflow-hidden w-full group-data-[collapsed=true]:justify-center',
+                        'flex overflow-hidden w-full group-data-[state=collapsed]:justify-center',
                       userButtonOuterIdentifier:
-                        'truncate pl-0 group-data-[collapsed=true]:hidden',
+                        'truncate pl-0 group-data-[state=collapsed]:hidden',
                       avatarBox:
-                        'group-data-[collapsed=true]:w-8 group-data-[collapsed=true]:h-8',
+                        'group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:h-8',
                     },
                   }}
                 />
@@ -221,9 +228,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   className="shrink-0"
                   asChild
                 >
-                  <div className="h-4 w-4">
+                  {/* <div className="h-4 w-4">
                     <NotificationsTrigger />
-                  </div>
+                  </div> */}
                 </Button>
               </div>
             </SidebarMenuItem>
