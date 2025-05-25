@@ -10,6 +10,7 @@ import { keys as observability } from '@delulu/observability/keys';
 import { keys as security } from '@delulu/security/keys';
 import { keys as webhooks } from '@delulu/webhooks/keys';
 import { createEnv } from '@t3-oss/env-nextjs';
+import { z } from 'zod';
 
 export const env = createEnv({
   extends: [
@@ -26,7 +27,13 @@ export const env = createEnv({
     webhooks(),
     // payments(),
   ],
-  server: {},
+  server: {
+    PORT: z.number().default(3000),
+    NODE_ENV: z.enum(['development', 'production']).default('development'),
+  },
   client: {},
-  runtimeEnv: {},
+  runtimeEnv: {
+    PORT: 3000,
+    NODE_ENV: process.env.NODE_ENV,
+  },
 });

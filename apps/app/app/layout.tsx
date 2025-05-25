@@ -1,5 +1,6 @@
 import { env } from 'env';
 import './styles.css';
+import { TRPCReactProvider } from '@/trpc/react';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import { Toolbar } from '@delulu/feature-flags/components/toolbar';
@@ -20,7 +21,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
         termsUrl={new URL('/legal/terms', env.NEXT_PUBLIC_WEB_URL).toString()}
         helpUrl={env.NEXT_PUBLIC_DOCS_URL}
       >
-        {children}
+        <TRPCReactProvider>{children}</TRPCReactProvider>
       </DesignSystemProvider>
       <Toolbar />
     </body>

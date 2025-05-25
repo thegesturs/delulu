@@ -135,8 +135,8 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                       className={cn(
                         'h-5 w-5',
                         pathname === item.url
-                          ? 'text-sidebar-primary'
-                          : 'text-sidebar-foreground'
+                          ? 'text-primary'
+                          : 'text-foreground'
                       )}
                     />
                     <span
