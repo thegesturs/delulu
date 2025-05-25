@@ -52,7 +52,7 @@ export function OrganizationSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="group h-auto w-full justify-start gap-2 p-2 hover:bg-sidebar-accent"
+          className="group h-auto w-full justify-start gap-2 p-2 hover:bg-sidebar-accent group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-0"
         >
           {activeWorkspaceImage ? (
             <Image
@@ -71,7 +71,7 @@ export function OrganizationSwitcher() {
               )}
             </div>
           )}
-          <div className="flex flex-1 flex-col items-start overflow-hidden">
+          <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[state=collapsed]:hidden">
             <span className="truncate font-medium text-sm">
               {activeWorkspaceName}
             </span>
@@ -81,7 +81,7 @@ export function OrganizationSwitcher() {
               </span>
             )}
           </div>
-          <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=collapsed]:hidden group-data-[state=open]:rotate-180" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="p-2 md:w-[400px]">
