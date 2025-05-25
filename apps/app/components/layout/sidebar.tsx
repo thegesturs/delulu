@@ -1,4 +1,7 @@
 'use client';
+import { UserButton } from '@delulu/auth/client';
+import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
+import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +14,7 @@ import {
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
 import { cn } from '@delulu/design-system/lib/utils';
+import { NotificationsTrigger } from '@delulu/notifications/components/trigger';
 import {
   BookOpenIcon,
   BrainCircuitIcon,
@@ -18,7 +22,6 @@ import {
   ImageIcon,
   LayoutDashboardIcon,
   LineChartIcon,
-  LogOutIcon,
   PencilIcon,
   UserIcon,
 } from 'lucide-react';
@@ -88,9 +91,12 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
 
   return (
     <>
-      <Sidebar variant="inset">
+      <Sidebar variant="inset" className="dark:bg-sidebar">
         <SidebarHeader className="p-4">
           <OrganizationSwitcher />
+          <Button asChild>
+            <Link href="/">Create Post</Link>
+          </Button>
         </SidebarHeader>
 
         <SidebarContent className="px-3">
@@ -128,66 +134,38 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
-
-          {/* <div className="mt-8">
-            <h3 className="mb-4 px-4 font-medium text-sidebar-foreground/60 text-sm uppercase">
-              Personal Brand
-            </h3>
-            <SidebarMenu>
-              {personalBrandItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    size="lg"
-                    className={cn(
-                      'group rounded-lg transition-all hover:bg-sidebar-accent hover:shadow-bevel',
-                      pathname === item.url &&
-                        'bg-sidebar-accent text-sidebar-primary shadow-bevel'
-                    )}
-                  >
-                    <Link href={item.url} className="py-3">
-                      <item.icon
-                        className={cn(
-                          'h-5 w-5',
-                          pathname === item.url
-                            ? 'text-sidebar-primary'
-                            : 'text-sidebar-foreground'
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          'ml-3 text-base',
-                          pathname === item.url && 'font-medium'
-                        )}
-                      >
-                        {item.title}
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </div> */}
         </SidebarContent>
 
-        <SidebarFooter className="px-3 pb-4">
+        <SidebarFooter>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                size="lg"
-                className="group rounded-lg transition-all hover:bg-sidebar-accent hover:shadow-bevel"
-              >
-                <button type="button" className="py-3">
-                  <LogOutIcon className="h-5 w-5 text-sidebar-foreground" />
-                  <span className="ml-3 text-base">Logout</span>
-                </button>
-              </SidebarMenuButton>
+            <SidebarMenuItem className="flex items-center justify-between gap-2">
+              <UserButton
+                showName
+                appearance={{
+                  elements: {
+                    rootBox: 'flex overflow-hidden w-full',
+                    userButtonOuterIdentifier: 'truncate pl-0',
+                  },
+                }}
+              />
+              <div className="flex shrink-0 items-center gap-px">
+                <ModeToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  asChild
+                >
+                  <div className="h-4 w-4">
+                    <NotificationsTrigger />
+                  </div>
+                </Button>
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="dark:border">{children}</SidebarInset>
     </>
   );
 };

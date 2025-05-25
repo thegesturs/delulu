@@ -43,13 +43,7 @@
 
   --font-weight-bold: 700;
 
-  --shadow-bevel-light: rgba(50, 50, 93, 0.08) 0px 50px 100px -20px,
-                        rgba(0, 0, 0, 0.11) 0px 30px 60px -30px,
-                        rgba(10, 37, 64, 0.1) 0px -2px 6px 0px inset;
-  --shadow-button-light: rgba(50, 50, 93, 0.1) 0px 6px 12px -2px,
-                        rgba(0, 0, 0, 0.05) 0px 3px 7px -3px;
-  --shadow-card-light: rgba(50, 50, 93, 0.15) 0px 30px 60px -12px,
-                      rgba(0, 0, 0, 0.08) 0px 18px 36px -18px;
+
 }
 
 .dark {
@@ -102,10 +96,10 @@
   --card-foreground: oklch(0 0 0);
   --popover: oklch(1.0 0 0);
   --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0 0 0);
-  --primary-foreground: oklch(1.0 0 0);
-  --secondary: oklch(0.9249 0 0);
-  --secondary-foreground: oklch(0 0 0);
+  --primary: oklch(0.5012 0.2165 276.5474);
+  --primary-foreground: oklch(0.9506 0.0272 254.1701);
+  --secondary: oklch(0.93 0.025 260);
+  --secondary-foreground: oklch(0.3 0.03 260);
   --muted: oklch(0.9612 0 0);
   --muted-foreground: oklch(0.5555 0 0);
   --accent: oklch(0.9612 0 0);
@@ -133,7 +127,7 @@
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --shadow-2xs: 0 0 30px 0 hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 0 30px 0 hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 0 30px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
@@ -146,8 +140,7 @@
     rgba(50, 50, 93, 0.08) 0px 50px 100px -20px,
     rgba(0, 0, 0, 0.11) 0px 30px 60px -30px,
     rgba(10, 37, 64, 0.1) 0px -2px 6px 0px inset;
-  --shadow-button: rgba(50, 50, 93, 0.1) 0px 6px 12px -2px, rgba(0, 0, 0, 0.05)
-    0px 3px 7px -3px;
+  --shadow-button: inset 1px 1px 1px rgba(255, 255, 255, 0.2), inset -1px -1px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px rgba(0, 0, 0, 0.1);
   --shadow-card: rgba(50, 50, 93, 0.15) 0px 30px 60px -12px, rgba(0, 0, 0, 0.08)
     0px 18px 36px -18px;
   --tracking-normal: 0;
@@ -160,10 +153,10 @@
   --card-foreground: oklch(1.0 0 0);
   --popover: oklch(0 0 0);
   --popover-foreground: oklch(1.0 0 0);
-  --primary: oklch(1.0 0 0);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.2178 0 0);
-  --secondary-foreground: oklch(1.0 0 0);
+  --primary: oklch(52.74% 0.1572 276.5);
+  --primary-foreground: oklch(98.13% 0.0039 270);
+  --secondary: oklch(19.63% 0.0267 286.46);
+  --secondary-foreground: oklch(80.14% 0.0275 282.42);
   --muted: oklch(0.2686 0 0);
   --muted-foreground: oklch(0.5555 0 0);
   --accent: oklch(0.2686 0 0);
@@ -205,8 +198,7 @@
     rgba(0, 0, 0, 0.25) 0px 50px 100px -20px,
     rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
     rgba(0, 0, 0, 0.35) 0px -2px 6px 0px inset;
-  --shadow-button: rgba(0, 0, 0, 0.3) 0px 6px 12px -2px, rgba(0, 0, 0, 0.2) 0px
-    3px 7px -3px;
+  --shadow-button: inset 1px 1px 1px rgba(255, 255, 255, 0.08), inset -1px -1px 1px rgba(0, 0, 0, 0.3), 0px 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-card: rgba(0, 0, 0, 0.35) 0px 30px 60px -12px, rgba(0, 0, 0, 0.25)
     0px 18px 36px -18px;
 }
@@ -299,7 +291,6 @@ body {
   letter-spacing: var(--tracking-normal);
 }
 
-
 /* This layer is added by shadcn/ui */
 @layer base {
   * {
@@ -371,28 +362,4 @@ body {
   --tw-prose-invert-pre-bg: var(--color-background);
   --tw-prose-invert-th-borders: var(--color-border);
   --tw-prose-invert-td-borders: var(--color-border);
-}
-
-.shadow-bevel {
-  box-shadow: var(--shadow-bevel-light);
-}
-
-.dark .shadow-bevel {
-  box-shadow: var(--shadow-bevel-dark);
-}
-
-.shadow-button {
-  box-shadow: var(--shadow-button-light);
-}
-
-.dark .shadow-button {
-  box-shadow: var(--shadow-button-dark);
-}
-
-.shadow-card {
-  box-shadow: var(--shadow-card-light);
-}
-
-.dark .shadow-card {
-  box-shadow: var(--shadow-card-dark);
 }

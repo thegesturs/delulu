@@ -84,10 +84,7 @@ export function OrganizationSwitcher() {
           <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="w-[--radix-dropdown-menu-trigger-width] p-2"
-      >
+      <DropdownMenuContent align="start" className="p-2 md:w-[400px]">
         {/* Current Workspace/User Info */}
         <div className="flex items-center gap-3 p-2">
           {activeWorkspaceImage ? (
@@ -116,11 +113,11 @@ export function OrganizationSwitcher() {
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 p-2">
+        <div className="grid grid-cols-2 gap-1 p-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="flex h-auto justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
+            className="flex h-auto w-full justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
             onClick={() =>
               router.push(organization ? `/${organization.slug}` : '/')
             }
@@ -129,9 +126,9 @@ export function OrganizationSwitcher() {
             Overview
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="flex h-auto justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
+            className="flex h-auto w-full justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
             onClick={() =>
               router.push(
                 organization
@@ -211,7 +208,7 @@ export function OrganizationSwitcher() {
             </DropdownMenuItem>
           ))}
         <DropdownMenuItem
-          className="flex cursor-pointer items-center gap-2 p-2"
+          className="mx-2 flex cursor-pointer items-center gap-2 border bg-background p-2 shadow-xs"
           onClick={() => router.push('/organizations/new')}
         >
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-sidebar-accent">
