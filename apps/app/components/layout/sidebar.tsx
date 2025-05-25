@@ -67,23 +67,23 @@ const navigationItems = [
   },
 ];
 
-const personalBrandItems = [
-  {
-    title: 'Knowledge Base',
-    url: '/knowledge',
-    icon: BookOpenIcon,
-  },
-  {
-    title: 'Tone of Voice',
-    url: '/tone',
-    icon: UserIcon,
-  },
-  {
-    title: 'AI Photos',
-    url: '/photos',
-    icon: ImageIcon,
-  },
-];
+// const personalBrandItems = [
+//   {
+//     title: 'Knowledge Base',
+//     url: '/knowledge',
+//     icon: BookOpenIcon,
+//   },
+//   {
+//     title: 'Tone of Voice',
+//     url: '/tone',
+//     icon: UserIcon,
+//   },
+//   {
+//     title: 'AI Photos',
+//     url: '/photos',
+//     icon: ImageIcon,
+//   },
+// ];
 
 export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
@@ -107,9 +107,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   asChild
                   size="lg"
                   className={cn(
-                    'group rounded-lg px-3 transition-all hover:bg-sidebar-accent hover:shadow-bevel',
+                    'group rounded-lg px-3 transition-all hover:bg-accent hover:shadow-bevel-accent',
                     pathname === item.url &&
-                      'bg-sidebar-accent text-sidebar-primary shadow-bevel'
+                      'bg-accent text-accent-foreground shadow-bevel-secondary'
                   )}
                 >
                   <Link href={item.url} className="py-3">

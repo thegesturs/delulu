@@ -67,6 +67,10 @@
     0px 3px 7px -3px;
   --shadow-card: rgba(50, 50, 93, 0.15) 0px 30px 60px -12px, rgba(0, 0, 0, 0.08)
     0px 18px 36px -18px;
+  --shadow-bevel-card: inset 2px 2px 4px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.07);
+  --shadow-bevel-primary: inset 2px 2px 4px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.07);
+  --shadow-bevel-secondary: inset 2px 2px 4px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.07);
+  --shadow-bevel-accent: inset 2px 2px 4px rgba(255,255,255,0.7), inset -2px -2px 4px rgba(0,0,0,0.07);
 }
 
 .dark {
@@ -107,7 +111,7 @@
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --shadow-2xs: 0px 0px 30px 0px hsl(0 0% 0% / 0.1);
   --shadow-xs: 0px 0px 30px 0px hsl(0 0% 0% / 0.1);
   --shadow-sm: 0px 0px 30px 0px hsl(0 0% 0% / 0.2), 0px 1px 2px -1px
@@ -121,15 +125,10 @@
   --shadow-xl: 0px 0px 30px 0px hsl(0 0% 0% / 0.2), 0px 8px 10px -1px
     hsl(0 0% 0% / 0.2);
   --shadow-2xl: 0px 0px 30px 0px hsl(0 0% 0% / 0.5);
-
-  --shadow-bevel:
-    rgba(0, 0, 0, 0.25) 0px 50px 100px -20px,
-    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
-    rgba(0, 0, 0, 0.35) 0px -2px 6px 0px inset;
-  --shadow-button: rgba(0, 0, 0, 0.3) 0px 6px 12px -2px, rgba(0, 0, 0, 0.2) 0px
-    3px 7px -3px;
-  --shadow-card: rgba(0, 0, 0, 0.35) 0px 30px 60px -12px, rgba(0, 0, 0, 0.25)
-    0px 18px 36px -18px;
+  --shadow-bevel-card: inset 2px 2px 3px rgba(255,255,255,0.04), inset -2px -2px 3px rgba(0,0,0,0.3);
+  --shadow-bevel-primary: inset 2px 2px 3px rgba(255,255,255,0.04), inset -2px -2px 3px rgba(0,0,0,0.3);
+  --shadow-bevel-secondary: inset 2px 2px 3px rgba(255,255,255,0.04), inset -2px -2px 3px rgba(0,0,0,0.3);
+  --shadow-bevel-accent: inset 2px 2px 3px rgba(255,255,255,0.04), inset -2px -2px 3px rgba(0,0,0,0.3);
 }
 
 @theme inline {
@@ -171,8 +170,8 @@
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius));
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 
   --shadow-2xs: var(--shadow-2xs);
@@ -186,6 +185,10 @@
   --shadow-bevel: var(--shadow-bevel);
   --shadow-button: var(--shadow-button);
   --shadow-card: var(--shadow-card);
+  --shadow-bevel-card: var(--shadow-bevel-card);
+  --shadow-bevel-primary: var(--shadow-bevel-primary);
+  --shadow-bevel-secondary: var(--shadow-bevel-secondary);
+  --shadow-bevel-accent: var(--shadow-bevel-accent);
 
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
