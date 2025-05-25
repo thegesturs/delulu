@@ -1,8 +1,4 @@
 'use client';
-
-import { OrganizationSwitcher, UserButton } from '@delulu/auth/client';
-import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
-import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -15,21 +11,21 @@ import {
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
 import { cn } from '@delulu/design-system/lib/utils';
-import { NotificationsTrigger } from '@delulu/notifications/components/trigger';
 import {
   BookOpenIcon,
   BrainCircuitIcon,
   CalendarIcon,
-  HomeIcon,
   ImageIcon,
   LayoutDashboardIcon,
   LineChartIcon,
+  LogOutIcon,
   PencilIcon,
   UserIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { OrganizationSwitcher } from './organization-switcher';
 
 type GlobalSidebarProperties = {
   readonly children: ReactNode;
@@ -38,13 +34,8 @@ type GlobalSidebarProperties = {
 const navigationItems = [
   {
     title: 'Dashboard',
-    url: '/dashboard',
-    icon: LayoutDashboardIcon,
-  },
-  {
-    title: 'Home',
     url: '/',
-    icon: HomeIcon,
+    icon: LayoutDashboardIcon,
   },
   {
     title: 'Sources',
@@ -97,46 +88,25 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
 
   return (
     <>
-      <Sidebar variant="inset" className="bg-sidebar">
-        <SidebarHeader className="px-4 py-6">
-          <OrganizationSwitcher
-            appearance={{
-              elements: {
-                avatarBox: 'h-10 rounded-full shadow-bevel w-10',
-                OrganizationSwitcher: 'w-full bg-accent',
-              },
-            }}
-          />
-          {/* <div
-            className={cn(
-              'flex flex-col transition-all',
-              sidebar.open ? 'opacity-100' : 'w-0 opacity-0'
-            )}
-          >
-            <Button variant="ghost" size="sm" className="h-6 px-0" asChild>
-              <Link
-                href="/create-post"
-                className="text-sidebar-primary hover:text-sidebar-primary/90"
-              >
-                Create posts
-              </Link>
-            </Button>
-          </div> */}
+      <Sidebar variant="inset">
+        <SidebarHeader className="p-4">
+          <OrganizationSwitcher />
         </SidebarHeader>
 
-        <SidebarContent className="px-2">
+        <SidebarContent className="px-3">
           <SidebarMenu>
             {navigationItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
+                  size="lg"
                   className={cn(
-                    'group rounded-lg transition-all hover:bg-sidebar-accent hover:shadow-bevel',
+                    'group rounded-lg px-3 transition-all hover:bg-sidebar-accent hover:shadow-bevel',
                     pathname === item.url &&
                       'bg-sidebar-accent text-sidebar-primary shadow-bevel'
                   )}
                 >
-                  <Link href={item.url} className="py-2">
+                  <Link href={item.url} className="py-3">
                     <item.icon
                       className={cn(
                         'h-5 w-5',
@@ -147,7 +117,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                     />
                     <span
                       className={cn(
-                        'ml-3',
+                        'ml-3 text-base',
                         pathname === item.url && 'font-medium'
                       )}
                     >
@@ -159,8 +129,8 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             ))}
           </SidebarMenu>
 
-          <div className="mt-8">
-            <h3 className="mb-4 px-4 font-medium text-sidebar-foreground/60 text-xs uppercase">
+          {/* <div className="mt-8">
+            <h3 className="mb-4 px-4 font-medium text-sidebar-foreground/60 text-sm uppercase">
               Personal Brand
             </h3>
             <SidebarMenu>
@@ -168,13 +138,14 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
+                    size="lg"
                     className={cn(
                       'group rounded-lg transition-all hover:bg-sidebar-accent hover:shadow-bevel',
                       pathname === item.url &&
                         'bg-sidebar-accent text-sidebar-primary shadow-bevel'
                     )}
                   >
-                    <Link href={item.url} className="py-2">
+                    <Link href={item.url} className="py-3">
                       <item.icon
                         className={cn(
                           'h-5 w-5',
@@ -185,7 +156,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                       />
                       <span
                         className={cn(
-                          'ml-3',
+                          'ml-3 text-base',
                           pathname === item.url && 'font-medium'
                         )}
                       >
@@ -196,35 +167,22 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </div>
+          </div> */}
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="px-3 pb-4">
           <SidebarMenu>
-            <SidebarMenuItem className="flex items-center gap-2">
-              <UserButton
-                showName
-                appearance={{
-                  elements: {
-                    rootBox: 'flex overflow-hidden w-full',
-                    userButtonBox: 'flex-row-reverse',
-                    userButtonOuterIdentifier: 'truncate pl-0',
-                  },
-                }}
-              />
-              <div className="flex shrink-0 items-center gap-px">
-                <ModeToggle />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0"
-                  asChild
-                >
-                  <div className="h-4 w-4">
-                    <NotificationsTrigger />
-                  </div>
-                </Button>
-              </div>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                size="lg"
+                className="group rounded-lg transition-all hover:bg-sidebar-accent hover:shadow-bevel"
+              >
+                <button type="button" className="py-3">
+                  <LogOutIcon className="h-5 w-5 text-sidebar-foreground" />
+                  <span className="ml-3 text-base">Logout</span>
+                </button>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
