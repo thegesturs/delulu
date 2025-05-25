@@ -5,7 +5,7 @@ import {
   noseconeOptionsWithToolbar,
 } from '@delulu/security/middleware';
 import type { NextMiddleware } from 'next/server';
-import { env } from '../env';
+import { env } from './env';
 
 const securityHeaders = env.FLAGS_SECRET
   ? noseconeMiddleware(noseconeOptionsWithToolbar)

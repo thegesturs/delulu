@@ -1,7 +1,7 @@
 import { auth } from '@delulu/auth/server';
 import { database } from '@delulu/database';
 import { notFound, redirect } from 'next/navigation';
-import { Header } from '../components/header';
+import { Header } from '../../../components/layout/header';
 
 type SearchPageProperties = {
   searchParams: Promise<{

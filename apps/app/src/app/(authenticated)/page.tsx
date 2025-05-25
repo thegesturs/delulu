@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Header } from './components/header';
+import { Header } from '../../components/layout/header';
 
 const title = 'Delulu Inc';
 const description = 'My application.';
@@ -24,7 +24,7 @@ const App = () => {
   return (
     <>
       <Header pages={['Building Your Application']} page="Data Fetching">
-      <h1>Hello World</h1>
+        <h1>Hello World</h1>
       </Header>
     </>
   );
