@@ -1,12 +1,28 @@
 import { authMiddleware } from '@delulu/auth/middleware';
-import {} from '@delulu/security/middleware';
+import { createRouteMatcher } from '@delulu/auth/server';
+import {
+  noseconeMiddleware,
+  noseconeOptions,
+  noseconeOptionsWithToolbar,
+} from '@delulu/security/middleware';
+import { env } from './env';
 
-// const securityHeaders = env.FLAGS_SECRET
-//   ? noseconeMiddleware(noseconeOptionsWithToolbar)
-//   : noseconeMiddleware(noseconeOptions);
+const securityHeaders = env.FLAGS_SECRET
+  ? noseconeMiddleware(noseconeOptionsWithToolbar)
+  : noseconeMiddleware(noseconeOptions);
 
-export default authMiddleware(() => {
-  // securityHeaders()
+const isPublicRoute = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/trpc(.*)',
+  '/api/webhooks(.*)',
+]);
+
+export default authMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+  securityHeaders();
 });
 
 export const config = {
