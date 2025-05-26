@@ -546,12 +546,18 @@ importers:
       '@google/genai':
         specifier: ^1.0.1
         version: 1.0.1(@modelcontextprotocol/sdk@1.12.0)(bufferutil@4.0.9)
+      '@t3-oss/env-nextjs':
+        specifier: ^0.12.0
+        version: 0.12.0(typescript@5.8.3)(zod@3.25.28)
       '@trpc/server':
         specifier: 'catalog:'
         version: 11.1.2(typescript@5.8.3)
       ai:
         specifier: ^4.1.54
         version: 4.3.16(react@19.1.0)(zod@3.25.28)
+      axios:
+        specifier: ^1.9.0
+        version: 1.9.0
       install:
         specifier: ^0.13.0
         version: 0.13.0
@@ -561,6 +567,9 @@ importers:
       superjson:
         specifier: 2.2.1
         version: 2.2.1
+      twitter-api-sdk:
+        specifier: ^1.2.1
+        version: 1.2.1
       zod:
         specifier: 'catalog:'
         version: 3.25.28
@@ -571,6 +580,9 @@ importers:
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@delulu/validators':
+        specifier: workspace:*
+        version: link:../validators
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
@@ -1267,6 +1279,12 @@ importers:
         version: 3.1.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.4.2)(jsdom@26.1.0(bufferutil@4.0.9))(lightningcss@1.30.1)(terser@5.39.2)(yaml@2.8.0)
 
   packages/typescript-config: {}
+
+  packages/validators:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.28
 
   packages/webhooks:
     dependencies:
@@ -11398,6 +11416,10 @@ packages:
   tweetnacl@1.0.3:
     resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
+  twitter-api-sdk@1.2.1:
+    resolution: {integrity: sha512-tNQ6DGYucFk94JlnUMsHCkHg5o1wnCdHh71Y2ukygNVssOdD1gNVjOpaojJrdwbEAhoZvcWdGHerCa55F8HKxQ==}
+    engines: {node: '>=14'}
+
   type-fest@0.21.3:
     resolution: {integrity: sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w==}
     engines: {node: '>=10'}
@@ -15129,7 +15151,7 @@ snapshots:
       '@octokit/request-error': 2.1.0
       '@octokit/types': 6.41.0
       is-plain-object: 5.0.0
-      node-fetch: 2.6.7
+      node-fetch: 2.7.0
       universal-user-agent: 6.0.1
     transitivePeerDependencies:
       - encoding
@@ -24675,6 +24697,13 @@ snapshots:
   tween-functions@1.2.0: {}
 
   tweetnacl@1.0.3: {}
+
+  twitter-api-sdk@1.2.1:
+    dependencies:
+      abort-controller: 3.0.0
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
 
   type-fest@0.21.3: {}
 
