@@ -2,10 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator zod {
-  provider       = "zod-prisma-types"
-  output         = "./types/zod"
+  provider                 = "zod-prisma-types"
+  createInputTypes         = true
+  createModelTypes         = true
+  createOptionalDefaultValuesTypes = false
+  output                   = "./types/zod"
+  addInputTypeValidation   = true
 }
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
