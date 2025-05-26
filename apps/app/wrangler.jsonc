@@ -6,6 +6,10 @@
   "placement": {
     "mode": "smart"
   },
+   "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
   "compatibility_flags": [
     // Enable Node.js API
     // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
