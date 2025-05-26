@@ -2,8 +2,6 @@ import { appRouter, createTRPCContext } from '@delulu/api';
 import { fetchRequestHandler } from '@delulu/api';
 import type { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
-
 /**
  * Configure basic CORS headers
  * You should extend this to match your needs
