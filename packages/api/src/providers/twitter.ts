@@ -61,9 +61,9 @@ export const twitterProvider: SocialProvider = {
 
       return {
         platformPostId: firstTweetResult.tweetId,
-        postId: content.id || '',
+        postId: content.id ?? '',
         platformId: profile.id,
-        platformPostUrl: `https://x.com/${profile.username || 'unknown'}/status/${firstTweetResult.tweetId}`,
+        platformPostUrl: `https://x.com/${profile.username ?? 'unknown'}/status/${firstTweetResult.tweetId}`,
         postedAt: new Date(),
       };
     } catch (error) {
