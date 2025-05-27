@@ -6,6 +6,7 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { keys } from '../keys';
 import type { SocialProvider } from './types';
 
 /**
@@ -94,6 +95,14 @@ export const linkedinProvider: SocialProvider = {
         cause: error,
       });
     }
+  },
+
+  connectUrl: () => {
+    return `https://www.linkedin.com/oauth/v2/authorization?
+    response_type=code&
+    client_id=${keys().LINKEDIN_CLIENT_ID}&
+    redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&
+    scope=r_liteprofile%20r_emailaddress%20w_member_social`;
   },
 };
 
