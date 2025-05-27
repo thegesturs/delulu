@@ -189,6 +189,9 @@ importers:
       zod:
         specifier: ^3.24.2
         version: 3.25.30
+      zod-prisma-types:
+        specifier: ^3.2.4
+        version: 3.2.4(@prisma/client@6.4.1(prisma@6.4.1(typescript@5.8.3))(typescript@5.8.3))(prisma@6.4.1(typescript@5.8.3))
     devDependencies:
       '@delulu/testing':
         specifier: workspace:*
@@ -742,9 +745,6 @@ importers:
       zod:
         specifier: ^3.24.2
         version: 3.25.30
-      zod-prisma-types:
-        specifier: ^3.2.4
-        version: 3.2.4(@prisma/client@6.4.1(prisma@6.4.1(typescript@5.8.3))(typescript@5.8.3))(prisma@6.4.1(typescript@5.8.3))
     devDependencies:
       '@delulu/typescript-config':
         specifier: workspace:*
@@ -773,6 +773,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+      zod-prisma-types:
+        specifier: ^3.2.4
+        version: 3.2.4(@prisma/client@6.4.1(prisma@6.4.1(typescript@5.8.3))(typescript@5.8.3))(prisma@6.4.1(typescript@5.8.3))
 
   packages/design-system:
     dependencies:
