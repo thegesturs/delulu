@@ -15,7 +15,6 @@ interface TwitterResponse {
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
-  console.log('userId', userId);
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -55,7 +54,6 @@ export async function GET(req: NextRequest) {
         }),
       }
     ).catch((error) => {
-      console.error('Twitter callback error:', error);
       return NextResponse.json(
         { error: 'Failed to process Twitter authentication' },
         { status: 500 }
@@ -98,6 +96,7 @@ export async function GET(req: NextRequest) {
         userId,
         socialType: 'TWITTER',
         isActive: true,
+        lastSyncedAt: new Date(),
       },
       update: {
         accessToken: access_token,
@@ -108,6 +107,7 @@ export async function GET(req: NextRequest) {
         profileImage: userObject.profile_image_url ?? '',
         updatedAt: new Date(),
         isActive: true,
+        lastSyncedAt: new Date(),
       },
     });
 

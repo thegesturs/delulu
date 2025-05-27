@@ -16,6 +16,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@delulu/design-system/components/ui/tooltip';
+import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
 import type { SocialTypes } from '@delulu/validators/post';
 import {
   AlertTriangle,
@@ -91,8 +97,8 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
     : false;
 
   return (
-    <Card className="group hover:-translate-y-0.5 border-border/20 bg-card/60 shadow-sm backdrop-blur-sm transition-all duration-300 hover:bg-card/80 hover:shadow-lg">
-      <CardContent className="p-4">
+    <Card className="group hover:-translate-y-0.5 background-blue-sm background-blur shadow-sm transition-all duration-300 hover:bg-card/80 hover:shadow-md">
+      <CardContent className="p-4 py-2">
         <div className="flex items-center gap-3">
           {/* Social Platform Icon */}
           <div className="relative">
@@ -112,7 +118,7 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
 
           {/* Profile Info */}
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Avatar className="h-8 w-8 border-2 border-background shadow-sm">
+            <Avatar className="size-12 border-2 border-background shadow-sm">
               <AvatarImage
                 src={account.profileImage || '/placeholder.svg'}
                 alt={account.fullName || ''}
@@ -131,7 +137,22 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
                   {account.fullName}
                 </p>
                 {account.isActive && !isAccountExpired ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Last synced{' '}
+                          {formatTimeAgo(
+                            account.lastSyncedAt ?? account.updatedAt
+                          )}{' '}
+                          and is active
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 ) : (
                   <Clock className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                 )}
@@ -163,7 +184,7 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
                 </Badge>
               )}
               <p className="mt-1 text-muted-foreground text-xs">
-                {formatTimeAgo(account.lastSyncedAt)}
+                {formatTimeAgo(account.lastSyncedAt ?? account.updatedAt)}
               </p>
             </div>
 

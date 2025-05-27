@@ -18,7 +18,7 @@ export function AccountList({
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
-      <div className="py-12 text-center">
+      <div className="py-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <Search className="h-8 w-8 text-muted-foreground" />
         </div>
