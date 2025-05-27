@@ -1,3 +1,4 @@
+import { keys } from '@/keys';
 import { database } from '@delulu/database';
 import {
   type MediaType,
@@ -7,7 +8,7 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { Client } from 'twitter-api-sdk';
+import { Client, auth } from 'twitter-api-sdk';
 import type { SocialProvider } from './types';
 
 /**
@@ -74,6 +75,21 @@ export const twitterProvider: SocialProvider = {
         cause: error,
       });
     }
+  },
+
+  connectUrl: () => {
+    const authClient = new auth.OAuth2User({
+      client_id: keys().TWITTER_CLIENT_ID,
+      client_secret: keys().TWITTER_CLIENT_SECRET,
+      callback: keys().TWITTER_CALLBACK_URL,
+      scopes: ['users.read', 'tweet.read', 'offline.access', 'tweet.write'],
+    });
+    const url = authClient.generateAuthURL({
+      state: keys().TWITTER_STATE,
+      code_challenge_method: 'plain',
+      code_challenge: 'challenge',
+    });
+    return url;
   },
 };
 

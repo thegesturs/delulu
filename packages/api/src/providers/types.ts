@@ -5,6 +5,7 @@ export type SocialProvider = {
     content: FullPostType;
     socialProviderId: string;
   }) => Promise<PostReturnType>;
+  connectUrl: () => Promise<string> | string;
   //   connect: (input: ConnectInput) => Promise<ConnectResult>;
   //   reconnect: (input: ConnectInput) => Promise<ConnectResult>;
 };
