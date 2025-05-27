@@ -12,6 +12,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"],
-  "references": [{ "path": "../validators" }]
+  "exclude": ["node_modules"]
 }
