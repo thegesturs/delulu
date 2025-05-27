@@ -1,4 +1,4 @@
-import ConnectedAccounts from '@/components/connected-accounts';
+import ConnectedAccounts from '@/components/socials/connected-accounts';
 
 export default function NetworkPage() {
   return (
