@@ -2,13 +2,17 @@
 
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@delulu/design-system/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@delulu/design-system/components/ui/dialog';
 import type { SocialTypes } from '@delulu/validators/post';
-import { Linkedin, Plus, Twitter } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { FaLinkedin } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 
 interface ConnectedAccountsHeaderProps {
   onConnect: (platform: keyof typeof SocialTypes) => void;
@@ -28,30 +32,50 @@ export function ConnectedAccountsHeader({
             Manage your social media connections and sync settings
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               Connect Account
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={() => onConnect('TWITTER')}
-              className="cursor-pointer"
-            >
-              <Twitter className="mr-2 h-4 w-4 text-sky-500" />
-              Twitter
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onConnect('LINKEDIN')}
-              className="cursor-pointer"
-            >
-              <Linkedin className="mr-2 h-4 w-4 text-sky-700" />
-              LinkedIn
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Connect Social Account</DialogTitle>
+              <DialogDescription>
+                Choose a social media platform to connect with your account
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 gap-4 py-4">
+              <Button
+                onClick={() => onConnect('TWITTER')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <FaXTwitter className="h-6 w-6 text-card-foreground" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">X (Twitter)</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your X account
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('LINKEDIN')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <FaLinkedin className="h-6 w-6 text-sky-700" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">LinkedIn</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your LinkedIn profile
+                  </span>
+                </div>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
