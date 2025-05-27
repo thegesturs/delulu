@@ -1,0 +1,13 @@
+---
+description: helpful when you are trying to install something
+globs: 
+alwaysApply: false
+---
+# Turborepo Dependency Installation
+When installing dependencies (e.g., using `yarn add`, `npm install`, `pnpm add`) in this Turborepo project: use `pnpm add`, coz we are using pnpm workspaces
+
+1.  **Identify the Target Workspace:** Determine the specific package or app where the dependency should be installed (e.g., `apps/expo`, `packages/api`, `packages/ui`). This is often inferred from the file being edited or the user's request.
+2.  **Navigate to Workspace:** Use the terminal tool to `cd` into the *root directory* of the target workspace. For example: `cd apps/expo` or `cd packages/ui`.
+3.  **Run Installation Command:** Execute the installation command (e.g., `pnpm add <package-name>`) *within the workspace directory*.
+4.  **Directory Context:** After installation, subsequent commands might need to run in the same workspace or require returning to the monorepo root (`cd ../..` or similar). Be mindful of the current working directory for future commands. If unsure, return to the root.
+5. **Expo Installation:** Use `npx expo install ...` instead of just pnpm install
