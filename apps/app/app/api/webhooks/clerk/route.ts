@@ -26,7 +26,7 @@ const handleUserCreated = async (data: UserJSON) => {
     },
   });
 
-  await database.user.create({
+  const user = await database.user.create({
     data: {
       clerkUserId: data.id,
       email: data.email_addresses.at(0)?.email_address!,
@@ -34,6 +34,7 @@ const handleUserCreated = async (data: UserJSON) => {
       image: data.image_url,
     },
   });
+  console.log('user', user);
 
   analytics.capture({
     event: 'User Created',
