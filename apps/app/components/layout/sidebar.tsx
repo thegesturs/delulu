@@ -48,7 +48,7 @@ const navigationItems = [
   },
   {
     title: 'Connected Accounts',
-    url: '/connected-accounts',
+    url: '/socials',
     icon: LineChartIcon,
   },
 ];

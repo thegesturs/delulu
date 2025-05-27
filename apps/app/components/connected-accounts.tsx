@@ -1,5 +1,6 @@
 'use client';
-import { api, useTRPC } from '@/trpc/react';
+
+import { api } from '@/trpc/react';
 import type { SocialProvider } from '@delulu/database/prisma/types/zod';
 import {
   Avatar,
@@ -25,8 +26,6 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import type { SocialTypes } from '@delulu/validators/post';
-import { useQuery } from '@tanstack/react-query';
-import type { TRPCError } from '@trpc/server';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -44,9 +43,7 @@ import {
   Twitter,
   Youtube,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
 const socialIcons = {
   TWITTER: Twitter,
@@ -100,7 +97,6 @@ function isExpired(expiresIn: Date): boolean {
 }
 
 export default function ConnectedAccounts() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPlatform, setFilterPlatform] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -111,23 +107,12 @@ export default function ConnectedAccounts() {
     api.socialProvider.getConnectedAccounts.useQuery();
 
   // Connect new account mutation
-  const { mutate: connectAccount, isLoading: isConnecting } =
-    trpc.socialProvider.getSocialProviderConnectUrl.useMutation({
+  const { mutate: connectAccount, isPending: isConnecting } =
+    api.socialProvider.getSocialProviderConnectUrl.useMutation({
       onSuccess: (url: string) => {
         window.location.href = url;
       },
-      onError: (error: TRPCError) => {
-        toast.error('Failed to connect account', {
-          description: error.message,
-        });
-      },
     });
-
-  const userQuery = useQuery(
-    trpc.socialProvider.getSocialProviderConnectUrl.queryOptions({
-      provider: 'TWITTER',
-    })
-  );
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -174,7 +159,9 @@ export default function ConnectedAccounts() {
   }, [accounts]);
 
   const handleConnect = (platform: keyof typeof SocialTypes) => {
-    connectAccount({ provider: platform });
+    if (platform === 'TWITTER' || platform === 'LINKEDIN') {
+      connectAccount({ provider: platform });
+    }
   };
 
   const AccountCard = ({ account }: { account: SocialProvider }) => {

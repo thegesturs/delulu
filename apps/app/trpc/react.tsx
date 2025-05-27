@@ -1,16 +1,16 @@
 'use client';
 
-import { superjson } from '@delulu/api/client';
 import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchStreamLink, loggerLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { useState } from 'react';
+import superjson from 'superjson';
 
 import type { AppRouter } from '@delulu/api';
 import { createQueryClient } from './query-client';
 
-let clientQueryClientSingleton: QueryClient | undefined;
+let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
   if (typeof window === 'undefined') {
     // Server: always make a new query client

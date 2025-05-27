@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@delulu/*": ["../../packages/*"]
+      "@delulu/*": ["../../packages/*"],
+      "@delulu/api/*": ["../../packages/api/*"]
     },
     "strictFunctionTypes": true,
     "noImplicitThis": true,
@@ -16,5 +17,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ]
+  ],
+  "references": [{ "path": "../../packages/api" }]
 }

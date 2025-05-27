@@ -7,7 +7,7 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { keys } from 'keys';
+import { keys } from '@delulu/api/keys';
 import { Client, auth } from 'twitter-api-sdk';
 import type { SocialProvider } from './types';
 
