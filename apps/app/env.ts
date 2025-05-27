@@ -9,6 +9,7 @@ import { keys as notifications } from '@delulu/notifications/keys';
 import { keys as observability } from '@delulu/observability/keys';
 import { keys as security } from '@delulu/security/keys';
 import { keys as webhooks } from '@delulu/webhooks/keys';
+import { keys as api } from '@delulu/api/keys';
 import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 
@@ -19,6 +20,7 @@ export const env = createEnv({
     collaboration(),
     core(),
     database(),
+    api(),
     // email(),
     flags(),
     notifications(),
