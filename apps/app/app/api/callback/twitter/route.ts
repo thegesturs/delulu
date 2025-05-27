@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       update: {
         accessToken: access_token,
         refreshToken: refresh_token,
-        expiresIn: new Date(new Date().getTime() + expires_in * 1000),
+        expiresIn: new Date(Date.now() + expires_in * 1000),
         fullName: userObject.name ?? '',
         username: userObject.username,
         profileImage: userObject.profile_image_url ?? '',

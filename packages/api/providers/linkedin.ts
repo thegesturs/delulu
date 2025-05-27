@@ -98,11 +98,9 @@ export const linkedinProvider: SocialProvider = {
   },
 
   connectUrl: () => {
-    return `https://www.linkedin.com/oauth/v2/authorization?
-    response_type=code&
-    client_id=${keys().LINKEDIN_CLIENT_ID}&
-    redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&
-    scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+    console.log('url', url);
+    return url;
   },
 };
 
