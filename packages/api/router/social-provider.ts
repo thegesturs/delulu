@@ -1,11 +1,11 @@
-import { providerRegistry } from '@/providers';
-import { publicProcedure } from '@/trpc';
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
+import { providerRegistry } from 'providers';
+import { protectedProcedure } from 'trpc';
 import { z } from 'zod';
 
 export const socialProviderRouter = {
-  getSocialProviderConnectUrl: publicProcedure
+  getSocialProviderConnectUrl: protectedProcedure
     .input(
       z.object({
         provider: SocialTypeSchema.extract(['LINKEDIN', 'TWITTER']),
@@ -14,7 +14,15 @@ export const socialProviderRouter = {
     .query(({ input }) => {
       return providerRegistry[input.provider].connectUrl();
     }),
-  createPost: publicProcedure
+
+  getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.db.socialProvider.findMany({
+      where: {
+        userId: ctx.userId,
+      },
+    });
+  }),
+  createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input }) => {
       const results = [];

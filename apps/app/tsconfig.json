@@ -5,7 +5,10 @@
     "paths": {
       "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"]
-    }
+    },
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true
   },
   "include": [
     "next-env.d.ts",
