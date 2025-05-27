@@ -1,7 +1,7 @@
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
-import { providerRegistry } from 'providers';
-import { protectedProcedure } from 'trpc';
+import { providerRegistry } from '../providers';
+import { protectedProcedure } from '../trpc';
 import { z } from 'zod';
 
 export const socialProviderRouter = {
@@ -11,7 +11,7 @@ export const socialProviderRouter = {
         provider: SocialTypeSchema.extract(['LINKEDIN', 'TWITTER']),
       })
     )
-    .query(({ input }) => {
+    .mutation(({ input }) => {
       return providerRegistry[input.provider].connectUrl();
     }),
 

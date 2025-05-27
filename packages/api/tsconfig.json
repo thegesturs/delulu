@@ -3,11 +3,16 @@
   "compilerOptions": {
     "baseUrl": ".",
     "strict": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noEmit": false,
     "paths": {
       "@/*": ["./src/*"],
       "@delulu/*": ["../../packages/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [{ "path": "../validators" }]
 }

@@ -972,6 +972,7 @@ export const OrganizationMemberWhereUniqueInputSchema: z.ZodType<Prisma.Organiza
 })
 .and(z.object({
   organizationId_userId: z.lazy(() => OrganizationMemberOrganizationIdUserIdCompoundUniqueInputSchema).optional(),
+  organizationId_userId: z.lazy(() => OrganizationMemberOrganizationIdUserIdCompoundUniqueInputSchema).optional(),
   AND: z.union([ z.lazy(() => OrganizationMemberWhereInputSchema),z.lazy(() => OrganizationMemberWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => OrganizationMemberWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => OrganizationMemberWhereInputSchema),z.lazy(() => OrganizationMemberWhereInputSchema).array() ]).optional(),
