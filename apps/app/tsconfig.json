@@ -11,6 +11,10 @@
     "noImplicitThis": true,
     "alwaysStrict": true
   },
+  "exclude": [
+    "../../packages/database/prisma/types/zod/**/*",
+    "../../packages/database/prisma/types/zod/index.ts"
+  ],
   "include": [
     "next-env.d.ts",
     "next.config.ts",

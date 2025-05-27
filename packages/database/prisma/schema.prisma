@@ -179,7 +179,6 @@ model OrganizationMember {
   member         User        @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
 
   @@id([organizationId, userId])
-  @@unique([organizationId, userId])
   @@index([organizationId, userId])
   @@index([userId])
   @@map("organization_members")
