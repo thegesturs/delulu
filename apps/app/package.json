@@ -54,7 +54,8 @@
     "svix": "^1.64.0",
     "twitter-api-sdk": "^1.2.1",
     "wrangler": "^4.16.1",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "zod-prisma-types": "^3.2.4"
   },
   "devDependencies": {
     "@delulu/testing": "workspace:*",
