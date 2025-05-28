@@ -1,3 +1,4 @@
+import { env } from '@/env';
 import { analytics } from '@delulu/analytics/posthog/server';
 import type {
   DeletedObjectJSON,
@@ -8,7 +9,6 @@ import type {
 } from '@delulu/auth/server';
 import { type Role, database } from '@delulu/database';
 import { log } from '@delulu/observability/log';
-import { env } from 'env';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
