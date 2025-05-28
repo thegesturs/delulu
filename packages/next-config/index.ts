@@ -35,6 +35,8 @@ export const config: NextConfig = {
     ];
   },
 
+  serverExternalPackages: ['@prisma/client', '.prisma/client'],
+
   webpack(config, { isServer }) {
     if (isServer) {
       config.plugins = config.plugins || [];
