@@ -10,6 +10,7 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  "keep_vars": true,
   "compatibility_flags": [
     // Enable Node.js API
     // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
@@ -29,6 +30,32 @@
       "service": "delulu-social"
     }
   ],
+  "env": {
+    "staging": {
+      "name": "delulu-social-staging",
+      "vars": {
+        "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
+        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
+        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
+        "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
+        "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/"
+      }
+    },
+    "production": {
+      "name": "delulu-social-production",
+      "vars": {
+        "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
+        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
+        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
+        "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
+        "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/"
+      }
+    }
+  },
   "r2_buckets": [
     // Create a R2 binding with the binding name "NEXT_INC_CACHE_R2_BUCKET"
     // {
