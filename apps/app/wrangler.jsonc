@@ -32,7 +32,6 @@
   ],
   "env": {
     "staging": {
-      "name": "delulu-social-staging",
       "vars": {
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
         "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
@@ -44,7 +43,6 @@
       }
     },
     "production": {
-      "name": "delulu-social-production",
       "vars": {
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
         "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
