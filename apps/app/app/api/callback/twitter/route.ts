@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { getAuth } from '@delulu/auth/server';
 import { database } from '@delulu/database';
 import type { NextRequest } from 'next/server';
@@ -6,11 +5,18 @@ import { NextResponse } from 'next/server';
 import { Client } from 'twitter-api-sdk';
 
 import { env } from '@/env';
+import { nanoid } from 'nanoid';
 
 interface TwitterResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
+}
+
+interface ErrorResponse {
+  error: string;
+  code: string;
+  redirectUrl?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -20,16 +26,20 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get('state');
 
   if (!userId) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
+    return NextResponse.redirect(
+      new URL(
+        '/socials?error=auth_required&code=AUTH_001',
+        env.NEXT_PUBLIC_APP_URL
+      )
     );
   }
 
   if (!state || !code) {
-    return NextResponse.json(
-      { error: 'Invalid request: Missing required parameters' },
-      { status: 400 }
+    return NextResponse.redirect(
+      new URL(
+        '/socials?error=invalid_request&code=PARAM_001',
+        env.NEXT_PUBLIC_APP_URL
+      )
     );
   }
 
@@ -54,14 +64,22 @@ export async function GET(req: NextRequest) {
         }),
       }
     ).catch((error) => {
-      return NextResponse.json(
-        { error: 'Failed to process Twitter authentication' },
-        { status: 500 }
+      console.error('Twitter token fetch error:', error);
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=twitter_auth_failed&code=TWITTER_001',
+          env.NEXT_PUBLIC_APP_URL
+        )
       );
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to obtain access token');
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=twitter_token_invalid&code=TWITTER_002',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
     }
 
     const response: TwitterResponse = await tokenResponse.json();
@@ -73,7 +91,51 @@ export async function GET(req: NextRequest) {
     });
 
     if (!userObject) {
-      throw new Error('Failed to fetch user data');
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=twitter_user_fetch_failed&code=TWITTER_003',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    // Check if this Twitter account is already connected to a different user
+    const existingProvider = await database.socialProvider.findFirst({
+      where: {
+        profileId: userObject.id,
+        NOT: {
+          userId: userId,
+        },
+      },
+    });
+
+    // If found, we need to handle the transfer
+    if (existingProvider) {
+      // Update the userId to the current user
+      await database.socialProvider.update({
+        where: {
+          id: existingProvider.id,
+        },
+        data: {
+          userId,
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: userObject.name ?? '',
+          username: userObject.username,
+          profileImage: userObject.profile_image_url ?? '',
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        },
+      });
+
+      return NextResponse.redirect(
+        new URL(
+          '/socials?notification=account_transferred&platform=twitter',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
     }
 
     // Use upsert to either create or update the social provider
@@ -85,10 +147,10 @@ export async function GET(req: NextRequest) {
         },
       },
       create: {
-        id: `sp_${randomUUID()}`,
+        id: `social_${nanoid(12)}`,
         accessToken: access_token,
         refreshToken: refresh_token,
-        expiresIn: new Date(new Date().getTime() + expires_in * 1000),
+        expiresIn: new Date(Date.now() + expires_in * 1000),
         fullName: userObject.name ?? '',
         username: userObject.username,
         profileImage: userObject.profile_image_url ?? '',
@@ -108,15 +170,18 @@ export async function GET(req: NextRequest) {
         updatedAt: new Date(),
         isActive: true,
         lastSyncedAt: new Date(),
+        userId,
       },
     });
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {
     console.error('Twitter callback error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process Twitter authentication' },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL(
+        '/socials?error=internal_error&code=INTERNAL_001',
+        env.NEXT_PUBLIC_APP_URL
+      )
     );
   }
 }

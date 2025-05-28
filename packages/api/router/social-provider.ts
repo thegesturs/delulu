@@ -1,8 +1,8 @@
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
+import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure } from '../trpc';
-import { z } from 'zod';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
