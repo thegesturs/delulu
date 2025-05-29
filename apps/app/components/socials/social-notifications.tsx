@@ -1,5 +1,6 @@
 'use client';
 
+import { api } from '@/trpc/react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { SocialError } from '../error/social-error';
@@ -47,6 +48,13 @@ export function SocialNotifications() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
+  const { mutate: connectAccount } =
+    api.socialProvider.getSocialProviderConnectUrl.useMutation({
+      onSuccess: (url: string) => {
+        window.location.href = url;
+      },
+    });
+
   // Reset visibility when search params change
   useEffect(() => {
     setVisible(true);
@@ -54,20 +62,27 @@ export function SocialNotifications() {
 
   const error = searchParams.get('error');
   const notification = searchParams.get('notification');
+  const provider = searchParams.get('provider') as
+    | 'TWITTER'
+    | 'LINKEDIN'
+    | null;
 
   if (!visible) {
     return null;
   }
 
-  const handleRetry = () => {
+  const handleRetry = (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
     setRetryCount((prev) => prev + 1);
-    // Refresh the page to retry the connection
-    window.location.reload();
+    // Use the provider from URL params or the one passed from the retry button
+    const providerToUse = socialProvider || provider;
+    if (providerToUse) {
+      connectAccount({ provider: providerToUse });
+    }
   };
 
   if (error && ERROR_MESSAGES[error as keyof typeof ERROR_MESSAGES]) {
     const errorMessage = ERROR_MESSAGES[error as keyof typeof ERROR_MESSAGES];
-    const showRetry = retryCount < 3; // Only show retry button if we haven't tried 3 times
+    const showRetry = retryCount < 3 && provider !== null; // Only show retry if we have provider info
 
     return (
       <div className="mb-6">
@@ -78,9 +93,11 @@ export function SocialNotifications() {
               ? errorMessage.description
               : `${errorMessage.description} If this issue persists, please contact our support team.`
           }
+          variant="error"
           showRetry={showRetry}
-          showBackToSocials={true}
-          retryAction={handleRetry}
+          provider={provider || undefined}
+          onRetry={handleRetry}
+          onDismiss={() => setVisible(false)}
         />
       </div>
     );
@@ -98,8 +115,9 @@ export function SocialNotifications() {
         <SocialError
           title={notificationMessage.title}
           message={notificationMessage.description}
+          variant="warning"
           showRetry={false}
-          showBackToSocials={true}
+          onDismiss={() => setVisible(false)}
         />
       </div>
     );

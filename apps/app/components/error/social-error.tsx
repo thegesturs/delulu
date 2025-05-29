@@ -1,49 +1,61 @@
 'use client';
 
 import { Button } from '@delulu/design-system/components/ui/button';
-import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { AlertTriangle, XCircle } from 'lucide-react';
 
 interface SocialErrorProps {
   title: string;
   message: string;
+  variant?: 'error' | 'warning';
   showRetry?: boolean;
-  showBackToSocials?: boolean;
-  retryAction?: () => void;
+  provider?: 'TWITTER' | 'LINKEDIN';
+  onRetry?: (provider?: 'TWITTER' | 'LINKEDIN') => void;
+  onDismiss?: () => void;
 }
 
 export function SocialError({
   title,
   message,
-  showRetry = true,
-  showBackToSocials = true,
-  retryAction,
+  variant = 'error',
+  showRetry = false,
+  provider,
+  onRetry,
+  onDismiss,
 }: SocialErrorProps) {
-  const router = useRouter();
-
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center bg-background p-4">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-        <AlertTriangle className="h-8 w-8 text-destructive" />
-      </div>
-      <h1 className="mt-6 text-center font-semibold text-foreground text-xl">
-        {title}
-      </h1>
-      <p className="mt-2 max-w-md text-center text-muted-foreground text-sm">
-        {message}
-      </p>
-      <div className="mt-6 flex gap-4">
-        {showRetry && (
-          <Button onClick={retryAction} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try Again
-          </Button>
-        )}
-        {showBackToSocials && (
-          <Button onClick={() => router.push('/socials')} variant="default">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Connected Accounts
-          </Button>
+    <div className="relative rounded-lg border bg-background p-4 shadow-sm">
+      <div className="flex gap-3">
+        <div className="flex-shrink-0">
+          {variant === 'error' ? (
+            <XCircle className="h-5 w-5 text-destructive" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          )}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-medium text-foreground">{title}</h3>
+          <p className="mt-1 text-muted-foreground text-sm">{message}</p>
+          {showRetry && onRetry && (
+            <div className="mt-3">
+              <Button
+                className="h-8 text-xs"
+                onClick={() => onRetry(provider)}
+                size="sm"
+                variant="outline"
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+        </div>
+        {onDismiss && (
+          <button
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            onClick={onDismiss}
+            type="button"
+          >
+            <XCircle className="h-4 w-4" />
+          </button>
         )}
       </div>
     </div>
