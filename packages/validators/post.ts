@@ -18,15 +18,6 @@ export const allowedVideoMimeTypes = new Set([
   'video/webm',
 ]);
 
-export const postType = {
-  normal: 'NORMAL',
-  short: 'SHORT',
-  longVideo: 'LONG_VIDEO',
-} as const;
-
-export type PostType = (typeof postType)[keyof typeof postType];
-export const PostTypeSchema = z.nativeEnum(postType);
-
 export const SocialTypes = {
   DEFAULT: 'DEFAULT',
   TWITTER: 'TWITTER',
@@ -120,12 +111,10 @@ export type AlternativeContentType = z.infer<typeof alternativeContentSchema>;
 
 export const postSchema = z.object({
   id: z.string().optional(),
-  postType: PostTypeSchema,
   content: z.array(contentSchema),
   alternativeContent: alternativeContentSchema.default([]),
   scheduledTime: z.date().optional(),
   orgId: z.string().optional(),
-  projectId: z.string().optional(),
 });
 
 export type FullPostType = z.infer<typeof postSchema>;

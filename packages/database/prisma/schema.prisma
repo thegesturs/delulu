@@ -49,11 +49,6 @@ enum PrivacyStatus {
   UNLISTED
 }
 
-enum PostType {
-  NORMAL
-  SHORT
-  LONG_VIDEO
-}
 
 enum SocialType {
   TWITTER
@@ -187,7 +182,6 @@ model OrganizationMember {
 model Post {
   id                String           @id @db.VarChar(191)
   userId           String           @map("user_id") @db.VarChar(256)
-  postType         PostType         @default(NORMAL) @map("post_type")
   status           PostStatus
   scheduledAt      DateTime?        @map("scheduled_at") @db.Timestamptz
   reviewStatus     PostReviewStatus @default(PENDING) @map("review_status")
