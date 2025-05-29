@@ -1,27 +1,19 @@
+import { env } from '@/env';
 import { getAuth } from '@delulu/auth/server';
 import { database } from '@delulu/database';
+import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { env } from '@/env';
-
-interface LinkedInTokenResponse {
+interface LinkedInResponse {
   access_token: string;
   expires_in: number;
 }
 
 interface LinkedInUserResponse {
   id: string;
-  firstName: {
-    localized: {
-      en_US: string;
-    };
-  };
-  lastName: {
-    localized: {
-      en_US: string;
-    };
-  };
+  localizedFirstName: string;
+  localizedLastName: string;
   profilePicture?: {
     'displayImage~': {
       elements: Array<{
@@ -33,31 +25,40 @@ interface LinkedInUserResponse {
   };
 }
 
-function generateSocialProviderId(): string {
-  return `sp_${Math.random().toString(36).substring(2)}${Date.now().toString(36)}`;
+interface LinkedInEmailResponse {
+  elements: Array<{
+    'handle~': {
+      emailAddress: string;
+    };
+  }>;
 }
 
 export async function GET(req: NextRequest) {
-  const { userId } = getAuth(req);
-  const { searchParams } = new URL(req.url);
-  const code = searchParams.get('code');
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    );
-  }
-
-  if (!code) {
-    return NextResponse.json(
-      { error: 'Invalid request: Missing authorization code' },
-      { status: 400 }
-    );
-  }
-
   try {
-    // Exchange code for access token
+    const { userId } = getAuth(req);
+    const { searchParams } = new URL(req.url);
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
+    if (!userId) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    if (!state || !code) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=invalid_request&code=PARAM_001&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    // Get LinkedIn access token
     const tokenResponse = await fetch(
       'https://www.linkedin.com/oauth/v2/accessToken',
       {
@@ -73,81 +74,143 @@ export async function GET(req: NextRequest) {
           client_secret: env.LINKEDIN_CLIENT_SECRET,
         }),
       }
-    );
+    ).catch((error) => {
+      console.error('LinkedIn token fetch error:', error);
+      throw new Error('linkedin_auth_failed');
+    });
 
     if (!tokenResponse.ok) {
-      return NextResponse.json(
-        { error: 'Failed to obtain access token' },
-        { status: 500 }
-      );
+      throw new Error('linkedin_token_invalid');
     }
 
-    const tokenData: LinkedInTokenResponse = await tokenResponse.json();
+    const { access_token, expires_in } =
+      (await tokenResponse.json()) as LinkedInResponse;
 
-    // Fetch user profile
+    // Get LinkedIn user profile
     const userResponse = await fetch(
-      'https://api.linkedin.com/v2/me?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))',
+      'https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))',
       {
         headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
-          'cache-control': 'no-cache',
+          Authorization: `Bearer ${access_token}`,
           'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202304',
         },
       }
     );
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch user profile' },
-        { status: 500 }
+      throw new Error('linkedin_user_fetch_failed');
+    }
+
+    const userObject = (await userResponse.json()) as LinkedInUserResponse;
+
+    // Get LinkedIn email
+    const emailResponse = await fetch(
+      'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202304',
+        },
+      }
+    );
+
+    if (!emailResponse.ok) {
+      throw new Error('linkedin_email_fetch_failed');
+    }
+
+    const emailData = (await emailResponse.json()) as LinkedInEmailResponse;
+    const email = emailData.elements[0]?.['handle~']?.emailAddress;
+
+    // Get profile image URL from the complex response structure
+    const profileImage =
+      userObject.profilePicture?.['displayImage~']?.elements[0]?.identifiers[0]
+        ?.identifier;
+
+    // Check if this LinkedIn account is already connected to a different user
+    const existingProvider = await database.socialProvider.findFirst({
+      where: {
+        profileId: userObject.id,
+        NOT: {
+          userId: userId,
+        },
+      },
+    });
+
+    // If found, handle the transfer
+    if (existingProvider) {
+      await database.socialProvider.update({
+        where: {
+          id: existingProvider.id,
+        },
+        data: {
+          userId,
+          accessToken: access_token,
+          refreshToken: null, // LinkedIn doesn't provide refresh tokens
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+          username: email || undefined,
+          profileImage: profileImage ?? undefined,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        },
+      });
+
+      return NextResponse.redirect(
+        new URL(
+          '/socials?notification=account_transferred&platform=linkedin',
+          env.NEXT_PUBLIC_APP_URL
+        )
       );
     }
 
-    const userData: LinkedInUserResponse = await userResponse.json();
-
-    const firstName = userData.firstName.localized.en_US;
-    const lastName = userData.lastName.localized.en_US;
-    const fullName = `${firstName} ${lastName}`;
-    const profileImage =
-      userData.profilePicture?.['displayImage~']?.elements[0]?.identifiers[0]
-        ?.identifier ?? '';
-
-    // Upsert the social provider
+    // Use upsert to either create or update the social provider
     await database.socialProvider.upsert({
       where: {
         userId_profileId: {
           userId,
-          profileId: userData.id,
+          profileId: userObject.id,
         },
       },
       create: {
-        id: generateSocialProviderId(),
-        accessToken: tokenData.access_token,
-        expiresIn: new Date(Date.now() + tokenData.expires_in * 1000),
-        fullName,
-        profileImage,
-        profileId: userData.id,
+        id: `social_${nanoid(12)}`,
+        accessToken: access_token,
+        refreshToken: null, // LinkedIn doesn't provide refresh tokens
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        username: email || undefined,
+        profileImage: profileImage ?? undefined,
+        profileId: userObject.id,
         userId,
         socialType: 'LINKEDIN',
         isActive: true,
         lastSyncedAt: new Date(),
       },
       update: {
-        accessToken: tokenData.access_token,
-        expiresIn: new Date(Date.now() + tokenData.expires_in * 1000),
-        fullName,
-        profileImage,
+        accessToken: access_token,
+        refreshToken: null,
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        username: email || undefined,
+        profileImage: profileImage || undefined,
         updatedAt: new Date(),
         isActive: true,
         lastSyncedAt: new Date(),
+        userId,
       },
     });
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to process LinkedIn authentication' },
-      { status: 500 }
+    console.error('LinkedIn callback error:', error);
+    const errorType = error instanceof Error ? error.message : 'internal_error';
+    return NextResponse.redirect(
+      new URL(
+        `/socials?error=${errorType}&code=LINKEDIN_ERR&provider=LINKEDIN`,
+        env.NEXT_PUBLIC_APP_URL
+      )
     );
   }
 }

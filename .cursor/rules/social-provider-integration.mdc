@@ -1,0 +1,159 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Social Provider Integration Guidelines
+
+When adding a new social media provider integration, follow these guidelines to maintain consistency and reliability across the application.
+
+## 1. Callback Route Structure
+
+Create a new callback route in `apps/app/app/api/callback/[provider]/route.ts`:
+
+```typescript
+// Required imports
+import { getAuth } from '@delulu/auth/server';
+import { database } from '@delulu/database';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import { env } from '@/env';
+import { nanoid } from 'nanoid';
+
+// Define provider-specific interfaces
+interface ProviderResponse {
+  access_token: string;
+  refresh_token?: string; // Optional, not all providers give refresh tokens
+  expires_in: number;
+}
+
+interface ProviderUserResponse {
+  // Define user profile fields
+}
+
+// Use consistent timeout
+const TIMEOUT_MS = 8000;
+
+// Reuse fetchWithTimeout helper
+async function fetchWithTimeout(url: string, options: RequestInit, timeout = TIMEOUT_MS) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+```
+
+## 2. Error Handling
+
+Use consistent error types and codes:
+
+```typescript
+// Error redirect format
+new URL(
+  `/socials?error=${errorType}&code=${PROVIDER}_ERR&provider=${PROVIDER}`,
+  env.NEXT_PUBLIC_APP_URL
+);
+
+// Common error types
+const errors = {
+  auth_required: 'AUTH_001',
+  invalid_request: 'PARAM_001',
+  provider_auth_failed: `${PROVIDER}_001`,
+  token_invalid: `${PROVIDER}_002`,
+  user_fetch_failed: `${PROVIDER}_003`,
+};
+```
+
+## 3. Database Integration
+
+Follow this pattern for social provider data:
+
+```typescript
+await database.socialProvider.upsert({
+  where: {
+    userId_profileId: {
+      userId,
+      profileId: userObject.id,
+    },
+  },
+  create: {
+    id: `social_${nanoid(12)}`,
+    accessToken: access_token,
+    refreshToken, // If available
+    expiresIn: new Date(Date.now() + expires_in * 1000),
+    fullName: '', // Provider-specific name format
+    username: '', // Provider-specific username
+    profileImage: '', // Provider-specific image URL
+    profileId: userObject.id,
+    userId,
+    socialType: 'PROVIDER_TYPE',
+    isActive: true,
+    lastSyncedAt: new Date(),
+  },
+  update: {
+    // Similar fields as create
+    updatedAt: new Date(),
+  },
+});
+```
+
+## 4. Environment Variables
+
+Add required environment variables in `.env`:
+
+```bash
+# Provider OAuth credentials
+PROVIDER_CLIENT_ID=
+PROVIDER_CLIENT_SECRET=
+PROVIDER_CALLBACK_URL=
+```
+
+## 5. Update Notifications
+
+Add provider-specific messages in `social-notifications.tsx`:
+
+```typescript
+const ERROR_MESSAGES = {
+  [`${provider}_auth_failed`]: {
+    title: 'Authentication Failed',
+    description: 'We encountered an error while connecting. Please try again.',
+  },
+  // ... other error types
+};
+
+const NOTIFICATIONS = {
+  account_transferred: {
+    title: `${Provider} Account Transferred`,
+    description: 'Your account was successfully transferred.',
+  },
+};
+```
+
+## 6. Testing Checklist
+
+Before deploying a new provider:
+
+1. ✅ Verify OAuth flow works
+2. ✅ Test error scenarios
+3. ✅ Verify account transfer flow
+4. ✅ Check token expiration handling
+5. ✅ Test retry functionality
+6. ✅ Verify notifications display correctly
+
+## 7. Security Considerations
+
+1. Always use HTTPS for API calls
+2. Never expose OAuth credentials in client-side code
+3. Validate all incoming data
+4. Use timeouts for external API calls
+5. Implement rate limiting
+6. Handle token expiration gracefully
