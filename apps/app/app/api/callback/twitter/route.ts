@@ -2,7 +2,6 @@ import { getAuth } from '@delulu/auth/server';
 import { database } from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { Client } from 'twitter-api-sdk';
 
 import { env } from '@/env';
 import { nanoid } from 'nanoid';
@@ -11,6 +10,15 @@ interface TwitterResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
+}
+
+interface TwitterUserResponse {
+  data: {
+    id: string;
+    name: string;
+    username: string;
+    profile_image_url?: string;
+  };
 }
 
 interface ErrorResponse {
@@ -85,10 +93,27 @@ export async function GET(req: NextRequest) {
     const response: TwitterResponse = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = response;
 
-    const client = new Client(access_token);
-    const { data: userObject } = await client.users.findMyUser({
-      'user.fields': ['username', 'profile_image_url', 'name', 'id'],
-    });
+    // Replace Twitter SDK with direct fetch call
+    const userResponse = await fetch(
+      'https://api.twitter.com/2/users/me?user.fields=username,profile_image_url,name,id',
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=twitter_user_fetch_failed&code=TWITTER_003',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    const { data: userObject } =
+      (await userResponse.json()) as TwitterUserResponse;
 
     if (!userObject) {
       return NextResponse.redirect(

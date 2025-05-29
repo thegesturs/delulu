@@ -1,13 +1,8 @@
 'use client';
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@delulu/design-system/components/ui/alert';
-import { AlertTriangle, XCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { SocialError } from '../error/social-error';
 
 const ERROR_MESSAGES = {
   auth_required: {
@@ -41,15 +36,16 @@ const ERROR_MESSAGES = {
 
 const NOTIFICATIONS = {
   account_transferred: {
-    title: 'Account Transferred',
+    title: 'Twitter Account Transferred',
     description:
-      'This social account was previously connected to a different user and has been transferred to your account.',
+      'Your Twitter account was previously connected to a different user and has been successfully transferred to your current account.',
   },
 };
 
 export function SocialNotifications() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -57,36 +53,36 @@ export function SocialNotifications() {
   }, [searchParams]);
 
   const error = searchParams.get('error');
-  const code = searchParams.get('code');
   const notification = searchParams.get('notification');
-  const platform = searchParams.get('platform');
 
   if (!visible) {
     return null;
   }
 
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
+    // Refresh the page to retry the connection
+    window.location.reload();
+  };
+
   if (error && ERROR_MESSAGES[error as keyof typeof ERROR_MESSAGES]) {
     const errorMessage = ERROR_MESSAGES[error as keyof typeof ERROR_MESSAGES];
+    const showRetry = retryCount < 3; // Only show retry button if we haven't tried 3 times
+
     return (
-      <Alert variant="destructive" className="mb-6">
-        <XCircle className="h-4 w-4" />
-        <AlertTitle>{errorMessage.title}</AlertTitle>
-        <AlertDescription className="flex items-center justify-between">
-          <span>
-            {errorMessage.description}
-            {code && (
-              <span className="ml-2 text-xs opacity-70">Code: {code}</span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={() => setVisible(false)}
-            className="text-xs hover:underline"
-          >
-            Dismiss
-          </button>
-        </AlertDescription>
-      </Alert>
+      <div className="mb-6">
+        <SocialError
+          title={errorMessage.title}
+          message={
+            showRetry
+              ? errorMessage.description
+              : `${errorMessage.description} If this issue persists, please contact our support team.`
+          }
+          showRetry={showRetry}
+          showBackToSocials={true}
+          retryAction={handleRetry}
+        />
+      </div>
     );
   }
 
@@ -96,28 +92,16 @@ export function SocialNotifications() {
   ) {
     const notificationMessage =
       NOTIFICATIONS[notification as keyof typeof NOTIFICATIONS];
+
     return (
-      <Alert className="mb-6 border-yellow-500 bg-yellow-500/10 text-yellow-700">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>{notificationMessage.title}</AlertTitle>
-        <AlertDescription className="flex items-center justify-between">
-          <span>
-            {notificationMessage.description}
-            {platform && (
-              <span className="ml-2 text-xs opacity-70">
-                Platform: {platform}
-              </span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={() => setVisible(false)}
-            className="text-xs hover:underline"
-          >
-            Dismiss
-          </button>
-        </AlertDescription>
-      </Alert>
+      <div className="mb-6">
+        <SocialError
+          title={notificationMessage.title}
+          message={notificationMessage.description}
+          showRetry={false}
+          showBackToSocials={true}
+        />
+      </div>
     );
   }
 

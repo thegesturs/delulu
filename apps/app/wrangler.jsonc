@@ -34,23 +34,23 @@
     "staging": {
       "vars": {
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
-        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
-        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
         "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
         "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
         "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
-        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/"
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/",
+        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
+        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin"
       }
     },
     "production": {
       "vars": {
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
-        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
-        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
         "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
         "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
         "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",
-        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/"
+        "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/",
+        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
+        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin"
       }
     }
   },
