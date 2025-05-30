@@ -22,6 +22,8 @@ export function PostCreator() {
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
 
+  console.log(socialProviders, socialProviders.length > 1, 'providers');
+
   const handleTabChange = useCallback(
     (value: string) => {
       if (value !== activeModuleId) {
@@ -35,7 +37,7 @@ export function PostCreator() {
     <div className="flex h-full gap-4">
       <div className="flex-1">
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
-          <TabsList className={cn(socialProviders.length === 0 && 'hidden')}>
+          <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
             <TabsTrigger value="global">Global</TabsTrigger>
             {alternativeContent.map((content) => (
               <TabsTrigger
