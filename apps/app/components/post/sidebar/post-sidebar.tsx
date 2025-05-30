@@ -91,6 +91,7 @@ export function PostSidebar() {
                 value={date}
                 onChange={setDateAlongWithTime}
                 placeholder="Select date and time..."
+                
               />
             </div>
           </div>

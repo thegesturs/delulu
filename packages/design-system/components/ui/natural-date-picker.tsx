@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
+import { setHours, setMinutes, getHours, getMinutes } from "date-fns"
+import { formatInTimeZone } from 'date-fns-tz'
 import { Calendar as CalendarIcon } from "lucide-react"
 import * as chrono from "chrono-node"
 import { motion, AnimatePresence } from "motion/react"
 
 import { cn } from "@delulu/design-system/lib/utils"
 import { Calendar } from "@delulu/design-system/components/ui/calendar"
+import type { DayPickerSingleProps } from "react-day-picker"
 import {
   Popover,
   PopoverContent,
@@ -18,16 +20,20 @@ import {
   CommandGroup,
   CommandItem,
 } from "@delulu/design-system/components/ui/command"
-import { DayPicker } from "react-day-picker"
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@delulu/design-system/components/ui/select"
 
 type Suggestion = {
   label: string
   value: string
 }
 
-
-const suggestions: Suggestion[] = [
+const defaultSuggestions: Suggestion[] = [
   { label: "Tomorrow", value: "tomorrow" },
   { label: "In 2 days", value: "in 2 days" },
   { label: "In 3 days", value: "in 3 days" },
@@ -41,11 +47,27 @@ const dropdownVariants = {
   exit: { opacity: 0, y: -10 },
 }
 
+const convertTo12Hour = (hour24: number) => {
+  if (hour24 === 0) return 12 // 00:00 -> 12 AM
+  if (hour24 > 12) return hour24 - 12
+  return hour24
+}
+
+const convertTo24Hour = (hour12: number, isPM: boolean) => {
+  if (hour12 === 12) {
+    return isPM ? 12 : 0
+  }
+  return isPM ? hour12 + 12 : hour12
+}
+
 interface NaturalDatePickerProps {
   value?: Date
   onChange?: (date: Date | undefined) => void
   placeholder?: string
   className?: string
+  customSuggestions?: Suggestion[]
+  dayPickerProps?: Omit<DayPickerSingleProps, "mode" | "selected" | "onSelect" | "initialFocus">
+  timezone?: string // Optional timezone, defaults to user's local timezone
 }
 
 export function NaturalDatePicker({
@@ -53,56 +75,92 @@ export function NaturalDatePicker({
   onChange,
   placeholder = "Pick a date and time...",
   className,
+  customSuggestions,
+  dayPickerProps,
+  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's timezone
 }: NaturalDatePickerProps) {
   const [calendarOpen, setCalendarOpen] = React.useState(false)
   const [showSuggestions, setShowSuggestions] = React.useState(false)
+  
   const [inputValue, setInputValue] = React.useState(
-    value ? format(value, "PPP p") : ""
+    value ? formatInTimeZone(value, timezone, "PPP p") : ""
   )
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(value)
-  const [selectedTime, setSelectedTime] = React.useState<string>(
-    value ? format(value, "HH:mm") : "00:00"
-  )
+  
+  // Initialize time states
+  const initialHour24 = value ? getHours(value) : 0
+  const initialMinute = value ? getMinutes(value) : 0
+  const [hour12, setHour12] = React.useState(convertTo12Hour(initialHour24))
+  const [minute, setMinute] = React.useState(initialMinute)
+  const [isPM, setIsPM] = React.useState(initialHour24 >= 12)
+
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
+  const currentSuggestions = customSuggestions || defaultSuggestions
+
   React.useEffect(() => {
     if (value) {
-      setInputValue(format(value, "PPP p"))
+      const newHour24 = getHours(value)
+      setInputValue(formatInTimeZone(value, timezone, "PPP p"))
       setSelectedDate(value)
-      setSelectedTime(format(value, "HH:mm"))
+      setHour12(convertTo12Hour(newHour24))
+      setMinute(getMinutes(value))
+      setIsPM(newHour24 >= 12)
     } else {
       setInputValue("")
       setSelectedDate(undefined)
-      setSelectedTime("00:00")
+      setHour12(12)
+      setMinute(0)
+      setIsPM(false)
     }
-  }, [value])
+  }, [value, timezone])
+
+  const updateDateTime = (newDate: Date, newHour12: number, newMinute: number, newIsPM: boolean) => {
+    const hour24 = convertTo24Hour(newHour12, newIsPM)
+    let updatedDate = setHours(newDate, hour24)
+    updatedDate = setMinutes(updatedDate, newMinute)
+    
+    // Create a date object with timezone information
+    const dateWithTimezone = new Date(updatedDate.toLocaleString("en-US", { timeZone: timezone }))
+    Object.defineProperty(dateWithTimezone, 'timezone', {
+      value: timezone,
+      enumerable: true
+    })
+    
+    setSelectedDate(updatedDate)
+    setInputValue(formatInTimeZone(dateWithTimezone, timezone, "PPP p"))
+    onChange?.(dateWithTimezone)
+  }
 
   const handleDateChange = (date: Date | undefined) => {
     if (!date) return
-
-    const [hours, minutes] = selectedTime.split(":").map(Number)
-    const newDate = new Date(date)
-    newDate.setHours(hours, minutes)
-
-    setSelectedDate(newDate)
-    setInputValue(format(newDate, "PPP p"))
-    onChange?.(newDate)
+    updateDateTime(date, hour12, minute, isPM)
     setCalendarOpen(false)
   }
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = e.target.value
-    setSelectedTime(time)
-
+  const handleHourChange = (newHour: number) => {
+    // Clamp between 1 and 12
+    const clampedHour = Math.max(1, Math.min(12, newHour))
+    setHour12(clampedHour)
     if (selectedDate) {
-      const [hours, minutes] = time.split(":").map(Number)
-      const newDate = new Date(selectedDate)
-      newDate.setHours(hours, minutes)
-      // Update selectedDate to reflect new time for consistency
-      setSelectedDate(newDate)
-      setInputValue(format(newDate, "PPP p"))
-      onChange?.(newDate)
+      updateDateTime(selectedDate, clampedHour, minute, isPM)
+    }
+  }
+
+  const handleMinuteChange = (newMinute: number) => {
+    const clampedMinute = Math.max(0, Math.min(59, newMinute))
+    setMinute(clampedMinute)
+    if (selectedDate) {
+      updateDateTime(selectedDate, hour12, clampedMinute, isPM)
+    }
+  }
+
+  const handlePeriodChange = (newPeriod: string) => {
+    const newIsPM = newPeriod === "PM"
+    setIsPM(newIsPM)
+    if (selectedDate) {
+      updateDateTime(selectedDate, hour12, minute, newIsPM)
     }
   }
 
@@ -116,17 +174,18 @@ export function NaturalDatePicker({
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault() // Prevent form submission if any
-      const parsedDate = chrono.parseDate(inputValue)
+      e.preventDefault()
+      const parsedDate = chrono.parseDate(inputValue, { timezone })
       if (parsedDate) {
-        setSelectedDate(parsedDate)
-        setSelectedTime(format(parsedDate, "HH:mm"))
-        setInputValue(format(parsedDate, "PPP p"))
-        onChange?.(parsedDate)
+        const newHour24 = getHours(parsedDate)
+        const newMinute = getMinutes(parsedDate)
+        setHour12(convertTo12Hour(newHour24))
+        setMinute(newMinute)
+        setIsPM(newHour24 >= 12)
+        updateDateTime(parsedDate, convertTo12Hour(newHour24), newMinute, newHour24 >= 12)
         setShowSuggestions(false)
       } else {
-        // Handle invalid date input, maybe show an error or clear
-        onChange?.(undefined) // Clear date if input is invalid
+        onChange?.(undefined)
       }
     } else if (e.key === "Escape") {
       setShowSuggestions(false)
@@ -134,12 +193,14 @@ export function NaturalDatePicker({
   }
 
   const handleSuggestionSelect = (suggestionValue: string) => {
-    const parsedDate = chrono.parseDate(suggestionValue)
+    const parsedDate = chrono.parseDate(suggestionValue, { timezone })
     if (parsedDate) {
-      setSelectedDate(parsedDate)
-      setSelectedTime(format(parsedDate, "HH:mm"))
-      setInputValue(format(parsedDate, "PPP p"))
-      onChange?.(parsedDate)
+      const newHour24 = getHours(parsedDate)
+      const newMinute = getMinutes(parsedDate)
+      setHour12(convertTo12Hour(newHour24))
+      setMinute(newMinute)
+      setIsPM(newHour24 >= 12)
+      updateDateTime(parsedDate, convertTo12Hour(newHour24), newMinute, newHour24 >= 12)
     }
     setShowSuggestions(false)
     inputRef.current?.focus()
@@ -158,6 +219,7 @@ export function NaturalDatePicker({
     }
   }, [])
 
+  const formatTimeUnit = (unit: number) => unit.toString().padStart(2, '0')
 
   return (
     <div className={cn("relative", className)} ref={containerRef}>
@@ -177,10 +239,7 @@ export function NaturalDatePicker({
             <button
               type="button"
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-              onClick={() => {
-                setShowSuggestions(false) 
-                // setCalendarOpen(!calendarOpen) // PopoverTrigger handles this
-              }}
+              onClick={() => setShowSuggestions(false)}
               aria-label="Open calendar"
             >
               <CalendarIcon className="h-4 w-4" />
@@ -193,14 +252,39 @@ export function NaturalDatePicker({
                 selected={selectedDate}
                 onSelect={handleDateChange}
                 initialFocus
+                {...dayPickerProps}
               />
-              <div className="mt-4 flex items-center justify-center">
-                <input
-                  type="time"
-                  value={selectedTime}
-                  onChange={handleTimeChange}
-                  className="border rounded-md px-2 py-1 text-sm w-full"
-                />
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <div className="flex items-center gap-1 p-1 border border-input rounded-md shadow-sm">
+                  <input 
+                    type="number" 
+                    value={formatTimeUnit(hour12)}
+                    onChange={(e) => handleHourChange(parseInt(e.target.value, 10))}
+                    onFocus={(e) => e.target.select()}
+                    className="w-8 text-center bg-transparent focus:outline-none hide-arrows"
+                    min={1}
+                    max={12}
+                  />
+                  <span>:</span>
+                  <input 
+                    type="number" 
+                    value={formatTimeUnit(minute)}
+                    onChange={(e) => handleMinuteChange(parseInt(e.target.value, 10))}
+                    onFocus={(e) => e.target.select()}
+                    className="w-8 text-center bg-transparent focus:outline-none hide-arrows"
+                    min={0}
+                    max={59}
+                  />
+                  <Select value={isPM ? "PM" : "AM"} onValueChange={handlePeriodChange}>
+                    <SelectTrigger className="h-auto border-0 p-0 px-1 focus:ring-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </PopoverContent>
@@ -219,7 +303,7 @@ export function NaturalDatePicker({
           >
             <Command>
               <CommandGroup>
-                {suggestions.map((suggestion) => (
+                {currentSuggestions.map((suggestion) => (
                   <CommandItem
                     key={suggestion.value}
                     onSelect={() => handleSuggestionSelect(suggestion.value)}
@@ -233,6 +317,17 @@ export function NaturalDatePicker({
           </motion.div>
         )}
       </AnimatePresence>
+       {/* CSS to hide number input arrows */}
+      <style>{`
+        .hide-arrows::-webkit-outer-spin-button,
+        .hide-arrows::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .hide-arrows {
+          -moz-appearance: textfield; /* Firefox */
+        }
+      `}</style>
     </div>
   )
 } 
