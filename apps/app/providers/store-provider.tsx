@@ -1,5 +1,6 @@
 'use client';
 
+import { useStore } from '@/store/post';
 import { type ReactNode, useEffect, useState } from 'react';
 
 interface StoreProviderProps {
@@ -10,6 +11,8 @@ export function StoreProvider({ children }: StoreProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    // Hydrate the store
+    useStore.persist.rehydrate();
     setIsHydrated(true);
   }, []);
 

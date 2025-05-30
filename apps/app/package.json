@@ -40,7 +40,7 @@
     "@trpc/tanstack-react-query": "catalog:",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.15.0",
+    "motion": "^12.15.0",
     "fuse.js": "^7.1.0",
     "import-in-the-middle": "^1.13.1",
     "lucide-react": "^0.511.0",

@@ -20,7 +20,7 @@ interface PostState {
 // Define the store's actions
 interface PostActions {
   setShouldReset: (shouldReset: boolean) => void;
-  setDate: (date: Date | undefined) => void;
+  setDateAlongWithTime: (date: Date | undefined) => void;
   setTime: (time: string | null) => void;
   setPost: (post: FullPostType) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
@@ -65,7 +65,7 @@ export const useStore = create<PostState & PostActions>()(
       (set) => ({
         ...initialState,
         setShouldReset: (shouldReset) => set({ shouldReset }),
-        setDate: (date) => set({ date }),
+        setDateAlongWithTime: (date) => set({ date }),
         setTime: (time) => set({ time }),
         setPost: (post) => set({ post }),
         setSelectedSocialProviders: (providers) =>
@@ -74,7 +74,7 @@ export const useStore = create<PostState & PostActions>()(
       }),
       {
         name: 'post-storage',
-        storage: createJSONStorage(() => sessionStorage),
+        storage: createJSONStorage(() => localStorage),
         skipHydration: true,
       }
     )

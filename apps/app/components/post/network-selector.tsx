@@ -12,14 +12,18 @@ import {
 import type { SocialType } from '@delulu/validators/post';
 
 import { useStore } from '@/store/post';
-  // import { SocialIcon } from '../common/SocialIcon';
+import { ArrowDown } from 'lucide-react';
+import { useShallow } from 'zustand/shallow';
+import { SocialIcon } from './sidebar/social-icon';
 
-export function NetworkSelector() {
-  const { post, socialProviders, setPost } = useStore((state) => ({
-    post: state.post,
-    socialProviders: state.selectedSocialProviders,
-    setPost: state.setPost,
-  }));
+export function AlternativeContentSelector() {
+  const { post, socialProviders, setPost } = useStore(
+    useShallow((state) => ({
+      post: state.post,
+      socialProviders: state.selectedSocialProviders,
+      setPost: state.setPost,
+    }))
+  );
 
   // Calculate providers without alternative content
   const availableProviders = useMemo(() => {
@@ -78,34 +82,32 @@ export function NetworkSelector() {
   }
 
   return (
-    <div className="mb-4">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full">
-            Select Networks
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
-          {socialProviders.map((provider) => {
-            const isSelected = post.alternativeContent.some(
-              (content) => content.socialProvider.socialId === provider.socialId
-            );
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" className="size-7 rounded-md">
+          <ArrowDown className="size-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="start">
+        {socialProviders.map((provider) => {
+          const isSelected = post.alternativeContent.some(
+            (content) => content.socialProvider.socialId === provider.socialId
+          );
 
-            return (
-              <DropdownMenuCheckboxItem
-                key={provider.socialId}
-                checked={isSelected}
-                onCheckedChange={() => handleProviderToggle(provider)}
-              >
-                <div className="flex items-center gap-2">
-                  {/* <SocialIcon type={provider.socialType} size="sm" /> */}
-                  <span>{provider.name}</span>
-                </div>
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+          return (
+            <DropdownMenuCheckboxItem
+              key={provider.socialId}
+              checked={isSelected}
+              onCheckedChange={() => handleProviderToggle(provider)}
+            >
+              <div className="flex items-center gap-2">
+                <SocialIcon type={provider.socialType} size="sm" />
+                <span>{provider.name}</span>
+              </div>
+            </DropdownMenuCheckboxItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

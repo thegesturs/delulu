@@ -3,10 +3,15 @@ import { type SocialType, SocialTypes } from '@delulu/validators/post';
 import Image from 'next/image';
 import { AiFillYoutube } from 'react-icons/ai';
 import { AiOutlineTwitter } from 'react-icons/ai';
-import { FaFacebook, FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
+import {
+  FaFacebook,
+  FaGithub,
+  FaInstagram,
+  FaLinkedinIn,
+} from 'react-icons/fa';
 
 interface SocialIconProps {
-  type: SocialType;
+  type: SocialType | 'DEFAULT';
   className?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 }

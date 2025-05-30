@@ -1,3 +1,4 @@
+import { StoreProvider } from '@/providers/store-provider';
 import { auth, currentUser } from '@delulu/auth/server';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { NotificationsProvider } from '@delulu/notifications/components/provider';
@@ -33,7 +34,7 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
               Beta feature now available
             </div>
           )} */}
-          {children}
+          <StoreProvider>{children}</StoreProvider>
         </GlobalSidebar>
         <PostHogIdentifier />
       </SidebarProvider>
