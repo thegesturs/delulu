@@ -7,6 +7,7 @@ import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import type { MediaType, SocialType } from '@delulu/validators/post';
 
 import { useStore } from '@/store/post';
+import { useShallow } from 'zustand/shallow';
 import { MediaUploader } from './media-uploader';
 
 interface ContentModuleProps {
@@ -20,10 +21,12 @@ export function ContentModule({
   socialId,
   socialType,
 }: ContentModuleProps) {
-  const { post, setPost } = useStore((state) => ({
-    post: state.post,
-    setPost: state.setPost,
-  }));
+  const { post, setPost } = useStore(
+    useShallow((state) => ({
+      post: state.post,
+      setPost: state.setPost,
+    }))
+  );
 
   const content = isGlobal
     ? post.content[0]
@@ -84,7 +87,7 @@ export function ContentModule({
   }
 
   return (
-    <Card className="mt-4 p-4">
+    <Card className="mt-4 border p-4 shadow-none">
       <Textarea
         value={content.text}
         onChange={(e) => handleTextChange(e.target.value)}

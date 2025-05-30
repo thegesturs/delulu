@@ -5,14 +5,7 @@ import { IoCalendarOutline } from 'react-icons/io5';
 
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Calendar } from '@delulu/design-system/components/ui/calendar';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Checkbox } from '@delulu/design-system/components/ui/checkbox';
+import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 import {
   Popover,
   PopoverContent,
@@ -21,20 +14,25 @@ import {
 // import { TimeInput } from '@delulu/design-system/components/ui/time-input';
 import type { SocialProviderType } from '@delulu/validators/post';
 
-import { useStore } from '@/store/post';
+// Import specific hooks from Zustand store
+import {
+  postActions, // For setPost, setDate, setTime actions
+  useDateTime,
+  usePost, // Assuming this returns the post object and its setter or use a specific setter hook if available
+  useSelectedSocialProviders,
+} from '@/store/post';
+// Removed: import { useStore } from '@/store/post';
+// Removed: import { useShallow } from 'zustand/shallow';
+import SocialSelector from './social-selector';
 // import { SocialIcon } from '../common/social-icon';
 
 export function PostSidebar() {
-  const { date, time, setDate, setTime, post, setPost, socialProviders } =
-    useStore((state) => ({
-      date: state.date,
-      time: state.time,
-      setDate: state.setDate,
-      setTime: state.setTime,
-      post: state.post,
-      setPost: state.setPost,
-      socialProviders: state.socialProviders,
-    }));
+  const { date, time } = useDateTime();
+  const post = usePost(); // Assuming usePost() now returns only the post object
+  const socialProviders = useSelectedSocialProviders();
+
+  // Destructure actions from postActions
+  const { updatePost } = postActions;
 
   const handleSchedule = useCallback(() => {
     // TODO: Implement scheduling logic
@@ -52,16 +50,16 @@ export function PostSidebar() {
 
       if (isSelected) {
         // Remove provider
-        setPost({
-          ...post,
+        updatePost({
+          // Use updatePost from postActions
           alternativeContent: post.alternativeContent.filter(
             (content) => content.socialProvider.socialId !== provider.socialId
           ),
         });
       } else {
         // Add provider with default content
-        setPost({
-          ...post,
+        updatePost({
+          // Use updatePost from postActions
           alternativeContent: [
             ...post.alternativeContent,
             {
@@ -82,53 +80,13 @@ export function PostSidebar() {
         });
       }
     },
-    [post, setPost]
+    [post, updatePost] // updatePost is stable
   );
 
   return (
     <Card className="w-80">
-      <CardHeader>
-        <CardTitle>Post Settings</CardTitle>
-      </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div>
-            <div
-              id="social-providers-label"
-              className="mb-2 block font-medium text-sm"
-            >
-              Social Networks
-            </div>
-            <div className="space-y-2">
-              {socialProviders.map((provider) => {
-                const isSelected = post.alternativeContent.some(
-                  (content) =>
-                    content.socialProvider.socialId === provider.socialId
-                );
-
-                return (
-                  <div
-                    key={provider.socialId}
-                    className="flex items-center space-x-2"
-                  >
-                    <Checkbox
-                      id={provider.socialId}
-                      checked={isSelected}
-                      onCheckedChange={() => handleProviderToggle(provider)}
-                    />
-                    <label
-                      htmlFor={provider.socialId}
-                      className="flex cursor-pointer items-center gap-2 text-sm"
-                    >
-                      {/* <SocialIcon type={provider.socialType} size="sm" /> */}
-                      <span>{provider.name}</span>
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           <div>
             <div id="schedule-label" className="mb-2 block font-medium text-sm">
               Schedule Post
@@ -149,7 +107,7 @@ export function PostSidebar() {
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={setDate}
+                    // onSelect={setDate}
                     initialFocus
                   />
                 </PopoverContent>
@@ -171,7 +129,7 @@ export function PostSidebar() {
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-2">
         <Button
           className="w-full"
           onClick={handlePostNow}
@@ -187,7 +145,10 @@ export function PostSidebar() {
         >
           Schedule Post
         </Button>
-      </CardFooter>
+      </CardContent>
+      <CardContent>
+        <SocialSelector />
+      </CardContent>
     </Card>
   );
 }
