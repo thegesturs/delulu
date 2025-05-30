@@ -1,54 +1,36 @@
-import { shallow } from 'zustand/shallow';
-import { createWithEqualityFn } from 'zustand/traditional';
-
 import type {
   FullPostType,
   SocialProviderType,
   youtubeContentType,
 } from '@delulu/validators/post';
+import { create } from 'zustand';
+import { createJSONStorage, devtools, persist } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
 
-interface StateValues {
+// Define the store's state types
+interface PostState {
   date: Date | undefined;
   time: string | null;
   post: FullPostType;
   youtubeContent: youtubeContentType;
-  socialProviders: SocialProviderType[];
+  selectedSocialProviders: SocialProviderType[];
+  shouldReset: boolean;
 }
 
-interface StateSetters {
-  shouldReset: boolean;
+// Define the store's actions
+interface PostActions {
   setShouldReset: (shouldReset: boolean) => void;
   setDate: (date: Date | undefined) => void;
   setTime: (time: string | null) => void;
-  reset: () => void;
   setPost: (post: FullPostType) => void;
-  setSocialProviders: (providers: SocialProviderType[]) => void;
+  setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
+  reset: () => void;
 }
 
-type State = StateValues & StateSetters;
-
-// Mock social providers - replace with real data later
-const mockSocialProviders: SocialProviderType[] = [
-  {
-    socialId: '1',
-    name: '@johndoe',
-    socialType: 'TWITTER',
-  },
-  {
-    socialId: '2',
-    name: 'John Doe',
-    socialType: 'LINKEDIN',
-  },
-  {
-    socialId: '3',
-    name: '@johndoe',
-    socialType: 'INSTAGRAM',
-  },
-];
-
-const initialState: StateValues = {
+const initialState: PostState = {
   date: undefined,
   time: '00:00',
+  shouldReset: false,
   youtubeContent: {
     youtubeId: '',
     name: '',
@@ -73,21 +55,69 @@ const initialState: StateValues = {
     scheduledTime: undefined,
     orgId: '',
   },
-  socialProviders: mockSocialProviders,
+  selectedSocialProviders: [],
 };
 
-export const useStore = createWithEqualityFn<State>(
-  (set) => ({
-    ...initialState,
-    shouldReset: false,
-    setShouldReset: (shouldReset) =>
-      set((state) => ({ ...state, shouldReset })),
-    setDate: (date) => set((state) => ({ ...state, date })),
-    setTime: (time) => set((state) => ({ ...state, time })),
-    setPost: (post) => set((state) => ({ ...state, post })),
-    setSocialProviders: (providers) =>
-      set((state) => ({ ...state, socialProviders: providers })),
-    reset: () => set(() => initialState),
-  }),
-  shallow
+// Create the store with SSR support and persistence
+export const useStore = create<PostState & PostActions>()(
+  devtools(
+    persist(
+      (set) => ({
+        ...initialState,
+        setShouldReset: (shouldReset) => set({ shouldReset }),
+        setDate: (date) => set({ date }),
+        setTime: (time) => set({ time }),
+        setPost: (post) => set({ post }),
+        setSelectedSocialProviders: (providers) =>
+          set({ selectedSocialProviders: providers }),
+        reset: () => set(initialState),
+      }),
+      {
+        name: 'post-storage',
+        storage: createJSONStorage(() => sessionStorage),
+        skipHydration: true,
+      }
+    )
+  )
 );
+
+// Stable selectors
+const postSelector = (state: PostState & PostActions) => state.post;
+const dateTimeSelector = (state: PostState & PostActions) => ({
+  date: state.date,
+  time: state.time,
+});
+const selectedProvidersSelector = (state: PostState & PostActions) =>
+  state.selectedSocialProviders;
+const alternativeContentSelector = (state: PostState & PostActions) =>
+  state.post.alternativeContent;
+
+export const usePost = () => useStore(postSelector);
+export const useAlternativeContent = () =>
+  useStore(useShallow(alternativeContentSelector));
+export const useDateTime = () => useStore(useShallow(dateTimeSelector));
+export const useSelectedSocialProviders = () =>
+  useStore(useShallow(selectedProvidersSelector));
+
+// Action creators with proper typing
+export const postActions = {
+  addSocialProvider: (provider: SocialProviderType) =>
+    useStore.setState((state) => ({
+      selectedSocialProviders: [...state.selectedSocialProviders, provider],
+    })),
+  removeSocialProvider: (socialId: string) =>
+    useStore.setState((state) => ({
+      selectedSocialProviders: state.selectedSocialProviders.filter(
+        (provider) => provider.socialId !== socialId
+      ),
+    })),
+  updatePost: (updates: Partial<FullPostType>) =>
+    useStore.setState((state) => ({
+      post: { ...state.post, ...updates },
+    })),
+};
+
+// Hydration helper
+// if (typeof window !== 'undefined') {
+// useStore.persist.rehydrate();
+// }
