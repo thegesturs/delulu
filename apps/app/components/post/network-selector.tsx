@@ -17,7 +17,7 @@ import { useStore } from '@/store/post';
 export function NetworkSelector() {
   const { post, socialProviders, setPost } = useStore((state) => ({
     post: state.post,
-    socialProviders: state.socialProviders,
+    socialProviders: state.selectedSocialProviders,
     setPost: state.setPost,
   }));
 

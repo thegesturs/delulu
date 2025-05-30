@@ -87,12 +87,12 @@ export function ContentModule({
   }
 
   return (
-    <Card className="mt-4 border p-4 shadow-none">
+    <Card className="mt-4 border-none p-4 shadow-sm">
       <Textarea
         value={content.text}
         onChange={(e) => handleTextChange(e.target.value)}
         placeholder="What's on your mind?"
-        className="mb-4 min-h-[200px] resize-none"
+        className="mb-4 min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
       />
       <MediaUploader
         media={content.media}
