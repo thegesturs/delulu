@@ -16,11 +16,13 @@ export const socialProviderRouter = {
     }),
 
   getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.db.socialProvider.findMany({
+    const socialProviders = await ctx.db.socialProvider.findMany({
       where: {
         userId: ctx.userId,
       },
     });
+
+    return socialProviders;
   }),
   createPost: protectedProcedure
     .input(savePostInputSchema)

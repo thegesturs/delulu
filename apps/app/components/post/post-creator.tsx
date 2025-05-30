@@ -6,7 +6,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@delulu/design-system/components/ui/tabs';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   useAlternativeContent,
@@ -15,14 +15,14 @@ import {
 import { cn } from '@delulu/design-system/lib/utils';
 import { SocialTypes } from '@delulu/validators/post';
 import { ContentModule } from './content-module';
+import { AlternativeContentSelector } from './network-selector';
 import { PostSidebar } from './sidebar/post-sidebar';
+import { SocialIcon } from './sidebar/social-icon';
 
 export function PostCreator() {
   const alternativeContent = useAlternativeContent();
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
-
-  console.log(socialProviders, socialProviders.length > 1, 'providers');
 
   const handleTabChange = useCallback(
     (value: string) => {
@@ -32,6 +32,18 @@ export function PostCreator() {
     },
     [activeModuleId]
   );
+
+  useEffect(() => {
+    // If activeModuleId is not 'global' and not found in alternativeContent
+    if (
+      activeModuleId !== 'global' &&
+      !alternativeContent.some(
+        (content) => content.socialProvider.socialId === activeModuleId
+      )
+    ) {
+      setActiveModuleId('global');
+    }
+  }, [alternativeContent, activeModuleId]);
 
   return (
     <div className="flex h-full gap-4">
@@ -43,10 +55,16 @@ export function PostCreator() {
               <TabsTrigger
                 key={content.socialProvider.socialId}
                 value={content.socialProvider.socialId}
+                className="min-w-fit gap-2 text-xs"
               >
+                <SocialIcon
+                  type={content.socialProvider.socialType}
+                  className="size-4"
+                />
                 {content.socialProvider.name}
               </TabsTrigger>
             ))}
+            <AlternativeContentSelector />
           </TabsList>
 
           <TabsContent value="global">

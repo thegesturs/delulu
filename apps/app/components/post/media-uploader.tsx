@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   ImageIcon,
   Plus,
@@ -8,13 +7,14 @@ import {
   VideoIcon as Video,
   XIcon as X,
 } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
-import type { MediaType, SocialType } from '@delulu/validators/post';
+import type { SocialType } from '@delulu/validators/post';
 import { useShallow } from 'zustand/shallow';
 
 interface MediaFile {
@@ -56,7 +56,7 @@ export function MediaPreview({
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'group relative overflow-hidden rounded-lg bg-gray-100',
+        'group relative overflow-hidden rounded-lg bg-muted',
         getPreviewAspectRatio(media.mediaType)
       )}
     >
@@ -89,12 +89,12 @@ export function MediaPreview({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => onRemove(media.id)}
-        className="absolute top-1 right-1 z-10 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity duration-200 hover:bg-red-600 group-hover:opacity-100"
+        className="absolute top-1 right-1 z-10 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity duration-200 hover:bg-destructive/90 group-hover:opacity-100"
         aria-label="Remove media"
       >
         <X className="h-3 w-3" />
       </motion.button>
-      <div className="absolute bottom-1 left-1 rounded bg-black bg-opacity-50 px-1.5 py-0.5 text-white">
+      <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-foreground">
         {media.mediaType === 'IMAGE' ? (
           <ImageIcon className="h-3 w-3" />
         ) : (
@@ -208,8 +208,8 @@ function UploadZone({
       className={cn(
         'relative rounded-lg border-2 border-dashed p-6 transition-colors',
         isDragOver
-          ? 'border-blue-500 bg-blue-50'
-          : 'border-gray-300 hover:border-gray-400'
+          ? 'border-primary bg-primary/10'
+          : 'border-border hover:border-input'
       )}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -231,21 +231,23 @@ function UploadZone({
           animate={{ y: isDragOver ? -5 : 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <Upload className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+          <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
         </motion.div>
-        <p className="mb-1 text-gray-600 text-sm">
+        <p className="mb-1 text-muted-foreground text-sm">
           {uploadInstruction}{' '}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="font-medium text-blue-600 hover:text-blue-700"
+            className="font-medium text-primary hover:text-primary/80"
           >
             browse
           </button>
         </p>
-        <p className="text-gray-500 text-xs">{countInstruction}</p>
+        <p className="text-muted-foreground text-xs">{countInstruction}</p>
         {aspectRatioInstruction && (
-          <p className="mt-1 text-gray-500 text-xs">{aspectRatioInstruction}</p>
+          <p className="mt-1 text-muted-foreground text-xs">
+            {aspectRatioInstruction}
+          </p>
         )}
       </div>
     </motion.div>
@@ -264,7 +266,7 @@ function MediaStats({ mediaFiles, onClearAll, platformHint }: MediaStatsProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex items-center justify-between rounded-lg bg-gray-100 p-2 text-gray-500 text-xs"
+      className="flex items-center justify-between rounded-lg bg-muted p-2 text-muted-foreground text-xs"
     >
       <div className="flex items-center space-x-3" title={platformHint}>
         <span className="flex items-center space-x-1">
@@ -303,17 +305,39 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
 
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() => {
-    return post.content[0].media
+  const isUserAction = useRef(false);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() =>
+    post.content[0].media
       .map((media) => ({
         id: crypto.randomUUID(),
         file: media.file!,
         mediaType: media.mediaType,
         previewUrl: media.previewUrl || '',
       }))
-      .filter((m) => m.file && m.previewUrl);
-  });
+      .filter((m) => m.file && m.previewUrl)
+  );
+
+  // Update store only when mediaFiles change due to user actions
+  useEffect(() => {
+    if (isUserAction.current) {
+      const storeMedia = mediaFiles.map(({ file, mediaType, previewUrl }) => ({
+        file,
+        mediaType,
+        previewUrl,
+      }));
+
+      setPost({
+        ...post,
+        content: [
+          {
+            ...post.content[0],
+            media: storeMedia,
+          },
+        ],
+      });
+      isUserAction.current = false;
+    }
+  }, [mediaFiles, post, setPost]);
 
   const platformConfig = getPlatformConfig(socialType, mediaFiles);
   const {
@@ -325,48 +349,6 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
     aspectRatioInstruction,
     platformHint,
   } = platformConfig;
-
-  const updateStoreMedia = useCallback(
-    (mediaFiles: MediaFile[]) => {
-      const storeMedia: MediaType[] = mediaFiles.map(
-        ({ file, mediaType, previewUrl }) => ({
-          file,
-          mediaType,
-          previewUrl,
-        })
-      );
-
-      setPost({
-        ...post,
-        content: [
-          {
-            ...post.content[0],
-            media: storeMedia,
-          },
-        ],
-      });
-    },
-    [post, setPost]
-  );
-
-  const canUploadMore = (() => {
-    const imageCount = mediaFiles.filter((f) => f.mediaType === 'IMAGE').length;
-    const videoCount = mediaFiles.filter((f) => f.mediaType === 'VIDEO').length;
-
-    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
-      return imageCount < maxImages || videoCount < maxVideos;
-    }
-    if (socialType === 'INSTAGRAM') {
-      if (videoCount > 0) {
-        return false;
-      }
-      return imageCount < maxImages;
-    }
-    if (videoCount > 0) {
-      return false;
-    }
-    return imageCount < maxImages;
-  })();
 
   const handleFileProcessing = useCallback(
     (incomingFiles: File[]) => {
@@ -449,10 +431,10 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
       }));
 
       const updatedMediaFiles = [...mediaFiles, ...newMediaFiles];
+      isUserAction.current = true;
       setMediaFiles(updatedMediaFiles);
-      updateStoreMedia(updatedMediaFiles);
     },
-    [mediaFiles, socialType, maxImages, maxVideos, updateStoreMedia]
+    [mediaFiles, socialType, maxImages, maxVideos]
   );
 
   const handleDrop = useCallback(
@@ -476,26 +458,22 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
     [handleFileProcessing]
   );
 
-  const removeFile = useCallback(
-    (id: string) => {
-      setMediaFiles((prev) => {
-        const fileToRemove = prev.find((f) => f.id === id);
-        if (fileToRemove?.previewUrl) {
-          URL.revokeObjectURL(fileToRemove.previewUrl);
-        }
-        const newMediaFiles = prev.filter((file) => file.id !== id);
-        updateStoreMedia(newMediaFiles);
-        return newMediaFiles;
-      });
-    },
-    [updateStoreMedia]
-  );
+  const removeFile = useCallback((id: string) => {
+    isUserAction.current = true;
+    setMediaFiles((prev) => {
+      const fileToRemove = prev.find((f) => f.id === id);
+      if (fileToRemove?.previewUrl) {
+        URL.revokeObjectURL(fileToRemove.previewUrl);
+      }
+      return prev.filter((file) => file.id !== id);
+    });
+  }, []);
 
   const clearAllFiles = useCallback(() => {
     mediaFiles.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+    isUserAction.current = true;
     setMediaFiles([]);
-    updateStoreMedia([]);
-  }, [mediaFiles, updateStoreMedia]);
+  }, [mediaFiles]);
 
   const getAddButtonAspectRatio = () => {
     if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
@@ -523,6 +501,25 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
     }
     return 'aspect-square';
   };
+
+  const canUploadMore = (() => {
+    const imageCount = mediaFiles.filter((f) => f.mediaType === 'IMAGE').length;
+    const videoCount = mediaFiles.filter((f) => f.mediaType === 'VIDEO').length;
+
+    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
+      return imageCount < maxImages || videoCount < maxVideos;
+    }
+    if (socialType === 'INSTAGRAM') {
+      if (videoCount > 0) {
+        return false;
+      }
+      return imageCount < maxImages;
+    }
+    if (videoCount > 0) {
+      return false;
+    }
+    return imageCount < maxImages;
+  })();
 
   return (
     <div className="space-y-4">
@@ -583,12 +580,12 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  'flex items-center justify-center rounded-lg border-2 border-gray-300 border-dashed bg-gray-50 transition-colors hover:border-gray-400 hover:bg-gray-100',
+                  'flex items-center justify-center rounded-lg border-2 border-border border-dashed bg-muted/50 transition-colors hover:border-input hover:bg-muted',
                   getAddButtonAspectRatio()
                 )}
                 title={platformHint}
               >
-                <Plus className="h-6 w-6 text-gray-400" />
+                <Plus className="h-6 w-6 text-muted-foreground" />
               </motion.button>
             )}
           </motion.div>

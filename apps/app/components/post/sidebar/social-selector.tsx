@@ -1,7 +1,6 @@
 import { postActions, useSelectedSocialProviders } from '@/store/post';
-import { api } from '@/trpc/react';
 import { Badge } from '@delulu/design-system/components/ui/badge';
-import type { SocialType } from '@delulu/validators/post';
+import { type SocialType, SocialTypes } from '@delulu/validators/post';
 import { SocialIcon } from './social-icon';
 
 interface SocialSelectorItemProps {
@@ -10,17 +9,48 @@ interface SocialSelectorItemProps {
   socialId: string;
 }
 
+const mockSocialProviders = [
+  {
+    id: '1',
+    fullName: 'Twitter',
+    username: 'twitter',
+    socialType: SocialTypes.TWITTER,
+    socialId: 'twitter',
+  },
+  {
+    id: '2',
+    fullName: 'Instagram',
+    username: 'instagram',
+    socialType: SocialTypes.INSTAGRAM,
+    socialId: 'instagram',
+  },
+  {
+    id: '3',
+    fullName: 'LinkedIn',
+    username: 'linkedin',
+    socialType: SocialTypes.LINKEDIN,
+    socialId: 'linkedin',
+  },
+  {
+    id: '4',
+    fullName: 'YouTube',
+    username: 'youtube',
+    socialType: SocialTypes.YOUTUBE,
+    socialId: 'youtube',
+  },
+];
+
 export default function SocialSelector() {
-  const { data: connectedAccounts } =
-    api.socialProvider.getConnectedAccounts.useQuery();
+  // const { data: connectedAccounts } =
+  //   api.socialProvider.getConnectedAccounts.useQuery();
 
   return (
     <div className="flex flex-col gap-2">
       <h3 className="font-medium text-sm">Select Social Networks</h3>
-      <div className="grid grid-cols-2 gap-2">
-        {connectedAccounts?.map((account) => (
+      <div className="grid grid-cols-2 gap-1">
+        {mockSocialProviders?.map((account) => (
           <SocialSelectorItem
-            key={account.id}
+            key={account.socialId}
             socialProvider={account.socialType}
             name={account.fullName ?? account.username}
             socialId={account.id}
@@ -37,6 +67,8 @@ function SocialSelectorItem({
   socialId,
 }: SocialSelectorItemProps) {
   const selectedSocialProviders = useSelectedSocialProviders();
+
+  console.log(selectedSocialProviders, socialId);
 
   const isSelected = selectedSocialProviders?.some(
     (account) => account.socialId === socialId
@@ -59,7 +91,7 @@ function SocialSelectorItem({
       size="lg"
       variant={isSelected ? 'blue' : 'outline'}
       onClick={handleSelect}
-      className="cursor-pointer text-xs"
+      className="w-full cursor-pointer text-xs "
     >
       <SocialIcon type={socialProvider} />
       <span className="ml-1">{name}</span>
