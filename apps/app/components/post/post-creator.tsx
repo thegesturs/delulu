@@ -8,8 +8,12 @@ import {
 } from '@delulu/design-system/components/ui/tabs';
 import { useCallback, useState } from 'react';
 
-import { useAlternativeContent, useSelectedSocialProviders } from '@/store/post';
+import {
+  useAlternativeContent,
+  useSelectedSocialProviders,
+} from '@/store/post';
 import { cn } from '@delulu/design-system/lib/utils';
+import { SocialTypes } from '@delulu/validators/post';
 import { ContentModule } from './content-module';
 import { PostSidebar } from './sidebar/post-sidebar';
 
@@ -44,7 +48,7 @@ export function PostCreator() {
           </TabsList>
 
           <TabsContent value="global">
-            <ContentModule isGlobal />
+            <ContentModule isGlobal socialType={SocialTypes.DEFAULT} />
           </TabsContent>
 
           {alternativeContent.map((content) => (
