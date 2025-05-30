@@ -13,7 +13,7 @@ import { MediaUploader } from './media-uploader';
 interface ContentModuleProps {
   isGlobal?: boolean;
   socialId?: string;
-  socialType?: SocialType;
+  socialType: SocialType;
 }
 
 export function ContentModule({
@@ -58,29 +58,29 @@ export function ContentModule({
     [isGlobal, post, setPost, socialId]
   );
 
-  const handleMediaChange = useCallback(
-    (media: MediaType[]) => {
-      if (isGlobal) {
-        setPost({
-          ...post,
-          content: [{ ...post.content[0], media }],
-        });
-      } else if (socialId) {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
-            item.socialProvider.socialId === socialId
-              ? {
-                  ...item,
-                  content: [{ ...item.content[0], media }],
-                }
-              : item
-          ),
-        });
-      }
-    },
-    [isGlobal, post, setPost, socialId]
-  );
+  // const handleMediaChange = useCallback(
+  //   (media: MediaType[]) => {
+  //     if (isGlobal) {
+  //       setPost({
+  //         ...post,
+  //         content: [{ ...post.content[0], media }],
+  //       });
+  //     } else if (socialId) {
+  //       setPost({
+  //         ...post,
+  //         alternativeContent: post.alternativeContent.map((item) =>
+  //           item.socialProvider.socialId === socialId
+  //             ? {
+  //                 ...item,
+  //                 content: [{ ...item.content[0], media }],
+  //               }
+  //             : item
+  //         ),
+  //       });
+  //     }
+  //   },
+  //   [isGlobal, post, setPost, socialId]
+  // );
 
   if (!content) {
     return null;
@@ -95,8 +95,8 @@ export function ContentModule({
         className="mb-4 min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
       />
       <MediaUploader
-        media={content.media}
-        onChange={handleMediaChange}
+        // media={content.media}
+        // onChange={handleMediaChange}
         socialType={socialType}
       />
     </Card>
