@@ -1,5 +1,6 @@
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
+import { Queue } from 'bullmq';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure } from '../trpc';
@@ -27,7 +28,7 @@ export const socialProviderRouter = {
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input }) => {
-      const results = [];
+      // const results = [];
 
       for (const provider of input.socialProviders) {
         // Skip providers that are not implemented
@@ -46,21 +47,34 @@ export const socialProviderRouter = {
         // Use alternative content if available, otherwise use default content
         const contentToPost = alternativeContent?.content ?? input.content;
 
-        // Get the provider implementation
-        const providerImpl = providerRegistry[provider.socialType];
+        // // Get the provider implementation
+        // const providerImpl = providerRegistry[provider.socialType];
 
         // Post the content using the provider's implementation
-        const result = await providerImpl.publish({
+        // const result = await providerImpl.publish({
+        //   content: {
+        //     ...input,
+        //     content: contentToPost,
+        //   },
+        //   socialProviderId: provider.socialId,
+        // });
+
+        const queue = new Queue('social-posts', {
+          connection: { url: process.env.REDIS_URL! },
+        });
+
+        await queue.add('publish', {
+          socialType: provider.socialType,
+          socialProviderId: provider.socialId,
           content: {
             ...input,
             content: contentToPost,
-          }, 
-          socialProviderId: provider.socialId,
+          },
         });
-
-        results.push(result);
       }
 
-      return results;
+      return {
+        success: true,
+      };
     }),
 } satisfies TRPCRouterRecord;
