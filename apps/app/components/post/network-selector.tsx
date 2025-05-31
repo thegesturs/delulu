@@ -65,7 +65,7 @@ export function AlternativeContentSelector() {
                 id: '',
                 order: 0,
                 name: provider.name,
-                media: [],
+                media: post.content[0]?.media || [],
                 text: post.content[0]?.text || '',
                 tags: [],
                 socialId: provider.socialId,

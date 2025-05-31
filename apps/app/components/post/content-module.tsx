@@ -4,29 +4,26 @@ import { useCallback } from 'react';
 
 import { Card } from '@delulu/design-system/components/ui/card';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
-import type { MediaType, SocialType } from '@delulu/validators/post';
+import { type SocialType, SocialTypes } from '@delulu/validators/post';
 
 import { useStore } from '@/store/post';
 import { useShallow } from 'zustand/shallow';
 import { MediaUploader } from './media-uploader';
 
 interface ContentModuleProps {
-  isGlobal?: boolean;
-  socialId?: string;
+  socialId: string;
   socialType: SocialType;
 }
 
-export function ContentModule({
-  isGlobal = false,
-  socialId,
-  socialType,
-}: ContentModuleProps) {
+export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const { post, setPost } = useStore(
     useShallow((state) => ({
       post: state.post,
       setPost: state.setPost,
     }))
   );
+
+  const isGlobal = socialType === SocialTypes.DEFAULT;
 
   const content = isGlobal
     ? post.content[0]
@@ -94,11 +91,7 @@ export function ContentModule({
         placeholder="What's on your mind?"
         className="mb-4 min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
       />
-      <MediaUploader
-        // media={content.media}
-        // onChange={handleMediaChange}
-        socialType={socialType}
-      />
+      <MediaUploader socialType={socialType} socialId={socialId} />
     </Card>
   );
 }
