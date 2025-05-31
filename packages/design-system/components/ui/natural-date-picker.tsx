@@ -203,7 +203,8 @@ export function NaturalDatePicker({
       updateDateTime(parsedDate, convertTo12Hour(newHour24), newMinute, newHour24 >= 12)
     }
     setShowSuggestions(false)
-    inputRef.current?.focus()
+    setCalendarOpen(false)
+    inputRef.current?.blur()
   }
 
   const handleClickOutside = (event: MouseEvent) => {

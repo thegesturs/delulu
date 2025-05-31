@@ -12,28 +12,28 @@ interface SocialSelectorItemProps {
 const mockSocialProviders = [
   {
     id: '1',
-    fullName: 'Twitter',
+    fullName: 'I am Cool',
     username: 'twitter',
     socialType: SocialTypes.TWITTER,
     socialId: 'twitter',
   },
   {
     id: '2',
-    fullName: 'Instagram',
+    fullName: 'I am Cool',
     username: 'instagram',
     socialType: SocialTypes.INSTAGRAM,
     socialId: 'instagram',
   },
   {
     id: '3',
-    fullName: 'LinkedIn',
+    fullName: 'I am Cool',
     username: 'linkedin',
     socialType: SocialTypes.LINKEDIN,
     socialId: 'linkedin',
   },
   {
     id: '4',
-    fullName: 'YouTube',
+    fullName: 'I am Cool',
     username: 'youtube',
     socialType: SocialTypes.YOUTUBE,
     socialId: 'youtube',
@@ -67,8 +67,6 @@ function SocialSelectorItem({
   socialId,
 }: SocialSelectorItemProps) {
   const selectedSocialProviders = useSelectedSocialProviders();
-
-  console.log(selectedSocialProviders, socialId);
 
   const isSelected = selectedSocialProviders?.some(
     (account) => account.socialId === socialId

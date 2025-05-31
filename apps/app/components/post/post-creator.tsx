@@ -14,6 +14,7 @@ import {
 } from '@/store/post';
 import { cn } from '@delulu/design-system/lib/utils';
 import { SocialTypes } from '@delulu/validators/post';
+import { Header } from '../layout/header';
 import { ContentModule } from './content-module';
 import { AlternativeContentSelector } from './network-selector';
 import { PostSidebar } from './sidebar/post-sidebar';
@@ -48,6 +49,7 @@ export function PostCreator() {
   return (
     <div className="flex h-full gap-4">
       <div className="flex-1">
+        <Header pages={['Post']} page="Create Post" />
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
             <TabsTrigger value="global">Global</TabsTrigger>
