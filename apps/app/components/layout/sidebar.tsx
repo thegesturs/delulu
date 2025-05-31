@@ -88,7 +88,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             asChild
             className="flex w-full items-center group-data-[state=collapsed]:hidden"
           >
-            <Link href="/">
+            <Link href="/post">
               <PencilIcon className="mr-2 h-4 w-4" />
               Create Post
             </Link>
@@ -98,7 +98,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             size="icon"
             className="w-full group-data-[state=expanded]:hidden"
           >
-            <Link href="/">
+            <Link href="/post">
               <PencilIcon className="h-5 w-5" />
             </Link>
           </Button>
