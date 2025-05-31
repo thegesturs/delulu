@@ -11,6 +11,7 @@ export const keys = () =>
       LINKEDIN_CALLBACK_URL: z.string().min(1),
       TWITTER_CALLBACK_URL: z.string().min(1),
       TWITTER_STATE: z.string().min(1),
+      REDIS_URL: z.string().min(1),
     },
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
@@ -20,5 +21,6 @@ export const keys = () =>
       LINKEDIN_CALLBACK_URL: process.env.LINKEDIN_CALLBACK_URL,
       TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL,
       TWITTER_STATE: process.env.TWITTER_STATE,
+      REDIS_URL: process.env.REDIS_URL,
     },
   });

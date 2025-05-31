@@ -18,6 +18,22 @@ interface ContentModuleProps {
   socialType: SocialType;
 }
 
+function getPlaceholder(socialType: SocialType) {
+  if (socialType === SocialTypes.TWITTER) {
+    return "What's on your mind?";
+  }
+  if (socialType === SocialTypes.INSTAGRAM) {
+    return 'Type your caption here';
+  }
+  if (socialType === SocialTypes.TIKTOK) {
+    return 'Type your caption here';
+  }
+  if (socialType === SocialTypes.YOUTUBE) {
+    return 'Type your caption here';
+  }
+  return "What's on your mind?";
+}
+
 export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const { post, setPost } = useStore(
     useShallow((state) => ({
@@ -151,18 +167,15 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
-      <div className="space-y-6">
+      <div className="space-y-6 border-l-2 border-l-border">
         {content.map((item) => (
-          <div
-            key={item.order}
-            className="space-y-4 border-l-2 border-l-border p-2"
-          >
+          <div key={item.order} className="space-y-4 p-2">
             <div className="relative">
               <Textarea
                 value={item.text}
                 onChange={(e) => handleTextChange(e.target.value, item.order)}
-                placeholder="What's on your mind?"
-                className="min-h-[100px] resize-none border-none shadow-none focus-visible:ring-0"
+                placeholder={getPlaceholder(socialType)}
+                className="min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
               />
               {isTwitter && (
                 <div
