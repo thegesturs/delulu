@@ -28,6 +28,7 @@ interface MediaFile {
 interface MediaUploaderProps {
   socialType: SocialType;
   socialId: string;
+  orderId?: number;
 }
 
 interface PlatformConfig {
@@ -297,7 +298,11 @@ function MediaStats({ mediaFiles, onClearAll, platformHint }: MediaStatsProps) {
   );
 }
 
-export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
+export function MediaUploader({
+  socialType,
+  socialId,
+  orderId,
+}: MediaUploaderProps) {
   const { post, setPost } = useStore(
     useShallow((state) => ({
       post: state.post,
@@ -312,10 +317,10 @@ export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
 
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() => {
     const content = isGlobal
-      ? post.content[0]
-      : post.alternativeContent.find(
-          (item) => item.socialProvider.socialId === socialId
-        )?.content[0];
+      ? post.content.find((item) => item.order === orderId)
+      : post.alternativeContent
+          .find((item) => item.socialProvider.socialId === socialId)
+          ?.content.find((item) => item.order === orderId);
 
     return (content?.media || [])
       .map((media) => ({
@@ -329,7 +334,7 @@ export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
 
   // Update store only when mediaFiles change due to user actions
   useEffect(() => {
-    if (isUserAction.current) {
+    if (isUserAction.current && orderId !== undefined) {
       const storeMedia = mediaFiles.map(({ file, mediaType, previewUrl }) => ({
         file,
         mediaType,
@@ -339,12 +344,9 @@ export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
       if (isGlobal) {
         setPost({
           ...post,
-          content: [
-            {
-              ...post.content[0],
-              media: storeMedia,
-            },
-          ],
+          content: post.content.map((item) =>
+            item.order === orderId ? { ...item, media: storeMedia } : item
+          ),
         });
       } else {
         setPost({
@@ -353,7 +355,11 @@ export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
-                  content: [{ ...item.content[0], media: storeMedia }],
+                  content: item.content.map((contentItem) =>
+                    contentItem.order === orderId
+                      ? { ...contentItem, media: storeMedia }
+                      : contentItem
+                  ),
                 }
               : item
           ),
@@ -361,7 +367,7 @@ export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
       }
       isUserAction.current = false;
     }
-  }, [mediaFiles, post, setPost, socialId, isGlobal]);
+  }, [mediaFiles, post, setPost, socialId, isGlobal, orderId]);
 
   const platformConfig = getPlatformConfig(socialType, mediaFiles);
   const {
