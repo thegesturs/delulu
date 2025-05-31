@@ -15,6 +15,7 @@ import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
+import { SocialTypes } from '@delulu/validators/post';
 import { useShallow } from 'zustand/shallow';
 
 interface MediaFile {
@@ -26,6 +27,7 @@ interface MediaFile {
 
 interface MediaUploaderProps {
   socialType: SocialType;
+  socialId: string;
 }
 
 interface PlatformConfig {
@@ -295,7 +297,7 @@ function MediaStats({ mediaFiles, onClearAll, platformHint }: MediaStatsProps) {
   );
 }
 
-export function MediaUploader({ socialType }: MediaUploaderProps) {
+export function MediaUploader({ socialType, socialId }: MediaUploaderProps) {
   const { post, setPost } = useStore(
     useShallow((state) => ({
       post: state.post,
@@ -306,16 +308,24 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isUserAction = useRef(false);
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() =>
-    post.content[0].media
+  const isGlobal = socialType === SocialTypes.DEFAULT;
+
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() => {
+    const content = isGlobal
+      ? post.content[0]
+      : post.alternativeContent.find(
+          (item) => item.socialProvider.socialId === socialId
+        )?.content[0];
+
+    return (content?.media || [])
       .map((media) => ({
         id: crypto.randomUUID(),
         file: media.file!,
         mediaType: media.mediaType,
         previewUrl: media.previewUrl || '',
       }))
-      .filter((m) => m.file && m.previewUrl)
-  );
+      .filter((m) => m.file && m.previewUrl);
+  });
 
   // Update store only when mediaFiles change due to user actions
   useEffect(() => {
@@ -326,18 +336,32 @@ export function MediaUploader({ socialType }: MediaUploaderProps) {
         previewUrl,
       }));
 
-      setPost({
-        ...post,
-        content: [
-          {
-            ...post.content[0],
-            media: storeMedia,
-          },
-        ],
-      });
+      if (isGlobal) {
+        setPost({
+          ...post,
+          content: [
+            {
+              ...post.content[0],
+              media: storeMedia,
+            },
+          ],
+        });
+      } else {
+        setPost({
+          ...post,
+          alternativeContent: post.alternativeContent.map((item) =>
+            item.socialProvider.socialId === socialId
+              ? {
+                  ...item,
+                  content: [{ ...item.content[0], media: storeMedia }],
+                }
+              : item
+          ),
+        });
+      }
       isUserAction.current = false;
     }
-  }, [mediaFiles, post, setPost]);
+  }, [mediaFiles, post, setPost, socialId, isGlobal]);
 
   const platformConfig = getPlatformConfig(socialType, mediaFiles);
   const {

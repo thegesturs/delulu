@@ -12,9 +12,11 @@ import type { SocialProviderType } from '@delulu/validators/post';
 import {
   postActions, // For setPost, setDate, setTime actions
   useDateTime,
-  usePost, // Assuming this returns the post object and its setter or use a specific setter hook if available
+  usePost,
+  useSelectedSocialProviders, // Assuming this returns the post object and its setter or use a specific setter hook if available
   useStore, // Import useStore to access setDateAlongWithTime
 } from '@/store/post';
+import { api } from '@/trpc/react';
 // import { SocialIcon } from '../common/social-icon';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
 // Removed: import { useShallow } from 'zustand/shallow';
@@ -24,6 +26,10 @@ export function PostSidebar() {
   const { date } = useDateTime(); // We only need date, as it will contain time
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
+  const socialProviders = useSelectedSocialProviders();
+
+  const { mutateAsync: createPost } =
+    api.socialProvider.createPost.useMutation();
 
   // Destructure actions from postActions
   const { updatePost } = postActions;
@@ -33,49 +39,53 @@ export function PostSidebar() {
   }, []);
 
   const handlePostNow = useCallback(() => {
-    // TODO: Implement post now logic
-  }, []);
+    createPost({
+      content: post.content,
+      socialProviders: socialProviders,
+      alternativeContent: post.alternativeContent,
+    });
+  }, [post, socialProviders]);
 
-  const handleProviderToggle = useCallback(
-    (provider: SocialProviderType) => {
-      const isSelected = post.alternativeContent.some(
-        (content) => content.socialProvider.socialId === provider.socialId
-      );
+  // const handleProviderToggle = useCallback(
+  //   (provider: SocialProviderType) => {
+  //     const isSelected = post.alternativeContent.some(
+  //       (content) => content.socialProvider.socialId === provider.socialId
+  //     );
 
-      if (isSelected) {
-        // Remove provider
-        updatePost({
-          // Use updatePost from postActions
-          alternativeContent: post.alternativeContent.filter(
-            (content) => content.socialProvider.socialId !== provider.socialId
-          ),
-        });
-      } else {
-        // Add provider with default content
-        updatePost({
-          // Use updatePost from postActions
-          alternativeContent: [
-            ...post.alternativeContent,
-            {
-              socialProvider: provider,
-              content: [
-                {
-                  id: '',
-                  order: 0,
-                  name: provider.name,
-                  media: [],
-                  text: post.content[0]?.text || '',
-                  tags: [],
-                  socialId: provider.socialId,
-                },
-              ],
-            },
-          ],
-        });
-      }
-    },
-    [post, updatePost] // updatePost is stable
-  );
+  //     if (isSelected) {
+  //       // Remove provider
+  //       updatePost({
+  //         // Use updatePost from postActions
+  //         alternativeContent: post.alternativeContent.filter(
+  //           (content) => content.socialProvider.socialId !== provider.socialId
+  //         ),
+  //       });
+  //     } else {
+  //       // Add provider with default content
+  //       updatePost({
+  //         // Use updatePost from postActions
+  //         alternativeContent: [
+  //           ...post.alternativeContent,
+  //           {
+  //             socialProvider: provider,
+  //             content: [
+  //               {
+  //                 id: '',
+  //                 order: 0,
+  //                 name: provider.name,
+  //                 media: [],
+  //                 text: post.content[0]?.text || '',
+  //                 tags: [],
+  //                 socialId: provider.socialId,
+  //               },
+  //             ],
+  //           },
+  //         ],
+  //       });
+  //     }
+  //   },
+  //   [post, updatePost] // updatePost is stable
+  // );
 
   return (
     <Card className="w-80">
@@ -91,7 +101,6 @@ export function PostSidebar() {
                 value={date}
                 onChange={setDateAlongWithTime}
                 placeholder="Select date and time..."
-                
               />
             </div>
           </div>

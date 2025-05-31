@@ -70,7 +70,7 @@ export function PostCreator() {
           </TabsList>
 
           <TabsContent value="global">
-            <ContentModule isGlobal socialType={SocialTypes.DEFAULT} />
+            <ContentModule socialId="global" socialType={SocialTypes.DEFAULT} />
           </TabsContent>
 
           {alternativeContent.map((content) => (
