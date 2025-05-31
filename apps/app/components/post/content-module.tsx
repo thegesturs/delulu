@@ -9,6 +9,7 @@ import { type SocialType, SocialTypes } from '@delulu/validators/post';
 import { Minus, Plus } from 'lucide-react';
 
 import { useStore } from '@/store/post';
+import { cn } from '@delulu/design-system/lib/utils';
 import { useShallow } from 'zustand/shallow';
 import { MediaUploader } from './media-uploader';
 
@@ -64,46 +65,37 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     [isGlobal, post, setPost, socialId]
   );
 
-  const addTweet = useCallback(() => {
-    const newOrder = Math.max(...content.map((item) => item.order), -1) + 1;
-    const newTweet = {
-      id: '',
-      order: newOrder,
-      name: isGlobal ? 'DEFAULT' : socialId,
-      media: [],
-      text: '',
-      tags: [],
-      socialId: socialId,
-    };
+  const addTweet = useCallback(
+    (afterOrder: number) => {
+      // Find all tweets after this order and increment their order
+      const tweetsToUpdate = content.filter((item) => item.order > afterOrder);
+      const newOrder = afterOrder + 1;
 
-    if (isGlobal) {
-      setPost({
-        ...post,
-        content: [...post.content, newTweet],
-      });
-    } else {
-      setPost({
-        ...post,
-        alternativeContent: post.alternativeContent.map((item) =>
-          item.socialProvider.socialId === socialId
-            ? {
-                ...item,
-                content: [...item.content, newTweet],
-              }
-            : item
-        ),
-      });
-    }
-  }, [content, isGlobal, post, setPost, socialId]);
+      const newTweet = {
+        id: '',
+        order: newOrder,
+        name: isGlobal ? 'DEFAULT' : socialId,
+        media: [],
+        text: '',
+        tags: [],
+        socialId: socialId,
+      };
 
-  const removeTweet = useCallback(
-    (order: number) => {
-      if (content.length <= 1) return; // Don't remove the last tweet
+      const updatedContent = [
+        ...content
+          .filter((item) => item.order <= afterOrder)
+          .map((item) => ({ ...item })),
+        newTweet,
+        ...tweetsToUpdate.map((item) => ({
+          ...item,
+          order: item.order + 1,
+        })),
+      ].sort((a, b) => a.order - b.order);
 
       if (isGlobal) {
         setPost({
           ...post,
-          content: post.content.filter((item) => item.order !== order),
+          content: updatedContent,
         });
       } else {
         setPost({
@@ -112,9 +104,42 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
-                  content: item.content.filter(
-                    (contentItem) => contentItem.order !== order
-                  ),
+                  content: updatedContent,
+                }
+              : item
+          ),
+        });
+      }
+    },
+    [content, isGlobal, post, setPost, socialId]
+  );
+
+  const removeTweet = useCallback(
+    (order: number) => {
+      if (content.length <= 1) return; // Don't remove the last tweet
+
+      // Reorder remaining tweets to ensure sequential order
+      const updatedContent = content
+        .filter((item) => item.order !== order)
+        .map((item, index) => ({
+          ...item,
+          order: index,
+        }))
+        .sort((a, b) => a.order - b.order);
+
+      if (isGlobal) {
+        setPost({
+          ...post,
+          content: updatedContent,
+        });
+      } else {
+        setPost({
+          ...post,
+          alternativeContent: post.alternativeContent.map((item) =>
+            item.socialProvider.socialId === socialId
+              ? {
+                  ...item,
+                  content: updatedContent,
                 }
               : item
           ),
@@ -125,47 +150,64 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   );
 
   return (
-    <div className="space-y-6">
-      {content.map((item) => (
-        <Card key={item.order} className="border-none p-4 shadow-sm">
-          <div className="relative">
-            <Textarea
-              value={item.text}
-              onChange={(e) => handleTextChange(e.target.value, item.order)}
-              placeholder="What's on your mind?"
-              className="mb-4 min-h-[100px] resize-none border-none shadow-none focus-visible:ring-0"
-            />
-            {isTwitter && (
-              <div className="absolute top-2 right-2 text-muted-foreground text-sm">
-                {280 - item.text.length}
-              </div>
-            )}
-          </div>
-          <MediaUploader
-            socialType={socialType}
-            socialId={socialId}
-            orderId={item.order}
-          />
-          {isTwitter && content.length > 1 && (
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => removeTweet(item.order)}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
+    <Card className="mt-4 border-none p-4 shadow-sm">
+      <div className="space-y-6">
+        {content.map((item) => (
+          <div
+            key={item.order}
+            className="space-y-4 border-l-2 border-l-border p-2"
+          >
+            <div className="relative">
+              <Textarea
+                value={item.text}
+                onChange={(e) => handleTextChange(e.target.value, item.order)}
+                placeholder="What's on your mind?"
+                className="min-h-[100px] resize-none border-none shadow-none focus-visible:ring-0"
+              />
+              {isTwitter && (
+                <div
+                  className={cn(
+                    'absolute top-2 right-2 text-sm',
+                    280 - item.text.length < 0
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  {280 - item.text.length}
+                </div>
+              )}
+              {isTwitter && (
+                <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                  {content.length > 1 && (
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => removeTweet(item.order)}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => addTweet(item.order)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </Card>
-      ))}
-      {isTwitter && (
-        <div className="flex justify-end">
-          <Button onClick={addTweet} size="icon">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-    </div>
+            <div className="relative">
+              <MediaUploader
+                socialType={socialType}
+                socialId={socialId}
+                orderId={item.order}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

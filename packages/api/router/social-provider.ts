@@ -54,7 +54,7 @@ export const socialProviderRouter = {
           content: {
             ...input,
             content: contentToPost,
-          },
+          }, 
           socialProviderId: provider.socialId,
         });
 

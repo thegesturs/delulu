@@ -209,7 +209,7 @@ function UploadZone({
   return (
     <motion.div
       className={cn(
-        'relative rounded-lg border-2 border-dashed p-6 transition-colors',
+        'relative max-w-lg rounded-lg border-2 border-dashed p-6 transition-colors',
         isDragOver
           ? 'border-primary bg-primary/10'
           : 'border-border hover:border-input'

@@ -1,5 +1,5 @@
-import { linkedinProvider } from './linkedin';
-import { twitterProvider } from './twitter';
+import { linkedinProvider } from './linkedin.provider';
+import { twitterProvider } from './twitter.provider';
 
 export const providerRegistry = {
   TWITTER: twitterProvider,
