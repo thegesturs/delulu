@@ -110,6 +110,12 @@ export const postActions = {
       selectedSocialProviders: state.selectedSocialProviders.filter(
         (provider) => provider.socialId !== socialId
       ),
+      post: {
+        ...state.post,
+        alternativeContent: state.post.alternativeContent.filter(
+          (content) => content.socialProvider.socialId !== socialId
+        ),
+      },
     })),
   updatePost: (updates: Partial<FullPostType>) =>
     useStore.setState((state) => ({
