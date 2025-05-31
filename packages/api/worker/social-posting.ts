@@ -1,6 +1,6 @@
-import { keys } from '@delulu/api/keys';
 import { Worker } from 'bullmq';
-import { providerRegistry } from '../providers';
+import { providerRegistry } from '../providers/index';
+import { keys } from './keys';
 
 const worker = new Worker(
   'social-posts',
