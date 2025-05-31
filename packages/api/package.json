@@ -2,12 +2,11 @@
   "name": "@delulu/api",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "worker": "ts-node worker/social-posting.ts",
-    "worker:build": "tsc",
-    "worker:start": "node dist/worker/social-posting.js"
+    "worker": "dotenv -e .env -- tsx watch worker/social-posting.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.20",
@@ -24,13 +23,15 @@
     "openai": "^4.67.3",
     "superjson": "2.2.1",
     "twitter-api-sdk": "^1.2.1",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "dotenv-cli": "^7.4.1"
   },
   "devDependencies": {
     "@delulu/database": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.19.4",
     "typescript": "catalog:"
   }
 }

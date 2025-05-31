@@ -3,6 +3,14 @@
   "version": "0.0.0",
   "main": "./index.ts",
   "types": "./index.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "require": "./index.ts",
+      "types": "./index.ts"
+    }
+  },
   "scripts": {
     "analyze": "prisma generate --no-hints --schema=./prisma/schema.prisma",
     "build": "prisma generate --no-hints --schema=./prisma/schema.prisma",
@@ -33,6 +41,7 @@
     "@prisma/client": "6.4.1",
     "@t3-oss/env-nextjs": "^0.12.0",
     "prisma": "6.4.1",
+    "react": "^19.1.0",
     "server-only": "^0.0.1",
     "undici": "^7.8.0",
     "ws": "^8.18.1",

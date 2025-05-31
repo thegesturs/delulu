@@ -2,7 +2,8 @@
   "extends": "@delulu/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+    "outDir": "dist"
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [
