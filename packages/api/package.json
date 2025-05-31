@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "worker": "ts-node worker/social-posting.ts",
+    "worker:build": "tsc",
+    "worker:start": "node dist/worker/social-posting.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.20",
@@ -27,6 +30,7 @@
     "@delulu/database": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
+    "ts-node-dev": "^2.0.0",
     "typescript": "catalog:"
   }
 }

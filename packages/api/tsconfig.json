@@ -6,11 +6,12 @@
     "declaration": true,
     "declarationMap": true,
     "noEmit": false,
+    "outDir": "dist",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }
