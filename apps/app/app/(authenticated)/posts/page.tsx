@@ -1,7 +1,8 @@
 'use client';
 
+import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
-import type { Post } from '@/components/posts/types';
+import type { Post, PostLayout } from '@/components/posts/types';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import {
@@ -11,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
-import { Plus } from 'lucide-react';
+import { Toggle } from '@delulu/design-system/components/ui/toggle';
+import { LayoutGrid, List, Plus } from 'lucide-react';
 import React from 'react';
 
 // Temporary mock data for development
@@ -115,7 +117,7 @@ const MOCK_POSTS: Post[] = [
 export default function PostsPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
-
+  const [layout, setLayout] = React.useState<PostLayout>('grid');
   const filteredPosts = React.useMemo(() => {
     return MOCK_POSTS.filter((post) => {
       const matchesSearch = post.content.some((content) =>
@@ -127,63 +129,54 @@ export default function PostsPage() {
     });
   }, [searchTerm, statusFilter]);
 
-  const handleDelete = (id: string) => {
-    // TODO: Implement delete functionality
-    console.log('Delete post:', id);
-  };
-
-  const handleEdit = (id: string) => {
-    // TODO: Implement edit functionality
-    console.log('Edit post:', id);
-  };
-
-  const handleScheduleChange = (id: string) => {
-    // TODO: Implement schedule change functionality
-    console.log('Change schedule for post:', id);
-  };
-
-  const handlePublish = (id: string) => {
-    // TODO: Implement publish functionality
-    console.log('Publish post:', id);
-  };
-
   return (
-    <div className="container space-y-6 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-bold text-3xl">Posts</h1>
+    <div className="space-y-4 p-8">
+      <Header pages={['Posts']} page="Posts">
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Create Post
         </Button>
+      </Header>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Input
+            placeholder="Search posts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Posts</SelectItem>
+              <SelectItem value="draft">Drafts</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border">
+          <Toggle
+            pressed={layout === 'grid'}
+            onPressedChange={() => setLayout('grid')}
+            aria-label="Grid view"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Toggle>
+          <Toggle
+            pressed={layout === 'list'}
+            onPressedChange={() => setLayout('list')}
+            aria-label="List view"
+          >
+            <List className="h-4 w-4" />
+          </Toggle>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Input
-          placeholder="Search posts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Posts</SelectItem>
-            <SelectItem value="draft">Drafts</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <PostsView
-        posts={filteredPosts}
-        onDelete={handleDelete}
-        onEdit={handleEdit}
-        onScheduleChange={handleScheduleChange}
-        onPublish={handlePublish}
-      />
+      <PostsView posts={filteredPosts} layout={layout} />
     </div>
   );
 }
