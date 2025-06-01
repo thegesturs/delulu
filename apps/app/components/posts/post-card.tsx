@@ -19,10 +19,6 @@ import type { Post, PostLayout } from './types';
 interface PostCardProps {
   post: Post;
   layout?: PostLayout;
-  onDelete?: (id: string) => void;
-  onEdit?: (id: string) => void;
-  onScheduleChange?: (id: string) => void;
-  onPublish?: (id: string) => void;
 }
 
 const socialIcons = {
@@ -31,14 +27,7 @@ const socialIcons = {
   INSTAGRAM: FaInstagram,
 } as const;
 
-export function PostCard({
-  post,
-  layout = 'grid',
-  onDelete,
-  onEdit,
-  onScheduleChange,
-  onPublish,
-}: PostCardProps) {
+export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
 
   const statusColors = {
@@ -49,6 +38,26 @@ export function PostCard({
     FAILED: 'destructive',
   } as const;
 
+  const handleDelete = (id: string) => {
+    // TODO: Implement delete functionality
+    console.log('Delete post:', id);
+  };
+
+  const handleEdit = (id: string) => {
+    // TODO: Implement edit functionality
+    console.log('Edit post:', id);
+  };
+
+  const handleScheduleChange = (id: string) => {
+    // TODO: Implement schedule change functionality
+    console.log('Change schedule for post:', id);
+  };
+
+  const handlePublish = (id: string) => {
+    // TODO: Implement publish functionality
+    console.log('Publish post:', id);
+  };
+
   const renderQuickActions = () => {
     switch (post.status) {
       case 'SAVED':
@@ -57,14 +66,14 @@ export function PostCard({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onPublish?.(post.id)}
+              onClick={() => handlePublish(post.id)}
             >
               Publish
             </Button>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onEdit?.(post.id)}
+              onClick={() => handleEdit(post.id)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -75,7 +84,7 @@ export function PostCard({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onScheduleChange?.(post.id)}
+            onClick={() => handleScheduleChange(post.id)}
           >
             <Clock className="mr-2 h-4 w-4" />
             Change Schedule
@@ -208,7 +217,7 @@ export function PostCard({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit?.(post.id)}>
+                    <DropdownMenuItem onClick={() => handleEdit(post.id)}>
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowPreview(true)}>
@@ -216,7 +225,7 @@ export function PostCard({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => onDelete?.(post.id)}
+                      onClick={() => handleDelete(post.id)}
                     >
                       Delete
                     </DropdownMenuItem>
