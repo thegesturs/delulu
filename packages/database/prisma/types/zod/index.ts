@@ -64,7 +64,7 @@ export const OrganizationScalarFieldEnumSchema = z.enum(['clerkOrgId','ownerId',
 
 export const OrganizationMemberScalarFieldEnumSchema = z.enum(['organizationId','userId','role','createdAt','updatedAt']);
 
-export const PostScalarFieldEnumSchema = z.enum(['id','userId','postType','status','scheduledAt','reviewStatus','organizationId','isDeleted','postFailureReason','privacyStatus','content','createdAt','updatedAt','publishedAt','lastFailedAt','retryCount']);
+export const PostScalarFieldEnumSchema = z.enum(['id','userId','status','scheduledAt','reviewStatus','organizationId','isDeleted','postFailureReason','privacyStatus','content','createdAt','updatedAt','publishedAt','lastFailedAt','retryCount']);
 
 export const AlternatePostContentScalarFieldEnumSchema = z.enum(['postId','socialProviderId','content']);
 
@@ -103,10 +103,6 @@ export type PostReviewStatusType = `${z.infer<typeof PostReviewStatusSchema>}`
 export const PrivacyStatusSchema = z.enum(['PUBLIC','PRIVATE','UNLISTED']);
 
 export type PrivacyStatusType = `${z.infer<typeof PrivacyStatusSchema>}`
-
-export const PostTypeSchema = z.enum(['NORMAL','SHORT','LONG_VIDEO']);
-
-export type PostTypeType = `${z.infer<typeof PostTypeSchema>}`
 
 export const SocialTypeSchema = z.enum(['TWITTER','LINKEDIN','LENS','GITHUB','YOUTUBE','INSTAGRAM','FACEBOOK']);
 
@@ -192,7 +188,6 @@ export type OrganizationMember = z.infer<typeof OrganizationMemberSchema>
 /////////////////////////////////////////
 
 export const PostSchema = z.object({
-  postType: PostTypeSchema,
   status: PostStatusSchema,
   reviewStatus: PostReviewStatusSchema,
   privacyStatus: PrivacyStatusSchema,
@@ -495,7 +490,6 @@ export const PostCountOutputTypeSelectSchema: z.ZodType<Prisma.PostCountOutputTy
 export const PostSelectSchema: z.ZodType<Prisma.PostSelect> = z.object({
   id: z.boolean().optional(),
   userId: z.boolean().optional(),
-  postType: z.boolean().optional(),
   status: z.boolean().optional(),
   scheduledAt: z.boolean().optional(),
   reviewStatus: z.boolean().optional(),
@@ -1012,7 +1006,6 @@ export const PostWhereInputSchema: z.ZodType<Prisma.PostWhereInput> = z.object({
   NOT: z.union([ z.lazy(() => PostWhereInputSchema),z.lazy(() => PostWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  postType: z.union([ z.lazy(() => EnumPostTypeFilterSchema),z.lazy(() => PostTypeSchema) ]).optional(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1036,7 +1029,6 @@ export const PostWhereInputSchema: z.ZodType<Prisma.PostWhereInput> = z.object({
 export const PostOrderByWithRelationInputSchema: z.ZodType<Prisma.PostOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   userId: z.lazy(() => SortOrderSchema).optional(),
-  postType: z.lazy(() => SortOrderSchema).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -1066,7 +1058,6 @@ export const PostWhereUniqueInputSchema: z.ZodType<Prisma.PostWhereUniqueInput> 
   OR: z.lazy(() => PostWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => PostWhereInputSchema),z.lazy(() => PostWhereInputSchema).array() ]).optional(),
   userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  postType: z.union([ z.lazy(() => EnumPostTypeFilterSchema),z.lazy(() => PostTypeSchema) ]).optional(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1090,7 +1081,6 @@ export const PostWhereUniqueInputSchema: z.ZodType<Prisma.PostWhereUniqueInput> 
 export const PostOrderByWithAggregationInputSchema: z.ZodType<Prisma.PostOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   userId: z.lazy(() => SortOrderSchema).optional(),
-  postType: z.lazy(() => SortOrderSchema).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -1117,7 +1107,6 @@ export const PostScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.PostScal
   NOT: z.union([ z.lazy(() => PostScalarWhereWithAggregatesInputSchema),z.lazy(() => PostScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   userId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  postType: z.union([ z.lazy(() => EnumPostTypeWithAggregatesFilterSchema),z.lazy(() => PostTypeSchema) ]).optional(),
   status: z.union([ z.lazy(() => EnumPostStatusWithAggregatesFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusWithAggregatesFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1995,7 +1984,6 @@ export const OrganizationMemberUncheckedUpdateManyInputSchema: z.ZodType<Prisma.
 
 export const PostCreateInputSchema: z.ZodType<Prisma.PostCreateInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -2018,7 +2006,6 @@ export const PostCreateInputSchema: z.ZodType<Prisma.PostCreateInput> = z.object
 export const PostUncheckedCreateInputSchema: z.ZodType<Prisma.PostUncheckedCreateInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -2039,7 +2026,6 @@ export const PostUncheckedCreateInputSchema: z.ZodType<Prisma.PostUncheckedCreat
 
 export const PostUpdateInputSchema: z.ZodType<Prisma.PostUpdateInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2062,7 +2048,6 @@ export const PostUpdateInputSchema: z.ZodType<Prisma.PostUpdateInput> = z.object
 export const PostUncheckedUpdateInputSchema: z.ZodType<Prisma.PostUncheckedUpdateInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2084,7 +2069,6 @@ export const PostUncheckedUpdateInputSchema: z.ZodType<Prisma.PostUncheckedUpdat
 export const PostCreateManyInputSchema: z.ZodType<Prisma.PostCreateManyInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -2102,7 +2086,6 @@ export const PostCreateManyInputSchema: z.ZodType<Prisma.PostCreateManyInput> = 
 
 export const PostUpdateManyMutationInputSchema: z.ZodType<Prisma.PostUpdateManyMutationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2120,7 +2103,6 @@ export const PostUpdateManyMutationInputSchema: z.ZodType<Prisma.PostUpdateManyM
 export const PostUncheckedUpdateManyInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -3113,13 +3095,6 @@ export const EnumRoleWithAggregatesFilterSchema: z.ZodType<Prisma.EnumRoleWithAg
   _max: z.lazy(() => NestedEnumRoleFilterSchema).optional()
 }).strict();
 
-export const EnumPostTypeFilterSchema: z.ZodType<Prisma.EnumPostTypeFilter> = z.object({
-  equals: z.lazy(() => PostTypeSchema).optional(),
-  in: z.lazy(() => PostTypeSchema).array().optional(),
-  notIn: z.lazy(() => PostTypeSchema).array().optional(),
-  not: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => NestedEnumPostTypeFilterSchema) ]).optional(),
-}).strict();
-
 export const EnumPostStatusFilterSchema: z.ZodType<Prisma.EnumPostStatusFilter> = z.object({
   equals: z.lazy(() => PostStatusSchema).optional(),
   in: z.lazy(() => PostStatusSchema).array().optional(),
@@ -3202,7 +3177,6 @@ export const PlatformPostOrderByRelationAggregateInputSchema: z.ZodType<Prisma.P
 export const PostCountOrderByAggregateInputSchema: z.ZodType<Prisma.PostCountOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   userId: z.lazy(() => SortOrderSchema).optional(),
-  postType: z.lazy(() => SortOrderSchema).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.lazy(() => SortOrderSchema).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -3225,7 +3199,6 @@ export const PostAvgOrderByAggregateInputSchema: z.ZodType<Prisma.PostAvgOrderBy
 export const PostMaxOrderByAggregateInputSchema: z.ZodType<Prisma.PostMaxOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   userId: z.lazy(() => SortOrderSchema).optional(),
-  postType: z.lazy(() => SortOrderSchema).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.lazy(() => SortOrderSchema).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -3243,7 +3216,6 @@ export const PostMaxOrderByAggregateInputSchema: z.ZodType<Prisma.PostMaxOrderBy
 export const PostMinOrderByAggregateInputSchema: z.ZodType<Prisma.PostMinOrderByAggregateInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   userId: z.lazy(() => SortOrderSchema).optional(),
-  postType: z.lazy(() => SortOrderSchema).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.lazy(() => SortOrderSchema).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -3260,16 +3232,6 @@ export const PostMinOrderByAggregateInputSchema: z.ZodType<Prisma.PostMinOrderBy
 
 export const PostSumOrderByAggregateInputSchema: z.ZodType<Prisma.PostSumOrderByAggregateInput> = z.object({
   retryCount: z.lazy(() => SortOrderSchema).optional()
-}).strict();
-
-export const EnumPostTypeWithAggregatesFilterSchema: z.ZodType<Prisma.EnumPostTypeWithAggregatesFilter> = z.object({
-  equals: z.lazy(() => PostTypeSchema).optional(),
-  in: z.lazy(() => PostTypeSchema).array().optional(),
-  notIn: z.lazy(() => PostTypeSchema).array().optional(),
-  not: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => NestedEnumPostTypeWithAggregatesFilterSchema) ]).optional(),
-  _count: z.lazy(() => NestedIntFilterSchema).optional(),
-  _min: z.lazy(() => NestedEnumPostTypeFilterSchema).optional(),
-  _max: z.lazy(() => NestedEnumPostTypeFilterSchema).optional()
 }).strict();
 
 export const EnumPostStatusWithAggregatesFilterSchema: z.ZodType<Prisma.EnumPostStatusWithAggregatesFilter> = z.object({
@@ -4225,10 +4187,6 @@ export const PlatformPostUncheckedCreateNestedManyWithoutPostInputSchema: z.ZodT
   connect: z.union([ z.lazy(() => PlatformPostWhereUniqueInputSchema),z.lazy(() => PlatformPostWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
-export const EnumPostTypeFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumPostTypeFieldUpdateOperationsInput> = z.object({
-  set: z.lazy(() => PostTypeSchema).optional()
-}).strict();
-
 export const EnumPostStatusFieldUpdateOperationsInputSchema: z.ZodType<Prisma.EnumPostStatusFieldUpdateOperationsInput> = z.object({
   set: z.lazy(() => PostStatusSchema).optional()
 }).strict();
@@ -4838,13 +4796,6 @@ export const NestedEnumRoleWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEn
   _max: z.lazy(() => NestedEnumRoleFilterSchema).optional()
 }).strict();
 
-export const NestedEnumPostTypeFilterSchema: z.ZodType<Prisma.NestedEnumPostTypeFilter> = z.object({
-  equals: z.lazy(() => PostTypeSchema).optional(),
-  in: z.lazy(() => PostTypeSchema).array().optional(),
-  notIn: z.lazy(() => PostTypeSchema).array().optional(),
-  not: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => NestedEnumPostTypeFilterSchema) ]).optional(),
-}).strict();
-
 export const NestedEnumPostStatusFilterSchema: z.ZodType<Prisma.NestedEnumPostStatusFilter> = z.object({
   equals: z.lazy(() => PostStatusSchema).optional(),
   in: z.lazy(() => PostStatusSchema).array().optional(),
@@ -4880,16 +4831,6 @@ export const NestedEnumPrivacyStatusFilterSchema: z.ZodType<Prisma.NestedEnumPri
   in: z.lazy(() => PrivacyStatusSchema).array().optional(),
   notIn: z.lazy(() => PrivacyStatusSchema).array().optional(),
   not: z.union([ z.lazy(() => PrivacyStatusSchema),z.lazy(() => NestedEnumPrivacyStatusFilterSchema) ]).optional(),
-}).strict();
-
-export const NestedEnumPostTypeWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumPostTypeWithAggregatesFilter> = z.object({
-  equals: z.lazy(() => PostTypeSchema).optional(),
-  in: z.lazy(() => PostTypeSchema).array().optional(),
-  notIn: z.lazy(() => PostTypeSchema).array().optional(),
-  not: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => NestedEnumPostTypeWithAggregatesFilterSchema) ]).optional(),
-  _count: z.lazy(() => NestedIntFilterSchema).optional(),
-  _min: z.lazy(() => NestedEnumPostTypeFilterSchema).optional(),
-  _max: z.lazy(() => NestedEnumPostTypeFilterSchema).optional()
 }).strict();
 
 export const NestedEnumPostStatusWithAggregatesFilterSchema: z.ZodType<Prisma.NestedEnumPostStatusWithAggregatesFilter> = z.object({
@@ -5078,7 +5019,6 @@ export const OrganizationMemberCreateManyMemberInputEnvelopeSchema: z.ZodType<Pr
 
 export const PostCreateWithoutUserInputSchema: z.ZodType<Prisma.PostCreateWithoutUserInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -5099,7 +5039,6 @@ export const PostCreateWithoutUserInputSchema: z.ZodType<Prisma.PostCreateWithou
 
 export const PostUncheckedCreateWithoutUserInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutUserInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -5401,7 +5340,6 @@ export const PostScalarWhereInputSchema: z.ZodType<Prisma.PostScalarWhereInput> 
   NOT: z.union([ z.lazy(() => PostScalarWhereInputSchema),z.lazy(() => PostScalarWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  postType: z.union([ z.lazy(() => EnumPostTypeFilterSchema),z.lazy(() => PostTypeSchema) ]).optional(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -5690,7 +5628,6 @@ export const OrganizationMemberCreateManyOrganizationInputEnvelopeSchema: z.ZodT
 
 export const PostCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostCreateWithoutOrganizationInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -5712,7 +5649,6 @@ export const PostCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostCrea
 export const PostUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutOrganizationInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6350,7 +6286,6 @@ export const PlatformPostScalarWhereInputSchema: z.ZodType<Prisma.PlatformPostSc
 
 export const PostCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostCreateWithoutAlternateContentsInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6372,7 +6307,6 @@ export const PostCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.Pos
 export const PostUncheckedCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutAlternateContentsInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6459,7 +6393,6 @@ export const PostUpdateToOneWithWhereWithoutAlternateContentsInputSchema: z.ZodT
 
 export const PostUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostUpdateWithoutAlternateContentsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6481,7 +6414,6 @@ export const PostUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.Pos
 export const PostUncheckedUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutAlternateContentsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6558,7 +6490,6 @@ export const SocialProviderUncheckedUpdateWithoutAlternateContentsInputSchema: z
 
 export const PostCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostCreateWithoutPlatformPostsInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6580,7 +6511,6 @@ export const PostCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostCre
 export const PostUncheckedCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutPlatformPostsInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6667,7 +6597,6 @@ export const PostUpdateToOneWithWhereWithoutPlatformPostsInputSchema: z.ZodType<
 
 export const PostUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUpdateWithoutPlatformPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6689,7 +6618,6 @@ export const PostUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUpd
 export const PostUncheckedUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutPlatformPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6834,7 +6762,6 @@ export const UserCreateOrConnectWithoutSocialProvidersInputSchema: z.ZodType<Pri
 
 export const PostCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostCreateWithoutSocialProvidersInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6856,7 +6783,6 @@ export const PostCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostC
 export const PostUncheckedCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutSocialProvidersInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -7411,7 +7337,6 @@ export const OrganizationMemberCreateManyMemberInputSchema: z.ZodType<Prisma.Org
 
 export const PostCreateManyUserInputSchema: z.ZodType<Prisma.PostCreateManyUserInput> = z.object({
   id: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -7547,7 +7472,6 @@ export const OrganizationMemberUncheckedUpdateManyWithoutMemberInputSchema: z.Zo
 
 export const PostUpdateWithoutUserInputSchema: z.ZodType<Prisma.PostUpdateWithoutUserInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7568,7 +7492,6 @@ export const PostUpdateWithoutUserInputSchema: z.ZodType<Prisma.PostUpdateWithou
 
 export const PostUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutUserInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7589,7 +7512,6 @@ export const PostUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.PostUnc
 
 export const PostUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyWithoutUserInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7815,7 +7737,6 @@ export const OrganizationMemberCreateManyOrganizationInputSchema: z.ZodType<Pris
 export const PostCreateManyOrganizationInputSchema: z.ZodType<Prisma.PostCreateManyOrganizationInput> = z.object({
   id: z.string(),
   userId: z.string(),
-  postType: z.lazy(() => PostTypeSchema).optional(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -7873,7 +7794,6 @@ export const OrganizationMemberUncheckedUpdateManyWithoutOrganizationInputSchema
 
 export const PostUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUpdateWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7895,7 +7815,6 @@ export const PostUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUpda
 export const PostUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7916,7 +7835,6 @@ export const PostUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma
 export const PostUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8126,7 +8044,6 @@ export const PlatformPostCreateManySocialProviderInputSchema: z.ZodType<Prisma.P
 
 export const PostUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUpdateWithoutSocialProvidersInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8148,7 +8065,6 @@ export const PostUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostU
 export const PostUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutSocialProvidersInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8169,7 +8085,6 @@ export const PostUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Pri
 export const PostUncheckedUpdateManyWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyWithoutSocialProvidersInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  postType: z.union([ z.lazy(() => PostTypeSchema),z.lazy(() => EnumPostTypeFieldUpdateOperationsInputSchema) ]).optional(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),

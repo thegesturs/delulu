@@ -2,7 +2,6 @@ import { database } from '@delulu/database';
 import {
   type PostReviewStatus,
   PostStatus,
-  type PostType,
   type Prisma,
   type PrivacyStatus,
 } from '@delulu/database';
@@ -10,7 +9,6 @@ import {
 // Types for filters
 export type PostFilters = {
   status?: PostStatus;
-  postType?: PostType;
   privacyStatus?: PrivacyStatus;
   reviewStatus?: PostReviewStatus;
   organizationId?: string;
@@ -26,9 +24,6 @@ function buildWhereClause(filters: PostFilters = {}) {
 
   if (filters.status) {
     where.status = filters.status;
-  }
-  if (filters.postType) {
-    where.postType = filters.postType;
   }
   if (filters.privacyStatus) {
     where.privacyStatus = filters.privacyStatus;
