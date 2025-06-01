@@ -1,3 +1,4 @@
+import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
 import {
   type MediaType,
@@ -7,7 +8,6 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { keys } from '@delulu/api/keys';
 import { Client, auth } from 'twitter-api-sdk';
 import type { SocialProvider } from './types';
 
@@ -235,7 +235,7 @@ async function getAccessTokenAndProfile(tokenId: string) {
   if (token.expiresIn && token.refreshToken && token.accessToken) {
     if (token.expiresIn < new Date()) {
       const bearerToken = Buffer.from(
-        `${token.clientId}:${token.clientSecret}`
+        `${keys().TWITTER_CLIENT_ID}:${keys().TWITTER_CLIENT_SECRET}`
       ).toString('base64');
       try {
         const response = await fetch('https://api.twitter.com/2/oauth2/token', {
@@ -254,6 +254,7 @@ async function getAccessTokenAndProfile(tokenId: string) {
           refresh_token: string;
           expires_in: number;
         };
+
         if (data) {
           await database.socialProvider.update({
             where: {

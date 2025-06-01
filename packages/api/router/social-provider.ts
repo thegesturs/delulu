@@ -1,6 +1,8 @@
+import { savePost } from '@api/db/post.repository';
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
 import { Queue } from 'bullmq';
+import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure } from '../trpc';
@@ -27,8 +29,34 @@ export const socialProviderRouter = {
   }),
   createPost: protectedProcedure
     .input(savePostInputSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // if (!input.id) {
+      //   await savePost({
+      //     status: 'SAVED',
+      //     user: {
+      //       connect: {
+      //         clerkUserId: ctx.userId,
+      //       },
+      //     },
+      //     id: `post_${nanoid(10)}`,
+      //     alternateContents: {
+      //       create: input.alternativeContent.map((alt) => ({
+      //         socialProvider: {
+      //           connect: { id: alt.socialProvider.socialId },
+      //         },
+      //       })),
+      //     },
+      //     content: input.content,
+      //     socialProviders: {
+      //       connect: input.socialProviders.map((provider) => ({
+      //         id: provider.socialId,
+      //       })),
+      //     },
+      //   });
+      // }
       // const results = [];
+
+      console.log(input);
 
       for (const provider of input.socialProviders) {
         // Skip providers that are not implemented
@@ -61,6 +89,15 @@ export const socialProviderRouter = {
 
         const queue = new Queue('social-posts', {
           connection: { url: process.env.REDIS_URL! },
+        });
+
+        console.log('adding to queue', {
+          socialType: provider.socialType,
+          socialProviderId: provider.socialId,
+          content: {
+            ...input,
+            content: contentToPost,
+          },
         });
 
         await queue.add('publish', {

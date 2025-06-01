@@ -19,12 +19,13 @@
     "ai": "^4.1.54",
     "axios": "^1.9.0",
     "bullmq": "^5.53.1",
+    "dotenv-cli": "^7.4.1",
     "install": "^0.13.0",
+    "nanoid": "^5.1.5",
     "openai": "^4.67.3",
     "superjson": "2.2.1",
     "twitter-api-sdk": "^1.2.1",
-    "zod": "catalog:",
-    "dotenv-cli": "^7.4.1"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@delulu/database": "workspace:*",

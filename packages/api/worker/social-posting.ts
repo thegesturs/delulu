@@ -6,6 +6,7 @@ const worker = new Worker(
   'social-posts',
   async (job) => {
     const { content, socialProviderId, socialType } = job.data;
+    console.log('Processing job:', job.data);
 
     if (socialType === 'TWITTER' || socialType === 'LINKEDIN') {
       const providerImpl =

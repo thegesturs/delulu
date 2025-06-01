@@ -5,6 +5,7 @@ import {
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
+import { api } from '@/trpc/react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
-import { type SocialType, SocialTypes } from '@delulu/validators/post';
+import type { SocialType } from '@delulu/validators/post';
 import {
   AnimatePresence,
   LayoutGroup,
@@ -33,38 +34,41 @@ interface SocialSelectorItemProps {
   socialId: string;
 }
 
-const mockSocialProviders = [
-  {
-    id: '1',
-    fullName: 'I am Cool',
-    username: 'I am Cool',
-    socialType: SocialTypes.TWITTER,
-    socialId: 'twitter',
-  },
-  {
-    id: '2',
-    fullName: 'I am Cool',
-    username: 'I am Cool',
-    socialType: SocialTypes.INSTAGRAM,
-    socialId: 'instagram',
-  },
-  {
-    id: '3',
-    fullName: 'I am Cool',
-    username: 'I am Cool',
-    socialType: SocialTypes.LINKEDIN,
-    socialId: 'linkedin',
-  },
-  {
-    id: '4',
-    fullName: 'I am Cool',
-    username: 'I am Cool',
-    socialType: SocialTypes.YOUTUBE,
-    socialId: 'youtube',
-  },
-];
+// const mockSocialProviders = [
+//   {
+//     id: '1',
+//     fullName: 'I am Cool',
+//     username: 'I am Cool',
+//     socialType: SocialTypes.TWITTER,
+//     socialId: 'twitter',
+//   },
+//   {
+//     id: '2',
+//     fullName: 'I am Cool',
+//     username: 'I am Cool',
+//     socialType: SocialTypes.INSTAGRAM,
+//     socialId: 'instagram',
+//   },
+//   {
+//     id: '3',
+//     fullName: 'I am Cool',
+//     username: 'I am Cool',
+//     socialType: SocialTypes.LINKEDIN,
+//     socialId: 'linkedin',
+//   },
+//   {
+//     id: '4',
+//     fullName: 'I am Cool',
+//     username: 'I am Cool',
+//     socialType: SocialTypes.YOUTUBE,
+//     socialId: 'youtube',
+//   },
+// ];
 
 export default function SocialSelector() {
+  const { data: socialProviders } =
+    api.socialProvider.getConnectedAccounts.useQuery();
+
   return (
     <div className="flex flex-col gap-2">
       <h3 className="font-medium text-sm">Select Social Networks</h3>
@@ -78,9 +82,9 @@ export default function SocialSelector() {
         <motion.div className="grid grid-cols-2 gap-1">
           <LayoutGroup>
             <AnimatePresence initial={false} mode="popLayout">
-              {mockSocialProviders?.map((account) => (
+              {socialProviders?.map((account) => (
                 <SocialSelectorItem
-                  key={account.socialId}
+                  key={account.id}
                   socialProvider={account.socialType}
                   name={account.fullName ?? account.username}
                   socialId={account.id}

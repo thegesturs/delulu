@@ -5,7 +5,8 @@
     "paths": {
       "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"],
-      "@delulu/api/*": ["../../packages/api/*"]
+      "@delulu/api/*": ["../../packages/api/*"],
+      "@api/*": ["../../packages/api/*"]
     },
     "strictFunctionTypes": true,
     "noImplicitThis": true,
