@@ -2,7 +2,6 @@ import {
   PostCreateInputSchema,
   PostReviewStatusSchema,
   PostStatusSchema,
-  PostTypeSchema,
   PostUpdateInputSchema,
   PrivacyStatusSchema,
 } from '@delulu/database/prisma/types/zod';
@@ -22,7 +21,6 @@ import { z } from 'zod';
 // Create a schema for post filters
 const PostFiltersSchema = z.object({
   status: PostStatusSchema.optional(),
-  postType: PostTypeSchema.optional(),
   privacyStatus: PrivacyStatusSchema.optional(),
   reviewStatus: PostReviewStatusSchema.optional(),
   organizationId: z.string().optional(),
