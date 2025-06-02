@@ -192,7 +192,7 @@ export const PostSchema = z.object({
   reviewStatus: PostReviewStatusSchema,
   privacyStatus: PrivacyStatusSchema,
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().nullable(),
   scheduledAt: z.coerce.date().nullable(),
   organizationId: z.string().nullable(),
   isDeleted: z.boolean(),
@@ -241,7 +241,7 @@ export const SocialProviderSchema = z.object({
   socialType: SocialTypeSchema,
   id: z.string(),
   organizationId: z.string().nullable(),
-  userId: z.string(),
+  userId: z.string().nullable(),
   clientId: z.string().nullable(),
   clientSecret: z.string().nullable(),
   accessToken: z.string(),
@@ -1005,7 +1005,7 @@ export const PostWhereInputSchema: z.ZodType<Prisma.PostWhereInput> = z.object({
   OR: z.lazy(() => PostWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => PostWhereInputSchema),z.lazy(() => PostWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1020,7 +1020,7 @@ export const PostWhereInputSchema: z.ZodType<Prisma.PostWhereInput> = z.object({
   lastFailedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   retryCount: z.union([ z.lazy(() => IntFilterSchema),z.number() ]).optional(),
   organization: z.union([ z.lazy(() => OrganizationNullableScalarRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional().nullable(),
-  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  user: z.union([ z.lazy(() => UserNullableScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional().nullable(),
   alternateContents: z.lazy(() => AlternatePostContentListRelationFilterSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderListRelationFilterSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostListRelationFilterSchema).optional()
@@ -1028,7 +1028,7 @@ export const PostWhereInputSchema: z.ZodType<Prisma.PostWhereInput> = z.object({
 
 export const PostOrderByWithRelationInputSchema: z.ZodType<Prisma.PostOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  userId: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -1057,7 +1057,7 @@ export const PostWhereUniqueInputSchema: z.ZodType<Prisma.PostWhereUniqueInput> 
   AND: z.union([ z.lazy(() => PostWhereInputSchema),z.lazy(() => PostWhereInputSchema).array() ]).optional(),
   OR: z.lazy(() => PostWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => PostWhereInputSchema),z.lazy(() => PostWhereInputSchema).array() ]).optional(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1072,7 +1072,7 @@ export const PostWhereUniqueInputSchema: z.ZodType<Prisma.PostWhereUniqueInput> 
   lastFailedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   retryCount: z.union([ z.lazy(() => IntFilterSchema),z.number().int() ]).optional(),
   organization: z.union([ z.lazy(() => OrganizationNullableScalarRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional().nullable(),
-  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  user: z.union([ z.lazy(() => UserNullableScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional().nullable(),
   alternateContents: z.lazy(() => AlternatePostContentListRelationFilterSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderListRelationFilterSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostListRelationFilterSchema).optional()
@@ -1080,7 +1080,7 @@ export const PostWhereUniqueInputSchema: z.ZodType<Prisma.PostWhereUniqueInput> 
 
 export const PostOrderByWithAggregationInputSchema: z.ZodType<Prisma.PostOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
-  userId: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   status: z.lazy(() => SortOrderSchema).optional(),
   scheduledAt: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   reviewStatus: z.lazy(() => SortOrderSchema).optional(),
@@ -1106,7 +1106,7 @@ export const PostScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.PostScal
   OR: z.lazy(() => PostScalarWhereWithAggregatesInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => PostScalarWhereWithAggregatesInputSchema),z.lazy(() => PostScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
-  userId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   status: z.union([ z.lazy(() => EnumPostStatusWithAggregatesFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableWithAggregatesFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusWithAggregatesFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -1241,7 +1241,7 @@ export const SocialProviderWhereInputSchema: z.ZodType<Prisma.SocialProviderWher
   NOT: z.union([ z.lazy(() => SocialProviderWhereInputSchema),z.lazy(() => SocialProviderWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientSecret: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   accessToken: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -1258,7 +1258,7 @@ export const SocialProviderWhereInputSchema: z.ZodType<Prisma.SocialProviderWher
   isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   lastSyncedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   organization: z.union([ z.lazy(() => OrganizationNullableScalarRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional().nullable(),
-  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  user: z.union([ z.lazy(() => UserNullableScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional().nullable(),
   posts: z.lazy(() => PostListRelationFilterSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentListRelationFilterSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostListRelationFilterSchema).optional()
@@ -1267,7 +1267,7 @@ export const SocialProviderWhereInputSchema: z.ZodType<Prisma.SocialProviderWher
 export const SocialProviderOrderByWithRelationInputSchema: z.ZodType<Prisma.SocialProviderOrderByWithRelationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  userId: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   clientId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   clientSecret: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   accessToken: z.lazy(() => SortOrderSchema).optional(),
@@ -1326,7 +1326,7 @@ export const SocialProviderWhereUniqueInputSchema: z.ZodType<Prisma.SocialProvid
   OR: z.lazy(() => SocialProviderWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => SocialProviderWhereInputSchema),z.lazy(() => SocialProviderWhereInputSchema).array() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientSecret: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   accessToken: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -1343,7 +1343,7 @@ export const SocialProviderWhereUniqueInputSchema: z.ZodType<Prisma.SocialProvid
   isActive: z.union([ z.lazy(() => BoolFilterSchema),z.boolean() ]).optional(),
   lastSyncedAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   organization: z.union([ z.lazy(() => OrganizationNullableScalarRelationFilterSchema),z.lazy(() => OrganizationWhereInputSchema) ]).optional().nullable(),
-  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  user: z.union([ z.lazy(() => UserNullableScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional().nullable(),
   posts: z.lazy(() => PostListRelationFilterSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentListRelationFilterSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostListRelationFilterSchema).optional()
@@ -1352,7 +1352,7 @@ export const SocialProviderWhereUniqueInputSchema: z.ZodType<Prisma.SocialProvid
 export const SocialProviderOrderByWithAggregationInputSchema: z.ZodType<Prisma.SocialProviderOrderByWithAggregationInput> = z.object({
   id: z.lazy(() => SortOrderSchema).optional(),
   organizationId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
-  userId: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   clientId: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   clientSecret: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
   accessToken: z.lazy(() => SortOrderSchema).optional(),
@@ -1379,7 +1379,7 @@ export const SocialProviderScalarWhereWithAggregatesInputSchema: z.ZodType<Prism
   NOT: z.union([ z.lazy(() => SocialProviderScalarWhereWithAggregatesInputSchema),z.lazy(() => SocialProviderScalarWhereWithAggregatesInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
-  userId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   clientId: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   clientSecret: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
   accessToken: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
@@ -1997,7 +1997,7 @@ export const PostCreateInputSchema: z.ZodType<Prisma.PostCreateInput> = z.object
   lastFailedAt: z.coerce.date().optional().nullable(),
   retryCount: z.number().int().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutPostsInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutPostInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutPostsInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutPostInputSchema).optional()
@@ -2005,7 +2005,7 @@ export const PostCreateInputSchema: z.ZodType<Prisma.PostCreateInput> = z.object
 
 export const PostUncheckedCreateInputSchema: z.ZodType<Prisma.PostUncheckedCreateInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -2039,7 +2039,7 @@ export const PostUpdateInputSchema: z.ZodType<Prisma.PostUpdateInput> = z.object
   lastFailedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   retryCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutPostsNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutPostsNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutPostsNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutPostNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutPostsNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutPostNestedInputSchema).optional()
@@ -2047,7 +2047,7 @@ export const PostUpdateInputSchema: z.ZodType<Prisma.PostUpdateInput> = z.object
 
 export const PostUncheckedUpdateInputSchema: z.ZodType<Prisma.PostUncheckedUpdateInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2068,7 +2068,7 @@ export const PostUncheckedUpdateInputSchema: z.ZodType<Prisma.PostUncheckedUpdat
 
 export const PostCreateManyInputSchema: z.ZodType<Prisma.PostCreateManyInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -2102,7 +2102,7 @@ export const PostUpdateManyMutationInputSchema: z.ZodType<Prisma.PostUpdateManyM
 
 export const PostUncheckedUpdateManyInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2230,7 +2230,7 @@ export const SocialProviderCreateInputSchema: z.ZodType<Prisma.SocialProviderCre
   isActive: z.boolean().optional(),
   lastSyncedAt: z.coerce.date().optional().nullable(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutSocialProvidersInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutSocialProviderInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutSocialProviderInputSchema).optional()
@@ -2239,7 +2239,7 @@ export const SocialProviderCreateInputSchema: z.ZodType<Prisma.SocialProviderCre
 export const SocialProviderUncheckedCreateInputSchema: z.ZodType<Prisma.SocialProviderUncheckedCreateInput> = z.object({
   id: z.string(),
   organizationId: z.string().optional().nullable(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -2278,7 +2278,7 @@ export const SocialProviderUpdateInputSchema: z.ZodType<Prisma.SocialProviderUpd
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   lastSyncedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutSocialProvidersNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutSocialProviderNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutSocialProviderNestedInputSchema).optional()
@@ -2287,7 +2287,7 @@ export const SocialProviderUpdateInputSchema: z.ZodType<Prisma.SocialProviderUpd
 export const SocialProviderUncheckedUpdateInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -2311,7 +2311,7 @@ export const SocialProviderUncheckedUpdateInputSchema: z.ZodType<Prisma.SocialPr
 export const SocialProviderCreateManyInputSchema: z.ZodType<Prisma.SocialProviderCreateManyInput> = z.object({
   id: z.string(),
   organizationId: z.string().optional().nullable(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -2351,7 +2351,7 @@ export const SocialProviderUpdateManyMutationInputSchema: z.ZodType<Prisma.Socia
 export const SocialProviderUncheckedUpdateManyInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateManyInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -3152,6 +3152,11 @@ export const JsonFilterSchema: z.ZodType<Prisma.JsonFilter> = z.object({
 export const OrganizationNullableScalarRelationFilterSchema: z.ZodType<Prisma.OrganizationNullableScalarRelationFilter> = z.object({
   is: z.lazy(() => OrganizationWhereInputSchema).optional().nullable(),
   isNot: z.lazy(() => OrganizationWhereInputSchema).optional().nullable()
+}).strict();
+
+export const UserNullableScalarRelationFilterSchema: z.ZodType<Prisma.UserNullableScalarRelationFilter> = z.object({
+  is: z.lazy(() => UserWhereInputSchema).optional().nullable(),
+  isNot: z.lazy(() => UserWhereInputSchema).optional().nullable()
 }).strict();
 
 export const AlternatePostContentListRelationFilterSchema: z.ZodType<Prisma.AlternatePostContentListRelationFilter> = z.object({
@@ -4217,10 +4222,12 @@ export const OrganizationUpdateOneWithoutPostsNestedInputSchema: z.ZodType<Prism
   update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutPostsInputSchema),z.lazy(() => OrganizationUpdateWithoutPostsInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutPostsInputSchema) ]).optional(),
 }).strict();
 
-export const UserUpdateOneRequiredWithoutPostsNestedInputSchema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutPostsNestedInput> = z.object({
+export const UserUpdateOneWithoutPostsNestedInputSchema: z.ZodType<Prisma.UserUpdateOneWithoutPostsNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserCreateWithoutPostsInputSchema),z.lazy(() => UserUncheckedCreateWithoutPostsInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutPostsInputSchema).optional(),
   upsert: z.lazy(() => UserUpsertWithoutPostsInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => UserWhereInputSchema) ]).optional(),
   connect: z.lazy(() => UserWhereUniqueInputSchema).optional(),
   update: z.union([ z.lazy(() => UserUpdateToOneWithWhereWithoutPostsInputSchema),z.lazy(() => UserUpdateWithoutPostsInputSchema),z.lazy(() => UserUncheckedUpdateWithoutPostsInputSchema) ]).optional(),
 }).strict();
@@ -4429,10 +4436,12 @@ export const OrganizationUpdateOneWithoutSocialProvidersNestedInputSchema: z.Zod
   update: z.union([ z.lazy(() => OrganizationUpdateToOneWithWhereWithoutSocialProvidersInputSchema),z.lazy(() => OrganizationUpdateWithoutSocialProvidersInputSchema),z.lazy(() => OrganizationUncheckedUpdateWithoutSocialProvidersInputSchema) ]).optional(),
 }).strict();
 
-export const UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutSocialProvidersNestedInput> = z.object({
+export const UserUpdateOneWithoutSocialProvidersNestedInputSchema: z.ZodType<Prisma.UserUpdateOneWithoutSocialProvidersNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserCreateWithoutSocialProvidersInputSchema),z.lazy(() => UserUncheckedCreateWithoutSocialProvidersInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutSocialProvidersInputSchema).optional(),
   upsert: z.lazy(() => UserUpsertWithoutSocialProvidersInputSchema).optional(),
+  disconnect: z.union([ z.boolean(),z.lazy(() => UserWhereInputSchema) ]).optional(),
+  delete: z.union([ z.boolean(),z.lazy(() => UserWhereInputSchema) ]).optional(),
   connect: z.lazy(() => UserWhereUniqueInputSchema).optional(),
   update: z.union([ z.lazy(() => UserUpdateToOneWithWhereWithoutSocialProvidersInputSchema),z.lazy(() => UserUpdateWithoutSocialProvidersInputSchema),z.lazy(() => UserUncheckedUpdateWithoutSocialProvidersInputSchema) ]).optional(),
 }).strict();
@@ -5339,7 +5348,7 @@ export const PostScalarWhereInputSchema: z.ZodType<Prisma.PostScalarWhereInput> 
   OR: z.lazy(() => PostScalarWhereInputSchema).array().optional(),
   NOT: z.union([ z.lazy(() => PostScalarWhereInputSchema),z.lazy(() => PostScalarWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   status: z.union([ z.lazy(() => EnumPostStatusFilterSchema),z.lazy(() => PostStatusSchema) ]).optional(),
   scheduledAt: z.union([ z.lazy(() => DateTimeNullableFilterSchema),z.coerce.date() ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => EnumPostReviewStatusFilterSchema),z.lazy(() => PostReviewStatusSchema) ]).optional(),
@@ -5377,7 +5386,7 @@ export const SocialProviderScalarWhereInputSchema: z.ZodType<Prisma.SocialProvid
   NOT: z.union([ z.lazy(() => SocialProviderScalarWhereInputSchema),z.lazy(() => SocialProviderScalarWhereInputSchema).array() ]).optional(),
   id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
   organizationId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
-  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientId: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   clientSecret: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
   accessToken: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
@@ -5640,7 +5649,7 @@ export const PostCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostCrea
   publishedAt: z.coerce.date().optional().nullable(),
   lastFailedAt: z.coerce.date().optional().nullable(),
   retryCount: z.number().int().optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutPostInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutPostsInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutPostInputSchema).optional()
@@ -5648,7 +5657,7 @@ export const PostCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostCrea
 
 export const PostUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutOrganizationInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -5693,7 +5702,7 @@ export const SocialProviderCreateWithoutOrganizationInputSchema: z.ZodType<Prism
   updatedAt: z.coerce.date().optional(),
   isActive: z.boolean().optional(),
   lastSyncedAt: z.coerce.date().optional().nullable(),
-  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutSocialProvidersInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutSocialProviderInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutSocialProviderInputSchema).optional()
@@ -5701,7 +5710,7 @@ export const SocialProviderCreateWithoutOrganizationInputSchema: z.ZodType<Prism
 
 export const SocialProviderUncheckedCreateWithoutOrganizationInputSchema: z.ZodType<Prisma.SocialProviderUncheckedCreateWithoutOrganizationInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -6079,7 +6088,7 @@ export const SocialProviderCreateWithoutPostsInputSchema: z.ZodType<Prisma.Socia
   isActive: z.boolean().optional(),
   lastSyncedAt: z.coerce.date().optional().nullable(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutSocialProviderInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutSocialProviderInputSchema).optional()
 }).strict();
@@ -6087,7 +6096,7 @@ export const SocialProviderCreateWithoutPostsInputSchema: z.ZodType<Prisma.Socia
 export const SocialProviderUncheckedCreateWithoutPostsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedCreateWithoutPostsInput> = z.object({
   id: z.string(),
   organizationId: z.string().optional().nullable(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -6299,14 +6308,14 @@ export const PostCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.Pos
   lastFailedAt: z.coerce.date().optional().nullable(),
   retryCount: z.number().int().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutPostsInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutPostsInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutPostInputSchema).optional()
 }).strict();
 
 export const PostUncheckedCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutAlternateContentsInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6347,7 +6356,7 @@ export const SocialProviderCreateWithoutAlternateContentsInputSchema: z.ZodType<
   isActive: z.boolean().optional(),
   lastSyncedAt: z.coerce.date().optional().nullable(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutSocialProvidersInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutSocialProviderInputSchema).optional()
 }).strict();
@@ -6355,7 +6364,7 @@ export const SocialProviderCreateWithoutAlternateContentsInputSchema: z.ZodType<
 export const SocialProviderUncheckedCreateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedCreateWithoutAlternateContentsInput> = z.object({
   id: z.string(),
   organizationId: z.string().optional().nullable(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -6406,14 +6415,14 @@ export const PostUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.Pos
   lastFailedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   retryCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutPostsNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutPostsNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutPostsNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutPostsNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutPostNestedInputSchema).optional()
 }).strict();
 
 export const PostUncheckedUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutAlternateContentsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6460,7 +6469,7 @@ export const SocialProviderUpdateWithoutAlternateContentsInputSchema: z.ZodType<
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   lastSyncedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutSocialProvidersNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutSocialProviderNestedInputSchema).optional()
 }).strict();
@@ -6468,7 +6477,7 @@ export const SocialProviderUpdateWithoutAlternateContentsInputSchema: z.ZodType<
 export const SocialProviderUncheckedUpdateWithoutAlternateContentsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateWithoutAlternateContentsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6503,14 +6512,14 @@ export const PostCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostCre
   lastFailedAt: z.coerce.date().optional().nullable(),
   retryCount: z.number().int().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutPostsInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutPostInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutPostsInputSchema).optional()
 }).strict();
 
 export const PostUncheckedCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutPlatformPostsInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -6551,7 +6560,7 @@ export const SocialProviderCreateWithoutPlatformPostsInputSchema: z.ZodType<Pris
   isActive: z.boolean().optional(),
   lastSyncedAt: z.coerce.date().optional().nullable(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutSocialProvidersInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutSocialProvidersInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutSocialProviderInputSchema).optional()
 }).strict();
@@ -6559,7 +6568,7 @@ export const SocialProviderCreateWithoutPlatformPostsInputSchema: z.ZodType<Pris
 export const SocialProviderUncheckedCreateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedCreateWithoutPlatformPostsInput> = z.object({
   id: z.string(),
   organizationId: z.string().optional().nullable(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -6610,14 +6619,14 @@ export const PostUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUpd
   lastFailedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   retryCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutPostsNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutPostsNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutPostsNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutPostNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutPostsNestedInputSchema).optional()
 }).strict();
 
 export const PostUncheckedUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutPlatformPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6664,7 +6673,7 @@ export const SocialProviderUpdateWithoutPlatformPostsInputSchema: z.ZodType<Pris
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   lastSyncedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutSocialProvidersNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutSocialProviderNestedInputSchema).optional()
 }).strict();
@@ -6672,7 +6681,7 @@ export const SocialProviderUpdateWithoutPlatformPostsInputSchema: z.ZodType<Pris
 export const SocialProviderUncheckedUpdateWithoutPlatformPostsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateWithoutPlatformPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -6775,14 +6784,14 @@ export const PostCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostC
   lastFailedAt: z.coerce.date().optional().nullable(),
   retryCount: z.number().int().optional(),
   organization: z.lazy(() => OrganizationCreateNestedOneWithoutPostsInputSchema).optional(),
-  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema),
+  user: z.lazy(() => UserCreateNestedOneWithoutPostsInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentCreateNestedManyWithoutPostInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostCreateNestedManyWithoutPostInputSchema).optional()
 }).strict();
 
 export const PostUncheckedCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedCreateWithoutSocialProvidersInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -7736,7 +7745,7 @@ export const OrganizationMemberCreateManyOrganizationInputSchema: z.ZodType<Pris
 
 export const PostCreateManyOrganizationInputSchema: z.ZodType<Prisma.PostCreateManyOrganizationInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   status: z.lazy(() => PostStatusSchema),
   scheduledAt: z.coerce.date().optional().nullable(),
   reviewStatus: z.lazy(() => PostReviewStatusSchema).optional(),
@@ -7753,7 +7762,7 @@ export const PostCreateManyOrganizationInputSchema: z.ZodType<Prisma.PostCreateM
 
 export const SocialProviderCreateManyOrganizationInputSchema: z.ZodType<Prisma.SocialProviderCreateManyOrganizationInput> = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.string().optional().nullable(),
   clientId: z.string().optional().nullable(),
   clientSecret: z.string().optional().nullable(),
   accessToken: z.string(),
@@ -7806,7 +7815,7 @@ export const PostUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUpda
   publishedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   lastFailedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   retryCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutPostsNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutPostsNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutPostNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutPostsNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutPostNestedInputSchema).optional()
@@ -7814,7 +7823,7 @@ export const PostUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUpda
 
 export const PostUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7834,7 +7843,7 @@ export const PostUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma
 
 export const PostUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7866,7 +7875,7 @@ export const SocialProviderUpdateWithoutOrganizationInputSchema: z.ZodType<Prism
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   lastSyncedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutSocialProvidersNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutSocialProviderNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutSocialProviderNestedInputSchema).optional()
@@ -7874,7 +7883,7 @@ export const SocialProviderUpdateWithoutOrganizationInputSchema: z.ZodType<Prism
 
 export const SocialProviderUncheckedUpdateWithoutOrganizationInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7897,7 +7906,7 @@ export const SocialProviderUncheckedUpdateWithoutOrganizationInputSchema: z.ZodT
 
 export const SocialProviderUncheckedUpdateManyWithoutOrganizationInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateManyWithoutOrganizationInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7960,7 +7969,7 @@ export const SocialProviderUpdateWithoutPostsInputSchema: z.ZodType<Prisma.Socia
   isActive: z.union([ z.boolean(),z.lazy(() => BoolFieldUpdateOperationsInputSchema) ]).optional(),
   lastSyncedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutSocialProvidersNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutSocialProvidersNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutSocialProviderNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutSocialProviderNestedInputSchema).optional()
 }).strict();
@@ -7968,7 +7977,7 @@ export const SocialProviderUpdateWithoutPostsInputSchema: z.ZodType<Prisma.Socia
 export const SocialProviderUncheckedUpdateWithoutPostsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateWithoutPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -7991,7 +8000,7 @@ export const SocialProviderUncheckedUpdateWithoutPostsInputSchema: z.ZodType<Pri
 export const SocialProviderUncheckedUpdateManyWithoutPostsInputSchema: z.ZodType<Prisma.SocialProviderUncheckedUpdateManyWithoutPostsInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   organizationId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   clientSecret: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   accessToken: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8057,14 +8066,14 @@ export const PostUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostU
   lastFailedAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   retryCount: z.union([ z.number().int(),z.lazy(() => IntFieldUpdateOperationsInputSchema) ]).optional(),
   organization: z.lazy(() => OrganizationUpdateOneWithoutPostsNestedInputSchema).optional(),
-  user: z.lazy(() => UserUpdateOneRequiredWithoutPostsNestedInputSchema).optional(),
+  user: z.lazy(() => UserUpdateOneWithoutPostsNestedInputSchema).optional(),
   alternateContents: z.lazy(() => AlternatePostContentUpdateManyWithoutPostNestedInputSchema).optional(),
   platformPosts: z.lazy(() => PlatformPostUpdateManyWithoutPostNestedInputSchema).optional()
 }).strict();
 
 export const PostUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedUpdateWithoutSocialProvidersInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),
@@ -8084,7 +8093,7 @@ export const PostUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Pri
 
 export const PostUncheckedUpdateManyWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUncheckedUpdateManyWithoutSocialProvidersInput> = z.object({
   id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
-  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   status: z.union([ z.lazy(() => PostStatusSchema),z.lazy(() => EnumPostStatusFieldUpdateOperationsInputSchema) ]).optional(),
   scheduledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   reviewStatus: z.union([ z.lazy(() => PostReviewStatusSchema),z.lazy(() => EnumPostReviewStatusFieldUpdateOperationsInputSchema) ]).optional(),

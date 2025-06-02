@@ -181,7 +181,7 @@ model OrganizationMember {
 
 model Post {
   id                String           @id @db.VarChar(191)
-  userId           String           @map("user_id") @db.VarChar(256)
+  userId           String?           @map("user_id") @db.VarChar(256)
   status           PostStatus
   scheduledAt      DateTime?        @map("scheduled_at") @db.Timestamptz
   reviewStatus     PostReviewStatus @default(PENDING) @map("review_status")
@@ -198,7 +198,7 @@ model Post {
 
   // Relations
   organization     Organization?    @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  user             User            @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  user             User?            @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
   alternateContents AlternatePostContent[]
   socialProviders  SocialProvider[] @relation("PostToSocialProvider")
   platformPosts    PlatformPost[]
@@ -244,7 +244,7 @@ model PlatformPost {
 model SocialProvider {
   id                    String    @id @db.VarChar(191)
   organizationId        String?   @map("organization_id") @db.VarChar(256)
-  userId               String    @map("user_id") @db.VarChar(191)
+  userId               String?    @map("user_id") @db.VarChar(191)
   clientId             String?   @map("client_id") @db.VarChar(191)
   clientSecret         String?   @map("client_secret") @db.VarChar(191)
   accessToken          String    @map("access_token") @db.Text
@@ -263,7 +263,7 @@ model SocialProvider {
 
   // Relations
   organization         Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  user                User         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+  user                User?         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
   posts               Post[]       @relation("PostToSocialProvider")
   alternateContents   AlternatePostContent[]
   platformPosts       PlatformPost[]

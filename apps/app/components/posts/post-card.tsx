@@ -94,6 +94,8 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
           </DropdownMenuItem>
         );
         break;
+      default:
+        break;
     }
 
     // Add delete action for all statuses
@@ -138,36 +140,6 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     <>
       <Card className="group relative">
         <div className="p-4">
-          {/* Media Preview - Only show in grid view */}
-          {layout === 'grid' && firstMedia && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-              {firstMedia.mediaType === 'IMAGE' ? (
-                <Image
-                  src={firstMedia.url || ''}
-                  alt={firstMedia.altText || 'Post media'}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <video
-                  src={firstMedia.url}
-                  className="h-full w-full object-cover"
-                  muted
-                  loop
-                  playsInline
-                />
-              )}
-              {(firstContent?.media?.length || 0) > 1 && (
-                <Badge
-                  variant="secondary"
-                  className="absolute right-2 bottom-2"
-                >
-                  +{(firstContent?.media?.length || 0) - 1}
-                </Badge>
-              )}
-            </div>
-          )}
-
           {layout === 'list' ? (
             <div className="flex w-full items-center gap-x-4">
               {/* Status */}
@@ -216,6 +188,36 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Media Preview for Grid */}
+              {firstMedia && (
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                  {firstMedia.mediaType === 'IMAGE' ? (
+                    <Image
+                      src={firstMedia.url || ''}
+                      alt={firstMedia.altText || 'Post media'}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={firstMedia.url}
+                      className="h-full w-full object-cover"
+                      muted
+                      loop
+                      playsInline
+                    />
+                  )}
+                  {(firstContent?.media?.length || 0) > 1 && (
+                    <Badge
+                      variant="secondary"
+                      className="absolute right-2 bottom-2"
+                    >
+                      +{(firstContent?.media?.length || 0) - 1}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               {/* Status and Actions */}
               <div className="flex items-center justify-between">
                 <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
@@ -225,11 +227,11 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               {/* Content */}
               <div className="min-w-0">
                 <p className="line-clamp-3 text-sm">
-                  {firstContent?.text || 'Untitled Post'}
+                  {firstContent?.text ?? '...'}
                 </p>
               </div>
 
-              {/* Schedule Info & Social Providers (Grid Layout) */}
+              {/* Schedule Info & Social Providers */}
               <div className="flex items-center justify-between text-muted-foreground text-xs">
                 {post.scheduledAt && (
                   <div className="flex items-center gap-1">

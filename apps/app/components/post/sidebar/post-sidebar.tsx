@@ -5,12 +5,9 @@ import { useCallback } from 'react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 import {} from '@delulu/design-system/components/ui/popover';
-// import { TimeInput } from '@delulu/design-system/components/ui/time-input';
-import type { SocialProviderType } from '@delulu/validators/post';
 
 // Import specific hooks from Zustand store
 import {
-  postActions, // For setPost, setDate, setTime actions
   useDateTime,
   usePost,
   useSelectedSocialProviders, // Assuming this returns the post object and its setter or use a specific setter hook if available
@@ -19,6 +16,8 @@ import {
 import { api } from '@/trpc/react';
 // import { SocialIcon } from '../common/social-icon';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 // Removed: import { useShallow } from 'zustand/shallow';
 import SocialSelector from './social-selector';
 
@@ -27,24 +26,79 @@ export function PostSidebar() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
   const socialProviders = useSelectedSocialProviders();
+  const utils = api.useUtils();
+  const { postId } = useParams<{ postId: string | undefined }>();
 
-  const { mutateAsync: createPost } =
-    api.socialProvider.createPost.useMutation();
+  const { mutateAsync: createPost } = api.socialProvider.createPost.useMutation(
+    {
+      onSuccess: () => {
+        toast.success('Post created successfully');
+        utils.post.getPostsByUserId.invalidate();
+      },
+      onError: () => {
+        toast.error('Failed to create post');
+      },
+    }
+  );
 
-  // Destructure actions from postActions
-  const { updatePost } = postActions;
+  const { mutateAsync: updatePost } = api.post.updatePost.useMutation({
+    onSuccess: () => {
+      toast.success('Post updated successfully');
+      utils.post.getPostsByUserId.invalidate();
+    },
+    onError: () => {
+      toast.error('Failed to update post');
+    },
+  });
+
+  const { mutateAsync: savePost } = api.post.savePost.useMutation({
+    onSuccess: () => {
+      toast.success('Post saved successfully');
+      utils.post.getPostsByUserId.invalidate();
+    },
+    onError: () => {
+      toast.error('Failed to save post');
+    },
+  });
 
   const handleSchedule = useCallback(() => {
     // TODO: Implement scheduling logic
   }, []);
 
-  const handlePostNow = useCallback(() => {
+  const handlePostNow = () => {
     createPost({
       content: post.content,
       socialProviders: socialProviders,
       alternativeContent: post.alternativeContent,
     });
-  }, [post, socialProviders]);
+  };
+
+  const handleUpdatePost = () => {
+    if (!postId) {
+      toast.error('Post ID is required');
+      return;
+    }
+    updatePost({
+      postId: postId,
+      content: post.content,
+      socialProviders: socialProviders,
+      alternativeContent: post.alternativeContent,
+    });
+  };
+
+  const handleSavePost = () => {
+    if (!postId) {
+      toast.error('Post ID is required');
+      return;
+    }
+    savePost({
+      ...post,
+      socialProviders: socialProviders,
+      alternativeContent: post.alternativeContent,
+      scheduledTime: date,
+      content: post.content,
+    });
+  };
 
   // const handleProviderToggle = useCallback(
   //   (provider: SocialProviderType) => {
@@ -88,7 +142,7 @@ export function PostSidebar() {
   // );
 
   return (
-    <Card className="w-80">
+    <Card className="w-[500px]">
       <CardContent>
         <div className="space-y-6">
           <div>
@@ -109,6 +163,9 @@ export function PostSidebar() {
       <CardContent className="flex flex-col gap-2">
         <Button className="w-full" onClick={handlePostNow}>
           {date ? 'Schedule Post' : 'Post Now'}
+        </Button>
+        <Button className="w-full" onClick={handleUpdatePost}>
+          Update Post
         </Button>
       </CardContent>
       <CardContent>

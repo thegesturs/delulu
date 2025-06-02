@@ -33,6 +33,7 @@ interface TRPCContext {
 export const createTRPCContext = async (opts: TRPCContext) => {
   const userAuth = await auth();
   const clerkId = userAuth.userId;
+  const organizationId = userAuth.orgId ?? undefined;
 
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   // biome-ignore lint/suspicious/noConsole: <explanation>
@@ -49,6 +50,7 @@ export const createTRPCContext = async (opts: TRPCContext) => {
     // env: opts.env,
     db: database,
     userId: clerkId,
+    organizationId,
     // cache,
     // cacheTagManager,
   };
