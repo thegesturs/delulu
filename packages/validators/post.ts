@@ -121,6 +121,14 @@ export const postSchema = z.object({
 
 export type FullPostType = z.infer<typeof postSchema>;
 
+export const SocialPublishInputSchema = z.object({
+  postId: z.string(),
+  socialProviderId: z.string(),
+  content: z.array(contentSchema),
+});
+
+export type SocialPublishInputType = z.infer<typeof SocialPublishInputSchema>;
+
 const youtubeContentSchema = z.object({
   youtubeId: z.string(),
   name: z.string(),

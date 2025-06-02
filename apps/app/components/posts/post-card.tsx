@@ -91,8 +91,12 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     console.log('Change schedule for post:', id);
   };
 
-  const handlePublish = async (id: string) => {
-    await publishPost({ postId: id });
+  const handlePublish = (id: string) => {
+    toast.promise(publishPost({ postId: id }), {
+      loading: 'Publishing post...',
+      success: 'Post published successfully',
+      error: 'Failed to publish post',
+    });
   };
 
   const renderActionItems = () => {
