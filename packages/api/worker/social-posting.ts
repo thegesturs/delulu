@@ -1,19 +1,43 @@
+import { database } from '@delulu/database';
+import type { SocialPublishInputType } from '@delulu/validators/post';
 import { Worker } from 'bullmq';
+import { nanoid } from 'nanoid';
 import { providerRegistry } from '../providers/index';
 import { keys } from './keys';
 
 const worker = new Worker(
   'social-posts',
   async (job) => {
-    const { content, socialProviderId, socialType } = job.data;
-    console.log('Processing job:', job.data);
+    const { socialPublishInput, socialType } = job.data as {
+      socialPublishInput: SocialPublishInputType;
+      socialType: 'LINKEDIN' | 'TWITTER';
+    };
+    console.log('Processing job:', socialPublishInput.postId);
 
     if (socialType === 'TWITTER' || socialType === 'LINKEDIN') {
       const providerImpl =
         providerRegistry[socialType as 'LINKEDIN' | 'TWITTER'];
       const result = await providerImpl.publish({
-        content,
-        socialProviderId,
+        content: socialPublishInput,
+        socialProviderId: socialPublishInput.socialProviderId,
+      });
+
+      console.log('Result:', result);
+      await database.post.update({
+        where: {
+          id: result.postId,
+        },
+        data: {
+          status: 'PUBLISHED',
+          platformPosts: {
+            create: {
+              platformPostId: result.platformPostId,
+              platformId: result.platformId,
+              platformPostUrl: result.platformPostUrl,
+              id: `social_post_${nanoid(12)}`,
+            },
+          },
+        },
       });
       console.log('Post posted:', result);
       return result;

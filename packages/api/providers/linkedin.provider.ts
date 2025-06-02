@@ -82,7 +82,7 @@ export const linkedinProvider: SocialProvider = {
 
       return {
         platformPostId: response.id,
-        postId: content.id ?? '',
+        postId: content.postId,
         platformId: socialProviderId,
         platformPostUrl: `https://www.linkedin.com/feed/update/${response.id}`,
         postedAt: new Date(),

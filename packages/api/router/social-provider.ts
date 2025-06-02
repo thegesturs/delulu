@@ -35,15 +35,17 @@ export const socialProviderRouter = {
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
+      let postId = input.id;
       if (!input.id) {
-        await saveIncomingPost(
+        const post = await saveIncomingPost(
           input,
           PostStatus.SAVED,
           ctx.userId,
           ctx.organizationId
         );
+        postId = post.id;
       }
-      await createPostInQueue(input);
+      await createPostInQueue({ ...input, id: postId });
       return {
         success: true,
       };
@@ -56,6 +58,7 @@ export const socialProviderRouter = {
     )
     .mutation(async ({ input }) => {
       const post = await getPostById(input.postId);
+      console.log('Post:', post);
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -81,6 +84,8 @@ export const socialProviderRouter = {
           })),
         })),
       };
+
+      console.log('Post data:', postData);
 
       await createPostInQueue(postData);
       return {

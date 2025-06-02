@@ -41,6 +41,8 @@ export const twitterProvider: SocialProvider = {
       });
     }
 
+    console.log('Profile:', profile);
+
     const client = new Client(profile.accessToken);
     const tweets = sortTweets(content.content);
 
@@ -53,6 +55,7 @@ export const twitterProvider: SocialProvider = {
 
     try {
       const firstTweetResult = await postFirstTweet(tweets[0], client, profile);
+      console.log('First tweet result:', firstTweetResult);
       await postThreadReplies(
         tweets.slice(1),
         client,
@@ -62,7 +65,7 @@ export const twitterProvider: SocialProvider = {
 
       return {
         platformPostId: firstTweetResult.tweetId,
-        postId: content.id ?? '',
+        postId: content.postId,
         platformId: profile.id,
         platformPostUrl: `https://x.com/${profile.username ?? 'unknown'}/status/${firstTweetResult.tweetId}`,
         postedAt: new Date(),
@@ -162,6 +165,7 @@ async function postFirstTweet(
     profile.id,
     profile.accessToken
   );
+  console.log('Media IDs:', mediaIds);
 
   const response = await client.tweets.createTweet({
     text: tweet.text,
@@ -169,6 +173,7 @@ async function postFirstTweet(
       media: { media_ids: mediaIds },
     }),
   });
+  console.log('Response:', response);
 
   if (!response.data) {
     throw new TRPCError({

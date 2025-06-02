@@ -1,4 +1,7 @@
-import type { SavePostInputType } from '@delulu/validators/post';
+import type {
+  SavePostInputType,
+  SocialPublishInputType,
+} from '@delulu/validators/post';
 import { Queue } from 'bullmq';
 
 export const createPostInQueue = async (post: SavePostInputType) => {
@@ -37,11 +40,16 @@ export const createPostInQueue = async (post: SavePostInputType) => {
 
     await queue.add('publish', {
       socialType: provider.socialType,
-      socialProviderId: provider.socialId,
-      content: {
-        ...post,
+      socialPublishInput: {
         content: contentToPost,
-      },
+        postId: post.id!,
+        socialProviderId: provider.socialId,
+      } as SocialPublishInputType,
+    });
+    console.log('Post added to queue:', {
+      socialType: provider.socialType,
+      socialProviderId: provider.socialId,
+      content: contentToPost,
     });
   }
 };

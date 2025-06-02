@@ -1,8 +1,11 @@
-import type { FullPostType, PostReturnType } from '@delulu/validators/post';
+import type {
+  PostReturnType,
+  SocialPublishInputType,
+} from '@delulu/validators/post';
 
 export type SocialProvider = {
   publish: (input: {
-    content: FullPostType;
+    content: SocialPublishInputType;
     socialProviderId: string;
   }) => Promise<PostReturnType>;
   connectUrl: () => Promise<string> | string;
