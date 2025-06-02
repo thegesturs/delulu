@@ -6,7 +6,9 @@ import {
   PrivacyStatusSchema,
 } from '@delulu/database/prisma/types/zod';
 import type { TRPCRouterRecord } from '@trpc/server';
+import { z } from 'zod';
 import {
+  type PostFilters,
   getPostById,
   getPostsByUserId,
   getScheduledPosts,
@@ -14,9 +16,13 @@ import {
   savePost,
   softDeletePost,
   updatePost,
-} from 'db/post.repository';
-import { publicProcedure } from 'trpc';
-import { z } from 'zod';
+} from '../db/post.repository';
+import {
+  PaginatedPostsResponseSchema,
+  PaginationApiSchema,
+  PostFiltersApiSchema,
+} from '../db/types/post.types';
+import { protectedProcedure, publicProcedure } from '../trpc';
 
 // Create a schema for post filters
 const PostFiltersSchema = z.object({
@@ -36,7 +42,7 @@ const PaginationSchema = z.object({
   take: z.number().optional(),
 });
 
-export const posting = {
+export const postRouter = {
   getPostById: publicProcedure
     .input(
       z.object({
@@ -47,21 +53,21 @@ export const posting = {
       const post = await getPostById(input.id);
       return post;
     }),
-  getPostsByUserId: publicProcedure
+  getPostsByUserId: protectedProcedure
     .input(
       z.object({
-        userId: z.string(),
-        filters: PostFiltersSchema.optional(),
-        pagination: PaginationSchema.optional(),
+        filters: PostFiltersApiSchema.optional(),
+        pagination: PaginationApiSchema.optional(),
       })
     )
-    .query(async ({ input }) => {
-      const posts = await getPostsByUserId(
-        input.userId,
-        input.filters || {},
+    .output(PaginatedPostsResponseSchema)
+    .query(async ({ input, ctx }) => {
+      const result = await getPostsByUserId(
+        ctx.userId,
+        (input.filters || {}) as PostFilters,
         input.pagination
       );
-      return posts;
+      return result;
     }),
   createPost: publicProcedure
     .input(PostCreateInputSchema)

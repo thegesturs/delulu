@@ -1,10 +1,13 @@
 import { database } from '@delulu/database';
+import type { Prisma } from '@delulu/database';
 import {
   type PostReviewStatus,
   PostStatus,
-  type Prisma,
   type PrivacyStatus,
 } from '@delulu/database';
+import { z } from 'zod';
+import type { ApiPost, PaginatedPostsResponse } from './types/post.types';
+import { ApiPostContentItemSchema } from './types/post.types';
 
 // Types for filters
 export type PostFilters = {
@@ -16,6 +19,9 @@ export type PostFilters = {
   startDate?: Date;
   endDate?: Date;
   searchTerm?: string;
+  hasSocialProviders?: boolean;
+  scheduledBefore?: Date;
+  scheduledAfter?: Date;
 };
 
 // Helper function to build where clause
@@ -38,17 +44,51 @@ function buildWhereClause(filters: PostFilters = {}) {
     where.isDeleted = filters.isDeleted;
   }
 
-  if (filters.startDate || filters.endDate) {
-    where.createdAt = {
-      ...(filters.startDate && { gte: filters.startDate }),
-      ...(filters.endDate && { lte: filters.endDate }),
-    };
+  if (filters.startDate) {
+    if (typeof where.createdAt === 'object' && where.createdAt !== null) {
+      (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+    } else {
+      where.createdAt = { gte: filters.startDate };
+    }
+  }
+  if (filters.endDate) {
+    if (typeof where.createdAt === 'object' && where.createdAt !== null) {
+      (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
+    } else {
+      where.createdAt = { lte: filters.endDate };
+    }
   }
 
   if (filters.searchTerm) {
     where.OR = [
       { content: { path: ['$[*].text'], string_contains: filters.searchTerm } },
     ];
+  }
+
+  if (typeof filters.hasSocialProviders === 'boolean') {
+    if (filters.hasSocialProviders) {
+      where.socialProviders = { some: {} };
+    } else {
+      where.socialProviders = { none: {} };
+    }
+  }
+
+  if (filters.scheduledBefore) {
+    if (typeof where.scheduledAt === 'object' && where.scheduledAt !== null) {
+      (where.scheduledAt as Prisma.DateTimeNullableFilter).lt =
+        filters.scheduledBefore;
+    } else {
+      where.scheduledAt = { lt: filters.scheduledBefore };
+    }
+  }
+
+  if (filters.scheduledAfter) {
+    if (typeof where.scheduledAt === 'object' && where.scheduledAt !== null) {
+      (where.scheduledAt as Prisma.DateTimeNullableFilter).gt =
+        filters.scheduledAfter;
+    } else {
+      where.scheduledAt = { gt: filters.scheduledAfter };
+    }
   }
 
   return where;
@@ -74,17 +114,18 @@ export async function getPostsByUserId(
   filters: PostFilters = {},
   pagination?: { skip?: number; take?: number },
   include?: Prisma.PostInclude
-) {
+): Promise<PaginatedPostsResponse> {
   const where = {
     userId,
     ...buildWhereClause(filters),
   };
 
-  const [posts, total] = await Promise.all([
+  const [dbPosts, total] = await Promise.all([
     database.post.findMany({
       where,
       include: {
         socialProviders: true,
+        platformPosts: true,
         ...include,
       },
       orderBy: { createdAt: 'desc' },
@@ -92,6 +133,25 @@ export async function getPostsByUserId(
     }),
     database.post.count({ where }),
   ]);
+
+  console.log(dbPosts, 'posts');
+
+  const posts: ApiPost[] = dbPosts.map((post) => {
+    // Validate and transform content
+    const parsedContent = z
+      .array(ApiPostContentItemSchema)
+      .safeParse(post.content);
+    return {
+      ...post,
+      content: parsedContent.success ? parsedContent.data : [], // Default to empty array if parsing fails or content is null/invalid
+      // Ensure other fields match ApiPost if necessary, though Prisma types should align for most
+      // For example, explicitly map status if it's not already the correct enum string
+      status: post.status as PostStatus,
+      privacyStatus: post.privacyStatus as PrivacyStatus,
+      reviewStatus: post.reviewStatus as PostReviewStatus,
+      // Map other potentially problematic fields here if they arise
+    };
+  });
 
   return {
     posts,
