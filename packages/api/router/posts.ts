@@ -11,7 +11,6 @@ import {
 import type { TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import {
-  type PostFilters,
   getPostById,
   getPostsByUserId,
   getScheduledPosts,
@@ -67,7 +66,7 @@ export const postRouter = {
     .query(async ({ input, ctx }) => {
       const result = await getPostsByUserId(
         ctx.userId,
-        (input.filters || {}) as PostFilters,
+        { ...(input.filters || {}), isDeleted: false },
         input.pagination
       );
       return result;

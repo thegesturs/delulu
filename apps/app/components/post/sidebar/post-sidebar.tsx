@@ -1,24 +1,22 @@
 'use client';
 
-import { useCallback } from 'react';
-
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
-import {} from '@delulu/design-system/components/ui/popover';
 
-// Import specific hooks from Zustand store
 import {
   useDateTime,
   usePost,
-  useSelectedSocialProviders, // Assuming this returns the post object and its setter or use a specific setter hook if available
-  useStore, // Import useStore to access setDateAlongWithTime
+  useSelectedSocialProviders,
+  useStore,
 } from '@/store/post';
 import { api } from '@/trpc/react';
-// import { SocialIcon } from '../common/social-icon';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { Loader } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { FaBookmark } from 'react-icons/fa';
+import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
-// Removed: import { useShallow } from 'zustand/shallow';
 import SocialSelector from './social-selector';
 
 export function PostSidebar() {
@@ -28,42 +26,47 @@ export function PostSidebar() {
   const socialProviders = useSelectedSocialProviders();
   const utils = api.useUtils();
   const { postId } = useParams<{ postId: string | undefined }>();
+  const router = useRouter();
 
-  const { mutateAsync: createPost } = api.socialProvider.createPost.useMutation(
-    {
+  const { mutateAsync: createPost, isPending: isCreatingPost } =
+    api.socialProvider.createPost.useMutation({
       onSuccess: () => {
         toast.success('Post created successfully');
         utils.post.getPostsByUserId.invalidate();
+        router.push('/posts');
       },
       onError: () => {
         toast.error('Failed to create post');
       },
-    }
-  );
+    });
 
-  const { mutateAsync: updatePost } = api.post.updatePost.useMutation({
-    onSuccess: () => {
-      toast.success('Post updated successfully');
-      utils.post.getPostsByUserId.invalidate();
-    },
-    onError: () => {
-      toast.error('Failed to update post');
-    },
-  });
+  const { mutateAsync: updatePost, isPending: isUpdatingPost } =
+    api.post.updatePost.useMutation({
+      onSuccess: () => {
+        toast.success('Post updated successfully');
+        utils.post.getPostsByUserId.invalidate();
+        router.push('/posts');
+      },
+      onError: () => {
+        toast.error('Failed to update post');
+      },
+    });
 
-  const { mutateAsync: savePost } = api.post.savePost.useMutation({
-    onSuccess: () => {
-      toast.success('Post saved successfully');
-      utils.post.getPostsByUserId.invalidate();
-    },
-    onError: () => {
-      toast.error('Failed to save post');
-    },
-  });
+  const { mutateAsync: savePost, isPending: isSavingPost } =
+    api.post.savePost.useMutation({
+      onSuccess: () => {
+        toast.success('Post saved successfully');
+        utils.post.getPostsByUserId.invalidate();
+        router.push('/posts');
+      },
+      onError: () => {
+        toast.error('Failed to save post');
+      },
+    });
 
-  const handleSchedule = useCallback(() => {
-    // TODO: Implement scheduling logic
-  }, []);
+  // const handleSchedule = useCallback(() => {
+  //   // TODO: Implement scheduling logic
+  // }, []);
 
   const handlePostNow = () => {
     createPost({
@@ -73,73 +76,23 @@ export function PostSidebar() {
     });
   };
 
-  const handleUpdatePost = () => {
-    if (!postId) {
-      toast.error('Post ID is required');
-      return;
+  const handleUpdateSavePost = () => {
+    if (postId) {
+      updatePost({
+        postId: postId,
+        content: post.content,
+        socialProviders: socialProviders,
+        alternativeContent: post.alternativeContent,
+      });
+    } else {
+      savePost({
+        id: postId,
+        socialProviders: socialProviders,
+        alternativeContent: post.alternativeContent,
+        content: post.content,
+      });
     }
-    updatePost({
-      postId: postId,
-      content: post.content,
-      socialProviders: socialProviders,
-      alternativeContent: post.alternativeContent,
-    });
   };
-
-  const handleSavePost = () => {
-    if (!postId) {
-      toast.error('Post ID is required');
-      return;
-    }
-    savePost({
-      ...post,
-      socialProviders: socialProviders,
-      alternativeContent: post.alternativeContent,
-      scheduledTime: date,
-      content: post.content,
-    });
-  };
-
-  // const handleProviderToggle = useCallback(
-  //   (provider: SocialProviderType) => {
-  //     const isSelected = post.alternativeContent.some(
-  //       (content) => content.socialProvider.socialId === provider.socialId
-  //     );
-
-  //     if (isSelected) {
-  //       // Remove provider
-  //       updatePost({
-  //         // Use updatePost from postActions
-  //         alternativeContent: post.alternativeContent.filter(
-  //           (content) => content.socialProvider.socialId !== provider.socialId
-  //         ),
-  //       });
-  //     } else {
-  //       // Add provider with default content
-  //       updatePost({
-  //         // Use updatePost from postActions
-  //         alternativeContent: [
-  //           ...post.alternativeContent,
-  //           {
-  //             socialProvider: provider,
-  //             content: [
-  //               {
-  //                 id: '',
-  //                 order: 0,
-  //                 name: provider.name,
-  //                 media: [],
-  //                 text: post.content[0]?.text || '',
-  //                 tags: [],
-  //                 socialId: provider.socialId,
-  //               },
-  //             ],
-  //           },
-  //         ],
-  //       });
-  //     }
-  //   },
-  //   [post, updatePost] // updatePost is stable
-  // );
 
   return (
     <Card className="w-[500px]">
@@ -160,12 +113,30 @@ export function PostSidebar() {
           </div>
         </div>
       </CardContent>
-      <CardContent className="flex flex-col gap-2">
-        <Button className="w-full" onClick={handlePostNow}>
+      <CardContent className="flex flex-row gap-1">
+        <Button
+          className="flex-1"
+          onClick={handlePostNow}
+          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+        >
           {date ? 'Schedule Post' : 'Post Now'}
+          {isCreatingPost ? (
+            <Loader className="ml-2 size-4 animate-spin" />
+          ) : (
+            <PiPaperPlaneTiltFill className="size-5" />
+          )}
         </Button>
-        <Button className="w-full" onClick={handleUpdatePost}>
-          Update Post
+        <Button
+          className="flex-1"
+          onClick={handleUpdateSavePost}
+          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+        >
+          {postId ? 'Update Post' : 'Save Post'}
+          {isUpdatingPost || isSavingPost ? (
+            <Loader className="ml-2 size-4 animate-spin" />
+          ) : (
+            <FaBookmark className="size-4" />
+          )}
         </Button>
       </CardContent>
       <CardContent>
