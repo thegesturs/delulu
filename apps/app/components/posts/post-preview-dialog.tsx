@@ -84,12 +84,12 @@ export function PostPreviewDialog({
           )}
 
           {/* Content */}
-          <p className="text-base">{firstContent?.text}</p>
+          <p className="whitespace-pre-wrap text-base">{firstContent?.text}</p>
 
           {/* Social Providers */}
           <div className="space-y-3">
-            {post.platformPosts?.length && (
-            <h3 className="font-medium">Publishing to:</h3>
+            {post.platformPosts?.length > 0 && (
+              <h3 className="font-medium">Publishing to:</h3>
             )}
             <div className="grid gap-3">
               {post.socialProviders.map((provider) => {
