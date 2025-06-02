@@ -1,37 +1,17 @@
 import type {
-  Post as PrismaPost,
-  SocialProvider as PrismaSocialProvider,
-} from '@delulu/database';
-import type { ContentType } from '@delulu/validators/post';
+  ApiPost as BackendApiPost,
+} from '@delulu/api/db/types/post.types';
 
-// Frontend-specific types that extend the database types
-export interface SocialProvider
-  extends Omit<
-    PrismaSocialProvider,
-    | 'createdAt'
-    | 'updatedAt'
-    | 'organization'
-    | 'user'
-    | 'posts'
-    | 'alternateContents'
-    | 'platformPosts'
-  > {
-  connected: boolean; // Derived from isActive for UI purposes
-}
+// Frontend-specific types that extend or alias the backend API types
 
-export interface Post
-  extends Omit<
-    PrismaPost,
-    | 'createdAt'
-    | 'updatedAt'
-    | 'organization'
-    | 'user'
-    | 'alternateContents'
-    | 'platformPosts'
-    | 'content'
-  > {
-  content: ContentType[];
-  socialProviders: SocialProvider[];
-}
+// Use the API's SocialProvider type directly
+
+// The Post type for the frontend should align with what the API provides.
+export type Post = BackendApiPost;
+
+// If you need to add purely frontend-specific properties to Post, you can extend it:
+// export interface Post extends BackendApiPost {
+//   uiSpecificFlag?: boolean;
+// }
 
 export type PostLayout = 'grid' | 'list';

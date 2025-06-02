@@ -1,5 +1,7 @@
 'use client';
 
+import type { ApiPostContentItem } from '@delulu/api/db/types/post.types';
+import type { PostStatus } from '@delulu/database';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
@@ -7,9 +9,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
-import { Calendar, Clock, Eye, MoreHorizontal, Pencil } from 'lucide-react';
+import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 import { FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
@@ -38,83 +41,103 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     FAILED: 'destructive',
   } as const;
 
+  const postId = post.id as string;
+  const postStatus = post.status as PostStatus;
+  const postContent = post.content as ApiPostContentItem[];
+
   const handleDelete = (id: string) => {
-    // TODO: Implement delete functionality
     console.log('Delete post:', id);
   };
 
   const handleEdit = (id: string) => {
-    // TODO: Implement edit functionality
     console.log('Edit post:', id);
   };
 
   const handleScheduleChange = (id: string) => {
-    // TODO: Implement schedule change functionality
     console.log('Change schedule for post:', id);
   };
 
   const handlePublish = (id: string) => {
-    // TODO: Implement publish functionality
     console.log('Publish post:', id);
   };
 
-  const renderQuickActions = () => {
-    switch (post.status) {
+  const renderActionItems = () => {
+    const items = [];
+
+    switch (postStatus) {
       case 'SAVED':
-        return (
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handlePublish(post.id)}
-            >
-              Publish
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleEdit(post.id)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </div>
+        items.push(
+          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
+            Edit
+          </DropdownMenuItem>,
+          <DropdownMenuItem key="publish" onClick={() => handlePublish(postId)}>
+            Publish now
+          </DropdownMenuItem>,
+          <DropdownMenuItem
+            key="schedule"
+            onClick={() => handleScheduleChange(postId)}
+          >
+            Schedule
+          </DropdownMenuItem>
         );
+        break;
       case 'SCHEDULED':
-        return (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleScheduleChange(post.id)}
+        items.push(
+          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
+            Edit
+          </DropdownMenuItem>,
+          <DropdownMenuItem
+            key="schedule"
+            onClick={() => handleScheduleChange(postId)}
           >
-            <Clock className="mr-2 h-4 w-4" />
-            Change Schedule
-          </Button>
+            Reschedule
+          </DropdownMenuItem>
         );
-      case 'PUBLISHED':
-        return (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowPreview(true)}
-          >
-            <Eye className="mr-2 h-4 w-4" />
-            View
-          </Button>
-        );
-      default:
-        return null;
+        break;
     }
+
+    // Add delete action for all statuses
+    if (items.length > 0) {
+      items.push(<DropdownMenuSeparator key="separator" />);
+    }
+    items.push(
+      <DropdownMenuItem
+        key="delete"
+        className="text-destructive"
+        onClick={() => handleDelete(postId)}
+      >
+        Delete
+      </DropdownMenuItem>
+    );
+
+    return items;
   };
 
-  const firstContent = post.content[0];
+  const firstContent = postContent[0];
   const firstMedia = firstContent?.media?.[0];
+
+  const ActionButtons = () => (
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="icon" onClick={() => setShowPreview(true)}>
+        <Eye className="h-4 w-4" />
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {renderActionItems()}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 
   return (
     <>
-      <Card
-        className={`group relative ${layout === 'grid' ? 'w-[300px]' : 'w-full'}`}
-      >
-        <div className="space-y-4 p-4">
+      <Card className="group relative">
+        <div className="p-4">
           {/* Media Preview - Only show in grid view */}
           {layout === 'grid' && firstMedia && (
             <div className="relative aspect-video w-full overflow-hidden rounded-lg">
@@ -145,95 +168,95 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
             </div>
           )}
 
-          <div
-            className={
-              layout === 'list' ? 'flex items-center gap-6' : 'space-y-2'
-            }
-          >
-            {/* Status and Actions */}
-            <div
-              className={
-                layout === 'list'
-                  ? 'flex min-w-[200px] items-center gap-4'
-                  : 'flex items-center justify-between'
-              }
-            >
-              <Badge variant={statusColors[post.status]}>{post.status}</Badge>
-              {layout === 'grid' && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100"
-                  onClick={() => setShowPreview(true)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
+          {layout === 'list' ? (
+            <div className="flex w-full items-center gap-x-4">
+              {/* Status */}
+              <div className="flex-shrink-0">
+                <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
+              </div>
+
+              {/* Content (Text) */}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-1 font-medium text-sm">
+                  {firstContent?.text || 'Untitled Post'}
+                </p>
+              </div>
+
+              {/* Scheduled At - flex-shrink-0 to prevent shrinking */}
+              {post.scheduledAt && (
+                <div className="flex flex-shrink-0 items-center gap-1 text-muted-foreground text-xs">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(post.scheduledAt as Date).toLocaleDateString()}
+                </div>
               )}
-            </div>
 
-            {/* Content */}
-            <div className="min-w-0 flex-1">
-              <p
-                className={`text-sm ${layout === 'list' ? 'line-clamp-1' : 'line-clamp-3'}`}
-              >
-                {firstContent?.text}
-              </p>
-            </div>
-
-            {/* Schedule Info */}
-            {post.scheduledAt && (
-              <div
-                className={`flex items-center gap-1 text-muted-foreground text-xs ${layout === 'list' ? 'min-w-[150px]' : ''}`}
-              >
-                <Calendar className="h-3 w-3" />
-                {new Date(post.scheduledAt).toLocaleDateString()}
+              {/* Social Icons - flex-shrink-0 */}
+              <div className="flex flex-shrink-0 items-center gap-1.5">
+                {post.socialProviders.map((provider) => {
+                  const Icon =
+                    socialIcons[
+                      provider.socialType as keyof typeof socialIcons
+                    ];
+                  return Icon ? (
+                    <Icon
+                      key={provider.profileId as string}
+                      className={`h-4 w-4 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                      title={
+                        (provider.username || provider.socialType) as string
+                      }
+                    />
+                  ) : null;
+                })}
               </div>
-            )}
 
-            {/* Social Providers */}
-            <div
-              className={`flex items-center gap-2 ${layout === 'list' ? 'min-w-[100px]' : ''}`}
-            >
-              {post.socialProviders.map((provider) => {
-                const Icon =
-                  socialIcons[provider.socialType as keyof typeof socialIcons];
-                return Icon ? (
-                  <Icon
-                    key={provider.profileId}
-                    className={`h-4 w-4 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
-                  />
-                ) : null;
-              })}
-            </div>
-
-            {/* Quick Actions */}
-            {layout === 'list' && (
-              <div className="flex items-center gap-2">
-                {renderQuickActions()}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEdit(post.id)}>
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowPreview(true)}>
-                      Preview
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDelete(post.id)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              {/* Actions - flex-shrink-0 */}
+              <div className="flex flex-shrink-0 items-center gap-2">
+                <ActionButtons />
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Status and Actions */}
+              <div className="flex items-center justify-between">
+                <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
+                <ActionButtons />
+              </div>
+
+              {/* Content */}
+              <div className="min-w-0">
+                <p className="line-clamp-3 text-sm">
+                  {firstContent?.text || 'Untitled Post'}
+                </p>
+              </div>
+
+              {/* Schedule Info & Social Providers (Grid Layout) */}
+              <div className="flex items-center justify-between text-muted-foreground text-xs">
+                {post.scheduledAt && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(post.scheduledAt as Date).toLocaleDateString()}
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  {post.socialProviders.map((provider) => {
+                    const Icon =
+                      socialIcons[
+                        provider.socialType as keyof typeof socialIcons
+                      ];
+                    return Icon ? (
+                      <Icon
+                        key={provider.profileId as string}
+                        className={`h-4 w-4 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                        title={
+                          (provider.username || provider.socialType) as string
+                        }
+                      />
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 

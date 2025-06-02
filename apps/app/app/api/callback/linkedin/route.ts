@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
     const { userId } = getAuth(req);
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
-    const state = searchParams.get('state');
 
     if (!userId) {
       return NextResponse.redirect(
@@ -49,7 +48,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!state || !code) {
+    if (!code) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=invalid_request&code=PARAM_001&provider=LINKEDIN',

@@ -88,12 +88,24 @@ export function PostPreviewDialog({
 
           {/* Social Providers */}
           <div className="space-y-3">
+            {post.platformPosts?.length && (
             <h3 className="font-medium">Publishing to:</h3>
+            )}
             <div className="grid gap-3">
               {post.socialProviders.map((provider) => {
                 const Icon =
                   socialIcons[provider.socialType as keyof typeof socialIcons];
-                if (!Icon) return null;
+                if (!Icon) {
+                  return null;
+                }
+
+                const platformPostUrl = post.platformPosts?.find(
+                  (pp) => pp.platformId === provider.id
+                )?.platformPostUrl;
+
+                if (!platformPostUrl) {
+                  return null;
+                }
 
                 return (
                   <div
@@ -118,11 +130,11 @@ export function PostPreviewDialog({
                     {provider.isActive && post.status === 'PUBLISHED' && (
                       <Button variant="outline" size="sm" asChild>
                         <a
-                          href={`https://${provider.socialType.toLowerCase()}.com/${provider.username}`}
+                          href={platformPostUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          View Profile
+                          View Post
                         </a>
                       </Button>
                     )}
