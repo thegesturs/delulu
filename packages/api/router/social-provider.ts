@@ -1,8 +1,13 @@
-import { savePost } from '@api/db/post.repository';
-import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
-import type { TRPCRouterRecord } from '@trpc/server';
-import { Queue } from 'bullmq';
-import { nanoid } from 'nanoid';
+import { getPostById, saveIncomingPost } from '@api/db/post.repository';
+import { createPostInQueue } from '@api/services/post.service';
+import { PostStatus } from '@delulu/database';
+import {
+  type ContentType,
+  type SavePostInputType,
+  SocialTypeSchema,
+  savePostInputSchema,
+} from '@delulu/validators/post';
+import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure } from '../trpc';
@@ -30,86 +35,54 @@ export const socialProviderRouter = {
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
-      // if (!input.id) {
-      //   await savePost({
-      //     status: 'SAVED',
-      //     user: {
-      //       connect: {
-      //         clerkUserId: ctx.userId,
-      //       },
-      //     },
-      //     id: `post_${nanoid(10)}`,
-      //     alternateContents: {
-      //       create: input.alternativeContent.map((alt) => ({
-      //         socialProvider: {
-      //           connect: { id: alt.socialProvider.socialId },
-      //         },
-      //       })),
-      //     },
-      //     content: input.content,
-      //     socialProviders: {
-      //       connect: input.socialProviders.map((provider) => ({
-      //         id: provider.socialId,
-      //       })),
-      //     },
-      //   });
-      // }
-      // const results = [];
-
-      console.log(input);
-
-      for (const provider of input.socialProviders) {
-        // Skip providers that are not implemented
-        if (
-          provider.socialType !== 'TWITTER' &&
-          provider.socialType !== 'LINKEDIN'
-        ) {
-          continue;
-        }
-
-        // Find alternative content for this provider if it exists
-        const alternativeContent = input.alternativeContent.find(
-          (alt) => alt.socialProvider.socialId === provider.socialId
+      if (!input.id) {
+        await saveIncomingPost(
+          input,
+          PostStatus.SAVED,
+          ctx.userId,
+          ctx.organizationId
         );
-
-        // Use alternative content if available, otherwise use default content
-        const contentToPost = alternativeContent?.content ?? input.content;
-
-        // // Get the provider implementation
-        // const providerImpl = providerRegistry[provider.socialType];
-
-        // Post the content using the provider's implementation
-        // const result = await providerImpl.publish({
-        //   content: {
-        //     ...input,
-        //     content: contentToPost,
-        //   },
-        //   socialProviderId: provider.socialId,
-        // });
-
-        const queue = new Queue('social-posts', {
-          connection: { url: process.env.REDIS_URL! },
-        });
-
-        console.log('adding to queue', {
-          socialType: provider.socialType,
-          socialProviderId: provider.socialId,
-          content: {
-            ...input,
-            content: contentToPost,
-          },
-        });
-
-        await queue.add('publish', {
-          socialType: provider.socialType,
-          socialProviderId: provider.socialId,
-          content: {
-            ...input,
-            content: contentToPost,
-          },
-        });
+      }
+      await createPostInQueue(input);
+      return {
+        success: true,
+      };
+    }),
+  createPostFromPostId: protectedProcedure
+    .input(
+      z.object({
+        postId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const post = await getPostById(input.postId);
+      if (!post) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
 
+      const postData: SavePostInputType = {
+        id: post.id,
+        content: (post.content as unknown[]).map((item) => ({
+          ...(item as ContentType),
+        })),
+        socialProviders: post.socialProviders.map((provider) => ({
+          socialId: provider.id,
+          name: provider.fullName,
+          socialType: provider.socialType,
+        })),
+        alternativeContent: post.alternateContents.map((alt) => ({
+          socialProvider: {
+            socialId: alt.socialProvider.id,
+            name: alt.socialProvider.fullName,
+            socialType: alt.socialProvider.socialType,
+          },
+          content: (alt.content as unknown[]).map((item) => ({
+            ...(item as ContentType),
+          })),
+        })),
+      };
+
+      await createPostInQueue(postData);
       return {
         success: true,
       };

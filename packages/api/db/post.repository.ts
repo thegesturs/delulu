@@ -5,6 +5,11 @@ import {
   PostStatus,
   type PrivacyStatus,
 } from '@delulu/database';
+import type {
+  SavePostInputType,
+  UpdatePostInput,
+} from '@delulu/validators/post';
+import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import type { ApiPost, PaginatedPostsResponse } from './types/post.types';
 import { ApiPostContentItemSchema } from './types/post.types';
@@ -95,15 +100,22 @@ function buildWhereClause(filters: PostFilters = {}) {
 }
 
 // Get a single post by ID
-export async function getPostById(
-  postId: string,
-  include?: Prisma.PostInclude
-) {
+export async function getPostById(postId: string) {
   return await database.post.findUnique({
     where: { id: postId },
     include: {
       socialProviders: true,
-      ...include,
+      alternateContents: {
+        include: {
+          socialProvider: {
+            select: {
+              id: true,
+              fullName: true,
+              socialType: true,
+            },
+          },
+        },
+      },
     },
   });
 }
@@ -172,6 +184,34 @@ export async function savePost(
   });
 }
 
+export async function saveIncomingPost(
+  post: SavePostInputType,
+  postStatus: PostStatus,
+  userId?: string,
+  organizationId?: string
+) {
+  return await database.post.create({
+    data: {
+      content: post.content,
+      status: postStatus,
+      id: `post_${nanoid(12)}`,
+      socialProviders: {
+        connect: post.socialProviders.map((provider) => ({
+          id: provider.socialId,
+        })),
+      },
+      userId: userId ?? undefined,
+      organizationId: organizationId ?? undefined,
+      alternateContents: {
+        create: post.alternativeContent.map((alt) => ({
+          content: alt.content,
+          socialProviderId: alt.socialProvider.socialId,
+        })),
+      },
+    },
+  });
+}
+
 // Update an existing post
 export async function updatePost(
   postId: string,
@@ -183,6 +223,50 @@ export async function updatePost(
     data,
     include: {
       ...include,
+    },
+  });
+}
+
+export async function updatePostContent(updatePostInput: UpdatePostInput) {
+  return await database.post.update({
+    where: { id: updatePostInput.postId },
+    data: {
+      content: updatePostInput.content,
+      socialProviders: {
+        // Replace all providers with the new set
+        set: updatePostInput.socialProviders.map((provider) => ({
+          id: provider.socialId,
+        })),
+      },
+      alternateContents: {
+        // Delete all alternate contents that are not in the input
+        deleteMany: {
+          postId: updatePostInput.postId,
+          NOT: {
+            socialProviderId: {
+              in: updatePostInput.alternativeContent.map(
+                (alt) => alt.socialProvider.socialId
+              ),
+            },
+          },
+        },
+        // Update existing or create new ones
+        upsert: updatePostInput.alternativeContent.map((alt) => ({
+          where: {
+            postId_socialProviderId: {
+              postId: updatePostInput.postId,
+              socialProviderId: alt.socialProvider.socialId,
+            },
+          },
+          update: {
+            content: alt.content,
+          },
+          create: {
+            content: alt.content,
+            socialProviderId: alt.socialProvider.socialId,
+          },
+        })),
+      },
     },
   });
 }

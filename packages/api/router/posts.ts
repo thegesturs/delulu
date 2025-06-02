@@ -1,10 +1,13 @@
+import { PostStatus } from '@delulu/database';
 import {
-  PostCreateInputSchema,
   PostReviewStatusSchema,
   PostStatusSchema,
-  PostUpdateInputSchema,
   PrivacyStatusSchema,
 } from '@delulu/database/prisma/types/zod';
+import {
+  savePostInputSchema,
+  updatePostInputSchema,
+} from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import {
@@ -13,16 +16,16 @@ import {
   getPostsByUserId,
   getScheduledPosts,
   hardDeletePost,
-  savePost,
+  saveIncomingPost,
   softDeletePost,
-  updatePost,
+  updatePostContent,
 } from '../db/post.repository';
 import {
   PaginatedPostsResponseSchema,
   PaginationApiSchema,
   PostFiltersApiSchema,
 } from '../db/types/post.types';
-import { protectedProcedure, publicProcedure } from '../trpc';
+import { protectedProcedure } from '../trpc';
 
 // Create a schema for post filters
 const PostFiltersSchema = z.object({
@@ -43,7 +46,7 @@ const PaginationSchema = z.object({
 });
 
 export const postRouter = {
-  getPostById: publicProcedure
+  getPostById: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -69,24 +72,24 @@ export const postRouter = {
       );
       return result;
     }),
-  createPost: publicProcedure
-    .input(PostCreateInputSchema)
-    .mutation(async ({ input }) => {
-      const post = await savePost(input);
+  savePost: protectedProcedure
+    .input(savePostInputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const post = await saveIncomingPost(
+        input,
+        PostStatus.SAVED,
+        ctx.userId,
+        ctx.organizationId
+      );
       return post;
     }),
-  updatePost: publicProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        data: PostUpdateInputSchema,
-      })
-    )
+  updatePost: protectedProcedure
+    .input(updatePostInputSchema)
     .mutation(async ({ input }) => {
-      const post = await updatePost(input.id, input.data);
+      const post = await updatePostContent(input);
       return post;
     }),
-  softDeletePost: publicProcedure
+  softDeletePost: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -96,7 +99,7 @@ export const postRouter = {
       const post = await softDeletePost(input.id);
       return post;
     }),
-  hardDeletePost: publicProcedure
+  hardDeletePost: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -106,7 +109,7 @@ export const postRouter = {
       const post = await hardDeletePost(input.id);
       return post;
     }),
-  getScheduledPosts: publicProcedure
+  getScheduledPosts: protectedProcedure
     .input(
       z.object({
         filters: PostFiltersSchema.optional(),
