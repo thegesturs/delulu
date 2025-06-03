@@ -35,7 +35,7 @@ import PostLoading from './post-loading';
 type PostStatus = z.infer<typeof PostStatusSchema>;
 
 type PostStatusFilterType = 'all' | PostStatus;
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export default function PostsPage() {
   const [searchTerm, setSearchTerm] = React.useState('');

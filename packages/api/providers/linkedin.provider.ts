@@ -13,7 +13,7 @@ import type { SocialProvider } from './types';
  * Interface for LinkedIn media upload response
  */
 interface LinkedInMediaAsset {
-  status: 'READY';
+  status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
   description: {
     text: string;
   };
@@ -69,12 +69,17 @@ export const linkedinProvider: SocialProvider = {
     }
 
     try {
+      // First upload all media and wait for them to be ready
       const mediaAssets = await uploadMediaAssets(firstContent.media, profile);
+      console.log('Media assets uploaded and ready:', mediaAssets);
+
+      // Only proceed with post creation if all media is ready
       const postPayload = createPostPayload(
         firstContent.text,
         profile.profileId,
         mediaAssets
       );
+
       const response = await publishToLinkedIn(
         postPayload,
         profile.accessToken
@@ -89,6 +94,19 @@ export const linkedinProvider: SocialProvider = {
       };
     } catch (error) {
       console.error('Error posting to LinkedIn:', error);
+      if (axios.isAxiosError(error) && error.response?.data) {
+        console.error('LinkedIn API Error:', error.response.data);
+        // Check for duplicate content error
+        if (
+          error.response.status === 422 &&
+          error.response.data.message?.includes('duplicate')
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'This content has already been posted to LinkedIn',
+          });
+        }
+      }
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to post to LinkedIn',
@@ -140,29 +158,39 @@ async function uploadMediaAssets(
   const mediaAssets: LinkedInMediaAsset[] = [];
   const validMediaUrls = getValidMediaUrls(media);
 
+  console.log('Starting media upload process with:', validMediaUrls);
+
   for (const mediaItem of validMediaUrls) {
-    if (!mediaItem.url) continue;
+    if (!mediaItem.url) {
+      console.log('Skipping media item with no URL');
+      continue;
+    }
 
     try {
-      const uploadResponse = await uploadMediaToLinkedIn({
+      console.log('Uploading media item:', mediaItem);
+      const uploadResponse = await uploadMedia({
         authToken: profile.accessToken,
         fileUrl: mediaItem.url,
         isImage: mediaItem.mediaType === 'IMAGE',
-        profileId: profile.profileId,
+        media: { owner: profile.profileId },
       });
 
+      console.log('Upload successful, asset ID:', uploadResponse);
       mediaAssets.push({
         status: 'READY',
         description: { text: mediaItem.altText ?? '' },
         media: uploadResponse,
         title: { text: '' },
       });
+      console.log('Added asset to mediaAssets array');
     } catch (error) {
       console.error('Failed to upload media:', error);
-      // Continue with remaining media
+      // Instead of silently continuing, we might want to throw the error
+      throw error;
     }
   }
 
+  console.log('Completed media uploads, total assets:', mediaAssets.length);
   return mediaAssets;
 }
 
@@ -204,23 +232,112 @@ function createPostPayload(
 }
 
 /**
- * Uploads a single media file to LinkedIn
- * @param params - Upload parameters including auth token, file URL, and profile ID
- * @returns Promise<string> - The URN of the uploaded media
+ * Checks the status of a LinkedIn media asset
+ * @param assetId - The ID of the asset to check
+ * @param authToken - LinkedIn access token
+ * @returns Promise<string> - The status of the asset
  */
-async function uploadMediaToLinkedIn({
+async function checkAssetStatus(
+  assetId: string,
+  authToken: string
+): Promise<'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED'> {
+  try {
+    // Remove the urn:li:digitalmediaAsset: prefix for the status check
+    const assetIdWithoutPrefix = assetId.replace(
+      'urn:li:digitalmediaAsset:',
+      ''
+    );
+
+    const response = await axios.get(
+      `https://api.linkedin.com/v2/assets/${assetIdWithoutPrefix}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      }
+    );
+
+    if (!response.data) {
+      console.warn('No data received from LinkedIn asset status check');
+      return 'PROCESSING';
+    }
+
+    console.log('Asset status response:', response.data);
+    return response.data.status;
+  } catch (error) {
+    console.error('Error checking asset status:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Response data:', error.response?.data);
+      // If we get a 403 or 404, the asset might still be processing
+      if (error.response?.status === 403 || error.response?.status === 404) {
+        return 'PROCESSING';
+      }
+    }
+    throw new Error('Failed to check asset status');
+  }
+}
+
+/**
+ * Waits for a LinkedIn media asset to become available
+ * @param assetId - The ID of the asset to wait for
+ * @param authToken - LinkedIn access token
+ * @param maxAttempts - Maximum number of attempts to check status
+ * @param delayMs - Delay between status checks in milliseconds
+ */
+async function waitForAssetAvailability(
+  assetId: string,
+  authToken: string,
+  maxAttempts = 60,
+  delayMs = 5000
+): Promise<void> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    console.log(`Checking asset status attempt ${attempt + 1}/${maxAttempts}`);
+    const status = await checkAssetStatus(assetId, authToken);
+
+    switch (status) {
+      case 'READY':
+      case 'ALLOWED':
+        console.log(`Asset is ${status}`);
+        return;
+      case 'PROCESSING_FAILED':
+        throw new Error('Asset processing failed');
+      case 'PROCESSING':
+        console.log('Asset is still processing, waiting...');
+        if (attempt === maxAttempts - 1) {
+          throw new Error(
+            'Asset processing timeout - took longer than expected'
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      default:
+        console.error('Unexpected asset status:', status);
+        throw new Error(`Unknown asset status: ${status}`);
+    }
+  }
+
+  throw new Error('Asset processing timeout - took longer than expected');
+}
+
+/**
+ * Uploads media to LinkedIn and waits for it to be ready
+ */
+async function uploadMedia({
   authToken,
   fileUrl,
   isImage,
-  profileId,
+  media: { owner },
 }: {
   authToken: string;
   fileUrl: string;
   isImage: boolean;
-  profileId: string;
+  media: {
+    owner: string;
+  };
 }): Promise<string> {
   try {
-    // First, register the media upload
+    // Step 1: Register the media upload
     const registerResponse = await axios.post(
       'https://api.linkedin.com/v2/assets?action=registerUpload',
       {
@@ -230,7 +347,7 @@ async function uploadMediaToLinkedIn({
               ? 'urn:li:digitalmediaRecipe:feedshare-image'
               : 'urn:li:digitalmediaRecipe:feedshare-video',
           ],
-          owner: `urn:li:person:${profileId}`,
+          owner: `urn:li:person:${owner}`,
           serviceRelationships: [
             {
               relationshipType: 'OWNER',
@@ -253,25 +370,89 @@ async function uploadMediaToLinkedIn({
       ].uploadUrl;
     const asset = registerResponse.data.value.asset;
 
-    // Download the file from the provided URL
-    const fileResponse = await axios.get(fileUrl, {
-      responseType: 'arraybuffer',
+    // Step 2: Get the file as a binary buffer
+    const fileResponse = await axios({
+      method: 'get',
+      url: fileUrl,
+      responseType: 'stream',
     });
-    const fileBuffer = Buffer.from(fileResponse.data);
 
-    // Upload the file to LinkedIn
-    await axios.put(uploadUrl, fileBuffer, {
+    // Step 3: Upload the file to LinkedIn
+    await axios.put(uploadUrl, fileResponse.data, {
       headers: {
         Authorization: `Bearer ${authToken}`,
-        'Content-Type': isImage ? 'image/jpeg' : 'video/mp4',
+        'Content-Type': 'application/octet-stream',
+        'X-Restli-Protocol-Version': '2.0.0',
       },
     });
 
+    // Step 4: Wait for the asset to be ready
+    await waitForAssetAvailability(asset, authToken);
+
     return asset;
   } catch (error) {
-    console.error('Error uploading media to LinkedIn:', error);
-    throw new Error('Failed to upload media to LinkedIn');
+    console.error('Error uploading media:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Response data:', error.response?.data);
+    }
+    throw new Error(
+      `Failed to upload media: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
+}
+
+/**
+ * Creates a LinkedIn post with the given content and media
+ */
+async function createLinkedInPost({
+  profileId,
+  accessToken,
+  content,
+  mediaAssets,
+}: {
+  profileId: string;
+  accessToken: string;
+  content: string;
+  mediaAssets: LinkedInMediaAsset[];
+}): Promise<{ id: string }> {
+  const hasMedia = mediaAssets.length > 0;
+  const data = {
+    author: `urn:li:person:${profileId}`,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary: {
+          text: content,
+        },
+        shareMediaCategory: hasMedia
+          ? mediaAssets[0].media.includes('urn:li:image')
+            ? 'IMAGE'
+            : 'VIDEO'
+          : 'NONE',
+        ...(hasMedia && { media: mediaAssets }),
+      },
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+    },
+  };
+
+  const response = await axios.post(
+    'https://api.linkedin.com/v2/ugcPosts',
+    data,
+    {
+      headers: {
+        'X-Restli-Protocol-Version': '2.0.0',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.data?.id) {
+    throw new Error('Failed to get post ID from LinkedIn response');
+  }
+
+  return { id: response.data.id };
 }
 
 /**
