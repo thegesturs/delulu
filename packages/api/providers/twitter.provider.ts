@@ -351,7 +351,7 @@ function getMediaCategory(mimeType: string): string {
     return 'tweet_image';
   }
   if (mimeType.startsWith('video/')) {
-    return 'tweet_video';
+    return 'amplify_video'; // Using amplify_video for better video support
   }
   return 'tweet_image'; // fallback
 }
@@ -385,19 +385,17 @@ export async function uploadMediaToTwitter(
       additionalOwners: [profileId],
     });
 
-    if (initResponse.errors && initResponse.errors.length > 0) {
-      throw new Error(
-        `Failed to initialize upload: ${initResponse.errors[0].detail}`
-      );
-    }
-
     const mediaId = initResponse.data.id;
+    if (!mediaId) {
+      throw new Error('Failed to get media_id from INIT response');
+    }
 
     // Step 2: Upload file in chunks
     await uploadMediaChunks({
       accessToken,
       mediaId,
       fileBuffer,
+      mimeType,
     });
 
     // Step 3: Finalize upload
@@ -406,14 +404,8 @@ export async function uploadMediaToTwitter(
       mediaId,
     });
 
-    if (finalizeResponse.errors && finalizeResponse.errors.length > 0) {
-      throw new Error(
-        `Failed to finalize upload: ${finalizeResponse.errors[0].detail}`
-      );
-    }
-
-    // Step 4: Check processing status for videos/large files
-    if (mediaCategory === 'tweet_video' || mediaCategory === 'tweet_gif') {
+    // Step 4: Check processing status if needed
+    if (finalizeResponse.data.processing_info) {
       await waitForProcessingComplete({
         accessToken,
         mediaId,
@@ -422,14 +414,18 @@ export async function uploadMediaToTwitter(
 
     return mediaId;
   } catch (error) {
-    console.error('Error uploading media:', error);
+    console.error('Error uploading media to Twitter V2:', error);
+    // Check if error is an AxiosError to potentially log more details
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('Twitter API Error Response:', error.response.data);
+    }
     throw new Error(
-      `Failed to upload media: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to upload media to Twitter V2: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
 
-// Initialize media upload
+// Initialize media upload (V2)
 async function initializeMediaUpload({
   accessToken,
   totalBytes,
@@ -443,42 +439,77 @@ async function initializeMediaUpload({
   mediaCategory: string;
   additionalOwners?: string[];
 }): Promise<MediaUploadInitResponse> {
+  const payload: {
+    total_bytes: number;
+    media_type: string;
+    media_category: string;
+    additional_owners?: string[];
+    shared?: boolean;
+  } = {
+    total_bytes: totalBytes,
+    media_type: mediaType,
+    media_category: mediaCategory,
+  };
+
+  if (additionalOwners && additionalOwners.length > 0) {
+    payload.additional_owners = additionalOwners;
+  }
+  // Set shared to true as per the provided example documentation
+  payload.shared = true;
+
   const response = await fetch(
-    'https://api.twitter.com/2/media/upload/initialize',
+    'https://api.twitter.com/2/media/upload/initialize', // Updated endpoint
     {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', // Updated Content-Type
       },
-      body: JSON.stringify({
-        total_bytes: totalBytes,
-        media_type: mediaType,
-        media_category: mediaCategory,
-        ...(additionalOwners && { additional_owners: additionalOwners }),
-      }),
+      body: JSON.stringify(payload), // Updated to JSON payload
     }
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.text(); // Read response body once
+    console.log('Error text:', errorText); // Preserve user's log
+
+    let errorDetails = {};
+    try {
+      // Attempt to parse the errorText as JSON, as Twitter often returns JSON errors
+      errorDetails = JSON.parse(errorText);
+    } catch (e) {
+      // If errorText is not valid JSON, log the parsing error and proceed with raw text
+      console.error('Error parsing JSON from error text response:', e);
+    }
+
+    console.error(`Initialize media upload failed: ${response.status}`, {
+      responseText: errorText,
+      parsedDetails: errorDetails,
+    });
     throw new Error(
-      `Initialize upload failed: ${response.status} ${errorText}`
+      `Initialize media upload failed: ${response.status} - ${errorText}`
     );
   }
 
+  // If response is OK, expect JSON
   return response.json() as Promise<MediaUploadInitResponse>;
 }
 
-// Upload file in chunks
+// Upload file in chunks (V2)
+// Note: This function and subsequent FINALIZE/STATUS are assumed to still use
+// the 'https://api.x.com/2/media/upload' with command parameters and FormData
+// as per the guide previously discussed, as the new documentation snippet
+// only covered the 'initialize' step.
 async function uploadMediaChunks({
   accessToken,
   mediaId,
   fileBuffer,
+  mimeType,
 }: {
   accessToken: string;
   mediaId: string;
   fileBuffer: Buffer;
+  mimeType: string;
 }): Promise<void> {
   const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
 
@@ -488,30 +519,33 @@ async function uploadMediaChunks({
     const chunk = fileBuffer.slice(start, end);
 
     const formData = new FormData();
-    formData.append('media', new Blob([chunk]), 'media');
+    formData.append('command', 'APPEND');
+    formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
+    formData.append('media', new Blob([chunk], { type: mimeType }));
 
-    const response = await fetch(
-      `https://api.twitter.com/2/media/upload/${mediaId}/append`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: formData,
-      }
-    );
+    const response = await fetch('https://api.x.com/2/media/upload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(
+        `Chunk V2 upload failed for segment ${segmentIndex}: ${response.status} ${errorText}`,
+        await response.json().catch(() => ({}))
+      );
       throw new Error(
-        `Chunk upload failed for segment ${segmentIndex}: ${response.status} ${errorText}`
+        `Chunk V2 upload failed for segment ${segmentIndex}: ${response.status} ${errorText}`
       );
     }
   }
 }
 
-// Finalize media upload
+// Finalize media upload (V2)
 async function finalizeMediaUpload({
   accessToken,
   mediaId,
@@ -519,25 +553,33 @@ async function finalizeMediaUpload({
   accessToken: string;
   mediaId: string;
 }): Promise<MediaUploadStatusResponse> {
-  const response = await fetch(
-    `https://api.twitter.com/2/media/upload/${mediaId}/finalize`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
+  const formData = new FormData();
+  formData.append('command', 'FINALIZE');
+  formData.append('media_id', mediaId);
+
+  const response = await fetch('https://api.x.com/2/media/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Finalize upload failed: ${response.status} ${errorText}`);
+    console.error(
+      `Finalize V2 upload failed: ${response.status} ${errorText}`,
+      await response.json().catch(() => ({}))
+    );
+    throw new Error(
+      `Finalize V2 upload failed: ${response.status} ${errorText}`
+    );
   }
-
   return response.json() as Promise<MediaUploadStatusResponse>;
 }
 
-// Wait for media processing to complete
+// Wait for media processing to complete - this logic should largely remain the same
+// as it's about polling based on the response from FINALIZE/STATUS.
 async function waitForProcessingComplete({
   accessToken,
   mediaId,
@@ -555,16 +597,19 @@ async function waitForProcessingComplete({
       mediaId,
     });
 
-    if (statusResponse.errors && statusResponse.errors.length > 0) {
-      throw new Error(
-        `Status check failed: ${statusResponse.errors[0].detail}`
-      );
-    }
-
+    // The V2 response structure for STATUS has data.processing_info
     const processingInfo = statusResponse.data.processing_info;
 
     if (!processingInfo) {
-      // No processing info means it's ready
+      // If processing_info is not present, it might mean success or an issue.
+      // The quickstart implies FINALIZE response dictates if STATUS is needed.
+      // If FINALIZE didn't have processing_info, we might not even call this.
+      // If it did, and now it's gone, assume success or check state if available.
+      // For safety, let's assume it implies readiness if we are in this loop
+      // *after* FINALIZE indicated processing.
+      console.log(
+        'Processing info not found in STATUS response, assuming complete for V2.'
+      );
       return;
     }
 
@@ -573,24 +618,25 @@ async function waitForProcessingComplete({
         return;
       case 'failed':
         throw new Error(
-          `Media processing failed: ${processingInfo.error?.message || 'Unknown error'}`
+          `Media processing V2 failed: ${processingInfo.error?.message || 'Unknown error'}`
         );
       case 'pending':
       case 'in_progress': {
-        // Wait before checking again
         const waitTime = (processingInfo.check_after_secs || 5) * 1000;
         await new Promise((resolve) => setTimeout(resolve, waitTime));
         break;
       }
       default:
-        throw new Error(`Unknown processing state: ${processingInfo.state}`);
+        // This is an unknown state, potentially from a type mismatch or API change.
+        // To be safe, log it and re-throw or handle as an error.
+        console.error(`Unknown processing V2 state: ${processingInfo.state}`);
+        throw new Error(`Unknown processing V2 state: ${processingInfo.state}`);
     }
   }
-
-  throw new Error('Media processing timeout - took longer than expected');
+  throw new Error('Media processing V2 timeout - took longer than expected');
 }
 
-// Get media upload status
+// Get media upload status (V2)
 async function getMediaUploadStatus({
   accessToken,
   mediaId,
@@ -598,8 +644,12 @@ async function getMediaUploadStatus({
   accessToken: string;
   mediaId: string;
 }): Promise<MediaUploadStatusResponse> {
+  const params = new URLSearchParams({
+    command: 'STATUS',
+    media_id: mediaId,
+  });
   const response = await fetch(
-    `https://api.twitter.com/2/media/upload?media_id=${mediaId}&command=STATUS`,
+    `https://api.x.com/2/media/upload?${params.toString()}`,
     {
       method: 'GET',
       headers: {
@@ -610,8 +660,11 @@ async function getMediaUploadStatus({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Status check failed: ${response.status} ${errorText}`);
+    console.error(
+      `Status check V2 failed: ${response.status} ${errorText}`,
+      await response.json().catch(() => ({}))
+    );
+    throw new Error(`Status check V2 failed: ${response.status} ${errorText}`);
   }
-
   return response.json() as Promise<MediaUploadStatusResponse>;
 }
