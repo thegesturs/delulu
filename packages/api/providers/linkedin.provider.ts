@@ -207,11 +207,12 @@ function createPostPayload(
   mediaAssets: LinkedInMediaAsset[]
 ): LinkedInPostPayload {
   const hasMedia = mediaAssets.length > 0;
-  const mediaCategory = hasMedia
-    ? mediaAssets[0].media.includes('urn:li:image')
-      ? 'IMAGE'
-      : 'VIDEO'
-    : 'NONE';
+  const isImage =
+    hasMedia && mediaAssets[0].media.startsWith('urn:li:digitalmediaAsset:');
+  const mediaCategory = hasMedia ? (isImage ? 'IMAGE' : 'VIDEO') : 'NONE';
+
+  console.log('mediaCategory', mediaCategory);
+  console.log('hasMedia', mediaAssets);
 
   return {
     author: `urn:li:person:${profileId}`,
@@ -343,10 +344,9 @@ async function uploadMedia({
       {
         registerUploadRequest: {
           recipes: [
-            // isImage
-            //   ? 
-              'urn:li:digitalmediaRecipe:feedshare-image'
-              // : 'urn:li:digitalmediaRecipe:feedshare-video',
+            isImage
+              ? 'urn:li:digitalmediaRecipe:feedshare-image'
+              : 'urn:li:digitalmediaRecipe:feedshare-video',
           ],
           owner: `urn:li:person:${owner}`,
           serviceRelationships: [
@@ -417,6 +417,10 @@ async function createLinkedInPost({
   mediaAssets: LinkedInMediaAsset[];
 }): Promise<{ id: string }> {
   const hasMedia = mediaAssets.length > 0;
+  const isImage =
+    hasMedia && mediaAssets[0].media.startsWith('urn:li:digitalmediaAsset:');
+  const mediaCategory = hasMedia ? (isImage ? 'IMAGE' : 'VIDEO') : 'NONE';
+
   const data = {
     author: `urn:li:person:${profileId}`,
     lifecycleState: 'PUBLISHED',
@@ -425,11 +429,7 @@ async function createLinkedInPost({
         shareCommentary: {
           text: content,
         },
-        shareMediaCategory: hasMedia
-          ? mediaAssets[0].media.includes('urn:li:image')
-            ? 'IMAGE'
-            : 'VIDEO'
-          : 'NONE',
+        shareMediaCategory: mediaCategory,
         ...(hasMedia && { media: mediaAssets }),
       },
     },
