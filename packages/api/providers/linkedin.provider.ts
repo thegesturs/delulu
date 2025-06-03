@@ -21,6 +21,7 @@ interface LinkedInMediaAsset {
   title: {
     text: string;
   };
+  mediaTypeFamily?: 'STILLIMAGE' | 'VIDEO';
 }
 
 /**
@@ -179,8 +180,9 @@ async function uploadMediaAssets(
       mediaAssets.push({
         status: 'READY',
         description: { text: mediaItem.altText ?? '' },
-        media: uploadResponse,
+        media: uploadResponse.assetId,
         title: { text: '' },
+        mediaTypeFamily: uploadResponse.mediaTypeFamily,
       });
       console.log('Added asset to mediaAssets array');
     } catch (error) {
@@ -207,9 +209,11 @@ function createPostPayload(
   mediaAssets: LinkedInMediaAsset[]
 ): LinkedInPostPayload {
   const hasMedia = mediaAssets.length > 0;
-  const isImage =
-    hasMedia && mediaAssets[0].media.startsWith('urn:li:digitalmediaAsset:');
-  const mediaCategory = hasMedia ? (isImage ? 'IMAGE' : 'VIDEO') : 'NONE';
+  const mediaCategory = hasMedia
+    ? mediaAssets[0].mediaTypeFamily === 'STILLIMAGE'
+      ? 'IMAGE'
+      : 'VIDEO'
+    : 'NONE';
 
   console.log('mediaCategory', mediaCategory);
   console.log('hasMedia', mediaAssets);
@@ -236,14 +240,16 @@ function createPostPayload(
  * Checks the status of a LinkedIn media asset
  * @param assetId - The ID of the asset to check
  * @param authToken - LinkedIn access token
- * @returns Promise<string> - The status of the asset
+ * @returns Promise<{ status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED', mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> - The status of the asset and its media type family
  */
 async function checkAssetStatus(
   assetId: string,
   authToken: string
-): Promise<'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED'> {
+): Promise<{
+  status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
+  mediaTypeFamily: 'STILLIMAGE' | 'VIDEO';
+}> {
   try {
-    // Remove the urn:li:digitalmediaAsset: prefix for the status check
     const assetIdWithoutPrefix = assetId.replace(
       'urn:li:digitalmediaAsset:',
       ''
@@ -261,18 +267,21 @@ async function checkAssetStatus(
 
     if (!response.data) {
       console.warn('No data received from LinkedIn asset status check');
-      return 'PROCESSING';
+      return { status: 'PROCESSING', mediaTypeFamily: 'STILLIMAGE' };
     }
 
     console.log('Asset status response:', response.data);
-    return response.data.status;
+    return {
+      status: response.data.status,
+      mediaTypeFamily: response.data.mediaTypeFamily,
+    };
   } catch (error) {
     console.error('Error checking asset status:', error);
     if (axios.isAxiosError(error)) {
       console.error('Response data:', error.response?.data);
       // If we get a 403 or 404, the asset might still be processing
       if (error.response?.status === 403 || error.response?.status === 404) {
-        return 'PROCESSING';
+        return { status: 'PROCESSING', mediaTypeFamily: 'STILLIMAGE' };
       }
     }
     throw new Error('Failed to check asset status');
@@ -285,22 +294,29 @@ async function checkAssetStatus(
  * @param authToken - LinkedIn access token
  * @param maxAttempts - Maximum number of attempts to check status
  * @param delayMs - Delay between status checks in milliseconds
+ * @returns Promise<{ status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED', mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> - The status of the asset and its media type family
  */
 async function waitForAssetAvailability(
   assetId: string,
   authToken: string,
   maxAttempts = 60,
   delayMs = 5000
-): Promise<void> {
+): Promise<{
+  status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
+  mediaTypeFamily: 'STILLIMAGE' | 'VIDEO';
+}> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     console.log(`Checking asset status attempt ${attempt + 1}/${maxAttempts}`);
-    const status = await checkAssetStatus(assetId, authToken);
+    const { status, mediaTypeFamily } = await checkAssetStatus(
+      assetId,
+      authToken
+    );
 
     switch (status) {
       case 'READY':
       case 'ALLOWED':
         console.log(`Asset is ${status}`);
-        return;
+        return { status, mediaTypeFamily };
       case 'PROCESSING_FAILED':
         throw new Error('Asset processing failed');
       case 'PROCESSING':
@@ -336,7 +352,7 @@ async function uploadMedia({
   media: {
     owner: string;
   };
-}): Promise<string> {
+}): Promise<{ assetId: string; mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> {
   try {
     // Step 1: Register the media upload
     const registerResponse = await axios.post(
@@ -387,10 +403,16 @@ async function uploadMedia({
       },
     });
 
-    // Step 4: Wait for the asset to be ready
-    await waitForAssetAvailability(asset, authToken);
+    // Step 4: Wait for the asset to be ready and get media type
+    const { status, mediaTypeFamily } = await waitForAssetAvailability(
+      asset,
+      authToken
+    );
 
-    return asset;
+    return {
+      assetId: asset,
+      mediaTypeFamily,
+    };
   } catch (error) {
     console.error('Error uploading media:', error);
     if (axios.isAxiosError(error)) {
