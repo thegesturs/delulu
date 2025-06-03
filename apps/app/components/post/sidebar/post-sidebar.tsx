@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
+import { uploadAllContentMedia } from '../../../hooks/use-upload-media';
 import SocialSelector from './social-selector';
 
 export function PostSidebar() {
@@ -68,29 +69,52 @@ export function PostSidebar() {
   //   // TODO: Implement scheduling logic
   // }, []);
 
-  const handlePostNow = () => {
-    createPost({
-      content: post.content,
-      socialProviders: socialProviders,
-      alternativeContent: post.alternativeContent,
-    });
+  const handlePostNow = async () => {
+    try {
+      // First upload all media files
+      const { mainContent, alternativeContent } = await uploadAllContentMedia(
+        post.content,
+        post.alternativeContent
+      );
+
+      // Then create the post with uploaded media URLs
+      await createPost({
+        content: mainContent,
+        socialProviders: socialProviders,
+        alternativeContent: alternativeContent,
+      });
+    } catch (error) {
+      console.error('Error posting:', error);
+      // Handle error appropriately
+    }
   };
 
-  const handleUpdateSavePost = () => {
-    if (postId) {
-      updatePost({
-        postId: postId,
-        content: post.content,
-        socialProviders: socialProviders,
-        alternativeContent: post.alternativeContent,
-      });
-    } else {
-      savePost({
-        id: postId,
-        socialProviders: socialProviders,
-        alternativeContent: post.alternativeContent,
-        content: post.content,
-      });
+  const handleUpdateSavePost = async () => {
+    try {
+      // First upload all media files
+      const { mainContent, alternativeContent } = await uploadAllContentMedia(
+        post.content,
+        post.alternativeContent
+      );
+
+      if (postId) {
+        await updatePost({
+          postId: postId,
+          content: mainContent,
+          socialProviders: socialProviders,
+          alternativeContent: alternativeContent,
+        });
+      } else {
+        await savePost({
+          id: postId,
+          socialProviders: socialProviders,
+          alternativeContent: alternativeContent,
+          content: mainContent,
+        });
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      // Handle error appropriately
     }
   };
 

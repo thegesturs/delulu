@@ -18,6 +18,11 @@ export const config: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
       },
+      {
+        protocol: 'https',
+        hostname:
+          'delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
+      },
     ],
   },
 
