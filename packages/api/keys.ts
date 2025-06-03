@@ -12,6 +12,10 @@ export const keys = () =>
       TWITTER_CALLBACK_URL: z.string().min(1),
       TWITTER_STATE: z.string().min(1),
       REDIS_URL: z.string().min(1),
+      R2_ACCESS_KEY_ID: z.string().min(1),
+      R2_SECRET_ACCESS_KEY: z.string().min(1),
+      R2_BUCKET_NAME: z.string().min(1),
+      R2_ACCOUNT_ID: z.string().min(1),
     },
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
@@ -22,5 +26,9 @@ export const keys = () =>
       TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL,
       TWITTER_STATE: process.env.TWITTER_STATE,
       REDIS_URL: process.env.REDIS_URL,
+      R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+      R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+      R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+      R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
     },
   });

@@ -1,4 +1,5 @@
 import { keys as analytics } from '@delulu/analytics/keys';
+import { keys as api } from '@delulu/api/keys';
 import { keys as auth } from '@delulu/auth/keys';
 import { keys as collaboration } from '@delulu/collaboration/keys';
 import { keys as database } from '@delulu/database/keys';
@@ -9,7 +10,6 @@ import { keys as notifications } from '@delulu/notifications/keys';
 import { keys as observability } from '@delulu/observability/keys';
 import { keys as security } from '@delulu/security/keys';
 import { keys as webhooks } from '@delulu/webhooks/keys';
-import { keys as api } from '@delulu/api/keys';
 import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 

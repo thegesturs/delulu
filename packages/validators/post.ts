@@ -169,6 +169,21 @@ export const savePostInputSchema = z.object({
       ),
     })
   ),
+  alternativeContent: z.array(
+    z.object({
+      socialProvider: SocialProviderSchema,
+      content: z.array(
+        contentSchema.extend({
+          media: z.array(
+            mediaSchema.omit({
+              file: true,
+              previewUrl: true,
+            })
+          ),
+        })
+      ),
+    })
+  ),
   socialProviders: z.array(SocialProviderSchema),
 });
 
