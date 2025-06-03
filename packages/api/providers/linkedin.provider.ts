@@ -271,6 +271,24 @@ async function checkAssetStatus(
     }
 
     console.log('Asset status response:', response.data);
+
+    // For videos, we need to check the recipe status
+    if (response.data.mediaTypeFamily === 'VIDEO') {
+      const recipeStatus = response.data.recipes?.[0]?.status;
+      console.log('Video recipe status:', recipeStatus);
+
+      // If recipe status indicates an error but overall status is ALLOWED
+      // we should still proceed (LinkedIn sometimes shows SERVER_ERROR but video works)
+      if (
+        recipeStatus &&
+        recipeStatus !== 'AVAILABLE' &&
+        response.data.status !== 'ALLOWED'
+      ) {
+        console.log('Video is still processing or has error:', recipeStatus);
+        return { status: 'PROCESSING', mediaTypeFamily: 'VIDEO' };
+      }
+    }
+
     return {
       status: response.data.status,
       mediaTypeFamily: response.data.mediaTypeFamily,
@@ -305,6 +323,8 @@ async function waitForAssetAvailability(
   status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
   mediaTypeFamily: 'STILLIMAGE' | 'VIDEO';
 }> {
+  let lastStatus = null;
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     console.log(`Checking asset status attempt ${attempt + 1}/${maxAttempts}`);
     const { status, mediaTypeFamily } = await checkAssetStatus(
@@ -312,10 +332,21 @@ async function waitForAssetAvailability(
       authToken
     );
 
+    // Keep track of last status for better error messaging
+    lastStatus = status;
+
     switch (status) {
       case 'READY':
       case 'ALLOWED':
-        console.log(`Asset is ${status}`);
+        console.log(`Asset is ${status}, type: ${mediaTypeFamily}`);
+        // For videos, wait a bit longer even after ALLOWED to ensure processing
+        if (mediaTypeFamily === 'VIDEO' && attempt < 2) {
+          console.log(
+            'Video detected, waiting additional time for processing...'
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
         return { status, mediaTypeFamily };
       case 'PROCESSING_FAILED':
         throw new Error('Asset processing failed');
@@ -323,7 +354,7 @@ async function waitForAssetAvailability(
         console.log('Asset is still processing, waiting...');
         if (attempt === maxAttempts - 1) {
           throw new Error(
-            'Asset processing timeout - took longer than expected'
+            `Asset processing timeout - took longer than expected. Last status: ${lastStatus}`
           );
         }
         await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -334,7 +365,9 @@ async function waitForAssetAvailability(
     }
   }
 
-  throw new Error('Asset processing timeout - took longer than expected');
+  throw new Error(
+    `Asset processing timeout - took longer than expected. Last status: ${lastStatus}`
+  );
 }
 
 /**
