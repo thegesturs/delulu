@@ -343,9 +343,10 @@ async function uploadMedia({
       {
         registerUploadRequest: {
           recipes: [
-            isImage
-              ? 'urn:li:digitalmediaRecipe:feedshare-image'
-              : 'urn:li:digitalmediaRecipe:feedshare-video',
+            // isImage
+            //   ? 
+              'urn:li:digitalmediaRecipe:feedshare-image'
+              // : 'urn:li:digitalmediaRecipe:feedshare-video',
           ],
           owner: `urn:li:person:${owner}`,
           serviceRelationships: [
