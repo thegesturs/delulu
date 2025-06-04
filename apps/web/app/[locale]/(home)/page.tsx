@@ -10,7 +10,6 @@ import type { Metadata } from 'next';
 // import { Stats } from './components/stats';
 // import { Testimonials } from './components/testimonials';
 
-
 import CTA from '@/components/cta';
 import { FAQ } from '@/components/faq';
 import { Features } from '@/components/features';
@@ -37,7 +36,7 @@ export const generateMetadata = async ({
   return createMetadata(dictionary.web.home.meta);
 };
 
-const Home =  () => {
+const Home = () => {
   // const { locale } = await params;
   // const dictionary = await getDictionary(locale);
   // const betaFeature = await showBetaFeature();
