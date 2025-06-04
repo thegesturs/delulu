@@ -1,5 +1,4 @@
 import { env } from '@/env';
-import { withCMS } from '@delulu/cms/next-config';
 import { withToolbar } from '@delulu/feature-flags/lib/toolbar';
 import { config, withAnalyzer } from '@delulu/next-config';
 import { withLogging, withSentry } from '@delulu/observability/next-config';
@@ -32,4 +31,4 @@ if (env.ANALYZE === 'true') {
   nextConfig = withAnalyzer(nextConfig);
 }
 
-export default withCMS(nextConfig);
+export default nextConfig;

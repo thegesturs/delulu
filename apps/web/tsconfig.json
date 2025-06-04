@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "@delulu/typescript-config/nextjs.json",
-    "@delulu/cms/typescript-config.json"
-  ],
+  "extends": ["@delulu/typescript-config/nextjs.json"],
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

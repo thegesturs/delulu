@@ -1,13 +1,13 @@
 import './styles.css';
-import { Toolbar as CMSToolbar } from '@delulu/cms/components/toolbar';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import { cn } from '@delulu/design-system/lib/utils';
 import { Toolbar } from '@delulu/feature-flags/components/toolbar';
 import { getDictionary } from '@delulu/internationalization';
 import type { ReactNode } from 'react';
-import { Footer } from './components/footer';
+import { Footer } from '@/components/footer';
 import { Header } from './components/header';
+import { Navbar } from '@/components/navbar';
 
 type RootLayoutProperties = {
   readonly children: ReactNode;
@@ -28,12 +28,12 @@ const RootLayout = async ({ children, params }: RootLayoutProperties) => {
     >
       <body>
         <DesignSystemProvider>
-          <Header dictionary={dictionary} />
+          {/* <Header dictionary={dictionary} /> */}
+          <Navbar />
           {children}
           <Footer />
         </DesignSystemProvider>
         <Toolbar />
-        <CMSToolbar />
       </body>
     </html>
   );
