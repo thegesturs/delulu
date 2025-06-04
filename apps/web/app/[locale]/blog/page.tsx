@@ -1,6 +1,3 @@
-import { blog } from '@delulu/cms';
-import { Feed } from '@delulu/cms/components/feed';
-import { Image } from '@delulu/cms/components/image';
 import { cn } from '@delulu/design-system/lib/utils';
 import { getDictionary } from '@delulu/internationalization';
 import type { Blog, WithContext } from '@delulu/seo/json-ld';
@@ -44,50 +41,7 @@ const BlogIndex = async ({ params }: BlogProps) => {
             </h4>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <Feed queries={[blog.postsQuery]}>
-              {async ([data]) => {
-                'use server';
 
-                if (!data.blog.posts.items.length) {
-                  return null;
-                }
-
-                return data.blog.posts.items.map((post, index) => (
-                  <Link
-                    href={`/blog/${post._slug}`}
-                    className={cn(
-                      'flex cursor-pointer flex-col gap-4 hover:opacity-75',
-                      !index && 'md:col-span-2'
-                    )}
-                    key={post._slug}
-                  >
-                    <Image
-                      src={post.image.url}
-                      alt={post.image.alt ?? ''}
-                      width={post.image.width}
-                      height={post.image.height}
-                    />
-                    <div className="flex flex-row items-center gap-4">
-                      <p className="text-muted-foreground text-sm">
-                        {new Date(post.date).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <h3 className="max-w-3xl text-4xl tracking-tight">
-                        {post._title}
-                      </h3>
-                      <p className="max-w-3xl text-base text-muted-foreground">
-                        {post.description}
-                      </p>
-                    </div>
-                  </Link>
-                ));
-              }}
-            </Feed>
           </div>
         </div>
       </div>

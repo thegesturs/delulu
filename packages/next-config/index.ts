@@ -23,6 +23,10 @@ export const config: NextConfig = {
         hostname:
           'delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'assets.aceternity.com',
+      },
     ],
   },
 
