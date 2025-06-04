@@ -44,6 +44,20 @@ interface LinkedInPostPayload {
   };
 }
 
+interface LinkedInVideoSpecs {
+  maxSize: number; // 5GB
+  formats: string[]; // Supported formats
+  aspectRatios: string[]; // Supported aspect ratios
+  maxDuration: number; // Maximum duration in seconds
+}
+
+const LINKEDIN_VIDEO_SPECS: LinkedInVideoSpecs = {
+  maxSize: 5 * 1024 * 1024 * 1024, // 5GB
+  formats: ['MP4'],
+  aspectRatios: ['16:9', '1:1', '4:5', '9:16'], // LinkedIn supports landscape, square, and vertical
+  maxDuration: 10 * 60, // 10 minutes
+};
+
 export const linkedinProvider: SocialProvider = {
   /**
    * Publishes content to LinkedIn, supporting text posts with multiple media attachments
@@ -218,6 +232,15 @@ function createPostPayload(
   console.log('mediaCategory', mediaCategory);
   console.log('hasMedia', mediaAssets);
 
+  const mediaAssetWithoutCategory = mediaAssets.map((asset) => {
+    return {
+      status: asset.status,
+      description: asset.description,
+      media: asset.media,
+      title: asset.title,
+    };
+  });
+
   return {
     author: `urn:li:person:${profileId}`,
     lifecycleState: 'PUBLISHED',
@@ -227,7 +250,7 @@ function createPostPayload(
           text: text,
         },
         shareMediaCategory: mediaCategory,
-        ...(hasMedia && { media: mediaAssets }),
+        ...(hasMedia && { media: mediaAssetWithoutCategory }),
       },
     },
     visibility: {
@@ -370,6 +393,48 @@ async function waitForAssetAvailability(
   );
 }
 
+async function validateVideoForLinkedIn(fileUrl: string): Promise<void> {
+  try {
+    const response = await axios.get(fileUrl, {
+      responseType: 'stream',
+      headers: {
+        Range: 'bytes=0-0', // Just get the first byte to check if file is accessible
+      },
+    });
+
+    // Get content type and size from response headers
+    const contentType = response.headers['content-type'];
+    const contentLength = Number.parseInt(
+      response.headers['content-length'] || '0',
+      10
+    );
+
+    // Check file size
+    if (contentLength > LINKEDIN_VIDEO_SPECS.maxSize) {
+      throw new Error(`Video file size exceeds LinkedIn's limit of 5GB`);
+    }
+
+    // Check content type
+    if (!contentType.includes('video/mp4')) {
+      throw new Error('LinkedIn only supports MP4 video format');
+    }
+
+    console.log('Video validation passed:', {
+      size: contentLength,
+      type: contentType,
+    });
+  } catch (error) {
+    console.error('Video validation error:', error);
+    if (error instanceof Error) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Video validation failed: ${error.message}`,
+      });
+    }
+    throw error;
+  }
+}
+
 /**
  * Uploads media to LinkedIn and waits for it to be ready
  */
@@ -387,7 +452,16 @@ async function uploadMedia({
   };
 }): Promise<{ assetId: string; mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> {
   try {
+    // Validate video if not an image
+    if (!isImage) {
+      console.log('Validating video before upload...');
+      await validateVideoForLinkedIn(fileUrl);
+    }
+
     // Step 1: Register the media upload
+    console.log(
+      `Registering ${isImage ? 'image' : 'video'} upload with LinkedIn...`
+    );
     const registerResponse = await axios.post(
       'https://api.linkedin.com/v2/assets?action=registerUpload',
       {
@@ -421,25 +495,45 @@ async function uploadMedia({
     const asset = registerResponse.data.value.asset;
 
     // Step 2: Get the file as a binary buffer
+    console.log('Fetching media file...');
     const fileResponse = await axios({
       method: 'get',
       url: fileUrl,
       responseType: 'stream',
     });
 
-    // Step 3: Upload the file to LinkedIn
-    await axios.put(uploadUrl, fileResponse.data, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'Content-Type': 'application/octet-stream',
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
-    });
+    // Step 3: Upload the file to LinkedIn using POST as per documentation
+    console.log('Uploading media to LinkedIn...');
+    try {
+      await axios.post(uploadUrl, fileResponse.data, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': isImage ? 'image/jpeg' : 'video/mp4',
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+        maxContentLength: Number.POSITIVE_INFINITY,
+        maxBodyLength: Number.POSITIVE_INFINITY,
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Upload error response:', error.response?.data);
+        if (error.response?.status === 413) {
+          throw new TRPCError({
+            code: 'PAYLOAD_TOO_LARGE',
+            message: 'Video file is too large for LinkedIn upload',
+          });
+        }
+      }
+      throw error;
+    }
 
     // Step 4: Wait for the asset to be ready and get media type
+    console.log('Waiting for LinkedIn to process the media...');
     const { status, mediaTypeFamily } = await waitForAssetAvailability(
       asset,
-      authToken
+      authToken,
+      isImage ? 60 : 120, // Double the wait time for videos
+      isImage ? 5000 : 10000 // Double the check interval for videos
     );
 
     return {
@@ -448,67 +542,25 @@ async function uploadMedia({
     };
   } catch (error) {
     console.error('Error uploading media:', error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
     if (axios.isAxiosError(error)) {
       console.error('Response data:', error.response?.data);
+      if (error.response?.data?.message?.includes('duplicate')) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'This video has already been uploaded to LinkedIn',
+        });
+      }
     }
-    throw new Error(
-      `Failed to upload media: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: `Failed to upload ${isImage ? 'image' : 'video'}: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`,
+    });
   }
-}
-
-/**
- * Creates a LinkedIn post with the given content and media
- */
-async function createLinkedInPost({
-  profileId,
-  accessToken,
-  content,
-  mediaAssets,
-}: {
-  profileId: string;
-  accessToken: string;
-  content: string;
-  mediaAssets: LinkedInMediaAsset[];
-}): Promise<{ id: string }> {
-  const hasMedia = mediaAssets.length > 0;
-  const isImage =
-    hasMedia && mediaAssets[0].media.startsWith('urn:li:digitalmediaAsset:');
-  const mediaCategory = hasMedia ? (isImage ? 'IMAGE' : 'VIDEO') : 'NONE';
-
-  const data = {
-    author: `urn:li:person:${profileId}`,
-    lifecycleState: 'PUBLISHED',
-    specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: {
-          text: content,
-        },
-        shareMediaCategory: mediaCategory,
-        ...(hasMedia && { media: mediaAssets }),
-      },
-    },
-    visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-    },
-  };
-
-  const response = await axios.post(
-    'https://api.linkedin.com/v2/ugcPosts',
-    data,
-    {
-      headers: {
-        'X-Restli-Protocol-Version': '2.0.0',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  if (!response.data?.id) {
-    throw new Error('Failed to get post ID from LinkedIn response');
-  }
-
-  return { id: response.data.id };
 }
 
 /**
