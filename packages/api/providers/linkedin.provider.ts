@@ -299,15 +299,24 @@ async function checkAssetStatus(
     if (response.data.mediaTypeFamily === 'VIDEO') {
       const recipeStatus = response.data.recipes?.[0]?.status;
       console.log('Video recipe status:', recipeStatus);
+      console.log('Video response:', response.data);
 
-      // If recipe status indicates an error but overall status is ALLOWED
-      // we should still proceed (LinkedIn sometimes shows SERVER_ERROR but video works)
-      if (
-        recipeStatus &&
-        recipeStatus !== 'AVAILABLE' &&
-        response.data.status !== 'ALLOWED'
-      ) {
-        console.log('Video is still processing or has error:', recipeStatus);
+      // Handle SERVER_ERROR explicitly
+      if (recipeStatus === 'SERVER_ERROR') {
+        console.warn('LinkedIn recipe returned SERVER_ERROR — will retry.');
+        console.log('Video response:', response.data);
+        return { status: 'PROCESSING', mediaTypeFamily: 'VIDEO' };
+      }
+
+      // Check for other error statuses or processing state
+      if (recipeStatus && recipeStatus !== 'AVAILABLE') {
+        if (
+          recipeStatus === 'PROCESSING_FAILED' ||
+          recipeStatus === 'TRANSCODE_ERROR'
+        ) {
+          throw new Error(`Video processing failed: ${recipeStatus}`);
+        }
+        console.log('Video is still processing:', recipeStatus);
         return { status: 'PROCESSING', mediaTypeFamily: 'VIDEO' };
       }
     }
@@ -325,7 +334,7 @@ async function checkAssetStatus(
         return { status: 'PROCESSING', mediaTypeFamily: 'STILLIMAGE' };
       }
     }
-    throw new Error('Failed to check asset status');
+    throw error;
   }
 }
 
