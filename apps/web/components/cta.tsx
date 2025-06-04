@@ -1,6 +1,7 @@
+import { Button } from '@delulu/design-system/components/ui/button';
 import type React from 'react';
-import { Button } from './button';
 import { CanvasRevealEffect } from './ui/canvas-reveal-effect';
+import Link from 'next/link';
 
 const LockIcon = ({ className }: { className?: string }) => (
   <svg
@@ -394,8 +395,8 @@ const CTA = () => {
           <br />
           That Makes your Life <span className="text-orange-500">Easier</span>
         </h1>
-        <Button href="/get-started" variant="primary">
-          Get Started
+        <Button asChild variant="default">
+          <Link href="/get-started">Get Started</Link>
         </Button>
         <div className="-z-10 -translate-x-1/2 absolute bottom-0 left-1/2 mx-auto flex w-full max-w-3xl items-center justify-center rounded-full">
           <CanvasRevealEffect

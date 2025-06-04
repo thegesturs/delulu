@@ -1,4 +1,4 @@
-import { Button } from './button';
+import { Button } from '@delulu/design-system/components/ui/button';
 
 const PricingCard = ({
   tier,
