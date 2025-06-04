@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@delulu/design-system/components/ui/button';
 import { useMediaQuery } from '@delulu/design-system/hooks/use-media-query';
 import { cn } from '@delulu/design-system/lib/utils';
 import { motion } from 'motion/react';
@@ -7,8 +8,8 @@ import Link from 'next/link';
 import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
-import { Button } from './button';
 import { IphoneMockup } from './iphone-mockup';
+
 export function Hero() {
   const parentRef = useRef<HTMLDivElement>(
     null
@@ -24,14 +25,14 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className={cn(
-            'inline-block bg-gradient-to-b from-[rgba(67,56,202,1)] to-[rgba(49,46,129,1)]',
+            'inline-block bg-gradient-to-b from-[rgba(94,94,94,1)] to-[rgba(0,0,0,1)]',
             'bg-clip-text text-transparent'
           )}
         >
           <Balancer>
-            Effortless Call{' '}
-            <span className="bg-gradient-to-b from-[rgba(99,102,241,1)] to-[rgba(79,70,229,1)] bg-clip-text text-transparent">
-              Scheduling
+            Stop Copy-Pasting.{' '}
+            <span className="bg-gradient-to-b from-primary/60 to-primary/90 bg-clip-text text-transparent">
+              Schedule
             </span>
           </Balancer>
         </motion.h2>
@@ -40,14 +41,14 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className={cn(
-            'inline-block bg-gradient-to-b from-[rgba(67,56,202,1)] to-[rgba(49,46,129,1)]',
+            'inline-block bg-gradient-to-b from-[rgba(94,94,94,1)] to-[rgba(0,0,0,1)]',
             'bg-clip-text py-2 text-transparent'
           )}
         >
           <Balancer>
-            That Makes your Life{' '}
-            <span className="bg-gradient-to-b from-[rgba(99,102,241,1)] to-[rgba(79,70,229,1)] bg-clip-text text-transparent">
-              Easier
+            to All Your Platforms in{' '}
+            <span className="bg-gradient-to-b from-primary/60 to-primary/90 bg-clip-text text-transparent">
+              One Click
             </span>
           </Balancer>
         </motion.h2>
@@ -58,9 +59,9 @@ export function Hero() {
         transition={{ duration: 0.2, delay: 0.5 }}
         className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-indigo-900/70 sm:text-base"
       >
-        Schedule calls with a single click. Go from no calls to your calendar
-        filled with calls with ease using Shape AI, your favourite scheduling
-        software.
+        Delulu Social lets you plan, queue, and publish simultaneously across
+        TikTok, Instagram, LinkedIn, YouTube, and more—so you actually get time
+        back.
       </motion.p>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -68,13 +69,8 @@ export function Hero() {
         transition={{ duration: 0.2, delay: 0.7 }}
         className="z-10 mt-6 mb-8 flex w-full flex-col items-center justify-center gap-4 px-4 sm:mt-8 sm:mb-10 sm:flex-row sm:px-8 md:mb-20"
       >
-        <Button
-          as={Link}
-          href="/login"
-          variant="primary"
-          className="flex h-12 w-full items-center justify-center sm:w-40"
-        >
-          Get Started
+        <Button asChild>
+          <Link href="/login">Schedule My First Post</Link>
         </Button>
       </motion.div>
 
@@ -201,7 +197,7 @@ const MockScreen = () => {
             fill="none"
           >
             <path
-              d="M16.5 5V3M7.5 5V3M3.25 8H20.75M3 10.044C3 7.929 3 6.871 3.436 6.063C3.83025 5.34231 4.44199 4.7645 5.184 4.412C6.04 4 7.16 4 9.4 4H14.6C16.84 4 17.96 4 18.816 4.412C19.569 4.774 20.18 5.352 20.564 6.062C21 6.872 21 7.93 21 10.045V14.957C21 17.072 21 18.13 20.564 18.938C20.1698 19.6587 19.558 20.2365 18.816 20.589C17.96 21 16.84 21 14.6 21H9.4C7.16 21 6.04 21 5.184 20.588C4.44214 20.2358 3.83041 19.6583 3.436 18.938C3 18.128 3 17.07 3 14.955V10.044Z"
+              d="M16.5 5V3M7.5 5V3M3.25 8H20.75M3 10.044C3 7.929 3 6.871 3.436 6.063C3.83025 5.34231 4.44199 4.7645 5.184 4.412C6.04 4 7.16 4 9.4 4H14.6C16.84 4 17.96 4 18.816 4.412C19.569 4.774 20.18 5.352 20.564 6.062C21 6.872 21 7.93 20.564 18.938C20.1698 19.6587 19.558 20.2365 18.816 20.589C17.96 21 16.84 21 14.6 21H9.4C7.16 21 6.04 21 5.184 20.588C4.44214 20.2358 3.83041 19.6583 3.436 18.938C3 18.128 3 17.07 3 14.955V10.044Z"
               stroke="#4A4A4A"
               strokeWidth="1.5"
               strokeLinecap="round"
