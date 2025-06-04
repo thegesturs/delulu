@@ -1,4 +1,5 @@
 'use client';
+import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import {
   AnimatePresence,
@@ -9,8 +10,8 @@ import {
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
-import { Button } from './button';
 import { Logo } from './logo';
+import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 
 interface NavbarProps {
   navItems: {
@@ -78,12 +79,12 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
       animate={{
         width: visible ? '50%' : '80%',
         backgroundColor: visible
-          ? 'rgba(255,255,255,0.95)'
-          : 'rgba(255,255,255,0.5)',
+          ? 'hsl(var(--background))'
+          : 'hsl(var(--background)/.5)',
         backdropFilter: visible ? 'blur(10px)' : 'blur(5px)',
         y: visible ? 4 : 0,
         boxShadow: visible
-          ? '0 10px 30px -10px rgba(0,0,0,0.1)'
+          ? '0 10px 30px -10px hsl(var(--background)/.1)'
           : '0 0 0 transparent',
       }}
       initial={{
@@ -100,7 +101,7 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
         ease: 'easeInOut',
       }}
       className={cn(
-        'relative z-[100] mx-auto hidden flex-row items-center justify-between self-center rounded-full px-8 py-3 lg:flex'
+        'relative z-[100] mx-auto hidden flex-row items-center justify-between self-center rounded-full border border-border/50 px-8 py-3 lg:flex'
       )}
     >
       <Logo />
@@ -118,7 +119,7 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
             className="relative"
           >
             <Link
-                className="relative px-3 py-1.5 text-foreground/90 transition-colors"
+              className="relative px-3 py-1.5 text-foreground/90 transition-colors hover:text-foreground"
               href={navItem.link}
             >
               <span className="relative z-10">{navItem.name}</span>
@@ -130,8 +131,8 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
                   animate={{
                     opacity: 1,
                     background:
-                      'linear-gradient(145deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%)',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+                      'linear-gradient(145deg, hsl(var(--background)/.8) 0%, hsl(var(--background)/.2) 100%)',
+                    boxShadow: '0 4px 15px hsl(var(--foreground)/.05)',
                   }}
                   exit={{
                     opacity: 0,
@@ -166,12 +167,13 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
             }}
           >
             <div className="flex items-center gap-2">
-              <Button as={Link} href="/login" variant="secondary">
-                Login
+              <Button asChild variant="secondary">
+                <Link href="/sign-in">Login</Link>
               </Button>
-              <Button as={Link} href="/signup" variant="primary">
-                Signup
+              <Button asChild variant="default">
+                <Link href="/sign-up">Signup</Link>
               </Button>
+              <ModeToggle />
             </div>
           </motion.div>
         )}
@@ -188,14 +190,14 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
         animate={{
           backdropFilter: 'blur(16px)',
           background: visible
-            ? 'rgba(255, 255, 255, 0.95)'
-            : 'rgba(255, 255, 255, 0.8)',
+            ? 'hsl(var(--background)/.95)'
+            : 'hsl(var(--background)/.8)',
           width: visible ? '85%' : '90%',
           y: visible ? 4 : 0,
           borderRadius: open ? '24px' : 'full',
           padding: '12px 20px',
           boxShadow: visible
-            ? '0 10px 30px -10px rgba(0,0,0,0.1)'
+            ? '0 10px 30px -10px hsl(var(--foreground)/.1)'
             : '0 0 0 transparent',
         }}
         initial={{
@@ -212,7 +214,7 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
           ease: 'easeInOut',
         }}
         className={cn(
-          'relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between lg:hidden'
+          'relative z-50 mx-auto flex w-full max-w-[calc(100vw-2rem)] flex-col items-center justify-between border border-border/50 lg:hidden'
         )}
       >
         <div className="flex w-full flex-row items-center justify-between">
@@ -220,12 +222,12 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             {open ? (
               <FaTimes
-                className="text-foreground/90"
+                className="text-foreground/90 hover:text-foreground"
                 onClick={() => setOpen(!open)}
               />
             ) : (
               <FaBars
-                className="text-foreground/90"
+                className="text-foreground/90 hover:text-foreground"
                 onClick={() => setOpen(!open)}
               />
             )}
@@ -254,7 +256,7 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
                 duration: 0.2,
                 ease: 'easeInOut',
               }}
-              className="absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-2xl bg-white/95 px-6 py-6 shadow-lg backdrop-blur-xl"
+              className="absolute inset-x-0 top-16 z-50 flex w-full flex-col items-start justify-start gap-4 rounded-2xl border border-border/50 bg-background/95 px-6 py-6 shadow-lg backdrop-blur-xl"
             >
               {navItems.map(
                 (navItem: { link: string; name: string }, idx: number) => (

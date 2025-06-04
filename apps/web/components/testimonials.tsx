@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import Image from 'next/image';
 import React from 'react';
 import { FaCheck } from 'react-icons/fa';
-import { Button } from './button';
+import { Button } from '@delulu/design-system/components/ui/button';
 
 const features = [
   'Prove your point to a stakeholder',
