@@ -1,4 +1,3 @@
-import { env } from '@/env';
 import { authMiddleware } from '@delulu/auth/middleware';
 import { internationalizationMiddleware } from '@delulu/internationalization/middleware';
 import { parseError } from '@delulu/observability/error';
@@ -6,7 +5,6 @@ import { secure } from '@delulu/security';
 import {
   noseconeMiddleware,
   noseconeOptions,
-  noseconeOptionsWithToolbar,
 } from '@delulu/security/middleware';
 import {
   type NextMiddleware,
@@ -20,9 +18,7 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|ingest|favicon.ico).*)'],
 };
 
-const securityHeaders = env.FLAGS_SECRET
-  ? noseconeMiddleware(noseconeOptionsWithToolbar)
-  : noseconeMiddleware(noseconeOptions);
+const securityHeaders = noseconeMiddleware(noseconeOptions);
 
 const middleware = authMiddleware(async (_auth, request) => {
   const i18nResponse = internationalizationMiddleware(
@@ -30,10 +26,6 @@ const middleware = authMiddleware(async (_auth, request) => {
   );
   if (i18nResponse) {
     return i18nResponse;
-  }
-
-  if (!env.ARCJET_KEY) {
-    return securityHeaders();
   }
 
   try {

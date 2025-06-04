@@ -4,6 +4,7 @@ import type { ThemeProviderProps } from 'next-themes';
 import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
 import { ThemeProvider } from './providers/theme';
+export { useTheme } from 'next-themes';
 
 type DesignSystemProviderProperties = ThemeProviderProps & {
   privacyUrl?: string;

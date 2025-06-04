@@ -118,7 +118,7 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
             className="relative"
           >
             <Link
-              className="relative px-3 py-1.5 text-black/90 transition-colors"
+                className="relative px-3 py-1.5 text-foreground/90 transition-colors"
               href={navItem.link}
             >
               <span className="relative z-10">{navItem.name}</span>
@@ -220,12 +220,12 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             {open ? (
               <FaTimes
-                className="text-black/90"
+                className="text-foreground/90"
                 onClick={() => setOpen(!open)}
               />
             ) : (
               <FaBars
-                className="text-black/90"
+                className="text-foreground/90"
                 onClick={() => setOpen(!open)}
               />
             )}
@@ -273,7 +273,7 @@ const MobileNav = ({ navItems, visible }: NavbarProps) => {
                     <Link
                       href={navItem.link}
                       onClick={() => setOpen(false)}
-                      className="relative text-black/90 transition-colors hover:text-black"
+                      className="relative text-foreground/90 transition-colors hover:text-foreground"
                     >
                       <motion.span className="block">
                         {navItem.name}
