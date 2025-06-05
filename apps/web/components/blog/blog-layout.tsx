@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
-import { Logo } from '../logo';
 import { BlogCardVertical } from './blog-card';
 
 type BlogWithType = Blog & { type: 'blog' };
@@ -23,15 +22,15 @@ export async function BlogLayout({
     <div className="mx-auto mt-16 max-w-6xl px-4 lg:mt-14">
       <div className="flex items-center justify-between px-2 py-8">
         <Link
-          href={blog.type === 'blog' ? '/blog' : '/legal'}
+          href={blog.type === 'blog' ? '/blogs' : '/'}
           className="flex items-center space-x-2"
         >
-          <FaArrowLeft className="h-4 w-4 text-gray-500" />
-          <span className="text-gray-500 text-sm">Back</span>
+          <FaArrowLeft className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground text-sm">Back</span>
         </Link>
       </div>
-      <div className="mx-auto w-full">
-        {blog.type === 'blog' && blog.image ? (
+      {blog.type === 'blog' && blog.image ? (
+        <div className="mx-auto w-full">
           <Image
             src={blog.image}
             height="800"
@@ -39,12 +38,8 @@ export async function BlogLayout({
             className="aspect-square h-40 w-full rounded-3xl object-cover md:h-96"
             alt={blog.title}
           />
-        ) : (
-          <div className="flex aspect-squace h-40 w-full items-center justify-center rounded-3xl bg-gray-100 shadow-lg md:h-96">
-            <Logo />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
       <div className="xl:relative">
         <div className="mx-auto max-w-2xl">
           <article className="pt-8 pb-8">
@@ -53,7 +48,7 @@ export async function BlogLayout({
                 {blog.categories.map((category, idx) => (
                   <p
                     key={`category-${idx}`}
-                    className="rounded-full bg-gray-100 px-2 py-1 font-bold text-gray-600 text-xs capitalize"
+                    className="rounded-full bg-muted px-2 py-1 font-bold text-muted-foreground text-xs capitalize"
                   >
                     {category}
                   </p>
@@ -61,7 +56,7 @@ export async function BlogLayout({
               </div>
             )}
             <header className="flex flex-col">
-              <h1 className="mt-8 font-bold text-4xl text-gray-900 tracking-tight sm:text-5xl">
+              <h1 className="mt-8 font-bold text-4xl text-foreground tracking-tight sm:text-5xl">
                 {blog.title}
               </h1>
             </header>
@@ -79,18 +74,18 @@ export async function BlogLayout({
                       height={20}
                       className="h-5 w-5 rounded-full"
                     />
-                    <p className="font-normal text-gray-600 text-sm">
+                    <p className="font-normal text-muted-foreground text-sm">
                       {blog.author}
                     </p>
                   </div>
-                  <div className="h-5 w-0.5 rounded-lg bg-gray-200" />
+                  <div className="h-5 w-0.5 rounded-lg bg-muted" />
                 </>
               )}
               <time
                 dateTime={blog.date}
                 className="flex items-center text-base"
               >
-                <span className="text-gray-600 text-sm">
+                <span className="text-muted-foreground text-sm">
                   {format(new Date(blog.date), 'MMMM dd, yyyy')}
                 </span>
               </time>
@@ -100,7 +95,7 @@ export async function BlogLayout({
       </div>
       {blog.type === 'blog' && relatedBlogs.length > 0 && (
         <div className="mt-12 pb-20">
-          <h2 className="mb-10 font-bold text-2xl text-gray-900">
+          <h2 className="mb-10 font-bold text-2xl text-foreground">
             Related Blogs
           </h2>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-3">

@@ -157,31 +157,29 @@
     },
     "contact": {
       "meta": {
-        "title": "Let's Talk About Your Business",
-        "description": "Schedule a consultation with our team to discuss how we can help streamline your operations and drive growth for your business."
+        "title": "Questions About Our Social Media Scheduler?",
+        "description": "Have questions about our social media management software? Drop us your email and we'll get back to you with how we can help you."
       },
       "hero": {
         "benefits": [
           {
-            "title": "Personalized Consultation",
-            "description": "Get tailored solutions and expert advice specific to your business needs."
+            "title": "One-Click Multi-Platform Scheduling",
+            "description": "Schedule your content across multiple social media platforms with just a single click."
           },
           {
-            "title": "Seamless Integration",
-            "description": "We seamlessly integrate with your existing systems to ensure a smooth transition and minimal disruption."
+            "title": "Save Time and Effort",
+            "description": "No more switching between different platforms - manage all your social media posts from one place."
           },
           {
-            "title": "Expert Guidance",
-            "description": "Our team of experts will guide you through the process, ensuring you get the most out of our platform."
+            "title": "Streamlined Workflow",
+            "description": "Simplify your social media management with our efficient scheduling solution."
           }
         ],
         "form": {
-          "title": "Book a meeting",
-          "date": "Date",
-          "firstName": "First name",
-          "lastName": "Last name",
-          "resume": "Upload resume",
-          "cta": "Book the meeting"
+          "title": "Contact Us",
+          "email": "Your email",
+          "message": "How can we help you with your social media scheduling?",
+          "cta": "Send Message"
         }
       }
     }

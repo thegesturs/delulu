@@ -10,7 +10,7 @@ import { Logo } from '../logo';
 export const BlogCard = ({ blog }: { blog: Blog }) => {
   return (
     <Link
-      className="group grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-gray-200 hover:bg-gray-50 md:grid-cols-2"
+      className="group grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-border hover:bg-muted/50 md:grid-cols-2"
       href={`/blog/${blog.slug}`}
     >
       <div className="">
@@ -34,16 +34,16 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
             {blog.categories?.map((category, idx) => (
               <p
                 key={`category-${idx}`}
-                className="rounded-full bg-gray-100 px-4 py-2 font-bold text-gray-600 text-xs capitalize"
+                className="rounded-full bg-muted px-4 py-2 font-bold text-muted-foreground text-xs capitalize"
               >
                 {category}
               </p>
             ))}
           </div>
-          <p className="mb-4 font-bold text-gray-900 text-lg md:text-4xl">
+          <p className="mb-4 font-bold text-foreground text-lg md:text-4xl">
             <Balancer>{blog.title}</Balancer>
           </p>
-          <p className="mt-2 text-left text-base text-gray-600 md:text-xl">
+          <p className="mt-2 text-left text-base text-muted-foreground md:text-xl">
             {truncate(blog.description, 500)}
           </p>
         </div>
@@ -55,9 +55,11 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
             height={20}
             className="h-5 w-5 rounded-full"
           />
-          <p className="font-normal text-gray-600 text-sm">{blog.author}</p>
-          <div className="h-1 w-1 rounded-full bg-gray-400" />
-          <p className="max-w-xl text-gray-600 text-sm transition duration-200 group-hover:text-gray-900">
+          <p className="font-normal text-muted-foreground text-sm">
+            {blog.author}
+          </p>
+          <div className="h-1 w-1 rounded-full bg-border" />
+          <p className="max-w-xl text-muted-foreground text-sm transition duration-200 group-hover:text-foreground">
             {format(new Date(blog.date), 'MMMM dd, yyyy')}
           </p>
         </div>
@@ -67,9 +69,9 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
 };
 
 export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
-  return (  
+  return (
     <Link
-      className="group w-full overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-gray-200 hover:bg-gray-50"
+      className="group w-full overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-border hover:bg-muted/50"
       href={`${blog.slug}`}
     >
       <div className="">
@@ -93,16 +95,16 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
             {blog.categories?.map((category, idx) => (
               <p
                 key={`category-${idx}`}
-                className="rounded-full bg-gray-100 px-4 py-2 font-bold text-gray-600 text-xs capitalize"
+                className="rounded-full bg-muted px-4 py-2 font-bold text-muted-foreground text-xs capitalize"
               >
                 {category}
               </p>
             ))}
           </div>
-          <p className="mb-4 font-bold text-gray-900 text-lg md:text-xl">
+          <p className="mb-4 font-bold text-foreground text-lg md:text-xl">
             <Balancer>{blog.title}</Balancer>
           </p>
-          <p className="mt-2 text-left text-gray-600 text-sm md:text-base">
+          <p className="mt-2 text-left text-muted-foreground text-sm md:text-base">
             {truncate(blog.description, 200)}
           </p>
         </div>
@@ -114,9 +116,11 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
             height={20}
             className="h-5 w-5 rounded-full"
           />
-          <p className="font-normal text-gray-600 text-sm">{blog.author}</p>
-          <div className="h-1 w-1 rounded-full bg-gray-400" />
-          <p className="max-w-xl text-gray-600 text-sm transition duration-200 group-hover:text-gray-900">
+          <p className="font-normal text-muted-foreground text-sm">
+            {blog.author}
+          </p>
+          <div className="h-1 w-1 rounded-full bg-border" />
+          <p className="max-w-xl text-muted-foreground text-sm transition duration-200 group-hover:text-foreground">
             {format(new Date(blog.date), 'MMMM dd, yyyy')}
           </p>
         </div>

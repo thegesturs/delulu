@@ -26,20 +26,22 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
     <div className="w-full py-20">
       <div className="mb-10 flex flex-col gap-4">
         <h1 className="font-bold text-4xl">
-          Latest <span className="text-orange-500">Blogs</span>
+          Latest <span className="text-primary">Blogs</span>
         </h1>
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search blogs"
-          className="rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-900 text-sm placeholder-gray-500 outline-none focus:outline-none focus:ring-0"
+          className="rounded-md border border-input bg-muted p-2 text-foreground text-sm placeholder-muted-foreground outline-none focus:outline-none focus:ring-0"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {results.length === 0 ? (
-          <p className="p-4 text-center text-gray-500">No results found</p>
+          <p className="p-4 text-center text-muted-foreground">
+            No results found
+          </p>
         ) : (
           results.map((blog, index) => (
             <BlogPostCard blog={blog} key={blog.slug + index} />
@@ -70,23 +72,23 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
           {blog.categories.map((category, i) => (
             <span
               key={i}
-              className="rounded bg-orange-100 px-2 py-1 font-medium text-orange-600 text-xs"
+              className="rounded bg-primary/10 px-2 py-1 font-medium text-primary text-xs"
             >
               {category}
             </span>
           ))}
-          <span className="text-gray-500 text-sm">
+          <span className="text-muted-foreground text-sm">
             {format(new Date(blog.date), 'd MMM, yyyy')}
           </span>
-          <span className="text-gray-500 text-sm">•</span>
-          <span className="text-gray-500 text-sm">5 min read</span>
+          <span className="text-muted-foreground text-sm">•</span>
+          <span className="text-muted-foreground text-sm">5 min read</span>
         </div>
 
-        <h2 className="mb-2 line-clamp-2 font-semibold text-gray-900 text-xl group-hover:text-gray-600">
+        <h2 className="mb-2 line-clamp-2 font-semibold text-foreground text-xl group-hover:text-muted-foreground">
           {blog.title}
         </h2>
 
-        <p className="mb-4 line-clamp-2 text-gray-600 text-sm">
+        <p className="mb-4 line-clamp-2 text-muted-foreground text-sm">
           {blog.description}
         </p>
 
@@ -98,7 +100,7 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
             height={24}
             className="rounded-full object-cover"
           />
-          <span className="text-gray-700 text-sm">{blog.author}</span>
+          <span className="text-muted-foreground text-sm">{blog.author}</span>
         </div>
       </div>
     </Link>
