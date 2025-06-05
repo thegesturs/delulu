@@ -11,7 +11,6 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { Logo } from './logo';
-import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 
 interface NavbarProps {
   navItems: {
@@ -37,7 +36,7 @@ export const Navbar = () => {
     },
     {
       name: 'Blog',
-      link: '/blog',
+      link: '/blogs',
     },
   ];
 
@@ -167,13 +166,13 @@ const DesktopNav = ({ navItems, visible }: NavbarProps) => {
             }}
           >
             <div className="flex items-center gap-2">
-              <Button asChild variant="secondary">
+              <Button asChild>
                 <Link href="/sign-in">Login</Link>
               </Button>
-              <Button asChild variant="default">
+              {/* <Button asChild variant="default">
                 <Link href="/sign-up">Signup</Link>
-              </Button>
-              <ModeToggle />
+              </Button> */}
+              {/* <ModeToggle /> */}
             </div>
           </motion.div>
         )}

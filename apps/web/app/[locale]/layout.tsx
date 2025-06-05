@@ -33,7 +33,7 @@ const RootLayout = async ({ children, params }: RootLayoutProperties) => {
           {children}
           <Footer />
         </DesignSystemProvider>
-        <Toolbar />
+        {/* <Toolbar /> */}
       </body>
     </html>
   );

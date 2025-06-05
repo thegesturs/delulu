@@ -1,33 +1,30 @@
 import Link from 'next/link';
-import {
-  FaFacebook,
-  FaGithub,
-  FaInstagram,
-  FaLinkedin,
-  FaTwitter,
-} from 'react-icons/fa';
+import { FaLinkedin, FaTwitter } from 'react-icons/fa';
 import { Logo } from './logo';
 
 export function Footer() {
   const pages = [
-    { title: 'All Products', href: '#' },
-    { title: 'Studio', href: '#' },
-    { title: 'Clients', href: '#' },
-    { title: 'Pricing', href: '#' },
-    { title: 'Blog', href: '/blog' },
+    { title: 'Home', href: '/' },
+    // { title: 'Blogs', href: '/blogs' },
+    // { title: 'Pricing', href: '/pricing' },
+    // { title: 'Blog', href: '/blogs' },
+    // { title: 'Contact', href: '/contact' },
   ];
 
   const socials = [
-    { title: 'Facebook', href: '#' },
-    { title: 'Instagram', href: '#' },
-    { title: 'Twitter', href: '#' },
-    { title: 'LinkedIn', href: '#' },
+    // { title: 'Facebook', href: 'https://www.facebook.com/delulu.social' },
+    // { title: 'Instagram', href: 'https://www.instagram.com/delulu.social' },
+    { title: 'Twitter', href: 'https://x.com/delulu_social' },
+    {
+      title: 'LinkedIn',
+      href: 'https://www.linkedin.com/company/delulu-social',
+    },
   ];
 
   const legal = [
-    { title: 'Privacy Policy', href: '#' },
-    { title: 'Terms of Service', href: '#' },
-    { title: 'Cookie Policy', href: '#' },
+    { title: 'Privacy Policy', href: '/legal/privacy-policy' },
+    { title: 'Terms of Service', href: '/legal/terms-of-service' },
+    { title: 'Cookie Policy', href: '/legal/cookie-policy' },
   ];
 
   return (
@@ -37,7 +34,8 @@ export function Footer() {
           <div className="flex flex-col items-start">
             <Logo />
             <h2 className="mt-8 max-w-md font-medium text-2xl">
-              Record interviews. Centralise feedback automatically.
+              Record your video. Edit captions for each platform. Hit
+              ‘Schedule.’ We handle the rest.”
             </h2>
           </div>
 
@@ -93,38 +91,38 @@ export function Footer() {
         </div>
 
         <div className="mx-auto flex max-w-xs flex-col items-center justify-between pt-16 md:flex-row">
-          <p className="text-muted-foreground text-sm">© shape.ai</p>
+          <p className="text-muted-foreground text-sm">© Delulu Social</p>
           <div className="mt-4 flex gap-4 md:mt-0">
             <Link
-              href="#"
+              href="https://x.com/delulu_social"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaTwitter size={20} />
             </Link>
             <Link
-              href="#"
+              href="https://www.linkedin.com/company/delulu-social"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaLinkedin size={20} />
             </Link>
-            <Link
-              href="#"
+            {/* <Link
+              href="https://www.facebook.com/delulu.social"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaGithub size={20} />
-            </Link>
-            <Link
+            </Link> */}
+            {/* <Link
               href="#"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaFacebook size={20} />
-            </Link>
-            <Link
-              href="#"
+            </Link> */}
+            {/* <Link
+              href="https://www.instagram.com/delulu.social"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaInstagram size={20} />
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>
