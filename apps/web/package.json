@@ -7,7 +7,11 @@
     "start": "next start",
     "analyze": "ANALYZE=true npm run build",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@arcjet/next": "1.0.0-beta.5",
@@ -23,6 +27,7 @@
     "@delulu/rate-limit": "workspace:*",
     "@delulu/security": "workspace:*",
     "@delulu/seo": "workspace:*",
+    "@opennextjs/cloudflare": "^1.2.0",
     "@radix-ui/react-icons": "^1.3.2",
     "@react-three/fiber": "^9.1.2",
     "@sentry/nextjs": "^9.12.0",

@@ -1,9 +1,10 @@
 import { env } from '@/env';
+import { withContentCollections } from '@content-collections/next';
 import { withToolbar } from '@delulu/feature-flags/lib/toolbar';
 import { config, withAnalyzer } from '@delulu/next-config';
 import { withLogging, withSentry } from '@delulu/observability/next-config';
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import type { NextConfig } from 'next';
-import { withContentCollections } from '@content-collections/next';
 
 let nextConfig: NextConfig = withToolbar(withLogging(config));
 
@@ -33,3 +34,5 @@ if (env.ANALYZE === 'true') {
 }
 
 export default withContentCollections(nextConfig);
+
+initOpenNextCloudflareForDev();
