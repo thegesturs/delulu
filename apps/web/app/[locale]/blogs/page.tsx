@@ -1,10 +1,10 @@
-import { cn } from '@delulu/design-system/lib/utils';
+import { BlogCard } from '@/components/blog/blog-card';
 import { getDictionary } from '@delulu/internationalization';
 import type { Blog, WithContext } from '@delulu/seo/json-ld';
 import { JsonLd } from '@delulu/seo/json-ld';
 import { createMetadata } from '@delulu/seo/metadata';
+import { allBlogs } from 'content-collections';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 type BlogProps = {
   params: Promise<{
@@ -41,7 +41,9 @@ const BlogIndex = async ({ params }: BlogProps) => {
             </h4>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-
+            {allBlogs.map((blog) => (
+              <BlogCard key={blog.slug} blog={blog} />
+            ))}
           </div>
         </div>
       </div>
