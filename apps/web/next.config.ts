@@ -3,6 +3,7 @@ import { withToolbar } from '@delulu/feature-flags/lib/toolbar';
 import { config, withAnalyzer } from '@delulu/next-config';
 import { withLogging, withSentry } from '@delulu/observability/next-config';
 import type { NextConfig } from 'next';
+import { withContentCollections } from '@content-collections/next';
 
 let nextConfig: NextConfig = withToolbar(withLogging(config));
 
@@ -31,4 +32,4 @@ if (env.ANALYZE === 'true') {
   nextConfig = withAnalyzer(nextConfig);
 }
 
-export default nextConfig;
+export default withContentCollections(nextConfig);
