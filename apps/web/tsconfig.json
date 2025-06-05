@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@delulu/*": ["../../packages/*"]
+      "@delulu/*": ["../../packages/*"],
+      "content-collections": ["./.content-collections/generated"]
     }
   },
   "include": [
