@@ -10,6 +10,20 @@ import { allBlogs } from 'content-collections';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
+import remarkMdx from 'remark-mdx';
+import { MdastToJsx } from 'safe-mdx';
+
+const parser = remark()
+  .use(remarkMdx)
+  .use(remarkGfm)
+  .use(() => {
+    return (tree, file) => {
+      file.data.ast = tree;
+    };
+  });
+
 const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 
 export const generateMetadata = async ({
@@ -119,6 +133,12 @@ export default async function Page({ params }: PageProps) {
     articleSection: blog.categories[0] || 'Blog',
     inLanguage: locale,
   };
+
+  // Parse and render MDX safely
+  const file = parser.processSync(blog.content);
+  const mdast = file.data.ast;
+  const visitor = new MdastToJsx({ code: blog.content, mdast, components });
+  const content = visitor.run();
 
   return (
     <div>
