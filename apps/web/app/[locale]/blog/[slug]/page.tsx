@@ -15,7 +15,7 @@ const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 export const generateMetadata = async ({
   params,
 }: PageProps): Promise<Metadata> => {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const blog = allBlogs.find((blog) => blog.slug === slug);
   if (!blog) {
     return notFound();
@@ -28,18 +28,39 @@ export const generateMetadata = async ({
     description: blog.description,
     image: blog.image,
     metadataBase: url,
+    keywords: blog.keywords,
+    authors: [
+      {
+        name: blog.author,
+        url: canonicalUrl,
+      },
+    ],
     openGraph: {
       type: 'article',
       publishedTime: blog.date,
       authors: [blog.author],
       tags: blog.categories,
+      siteName: 'Delulu Blog',
+      locale: locale,
+      url: canonicalUrl,
     },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    category: blog.categories[0] ?? 'Blog',
+    applicationName: 'Delulu Social',
+    abstract: blog.description,
+    creator: blog.author,
     twitter: {
       card: 'summary_large_image',
+      creator: blog.author,
       images: [
         {
           url: blog.image,
           alt: blog.title,
+          width: 1200,
+          height: 630,
         },
       ],
     },
@@ -57,7 +78,7 @@ type PageProps = {
 };
 
 export default async function Page({ params }: PageProps) {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const blog = allBlogs.find((b) => b.slug === slug);
   if (!blog) {
     return notFound();
@@ -76,6 +97,7 @@ export default async function Page({ params }: PageProps) {
     description: blog.description,
     image: blog.image,
     datePublished: blog.date,
+    dateModified: blog.date,
     author: {
       '@type': 'Person',
       name: blog.author,
@@ -89,6 +111,13 @@ export default async function Page({ params }: PageProps) {
         url: `${url.origin}/logo.png`,
       },
     },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': new URL(`/blog/${slug}`, url).href,
+    },
+    keywords: blog.keywords,
+    articleSection: blog.categories[0] || 'Blog',
+    inLanguage: locale,
   };
 
   return (

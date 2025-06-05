@@ -46,6 +46,7 @@ const blogs = defineCollection({
     description: z.string(),
     image: z.string(),
     categories: z.array(z.string()),
+    keywords: z.array(z.string()),
   }),
   transform: async (document, context) => {
     const body = await compileMDX(context, document, {
