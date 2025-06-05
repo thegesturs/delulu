@@ -34,10 +34,10 @@ export const Navbar = () => {
       name: 'Pricing',
       link: '/#pricing',
     },
-    {
-      name: 'Blog',
-      link: '/blogs',
-    },
+    // {
+    //   name: 'Blog',
+    //   link: '/blogs',
+    // },
   ];
 
   const ref = useRef<HTMLDivElement>(null);
