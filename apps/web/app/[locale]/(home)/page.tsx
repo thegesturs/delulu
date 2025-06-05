@@ -18,7 +18,6 @@ import Features3 from '@/components/features3';
 import { Hero } from '@/components/hero';
 import { LogoCloud } from '@/components/logos-cloud';
 import Pricing from '@/components/pricing';
-import { Testimonials } from '@/components/testimonials';
 import { getDictionary } from '@delulu/internationalization';
 
 type HomeProps = {

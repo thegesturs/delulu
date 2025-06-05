@@ -43,7 +43,7 @@ const faqs = [
   {
     question: 'What if I need help?',
     answer:
-      'Our team actively monitors feedback channels and responds within 6–12 hours. Your suggestions and bug reports go directly into our product roadmap. We prioritize our first 100 users above everyone else.',
+      'Our team actively monitors feedback channels and responds within 6–12 hours. Email us at swaraj@gesturs.com and we will get back to you quickly.',
   },
   {
     question: 'What features are included in each plan?',
