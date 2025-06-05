@@ -1,96 +1,109 @@
-import { IconArrowLeft } from "@tabler/icons-react";
-import Image from "next/image";
-import { format } from "date-fns";
-import { BlogCardVertical } from "./blog-card";
-import { allBlogs, Blog } from "content-collections";
-import Link from "next/link";
-import { Logo } from "../logo";
+import { type Blog, type Legal, allBlogs } from 'content-collections';
+import { format } from 'date-fns';
+import Image from 'next/image';
+import Link from 'next/link';
+import { FaArrowLeft } from 'react-icons/fa';
+import { Logo } from '../logo';
+import { BlogCardVertical } from './blog-card';
+
+type BlogWithType = Blog & { type: 'blog' };
+type LegalWithType = Legal & { type: 'legal' };
+type ContentType = BlogWithType | LegalWithType;
 
 export async function BlogLayout({
   blog,
   children,
 }: {
-  blog: Blog;
+  blog: ContentType;
   children: React.ReactNode;
 }) {
-  const relatedBlogs = allBlogs.slice(0, 3);
+  const relatedBlogs = blog.type === 'blog' ? allBlogs.slice(0, 3) : [];
 
   return (
-    <div className="mt-16 lg:mt-14 max-w-6xl mx-auto px-4">
-      <div className="flex justify-between items-center px-2 py-8">
-        <Link href="/blog" className="flex space-x-2 items-center">
-          <IconArrowLeft className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-500">Back</span>
+    <div className="mx-auto mt-16 max-w-6xl px-4 lg:mt-14">
+      <div className="flex items-center justify-between px-2 py-8">
+        <Link
+          href={blog.type === 'blog' ? '/blog' : '/legal'}
+          className="flex items-center space-x-2"
+        >
+          <FaArrowLeft className="h-4 w-4 text-gray-500" />
+          <span className="text-gray-500 text-sm">Back</span>
         </Link>
       </div>
-      <div className="w-full mx-auto">
-        {blog.image ? (
+      <div className="mx-auto w-full">
+        {blog.type === 'blog' && blog.image ? (
           <Image
             src={blog.image}
             height="800"
             width="800"
-            className="h-40 md:h-96 w-full aspect-square object-cover rounded-3xl"
+            className="aspect-square h-40 w-full rounded-3xl object-cover md:h-96"
             alt={blog.title}
           />
         ) : (
-          <div className="h-40 md:h-96 w-full aspect-squace rounded-3xl shadow-lg bg-gray-100 flex items-center justify-center">
+          <div className="flex aspect-squace h-40 w-full items-center justify-center rounded-3xl bg-gray-100 shadow-lg md:h-96">
             <Logo />
           </div>
         )}
       </div>
       <div className="xl:relative">
         <div className="mx-auto max-w-2xl">
-          <article className="pb-8 pt-8">
-            <div className="flex gap-4 flex-wrap">
-              {blog.categories?.map((category, idx) => (
-                <p
-                  key={`category-${idx}`}
-                  className="text-xs font-bold text-gray-600 px-2 py-1 rounded-full bg-gray-100 capitalize"
-                >
-                  {category}
-                </p>
-              ))}
-            </div>
+          <article className="pt-8 pb-8">
+            {blog.type === 'blog' && blog.categories && (
+              <div className="flex flex-wrap gap-4">
+                {blog.categories.map((category, idx) => (
+                  <p
+                    key={`category-${idx}`}
+                    className="rounded-full bg-gray-100 px-2 py-1 font-bold text-gray-600 text-xs capitalize"
+                  >
+                    {category}
+                  </p>
+                ))}
+              </div>
+            )}
             <header className="flex flex-col">
-              <h1 className="mt-8 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+              <h1 className="mt-8 font-bold text-4xl text-gray-900 tracking-tight sm:text-5xl">
                 {blog.title}
               </h1>
             </header>
-            <div className="mt-8 prose prose-sm" data-mdx-content>
+            <div className="prose prose-sm mt-8" data-mdx-content>
               {children}
             </div>
-            <div className="flex space-x-2 items-center pt-12 border-t border-gray-200 mt-12">
-              <div className="flex space-x-2 items-center">
-                <Image
-                  src={blog.authorAvatar}
-                  alt={blog.author}
-                  width={20}
-                  height={20}
-                  className="rounded-full h-5 w-5"
-                />
-                <p className="text-sm font-normal text-gray-600">
-                  {blog.author}
-                </p>
-              </div>
-              <div className="h-5 rounded-lg w-0.5 bg-gray-200" />
+            <div className="mt-12 flex items-center space-x-2 border-gray-200 border-t pt-12">
+              {blog.type === 'blog' && (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <Image
+                      src={blog.authorAvatar}
+                      alt={blog.author}
+                      width={20}
+                      height={20}
+                      className="h-5 w-5 rounded-full"
+                    />
+                    <p className="font-normal text-gray-600 text-sm">
+                      {blog.author}
+                    </p>
+                  </div>
+                  <div className="h-5 w-0.5 rounded-lg bg-gray-200" />
+                </>
+              )}
               <time
                 dateTime={blog.date}
                 className="flex items-center text-base"
               >
                 <span className="text-gray-600 text-sm">
-                  {format(new Date(blog.date), "MMMM dd, yyyy")}
+                  {format(new Date(blog.date), 'MMMM dd, yyyy')}
                 </span>
               </time>
             </div>
           </article>
         </div>
       </div>
-      {relatedBlogs.length > 0 && (
+      {blog.type === 'blog' && relatedBlogs.length > 0 && (
         <div className="mt-12 pb-20">
-          <h2 className="text-2xl font-bold text-gray-900 mb-10">
+          <h2 className="mb-10 font-bold text-2xl text-gray-900">
             Related Blogs
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
             {relatedBlogs.map((blog) => (
               <BlogCardVertical key={blog.slug} blog={blog} />
             ))}

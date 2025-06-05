@@ -75,7 +75,7 @@ const blogs = defineCollection({
 
 const legal = defineCollection({
   name: 'legals',
-  directory: 'data/legals',
+  directory: 'data/legal',
   include: '*.mdx',
   schema: z.object({
     title: z.string(),

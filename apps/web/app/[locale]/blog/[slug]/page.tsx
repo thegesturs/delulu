@@ -1,12 +1,10 @@
-import { Sidebar } from '@/components/sidebar';
+import { BlogLayout } from '@/components/blog/blog-layout';
+import CTA from '@/components/cta';
+import { components } from '@/components/mdx-components';
 import { env } from '@/env';
-import { ArrowLeftIcon } from '@radix-ui/react-icons';
-import { JsonLd } from '@delulu/seo/json-ld';
-import { createMetadata } from '@delulu/seo/metadata';
-import type { Metadata } from 'next';
-import Link from 'next/link';
+import { MDXContent } from '@content-collections/mdx/react';
+import { allBlogs } from 'content-collections';
 import { notFound } from 'next/navigation';
-import Balancer from 'react-wrap-balancer';
 
 const protocol = env.VERCEL_PROJECT_PRODUCTION_URL?.startsWith('https')
   ? 'https'
@@ -138,7 +136,26 @@ type BlogPostProperties = {
 
 // export default BlogPost;
 
+export default async function Page({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+  const blog = allBlogs.find((b) => b.slug === slug);
+  if (!blog) {
+    return notFound();
+  }
 
-export default function BlogPost() {
-  return <div>BlogPost</div>;
+  const blogWithType = {
+    ...blog,
+    type: 'blog' as const,
+  };
+
+  return (
+    <div>
+      <BlogLayout blog={blogWithType}>
+        <MDXContent components={components} code={blog.body} />
+      </BlogLayout>
+      <div className="py-20">
+        <CTA />
+      </div>
+    </div>
+  );
 }

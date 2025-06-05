@@ -1,16 +1,16 @@
-"use client";
-import { format } from "date-fns";
-import Image from "next/image";
-import React, { useEffect, useMemo, useState } from "react";
-import FuzzySearch from "fuzzy-search";
-import { Blog } from "content-collections";
-import Link from "next/link";
+'use client';
+import type { Blog } from 'content-collections';
+import { format } from 'date-fns';
+import FuzzySearch from 'fuzzy-search';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const searcher = useMemo(
     () =>
-      new FuzzySearch(blogs, ["title", "description"], {
+      new FuzzySearch(blogs, ['title', 'description'], {
         caseSensitive: false,
       }),
     [blogs]
@@ -24,8 +24,8 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
 
   return (
     <div className="w-full py-20">
-      <div className="flex flex-col gap-4 mb-10">
-        <h1 className="text-4xl font-bold">
+      <div className="mb-10 flex flex-col gap-4">
+        <h1 className="font-bold text-4xl">
           Latest <span className="text-orange-500">Blogs</span>
         </h1>
         <input
@@ -33,13 +33,13 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search blogs"
-          className="text-sm p-2 rounded-md bg-gray-100 border border-gray-200 focus:ring-0 focus:outline-none outline-none text-gray-900 placeholder-gray-500"
+          className="rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-900 text-sm placeholder-gray-500 outline-none focus:outline-none focus:ring-0"
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {results.length === 0 ? (
-          <p className="text-gray-500 text-center p-4">No results found</p>
+          <p className="p-4 text-center text-gray-500">No results found</p>
         ) : (
           results.map((blog, index) => (
             <BlogPostCard blog={blog} key={blog.slug + index} />
@@ -52,41 +52,41 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
 
 export const BlogPostCard = ({ blog }: { blog: Blog }) => {
   return (
-     <Link
+    <Link
       href={`/blog/${blog.slug}`}
-      className="group rounded-2xl overflow-hidden bg-white hover:shadow-lg transition duration-200"
+      className="group overflow-hidden rounded-2xl bg-white transition duration-200 hover:shadow-lg"
     >
-      <div className="aspect-[4/3] relative overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
         <Image
-          src={blog.image || "/placeholder-image.jpg"} // Make sure to handle missing cover images
+          src={blog.image || '/placeholder-image.jpg'} // Make sure to handle missing cover images
           alt={blog.title}
           fill
-          className="object-cover group-hover:scale-105 transition duration-200 rounded-xl"
+          className="rounded-xl object-cover transition duration-200 group-hover:scale-105"
         />
       </div>
 
       <div className="p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="mb-3 flex items-center gap-2">
           {blog.categories.map((category, i) => (
             <span
               key={i}
-              className="bg-orange-100 text-orange-600 text-xs font-medium px-2 py-1 rounded"
+              className="rounded bg-orange-100 px-2 py-1 font-medium text-orange-600 text-xs"
             >
               {category}
             </span>
           ))}
-          <span className="text-sm text-gray-500">
-            {format(new Date(blog.date), "d MMM, yyyy")}
+          <span className="text-gray-500 text-sm">
+            {format(new Date(blog.date), 'd MMM, yyyy')}
           </span>
-          <span className="text-sm text-gray-500">•</span>
-          <span className="text-sm text-gray-500">5 min read</span>
+          <span className="text-gray-500 text-sm">•</span>
+          <span className="text-gray-500 text-sm">5 min read</span>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-600">
+        <h2 className="mb-2 line-clamp-2 font-semibold text-gray-900 text-xl group-hover:text-gray-600">
           {blog.title}
         </h2>
 
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+        <p className="mb-4 line-clamp-2 text-gray-600 text-sm">
           {blog.description}
         </p>
 
@@ -98,7 +98,7 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
             height={24}
             className="rounded-full object-cover"
           />
-          <span className="text-sm text-gray-700">{blog.author}</span>
+          <span className="text-gray-700 text-sm">{blog.author}</span>
         </div>
       </div>
     </Link>

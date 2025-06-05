@@ -1,7 +1,8 @@
-"use client";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
-import React, { useState } from "react";
+'use client';
+import { cn } from '@delulu/design-system/lib/utils';
+import Image from 'next/image';
+import type React from 'react';
+import { useState } from 'react';
 
 export const BlurImage = (props: React.ComponentProps<typeof Image>) => {
   const [isLoading, setLoading] = useState(true);
@@ -10,8 +11,8 @@ export const BlurImage = (props: React.ComponentProps<typeof Image>) => {
   return (
     <Image
       className={cn(
-        "transition duration-300",
-        isLoading ? "blur-sm" : "blur-0",
+        'transition duration-300',
+        isLoading ? 'blur-sm' : 'blur-0',
         props.className
       )}
       onLoad={() => setLoading(false)}
@@ -22,7 +23,7 @@ export const BlurImage = (props: React.ComponentProps<typeof Image>) => {
       decoding="async"
       blurDataURL={src as string}
       layout={layout}
-      alt={alt ? alt : "Avatar"}
+      alt={alt ? alt : 'Avatar'}
       {...rest}
     />
   );
