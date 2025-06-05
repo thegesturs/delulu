@@ -93,13 +93,15 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
         </p>
 
         <div className="flex items-center gap-2">
-          <Image
-            src={blog.authorAvatar}
-            alt={blog.author}
-            width={24}
-            height={24}
-            className="rounded-full object-cover"
-          />
+          {blog.authorAvatar && (
+            <Image
+              src={blog.authorAvatar}
+              alt={blog.author}
+              width={24}
+              height={24}
+              className="rounded-full object-cover"
+            />
+          )}
           <span className="text-muted-foreground text-sm">{blog.author}</span>
         </div>
       </div>

@@ -67,13 +67,15 @@ export async function BlogLayout({
               {blog.type === 'blog' && (
                 <>
                   <div className="flex items-center space-x-2">
-                    <Image
-                      src={blog.authorAvatar}
-                      alt={blog.author}
-                      width={20}
-                      height={20}
-                      className="h-5 w-5 rounded-full"
-                    />
+                    {blog.authorAvatar && (
+                      <Image
+                        src={blog.authorAvatar}
+                        alt={blog.author}
+                        width={20}
+                        height={20}
+                        className="h-5 w-5 rounded-full"
+                      />
+                    )}
                     <p className="font-normal text-muted-foreground text-sm">
                       {blog.author}
                     </p>

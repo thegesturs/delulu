@@ -2,7 +2,6 @@ import { BlogLayout } from '@/components/blog/blog-layout';
 import CTA from '@/components/cta';
 import { components } from '@/components/mdx-components';
 import { env } from '@/env';
-import { MDXContent } from '@content-collections/mdx/react';
 import type { Article, WithContext } from '@delulu/seo/json-ld';
 import { JsonLd } from '@delulu/seo/json-ld';
 import { createMetadata } from '@delulu/seo/metadata';
@@ -71,7 +70,7 @@ export const generateMetadata = async ({
       creator: blog.author,
       images: [
         {
-          url: blog.image,
+          url: blog.image ?? '',
           alt: blog.title,
           width: 1200,
           height: 630,
@@ -143,9 +142,7 @@ export default async function Page({ params }: PageProps) {
   return (
     <div>
       <JsonLd code={articleJsonLd} />
-      <BlogLayout blog={blogWithType}>
-        <MDXContent components={components} code={blog.body} />
-      </BlogLayout>
+      <BlogLayout blog={blogWithType}>{content}</BlogLayout>
       <div className="py-20">
         <CTA />
       </div>

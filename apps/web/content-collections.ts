@@ -9,11 +9,15 @@ import { createHighlighter } from 'shiki';
 import { z } from 'zod';
 
 const prettyCodeOptions: Options = {
-  theme: 'github-dark',
-  keepBackground: false,
+  theme: {
+    dark: 'github-dark',
+    light: 'github-light',
+  },
+  keepBackground: true,
   getHighlighter: (options) =>
     createHighlighter({
       ...options,
+      themes: ['github-dark', 'github-light'],
     }),
   onVisitLine(node) {
     if (node.children.length === 0) {
@@ -41,12 +45,14 @@ const blogs = defineCollection({
   schema: z.object({
     title: z.string(),
     date: z.string(),
-    author: z.string(),
-    authorAvatar: z.string(),
-    description: z.string(),
-    image: z.string(),
-    categories: z.array(z.string()),
-    keywords: z.array(z.string()),
+    author: z.string().default('Swaraj Bachu'),
+    authorAvatar: z.string().optional(),
+    description: z.string().default('Delulu - The Social Platform'),
+    image: z.string().optional(),
+    categories: z.array(z.string()).default(['trending']),
+    keywords: z
+      .array(z.string())
+      .default(['delulu', 'social', 'platform', 'scheduling']),
   }),
   transform: async (document, context) => {
     const body = await compileMDX(context, document, {
