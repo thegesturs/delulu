@@ -8,6 +8,7 @@ import {
   FaGithub,
   FaInstagram,
   FaLinkedinIn,
+  FaTiktok,
 } from 'react-icons/fa';
 
 interface SocialIconProps {
@@ -47,6 +48,9 @@ export const SocialIcon = ({ type, className, size }: SocialIconProps) => {
   }
   if (type === SocialTypes.FACEBOOK) {
     return <FaFacebook className={cn('h-3 w-3', className, sizeClass)} />;
+  }
+  if (type === SocialTypes.TIKTOK) {
+    return <FaTiktok className={cn('h-3 w-3', className, sizeClass)} />;
   }
   return null;
 };

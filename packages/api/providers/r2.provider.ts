@@ -31,7 +31,10 @@ export class R2Provider {
       Key: key,
     });
 
-    return await getSignedUrl(this.s3Client, command, { expiresIn: 3600 }); // 1 hour expiry
+    return (await getSignedUrl(this.s3Client, command, { expiresIn: 3600 })).replace(
+      `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
+      'https://media.delulu.social'
+    );
   }
 
   async getSignedUploadUrl(

@@ -85,6 +85,8 @@ export const getValidMediaUrls = (media: MediaType[]) => {
         altText: m.altText,
         thumbnailBucketUrl: m.thumbnailBucketUrl,
         thumbnailBucketKey: m.thumbnailBucketKey,
+        bucketUrl: m.bucketUrl,
+        bucketKey: m.bucketKey,
       };
     })
     .filter(Boolean);

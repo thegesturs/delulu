@@ -11,7 +11,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import type { SocialTypes } from '@delulu/validators/post';
 import { Plus } from 'lucide-react';
-import { FaLinkedin } from 'react-icons/fa';
+import { FaLinkedin, FaTiktok } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 
 interface ConnectedAccountsHeaderProps {
@@ -70,6 +70,19 @@ export function ConnectedAccountsHeader({
                   <span className="font-medium">LinkedIn</span>
                   <span className="text-muted-foreground text-sm">
                     Connect your LinkedIn profile
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('TIKTOK')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <FaTiktok className="h-6 w-6 text-card-foreground" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">TikTok</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your TikTok profile
                   </span>
                 </div>
               </Button>

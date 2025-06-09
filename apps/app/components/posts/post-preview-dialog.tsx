@@ -9,7 +9,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Calendar } from 'lucide-react';
 import Image from 'next/image';
-import { FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
+import { FaInstagram, FaLinkedin, FaTiktok, FaTwitter } from 'react-icons/fa';
 import type { Post } from './types';
 
 interface PostPreviewDialogProps {
@@ -22,6 +22,7 @@ const socialIcons = {
   TWITTER: FaTwitter,
   LINKEDIN: FaLinkedin,
   INSTAGRAM: FaInstagram,
+  TIKTOK: FaTiktok,
 } as const;
 
 const statusColors = {

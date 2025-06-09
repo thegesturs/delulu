@@ -14,9 +14,13 @@ const worker = new Worker(
     };
     console.log('Processing job:', socialPublishInput.postId);
 
-    if (socialType === 'TWITTER' || socialType === 'LINKEDIN') {
+    if (
+      socialType === 'TWITTER' ||
+      socialType === 'LINKEDIN' ||
+      socialType === 'TIKTOK'
+    ) {
       const providerImpl =
-        providerRegistry[socialType as 'LINKEDIN' | 'TWITTER'];
+        providerRegistry[socialType as 'LINKEDIN' | 'TWITTER' | 'TIKTOK'];
       const result = await providerImpl.publish({
         content: socialPublishInput,
         socialProviderId: socialPublishInput.socialProviderId,

@@ -35,12 +35,14 @@ import {
   Twitter,
   Youtube,
 } from 'lucide-react';
+import { FaTiktok } from 'react-icons/fa';
 
 const socialIcons = {
   TWITTER: Twitter,
   INSTAGRAM: Instagram,
   LINKEDIN: Linkedin,
   YOUTUBE: Youtube,
+  TIKTOK: FaTiktok,
 };
 
 const socialColors = {
@@ -48,6 +50,7 @@ const socialColors = {
   INSTAGRAM: 'bg-gradient-to-r from-[#E4405F] to-[#FCAF45]',
   LINKEDIN: 'bg-sky-700',
   YOUTUBE: 'bg-red-600',
+  TIKTOK: 'bg-red-600',
 };
 
 function formatTimeAgo(date: Date | null): string {
@@ -89,11 +92,11 @@ interface AccountCardProps {
 export function AccountCard({ account, onConnect }: AccountCardProps) {
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
-  const isAccountExpired = account.expiresIn
-    ? isExpired(account.expiresIn)
+  const isAccountExpired = account.refreshTokenExpiresIn
+    ? isExpired(account.refreshTokenExpiresIn)
     : false;
-  const isAccountExpiringSoon = account.expiresIn
-    ? isExpiringSoon(account.expiresIn)
+  const isAccountExpiringSoon = account.refreshTokenExpiresIn
+    ? isExpiringSoon(account.refreshTokenExpiresIn)
     : false;
 
   return (

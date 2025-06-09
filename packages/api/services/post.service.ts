@@ -9,7 +9,8 @@ export const createPostInQueue = async (post: SavePostInputType) => {
     // Skip providers that are not implemented
     if (
       provider.socialType !== 'TWITTER' &&
-      provider.socialType !== 'LINKEDIN'
+      provider.socialType !== 'LINKEDIN' &&
+      provider.socialType !== 'TIKTOK'
     ) {
       continue;
     }

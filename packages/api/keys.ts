@@ -16,6 +16,9 @@ export const keys = () =>
       R2_SECRET_ACCESS_KEY: z.string().min(1),
       R2_BUCKET_NAME: z.string().min(1),
       R2_ACCOUNT_ID: z.string().min(1),
+      TIKTOK_CLIENT_ID: z.string().min(1),
+      TIKTOK_CLIENT_SECRET: z.string().min(1),
+      TIKTOK_CALLBACK_URL: z.string().min(1),
     },
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
@@ -30,5 +33,8 @@ export const keys = () =>
       R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
       R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
       R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
+      TIKTOK_CLIENT_ID: process.env.TIKTOK_CLIENT_ID,
+      TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET,
+      TIKTOK_CALLBACK_URL: process.env.TIKTOK_CALLBACK_URL,
     },
   });

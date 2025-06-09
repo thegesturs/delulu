@@ -16,7 +16,7 @@ export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
     .input(
       z.object({
-        provider: SocialTypeSchema.extract(['LINKEDIN', 'TWITTER']),
+        provider: SocialTypeSchema.extract(['LINKEDIN', 'TWITTER', 'TIKTOK']),
       })
     )
     .mutation(({ input }) => {

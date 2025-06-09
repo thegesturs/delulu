@@ -51,11 +51,11 @@ export default function ConnectedAccounts() {
       const matchesPlatform =
         filterPlatform === 'all' || account.socialType === filterPlatform;
 
-      const isAccountExpired = account.expiresIn
-        ? isExpired(account.expiresIn)
+      const isAccountExpired = account.refreshTokenExpiresIn
+        ? isExpired(account.refreshTokenExpiresIn)
         : false;
-      const isAccountExpiringSoon = account.expiresIn
-        ? isExpiringSoon(account.expiresIn)
+      const isAccountExpiringSoon = account.refreshTokenExpiresIn
+        ? isExpiringSoon(account.refreshTokenExpiresIn)
         : false;
 
       const matchesStatus =
@@ -86,7 +86,11 @@ export default function ConnectedAccounts() {
 
   const handleConnect = (platform: keyof typeof SocialTypes) => {
     // Removed Instagram and YouTube as they were not handled by connectAccount
-    if (platform === 'TWITTER' || platform === 'LINKEDIN') {
+    if (
+      platform === 'TWITTER' ||
+      platform === 'LINKEDIN' ||
+      platform === 'TIKTOK'
+    ) {
       connectAccount({ provider: platform });
     }
   };
