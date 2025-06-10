@@ -1,13 +1,11 @@
 import './styles.css';
+import { Footer } from '@/components/footer';
+import { Navbar } from '@/components/navbar';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import { cn } from '@delulu/design-system/lib/utils';
-import { Toolbar } from '@delulu/feature-flags/components/toolbar';
 import { getDictionary } from '@delulu/internationalization';
 import type { ReactNode } from 'react';
-import { Footer } from '@/components/footer';
-import { Header } from './components/header';
-import { Navbar } from '@/components/navbar';
 
 type RootLayoutProperties = {
   readonly children: ReactNode;

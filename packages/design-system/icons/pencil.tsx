@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import type { FC } from 'react';
 
 const Pencil: FC = () => {
   return (
@@ -17,7 +17,7 @@ const Pencil: FC = () => {
           d="M433.938 182.508 147.858 468.375h-.214L34.793 355.523v-.214L320.871 69.44zm0 0"
           opacity="1"
           data-original="#90a4ae"
-          className="fill-[#1C274C]  dark:fill-gray-400"
+          className="fill-[#1C274C] dark:fill-gray-400"
         />
         <g fill="#607D8B">
           <path

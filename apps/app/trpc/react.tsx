@@ -10,7 +10,7 @@ import superjson from 'superjson';
 import type { AppRouter } from '@delulu/api';
 import { createQueryClient } from './query-client';
 
-let clientQueryClientSingleton: QueryClient | undefined = undefined;
+let clientQueryClientSingleton: QueryClient | undefined;
 const getQueryClient = () => {
   if (typeof window === 'undefined') {
     // Server: always make a new query client

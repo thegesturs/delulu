@@ -3,7 +3,7 @@ import {
   PostSchema,
   PostStatusSchema, // Assuming this exists in a place like @delulu/database/zod or similar
   PrivacyStatusSchema,
-  SocialProviderSchema
+  SocialProviderSchema,
 } from '@delulu/database/prisma/types/zod'; // Adjust path if these are generated elsewhere or defined in validators
 import { z } from 'zod';
 
@@ -30,8 +30,6 @@ export const ApiPostContentItemSchema = z.object({
 
 export type ApiPostContentItem = z.infer<typeof ApiPostContentItemSchema>;
 
-
-
 // Schema for platform post information (subset of Prisma model)
 export const ApiPlatformPostSchema = z.object({
   id: z.string(),
@@ -41,7 +39,7 @@ export const ApiPlatformPostSchema = z.object({
 });
 
 export type ApiPlatformPost = z.infer<typeof ApiPlatformPostSchema>;
- 
+
 // Schema for a single post as returned by the API
 export const ApiPostSchema = PostSchema.extend({
   status: PostStatusSchema,

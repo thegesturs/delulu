@@ -303,8 +303,9 @@ export default function PostsPage() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    if (currentPage < totalPages && !isFetching)
+                    if (currentPage < totalPages && !isFetching) {
                       handlePageChange(currentPage + 1);
+                    }
                   }}
                   aria-disabled={currentPage === totalPages || isFetching}
                   className={

@@ -1,6 +1,4 @@
-import type {
-  ApiPost as BackendApiPost,
-} from '@delulu/api/db/types/post.types';
+import type { ApiPost as BackendApiPost } from '@delulu/api/db/types/post.types';
 
 // Frontend-specific types that extend or alias the backend API types
 

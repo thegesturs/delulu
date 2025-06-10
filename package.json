@@ -4,9 +4,7 @@
   "bin": {
     "delulu-social": "dist/index.js"
   },
-  "files": [
-    "dist/index.js"
-  ],
+  "files": ["dist/index.js"],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -14,6 +12,7 @@
     "dev:web": "turbo dev --filter=web",
     "lint": "ultracite lint",
     "format": "ultracite format",
+    "format:fix": "ultracite format --write",
     "test": "turbo test",
     "analyze": "turbo analyze",
     "translate": "turbo translate",

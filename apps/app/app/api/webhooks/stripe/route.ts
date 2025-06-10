@@ -14,7 +14,7 @@ const getUserFromCustomerId = async (customerId: string) => {
   return user;
 };
 
-const handleCheckoutSessionCompleted = async (
+const _handleCheckoutSessionCompleted = async (
   data: Stripe.Checkout.Session
 ) => {
   if (!data.customer) {
@@ -35,7 +35,7 @@ const handleCheckoutSessionCompleted = async (
   });
 };
 
-const handleSubscriptionScheduleCanceled = async (
+const _handleSubscriptionScheduleCanceled = async (
   data: Stripe.SubscriptionSchedule
 ) => {
   if (!data.customer) {
@@ -56,11 +56,11 @@ const handleSubscriptionScheduleCanceled = async (
   });
 };
 
-export const POST = async (request: Request): Promise<Response> => {
+export const POST = (): Response => {
   // if (!env.STRIPE_WEBHOOK_SECRET) {
   //   return NextResponse.json({ message: 'Not configured', ok: false });
   // }
-  return await NextResponse.json({ message: 'Not configured', ok: false });
+  return NextResponse.json({ message: 'Not configured', ok: false });
 
   // try {
   //   const body = await request.text();

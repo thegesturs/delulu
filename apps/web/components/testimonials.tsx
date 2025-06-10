@@ -1,10 +1,10 @@
 'use client';
+import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import React from 'react';
 import { FaCheck } from 'react-icons/fa';
-import { Button } from '@delulu/design-system/components/ui/button';
 
 const features = [
   'Prove your point to a stakeholder',

@@ -2,7 +2,7 @@
 import { cn } from '@delulu/design-system/lib/utils';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type React from 'react';
-import { useMemo, useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
 export const CanvasRevealEffect = ({
@@ -21,7 +21,9 @@ export const CanvasRevealEffect = ({
   showGradient?: boolean;
 }) => {
   return (
-    <div className={cn('relative h-full w-full bg-background', containerClassName)}>
+    <div
+      className={cn('relative h-full w-full bg-background', containerClassName)}
+    >
       <div className="h-full w-full">
         <DotMatrix
           colors={colors ?? [[0, 255, 255]]}
