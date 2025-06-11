@@ -7,6 +7,11 @@ export default $config({
       removal: input?.stage === 'production' ? 'retain' : 'remove',
       protect: ['production'].includes(input?.stage),
       home: 'aws',
+      providers: {
+        aws: {
+          profile: 'delulu',
+        },
+      },
     };
   },
   // biome-ignore lint/suspicious/useAwait: <explanation>
