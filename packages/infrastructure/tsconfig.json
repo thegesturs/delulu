@@ -1,0 +1,18 @@
+{
+  "extends": "@delulu/typescript-config/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noEmit": false,
+    "paths": {
+      "@/*": ["./*"],
+      "@delulu/*": ["../../packages/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".sst/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

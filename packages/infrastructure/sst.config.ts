@@ -1,0 +1,41 @@
+/// <reference path="./.sst/platform/config.d.ts" />
+
+export default $config({
+  app(input) {
+    return {
+      name: 'infrastructure',
+      removal: input?.stage === 'production' ? 'retain' : 'remove',
+      protect: ['production'].includes(input?.stage),
+      home: 'aws',
+    };
+  },
+  // biome-ignore lint/suspicious/useAwait: <explanation>
+  async run() {
+    const vpc = new sst.aws.Vpc('MyVpc');
+    const cluster = new sst.aws.Cluster('MyCluster', { vpc });
+
+    const queue = new sst.aws.Queue('SocialPostsQueue');
+
+    const task = new sst.aws.Task('SocialPostsTask', {
+      cluster,
+      cpu: '0.5 vCPU',
+      memory: '1 GB',
+      image: {
+        context: '../media-worker',
+        dockerfile: 'Dockerfile',
+      },
+      environment: {
+        QUEUE_URL: queue.url,
+      },
+    });
+
+    queue.subscribe({
+      handler: 'src/trigger-task.handler',
+      link: [task],
+    });
+
+    return {
+      SocialPostsQueueURL: queue.url,
+    };
+  },
+});
