@@ -10,6 +10,7 @@
     "dev": "turbo dev",
     "dev:app": "turbo dev --filter=app",
     "dev:web": "turbo dev --filter=web",
+    "dev:worker": "pnpm --filter=worker dev",
     "lint": "ultracite lint",
     "format": "ultracite format",
     "format:fix": "ultracite format --write",

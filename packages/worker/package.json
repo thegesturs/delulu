@@ -1,0 +1,21 @@
+{
+  "name": "@delulu/worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "dev": "dotenv -e .env.local -- tsx index.ts",
+    "prisma:generate": "prisma generate --schema=../database/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@delulu/api": "workspace:*",
+    "@delulu/database": "workspace:*",
+    "@delulu/typescript-config": "workspace:*",
+    "@delulu/validators": "workspace:*",
+    "dotenv-cli": "^7.4.1",
+    "nanoid": "^5.1.5",
+    "prisma": "6.4.1"
+  }
+}

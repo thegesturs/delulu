@@ -14,7 +14,8 @@
       "apps/email/.react-email/**",
       "apps/app/wrangler.jsonc",
       "packages/database/prisma/types/zod/**",
-      "packages/infrastructure/.sst/**"
+      "packages/infrastructure/.sst/**",
+      "*.d.ts"
     ]
   },
   "organizeImports": { "enabled": true },
