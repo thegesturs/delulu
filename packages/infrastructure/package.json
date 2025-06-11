@@ -1,0 +1,20 @@
+{
+  "name": "@delulu/infra",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm sst dev",
+    "build": "sst build",
+    "deploy": "sst deploy",
+    "remove": "sst remove",
+    "console": "sst console",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "sst": "^3.17.4",
+    "typescript": "catalog:",
+    "@delulu/typescript-config": "workspace:*"
+  }
+}
