@@ -9,7 +9,7 @@ export default $config({
       home: 'aws',
       providers: {
         aws: {
-          profile: 'delulu',
+          profile: 'delulu_social',
         },
       },
     };
@@ -25,9 +25,10 @@ export default $config({
       cluster,
       cpu: '0.5 vCPU',
       memory: '1 GB',
+      publicIp: true,
       image: {
-        context: '../media-worker',
-        dockerfile: 'Dockerfile',
+        context: '../..',
+        dockerfile: 'packages/worker/Dockerfile',
       },
       environment: {
         QUEUE_URL: queue.url,

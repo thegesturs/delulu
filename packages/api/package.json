@@ -8,6 +8,9 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "worker": "dotenv -e .env -- tsx watch worker/social-posting.ts"
   },
+  "exports": {
+    "./providers": "./providers/index.ts"
+  },
   "dependencies": {
     "@ai-sdk/google": "^1.1.20",
     "@ai-sdk/openai": "^0.0.66",

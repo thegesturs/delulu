@@ -1,0 +1,10 @@
+export const keys = () => ({
+  TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET || '',
+  TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID || '',
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || '',
+  LINKEDIN_CALLBACK_URL: process.env.LINKEDIN_CALLBACK_URL || '',
+  TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL || '',
+  TWITTER_STATE: process.env.TWITTER_STATE || '',
+  REDIS_URL: process.env.REDIS_URL || '',
+});
