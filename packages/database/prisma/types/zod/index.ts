@@ -104,7 +104,7 @@ export const PrivacyStatusSchema = z.enum(['PUBLIC','PRIVATE','UNLISTED']);
 
 export type PrivacyStatusType = `${z.infer<typeof PrivacyStatusSchema>}`
 
-export const SocialTypeSchema = z.enum(['TWITTER','LINKEDIN','LENS','GITHUB','YOUTUBE','INSTAGRAM','FACEBOOK','TIKTOK']);
+export const SocialTypeSchema = z.enum(['TWITTER','LINKEDIN','LENS','YOUTUBE','INSTAGRAM','FACEBOOK','TIKTOK']);
 
 export type SocialTypeType = `${z.infer<typeof SocialTypeSchema>}`
 

@@ -6,11 +6,18 @@ export const keys = () =>
     server: {
       TWITTER_CLIENT_SECRET: z.string().min(1),
       TWITTER_CLIENT_ID: z.string().min(1),
+      TWITTER_CALLBACK_URL: z.string().min(1),
+      TWITTER_STATE: z.string().min(1),
+
+
       LINKEDIN_CLIENT_ID: z.string().min(1),
       LINKEDIN_CLIENT_SECRET: z.string().min(1),
       LINKEDIN_CALLBACK_URL: z.string().min(1),
-      TWITTER_CALLBACK_URL: z.string().min(1),
-      TWITTER_STATE: z.string().min(1),
+
+      INSTAGRAM_CLIENT_ID: z.string().min(1),
+      INSTAGRAM_CLIENT_SECRET: z.string().min(1),
+      INSTAGRAM_CALLBACK_URL: z.string().min(1),
+
       REDIS_URL: z.string().min(1),
       R2_ACCESS_KEY_ID: z.string().min(1),
       R2_SECRET_ACCESS_KEY: z.string().min(1),
@@ -23,6 +30,9 @@ export const keys = () =>
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
       TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+      INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID,
+      INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET,
+      INSTAGRAM_CALLBACK_URL: process.env.INSTAGRAM_CALLBACK_URL,
       LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
       LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
       LINKEDIN_CALLBACK_URL: process.env.LINKEDIN_CALLBACK_URL,

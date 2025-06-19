@@ -11,6 +11,7 @@
     "dev:app": "turbo dev --filter=app",
     "dev:web": "turbo dev --filter=web",
     "dev:worker": "pnpm --filter=worker dev",
+    "worker:prisma:generate": "pnpm --filter=worker prisma:generate",
     "lint": "ultracite lint",
     "format": "ultracite format",
     "format:fix": "ultracite format --write",
