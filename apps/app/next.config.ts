@@ -1,11 +1,10 @@
-import { withToolbar } from '@delulu/feature-flags/lib/toolbar';
 import { config, withAnalyzer } from '@delulu/next-config';
 import { withLogging, withSentry } from '@delulu/observability/next-config';
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import { env } from 'env';
 import type { NextConfig } from 'next';
 
-let nextConfig: NextConfig = withToolbar(withLogging(config));
+let nextConfig: NextConfig = withLogging(config);
 
 if (env.VERCEL) {
   nextConfig = withSentry(nextConfig);

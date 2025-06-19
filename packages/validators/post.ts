@@ -1,6 +1,6 @@
-/// <reference lib="dom" />
-
 import { z } from 'zod';
+import { File } from 'fetch-blob/file.js';
+
 
 export const videoTypes = ['MP4', 'MOV', 'MKV', 'WEBM'];
 export const allowedImageTypes = ['JPEG', 'GIF', 'PNG', 'HEIC', 'WEBP'];
@@ -22,12 +22,11 @@ export const SocialTypes = {
   DEFAULT: 'DEFAULT',
   TWITTER: 'TWITTER',
   LINKEDIN: 'LINKEDIN',
-  LENS: 'LENS',
-  GITHUB: 'GITHUB',
   YOUTUBE: 'YOUTUBE',
   INSTAGRAM: 'INSTAGRAM',
   FACEBOOK: 'FACEBOOK',
   TIKTOK: 'TIKTOK',
+  LENS: 'LENS',
 } as const;
 
 export type SocialType = (typeof SocialTypes)[keyof typeof SocialTypes];
@@ -35,12 +34,11 @@ export const SocialTypeSchema = z.enum([
   'DEFAULT',
   'TWITTER',
   'LINKEDIN',
-  'LENS',
-  'GITHUB',
   'YOUTUBE',
   'INSTAGRAM',
   'FACEBOOK',
   'TIKTOK',
+  'LENS',
 ]);
 
 // Implement it later, once basic features are one

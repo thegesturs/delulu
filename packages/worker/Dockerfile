@@ -2,6 +2,12 @@ FROM node:18-slim
 
 WORKDIR /app
 
+# Install system dependencies including OpenSSL
+RUN apt-get update -y && \
+    apt-get install -y openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install pnpm
 RUN npm install -g pnpm@10.8.0
 
@@ -24,6 +30,11 @@ COPY packages/api ./packages/api
 COPY packages/database ./packages/database
 COPY packages/validators ./packages/validators
 COPY packages/typescript-config ./packages/typescript-config
+
+# Copy environment file
+COPY packages/worker/.env.local ./packages/worker/.env.local
+
+RUN pnpm worker:prisma:generate
 
 # Set environment variables
 ENV NODE_ENV=production

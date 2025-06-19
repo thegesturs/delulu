@@ -26,11 +26,14 @@ interface TikTokVideoCreateResponse {
 export const tiktokProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
     // Get the social provider profile
+
+    console.log('socialProviderId', socialProviderId);
     const profile = await database.socialProvider.findUnique({
       where: {
         id: socialProviderId,
       },
     });
+    console.log('profile', profile);
 
     if (!profile || !profile.accessToken) {
       throw new TRPCError({

@@ -14,8 +14,10 @@
     "@delulu/database": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
+    "@types/node": "22.14.1",
     "dotenv-cli": "^7.4.1",
     "nanoid": "^5.1.5",
-    "prisma": "6.4.1"
+    "prisma": "6.4.1",
+    "zod-prisma-types": "^3.2.4"
   }
 }

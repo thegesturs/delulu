@@ -73,13 +73,14 @@ export default function ConnectedAccounts() {
     if (!accounts) return { active: 0, expired: 0, expiring: 0, total: 0 };
 
     const active = accounts.filter(
-      (a: SocialProvider) => a.isActive && !isExpired(a.expiresIn ?? new Date())
+      (a: SocialProvider) =>
+        a.isActive && !isExpired(a.refreshTokenExpiresIn ?? new Date())
     ).length;
     const expired = accounts.filter((a: SocialProvider) =>
-      isExpired(a.expiresIn ?? new Date())
+      isExpired(a.refreshTokenExpiresIn ?? new Date())
     ).length;
     const expiring = accounts.filter((a: SocialProvider) =>
-      isExpiringSoon(a.expiresIn ?? new Date())
+      isExpiringSoon(a.refreshTokenExpiresIn ?? new Date())
     ).length;
     return { active, expired, expiring, total: accounts.length };
   }, [accounts]);
@@ -89,7 +90,8 @@ export default function ConnectedAccounts() {
     if (
       platform === 'TWITTER' ||
       platform === 'LINKEDIN' ||
-      platform === 'TIKTOK'
+      platform === 'TIKTOK' ||
+      platform === 'INSTAGRAM'
     ) {
       connectAccount({ provider: platform });
     }
