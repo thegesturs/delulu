@@ -10,6 +10,7 @@ export default $config({
       providers: {
         aws: {
           profile: 'delulu_social',
+          region: 'us-east-1',
         },
       },
     };

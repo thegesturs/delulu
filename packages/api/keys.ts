@@ -9,7 +9,6 @@ export const keys = () =>
       TWITTER_CALLBACK_URL: z.string().min(1),
       TWITTER_STATE: z.string().min(1),
 
-
       LINKEDIN_CLIENT_ID: z.string().min(1),
       LINKEDIN_CLIENT_SECRET: z.string().min(1),
       LINKEDIN_CALLBACK_URL: z.string().min(1),
@@ -17,6 +16,10 @@ export const keys = () =>
       INSTAGRAM_CLIENT_ID: z.string().min(1),
       INSTAGRAM_CLIENT_SECRET: z.string().min(1),
       INSTAGRAM_CALLBACK_URL: z.string().min(1),
+
+      THREADS_CLIENT_ID: z.string().min(1),
+      THREADS_CLIENT_SECRET: z.string().min(1),
+      THREADS_CALLBACK_URL: z.string().min(1),
 
       REDIS_URL: z.string().min(1),
       R2_ACCESS_KEY_ID: z.string().min(1),
@@ -46,5 +49,8 @@ export const keys = () =>
       TIKTOK_CLIENT_ID: process.env.TIKTOK_CLIENT_ID,
       TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET,
       TIKTOK_CALLBACK_URL: process.env.TIKTOK_CALLBACK_URL,
+      THREADS_CLIENT_ID: process.env.THREADS_CLIENT_ID,
+      THREADS_CLIENT_SECRET: process.env.THREADS_CLIENT_SECRET,
+      THREADS_CALLBACK_URL: process.env.THREADS_CALLBACK_URL,
     },
   });
