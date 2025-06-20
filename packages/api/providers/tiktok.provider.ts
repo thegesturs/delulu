@@ -16,29 +16,87 @@ interface TikTokVideoUploadResponse {
   };
 }
 
-interface TikTokVideoCreateResponse {
-  data: {
-    share_id: string;
-    video_id: string;
-  };
+/**
+ * Retrieves and refreshes if needed the access token and profile information for a TikTok account
+ * @param socialProviderId - The ID of the social provider
+ * @returns Promise containing the profile information and access token
+ * @throws {TRPCError} - If the profile is not found or token refresh fails
+ */
+async function getAccessTokenAndProfile(socialProviderId: string) {
+  const profile = await database.socialProvider.findUnique({
+    where: {
+      id: socialProviderId,
+    },
+  });
+
+  if (!profile) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: 'TikTok profile not found',
+    });
+  }
+
+  // Check if we need to refresh the token
+  if (
+    profile.expiresIn &&
+    profile.refreshToken &&
+    profile.accessToken &&
+    profile.expiresIn < new Date()
+  ) {
+    try {
+      const response = await axios.post(
+        'https://open.tiktokapis.com/v2/oauth/token/',
+        new URLSearchParams({
+          client_key: keys().TIKTOK_CLIENT_ID,
+          client_secret: keys().TIKTOK_CLIENT_SECRET,
+          grant_type: 'refresh_token',
+          refresh_token: profile.refreshToken,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+
+      const data = response.data;
+      if (data) {
+        // Update the profile with new tokens
+        const updatedProfile = await database.socialProvider.update({
+          where: {
+            id: socialProviderId,
+          },
+          data: {
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token, // TikTok may return a new refresh token
+            expiresIn: new Date(Date.now() + data.expires_in * 1000),
+            updatedAt: new Date(),
+            lastSyncedAt: new Date(),
+          },
+        });
+        return updatedProfile;
+      }
+    } catch (err) {
+      console.error('Failed to refresh TikTok access token:', err);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to refresh TikTok access token',
+      });
+    }
+  }
+
+  return profile;
 }
 
 export const tiktokProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    // Get the social provider profile
+    // Get the social provider profile with fresh access token
+    const profile = await getAccessTokenAndProfile(socialProviderId);
 
-    console.log('socialProviderId', socialProviderId);
-    const profile = await database.socialProvider.findUnique({
-      where: {
-        id: socialProviderId,
-      },
-    });
-    console.log('profile', profile);
-
-    if (!profile || !profile.accessToken) {
+    if (!profile.accessToken) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'TikTok profile not found',
+        message: 'TikTok profile not found or invalid access token',
       });
     }
 
@@ -75,71 +133,58 @@ export const tiktokProvider: SocialProvider = {
     }
 
     const fileUrl = await r2Provider.getSignedDownloadUrl(videoMedia.bucketKey);
-    console.log('fileUrl', fileUrl);
 
     try {
       // Step 1: Query creator info
-      const creatorInfoResponse = await axios.post(
-        'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${profile.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const creatorInfoResponse = await axios
+        .post(
+          'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${profile.accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+        .catch(async (error) => {
+          // Check if error is due to expired token
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            // Try to refresh token and retry the request
+            const refreshedProfile =
+              await getAccessTokenAndProfile(socialProviderId);
+            return axios.post(
+              'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${refreshedProfile.accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+          }
+          throw error;
+        });
 
-      const creatorInfo = creatorInfoResponse.data.data;
-      console.log('Creator info:', creatorInfo);
+      // const creatorInfo = creatorInfoResponse.data.data;
 
       // Step 2: Initialize video upload
-      const uploadResponse = await axios.post<TikTokVideoUploadResponse>(
-        'https://open.tiktokapis.com/v2/post/publish/video/init/',
-        {
-          post_info: {
-            title: firstContent.text || 'Video from Delulu',
-            privacy_level: 'SELF_ONLY',
-            disable_duet: false,
-            disable_comment: false,
-            disable_stitch: false,
-          },
-          source_info: {
-            source: 'PULL_FROM_URL',
-            video_url: fileUrl,
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${profile.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!uploadResponse.data.data?.publish_id) {
-        throw new Error('Failed to get video upload ID');
-      }
-
-      const publishId = uploadResponse.data.data.publish_id;
-      console.log('TikTok upload initialized with publish_id:', publishId);
-
-      // Step 3: Wait for video processing to complete
-      let maxAttempts = 30; // 30 attempts = 3 minutes total
-      let status = '';
-      let attempt = 0;
-      let videoId = '';
-
-      while (maxAttempts > 0) {
-        attempt++;
-        console.log(
-          `Checking TikTok upload status (attempt ${attempt}/${30})...`
-        );
-
-        const statusResponse = await axios.post(
-          'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+      const uploadResponse = await axios
+        .post<TikTokVideoUploadResponse>(
+          'https://open.tiktokapis.com/v2/post/publish/video/init/',
           {
-            publish_id: publishId,
+            post_info: {
+              title: firstContent.text || 'Video from Delulu',
+              privacy_level: 'SELF_ONLY',
+              disable_duet: false,
+              disable_comment: false,
+              disable_stitch: false,
+            },
+            source_info: {
+              source: 'PULL_FROM_URL',
+              video_url: fileUrl,
+            },
           },
           {
             headers: {
@@ -147,51 +192,99 @@ export const tiktokProvider: SocialProvider = {
               'Content-Type': 'application/json',
             },
           }
-        );
-
-        console.log('Status response:', statusResponse.data);
-
-        const statusData = statusResponse.data.data;
-        status = statusData?.status;
-        const postIds = statusData?.publicaly_available_post_id || [];
-        videoId = postIds[0]?.toString();
-
-        console.log('TikTok upload status details:', {
-          status,
-          attempt,
-          publishId,
-          videoId,
-          postIds,
-          ...statusData,
+        )
+        .catch(async (error) => {
+          // Check if error is due to expired token
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            // Try to refresh token and retry the request
+            const refreshedProfile =
+              await getAccessTokenAndProfile(socialProviderId);
+            return axios.post<TikTokVideoUploadResponse>(
+              'https://open.tiktokapis.com/v2/post/publish/video/init/',
+              {
+                post_info: {
+                  title: firstContent.text || 'Video from Delulu',
+                  privacy_level: 'SELF_ONLY',
+                  disable_duet: false,
+                  disable_comment: false,
+                  disable_stitch: false,
+                },
+                source_info: {
+                  source: 'PULL_FROM_URL',
+                  video_url: fileUrl,
+                },
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${refreshedProfile.accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+          }
+          throw error;
         });
 
-        if (status === 'PUBLISH_COMPLETE') {
-          console.log(
-            'TikTok upload completed successfully with status:',
-            status
+      if (!uploadResponse.data.data?.publish_id) {
+        throw new Error('Failed to get video upload ID');
+      }
+
+      const publishId = uploadResponse.data.data.publish_id;
+
+      // Step 3: Wait for video processing to complete
+      let maxAttempts = 30; // 30 attempts = 3 minutes total
+      let status = '';
+      let attempt = 0;
+      let videoId = '';
+      let currentProfile = profile;
+
+      while (maxAttempts > 0) {
+        attempt++;
+
+        try {
+          const statusResponse = await axios.post(
+            'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+            {
+              publish_id: publishId,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${currentProfile.accessToken}`,
+                'Content-Type': 'application/json',
+              },
+            }
           );
 
-          return {
-            postId: content.postId,
-            platformPostId: videoId || publishId,
-            platformId: profile.id,
-            platformPostUrl: videoId
-              ? `https://www.tiktok.com/@${profile.username}/video/${videoId}`
-              : `https://www.tiktok.com/@${profile.username}`,
-            postedAt: new Date(),
-          };
-        }
+          const statusData = statusResponse.data.data;
+          status = statusData?.status;
+          const postIds = statusData?.publicaly_available_post_id || [];
+          videoId = postIds[0]?.toString();
 
-        if (status === 'FAILED') {
-          const failReason = statusData?.fail_reason;
-          console.error('TikTok upload failed:', {
-            status,
-            failReason,
-            response: statusResponse.data,
-          });
-          throw new Error(
-            `Video processing failed: ${failReason || 'Unknown error'}`
-          );
+          if (status === 'PUBLISH_COMPLETE') {
+            return {
+              postId: content.postId,
+              platformPostId: videoId || publishId,
+              platformId: currentProfile.id,
+              platformPostUrl: videoId
+                ? `https://www.tiktok.com/@${currentProfile.username}/video/${videoId}`
+                : `https://www.tiktok.com/@${currentProfile.username}`,
+              postedAt: new Date(),
+            };
+          }
+
+          if (status === 'FAILED') {
+            const failReason = statusData?.fail_reason;
+            throw new Error(
+              `Video processing failed: ${failReason || 'Unknown error'}`
+            );
+          }
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response?.status === 401) {
+            // Try to refresh token and update current profile
+            currentProfile = await getAccessTokenAndProfile(socialProviderId);
+            continue;
+          }
+          throw error;
         }
 
         // Continue polling if status is PROCESSING_UPLOAD, PROCESSING_DOWNLOAD, or any other intermediate state
@@ -199,10 +292,6 @@ export const tiktokProvider: SocialProvider = {
         maxAttempts--;
       }
 
-      console.error(
-        'TikTok upload timed out after 3 minutes. Last status:',
-        status
-      );
       throw new Error(
         'Video processing timed out after 3 minutes. Last status: ' + status
       );
