@@ -12,6 +12,8 @@
     "dev:web": "turbo dev --filter=web",
     "dev:worker": "pnpm --filter=worker dev",
     "worker:prisma:generate": "pnpm --filter=worker prisma:generate",
+    "docker:build": "docker build -t social-worker -f packages/worker/Dockerfile .",
+    "docker:run": "docker run -e MESSAGE_BODY='{\"socialPublishInput\": {\"postId\": \"post_J0hg0XPByWqb\", \"socialProviderId\": \"OTMupATk9DODV52RRUYaE\"}, \"socialType\": \"TIKTOK\"}' social-worker",
     "lint": "ultracite lint",
     "format": "ultracite format",
     "format:fix": "ultracite format --write",

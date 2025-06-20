@@ -6,5 +6,8 @@ export const keys = () => ({
   LINKEDIN_CALLBACK_URL: process.env.LINKEDIN_CALLBACK_URL || '',
   TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL || '',
   TWITTER_STATE: process.env.TWITTER_STATE || '',
+  INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || '',
+  INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || '',
+  INSTAGRAM_CALLBACK_URL: process.env.INSTAGRAM_CALLBACK_URL || '',
   REDIS_URL: process.env.REDIS_URL || '',
 });
