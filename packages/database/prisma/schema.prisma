@@ -58,6 +58,7 @@ enum SocialType {
   INSTAGRAM
   FACEBOOK
   TIKTOK
+  THREADS
 }
 
 enum Role {
