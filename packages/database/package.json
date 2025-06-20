@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
-    "@prisma/adapter-neon": "6.4.1",
+    "@prisma/adapter-neon": "6.10.1",
     "@prisma/client": "6.4.1",
     "@t3-oss/env-nextjs": "^0.12.0",
     "prisma": "6.9.0",
