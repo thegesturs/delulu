@@ -21,6 +21,10 @@ export const socialProviderRouter = {
           'TWITTER',
           'TIKTOK',
           'INSTAGRAM',
+          'THREADS',
+          'FACEBOOK',
+          'PINTEREST',
+          'FARCASTER',
         ]),
       })
     )
