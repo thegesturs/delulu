@@ -25,9 +25,11 @@ export const keys = () =>
       FARCASTER_REDIRECT_URI: z.string().min(1),
 
       FACEBOOK_CLIENT_ID: z.string().min(1),
+      FACEBOOK_CLIENT_SECRET: z.string().min(1),
       FACEBOOK_CALLBACK_URL: z.string().min(1),
 
       PINTEREST_CLIENT_ID: z.string().min(1),
+      PINTEREST_CLIENT_SECRET: z.string().min(1),
       PINTEREST_CALLBACK_URL: z.string().min(1),
 
       
@@ -68,9 +70,11 @@ export const keys = () =>
       FARCASTER_REDIRECT_URI: process.env.FARCASTER_REDIRECT_URI,
 
       FACEBOOK_CLIENT_ID: process.env.FACEBOOK_CLIENT_ID,
+      FACEBOOK_CLIENT_SECRET: process.env.FACEBOOK_CLIENT_SECRET,
       FACEBOOK_CALLBACK_URL: process.env.FACEBOOK_CALLBACK_URL,
 
       PINTEREST_CLIENT_ID: process.env.PINTEREST_CLIENT_ID,
+      PINTEREST_CLIENT_SECRET: process.env.PINTEREST_CLIENT_SECRET,
       PINTEREST_CALLBACK_URL: process.env.PINTEREST_CALLBACK_URL,
       },
   });
