@@ -11,8 +11,9 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import type { SocialTypes } from '@delulu/validators/post';
 import { Plus } from 'lucide-react';
-import { FaInstagram, FaLinkedin, FaTiktok } from 'react-icons/fa';
+import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaTiktok } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
+import { SiThreads, SiFarcaster } from 'react-icons/si';
 
 interface ConnectedAccountsHeaderProps {
   onConnect: (platform: keyof typeof SocialTypes) => void;
@@ -96,6 +97,58 @@ export function ConnectedAccountsHeader({
                   <span className="font-medium">Instagram</span>
                   <span className="text-muted-foreground text-sm">
                     Connect your Instagram profile
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('THREADS')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <SiThreads className="h-6 w-6 text-card-foreground" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Threads</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your Threads profile
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('FACEBOOK')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <FaFacebook className="h-6 w-6 text-blue-600" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Facebook</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your Facebook page
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('PINTEREST')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <FaPinterest className="h-6 w-6 text-red-600" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Pinterest</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your Pinterest account
+                  </span>
+                </div>
+              </Button>
+              <Button
+                onClick={() => onConnect('FARCASTER')}
+                className="flex h-14 items-center justify-start space-x-4 px-4"
+                variant="outline"
+              >
+                <SiFarcaster className="h-6 w-6 text-purple-600" />
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Farcaster</span>
+                  <span className="text-muted-foreground text-sm">
+                    Connect your Farcaster account
                   </span>
                 </div>
               </Button>
