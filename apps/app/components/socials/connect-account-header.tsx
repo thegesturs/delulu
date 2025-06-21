@@ -14,6 +14,8 @@ import { Plus } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaTiktok } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { SiThreads, SiFarcaster } from 'react-icons/si';
+import { useState } from 'react';
+import { FarcasterConnect } from './farcaster-connect';
 
 interface ConnectedAccountsHeaderProps {
   onConnect: (platform: keyof typeof SocialTypes) => void;
@@ -22,6 +24,17 @@ interface ConnectedAccountsHeaderProps {
 export function ConnectedAccountsHeader({
   onConnect,
 }: ConnectedAccountsHeaderProps) {
+  const [showFarcasterConnect, setShowFarcasterConnect] = useState(false);
+
+  const handleFarcasterConnect = () => {
+    setShowFarcasterConnect(true);
+  };
+
+  const handleFarcasterSuccess = () => {
+    // Refresh the page or refetch connected accounts
+    window.location.reload();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -140,7 +153,7 @@ export function ConnectedAccountsHeader({
                 </div>
               </Button>
               <Button
-                onClick={() => onConnect('FARCASTER')}
+                onClick={handleFarcasterConnect}
                 className="flex h-14 items-center justify-start space-x-4 px-4"
                 variant="outline"
               >
@@ -156,6 +169,12 @@ export function ConnectedAccountsHeader({
           </DialogContent>
         </Dialog>
       </div>
+
+      <FarcasterConnect
+        isOpen={showFarcasterConnect}
+        onClose={() => setShowFarcasterConnect(false)}
+        onSuccess={handleFarcasterSuccess}
+      />
     </div>
   );
 }

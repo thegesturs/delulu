@@ -105,6 +105,7 @@ model User {
   socialProviders SocialProvider[]
   subscriptions  Subscription[]
   orders         Order[]
+  farcasterSignerRequests FarcasterSignerRequest[]
   // organizationInvites OrganizationInvites[] @relation("InvitedBy")
 
   @@map("users")
@@ -337,5 +338,25 @@ model Order {
   @@index([userId])
   @@index([subscriptionId])
   @@map("orders")
+}
+
+model FarcasterSignerRequest {
+  id         String   @id @map("id")
+  token      String   @unique @map("token")
+  publicKey  String   @map("public_key")
+  privateKey String   @map("private_key")
+  deeplinkUrl String  @map("deeplink_url")
+  userId     String   @map("user_id")
+  userFid    String?  @map("user_fid")
+  state      String   @default("pending") @map("state")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("farcaster_signer_requests")
 }
 

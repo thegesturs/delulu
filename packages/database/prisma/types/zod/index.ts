@@ -76,6 +76,8 @@ export const SubscriptionScalarFieldEnumSchema = z.enum(['id','userId','status',
 
 export const OrderScalarFieldEnumSchema = z.enum(['id','userId','status','paid','subtotalAmount','discountAmount','netAmount','amount','taxAmount','totalAmount','refundedAmount','refundedTaxAmount','currency','billingReason','customerId','productId','productPriceId','discountId','subscriptionId','checkoutId','createdAt','updatedAt']);
 
+export const FarcasterSignerRequestScalarFieldEnumSchema = z.enum(['id','token','publicKey','privateKey','deeplinkUrl','userId','userFid','state','createdAt','updatedAt']);
+
 export const SortOrderSchema = z.enum(['asc','desc']);
 
 export const NullableJsonNullValueInputSchema = z.enum(['DbNull','JsonNull',]).transform((value) => value === 'JsonNull' ? Prisma.JsonNull : value === 'DbNull' ? Prisma.DbNull : value);
@@ -319,6 +321,25 @@ export const OrderSchema = z.object({
 export type Order = z.infer<typeof OrderSchema>
 
 /////////////////////////////////////////
+// FARCASTER SIGNER REQUEST SCHEMA
+/////////////////////////////////////////
+
+export const FarcasterSignerRequestSchema = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userId: z.string(),
+  userFid: z.string().nullable(),
+  state: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+})
+
+export type FarcasterSignerRequest = z.infer<typeof FarcasterSignerRequestSchema>
+
+/////////////////////////////////////////
 // SELECT & INCLUDE
 /////////////////////////////////////////
 
@@ -333,6 +354,7 @@ export const UserIncludeSchema: z.ZodType<Prisma.UserInclude> = z.object({
   socialProviders: z.union([z.boolean(),z.lazy(() => SocialProviderFindManyArgsSchema)]).optional(),
   subscriptions: z.union([z.boolean(),z.lazy(() => SubscriptionFindManyArgsSchema)]).optional(),
   orders: z.union([z.boolean(),z.lazy(() => OrderFindManyArgsSchema)]).optional(),
+  farcasterSignerRequests: z.union([z.boolean(),z.lazy(() => FarcasterSignerRequestFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => UserCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -352,6 +374,7 @@ export const UserCountOutputTypeSelectSchema: z.ZodType<Prisma.UserCountOutputTy
   socialProviders: z.boolean().optional(),
   subscriptions: z.boolean().optional(),
   orders: z.boolean().optional(),
+  farcasterSignerRequests: z.boolean().optional(),
 }).strict();
 
 export const UserSelectSchema: z.ZodType<Prisma.UserSelect> = z.object({
@@ -370,6 +393,7 @@ export const UserSelectSchema: z.ZodType<Prisma.UserSelect> = z.object({
   socialProviders: z.union([z.boolean(),z.lazy(() => SocialProviderFindManyArgsSchema)]).optional(),
   subscriptions: z.union([z.boolean(),z.lazy(() => SubscriptionFindManyArgsSchema)]).optional(),
   orders: z.union([z.boolean(),z.lazy(() => OrderFindManyArgsSchema)]).optional(),
+  farcasterSignerRequests: z.union([z.boolean(),z.lazy(() => FarcasterSignerRequestFindManyArgsSchema)]).optional(),
   _count: z.union([z.boolean(),z.lazy(() => UserCountOutputTypeArgsSchema)]).optional(),
 }).strict()
 
@@ -695,6 +719,32 @@ export const OrderSelectSchema: z.ZodType<Prisma.OrderSelect> = z.object({
   subscription: z.union([z.boolean(),z.lazy(() => SubscriptionArgsSchema)]).optional(),
 }).strict()
 
+// FARCASTER SIGNER REQUEST
+//------------------------------------------------------
+
+export const FarcasterSignerRequestIncludeSchema: z.ZodType<Prisma.FarcasterSignerRequestInclude> = z.object({
+  user: z.union([z.boolean(),z.lazy(() => UserArgsSchema)]).optional(),
+}).strict()
+
+export const FarcasterSignerRequestArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestDefaultArgs> = z.object({
+  select: z.lazy(() => FarcasterSignerRequestSelectSchema).optional(),
+  include: z.lazy(() => FarcasterSignerRequestIncludeSchema).optional(),
+}).strict();
+
+export const FarcasterSignerRequestSelectSchema: z.ZodType<Prisma.FarcasterSignerRequestSelect> = z.object({
+  id: z.boolean().optional(),
+  token: z.boolean().optional(),
+  publicKey: z.boolean().optional(),
+  privateKey: z.boolean().optional(),
+  deeplinkUrl: z.boolean().optional(),
+  userId: z.boolean().optional(),
+  userFid: z.boolean().optional(),
+  state: z.boolean().optional(),
+  createdAt: z.boolean().optional(),
+  updatedAt: z.boolean().optional(),
+  user: z.union([z.boolean(),z.lazy(() => UserArgsSchema)]).optional(),
+}).strict()
+
 
 /////////////////////////////////////////
 // INPUT TYPES
@@ -718,7 +768,8 @@ export const UserWhereInputSchema: z.ZodType<Prisma.UserWhereInput> = z.object({
   posts: z.lazy(() => PostListRelationFilterSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderListRelationFilterSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionListRelationFilterSchema).optional(),
-  orders: z.lazy(() => OrderListRelationFilterSchema).optional()
+  orders: z.lazy(() => OrderListRelationFilterSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestListRelationFilterSchema).optional()
 }).strict();
 
 export const UserOrderByWithRelationInputSchema: z.ZodType<Prisma.UserOrderByWithRelationInput> = z.object({
@@ -736,7 +787,8 @@ export const UserOrderByWithRelationInputSchema: z.ZodType<Prisma.UserOrderByWit
   posts: z.lazy(() => PostOrderByRelationAggregateInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderOrderByRelationAggregateInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionOrderByRelationAggregateInputSchema).optional(),
-  orders: z.lazy(() => OrderOrderByRelationAggregateInputSchema).optional()
+  orders: z.lazy(() => OrderOrderByRelationAggregateInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestOrderByRelationAggregateInputSchema).optional()
 }).strict();
 
 export const UserWhereUniqueInputSchema: z.ZodType<Prisma.UserWhereUniqueInput> = z.object({
@@ -760,7 +812,8 @@ export const UserWhereUniqueInputSchema: z.ZodType<Prisma.UserWhereUniqueInput> 
   posts: z.lazy(() => PostListRelationFilterSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderListRelationFilterSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionListRelationFilterSchema).optional(),
-  orders: z.lazy(() => OrderListRelationFilterSchema).optional()
+  orders: z.lazy(() => OrderListRelationFilterSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestListRelationFilterSchema).optional()
 }).strict());
 
 export const UserOrderByWithAggregationInputSchema: z.ZodType<Prisma.UserOrderByWithAggregationInput> = z.object({
@@ -1673,6 +1726,98 @@ export const OrderScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.OrderSc
   updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const FarcasterSignerRequestWhereInputSchema: z.ZodType<Prisma.FarcasterSignerRequestWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FarcasterSignerRequestWhereInputSchema),z.lazy(() => FarcasterSignerRequestWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FarcasterSignerRequestWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FarcasterSignerRequestWhereInputSchema),z.lazy(() => FarcasterSignerRequestWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  token: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  publicKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  privateKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  deeplinkUrl: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userFid: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  state: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestOrderByWithRelationInputSchema: z.ZodType<Prisma.FarcasterSignerRequestOrderByWithRelationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  token: z.lazy(() => SortOrderSchema).optional(),
+  publicKey: z.lazy(() => SortOrderSchema).optional(),
+  privateKey: z.lazy(() => SortOrderSchema).optional(),
+  deeplinkUrl: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.lazy(() => SortOrderSchema).optional(),
+  userFid: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  state: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  user: z.lazy(() => UserOrderByWithRelationInputSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestWhereUniqueInputSchema: z.ZodType<Prisma.FarcasterSignerRequestWhereUniqueInput> = z.union([
+  z.object({
+    id: z.string(),
+    token: z.string()
+  }),
+  z.object({
+    id: z.string(),
+  }),
+  z.object({
+    token: z.string(),
+  }),
+])
+.and(z.object({
+  id: z.string().optional(),
+  token: z.string().optional(),
+  AND: z.union([ z.lazy(() => FarcasterSignerRequestWhereInputSchema),z.lazy(() => FarcasterSignerRequestWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FarcasterSignerRequestWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FarcasterSignerRequestWhereInputSchema),z.lazy(() => FarcasterSignerRequestWhereInputSchema).array() ]).optional(),
+  publicKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  privateKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  deeplinkUrl: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userFid: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  state: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  user: z.union([ z.lazy(() => UserScalarRelationFilterSchema),z.lazy(() => UserWhereInputSchema) ]).optional(),
+}).strict());
+
+export const FarcasterSignerRequestOrderByWithAggregationInputSchema: z.ZodType<Prisma.FarcasterSignerRequestOrderByWithAggregationInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  token: z.lazy(() => SortOrderSchema).optional(),
+  publicKey: z.lazy(() => SortOrderSchema).optional(),
+  privateKey: z.lazy(() => SortOrderSchema).optional(),
+  deeplinkUrl: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.lazy(() => SortOrderSchema).optional(),
+  userFid: z.union([ z.lazy(() => SortOrderSchema),z.lazy(() => SortOrderInputSchema) ]).optional(),
+  state: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional(),
+  _count: z.lazy(() => FarcasterSignerRequestCountOrderByAggregateInputSchema).optional(),
+  _max: z.lazy(() => FarcasterSignerRequestMaxOrderByAggregateInputSchema).optional(),
+  _min: z.lazy(() => FarcasterSignerRequestMinOrderByAggregateInputSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestScalarWhereWithAggregatesInputSchema: z.ZodType<Prisma.FarcasterSignerRequestScalarWhereWithAggregatesInput> = z.object({
+  AND: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereWithAggregatesInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FarcasterSignerRequestScalarWhereWithAggregatesInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereWithAggregatesInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereWithAggregatesInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  token: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  publicKey: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  privateKey: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  deeplinkUrl: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  userFid: z.union([ z.lazy(() => StringNullableWithAggregatesFilterSchema),z.string() ]).optional().nullable(),
+  state: z.union([ z.lazy(() => StringWithAggregatesFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeWithAggregatesFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const UserCreateInputSchema: z.ZodType<Prisma.UserCreateInput> = z.object({
   clerkUserId: z.string(),
   email: z.string(),
@@ -1688,7 +1833,8 @@ export const UserCreateInputSchema: z.ZodType<Prisma.UserCreateInput> = z.object
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateInputSchema: z.ZodType<Prisma.UserUncheckedCreateInput> = z.object({
@@ -1706,7 +1852,8 @@ export const UserUncheckedCreateInputSchema: z.ZodType<Prisma.UserUncheckedCreat
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUpdateInputSchema: z.ZodType<Prisma.UserUpdateInput> = z.object({
@@ -1724,7 +1871,8 @@ export const UserUpdateInputSchema: z.ZodType<Prisma.UserUpdateInput> = z.object
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateInputSchema: z.ZodType<Prisma.UserUncheckedUpdateInput> = z.object({
@@ -1742,7 +1890,8 @@ export const UserUncheckedUpdateInputSchema: z.ZodType<Prisma.UserUncheckedUpdat
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserCreateManyInputSchema: z.ZodType<Prisma.UserCreateManyInput> = z.object({
@@ -2692,6 +2841,96 @@ export const OrderUncheckedUpdateManyInputSchema: z.ZodType<Prisma.OrderUnchecke
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
 
+export const FarcasterSignerRequestCreateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  user: z.lazy(() => UserCreateNestedOneWithoutFarcasterSignerRequestsInputSchema)
+}).strict();
+
+export const FarcasterSignerRequestUncheckedCreateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedCreateInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userId: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FarcasterSignerRequestUpdateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  user: z.lazy(() => UserUpdateOneRequiredWithoutFarcasterSignerRequestsNestedInputSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestUncheckedUpdateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedUpdateInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestCreateManyInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateManyInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userId: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FarcasterSignerRequestUpdateManyMutationInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateManyMutationInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUncheckedUpdateManyInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedUpdateManyInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
 export const StringFilterSchema: z.ZodType<Prisma.StringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -2783,6 +3022,12 @@ export const OrderListRelationFilterSchema: z.ZodType<Prisma.OrderListRelationFi
   none: z.lazy(() => OrderWhereInputSchema).optional()
 }).strict();
 
+export const FarcasterSignerRequestListRelationFilterSchema: z.ZodType<Prisma.FarcasterSignerRequestListRelationFilter> = z.object({
+  every: z.lazy(() => FarcasterSignerRequestWhereInputSchema).optional(),
+  some: z.lazy(() => FarcasterSignerRequestWhereInputSchema).optional(),
+  none: z.lazy(() => FarcasterSignerRequestWhereInputSchema).optional()
+}).strict();
+
 export const SortOrderInputSchema: z.ZodType<Prisma.SortOrderInput> = z.object({
   sort: z.lazy(() => SortOrderSchema),
   nulls: z.lazy(() => NullsOrderSchema).optional()
@@ -2809,6 +3054,10 @@ export const SubscriptionOrderByRelationAggregateInputSchema: z.ZodType<Prisma.S
 }).strict();
 
 export const OrderOrderByRelationAggregateInputSchema: z.ZodType<Prisma.OrderOrderByRelationAggregateInput> = z.object({
+  _count: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestOrderByRelationAggregateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestOrderByRelationAggregateInput> = z.object({
   _count: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
@@ -3646,6 +3895,45 @@ export const OrderSumOrderByAggregateInputSchema: z.ZodType<Prisma.OrderSumOrder
   refundedTaxAmount: z.lazy(() => SortOrderSchema).optional()
 }).strict();
 
+export const FarcasterSignerRequestCountOrderByAggregateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCountOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  token: z.lazy(() => SortOrderSchema).optional(),
+  publicKey: z.lazy(() => SortOrderSchema).optional(),
+  privateKey: z.lazy(() => SortOrderSchema).optional(),
+  deeplinkUrl: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.lazy(() => SortOrderSchema).optional(),
+  userFid: z.lazy(() => SortOrderSchema).optional(),
+  state: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestMaxOrderByAggregateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestMaxOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  token: z.lazy(() => SortOrderSchema).optional(),
+  publicKey: z.lazy(() => SortOrderSchema).optional(),
+  privateKey: z.lazy(() => SortOrderSchema).optional(),
+  deeplinkUrl: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.lazy(() => SortOrderSchema).optional(),
+  userFid: z.lazy(() => SortOrderSchema).optional(),
+  state: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
+export const FarcasterSignerRequestMinOrderByAggregateInputSchema: z.ZodType<Prisma.FarcasterSignerRequestMinOrderByAggregateInput> = z.object({
+  id: z.lazy(() => SortOrderSchema).optional(),
+  token: z.lazy(() => SortOrderSchema).optional(),
+  publicKey: z.lazy(() => SortOrderSchema).optional(),
+  privateKey: z.lazy(() => SortOrderSchema).optional(),
+  deeplinkUrl: z.lazy(() => SortOrderSchema).optional(),
+  userId: z.lazy(() => SortOrderSchema).optional(),
+  userFid: z.lazy(() => SortOrderSchema).optional(),
+  state: z.lazy(() => SortOrderSchema).optional(),
+  createdAt: z.lazy(() => SortOrderSchema).optional(),
+  updatedAt: z.lazy(() => SortOrderSchema).optional()
+}).strict();
+
 export const UserUsageCreateNestedOneWithoutUserInputSchema: z.ZodType<Prisma.UserUsageCreateNestedOneWithoutUserInput> = z.object({
   create: z.union([ z.lazy(() => UserUsageCreateWithoutUserInputSchema),z.lazy(() => UserUsageUncheckedCreateWithoutUserInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserUsageCreateOrConnectWithoutUserInputSchema).optional(),
@@ -3694,6 +3982,13 @@ export const OrderCreateNestedManyWithoutUserInputSchema: z.ZodType<Prisma.Order
   connect: z.union([ z.lazy(() => OrderWhereUniqueInputSchema),z.lazy(() => OrderWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
+export const FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateNestedManyWithoutUserInput> = z.object({
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema).array(),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FarcasterSignerRequestCreateManyUserInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserUsageUncheckedCreateNestedOneWithoutUserInputSchema: z.ZodType<Prisma.UserUsageUncheckedCreateNestedOneWithoutUserInput> = z.object({
   create: z.union([ z.lazy(() => UserUsageCreateWithoutUserInputSchema),z.lazy(() => UserUsageUncheckedCreateWithoutUserInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserUsageCreateOrConnectWithoutUserInputSchema).optional(),
@@ -3740,6 +4035,13 @@ export const OrderUncheckedCreateNestedManyWithoutUserInputSchema: z.ZodType<Pri
   connectOrCreate: z.union([ z.lazy(() => OrderCreateOrConnectWithoutUserInputSchema),z.lazy(() => OrderCreateOrConnectWithoutUserInputSchema).array() ]).optional(),
   createMany: z.lazy(() => OrderCreateManyUserInputEnvelopeSchema).optional(),
   connect: z.union([ z.lazy(() => OrderWhereUniqueInputSchema),z.lazy(() => OrderWhereUniqueInputSchema).array() ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInput> = z.object({
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema).array(),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FarcasterSignerRequestCreateManyUserInputEnvelopeSchema).optional(),
+  connect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
 }).strict();
 
 export const StringFieldUpdateOperationsInputSchema: z.ZodType<Prisma.StringFieldUpdateOperationsInput> = z.object({
@@ -3848,6 +4150,20 @@ export const OrderUpdateManyWithoutUserNestedInputSchema: z.ZodType<Prisma.Order
   deleteMany: z.union([ z.lazy(() => OrderScalarWhereInputSchema),z.lazy(() => OrderScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
+export const FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateManyWithoutUserNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema).array(),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FarcasterSignerRequestCreateManyUserInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FarcasterSignerRequestUpdateManyWithWhereWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpdateManyWithWhereWithoutUserInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
 export const UserUsageUncheckedUpdateOneWithoutUserNestedInputSchema: z.ZodType<Prisma.UserUsageUncheckedUpdateOneWithoutUserNestedInput> = z.object({
   create: z.union([ z.lazy(() => UserUsageCreateWithoutUserInputSchema),z.lazy(() => UserUsageUncheckedCreateWithoutUserInputSchema) ]).optional(),
   connectOrCreate: z.lazy(() => UserUsageCreateOrConnectWithoutUserInputSchema).optional(),
@@ -3940,6 +4256,20 @@ export const OrderUncheckedUpdateManyWithoutUserNestedInputSchema: z.ZodType<Pri
   update: z.union([ z.lazy(() => OrderUpdateWithWhereUniqueWithoutUserInputSchema),z.lazy(() => OrderUpdateWithWhereUniqueWithoutUserInputSchema).array() ]).optional(),
   updateMany: z.union([ z.lazy(() => OrderUpdateManyWithWhereWithoutUserInputSchema),z.lazy(() => OrderUpdateManyWithWhereWithoutUserInputSchema).array() ]).optional(),
   deleteMany: z.union([ z.lazy(() => OrderScalarWhereInputSchema),z.lazy(() => OrderScalarWhereInputSchema).array() ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInput> = z.object({
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema).array(),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema).array() ]).optional(),
+  connectOrCreate: z.union([ z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema).array() ]).optional(),
+  upsert: z.union([ z.lazy(() => FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInputSchema).array() ]).optional(),
+  createMany: z.lazy(() => FarcasterSignerRequestCreateManyUserInputEnvelopeSchema).optional(),
+  set: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  disconnect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  delete: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  connect: z.union([ z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema).array() ]).optional(),
+  update: z.union([ z.lazy(() => FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInputSchema).array() ]).optional(),
+  updateMany: z.union([ z.lazy(() => FarcasterSignerRequestUpdateManyWithWhereWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUpdateManyWithWhereWithoutUserInputSchema).array() ]).optional(),
+  deleteMany: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema).array() ]).optional(),
 }).strict();
 
 export const UserCreateNestedOneWithoutUserUsageInputSchema: z.ZodType<Prisma.UserCreateNestedOneWithoutUserUsageInput> = z.object({
@@ -4618,6 +4948,20 @@ export const SubscriptionUpdateOneWithoutOrdersNestedInputSchema: z.ZodType<Pris
   update: z.union([ z.lazy(() => SubscriptionUpdateToOneWithWhereWithoutOrdersInputSchema),z.lazy(() => SubscriptionUpdateWithoutOrdersInputSchema),z.lazy(() => SubscriptionUncheckedUpdateWithoutOrdersInputSchema) ]).optional(),
 }).strict();
 
+export const UserCreateNestedOneWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserCreateNestedOneWithoutFarcasterSignerRequestsInput> = z.object({
+  create: z.union([ z.lazy(() => UserCreateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedCreateWithoutFarcasterSignerRequestsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutFarcasterSignerRequestsInputSchema).optional(),
+  connect: z.lazy(() => UserWhereUniqueInputSchema).optional()
+}).strict();
+
+export const UserUpdateOneRequiredWithoutFarcasterSignerRequestsNestedInputSchema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutFarcasterSignerRequestsNestedInput> = z.object({
+  create: z.union([ z.lazy(() => UserCreateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedCreateWithoutFarcasterSignerRequestsInputSchema) ]).optional(),
+  connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutFarcasterSignerRequestsInputSchema).optional(),
+  upsert: z.lazy(() => UserUpsertWithoutFarcasterSignerRequestsInputSchema).optional(),
+  connect: z.lazy(() => UserWhereUniqueInputSchema).optional(),
+  update: z.union([ z.lazy(() => UserUpdateToOneWithWhereWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUpdateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedUpdateWithoutFarcasterSignerRequestsInputSchema) ]).optional(),
+}).strict();
+
 export const NestedStringFilterSchema: z.ZodType<Prisma.NestedStringFilter> = z.object({
   equals: z.string().optional(),
   in: z.string().array().optional(),
@@ -5242,6 +5586,40 @@ export const OrderCreateManyUserInputEnvelopeSchema: z.ZodType<Prisma.OrderCreat
   skipDuplicates: z.boolean().optional()
 }).strict();
 
+export const FarcasterSignerRequestCreateWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateWithoutUserInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedCreateWithoutUserInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FarcasterSignerRequestCreateOrConnectWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateOrConnectWithoutUserInput> = z.object({
+  where: z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema) ]),
+}).strict();
+
+export const FarcasterSignerRequestCreateManyUserInputEnvelopeSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateManyUserInputEnvelope> = z.object({
+  data: z.union([ z.lazy(() => FarcasterSignerRequestCreateManyUserInputSchema),z.lazy(() => FarcasterSignerRequestCreateManyUserInputSchema).array() ]),
+  skipDuplicates: z.boolean().optional()
+}).strict();
+
 export const UserUsageUpsertWithoutUserInputSchema: z.ZodType<Prisma.UserUsageUpsertWithoutUserInput> = z.object({
   update: z.union([ z.lazy(() => UserUsageUpdateWithoutUserInputSchema),z.lazy(() => UserUsageUncheckedUpdateWithoutUserInputSchema) ]),
   create: z.union([ z.lazy(() => UserUsageCreateWithoutUserInputSchema),z.lazy(() => UserUsageUncheckedCreateWithoutUserInputSchema) ]),
@@ -5488,6 +5866,38 @@ export const OrderScalarWhereInputSchema: z.ZodType<Prisma.OrderScalarWhereInput
   updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
 }).strict();
 
+export const FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpsertWithWhereUniqueWithoutUserInput> = z.object({
+  where: z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),
+  update: z.union([ z.lazy(() => FarcasterSignerRequestUpdateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedUpdateWithoutUserInputSchema) ]),
+  create: z.union([ z.lazy(() => FarcasterSignerRequestCreateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedCreateWithoutUserInputSchema) ]),
+}).strict();
+
+export const FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateWithWhereUniqueWithoutUserInput> = z.object({
+  where: z.lazy(() => FarcasterSignerRequestWhereUniqueInputSchema),
+  data: z.union([ z.lazy(() => FarcasterSignerRequestUpdateWithoutUserInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedUpdateWithoutUserInputSchema) ]),
+}).strict();
+
+export const FarcasterSignerRequestUpdateManyWithWhereWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateManyWithWhereWithoutUserInput> = z.object({
+  where: z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema),
+  data: z.union([ z.lazy(() => FarcasterSignerRequestUpdateManyMutationInputSchema),z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserInputSchema) ]),
+}).strict();
+
+export const FarcasterSignerRequestScalarWhereInputSchema: z.ZodType<Prisma.FarcasterSignerRequestScalarWhereInput> = z.object({
+  AND: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema).array() ]).optional(),
+  OR: z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema).array().optional(),
+  NOT: z.union([ z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema),z.lazy(() => FarcasterSignerRequestScalarWhereInputSchema).array() ]).optional(),
+  id: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  token: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  publicKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  privateKey: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  deeplinkUrl: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userId: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  userFid: z.union([ z.lazy(() => StringNullableFilterSchema),z.string() ]).optional().nullable(),
+  state: z.union([ z.lazy(() => StringFilterSchema),z.string() ]).optional(),
+  createdAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+  updatedAt: z.union([ z.lazy(() => DateTimeFilterSchema),z.coerce.date() ]).optional(),
+}).strict();
+
 export const UserCreateWithoutUserUsageInputSchema: z.ZodType<Prisma.UserCreateWithoutUserUsageInput> = z.object({
   clerkUserId: z.string(),
   email: z.string(),
@@ -5502,7 +5912,8 @@ export const UserCreateWithoutUserUsageInputSchema: z.ZodType<Prisma.UserCreateW
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutUserUsageInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutUserUsageInput> = z.object({
@@ -5519,7 +5930,8 @@ export const UserUncheckedCreateWithoutUserUsageInputSchema: z.ZodType<Prisma.Us
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutUserUsageInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutUserUsageInput> = z.object({
@@ -5552,7 +5964,8 @@ export const UserUpdateWithoutUserUsageInputSchema: z.ZodType<Prisma.UserUpdateW
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutUserUsageInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutUserUsageInput> = z.object({
@@ -5569,7 +5982,8 @@ export const UserUncheckedUpdateWithoutUserUsageInputSchema: z.ZodType<Prisma.Us
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserCreateWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.UserCreateWithoutOwnedOrganizationsInput> = z.object({
@@ -5586,7 +6000,8 @@ export const UserCreateWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.Us
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutOwnedOrganizationsInput> = z.object({
@@ -5603,7 +6018,8 @@ export const UserUncheckedCreateWithoutOwnedOrganizationsInputSchema: z.ZodType<
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutOwnedOrganizationsInput> = z.object({
@@ -5766,7 +6182,8 @@ export const UserUpdateWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.Us
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutOwnedOrganizationsInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutOwnedOrganizationsInput> = z.object({
@@ -5783,7 +6200,8 @@ export const UserUncheckedUpdateWithoutOwnedOrganizationsInputSchema: z.ZodType<
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationMemberUpsertWithWhereUniqueWithoutOrganizationInputSchema: z.ZodType<Prisma.OrganizationMemberUpsertWithWhereUniqueWithoutOrganizationInput> = z.object({
@@ -5877,7 +6295,8 @@ export const UserCreateWithoutMembershipsInputSchema: z.ZodType<Prisma.UserCreat
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutMembershipsInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutMembershipsInput> = z.object({
@@ -5894,7 +6313,8 @@ export const UserUncheckedCreateWithoutMembershipsInputSchema: z.ZodType<Prisma.
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutMembershipsInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutMembershipsInput> = z.object({
@@ -5962,7 +6382,8 @@ export const UserUpdateWithoutMembershipsInputSchema: z.ZodType<Prisma.UserUpdat
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutMembershipsInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutMembershipsInput> = z.object({
@@ -5979,7 +6400,8 @@ export const UserUncheckedUpdateWithoutMembershipsInputSchema: z.ZodType<Prisma.
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateWithoutPostsInputSchema: z.ZodType<Prisma.OrganizationCreateWithoutPostsInput> = z.object({
@@ -6025,7 +6447,8 @@ export const UserCreateWithoutPostsInputSchema: z.ZodType<Prisma.UserCreateWitho
   memberships: z.lazy(() => OrganizationMemberCreateNestedManyWithoutMemberInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutPostsInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutPostsInput> = z.object({
@@ -6042,7 +6465,8 @@ export const UserUncheckedCreateWithoutPostsInputSchema: z.ZodType<Prisma.UserUn
   memberships: z.lazy(() => OrganizationMemberUncheckedCreateNestedManyWithoutMemberInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutPostsInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutPostsInput> = z.object({
@@ -6205,7 +6629,8 @@ export const UserUpdateWithoutPostsInputSchema: z.ZodType<Prisma.UserUpdateWitho
   memberships: z.lazy(() => OrganizationMemberUpdateManyWithoutMemberNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutPostsInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutPostsInput> = z.object({
@@ -6222,7 +6647,8 @@ export const UserUncheckedUpdateWithoutPostsInputSchema: z.ZodType<Prisma.UserUn
   memberships: z.lazy(() => OrganizationMemberUncheckedUpdateManyWithoutMemberNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const AlternatePostContentUpsertWithWhereUniqueWithoutPostInputSchema: z.ZodType<Prisma.AlternatePostContentUpsertWithWhereUniqueWithoutPostInput> = z.object({
@@ -6744,7 +7170,8 @@ export const UserCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.UserC
   memberships: z.lazy(() => OrganizationMemberCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutSocialProvidersInput> = z.object({
@@ -6761,7 +7188,8 @@ export const UserUncheckedCreateWithoutSocialProvidersInputSchema: z.ZodType<Pri
   memberships: z.lazy(() => OrganizationMemberUncheckedCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutSocialProvidersInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutSocialProvidersInput> = z.object({
@@ -6918,7 +7346,8 @@ export const UserUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.UserU
   memberships: z.lazy(() => OrganizationMemberUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutSocialProvidersInput> = z.object({
@@ -6935,7 +7364,8 @@ export const UserUncheckedUpdateWithoutSocialProvidersInputSchema: z.ZodType<Pri
   memberships: z.lazy(() => OrganizationMemberUncheckedUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const PostUpsertWithWhereUniqueWithoutSocialProvidersInputSchema: z.ZodType<Prisma.PostUpsertWithWhereUniqueWithoutSocialProvidersInput> = z.object({
@@ -7000,7 +7430,8 @@ export const UserCreateWithoutSubscriptionsInputSchema: z.ZodType<Prisma.UserCre
   memberships: z.lazy(() => OrganizationMemberCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutSubscriptionsInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutSubscriptionsInput> = z.object({
@@ -7017,7 +7448,8 @@ export const UserUncheckedCreateWithoutSubscriptionsInputSchema: z.ZodType<Prism
   memberships: z.lazy(() => OrganizationMemberUncheckedCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutSubscriptionsInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutSubscriptionsInput> = z.object({
@@ -7108,7 +7540,8 @@ export const UserUpdateWithoutSubscriptionsInputSchema: z.ZodType<Prisma.UserUpd
   memberships: z.lazy(() => OrganizationMemberUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutSubscriptionsInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutSubscriptionsInput> = z.object({
@@ -7125,7 +7558,8 @@ export const UserUncheckedUpdateWithoutSubscriptionsInputSchema: z.ZodType<Prism
   memberships: z.lazy(() => OrganizationMemberUncheckedUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const OrderUpsertWithWhereUniqueWithoutSubscriptionInputSchema: z.ZodType<Prisma.OrderUpsertWithWhereUniqueWithoutSubscriptionInput> = z.object({
@@ -7158,7 +7592,8 @@ export const UserCreateWithoutOrdersInputSchema: z.ZodType<Prisma.UserCreateWith
   memberships: z.lazy(() => OrganizationMemberCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
-  subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional()
+  subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserUncheckedCreateWithoutOrdersInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutOrdersInput> = z.object({
@@ -7175,7 +7610,8 @@ export const UserUncheckedCreateWithoutOrdersInputSchema: z.ZodType<Prisma.UserU
   memberships: z.lazy(() => OrganizationMemberUncheckedCreateNestedManyWithoutMemberInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
-  subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+  subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedCreateNestedManyWithoutUserInputSchema).optional()
 }).strict();
 
 export const UserCreateOrConnectWithoutOrdersInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutOrdersInput> = z.object({
@@ -7255,7 +7691,8 @@ export const UserUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.UserUpdateWith
   memberships: z.lazy(() => OrganizationMemberUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
-  subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional()
+  subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const UserUncheckedUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutOrdersInput> = z.object({
@@ -7272,7 +7709,8 @@ export const UserUncheckedUpdateWithoutOrdersInputSchema: z.ZodType<Prisma.UserU
   memberships: z.lazy(() => OrganizationMemberUncheckedUpdateManyWithoutMemberNestedInputSchema).optional(),
   posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
   socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
-  subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
+  subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  farcasterSignerRequests: z.lazy(() => FarcasterSignerRequestUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const SubscriptionUpsertWithoutOrdersInputSchema: z.ZodType<Prisma.SubscriptionUpsertWithoutOrdersInput> = z.object({
@@ -7326,6 +7764,94 @@ export const SubscriptionUncheckedUpdateWithoutOrdersInputSchema: z.ZodType<Pris
   canceledAt: z.union([ z.coerce.date(),z.lazy(() => NullableDateTimeFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const UserCreateWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserCreateWithoutFarcasterSignerRequestsInput> = z.object({
+  clerkUserId: z.string(),
+  email: z.string(),
+  name: z.string(),
+  image: z.string(),
+  currentPlan: z.lazy(() => CurrentPlanSchema).optional(),
+  personalization: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  userUsage: z.lazy(() => UserUsageCreateNestedOneWithoutUserInputSchema).optional(),
+  ownedOrganizations: z.lazy(() => OrganizationCreateNestedManyWithoutOwnerInputSchema).optional(),
+  memberships: z.lazy(() => OrganizationMemberCreateNestedManyWithoutMemberInputSchema).optional(),
+  posts: z.lazy(() => PostCreateNestedManyWithoutUserInputSchema).optional(),
+  socialProviders: z.lazy(() => SocialProviderCreateNestedManyWithoutUserInputSchema).optional(),
+  subscriptions: z.lazy(() => SubscriptionCreateNestedManyWithoutUserInputSchema).optional(),
+  orders: z.lazy(() => OrderCreateNestedManyWithoutUserInputSchema).optional()
+}).strict();
+
+export const UserUncheckedCreateWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserUncheckedCreateWithoutFarcasterSignerRequestsInput> = z.object({
+  clerkUserId: z.string(),
+  email: z.string(),
+  name: z.string(),
+  image: z.string(),
+  currentPlan: z.lazy(() => CurrentPlanSchema).optional(),
+  personalization: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional(),
+  userUsage: z.lazy(() => UserUsageUncheckedCreateNestedOneWithoutUserInputSchema).optional(),
+  ownedOrganizations: z.lazy(() => OrganizationUncheckedCreateNestedManyWithoutOwnerInputSchema).optional(),
+  memberships: z.lazy(() => OrganizationMemberUncheckedCreateNestedManyWithoutMemberInputSchema).optional(),
+  posts: z.lazy(() => PostUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  socialProviders: z.lazy(() => SocialProviderUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  subscriptions: z.lazy(() => SubscriptionUncheckedCreateNestedManyWithoutUserInputSchema).optional(),
+  orders: z.lazy(() => OrderUncheckedCreateNestedManyWithoutUserInputSchema).optional()
+}).strict();
+
+export const UserCreateOrConnectWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserCreateOrConnectWithoutFarcasterSignerRequestsInput> = z.object({
+  where: z.lazy(() => UserWhereUniqueInputSchema),
+  create: z.union([ z.lazy(() => UserCreateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedCreateWithoutFarcasterSignerRequestsInputSchema) ]),
+}).strict();
+
+export const UserUpsertWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserUpsertWithoutFarcasterSignerRequestsInput> = z.object({
+  update: z.union([ z.lazy(() => UserUpdateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedUpdateWithoutFarcasterSignerRequestsInputSchema) ]),
+  create: z.union([ z.lazy(() => UserCreateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedCreateWithoutFarcasterSignerRequestsInputSchema) ]),
+  where: z.lazy(() => UserWhereInputSchema).optional()
+}).strict();
+
+export const UserUpdateToOneWithWhereWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserUpdateToOneWithWhereWithoutFarcasterSignerRequestsInput> = z.object({
+  where: z.lazy(() => UserWhereInputSchema).optional(),
+  data: z.union([ z.lazy(() => UserUpdateWithoutFarcasterSignerRequestsInputSchema),z.lazy(() => UserUncheckedUpdateWithoutFarcasterSignerRequestsInputSchema) ]),
+}).strict();
+
+export const UserUpdateWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserUpdateWithoutFarcasterSignerRequestsInput> = z.object({
+  clerkUserId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  email: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  image: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  currentPlan: z.union([ z.lazy(() => CurrentPlanSchema),z.lazy(() => EnumCurrentPlanFieldUpdateOperationsInputSchema) ]).optional(),
+  personalization: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  userUsage: z.lazy(() => UserUsageUpdateOneWithoutUserNestedInputSchema).optional(),
+  ownedOrganizations: z.lazy(() => OrganizationUpdateManyWithoutOwnerNestedInputSchema).optional(),
+  memberships: z.lazy(() => OrganizationMemberUpdateManyWithoutMemberNestedInputSchema).optional(),
+  posts: z.lazy(() => PostUpdateManyWithoutUserNestedInputSchema).optional(),
+  socialProviders: z.lazy(() => SocialProviderUpdateManyWithoutUserNestedInputSchema).optional(),
+  subscriptions: z.lazy(() => SubscriptionUpdateManyWithoutUserNestedInputSchema).optional(),
+  orders: z.lazy(() => OrderUpdateManyWithoutUserNestedInputSchema).optional()
+}).strict();
+
+export const UserUncheckedUpdateWithoutFarcasterSignerRequestsInputSchema: z.ZodType<Prisma.UserUncheckedUpdateWithoutFarcasterSignerRequestsInput> = z.object({
+  clerkUserId: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  email: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  name: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  image: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  currentPlan: z.union([ z.lazy(() => CurrentPlanSchema),z.lazy(() => EnumCurrentPlanFieldUpdateOperationsInputSchema) ]).optional(),
+  personalization: z.union([ z.lazy(() => NullableJsonNullValueInputSchema),InputJsonValueSchema ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  userUsage: z.lazy(() => UserUsageUncheckedUpdateOneWithoutUserNestedInputSchema).optional(),
+  ownedOrganizations: z.lazy(() => OrganizationUncheckedUpdateManyWithoutOwnerNestedInputSchema).optional(),
+  memberships: z.lazy(() => OrganizationMemberUncheckedUpdateManyWithoutMemberNestedInputSchema).optional(),
+  posts: z.lazy(() => PostUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  socialProviders: z.lazy(() => SocialProviderUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  subscriptions: z.lazy(() => SubscriptionUncheckedUpdateManyWithoutUserNestedInputSchema).optional(),
+  orders: z.lazy(() => OrderUncheckedUpdateManyWithoutUserNestedInputSchema).optional()
 }).strict();
 
 export const OrganizationCreateManyOwnerInputSchema: z.ZodType<Prisma.OrganizationCreateManyOwnerInput> = z.object({
@@ -7421,6 +7947,18 @@ export const OrderCreateManyUserInputSchema: z.ZodType<Prisma.OrderCreateManyUse
   discountId: z.string().optional().nullable(),
   subscriptionId: z.string().optional().nullable(),
   checkoutId: z.string().optional().nullable(),
+  createdAt: z.coerce.date().optional(),
+  updatedAt: z.coerce.date().optional()
+}).strict();
+
+export const FarcasterSignerRequestCreateManyUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateManyUserInput> = z.object({
+  id: z.string(),
+  token: z.string(),
+  publicKey: z.string(),
+  privateKey: z.string(),
+  deeplinkUrl: z.string(),
+  userFid: z.string().optional().nullable(),
+  state: z.string().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional()
 }).strict();
@@ -7732,6 +8270,42 @@ export const OrderUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prisma.Or
   discountId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   subscriptionId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
   checkoutId: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUpdateWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateWithoutUserInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUncheckedUpdateWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedUpdateWithoutUserInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+  updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
+}).strict();
+
+export const FarcasterSignerRequestUncheckedUpdateManyWithoutUserInputSchema: z.ZodType<Prisma.FarcasterSignerRequestUncheckedUpdateManyWithoutUserInput> = z.object({
+  id: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  token: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  publicKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  privateKey: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  deeplinkUrl: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
+  userFid: z.union([ z.string(),z.lazy(() => NullableStringFieldUpdateOperationsInputSchema) ]).optional().nullable(),
+  state: z.union([ z.string(),z.lazy(() => StringFieldUpdateOperationsInputSchema) ]).optional(),
   createdAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
   updatedAt: z.union([ z.coerce.date(),z.lazy(() => DateTimeFieldUpdateOperationsInputSchema) ]).optional(),
 }).strict();
@@ -8865,6 +9439,68 @@ export const OrderFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.OrderFindUniqueO
   where: OrderWhereUniqueInputSchema,
 }).strict() ;
 
+export const FarcasterSignerRequestFindFirstArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestFindFirstArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  orderBy: z.union([ FarcasterSignerRequestOrderByWithRelationInputSchema.array(),FarcasterSignerRequestOrderByWithRelationInputSchema ]).optional(),
+  cursor: FarcasterSignerRequestWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FarcasterSignerRequestScalarFieldEnumSchema,FarcasterSignerRequestScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestFindFirstOrThrowArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestFindFirstOrThrowArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  orderBy: z.union([ FarcasterSignerRequestOrderByWithRelationInputSchema.array(),FarcasterSignerRequestOrderByWithRelationInputSchema ]).optional(),
+  cursor: FarcasterSignerRequestWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FarcasterSignerRequestScalarFieldEnumSchema,FarcasterSignerRequestScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestFindManyArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestFindManyArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  orderBy: z.union([ FarcasterSignerRequestOrderByWithRelationInputSchema.array(),FarcasterSignerRequestOrderByWithRelationInputSchema ]).optional(),
+  cursor: FarcasterSignerRequestWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+  distinct: z.union([ FarcasterSignerRequestScalarFieldEnumSchema,FarcasterSignerRequestScalarFieldEnumSchema.array() ]).optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestAggregateArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestAggregateArgs> = z.object({
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  orderBy: z.union([ FarcasterSignerRequestOrderByWithRelationInputSchema.array(),FarcasterSignerRequestOrderByWithRelationInputSchema ]).optional(),
+  cursor: FarcasterSignerRequestWhereUniqueInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestGroupByArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestGroupByArgs> = z.object({
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  orderBy: z.union([ FarcasterSignerRequestOrderByWithAggregationInputSchema.array(),FarcasterSignerRequestOrderByWithAggregationInputSchema ]).optional(),
+  by: FarcasterSignerRequestScalarFieldEnumSchema.array(),
+  having: FarcasterSignerRequestScalarWhereWithAggregatesInputSchema.optional(),
+  take: z.number().optional(),
+  skip: z.number().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestFindUniqueArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestFindUniqueArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereUniqueInputSchema,
+}).strict() ;
+
+export const FarcasterSignerRequestFindUniqueOrThrowArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestFindUniqueOrThrowArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereUniqueInputSchema,
+}).strict() ;
+
 export const UserCreateArgsSchema: z.ZodType<Prisma.UserCreateArgs> = z.object({
   select: UserSelectSchema.optional(),
   include: UserIncludeSchema.optional(),
@@ -9402,5 +10038,59 @@ export const OrderUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.OrderUpdateMan
 
 export const OrderDeleteManyArgsSchema: z.ZodType<Prisma.OrderDeleteManyArgs> = z.object({
   where: OrderWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestCreateArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  data: z.union([ FarcasterSignerRequestCreateInputSchema,FarcasterSignerRequestUncheckedCreateInputSchema ]),
+}).strict() ;
+
+export const FarcasterSignerRequestUpsertArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestUpsertArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereUniqueInputSchema,
+  create: z.union([ FarcasterSignerRequestCreateInputSchema,FarcasterSignerRequestUncheckedCreateInputSchema ]),
+  update: z.union([ FarcasterSignerRequestUpdateInputSchema,FarcasterSignerRequestUncheckedUpdateInputSchema ]),
+}).strict() ;
+
+export const FarcasterSignerRequestCreateManyArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateManyArgs> = z.object({
+  data: z.union([ FarcasterSignerRequestCreateManyInputSchema,FarcasterSignerRequestCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestCreateManyAndReturnArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestCreateManyAndReturnArgs> = z.object({
+  data: z.union([ FarcasterSignerRequestCreateManyInputSchema,FarcasterSignerRequestCreateManyInputSchema.array() ]),
+  skipDuplicates: z.boolean().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestDeleteArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestDeleteArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  where: FarcasterSignerRequestWhereUniqueInputSchema,
+}).strict() ;
+
+export const FarcasterSignerRequestUpdateArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateArgs> = z.object({
+  select: FarcasterSignerRequestSelectSchema.optional(),
+  include: FarcasterSignerRequestIncludeSchema.optional(),
+  data: z.union([ FarcasterSignerRequestUpdateInputSchema,FarcasterSignerRequestUncheckedUpdateInputSchema ]),
+  where: FarcasterSignerRequestWhereUniqueInputSchema,
+}).strict() ;
+
+export const FarcasterSignerRequestUpdateManyArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateManyArgs> = z.object({
+  data: z.union([ FarcasterSignerRequestUpdateManyMutationInputSchema,FarcasterSignerRequestUncheckedUpdateManyInputSchema ]),
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestUpdateManyAndReturnArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestUpdateManyAndReturnArgs> = z.object({
+  data: z.union([ FarcasterSignerRequestUpdateManyMutationInputSchema,FarcasterSignerRequestUncheckedUpdateManyInputSchema ]),
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
+  limit: z.number().optional(),
+}).strict() ;
+
+export const FarcasterSignerRequestDeleteManyArgsSchema: z.ZodType<Prisma.FarcasterSignerRequestDeleteManyArgs> = z.object({
+  where: FarcasterSignerRequestWhereInputSchema.optional(),
   limit: z.number().optional(),
 }).strict() ;
