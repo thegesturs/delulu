@@ -27,6 +27,9 @@ export const SocialTypes = {
   FACEBOOK: 'FACEBOOK',
   TIKTOK: 'TIKTOK',
   LENS: 'LENS',
+  THREADS: 'THREADS',
+  PINTEREST: 'PINTEREST',
+  FARCASTER: 'FARCASTER',
 } as const;
 
 export type SocialType = (typeof SocialTypes)[keyof typeof SocialTypes];
@@ -39,6 +42,9 @@ export const SocialTypeSchema = z.enum([
   'FACEBOOK',
   'TIKTOK',
   'LENS',
+  'THREADS',
+  'PINTEREST',
+  'FARCASTER',
 ]);
 
 // Implement it later, once basic features are one

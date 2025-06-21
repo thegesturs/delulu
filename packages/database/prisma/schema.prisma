@@ -59,6 +59,8 @@ enum SocialType {
   FACEBOOK
   TIKTOK
   THREADS
+  PINTEREST
+  FARCASTER
 }
 
 enum Role {
