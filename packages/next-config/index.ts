@@ -27,6 +27,10 @@ export const config: NextConfig = {
         protocol: 'https',
         hostname: 'assets.aceternity.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.qrserver.com',
+      },
     ],
   },
 
