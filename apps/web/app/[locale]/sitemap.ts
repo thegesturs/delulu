@@ -1,14 +1,9 @@
-import fs from 'node:fs';
 import { env } from '@/env';
 import { allBlogs, allLegals } from 'content-collections';
 import type { MetadataRoute } from 'next';
 
-const appFolders = fs.readdirSync('app', { withFileTypes: true });
-const pages = appFolders
-  .filter((file) => file.isDirectory())
-  .filter((folder) => !folder.name.startsWith('_'))
-  .filter((folder) => !folder.name.startsWith('('))
-  .map((folder) => folder.name);
+// Static list of known pages to avoid filesystem access in edge runtime
+const pages = ['blogs', 'pricing', 'contact'];
 const blogs = allBlogs.map((blog) => blog.slug);
 const legals = allLegals.map((legal) => legal.slug);
 
