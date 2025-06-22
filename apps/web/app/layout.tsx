@@ -1,6 +1,7 @@
 import './styles.css';
 import { Footer } from '@/components/footer';
 import { Navbar } from '@/components/navbar';
+import { ClientLocaleProvider } from '@/components/locale-provider';
 import { env } from '@/env';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
@@ -15,14 +16,9 @@ import type { ReactNode } from 'react';
 
 type RootLayoutProperties = {
   readonly children: ReactNode;
-  readonly params: Promise<{
-    locale: string;
-  }>;
 };
 
-const RootLayout = async ({ children, params }: RootLayoutProperties) => {
-  const { locale } = await params;
-  // const dictionary = await getDictionary(locale);
+const RootLayout = ({ children }: RootLayoutProperties) => {
   const baseUrl = env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
 
   return (
@@ -37,15 +33,18 @@ const RootLayout = async ({ children, params }: RootLayoutProperties) => {
         <JsonLd code={createAISoftwareApplicationSchema(baseUrl)} />
       </head>
       <body>
-        <DesignSystemProvider
-          privacyUrl="https://delulu.social/legal/privacy-policy"
-          termsUrl="https://delulu.social/legal/terms-of-service"
-        >
-          {/* <Header dictionary={dictionary} /> */}
-          <Navbar />
-          {children}
-          <Footer />
-        </DesignSystemProvider>
+        <ClientLocaleProvider>
+          <DesignSystemProvider
+            withAuth={false}
+            privacyUrl="https://delulu.social/legal/privacy-policy"
+            termsUrl="https://delulu.social/legal/terms-of-service"
+          >
+            {/* <Header dictionary={dictionary} /> */}
+            <Navbar />
+            {children}
+            <Footer />
+          </DesignSystemProvider>
+        </ClientLocaleProvider>
         {/* <Toolbar /> */}
       </body>
     </html>

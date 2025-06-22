@@ -9,6 +9,7 @@ import Link from 'next/link';
 import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
+import { useTranslation } from '@/lib/useTranslation';
 import AppDark from '../app/images/app-dark.png';
 import AppLight from '../app/images/app-light.png';
 import { DesktopMockup } from './desktop-mockup';

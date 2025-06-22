@@ -10,6 +10,7 @@ type DesignSystemProviderProperties = ThemeProviderProps & {
   privacyUrl?: string;
   termsUrl?: string;
   helpUrl?: string;
+  withAuth?: boolean;
 };
 
 export const DesignSystemProvider = ({
@@ -17,14 +18,25 @@ export const DesignSystemProvider = ({
   privacyUrl,
   termsUrl,
   helpUrl,
+  withAuth = true,
   ...properties
-}: DesignSystemProviderProperties) => (
-  <ThemeProvider {...properties}>
-    <AuthProvider privacyUrl={privacyUrl} termsUrl={termsUrl} helpUrl={helpUrl}>
-      <AnalyticsProvider>
-        <TooltipProvider>{children}</TooltipProvider>
-        <Toaster />
-      </AnalyticsProvider>
-    </AuthProvider>
-  </ThemeProvider>
-);
+}: DesignSystemProviderProperties) => {
+  const content = (
+    <AnalyticsProvider>
+      <TooltipProvider>{children}</TooltipProvider>
+      <Toaster />
+    </AnalyticsProvider>
+  );
+
+  return (
+    <ThemeProvider {...properties}>
+      {withAuth ? (
+        <AuthProvider privacyUrl={privacyUrl} termsUrl={termsUrl} helpUrl={helpUrl}>
+          {content}
+        </AuthProvider>
+      ) : (
+        content
+      )}
+    </ThemeProvider>
+  );
+};
