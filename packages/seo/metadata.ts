@@ -29,21 +29,36 @@ export const createMetadata = ({
     description,
     applicationName,
     keywords: [
-      'social media management',
-      'content creation',
+      // Core functionality (AI search terms)
+      'social media management platform',
+      'how to manage multiple social media accounts',
+      'best social media scheduling tool',
+      'multi-platform posting software',
+      'social media content creation tools',
+      'social media automation platform',
+      
+      // Platform-specific (conversational queries)
+      'post to Instagram and Facebook simultaneously',
+      'schedule TikTok and Twitter posts',
+      'LinkedIn content management',
+      'Pinterest marketing automation',
+      'Threads publishing tool',
+      'Farcaster social media manager',
+      
+      // Problem-solving keywords (AI loves these)
+      'how to save time on social media',
+      'social media management for businesses',
+      'content calendar and planning',
+      'social media analytics and insights',
+      'team collaboration for social media',
+      'cross-platform content synchronization',
+      
+      // Technical/brand terms
+      'Delulu Social',
+      'social media dashboard',
+      'social media marketing tool',
       'social media scheduler',
-      'multi-platform posting',
-      'Instagram',
-      'Facebook',
-      'Twitter',
-      'LinkedIn',
-      'TikTok',
-      'Pinterest',
-      'Threads',
-      'Farcaster',
-      'social media marketing',
-      'content calendar',
-      'social media automation',
+      'social media automation'
     ],
     metadataBase: productionUrl ? new URL(`${productionUrl}`) : undefined,
     authors: [author],

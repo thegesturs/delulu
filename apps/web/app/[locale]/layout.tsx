@@ -8,7 +8,7 @@ import { cn } from '@delulu/design-system/lib/utils';
 import { 
   JsonLd, 
   createOrganizationSchema, 
-  createSoftwareApplicationSchema, 
+  createAISoftwareApplicationSchema, 
   createWebSiteSchema 
 } from '@delulu/seo/json-ld';
 import type { ReactNode } from 'react';
@@ -34,7 +34,7 @@ const RootLayout = async ({ children, params }: RootLayoutProperties) => {
       <head>
         <JsonLd code={createOrganizationSchema(baseUrl)} />
         <JsonLd code={createWebSiteSchema(baseUrl)} />
-        <JsonLd code={createSoftwareApplicationSchema(baseUrl)} />
+        <JsonLd code={createAISoftwareApplicationSchema(baseUrl)} />
       </head>
       <body>
         <DesignSystemProvider

@@ -6,6 +6,11 @@ import type {
   SoftwareApplication,
   BlogPosting,
   Article,
+  FAQPage,
+  Question,
+  Answer,
+  HowTo,
+  HowToStep,
 } from 'schema-dts';
 
 type JsonLdProps = {
@@ -170,6 +175,127 @@ export const createArticleSchema = ({
     '@id': url,
   },
   inLanguage: 'en-US',
+});
+
+// FAQ Page schema for AI chatbots (they love Q&A format)
+export const createFAQPageSchema = ({
+  title,
+  url,
+  questions
+}: {
+  title: string;
+  url: string;
+  questions: Array<{ question: string; answer: string }>;
+}): WithContext<FAQPage> => ({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  name: title,
+  url,
+  mainEntity: questions.map(({ question, answer }) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: answer,
+    },
+  })),
+});
+
+// How-To schema for step-by-step content (AI loves structured instructions)
+export const createHowToSchema = ({
+  title,
+  description,
+  url,
+  image,
+  steps,
+}: {
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+  steps: Array<{ name: string; text: string; image?: string }>;
+}): WithContext<HowTo> => ({
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: title,
+  description,
+  url,
+  image: image || `${url}/api/og?title=${encodeURIComponent(title)}`,
+  step: steps.map((step, index) => ({
+    '@type': 'HowToStep',
+    position: index + 1,
+    name: step.name,
+    text: step.text,
+    image: step.image,
+  })),
+});
+
+// Enhanced Software Application schema with AI-friendly features
+export const createAISoftwareApplicationSchema = (url: string): WithContext<SoftwareApplication> => ({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Delulu Social',
+  description: 'AI-powered social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.',
+  url,
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web Browser',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    priceValidUntil: '2025-12-31',
+  },
+  featureList: [
+    'Multi-platform social media posting to 8+ networks',
+    'AI-powered content creation and optimization',
+    'Social media scheduling and automation',
+    'Advanced analytics and performance insights',
+    'Team collaboration and workflow management',
+    'Content calendar and planning tools',
+    'Real-time collaboration features',
+    'Cross-platform content synchronization',
+  ],
+  screenshot: `${url}/images/app-light.png`,
+  // AI-friendly conversational features
+  about: [
+    {
+      '@type': 'Thing',
+      name: 'social media management',
+      description: 'Comprehensive platform for managing multiple social media accounts'
+    },
+    {
+      '@type': 'Thing', 
+      name: 'content creation',
+      description: 'Tools for creating engaging social media content'
+    },
+    {
+      '@type': 'Thing',
+      name: 'multi-platform posting',
+      description: 'Publish content simultaneously across all major social networks'
+    }
+  ],
+  // Common questions AI might ask
+  potentialAction: [
+    {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${url}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+    {
+      '@type': 'ViewAction',
+      target: `${url}/pricing`,
+      name: 'View Pricing Plans'
+    },
+    {
+      '@type': 'RegisterAction',
+      target: `${url}/sign-up`,
+      name: 'Sign Up for Free'
+    }
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  ] as any,
 });
 
 export * from 'schema-dts';
