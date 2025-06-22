@@ -127,11 +127,12 @@ Your robots.txt has been updated to **ALLOW** all major AI crawlers for maximum 
 - **Claude**: `ClaudeBot`, `Claude-Web`  
 - **Perplexity**: `PerplexityBot`
 - **Google AI**: `Google-Extended`
-- **Meta**: `FacebookBot`, `meta-externalagent`
+- **Meta**: `FacebookBot`, `facebookexternalhit`, `meta-externalagent`
 - **Microsoft**: `Bingbot`
 - **Apple**: `Applebot`
 - **Amazon**: `Amazonbot`
 - **Common Crawl**: `CCBot`
+- **Social Media**: `Twitterbot`, `LinkedInBot`, `WhatsApp`, `TelegramBot`, `DiscordBot`, `Slackbot-LinkExpanding`, `SkypeUriPreview`
 
 ### AI-Optimized Content Strategy
 - **Conversational keywords**: "how to manage multiple social media accounts"
