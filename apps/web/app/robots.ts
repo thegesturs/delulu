@@ -49,6 +49,11 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/_next/', '/private/'],
       },
       {
+        userAgent: 'facebookexternalhit',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
         userAgent: 'meta-externalagent',
         allow: '/',
         disallow: ['/api/', '/admin/', '/_next/', '/private/'],
@@ -70,6 +75,42 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: 'Amazonbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      // Social media link preview crawlers
+      {
+        userAgent: 'Twitterbot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'LinkedInBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'WhatsApp',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'TelegramBot',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'SkypeUriPreview',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'Slackbot-LinkExpanding',
+        allow: '/',
+        disallow: ['/api/', '/admin/', '/_next/', '/private/'],
+      },
+      {
+        userAgent: 'DiscordBot',
         allow: '/',
         disallow: ['/api/', '/admin/', '/_next/', '/private/'],
       },
