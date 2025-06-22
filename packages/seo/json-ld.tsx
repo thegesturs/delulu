@@ -6,7 +6,6 @@ import type {
   SoftwareApplication,
   BlogPosting,
   Article,
-  Person
 } from 'schema-dts';
 
 type JsonLdProps = {
