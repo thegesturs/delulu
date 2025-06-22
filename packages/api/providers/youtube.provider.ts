@@ -138,7 +138,7 @@ export const youtubeProvider: SocialProvider = {
           title: firstContent.text.slice(0, 100) || 'YouTube Short',
           description: firstContent.text || '',
           tags: firstContent.tags || [],
-          categoryId: '24', // Entertainment category
+          categoryId: '24',
           defaultLanguage: 'en',
         },
         status: {
@@ -164,7 +164,7 @@ export const youtubeProvider: SocialProvider = {
         platformPostId: uploadResponse.id,
         postId: content.postId,
         platformId: profile.id,
-        platformPostUrl: shortsUrl, // Use Shorts URL for better UX
+        platformPostUrl: shortsUrl,
         postedAt: new Date(),
         // metadata: {
         //   videoUrl,
