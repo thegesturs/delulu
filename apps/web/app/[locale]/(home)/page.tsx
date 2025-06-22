@@ -31,8 +31,26 @@ export const generateMetadata = async ({
 }: HomeProps): Promise<Metadata> => {
   const { locale } = await params;
   const dictionary = await getDictionary(locale);
+  
+  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
+  const ogImage = `${baseUrl}/api/og?title=${encodeURIComponent('Delulu Social - Social Media Management Platform')}&description=${encodeURIComponent('Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.')}`;
 
-  return createMetadata(dictionary.web.home.meta);
+  return createMetadata({
+    ...dictionary.web.home.meta,
+    image: ogImage,
+    openGraph: {
+      title: 'Delulu Social - Social Media Management Platform',
+      description: 'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+      images: [{ url: ogImage, width: 1200, height: 630, alt: 'Delulu Social Platform' }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Delulu Social - Social Media Management Platform',
+      description: 'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+      images: [ogImage],
+    },
+  });
 };
 
 const Home = () => {

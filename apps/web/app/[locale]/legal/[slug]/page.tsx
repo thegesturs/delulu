@@ -1,7 +1,11 @@
 import { BlogLayout } from '@/components/blog/blog-layout';
 import CTA from '@/components/cta';
 import { components } from '@/components/mdx-components';
+import { env } from '@/env';
+import { JsonLd, createArticleSchema } from '@delulu/seo/json-ld';
+import { createMetadata } from '@delulu/seo/metadata';
 import { allLegals } from 'content-collections';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
@@ -16,6 +20,33 @@ const parser = remark()
       file.data.ast = tree;
     };
   });
+
+const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
+
+export const generateMetadata = async ({
+  params,
+}: PageProps): Promise<Metadata> => {
+  const { slug } = await params;
+  const legal = allLegals.find((legal) => legal.slug === slug);
+  
+  if (!legal) {
+    return notFound();
+  }
+
+  const canonicalUrl = new URL(`/legal/${slug}`, url).href;
+
+  return createMetadata({
+    title: legal.title,
+    description: `${legal.title} - Delulu Social legal documentation`,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    alternates: {
+      canonical: canonicalUrl,
+    },
+  });
+};
 
 type PageProps = {
   params: Promise<{
@@ -37,6 +68,17 @@ export default async function Page({ params }: PageProps) {
     type: 'legal' as const,
   };
 
+  const pageUrl = new URL(`/legal/${slug}`, url).href;
+  const currentDate = new Date().toISOString();
+  
+  const articleSchema = createArticleSchema({
+    title: legal.title,
+    description: `${legal.title} - Delulu Social legal documentation`,
+    url: pageUrl,
+    datePublished: legal.date || currentDate,
+    dateModified: legal.date || currentDate,
+  });
+
   // Parse and render MDX safely
   const file = parser.processSync(legal.content);
   const mdast = file.data.ast;
@@ -45,6 +87,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div>
+      <JsonLd code={articleSchema} />
       <BlogLayout blog={legalWithType}>{content}</BlogLayout>
       <div className="mt-12">
         <CTA />
