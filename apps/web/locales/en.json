@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "contact": "Contact",
+    "login": "Login",
+    "signup": "Get Started"
+  },
+  "hero": {
+    "title": "Manage all your social media in one place",
+    "subtitle": "Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster with Delulu Social.",
+    "cta": "Start Free Trial",
+    "cta_secondary": "Watch Demo"
+  },
+  "features": {
+    "title": "Everything you need to grow your social presence",
+    "subtitle": "Powerful tools to help you create, schedule, and analyze your social media content across all platforms.",
+    "content_creation": "Content Creation",
+    "content_creation_desc": "Create engaging posts with our built-in editor, templates, and AI assistance.",
+    "scheduling": "Smart Scheduling",
+    "scheduling_desc": "Schedule posts across all platforms with optimal timing recommendations.",
+    "analytics": "Advanced Analytics",
+    "analytics_desc": "Track performance and get insights to improve your social media strategy.",
+    "collaboration": "Team Collaboration",
+    "collaboration_desc": "Work together with your team to plan and execute your social media campaigns."
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Choose the plan that fits your needs. Upgrade or downgrade at any time.",
+    "free": "Free",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "Save 20%",
+    "get_started": "Get Started",
+    "contact_sales": "Contact Sales"
+  },
+  "footer": {
+    "company": "Company",
+    "product": "Product",
+    "resources": "Resources",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookie": "Cookie Policy"
+  },
+  "contact": {
+    "title": "Get in touch",
+    "subtitle": "Have a question or need help? We're here to help.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send Message",
+    "success": "Thank you for your message! We'll get back to you soon.",
+    "error": "Sorry, there was an error sending your message. Please try again."
+  },
+  "blog": {
+    "title": "Latest from our blog",
+    "subtitle": "Stay up to date with the latest news, tips, and insights from our team.",
+    "read_more": "Read More",
+    "published": "Published",
+    "by": "by"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update"
+  }
+}
