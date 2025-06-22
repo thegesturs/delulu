@@ -14,7 +14,7 @@ const author: Metadata['authors'] = {
 };
 const publisher = 'Delulu Social';
 const twitterHandle = '@delulusocial';
-const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+// const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 const productionUrl = process.env.NEXT_PUBLIC_WEB_URL;
 
 export const createMetadata = ({
@@ -89,7 +89,7 @@ export const createMetadata = ({
       description,
     },
     alternates: {
-      canonical: productionUrl ? `${protocol}://${productionUrl}` : undefined,
+      canonical: productionUrl ? `${productionUrl}` : undefined,
     },
   };
 
