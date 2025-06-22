@@ -117,3 +117,39 @@ apps/web/
 4. Trigger a new deployment
 
 The robots.txt, sitemap.xml, and SEO functionality should now work correctly with these fixes.
+
+## 🤖 AI SEO Optimization
+
+### AI Crawlers Now Allowed
+Your robots.txt has been updated to **ALLOW** all major AI crawlers for maximum visibility in AI search results:
+
+- **ChatGPT**: `GPTBot`, `ChatGPT-User`
+- **Claude**: `ClaudeBot`, `Claude-Web`  
+- **Perplexity**: `PerplexityBot`
+- **Google AI**: `Google-Extended`
+- **Meta**: `FacebookBot`, `meta-externalagent`
+- **Microsoft**: `Bingbot`
+- **Apple**: `Applebot`
+- **Amazon**: `Amazonbot`
+- **Common Crawl**: `CCBot`
+
+### AI-Optimized Content Strategy
+- **Conversational keywords**: "how to manage multiple social media accounts"
+- **Q&A structured data**: FAQ schema for better AI responses
+- **Problem-solving focus**: Targets user pain points
+- **Clear, direct answers**: AI prefers concise, factual content
+
+### Expected Benefits
+- Appear in ChatGPT, Claude, and Perplexity responses
+- Higher quality traffic from AI-driven searches  
+- Better conversion rates (Perplexity users convert 243% better)
+- Increased brand authority through AI citations
+
+### Monitoring
+Track referrals from:
+- `openai.com` (ChatGPT)
+- `perplexity.ai` (Perplexity)
+- `claude.ai` (Anthropic)
+- AI search mentions and citations
+
+See `AI-SEO-STRATEGY.md` for complete implementation details.
