@@ -15,6 +15,7 @@ import AppLight from '../app/images/app-light.png';
 import { DesktopMockup } from './desktop-mockup';
 
 export function Hero() {
+  const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(
     null
   ) as React.RefObject<HTMLDivElement>;
@@ -37,26 +38,7 @@ export function Hero() {
           )}
         >
           <Balancer>
-            Stop Copy-Pasting.{' '}
-            <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-              Schedule
-            </span>
-          </Balancer>
-        </motion.h2>
-        <motion.h2
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className={cn(
-            'inline-block bg-gradient-to-b from-foreground/90 to-foreground',
-            'bg-clip-text py-2 text-transparent'
-          )}
-        >
-          <Balancer>
-            to All Your Platforms in{' '}
-            <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-              One Click
-            </span>
+            {t('hero.title')}
           </Balancer>
         </motion.h2>
       </div>
@@ -66,9 +48,7 @@ export function Hero() {
         transition={{ duration: 0.2, delay: 0.5 }}
         className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-muted-foreground sm:text-base"
       >
-        Delulu Social lets you plan, queue, and publish simultaneously across
-        TikTok, Instagram, LinkedIn, YouTube, and more—so you actually get time
-        back.
+        {t('hero.subtitle')}
       </motion.p>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -77,7 +57,7 @@ export function Hero() {
         className="z-10 mt-6 mb-8 flex w-full flex-col items-center justify-center gap-4 px-4 sm:mt-8 sm:mb-10 sm:flex-row sm:px-8 md:mb-20"
       >
         <Button asChild>
-          <Link href="/login">Schedule My First Post</Link>
+          <Link href="/login">{t('hero.cta')}</Link>
         </Button>
       </motion.div>
 
