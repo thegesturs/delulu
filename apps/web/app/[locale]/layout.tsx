@@ -1,17 +1,16 @@
 import './styles.css';
 import { Footer } from '@/components/footer';
 import { Navbar } from '@/components/navbar';
+import { env } from '@/env';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import { cn } from '@delulu/design-system/lib/utils';
-import { getDictionary } from '@delulu/internationalization';
 import { 
   JsonLd, 
   createOrganizationSchema, 
-  createWebSiteSchema, 
-  createSoftwareApplicationSchema 
+  createSoftwareApplicationSchema, 
+  createWebSiteSchema 
 } from '@delulu/seo/json-ld';
-import { env } from '@/env';
 import type { ReactNode } from 'react';
 
 type RootLayoutProperties = {
@@ -23,7 +22,7 @@ type RootLayoutProperties = {
 
 const RootLayout = async ({ children, params }: RootLayoutProperties) => {
   const { locale } = await params;
-  const dictionary = await getDictionary(locale);
+  // const dictionary = await getDictionary(locale);
   const baseUrl = env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
 
   return (
@@ -38,7 +37,10 @@ const RootLayout = async ({ children, params }: RootLayoutProperties) => {
         <JsonLd code={createSoftwareApplicationSchema(baseUrl)} />
       </head>
       <body>
-        <DesignSystemProvider>
+        <DesignSystemProvider
+          privacyUrl="https://delulu.social/legal/privacy-policy"
+          termsUrl="https://delulu.social/legal/terms-of-service"
+        >
           {/* <Header dictionary={dictionary} /> */}
           <Navbar />
           {children}
