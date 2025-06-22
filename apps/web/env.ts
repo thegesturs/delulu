@@ -6,10 +6,6 @@ export const env = createEnv({
   extends: [
     core(),
     email(),
-    // observability(),
-    // flags(),
-    // security(),
-    // rateLimit(),
   ],
   server: {},
   client: {},
