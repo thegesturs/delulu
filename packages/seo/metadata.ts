@@ -15,7 +15,7 @@ const author: Metadata['authors'] = {
 const publisher = 'Delulu Social';
 const twitterHandle = '@delulusocial';
 const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const productionUrl = process.env.NEXT_PUBLIC_WEB_URL;
 
 export const createMetadata = ({
   title,
@@ -43,11 +43,9 @@ export const createMetadata = ({
       'Farcaster',
       'social media marketing',
       'content calendar',
-      'social media automation'
+      'social media automation',
     ],
-    metadataBase: productionUrl
-      ? new URL(`${protocol}://${productionUrl}`)
-      : undefined,
+    metadataBase: productionUrl ? new URL(`${productionUrl}`) : undefined,
     authors: [author],
     creator: author.name,
     publisher,
@@ -105,7 +103,7 @@ export const createMetadata = ({
       alt: title,
       type: 'image/png',
     };
-    
+
     metadata.openGraph.images = [imageObject];
     metadata.twitter.images = [imageObject];
   }
