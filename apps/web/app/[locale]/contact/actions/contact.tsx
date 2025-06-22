@@ -31,6 +31,10 @@ export const contact = async (
     //   }
     // }
 
+    if (!env.RESEND_FROM || !env.RESEND_TOKEN) {
+      throw new Error('Email service not configured');
+    }
+
     await resend.emails.send({
       from: env.RESEND_FROM,
       to: env.RESEND_FROM,
