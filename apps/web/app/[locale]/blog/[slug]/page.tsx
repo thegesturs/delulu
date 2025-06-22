@@ -2,8 +2,7 @@ import { BlogLayout } from '@/components/blog/blog-layout';
 import CTA from '@/components/cta';
 import { components } from '@/components/mdx-components';
 import { env } from '@/env';
-import type { Article, WithContext } from '@delulu/seo/json-ld';
-import { JsonLd } from '@delulu/seo/json-ld';
+import { JsonLd, createBlogPostingSchema } from '@delulu/seo/json-ld';
 import { createMetadata } from '@delulu/seo/metadata';
 import { allBlogs } from 'content-collections';
 import type { Metadata } from 'next';
@@ -102,36 +101,18 @@ export default async function Page({ params }: PageProps) {
     type: 'blog' as const,
   };
 
-  // Create JSON-LD structured data
-  const articleJsonLd: WithContext<Article> = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: blog.title,
+  const pageUrl = new URL(`/blog/${slug}`, url).href;
+  
+  const blogPostSchema = createBlogPostingSchema({
+    title: blog.title,
     description: blog.description,
+    url: pageUrl,
     image: blog.image,
     datePublished: blog.date,
     dateModified: blog.date,
-    author: {
-      '@type': 'Person',
-      name: blog.author,
-      image: blog.authorAvatar,
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'Delulu',
-      logo: {
-        '@type': 'ImageObject',
-        url: `${url.origin}/logo.png`,
-      },
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': new URL(`/blog/${slug}`, url).href,
-    },
-    keywords: blog.keywords,
-    articleSection: blog.categories[0] || 'Blog',
-    inLanguage: locale,
-  };
+    authorName: blog.author,
+    authorUrl: pageUrl,
+  });
 
   // Parse and render MDX safely
   const file = parser.processSync(blog.content);
@@ -141,7 +122,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div>
-      <JsonLd code={articleJsonLd} />
+      <JsonLd code={blogPostSchema} />
       <BlogLayout blog={blogWithType}>{content}</BlogLayout>
       <div className="py-20">
         <CTA />
