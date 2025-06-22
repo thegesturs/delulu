@@ -86,6 +86,29 @@ Keep these compatibility flags enabled:
 2. Verify `RESEND_TOKEN` starts with `re_`
 3. Ensure the email address is verified in Resend
 
+## Fixed Issues
+
+### ✅ Sitemap.ts Edge Runtime Fix
+- **Problem**: `fs.readdirSync` not supported in Cloudflare Workers edge runtime
+- **Solution**: Replaced filesystem operations with static page list
+- **Location**: Moved to `app/sitemap.ts` (app root level, not in [locale] folder)
+
+### ✅ Robots.ts Location
+- **Location**: `app/robots.ts` (app root level)
+- **Fixed**: Removed invalid environment variable usage that caused "Invalid language tag" error
+
+## File Structure for SEO
+```
+apps/web/
+├── app/
+│   ├── robots.ts          ← App level (works globally)
+│   ├── sitemap.ts         ← App level (works globally)  
+│   ├── api/og/route.tsx   ← Dynamic OG image generation
+│   └── [locale]/
+│       ├── layout.tsx     ← JSON-LD structured data
+│       └── ...
+```
+
 ## Deployment Steps
 
 1. Update environment variables in Cloudflare Workers dashboard
@@ -93,4 +116,4 @@ Keep these compatibility flags enabled:
 3. Add missing `RESEND_FROM` to runtime variables
 4. Trigger a new deployment
 
-The robots.txt and SEO functionality should now work correctly with these fixes.
+The robots.txt, sitemap.xml, and SEO functionality should now work correctly with these fixes.
