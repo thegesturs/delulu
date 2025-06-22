@@ -1,28 +1,14 @@
-import { getDictionary } from '@delulu/internationalization';
 import { createMetadata } from '@delulu/seo/metadata';
 import type { Metadata } from 'next';
 import { ContactForm } from './components/contact-form';
 
-type ContactProps = {
-  params: Promise<{
-    locale: string;
-  }>;
-};
+export const metadata: Metadata = createMetadata({
+  title: 'Contact Us',
+  description: 'Get in touch with the Delulu Social team. Have questions about our social media management platform? Need support? We\'re here to help you succeed with your social media strategy.',
+});
 
-export const generateMetadata = async ({
-  params,
-}: ContactProps): Promise<Metadata> => {
-  const { locale } = await params;
-  const dictionary = await getDictionary(locale);
-
-  return createMetadata(dictionary.web.contact.meta);
-};
-
-const Contact = async ({ params }: ContactProps) => {
-  const { locale } = await params;
-  const dictionary = await getDictionary(locale);
-
-  return <ContactForm dictionary={dictionary} />;
+const Contact = () => {
+  return <ContactForm />;
 };
 
 export default Contact;

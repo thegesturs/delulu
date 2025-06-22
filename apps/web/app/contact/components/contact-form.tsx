@@ -4,16 +4,11 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
-import type { Dictionary } from '@delulu/internationalization';
 import { Check, MoveRight } from 'lucide-react';
 import { useState } from 'react';
 import { contact } from '../actions/contact';
 
-type ContactFormProps = {
-  dictionary: Dictionary;
-};
-
-export const ContactForm = ({ dictionary }: ContactFormProps) => {
+export const ContactForm = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,14 +30,27 @@ export const ContactForm = ({ dictionary }: ContactFormProps) => {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <h4 className="max-w-xl text-left font-regular text-3xl tracking-tighter md:text-5xl">
-                  {dictionary.web.contact.meta.title}
+                  Contact Us
                 </h4>
                 <p className="max-w-sm text-left text-lg text-muted-foreground leading-relaxed tracking-tight">
-                  {dictionary.web.contact.meta.description}
+                  Get in touch with our team for support, questions, or partnership opportunities.
                 </p>
               </div>
             </div>
-            {dictionary.web.contact.hero.benefits.map((benefit, index) => (
+            {[
+              {
+                title: "Quick Response",
+                description: "We respond to all inquiries within 24 hours"
+              },
+              {
+                title: "Expert Support",
+                description: "Get help from social media management experts"
+              },
+              {
+                title: "Partnership Opportunities",
+                description: "Explore collaboration and integration possibilities"
+              }
+            ].map((benefit, index) => (
               <div
                 className="flex flex-row items-start gap-6 text-left"
                 key={index}
@@ -63,23 +71,23 @@ export const ContactForm = ({ dictionary }: ContactFormProps) => {
               className="flex w-full flex-col gap-4 rounded-md border p-8"
               onSubmit={handleSubmit}
             >
-              <p>{dictionary.web.contact.hero.form.title}</p>
+              <p>Send us a message</p>
 
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="firstname">First Name</Label>
-                <Input id="firstname" type="text" />
+                <Input id="firstname" name="firstname" type="text" required />
               </div>
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="lastname">Last Name</Label>
-                <Input id="lastname" type="text" />
+                <Input id="lastname" name="lastname" type="text" required />
               </div>
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" />
+                <Input id="email" name="email" type="email" required />
               </div>
               <div className="grid w-full items-center gap-1">
-                <Label htmlFor="picture">Message</Label>
-                <Textarea id="picture" />
+                <Label htmlFor="message">Message</Label>
+                <Textarea id="message" name="message" required />
               </div>
 
               <Button
@@ -87,7 +95,7 @@ export const ContactForm = ({ dictionary }: ContactFormProps) => {
                 type="submit"
                 onClick={() => setIsLoading(true)}
               >
-                {dictionary.web.contact.hero.form.cta}{' '}
+                Send Message{' '}
                 <MoveRight className="h-4 w-4" />
               </Button>
             </form>

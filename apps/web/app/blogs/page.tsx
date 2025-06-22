@@ -1,44 +1,46 @@
 import { BlogCard } from '@/components/blog/blog-card';
-import { getDictionary } from '@delulu/internationalization';
-import type { Blog, WithContext } from '@delulu/seo/json-ld';
-import { JsonLd } from '@delulu/seo/json-ld';
+import { JsonLd, createBlogSchema } from '@delulu/seo/json-ld';
 import { createMetadata } from '@delulu/seo/metadata';
 import { allBlogs } from 'content-collections';
 import type { Metadata } from 'next';
 
-type BlogProps = {
-  params: Promise<{
-    locale: string;
-  }>;
-};
+export const metadata: Metadata = createMetadata({
+  title: 'Blog',
+  description:
+    'Discover the latest insights, tips, and strategies for social media management, content creation, and digital marketing. Learn how to grow your audience across all major social platforms.',
+});
 
-export const generateMetadata = async ({
-  params,
-}: BlogProps): Promise<Metadata> => {
-  const { locale } = await params;
-  const dictionary = await getDictionary(locale);
+const BlogIndex = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
+  const blogUrl = `${baseUrl}/blogs`;
 
-  return createMetadata(dictionary.web.blog.meta);
-};
-
-const BlogIndex = async ({ params }: BlogProps) => {
-  const { locale } = await params;
-  const dictionary = await getDictionary(locale);
-
-  const jsonLd: WithContext<Blog> = {
-    '@type': 'Blog',
-    '@context': 'https://schema.org',
-  };
+  const blogSchema = createBlogSchema({
+    title: 'Delulu Social Blog',
+    description: 'Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.',
+    url: blogUrl,
+    posts: allBlogs.map(blog => ({
+      title: blog.title,
+      url: `${baseUrl}/blog/${blog.slug}`,
+      datePublished: blog.date,
+      author: blog.author,
+    })),
+  });
 
   return (
     <>
-      <JsonLd code={jsonLd} />
+      <JsonLd code={blogSchema} />
       <div className="w-full py-20 lg:py-40">
         <div className="container mx-auto flex flex-col gap-14">
           <div className="flex w-full flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
-            <h4 className="max-w-xl font-regular text-3xl tracking-tighter md:text-5xl">
-              {dictionary.web.blog.meta.title}
-            </h4>
+            <div className="flex flex-col gap-4">
+              <h1 className="max-w-xl font-regular text-3xl tracking-tighter md:text-5xl">
+                Blog
+              </h1>
+              <p className="max-w-2xl text-lg text-muted-foreground">
+                Discover the latest insights, tips, and strategies for social
+                media management and content creation.
+              </p>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {allBlogs.map((blog) => (
