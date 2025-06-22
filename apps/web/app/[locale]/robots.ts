@@ -1,12 +1,9 @@
 import { env } from '@/env';
 import type { MetadataRoute } from 'next';
 
-const protocol = env.VERCEL_PROJECT_PRODUCTION_URL?.startsWith('https')
-  ? 'https'
-  : 'http';
-const url = new URL(`${protocol}://${env.VERCEL_PROJECT_PRODUCTION_URL}`);
-
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
+  
   return {
     rules: [
       {
@@ -31,7 +28,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/',
       },
     ],
-    sitemap: new URL('/sitemap.xml', url.href).href,
-    host: url.href,
+    sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl,
   };
 }
