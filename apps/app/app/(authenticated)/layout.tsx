@@ -1,5 +1,5 @@
 import { StoreProvider } from '@/providers/store-provider';
-import { auth, currentUser } from '@delulu/auth/server';
+import { currentUser, redirectToSignIn } from '@delulu/auth/server';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { NotificationsProvider } from '@delulu/notifications/components/provider';
 import { secure } from '@delulu/security';
@@ -18,11 +18,10 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
   }
 
   const user = await currentUser();
-  const { redirectToSignIn } = await auth();
   // const betaFeature = await showBetaFeature();
 
   if (!user) {
-    return redirectToSignIn();
+    redirectToSignIn();
   }
 
   return (
