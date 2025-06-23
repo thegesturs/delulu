@@ -16,7 +16,6 @@
     "docker:run": "docker run -e MESSAGE_BODY='{\"socialPublishInput\": {\"postId\": \"post_J0hg0XPByWqb\", \"socialProviderId\": \"OTMupATk9DODV52RRUYaE\"}, \"socialType\": \"TIKTOK\"}' social-worker",
     "lint": "ultracite lint",
     "format": "ultracite format",
-    "format:fix": "ultracite format --write",
     "test": "turbo test",
     "analyze": "turbo analyze",
     "translate": "turbo translate",

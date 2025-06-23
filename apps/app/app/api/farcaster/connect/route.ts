@@ -1,8 +1,6 @@
 import { keys } from '@delulu/api/keys';
 import { getAuth } from '@delulu/auth/server';
-import { database } from '@delulu/database';
 import { ethers } from 'ethers';
-import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -104,7 +102,13 @@ export async function POST(req: NextRequest) {
 
     console.log('📋 Request parameters:');
     console.log('  Request FID:', requestFid);
-    console.log('  Deadline:', deadline, '(', new Date(deadline * 1000).toISOString(), ')');
+    console.log(
+      '  Deadline:',
+      deadline,
+      '(',
+      new Date(deadline * 1000).toISOString(),
+      ')'
+    );
 
     // EIP-712 domain for Farcaster SignedKeyRequestValidator
     const domain = {
@@ -145,8 +149,11 @@ export async function POST(req: NextRequest) {
       deadline,
       signature,
     };
-    
-    console.log('📤 Request body to Warpcast:', JSON.stringify(requestBody, null, 2));
+
+    console.log(
+      '📤 Request body to Warpcast:',
+      JSON.stringify(requestBody, null, 2)
+    );
 
     const response = await fetchWithTimeout(
       'https://api.warpcast.com/v2/signed-key-requests',
@@ -160,7 +167,7 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('📡 Warpcast API Response Status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Failed to create signer request:', errorText);
@@ -172,7 +179,7 @@ export async function POST(req: NextRequest) {
 
     const data = (await response.json()) as SignedKeyRequestResponse;
     console.log('✅ Warpcast API Response:', JSON.stringify(data, null, 2));
-    
+
     const { token, deeplinkUrl } = data.result.signedKeyRequest;
     console.log('🎯 Extracted values:');
     console.log('  Token:', token);
@@ -204,7 +211,7 @@ export async function POST(req: NextRequest) {
         requestFid,
         deadline,
         ethWalletAddress: ethWallet.address,
-      }
+      },
     };
 
     console.log('🚀 Final response:', JSON.stringify(finalResponse, null, 2));
@@ -288,7 +295,7 @@ export async function GET(req: NextRequest) {
 
     const data = (await response.json()) as SignerStatusResponse;
     console.log('📊 Status check response:', JSON.stringify(data, null, 2));
-    
+
     const { state, userFid, signerUser } = data.result.signedKeyRequest;
     console.log('🔄 Extracted status:', { state, userFid });
     console.log('👤 Signer user:', signerUser);
@@ -307,7 +314,7 @@ export async function GET(req: NextRequest) {
         username: signerUser.username,
         profileImage: signerUser.pfp.url,
       });
-      
+
       // // Create the social provider connection (commented out for testing)
       // await database.socialProvider.upsert({
       //   where: {

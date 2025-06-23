@@ -33,23 +33,25 @@ export const ContactForm = () => {
                   Contact Us
                 </h4>
                 <p className="max-w-sm text-left text-lg text-muted-foreground leading-relaxed tracking-tight">
-                  Get in touch with our team for support, questions, or partnership opportunities.
+                  Get in touch with our team for support, questions, or
+                  partnership opportunities.
                 </p>
               </div>
             </div>
             {[
               {
-                title: "Quick Response",
-                description: "We respond to all inquiries within 24 hours"
+                title: 'Quick Response',
+                description: 'We respond to all inquiries within 24 hours',
               },
               {
-                title: "Expert Support",
-                description: "Get help from social media management experts"
+                title: 'Expert Support',
+                description: 'Get help from social media management experts',
               },
               {
-                title: "Partnership Opportunities",
-                description: "Explore collaboration and integration possibilities"
-              }
+                title: 'Partnership Opportunities',
+                description:
+                  'Explore collaboration and integration possibilities',
+              },
             ].map((benefit, index) => (
               <div
                 className="flex flex-row items-start gap-6 text-left"
@@ -95,8 +97,7 @@ export const ContactForm = () => {
                 type="submit"
                 onClick={() => setIsLoading(true)}
               >
-                Send Message{' '}
-                <MoveRight className="h-4 w-4" />
+                Send Message <MoveRight className="h-4 w-4" />
               </Button>
             </form>
           </div>

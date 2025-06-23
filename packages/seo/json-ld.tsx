@@ -182,12 +182,14 @@ export const createBlogSchema = ({
     {
       '@type': 'Thing',
       name: 'Social Media Management',
-      description: 'Tips and strategies for managing multiple social media accounts effectively',
+      description:
+        'Tips and strategies for managing multiple social media accounts effectively',
     },
     {
       '@type': 'Thing',
       name: 'Content Creation',
-      description: 'Creative techniques for producing engaging social media content',
+      description:
+        'Creative techniques for producing engaging social media content',
     },
     {
       '@type': 'Thing',
@@ -196,7 +198,7 @@ export const createBlogSchema = ({
     },
   ],
   ...(posts.length > 0 && {
-    blogPost: posts.map(post => ({
+    blogPost: posts.map((post) => ({
       '@type': 'BlogPosting',
       headline: post.title,
       url: post.url,

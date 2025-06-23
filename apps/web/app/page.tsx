@@ -16,18 +16,28 @@ export const generateMetadata = (): Metadata => {
 
   return createMetadata({
     title: 'Delulu Social - Social Media Management Platform',
-    description: 'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+    description:
+      'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
     image: ogImage,
     openGraph: {
       title: 'Delulu Social - Social Media Management Platform',
-      description: 'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
-      images: [{ url: ogImage, width: 1200, height: 630, alt: 'Delulu Social Platform' }],
+      description:
+        'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: 'Delulu Social Platform',
+        },
+      ],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
       title: 'Delulu Social - Social Media Management Platform',
-      description: 'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+      description:
+        'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
       images: [ogImage],
     },
   });

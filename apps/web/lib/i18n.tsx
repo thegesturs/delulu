@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { type ReactNode, createContext, useContext } from 'react';
 import { IntlProvider } from 'react-intl';
 
 // Supported locales
@@ -43,11 +43,11 @@ interface LocaleProviderProps {
   onLocaleChange?: (locale: Locale) => void;
 }
 
-export const LocaleProvider = ({ 
-  children, 
-  locale, 
+export const LocaleProvider = ({
+  children,
+  locale,
   messages,
-  onLocaleChange 
+  onLocaleChange,
 }: LocaleProviderProps) => {
   const setLocale = (newLocale: Locale) => {
     onLocaleChange?.(newLocale);
@@ -68,12 +68,16 @@ export const LocaleProvider = ({
 };
 
 // Utility function to load messages
-export const loadMessages = async (locale: Locale): Promise<Record<string, any>> => {
+export const loadMessages = async (
+  locale: Locale
+): Promise<Record<string, any>> => {
   try {
     const messages = await import(`../locales/${locale}.json`);
     return messages.default || messages;
   } catch (error) {
-    console.warn(`Failed to load messages for locale: ${locale}, falling back to English`);
+    console.warn(
+      `Failed to load messages for locale: ${locale}, falling back to English`
+    );
     const fallback = await import('../locales/en.json');
     return fallback.default || fallback;
   }
@@ -82,7 +86,7 @@ export const loadMessages = async (locale: Locale): Promise<Record<string, any>>
 // Get browser locale or default to English
 export const getBrowserLocale = (): Locale => {
   if (typeof window === 'undefined') return 'en';
-  
+
   const browserLocale = navigator.language.split('-')[0] as Locale;
   return Object.keys(LOCALES).includes(browserLocale) ? browserLocale : 'en';
 };
@@ -90,20 +94,20 @@ export const getBrowserLocale = (): Locale => {
 // Get locale from URL or browser
 export const getInitialLocale = (): Locale => {
   if (typeof window === 'undefined') return 'en';
-  
+
   // Check URL params first
   const urlParams = new URLSearchParams(window.location.search);
   const urlLocale = urlParams.get('lang') as Locale;
   if (urlLocale && Object.keys(LOCALES).includes(urlLocale)) {
     return urlLocale;
   }
-  
+
   // Check localStorage
   const savedLocale = localStorage.getItem('locale') as Locale;
   if (savedLocale && Object.keys(LOCALES).includes(savedLocale)) {
     return savedLocale;
   }
-  
+
   // Fall back to browser locale
   return getBrowserLocale();
 };

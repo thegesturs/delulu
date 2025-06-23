@@ -1,13 +1,20 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { LocaleProvider, loadMessages, getInitialLocale, type Locale } from '@/lib/i18n';
+import {
+  type Locale,
+  LocaleProvider,
+  getInitialLocale,
+  loadMessages,
+} from '@/lib/i18n';
+import { type ReactNode, useEffect, useState } from 'react';
 
 interface ClientLocaleProviderProps {
   children: ReactNode;
 }
 
-export const ClientLocaleProvider = ({ children }: ClientLocaleProviderProps) => {
+export const ClientLocaleProvider = ({
+  children,
+}: ClientLocaleProviderProps) => {
   const [locale, setLocale] = useState<Locale>('en');
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const [messages, setMessages] = useState<Record<string, any>>({});
@@ -17,7 +24,7 @@ export const ClientLocaleProvider = ({ children }: ClientLocaleProviderProps) =>
     const initLocale = async () => {
       const initialLocale = getInitialLocale();
       const initialMessages = await loadMessages(initialLocale);
-      
+
       setLocale(initialLocale);
       setMessages(initialMessages);
       setIsLoading(false);
@@ -28,15 +35,15 @@ export const ClientLocaleProvider = ({ children }: ClientLocaleProviderProps) =>
 
   const handleLocaleChange = async (newLocale: Locale) => {
     setIsLoading(true);
-    
+
     try {
       const newMessages = await loadMessages(newLocale);
       setLocale(newLocale);
       setMessages(newMessages);
-      
+
       // Save to localStorage
       localStorage.setItem('locale', newLocale);
-      
+
       // Update URL without page reload
       const url = new URL(window.location.href);
       url.searchParams.set('lang', newLocale);

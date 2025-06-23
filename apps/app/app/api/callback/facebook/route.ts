@@ -96,10 +96,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Exchange code for access token
-    const tokenUrl = new URL('https://graph.facebook.com/v23.0/oauth/access_token');
+    const tokenUrl = new URL(
+      'https://graph.facebook.com/v23.0/oauth/access_token'
+    );
     tokenUrl.searchParams.append('client_id', keys().FACEBOOK_CLIENT_ID);
     tokenUrl.searchParams.append('redirect_uri', keys().FACEBOOK_CALLBACK_URL);
-    tokenUrl.searchParams.append('client_secret', keys().FACEBOOK_CLIENT_SECRET);
+    tokenUrl.searchParams.append(
+      'client_secret',
+      keys().FACEBOOK_CLIENT_SECRET
+    );
     tokenUrl.searchParams.append('code', code);
 
     const tokenRequest = await fetchWithTimeout(tokenUrl.toString(), {
@@ -123,11 +128,22 @@ export async function GET(req: NextRequest) {
     const tokenData = (await tokenRequest.json()) as FacebookTokenResponse;
 
     // Exchange short-lived token for long-lived token
-    const longLivedTokenUrl = new URL('https://graph.facebook.com/v23.0/oauth/access_token');
+    const longLivedTokenUrl = new URL(
+      'https://graph.facebook.com/v23.0/oauth/access_token'
+    );
     longLivedTokenUrl.searchParams.append('grant_type', 'fb_exchange_token');
-    longLivedTokenUrl.searchParams.append('client_id', keys().FACEBOOK_CLIENT_ID);
-    longLivedTokenUrl.searchParams.append('client_secret', keys().FACEBOOK_CLIENT_SECRET);
-    longLivedTokenUrl.searchParams.append('fb_exchange_token', tokenData.access_token);
+    longLivedTokenUrl.searchParams.append(
+      'client_id',
+      keys().FACEBOOK_CLIENT_ID
+    );
+    longLivedTokenUrl.searchParams.append(
+      'client_secret',
+      keys().FACEBOOK_CLIENT_SECRET
+    );
+    longLivedTokenUrl.searchParams.append(
+      'fb_exchange_token',
+      tokenData.access_token
+    );
 
     const longLivedTokenResponse = await fetchWithTimeout(
       longLivedTokenUrl.toString(),

@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          Authorization: `Bearer ${tokenData.access_token}`,
         },
       }
     );
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const userObject = await userResponse.json() as PinterestUserResponse;
+    const userObject = (await userResponse.json()) as PinterestUserResponse;
 
     // Store the social provider data
     await database.socialProvider.upsert({

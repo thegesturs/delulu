@@ -1,4 +1,5 @@
 'use client';
+import { useTranslation } from '@/lib/useTranslation';
 import { useTheme } from '@delulu/design-system';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { useMediaQuery } from '@delulu/design-system/hooks/use-media-query';
@@ -9,7 +10,6 @@ import Link from 'next/link';
 import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
-import { useTranslation } from '@/lib/useTranslation';
 import AppDark from '../app/images/app-dark.png';
 import AppLight from '../app/images/app-light.png';
 import { DesktopMockup } from './desktop-mockup';
@@ -37,9 +37,7 @@ export function Hero() {
             'bg-clip-text text-transparent'
           )}
         >
-          <Balancer>
-            {t('hero.title')}
-          </Balancer>
+          <Balancer>{t('hero.title')}</Balancer>
         </motion.h2>
       </div>
       <motion.p

@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
 import { CheckCircle, ExternalLink, Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 interface FarcasterConnectProps {

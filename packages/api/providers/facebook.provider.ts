@@ -81,9 +81,10 @@ async function createFeedPost(
   });
 
   if (mediaIds.length > 0) {
-    params.append('attached_media', JSON.stringify(
-      mediaIds.map(id => ({ media_fbid: id }))
-    ));
+    params.append(
+      'attached_media',
+      JSON.stringify(mediaIds.map((id) => ({ media_fbid: id })))
+    );
   }
 
   const response = await axios.post<FacebookPostResponse>(
@@ -128,7 +129,7 @@ export const facebookProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
     const profile = await getAccessTokenAndProfile(socialProviderId);
     const firstContent = content.content[0];
-    
+
     if (!firstContent) {
       throw new TRPCError({
         code: 'BAD_REQUEST',

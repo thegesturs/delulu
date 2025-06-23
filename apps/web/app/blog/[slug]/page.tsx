@@ -102,7 +102,7 @@ export default async function Page({ params }: PageProps) {
   };
 
   const pageUrl = new URL(`/blog/${slug}`, url).href;
-  
+
   const blogPostSchema = createBlogPostingSchema({
     title: blog.title,
     description: blog.description,

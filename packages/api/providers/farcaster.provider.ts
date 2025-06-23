@@ -37,7 +37,7 @@ async function submitCast(
       },
       {
         headers: {
-          'Authorization': `Bearer ${profile.signerUuid}`,
+          Authorization: `Bearer ${profile.signerUuid}`,
           'Content-Type': 'application/json',
         },
       }
@@ -54,12 +54,12 @@ async function submitCast(
   } catch (error) {
     // Fallback: If Warpcast API fails, we can try the Hub API approach
     console.warn('Warpcast API failed, falling back to Hub API');
-    
+
     // This is a placeholder for proper Hub API implementation
     // In production, you'd use @farcaster/hub-nodejs for proper message signing
     const timestamp = Math.floor(Date.now() / 1000);
     const hash = `0x${Date.now().toString(16)}`;
-    
+
     return {
       hash,
       timestamp,
@@ -93,7 +93,7 @@ export const farcasterProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
     const profile = await getAccessTokenAndProfile(socialProviderId);
     const firstContent = content.content[0];
-    
+
     if (!firstContent) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -104,7 +104,7 @@ export const farcasterProvider: SocialProvider = {
     try {
       const validMedia = getValidMediaUrls(firstContent.media);
       const embeds = validMedia
-        .map(media => media.url ? { url: media.url } : null)
+        .map((media) => (media.url ? { url: media.url } : null))
         .filter((embed): embed is { url: string } => embed !== null);
 
       const castData: FarcasterCastRequest = {

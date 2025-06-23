@@ -11,10 +11,16 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import type { SocialTypes } from '@delulu/validators/post';
 import { Plus } from 'lucide-react';
-import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaTiktok } from 'react-icons/fa';
-import { FaXTwitter } from 'react-icons/fa6';
-import { SiThreads, SiFarcaster } from 'react-icons/si';
 import { useState } from 'react';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaPinterest,
+  FaTiktok,
+} from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
+import { SiFarcaster, SiThreads } from 'react-icons/si';
 import { FarcasterConnect } from './farcaster-connect';
 
 interface ConnectedAccountsHeaderProps {

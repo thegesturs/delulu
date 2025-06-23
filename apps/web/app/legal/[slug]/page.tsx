@@ -28,7 +28,7 @@ export const generateMetadata = async ({
 }: PageProps): Promise<Metadata> => {
   const { slug } = await params;
   const legal = allLegals.find((legal) => legal.slug === slug);
-  
+
   if (!legal) {
     return notFound();
   }
@@ -70,7 +70,7 @@ export default async function Page({ params }: PageProps) {
 
   const pageUrl = new URL(`/legal/${slug}`, url).href;
   const currentDate = new Date().toISOString();
-  
+
   const articleSchema = createArticleSchema({
     title: legal.title,
     description: `${legal.title} - Delulu Social legal documentation`,

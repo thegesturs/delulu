@@ -1,16 +1,16 @@
 import './styles.css';
 import { Footer } from '@/components/footer';
-import { Navbar } from '@/components/navbar';
 import { ClientLocaleProvider } from '@/components/locale-provider';
+import { Navbar } from '@/components/navbar';
 import { env } from '@/env';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import { cn } from '@delulu/design-system/lib/utils';
-import { 
-  JsonLd, 
-  createOrganizationSchema, 
-  createAISoftwareApplicationSchema, 
-  createWebSiteSchema 
+import {
+  JsonLd,
+  createAISoftwareApplicationSchema,
+  createOrganizationSchema,
+  createWebSiteSchema,
 } from '@delulu/seo/json-ld';
 import type { ReactNode } from 'react';
 

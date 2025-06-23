@@ -1,6 +1,5 @@
-import { z } from 'zod';
 import { File } from 'fetch-blob/file.js';
-
+import { z } from 'zod';
 
 export const videoTypes = ['MP4', 'MOV', 'MKV', 'WEBM'];
 export const allowedImageTypes = ['JPEG', 'GIF', 'PNG', 'HEIC', 'WEBP'];

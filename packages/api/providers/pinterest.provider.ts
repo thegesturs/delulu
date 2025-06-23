@@ -15,16 +15,16 @@ interface PinterestBoardResponse {
 interface PinterestPinResponse {
   id: string;
   link: string;
-} 
+}
 
-async function getDefaultBoard(
-  profile: { accessToken: string }
-): Promise<PinterestBoardResponse> {
+async function getDefaultBoard(profile: {
+  accessToken: string;
+}): Promise<PinterestBoardResponse> {
   const response = await axios.get<{ items: PinterestBoardResponse[] }>(
     'https://api.pinterest.com/v5/boards',
     {
       headers: {
-        'Authorization': `Bearer ${profile.accessToken}`,
+        Authorization: `Bearer ${profile.accessToken}`,
       },
     }
   );
@@ -67,7 +67,7 @@ async function createPin(
     pinData,
     {
       headers: {
-        'Authorization': `Bearer ${profile.accessToken}`,
+        Authorization: `Bearer ${profile.accessToken}`,
         'Content-Type': 'application/json',
       },
     }
@@ -96,7 +96,7 @@ export const pinterestProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
     const profile = await getAccessTokenAndProfile(socialProviderId);
     const firstContent = content.content[0];
-    
+
     if (!firstContent) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -106,7 +106,7 @@ export const pinterestProvider: SocialProvider = {
 
     try {
       const validMedia = getValidMediaUrls(firstContent.media);
-      
+
       if (validMedia.length === 0) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -118,7 +118,8 @@ export const pinterestProvider: SocialProvider = {
       if (firstMedia.mediaType === 'VIDEO') {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Pinterest API v5 does not support video uploads via this endpoint.',
+          message:
+            'Pinterest API v5 does not support video uploads via this endpoint.',
         });
       }
 

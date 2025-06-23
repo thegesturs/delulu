@@ -31,7 +31,11 @@ export const DesignSystemProvider = ({
   return (
     <ThemeProvider {...properties}>
       {withAuth ? (
-        <AuthProvider privacyUrl={privacyUrl} termsUrl={termsUrl} helpUrl={helpUrl}>
+        <AuthProvider
+          privacyUrl={privacyUrl}
+          termsUrl={termsUrl}
+          helpUrl={helpUrl}
+        >
           {content}
         </AuthProvider>
       ) : (

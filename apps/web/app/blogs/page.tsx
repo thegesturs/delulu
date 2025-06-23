@@ -16,9 +16,10 @@ const BlogIndex = () => {
 
   const blogSchema = createBlogSchema({
     title: 'Delulu Social Blog',
-    description: 'Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.',
+    description:
+      'Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.',
     url: blogUrl,
-    posts: allBlogs.map(blog => ({
+    posts: allBlogs.map((blog) => ({
       title: blog.title,
       url: `${baseUrl}/blog/${blog.slug}`,
       datePublished: blog.date,

@@ -4,7 +4,8 @@ import { ContactForm } from './components/contact-form';
 
 export const metadata: Metadata = createMetadata({
   title: 'Contact Us',
-  description: 'Get in touch with the Delulu Social team. Have questions about our social media management platform? Need support? We\'re here to help you succeed with your social media strategy.',
+  description:
+    "Get in touch with the Delulu Social team. Have questions about our social media management platform? Need support? We're here to help you succeed with your social media strategy.",
 });
 
 const Contact = () => {

@@ -36,7 +36,7 @@ export const createMetadata = ({
       'multi-platform posting software',
       'social media content creation tools',
       'social media automation platform',
-      
+
       // Platform-specific (conversational queries)
       'post to Instagram and Facebook simultaneously',
       'schedule TikTok and Twitter posts',
@@ -44,7 +44,7 @@ export const createMetadata = ({
       'Pinterest marketing automation',
       'Threads publishing tool',
       'Farcaster social media manager',
-      
+
       // Problem-solving keywords (AI loves these)
       'how to save time on social media',
       'social media management for businesses',
@@ -52,13 +52,13 @@ export const createMetadata = ({
       'social media analytics and insights',
       'team collaboration for social media',
       'cross-platform content synchronization',
-      
+
       // Technical/brand terms
       'Delulu Social',
       'social media dashboard',
       'social media marketing tool',
       'social media scheduler',
-      'social media automation'
+      'social media automation',
     ],
     metadataBase: productionUrl ? new URL(`${productionUrl}`) : undefined,
     authors: [author],
