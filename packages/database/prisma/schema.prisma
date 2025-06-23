@@ -15,7 +15,6 @@ generator client {
 }
 
 
-
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
@@ -70,13 +69,6 @@ enum Role {
   MEMBER
 }
 
-// enum InviteStatus {
-//   PENDING
-//   ACCEPTED
-//   REJECTED
-//   CANCELLED
-// }
-
 enum SubscriptionStatus {
   INCOMPLETE
   INCOMPLETE_EXPIRED
@@ -99,16 +91,11 @@ model User {
 
   // Relations
   userUsage      UserUsage?
-  ownedOrganizations  Organization[]    // Owned organizations
-  memberships OrganizationMember[] // Organizations where user is a member
-  posts          Post[]
-  socialProviders SocialProvider[]
-  subscriptions  Subscription[]
-  orders         Order[]
-  farcasterSignerRequests FarcasterSignerRequest[]
   // organizationInvites OrganizationInvites[] @relation("InvitedBy")
 
   @@map("users")
+  SocialProvider SocialProvider[]
+  Post Post[]
 }
 
 model UserUsage {
@@ -126,62 +113,9 @@ model UserUsage {
   @@map("user_usage")
 }
 
-model Organization {
-  clerkOrgId    String   @id @map("clerk_org_id") @db.VarChar(256)
-  ownerId       String   @map("owner_id") @db.VarChar(256)
-  name          String   @db.VarChar(256)
-  logo          String?  @db.VarChar(256)
-  category      String   @default("personal") @db.VarChar(256)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  // Relations
-  owner         User     @relation(fields: [ownerId], references: [clerkUserId], onDelete: Cascade)
-  // invites       OrganizationInvites[]
-  members       OrganizationMember[]
-  posts         Post[]
-  socialProviders SocialProvider[]
 
-  @@index([ownerId])
-  @@map("organizations")
-}
 
-// model OrganizationInvites {
-//   id             String       @id @db.VarChar(256)
-//   name           String       @db.VarChar(256)
-//   email          String       @db.VarChar(256)
-//   organizationId String       @map("organization_id") @db.VarChar(256)
-//   role           Role
-//   status         InviteStatus
-//   inviterId      String       @map("inviter_id") @db.VarChar(256)
-//   inviterName    String       @map("inviter_name") @db.VarChar(256)
-//   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
-//   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-
-//   // Relations
-//   organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-//   invitedBy      User        @relation("InvitedBy", fields: [inviterId], references: [clerkUserId])
-
-//   @@index([organizationId])
-//   @@map("organization_invites")
-// }
-
-model OrganizationMember {
-  organizationId String     @map("organization_id") @db.VarChar(256)
-  userId         String     @map("user_id") @db.VarChar(256)
-  role           Role       @default(MEMBER)
-  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
-
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
-  member         User        @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
-
-  @@id([organizationId, userId])
-  @@index([organizationId, userId])
-  @@index([userId])
-  @@map("organization_members")
-}
 
 model Post {
   id                String           @id @db.VarChar(191)
@@ -201,7 +135,6 @@ model Post {
   retryCount       Int              @default(0) @map("retry_count")
 
   // Relations
-  organization     Organization?    @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
   user             User?            @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
   alternateContents AlternatePostContent[]
   socialProviders  SocialProvider[] @relation("PostToSocialProvider")
@@ -265,8 +198,6 @@ model SocialProvider {
   isActive             Boolean   @default(true) @map("is_active")
   lastSyncedAt         DateTime? @map("last_synced_at") @db.Timestamptz
 
-  // Relations
-  organization         Organization? @relation(fields: [organizationId], references: [clerkOrgId], onDelete: Cascade)
   user                User?         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
   posts               Post[]       @relation("PostToSocialProvider")
   alternateContents   AlternatePostContent[]
@@ -277,86 +208,5 @@ model SocialProvider {
   @@index([userId])
   @@index([organizationId])
   @@map("social_providers")
-}
-
-model Subscription {
-  id                 String            @id @map("id")
-  userId             String            @map("user_id")
-  status             SubscriptionStatus @map("status")
-  priceId            String            @map("price_id")
-  productId          String            @map("product_id")
-  amount             Int               @map("amount")
-  currency           String            @map("currency")
-  reoccurringInterval String           @map("reoccurring_interval")
-  customerId         String            @map("customer_id")
-  currentPeriodStart DateTime          @map("current_period_start")
-  currentPeriodEnd   DateTime          @map("current_period_end")
-  cancelAtPeriodEnd  Boolean           @map("cancel_at_period_end")
-  endsAt             DateTime?         @map("ends_at")
-  endedAt            DateTime?         @map("ended_at")
-  startedAt          DateTime?         @map("started_at")
-  canceledAt         DateTime?         @map("canceled_at")
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
-  orders Order[]
-
-  @@index([userId])
-  @@map("subscriptions")
-}
-
-model Order {
-  id                String   @id @map("id")
-  userId            String   @map("user_id")
-  status            String   @map("status")
-  paid              Boolean  @map("paid")
-  subtotalAmount    Int      @map("subtotal_amount")
-  discountAmount    Int      @map("discount_amount")
-  netAmount         Int      @map("net_amount")
-  amount            Int      @map("amount")
-  taxAmount         Int      @map("tax_amount")
-  totalAmount       Int      @map("total_amount")
-  refundedAmount    Int      @map("refunded_amount")
-  refundedTaxAmount Int      @map("refunded_tax_amount")
-  currency          String   @map("currency") @db.VarChar(5)
-  billingReason     String   @map("billing_reason")
-  customerId        String   @map("customer_id")
-  productId         String   @map("product_id")
-  productPriceId    String   @map("product_price_id")
-  discountId        String?  @map("discount_id")
-  subscriptionId    String?  @map("subscription_id")
-  checkoutId        String?  @map("checkout_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  user         User         @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
-
-  @@index([userId])
-  @@index([subscriptionId])
-  @@map("orders")
-}
-
-model FarcasterSignerRequest {
-  id         String   @id @map("id")
-  token      String   @unique @map("token")
-  publicKey  String   @map("public_key")
-  privateKey String   @map("private_key")
-  deeplinkUrl String  @map("deeplink_url")
-  userId     String   @map("user_id")
-  userFid    String?  @map("user_fid")
-  state      String   @default("pending") @map("state")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  // Relations
-  user User @relation(fields: [userId], references: [clerkUserId], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-  @@map("farcaster_signer_requests")
 }
 

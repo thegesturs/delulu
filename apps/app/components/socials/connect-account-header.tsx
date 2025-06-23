@@ -176,11 +176,11 @@ export function ConnectedAccountsHeader({
         </Dialog>
       </div>
 
-      <FarcasterConnect
+      {/* <FarcasterConnect
         isOpen={showFarcasterConnect}
         onClose={() => setShowFarcasterConnect(false)}
         onSuccess={handleFarcasterSuccess}
-      />
+      /> */}
     </div>
   );
 }
