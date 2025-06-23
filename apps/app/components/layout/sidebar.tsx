@@ -1,5 +1,5 @@
 'use client';
-import { UserButton } from '@delulu/auth/client';
+import { UserButton } from '@/components/auth/user-button';
 import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {

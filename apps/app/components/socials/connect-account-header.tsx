@@ -21,7 +21,6 @@ import {
 } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { SiFarcaster, SiThreads } from 'react-icons/si';
-import { FarcasterConnect } from './farcaster-connect';
 
 interface ConnectedAccountsHeaderProps {
   onConnect: (platform: keyof typeof SocialTypes) => void;
