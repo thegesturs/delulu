@@ -1,9 +1,9 @@
+import { getSessionCookie } from '@delulu/auth/server';
 import {
   noseconeMiddleware,
   noseconeOptions,
   noseconeOptionsWithToolbar,
 } from '@delulu/security/middleware';
-import { getSessionCookie } from '@delulu/auth/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { env } from './env';
 
@@ -40,7 +40,10 @@ export default function middleware(request: NextRequest) {
 
   // Redirect to sign-in if no session cookie found
   if (!sessionCookie) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
+    const signInUrl = new URL('/sign-in', request.url);
+    // Add the current path as redirect_to query param
+    signInUrl.searchParams.set('redirect_to', pathname);
+    return NextResponse.redirect(signInUrl);
   }
 
   return securityResponse || NextResponse.next();

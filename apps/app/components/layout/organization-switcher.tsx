@@ -5,7 +5,6 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';

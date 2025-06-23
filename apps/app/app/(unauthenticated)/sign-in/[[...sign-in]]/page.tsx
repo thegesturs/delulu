@@ -1,23 +1,24 @@
+import { SignIn } from '@/components/auth/sign-in';
 import { createMetadata } from '@delulu/seo/metadata';
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
 
 const title = 'Welcome back';
 const description = 'Enter your details to sign in.';
-const SignIn = dynamic(() =>
-  import('@delulu/auth/components/sign-in').then((mod) => mod.SignIn)
-);
 
 export const metadata: Metadata = createMetadata({ title, description });
 
-const SignInPage = () => (
-  <>
-    <div className="flex flex-col space-y-2 text-center">
-      <h1 className="font-semibold text-2xl tracking-tight">{title}</h1>
-      <p className="text-muted-foreground text-sm">{description}</p>
+type SignInPageProps = {
+  searchParams: { redirect_to?: string };
+};
+
+const SignInPage = ({ searchParams }: SignInPageProps) => {
+  const redirectTo = searchParams.redirect_to;
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <SignIn redirectTo={redirectTo} />
     </div>
-    <SignIn />
-  </>
-);
+  );
+};
 
 export default SignInPage;

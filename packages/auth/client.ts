@@ -6,7 +6,15 @@ export const authClient = createAuthClient({
   plugins: [nextCookies()],
 });
 
-export const { signIn, signUp, signOut, useSession } = authClient;
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  forgetPassword,
+  resetPassword,
+  verifyEmail,
+} = authClient;
 
 // Convenience hook for user data
 export const useUser = () => {
@@ -18,5 +26,4 @@ export const useUser = () => {
   };
 };
 
-// Export UserButton component
-export { UserButton } from './components/user-button';
+// Components are now in the app layer
