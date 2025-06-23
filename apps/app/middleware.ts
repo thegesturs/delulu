@@ -3,25 +3,48 @@ import {
   noseconeOptions,
   noseconeOptionsWithToolbar,
 } from '@delulu/security/middleware';
+import { getSessionCookie } from '@delulu/auth/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { env } from './env';
 
 const securityHeaders = env.FLAGS_SECRET
   ? noseconeMiddleware(noseconeOptionsWithToolbar)
   : noseconeMiddleware(noseconeOptions);
 
-const isPublicRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/trpc(.*)',
-  '/api/webhooks(.*)',
-]);
+// Helper function to check if route is public
+function isPublicRoute(pathname: string): boolean {
+  const publicRoutes = [
+    '/sign-in',
+    '/sign-up',
+    '/api/auth',
+    '/api/trpc',
+    '/api/webhooks',
+  ];
 
-export default authMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
+  return publicRoutes.some((route) => pathname.startsWith(route));
+}
+
+export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Apply security headers
+  const securityResponse = securityHeaders();
+
+  // Skip auth check for public routes
+  if (isPublicRoute(pathname)) {
+    return securityResponse || NextResponse.next();
   }
-  securityHeaders();
-});
+
+  // Check for session cookie using Better Auth's recommended approach
+  const sessionCookie = getSessionCookie(request);
+
+  // Redirect to sign-in if no session cookie found
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/sign-in', request.url));
+  }
+
+  return securityResponse || NextResponse.next();
+}
 
 export const config = {
   matcher: [

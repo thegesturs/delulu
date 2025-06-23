@@ -45,3 +45,4 @@ export const auth = betterAuth({
 export type Session = typeof auth.$Infer.Session;
 export type User = typeof auth.$Infer.Session.user;
 export { toNextJsHandler } from 'better-auth/next-js';
+export { getSessionCookie } from 'better-auth/cookies';
