@@ -9,8 +9,11 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { alternatePostContent, platformPosts, posts } from '../post/post.sql';
+import { users } from '../user/user.sql';
+import { createUniqueIds } from '../utilts';
 
-// Enums
+// Database enums
 export const socialTypeEnum = pgEnum('social_type', [
   'TWITTER',
   'LINKEDIN',
@@ -31,11 +34,24 @@ export const currentPlanEnum = pgEnum('current_plan', [
   'PRO3',
 ]);
 
+// Type-safe access derived from pgEnums
+export type SocialType = (typeof socialTypeEnum.enumValues)[number];
+export const SocialType = Object.fromEntries(
+  socialTypeEnum.enumValues.map((value) => [value, value])
+) as Record<SocialType, SocialType>;
+
+export type CurrentPlan = (typeof currentPlanEnum.enumValues)[number];
+export const CurrentPlan = Object.fromEntries(
+  currentPlanEnum.enumValues.map((value) => [value, value])
+) as Record<CurrentPlan, CurrentPlan>;
+
 // Social Providers table
 export const socialProviders = pgTable(
   'social_providers',
   {
-    id: varchar('id', { length: 191 }).primaryKey(),
+    id: varchar('id', { length: 191 })
+      .primaryKey()
+      .$defaultFn(() => createUniqueIds('social')),
     organizationId: varchar('organization_id', { length: 256 }),
     userId: varchar('user_id', { length: 191 }),
     clientId: varchar('client_id', { length: 191 }),
@@ -60,23 +76,24 @@ export const socialProviders = pgTable(
     isActive: boolean('is_active').notNull().default(true),
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },
-  (table) => ({
-    profileOrganizationUniqueIdx: unique().on(
-      table.profileId,
-      table.organizationId
-    ),
-    userProfileUniqueIdx: unique().on(table.userId, table.profileId),
-    userIdIdx: index('social_providers_user_id_idx').on(table.userId),
-    organizationIdIdx: index('social_providers_organization_id_idx').on(
-      table.organizationId
-    ),
-  })
+  (table) => [
+    unique().on(table.profileId, table.organizationId),
+    unique().on(table.userId, table.profileId),
+    index('social_providers_user_id_idx').on(table.userId),
+    index('social_providers_organization_id_idx').on(table.organizationId),
+  ]
 );
 
 // Relations
 export const socialProvidersRelations = relations(
   socialProviders,
-  ({ many }) => ({
-    // Will be connected to posts, alternateContents, and platformPosts when those are imported
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [socialProviders.userId],
+      references: [users.id],
+    }),
+    posts: many(posts),
+    alternateContents: many(alternatePostContent),
+    platformPosts: many(platformPosts),
   })
 );

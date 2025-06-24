@@ -2,7 +2,7 @@
 
 import { api } from '@/trpc/react';
 import type { ApiPostContentItem } from '@delulu/api/db/types/post.types';
-import type { PostStatus } from '@delulu/database';
+import type { PostStatus } from '@delulu/database/schema';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';

@@ -72,8 +72,6 @@ export const mediaSchema = z.object({
   altText: z.string().optional(),
   thumbnailBucketUrl: z.string().optional(),
   thumbnailBucketKey: z.string().optional(),
-  file: z.instanceof(File).optional(),
-  previewUrl: z.string().optional(),
 });
 
 export type MediaType = z.infer<typeof mediaSchema>;
@@ -164,29 +162,11 @@ export type youtubeContentType = z.infer<typeof youtubeContentSchema>;
 
 export const savePostInputSchema = z.object({
   ...postSchema.shape,
-  content: z.array(
-    contentSchema.extend({
-      media: z.array(
-        mediaSchema.omit({
-          file: true,
-          previewUrl: true,
-        })
-      ),
-    })
-  ),
+  content: z.array(contentSchema),
   alternativeContent: z.array(
     z.object({
       socialProvider: SocialProviderSchema,
-      content: z.array(
-        contentSchema.extend({
-          media: z.array(
-            mediaSchema.omit({
-              file: true,
-              previewUrl: true,
-            })
-          ),
-        })
-      ),
+      content: z.array(contentSchema),
     })
   ),
   socialProviders: z.array(SocialProviderSchema),

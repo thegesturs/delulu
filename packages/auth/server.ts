@@ -1,12 +1,20 @@
+import { database, schema } from '@delulu/database';
 import { resend } from '@delulu/email';
 import { betterAuth } from 'better-auth';
-import { Pool } from 'pg';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { keys } from './keys';
 
 export const auth = betterAuth({
-  database: new Pool({
-    connectionString:
-      'postgresql://neondb_owner:npg_v7XI1lqCnEAk@ep-little-wildflower-a53wcfb4-pooler.us-east-2.aws.neon.tech/delulu_local?sslmode=require',
+  database: drizzleAdapter(database, {
+    provider: 'pg',
+    schema: {
+      users: schema.user.users,
+      accounts: schema.user.accounts,
+      sessions: schema.user.sessions,
+      verifications: schema.user.verifications,
+    },
+    debugLogs: true,
+    usePlural: true,
   }),
   emailVerification: {
     async sendVerificationEmail({ user, url }) {
@@ -35,7 +43,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    sendResetPassword: async ({ user, url, token }) => {
+    sendResetPassword: async ({ user, url }) => {
       await resend.emails.send({
         from: 'Delulu Social <noreply@delulu.social>',
         to: user.email,
@@ -63,6 +71,13 @@ export const auth = betterAuth({
     google: {
       clientId: keys().GOOGLE_CLIENT_ID,
       clientSecret: keys().GOOGLE_CLIENT_SECRET,
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['google'],
+      updateUserInfoOnLink: true,
     },
   },
 });
