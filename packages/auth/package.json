@@ -9,14 +9,16 @@
   },
   "dependencies": {
     "@delulu/database": "workspace:*",
+    "@delulu/email": "workspace:*",
+    "@prisma/client": "catalog:",
     "@t3-oss/env-nextjs": "^0.12.0",
+    "@types/pg": "^8.15.4",
     "better-auth": "^1.2.10",
     "nanoid": "^5.1.5",
+    "pg": "^8.16.2",
+    "prisma": "catalog:",
     "resend": "^4.2.0",
     "server-only": "^0.0.1",
-    "prisma": "catalog:",
-    "@prisma/client": "catalog:",
-    "@delulu/email": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

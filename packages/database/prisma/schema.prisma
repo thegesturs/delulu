@@ -55,76 +55,143 @@ enum SocialType {
 }
 
 
-model User {
-  id              String    @id @default(cuid()) @db.VarChar(256)
-  email           String     
-  emailVerified   Boolean    @default(false) @map("email_verified")
-  name            String     
-  image           String?    
-  currentPlan     CurrentPlan @default(FREE) @map("current_plan")
-  personalization Json?      @map("personalization")
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+// model User {
+//   id              String    @id @default(cuid()) @db.VarChar(256)
+//   email           String     
+//   emailVerified   Boolean    @default(false) @map("email_verified")
+//   name            String     
+//   image           String?    
+//   currentPlan     CurrentPlan @default(FREE) @map("current_plan")
+//   personalization Json?      @map("personalization")
+//   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
+//   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  // Relations
-  userUsage       UserUsage?
-  sessions        Session[]
-  accounts        Account[]
-  socialProviders SocialProvider[]
-  posts           Post[]
+//   // Relations
+//   userUsage       UserUsage?
+//   sessions        Session[]
+//   accounts        Account[]
+//   socialProviders SocialProvider[]
+//   posts           Post[]
+
+//   @@unique([email])
+//   @@map("user")
+// }
+
+// model Session {
+//   id        String   @id @default(cuid())
+//   token     String   @unique
+//   userId    String   @map("user_id") @db.VarChar(256)
+//   expiresAt DateTime @map("expires_at") @db.Timestamptz
+//   ipAddress String?  @map("ip_address") @db.VarChar(45)
+//   userAgent String?  @map("user_agent") @db.Text
+//   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+//   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@map("sessions")
+// }
+
+// model Account {
+//   id                String  @id @default(cuid())
+//   userId            String  @map("user_id") @db.VarChar(256)
+//   accountId         String  @map("account_id") @db.VarChar(256)
+//   providerId        String  @map("provider_id") @db.VarChar(256)
+//   accessToken       String? @map("access_token") @db.Text
+//   refreshToken      String? @map("refresh_token") @db.Text
+//   idToken           String? @map("id_token") @db.Text
+//   accessTokenExpiresAt DateTime? @map("access_token_expires_at") @db.Timestamptz
+//   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
+//   scope             String? @db.Text
+//   password          String? @db.Text
+//   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+//   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([providerId, accountId])
+//   @@index([userId])
+//   @@map("account")
+// }
+
+// model Verification {
+//   id         String   @id @default(cuid())
+//   identifier String   @db.VarChar(256)
+//   value      String   @db.VarChar(256)
+//   expiresAt  DateTime @map("expires_at") @db.Timestamptz
+//   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+//   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+//   @@unique([identifier, value])
+//   @@map("verification")
+// }
+
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  userUsage     UserUsage?  
 
   @@unique([email])
   @@map("user")
+  Post Post[]
+  SocialProvider SocialProvider[]
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   
-  userId    String   @map("user_id") @db.VarChar(256)
-  expiresAt DateTime @map("expires_at") @db.Timestamptz
-  ipAddress String?  @map("ip_address") @db.VarChar(45)
-  userAgent String?  @map("user_agent") @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
+  @@unique([token])
+  @@map("session")
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id") @db.VarChar(256)
-  accountId         String  @map("account_id") @db.VarChar(256)
-  providerId        String  @map("provider_id") @db.VarChar(256)
-  accessToken       String? @map("access_token") @db.Text
-  refreshToken      String? @map("refresh_token") @db.Text
-  idToken           String? @map("id_token") @db.Text
-  accessTokenExpiresAt DateTime? @map("access_token_expires_at") @db.Timestamptz
-  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
-  scope             String? @db.Text
-  password          String? @db.Text
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([providerId, accountId])
-  @@index([userId])
-  @@map("accounts")
+  @@map("account")
 }
 
 model Verification {
-  id         String   @id @default(cuid())
-  identifier String   @db.VarChar(256)
-  value      String   @db.VarChar(256)
-  expiresAt  DateTime @map("expires_at") @db.Timestamptz
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
 
-  @@unique([identifier, value])
-  @@map("verifications")
+  @@map("verification")
 }
+
+
+
 
 model UserUsage {
   userId         String   @unique @map("user_id") @db.VarChar(256)
