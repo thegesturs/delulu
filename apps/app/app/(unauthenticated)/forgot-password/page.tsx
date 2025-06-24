@@ -10,11 +10,7 @@ export const metadata: Metadata = createMetadata({ title, description });
 const ForgotPasswordPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <ForgotPassword
-        onBack={() => {
-          window.location.href = '/sign-in';
-        }}
-      />
+      <ForgotPassword />
     </div>
   );
 };

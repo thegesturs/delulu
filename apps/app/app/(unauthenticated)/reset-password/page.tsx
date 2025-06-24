@@ -14,11 +14,7 @@ type ResetPasswordPageProps = {
 const ResetPasswordPage = ({ searchParams }: ResetPasswordPageProps) => {
   const token = searchParams.token;
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <ResetPassword token={token} redirectTo="/sign-in" />
-    </div>
-  );
+  return <ResetPassword token={token} redirectTo="/sign-in" />;
 };
 
 export default ResetPasswordPage;

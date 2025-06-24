@@ -1,6 +1,6 @@
 'use client';
 
-import { signIn } from '@delulu/auth/client';
+import { authClient, signIn } from '@delulu/auth/client';
 import {
   Alert,
   AlertDescription,
@@ -37,47 +37,49 @@ export const SignIn = ({
   const [error, setError] = useState('');
   const router = useRouter();
 
+  const test = authClient.getSession();
+  console.log(test, 'test');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    try {
-      const result = await signIn.email({
-        email,
-        password,
-      });
+    const result = await signIn.email({
+      email,
+      password,
+    });
 
-      if (result.data) {
-        if (redirectTo) {
-          router.push(redirectTo);
-        } else if (onSuccess) {
-          onSuccess();
-        } else {
-          router.push('/');
-        }
+    if (result.data) {
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push('/');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed');
-    } finally {
-      setIsLoading(false);
     }
+    if (result.error) {
+      setError(result.error.message || 'Something went wrong');
+      console.log(result.error);
+    }
+    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    try {
-      await signIn.social({
-        provider: 'google',
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign in failed');
-      setIsLoading(false);
+    const result = await signIn.social({
+      provider: 'google',
+    });
+    if (result.error) {
+      setError(result.error.message || 'Something went wrong');
+      console.log(result.error);
     }
+    setIsLoading(false);
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="mx-auto w-full">
       <CardHeader className="space-y-1">
         <CardTitle className="font-semibold text-2xl tracking-tight">
           Welcome back

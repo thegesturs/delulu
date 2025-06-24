@@ -32,8 +32,8 @@ export const keys = () =>
       PINTEREST_CLIENT_SECRET: z.string().min(1),
       PINTEREST_CALLBACK_URL: z.string().min(1),
 
-      YOUTUBE_CLIENT_ID: z.string().min(1),
-      YOUTUBE_CLIENT_SECRET: z.string().min(1),
+      GOOGLE_CLIENT_ID: z.string().min(1),
+      GOOGLE_CLIENT_SECRET: z.string().min(1),
       YOUTUBE_CALLBACK_URL: z.string().min(1),
 
       REDIS_URL: z.string().min(1),
@@ -79,8 +79,8 @@ export const keys = () =>
       PINTEREST_CLIENT_SECRET: process.env.PINTEREST_CLIENT_SECRET,
       PINTEREST_CALLBACK_URL: process.env.PINTEREST_CALLBACK_URL,
 
-      YOUTUBE_CLIENT_ID: process.env.YOUTUBE_CLIENT_ID,
-      YOUTUBE_CLIENT_SECRET: process.env.YOUTUBE_CLIENT_SECRET,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
       YOUTUBE_CALLBACK_URL: process.env.YOUTUBE_CALLBACK_URL,
     },
   });

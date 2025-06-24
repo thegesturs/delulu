@@ -16,6 +16,7 @@ function isPublicRoute(pathname: string): boolean {
   const publicRoutes = [
     '/sign-in',
     '/sign-up',
+    '/forgot-password',
     '/api/auth',
     '/api/trpc',
     '/api/webhooks',
