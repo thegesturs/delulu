@@ -1,7 +1,6 @@
 'use client';
 
 import { forgetPassword } from '@delulu/auth/client';
-import React from 'react';
 import {
   Alert,
   AlertDescription,
@@ -17,14 +16,15 @@ import {
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
 import { CheckCircle } from 'lucide-react';
+import Link from 'next/link';
+import type React from 'react';
 import { useState } from 'react';
 
 type ForgotPasswordProps = {
   onSuccess?: () => void;
-  onBack?: () => void;
 };
 
-export const ForgotPassword = ({ onSuccess, onBack }: ForgotPasswordProps) => {
+export const ForgotPassword = ({ onSuccess }: ForgotPasswordProps) => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,8 +68,8 @@ export const ForgotPassword = ({ onSuccess, onBack }: ForgotPasswordProps) => {
                 We've sent a password reset link to {email}
               </CardDescription>
             </div>
-            <Button variant="outline" onClick={onBack} className="w-full">
-              Back to sign in
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/sign-in">Back to sign in</Link>
             </Button>
           </div>
         </CardContent>
@@ -78,7 +78,7 @@ export const ForgotPassword = ({ onSuccess, onBack }: ForgotPasswordProps) => {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="font-semibold text-2xl tracking-tight">
           Forgot your password?
@@ -112,8 +112,8 @@ export const ForgotPassword = ({ onSuccess, onBack }: ForgotPasswordProps) => {
           </Button>
         </form>
 
-        <Button variant="ghost" onClick={onBack} className="w-full">
-          Back to sign in
+        <Button variant="ghost" className="w-full" asChild>
+          <Link href="/sign-in">Back to sign in</Link>
         </Button>
       </CardContent>
     </Card>

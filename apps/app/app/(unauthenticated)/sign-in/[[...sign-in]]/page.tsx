@@ -8,17 +8,13 @@ const description = 'Enter your details to sign in.';
 export const metadata: Metadata = createMetadata({ title, description });
 
 type SignInPageProps = {
-  searchParams: { redirect_to?: string };
+  searchParams: Promise<{ redirect_to?: string }>;
 };
 
-const SignInPage = ({ searchParams }: SignInPageProps) => {
-  const redirectTo = searchParams.redirect_to;
+const SignInPage = async ({ searchParams }: SignInPageProps) => {
+  const { redirect_to } = await searchParams;
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <SignIn redirectTo={redirectTo} />
-    </div>
-  );
+  return <SignIn redirectTo={redirect_to} />;
 };
 
 export default SignInPage;

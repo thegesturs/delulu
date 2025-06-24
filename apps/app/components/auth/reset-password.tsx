@@ -1,7 +1,6 @@
 'use client';
 
 import { resetPassword } from '@delulu/auth/client';
-import React from 'react';
 import {
   Alert,
   AlertDescription,
@@ -16,6 +15,7 @@ import {
 } from '@delulu/design-system/components/ui/card';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
+import type React from 'react';
 import { useState } from 'react';
 
 type ResetPasswordProps = {
@@ -80,7 +80,7 @@ export const ResetPassword = ({
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="font-semibold text-2xl tracking-tight">
           Reset your password

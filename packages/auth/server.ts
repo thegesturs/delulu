@@ -1,22 +1,16 @@
-import 'server-only';
 
-import { PrismaClient } from '@delulu/database';
+import { database } from '@delulu/database';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { nanoid } from 'nanoid';
-import { Resend } from 'resend';
+import { resend } from '@delulu/email';
 import { keys } from './keys';
 
-const prisma = new PrismaClient();
-
-const resend = new Resend(keys().RESEND_API_KEY);
-
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
+  database: prismaAdapter(database, {
     provider: 'postgresql',
   }),
   emailVerification: {
-    async sendVerificationEmail({ user, url, token }) {
+    async sendVerificationEmail({ user, url }) {
       await resend.emails.send({
         from: 'Delulu Social <noreply@delulu.social>',
         to: user.email,
@@ -89,9 +83,6 @@ export const auth = betterAuth({
   },
   changePassword: {
     enabled: true,
-  },
-  advanced: {
-    generateId: () => nanoid(),
   },
 });
 

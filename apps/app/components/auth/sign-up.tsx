@@ -40,42 +40,39 @@ export const SignUp = ({ onSuccess: _onSuccess, redirectTo }: SignUpProps) => {
     setIsLoading(true);
     setError('');
 
-    try {
-      const result = await signUp.email({
-        email,
-        password,
-        name,
-      });
+    const result = await signUp.email({
+      email,
+      password,
+      name,
+    });
 
-      if (result.data) {
-        // With email verification enabled, user needs to verify email first
-        setEmailSent(true);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign up failed');
-    } finally {
-      setIsLoading(false);
+    console.log(result, 'result');
+
+    if (result.data) {
+      // With email verification enabled, user needs to verify email first
+      setEmailSent(true);
+    }
+    if (result.error) {
+      console.log(result.error);
+      setError(result.error.message || 'Something went wrong');
     }
   };
 
   const handleGoogleSignUp = async () => {
     setIsLoading(true);
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const _redirect = redirectTo || urlParams.get('redirect_to') || '/';
-
-      await signIn.social({
-        provider: 'google',
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign up failed');
-      setIsLoading(false);
+    const result = await signIn.social({
+      provider: 'google',
+    });
+    if (result.error) {
+      console.log(result.error);
+      setError(result.error.message || 'Something went wrong');
     }
+    setIsLoading(false);
   };
 
   if (emailSent) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className="mx-auto w-full max-w-md">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4 text-center">
             <div className="rounded-full bg-primary/10 p-3">
@@ -102,7 +99,7 @@ export const SignUp = ({ onSuccess: _onSuccess, redirectTo }: SignUpProps) => {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="font-semibold text-2xl tracking-tight">
           Create your account

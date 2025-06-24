@@ -1,19 +1,11 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator zod {
-  provider                 = "zod-prisma-types"
-  createInputTypes         = true
-  createModelTypes         = true
-  createOptionalDefaultValuesTypes = false
-  output                   = "./types/zod"
-  addInputTypeValidation   = true
-}
+
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
-
 
 datasource db {
   provider     = "postgresql"
@@ -65,10 +57,10 @@ enum SocialType {
 
 model User {
   id              String    @id @default(cuid()) @db.VarChar(256)
-  email           String     @map("email") @db.VarChar(256)
+  email           String     
   emailVerified   Boolean    @default(false) @map("email_verified")
-  name            String     @map("name") @db.VarChar(256)
-  image           String?    @map("image") @db.VarChar(256)
+  name            String     
+  image           String?    
   currentPlan     CurrentPlan @default(FREE) @map("current_plan")
   personalization Json?      @map("personalization")
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
@@ -82,12 +74,12 @@ model User {
   posts           Post[]
 
   @@unique([email])
-  @@map("users")
+  @@map("user")
 }
 
 model Session {
   id        String   @id @default(cuid())
-  token     String   @unique
+  token     String   
   userId    String   @map("user_id") @db.VarChar(256)
   expiresAt DateTime @map("expires_at") @db.Timestamptz
   ipAddress String?  @map("ip_address") @db.VarChar(45)

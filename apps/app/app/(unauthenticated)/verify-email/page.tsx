@@ -14,11 +14,7 @@ type VerifyEmailPageProps = {
 const VerifyEmailPage = ({ searchParams }: VerifyEmailPageProps) => {
   const token = searchParams.token;
 
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <VerifyEmail token={token} redirectTo="/sign-in" />
-    </div>
-  );
+  return <VerifyEmail token={token} redirectTo="/sign-in" />;
 };
 
 export default VerifyEmailPage;

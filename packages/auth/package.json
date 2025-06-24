@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "prisma:generate": "prisma generate --schema=../database/prisma/schema.prisma"
   },
   "dependencies": {
     "@delulu/database": "workspace:*",
@@ -13,6 +14,9 @@
     "nanoid": "^5.1.5",
     "resend": "^4.2.0",
     "server-only": "^0.0.1",
+    "prisma": "catalog:",
+    "@prisma/client": "catalog:",
+    "@delulu/email": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
