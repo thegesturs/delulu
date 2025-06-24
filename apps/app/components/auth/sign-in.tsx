@@ -37,7 +37,7 @@ export const SignIn = ({
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const test = authClient.getSession();
+  const test = authClient.useSession();
   console.log(test, 'test');
 
   const handleSubmit = async (e: React.FormEvent) => {

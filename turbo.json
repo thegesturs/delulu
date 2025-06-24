@@ -14,6 +14,9 @@
         ".react-email/**"
       ]
     },
+    "prisma:generate": {
+      "dependsOn": ["^prisma:generate"]
+    },
     "test": {
       "dependsOn": ["^test"]
     },

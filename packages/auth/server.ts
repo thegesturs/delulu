@@ -1,13 +1,12 @@
-
-import { database } from '@delulu/database';
-import { betterAuth } from 'better-auth';
-import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { resend } from '@delulu/email';
+import { betterAuth } from 'better-auth';
+import { Pool } from 'pg';
 import { keys } from './keys';
 
 export const auth = betterAuth({
-  database: prismaAdapter(database, {
-    provider: 'postgresql',
+  database: new Pool({
+    connectionString:
+      'postgresql://neondb_owner:npg_v7XI1lqCnEAk@ep-little-wildflower-a53wcfb4-pooler.us-east-2.aws.neon.tech/delulu_local?sslmode=require',
   }),
   emailVerification: {
     async sendVerificationEmail({ user, url }) {
@@ -34,15 +33,8 @@ export const auth = betterAuth({
       });
     },
   },
-  account: {
-    accountLinking: {
-      trustedProviders: ['google'],
-    },
-  },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
-    autoSignIn: true,
     sendResetPassword: async ({ user, url, token }) => {
       await resend.emails.send({
         from: 'Delulu Social <noreply@delulu.social>',
@@ -72,17 +64,6 @@ export const auth = betterAuth({
       clientId: keys().GOOGLE_CLIENT_ID,
       clientSecret: keys().GOOGLE_CLIENT_SECRET,
     },
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // 1 day
-  },
-  changeEmail: {
-    enabled: true,
-    requireEmailVerification: true,
-  },
-  changePassword: {
-    enabled: true,
   },
 });
 

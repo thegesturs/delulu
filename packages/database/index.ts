@@ -1,27 +1,17 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { PrismaClient } from '@prisma/client';
 import { cache } from 'react';
-import ws from 'ws';
-import { keys } from './keys';
-import { prefixedIdExtension } from './prisma/middleware';
+import { db } from './client';
 
-neonConfig.webSocketConstructor = ws;
-
+// Export the database client
 export const getDb = cache(() => {
-  const pool = new Pool({ connectionString: keys().DATABASE_URL });
-  const adapter = new PrismaNeon(pool);
-  const client = new PrismaClient({ adapter }).$extends(prefixedIdExtension);
-  return client;
+  return db;
 });
 
 export const database = getDb();
 
-// For static routes (ISR/SSG)
+// For static routes (ISR/SSG) - same as regular db for Drizzle
 export const getDbAsync = () => {
-  const pool = new Pool({ connectionString: keys().DATABASE_URL });
-  const adapter = new PrismaNeon(pool);
-  return new PrismaClient({ adapter }).$extends(prefixedIdExtension);
+  return db;
 };
 
-export * from '@prisma/client';
+// Export everything from client
+export * from './client';
