@@ -15,3 +15,5 @@ export const getDbAsync = () => {
 
 // Export everything from client
 export * from './client';
+
+export * from 'drizzle-orm';
