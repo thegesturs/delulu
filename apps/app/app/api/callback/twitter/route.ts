@@ -1,5 +1,5 @@
-import { getAuth } from '@delulu/auth/server';
-import { database } from '@delulu/database';
+import { auth } from '@delulu/auth/server';
+import { database, socialProviders, eq, and, ne } from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -45,14 +45,14 @@ async function fetchWithTimeout(
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(req);
-    const { searchParams } = new URL(req.url);
+    const session = await auth.api.getSession({ headers: request.headers });
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=TWITTER',
@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
         )
       );
     }
+
+    const userId = session.user.id;
 
     if (!state || !code) {
       return NextResponse.redirect(
@@ -124,23 +126,65 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if this Twitter account is already connected to a different user
-    const existingProvider = await database.socialProvider.findFirst({
-      where: {
-        profileId: userObject.id,
-        NOT: {
-          userId: userId,
-        },
-      },
-    });
+    const existingProvider = await database
+      .select()
+      .from(socialProviders)
+      .where(
+        and(
+          eq(socialProviders.profileId, userObject.id),
+          ne(socialProviders.userId, userId)
+        )
+      )
+      .limit(1);
 
     // If found, handle the transfer
-    if (existingProvider) {
-      await database.socialProvider.update({
-        where: {
-          id: existingProvider.id,
-        },
-        data: {
+    if (existingProvider.length > 0) {
+      await database
+        .update(socialProviders)
+        .set({
           userId,
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: userObject.name ?? '',
+          username: userObject.username,
+          profileImage: userObject.profile_image_url ?? '',
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(socialProviders.id, existingProvider[0].id));
+
+      return NextResponse.redirect(
+        new URL(
+          '/socials?notification=account_transferred&platform=twitter',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    // Upsert the social provider using conflict resolution
+    await database
+      .insert(socialProviders)
+      .values({
+        id: `social_${nanoid(12)}`,
+        userId,
+        socialType: 'TWITTER',
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name ?? '',
+        profileImage: userObject.profile_image_url ?? '',
+        isActive: true,
+        lastSyncedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [socialProviders.userId, socialProviders.profileId],
+        set: {
           accessToken: access_token,
           refreshToken: refresh_token,
           expiresIn: new Date(Date.now() + expires_in * 1000),
@@ -152,50 +196,6 @@ export async function GET(req: NextRequest) {
           lastSyncedAt: new Date(),
         },
       });
-
-      return NextResponse.redirect(
-        new URL(
-          '/socials?notification=account_transferred&platform=twitter',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
-
-    // Use upsert to either create or update the social provider
-    await database.socialProvider.upsert({
-      where: {
-        userId_profileId: {
-          userId,
-          profileId: userObject.id,
-        },
-      },
-      create: {
-        id: `social_${nanoid(12)}`,
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: userObject.name ?? '',
-        username: userObject.username,
-        profileImage: userObject.profile_image_url ?? '',
-        profileId: userObject.id,
-        userId,
-        socialType: 'TWITTER',
-        isActive: true,
-        lastSyncedAt: new Date(),
-      },
-      update: {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: userObject.name ?? '',
-        username: userObject.username,
-        profileImage: userObject.profile_image_url ?? '',
-        updatedAt: new Date(),
-        isActive: true,
-        lastSyncedAt: new Date(),
-        userId,
-      },
-    });
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

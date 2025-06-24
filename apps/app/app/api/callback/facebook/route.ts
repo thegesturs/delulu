@@ -1,6 +1,6 @@
 import { keys } from '@delulu/api/keys';
-import { getAuth } from '@delulu/auth/server';
-import { database } from '@delulu/database';
+import { auth } from '@delulu/auth/server';
+import { database, socialProviders, eq, and, ne } from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -53,12 +53,11 @@ async function fetchWithTimeout(
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const auth = getAuth(req);
-    const userId = auth?.userId;
+    const session = await auth.api.getSession({ headers: request.headers });
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -68,7 +67,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const searchParams = req.nextUrl.searchParams;
+    const userId = session.user.id;
+
+    const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
@@ -203,36 +204,75 @@ export async function GET(req: NextRequest) {
     // Use the first page (you might want to let users choose)
     const firstPage = pagesData.data[0];
 
-    // Store the social provider data
-    await database.socialProvider.upsert({
-      where: {
-        userId_profileId: {
+    // Check if this Facebook account is already connected to a different user
+    const existingProvider = await database
+      .select()
+      .from(socialProviders)
+      .where(
+        and(
+          eq(socialProviders.profileId, firstPage.id),
+          ne(socialProviders.userId, userId)
+        )
+      )
+      .limit(1);
+
+    // If found, handle the transfer
+    if (existingProvider.length > 0) {
+      await database
+        .update(socialProviders)
+        .set({
           userId,
-          profileId: firstPage.id,
+          accessToken: firstPage.access_token,
+          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+          fullName: firstPage.name,
+          username: firstPage.name,
+          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
+          refreshTokenExpiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(socialProviders.id, existingProvider[0].id));
+
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location: '/socials?notification=account_transferred&platform=facebook',
         },
-      },
-      create: {
+      });
+    }
+
+    // Upsert the social provider using conflict resolution
+    await database
+      .insert(socialProviders)
+      .values({
         id: `social_${nanoid(12)}`,
-        accessToken: firstPage.access_token,
-        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-        fullName: firstPage.name,
-        username: firstPage.name,
-        profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-        profileId: firstPage.id,
         userId,
         socialType: 'FACEBOOK',
-        isActive: true,
-        lastSyncedAt: new Date(),
-      },
-      update: {
         accessToken: firstPage.access_token,
         expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+        profileId: firstPage.id,
+        username: firstPage.name,
         fullName: firstPage.name,
-        updatedAt: new Date(),
-        lastSyncedAt: new Date(),
+        profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
         isActive: true,
-      },
-    });
+        lastSyncedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [socialProviders.userId, socialProviders.profileId],
+        set: {
+          accessToken: firstPage.access_token,
+          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+          fullName: firstPage.name,
+          username: firstPage.name,
+          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        },
+      });
 
     // Successful connection
     return new NextResponse(null, {

@@ -10,10 +10,13 @@
   "dependencies": {
     "@delulu/database": "workspace:*",
     "@delulu/email": "workspace:*",
+    "@neondatabase/serverless": "^1.0.0",
     "@prisma/client": "catalog:",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@types/pg": "^8.15.4",
     "better-auth": "^1.2.10",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "0.44.2",
     "nanoid": "^5.1.5",
     "pg": "^8.16.2",
     "prisma": "catalog:",
@@ -26,6 +29,8 @@
     "@types/node": "22.14.1",
     "@types/react": "19.1.1",
     "@types/react-dom": "^19.1.2",
+    "drizzle-kit": "0.31.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
 }

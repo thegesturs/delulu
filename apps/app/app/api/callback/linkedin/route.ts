@@ -1,6 +1,6 @@
 import { env } from '@/env';
-import { getAuth } from '@delulu/auth/server';
-import { database } from '@delulu/database';
+import { auth } from '@delulu/auth/server';
+import { and, database, eq, ne, socialProviders } from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -33,13 +33,13 @@ interface LinkedInEmailResponse {
   }>;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(req);
-    const { searchParams } = new URL(req.url);
+    const session = await auth.api.getSession({ headers: request.headers });
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
@@ -47,6 +47,8 @@ export async function GET(req: NextRequest) {
         )
       );
     }
+
+    const userId = session.user.id;
 
     if (!code) {
       return NextResponse.redirect(
@@ -128,22 +130,22 @@ export async function GET(req: NextRequest) {
         ?.identifier;
 
     // Check if this LinkedIn account is already connected to a different user
-    const existingProvider = await database.socialProvider.findFirst({
-      where: {
-        profileId: userObject.id,
-        NOT: {
-          userId: userId,
-        },
-      },
-    });
+    const existingProvider = await database
+      .select()
+      .from(socialProviders)
+      .where(
+        and(
+          eq(socialProviders.profileId, userObject.id),
+          ne(socialProviders.userId, userId)
+        )
+      )
+      .limit(1);
 
     // If found, handle the transfer
-    if (existingProvider) {
-      await database.socialProvider.update({
-        where: {
-          id: existingProvider.id,
-        },
-        data: {
+    if (existingProvider.length > 0) {
+      await database
+        .update(socialProviders)
+        .set({
           userId,
           accessToken: access_token,
           refreshToken: null, // LinkedIn doesn't provide refresh tokens
@@ -153,9 +155,12 @@ export async function GET(req: NextRequest) {
           profileImage: profileImage ?? undefined,
           updatedAt: new Date(),
           isActive: true,
+          refreshTokenExpiresIn: new Date(
+            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+          ),
           lastSyncedAt: new Date(),
-        },
-      });
+        })
+        .where(eq(socialProviders.id, existingProvider[0].id));
 
       return NextResponse.redirect(
         new URL(
@@ -165,41 +170,45 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Use upsert to either create or update the social provider
-    await database.socialProvider.upsert({
-      where: {
-        userId_profileId: {
-          userId,
-          profileId: userObject.id,
-        },
-      },
-      create: {
+    // Upsert the social provider using conflict resolution
+    await database
+      .insert(socialProviders)
+      .values({
         id: `social_${nanoid(12)}`,
+        userId,
+        socialType: 'LINKEDIN',
         accessToken: access_token,
         refreshToken: null, // LinkedIn doesn't provide refresh tokens
         expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-        username: email || undefined,
-        profileImage: profileImage ?? undefined,
         profileId: userObject.id,
-        userId,
-        socialType: 'LINKEDIN',
-        isActive: true,
-        lastSyncedAt: new Date(),
-      },
-      update: {
-        accessToken: access_token,
-        refreshToken: null,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
         username: email || undefined,
-        profileImage: profileImage || undefined,
-        updatedAt: new Date(),
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        profileImage: profileImage ?? undefined,
         isActive: true,
         lastSyncedAt: new Date(),
-        userId,
-      },
-    });
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        refreshTokenExpiresIn: new Date(
+          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+        ),
+      })
+      .onConflictDoUpdate({
+        target: [socialProviders.userId, socialProviders.profileId],
+        set: {
+          accessToken: access_token,
+          refreshToken: null,
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+          username: email || undefined,
+          profileImage: profileImage ?? undefined,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+          refreshTokenExpiresIn: new Date(
+            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+          ),
+        },
+      });
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

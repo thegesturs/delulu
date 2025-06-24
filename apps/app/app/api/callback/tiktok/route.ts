@@ -1,6 +1,7 @@
 import { env } from '@/env';
-import { getAuth } from '@delulu/auth/server';
-import { SocialType, database } from '@delulu/database';
+import { auth } from '@delulu/auth/server';
+import { database, socialProviders } from '@delulu/database';
+import { and, eq, ne } from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -29,18 +30,17 @@ const fetchWithTimeout = async (
   return response;
 };
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = getAuth(req);
-    console.log('userId', userId);
-    const { searchParams } = new URL(req.url);
+    const session = await auth.api.getSession({ headers: request.headers });
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
 
     console.log('code', code);
     console.log('state', state);
 
-    if (!userId) {
+    if (!session?.user?.id) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=TIKTOK',
@@ -48,6 +48,8 @@ export async function GET(req: NextRequest) {
         )
       );
     }
+
+    const userId = session.user.id;
 
     if (!state || !code) {
       return NextResponse.redirect(
@@ -113,24 +115,77 @@ export async function GET(req: NextRequest) {
 
     const { display_name, avatar_url } = userData.data.user;
 
-    // Store the tokens and user info in the database
-    await database.socialProvider.create({
-      data: {
-        id: nanoid(),
+    // Check if this TikTok account is already connected to a different user
+    const existingProvider = await database
+      .select()
+      .from(socialProviders)
+      .where(
+        and(
+          eq(socialProviders.profileId, open_id),
+          ne(socialProviders.userId, userId)
+        )
+      )
+      .limit(1);
+
+    // If found, handle the transfer
+    if (existingProvider.length > 0) {
+      await database
+        .update(socialProviders)
+        .set({
+          userId,
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: display_name,
+          username: display_name,
+          profileImage: avatar_url,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(socialProviders.id, existingProvider[0].id));
+
+      return NextResponse.redirect(
+        new URL(
+          '/socials?notification=account_transferred&platform=tiktok',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    // Upsert the social provider using conflict resolution
+    await database
+      .insert(socialProviders)
+      .values({
+        id: `social_${nanoid(12)}`,
         userId,
-        socialType: SocialType.TIKTOK,
+        socialType: 'TIKTOK',
         accessToken: access_token,
         refreshToken: refresh_token,
         expiresIn: new Date(Date.now() + expires_in * 1000),
         profileId: open_id,
-        // profileUrl: 'https://www.tiktok.com/@' + display_name,
         username: display_name,
         fullName: display_name,
         profileImage: avatar_url,
         isActive: true,
         lastSyncedAt: new Date(),
-      },
-    });
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: [socialProviders.userId, socialProviders.profileId],
+        set: {
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: new Date(Date.now() + expires_in * 1000),
+          fullName: display_name,
+          username: display_name,
+          profileImage: avatar_url,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        },
+      });
 
     return NextResponse.redirect(
       new URL('/socials?success=true&provider=TIKTOK', env.NEXT_PUBLIC_APP_URL)
