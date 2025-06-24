@@ -9,12 +9,15 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { posts } from '../post/post.sql';
+import { socialProviders } from '../social/social.sql';
+import { createUniqueIds } from '../utilts';
 
 // User table
 export const users = pgTable(
   'user',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
+    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('user')),
     name: text('name').notNull(),
     email: text('email').notNull(),
     emailVerified: boolean('email_verified').notNull().default(false),
@@ -26,16 +29,14 @@ export const users = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    emailUniqueIdx: unique().on(table.email),
-  })
+  (table) => [unique().on(table.email)]
 );
 
 // Session table
 export const sessions = pgTable(
   'session',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
+    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('session')),
     token: text('token').notNull(),
     userId: varchar('user_id', { length: 256 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -49,17 +50,17 @@ export const sessions = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => ({
-    tokenUniqueIdx: unique().on(table.token),
-    userIdIdx: index('sessions_user_id_idx').on(table.userId),
-  })
+  (table) => [
+    unique().on(table.token),
+    index('sessions_user_id_idx').on(table.userId),
+  ]
 );
 
 // Account table
 export const accounts = pgTable(
   'account',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
+    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('account')),
     userId: varchar('user_id', { length: 256 }).notNull(),
     accountId: varchar('account_id', { length: 256 }).notNull(),
     providerId: varchar('provider_id', { length: 256 }).notNull(),
@@ -81,26 +82,24 @@ export const accounts = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => ({
-    providerAccountUniqueIdx: unique().on(table.providerId, table.accountId),
-    userIdIdx: index('accounts_user_id_idx').on(table.userId),
-  })
+  (table) => [
+    unique().on(table.providerId, table.accountId),
+    index('accounts_user_id_idx').on(table.userId),
+  ]
 );
 
 // Verification table
 export const verifications = pgTable(
   'verification',
   {
-    id: varchar('id', { length: 256 }).primaryKey(),
+    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('verification')),
     identifier: varchar('identifier', { length: 256 }).notNull(),
     value: varchar('value', { length: 256 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
-  (table) => ({
-    identifierValueUniqueIdx: unique().on(table.identifier, table.value),
-  })
+  (table) => [unique().on(table.identifier, table.value)]
 );
 
 // User Usage table
@@ -126,7 +125,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [userUsage.userId],
   }),
-  // These will be connected when post and social schemas are imported
+  posts: many(posts),
+  socialProviders: many(socialProviders),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
