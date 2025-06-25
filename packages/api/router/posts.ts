@@ -1,36 +1,25 @@
-import { PostStatus } from '@delulu/database';
 import {
-  PostReviewStatusSchema,
-  PostStatusSchema,
-  PrivacyStatusSchema,
-} from '@delulu/database/prisma/types/zod';
+  alternatePostContent,
+  database,
+  postQueries,
+  posts,
+} from '@delulu/database';
+import { and, count, desc, eq, gte, lte } from '@delulu/database';
 import {
   savePostInputSchema,
   updatePostInputSchema,
 } from '@delulu/validators/post';
 import type { TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
-import {
-  getPostById,
-  getPostsByUserId,
-  getScheduledPosts,
-  hardDeletePost,
-  saveIncomingPost,
-  softDeletePost,
-  updatePostContent,
-} from '../db/post.repository';
-import {
-  PaginatedPostsResponseSchema,
-  PaginationApiSchema,
-  PostFiltersApiSchema,
-} from '../db/types/post.types';
 import { protectedProcedure } from '../trpc';
 
 // Create a schema for post filters
 const PostFiltersSchema = z.object({
-  status: PostStatusSchema.optional(),
-  privacyStatus: PrivacyStatusSchema.optional(),
-  reviewStatus: PostReviewStatusSchema.optional(),
+  status: z
+    .enum(['SAVED', 'PUBLISHED', 'SCHEDULED', 'DELETED', 'FAILED'])
+    .optional(),
+  privacyStatus: z.enum(['PUBLIC', 'PRIVATE']).optional(),
+  reviewStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
   organizationId: z.string().optional(),
   isDeleted: z.boolean().optional(),
   startDate: z.coerce.date().optional(),
@@ -52,40 +41,129 @@ export const postRouter = {
       })
     )
     .query(async ({ input }) => {
-      const post = await getPostById(input.id);
-      return post;
+      const [post] = await postQueries.getPostById(input.id);
+      return post || null;
     }),
   getPostsByUserId: protectedProcedure
     .input(
       z.object({
-        filters: PostFiltersApiSchema.optional(),
-        pagination: PaginationApiSchema.optional(),
+        filters: PostFiltersSchema.optional(),
+        pagination: PaginationSchema.optional(),
       })
     )
-    .output(PaginatedPostsResponseSchema)
     .query(async ({ input, ctx }) => {
-      const result = await getPostsByUserId(
-        ctx.userId,
-        { ...(input.filters || {}), isDeleted: false },
-        input.pagination
-      );
-      return result;
+      const filters = input.filters || {};
+      const pagination = input.pagination || {};
+
+      // Build where conditions
+      const conditions = [
+        eq(posts.userId, ctx.userId),
+        eq(posts.isDeleted, false),
+      ];
+
+      if (filters.status) {
+        conditions.push(eq(posts.status, filters.status));
+      }
+      if (filters.privacyStatus) {
+        conditions.push(eq(posts.privacyStatus, filters.privacyStatus));
+      }
+      if (filters.reviewStatus) {
+        conditions.push(eq(posts.reviewStatus, filters.reviewStatus));
+      }
+      if (filters.organizationId) {
+        conditions.push(eq(posts.organizationId, filters.organizationId));
+      }
+      if (filters.startDate) {
+        conditions.push(gte(posts.createdAt, filters.startDate));
+      }
+      if (filters.endDate) {
+        conditions.push(lte(posts.createdAt, filters.endDate));
+      }
+
+      const whereClause = and(...conditions);
+
+      const [postsResult, totalResult] = await Promise.all([
+        database
+          .select()
+          .from(posts)
+          .where(whereClause)
+          .orderBy(desc(posts.createdAt))
+          .limit(pagination.take || 50)
+          .offset(pagination.skip || 0),
+        database.select({ count: count() }).from(posts).where(whereClause),
+      ]);
+
+      return {
+        posts: postsResult,
+        total: totalResult[0]?.count || 0,
+      };
     }),
   savePost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const post = await saveIncomingPost(
-        input,
-        PostStatus.SAVED,
-        ctx.userId,
-        ctx.organizationId
-      );
+      // Create the main post
+      const [post] = await database
+        .insert(posts)
+        .values({
+          content: input.content,
+          status: 'SAVED',
+          userId: ctx.userId,
+          organizationId: ctx.organizationId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      if (!post) {
+        throw new Error('Failed to create post');
+      }
+
+      // Create alternate contents if any
+      if (input.alternativeContent?.length > 0) {
+        await database.insert(alternatePostContent).values(
+          input.alternativeContent.map((alt) => ({
+            postId: post.id,
+            socialProviderId: alt.socialProvider.socialId,
+            content: alt.content,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }))
+        );
+      }
       return post;
     }),
   updatePost: protectedProcedure
     .input(updatePostInputSchema)
     .mutation(async ({ input }) => {
-      const post = await updatePostContent(input);
+      // Update the main post
+      const [post] = await database
+        .update(posts)
+        .set({
+          content: input.content,
+          updatedAt: new Date(),
+        })
+        .where(eq(posts.id, input.postId))
+        .returning();
+
+      // Handle alternate contents
+      if (input.alternativeContent?.length > 0) {
+        // Delete existing alternate contents
+        await database
+          .delete(alternatePostContent)
+          .where(eq(alternatePostContent.postId, input.postId));
+
+        // Insert new alternate contents
+        await database.insert(alternatePostContent).values(
+          input.alternativeContent.map((alt) => ({
+            postId: input.postId,
+            socialProviderId: alt.socialProvider.socialId,
+            content: alt.content,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }))
+        );
+      }
+
       return post;
     }),
   softDeletePost: protectedProcedure
@@ -95,7 +173,15 @@ export const postRouter = {
       })
     )
     .mutation(async ({ input }) => {
-      const post = await softDeletePost(input.id);
+      const [post] = await database
+        .update(posts)
+        .set({
+          isDeleted: true,
+          status: 'DELETED',
+          updatedAt: new Date(),
+        })
+        .where(eq(posts.id, input.id))
+        .returning();
       return post;
     }),
   hardDeletePost: protectedProcedure
@@ -105,8 +191,8 @@ export const postRouter = {
       })
     )
     .mutation(async ({ input }) => {
-      const post = await hardDeletePost(input.id);
-      return post;
+      await database.delete(posts).where(eq(posts.id, input.id));
+      return { success: true };
     }),
   getScheduledPosts: protectedProcedure
     .input(
@@ -116,10 +202,40 @@ export const postRouter = {
       })
     )
     .query(async ({ input }) => {
-      const posts = await getScheduledPosts(
-        input.filters || {},
-        input.pagination
-      );
-      return posts;
+      const filters = input.filters || {};
+      const pagination = input.pagination || {};
+
+      const conditions = [
+        eq(posts.status, 'SCHEDULED'),
+        gte(posts.scheduledAt, new Date()),
+      ];
+
+      if (filters.organizationId) {
+        conditions.push(eq(posts.organizationId, filters.organizationId));
+      }
+      if (filters.startDate) {
+        conditions.push(gte(posts.createdAt, filters.startDate));
+      }
+      if (filters.endDate) {
+        conditions.push(lte(posts.createdAt, filters.endDate));
+      }
+
+      const whereClause = and(...conditions);
+
+      const [postsResult, totalResult] = await Promise.all([
+        database
+          .select()
+          .from(posts)
+          .where(whereClause)
+          .orderBy(posts.scheduledAt)
+          .limit(pagination.take || 50)
+          .offset(pagination.skip || 0),
+        database.select({ count: count() }).from(posts).where(whereClause),
+      ]);
+
+      return {
+        posts: postsResult,
+        total: totalResult[0]?.count || 0,
+      };
     }),
 } satisfies TRPCRouterRecord;

@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { getAuth } from '@delulu/auth/server';
+import { auth } from '@delulu/auth/server';
 import { ethers } from 'ethers';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -65,8 +65,10 @@ async function fetchWithTimeout(
 // Production-level Farcaster signer request with proper EIP-712 signature
 export async function POST(req: NextRequest) {
   try {
-    const auth = getAuth(req);
-    const userId = auth?.userId;
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json(
@@ -228,8 +230,10 @@ export async function POST(req: NextRequest) {
 // GET - Check status of signer request
 export async function GET(req: NextRequest) {
   try {
-    const auth = getAuth(req);
-    const userId = auth?.userId;
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+    const userId = session?.user?.id;
 
     if (!userId) {
       return NextResponse.json(
