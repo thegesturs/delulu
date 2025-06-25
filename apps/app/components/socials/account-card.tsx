@@ -1,6 +1,6 @@
 'use client';
 
-import type { SocialProvider } from '@delulu/database/prisma/types/zod';
+import type { SocialProvider } from '@delulu/database';
 import {
   Avatar,
   AvatarFallback,

@@ -97,3 +97,5 @@ export const socialProvidersRelations = relations(
     platformPosts: many(platformPosts),
   })
 );
+
+export type SocialProvider = typeof socialProviders.$inferSelect;

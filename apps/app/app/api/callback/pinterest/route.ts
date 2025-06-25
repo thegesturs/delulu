@@ -1,7 +1,6 @@
 import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
-import { database, socialProviders, eq, and, ne } from '@delulu/database';
-import { nanoid } from 'nanoid';
+import { and, database, eq, ne, socialProviders } from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -183,7 +182,6 @@ export async function GET(request: NextRequest) {
     await database
       .insert(socialProviders)
       .values({
-        id: `social_${nanoid(12)}`,
         userId,
         socialType: 'PINTEREST',
         accessToken: tokenData.access_token,
@@ -192,6 +190,7 @@ export async function GET(request: NextRequest) {
         username: userObject.username,
         fullName: userObject.username,
         profileImage: userObject.profile_image,
+        expiresIn: new Date(Date.now() + 3600 * 1000),
         isActive: true,
         lastSyncedAt: new Date(),
         createdAt: new Date(),

@@ -1,6 +1,14 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { schema } from './schema';
+import * as post from './schema/post/post.sql';
+import * as social from './schema/social/social.sql';
+import * as user from './schema/user/user.sql';
+
+export const schema = {
+  ...user,
+  ...post,
+  ...social,
+};
 
 // Database connection
 const sql = neon(process.env.DATABASE_URL!);

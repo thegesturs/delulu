@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "noPropertyAccessFromIndexSignature": false,
-    "outDir": "dist"
+    "outDir": "dist",
+    "strict": true,
+    "noImplicitAny": false
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": [

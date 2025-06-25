@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { database as db, eq, socialProviders } from '@delulu/database';
 import {
   type MediaType,
   type PostReturnType,
@@ -229,10 +229,9 @@ async function postThreadReplies(
 // Helper Functions
 
 async function getAccessTokenAndProfile(tokenId: string) {
-  const token = await database.socialProvider.findUnique({
-    where: {
-      id: tokenId,
-    },
+  const [token] = await db.query.socialProviders.findMany({
+    where: (socialProviders, { eq }) => eq(socialProviders.id, tokenId),
+    limit: 1,
   });
   if (!token) {
     throw new Error('Token not found');
@@ -261,29 +260,19 @@ async function getAccessTokenAndProfile(tokenId: string) {
         };
 
         if (data) {
-          await database.socialProvider.update({
-            where: {
-              id: tokenId,
-            },
-            data: {
+          await db
+            .update(socialProviders)
+            .set({
               accessToken: data.access_token,
               refreshToken: data.refresh_token,
               expiresIn: new Date(Date.now() + data.expires_in * 1000),
               updatedAt: new Date(),
               lastSyncedAt: new Date(),
-            },
-          });
+            })
+            .where(eq(socialProviders.id, tokenId));
         }
         return { ...token, accessToken: data.access_token };
       } catch (err) {
-        // await database.socialProvider.update({
-        //   where: {
-        //     id: tokenId,
-        //   },
-        //   data: {
-
-        //   },
-        // });
         console.error(err);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',

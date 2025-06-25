@@ -11,6 +11,7 @@
     "dev:app": "turbo dev --filter=app",
     "dev:web": "turbo dev --filter=web",
     "dev:worker": "pnpm --filter=worker dev",
+    "typecheck": "turbo typecheck",
     "docker:build": "docker build -t social-worker -f packages/worker/Dockerfile .",
     "db:generate": "pnpm --filter=database db:generate",
     "docker:run": "docker run -e MESSAGE_BODY='{\"socialPublishInput\": {\"postId\": \"post_J0hg0XPByWqb\", \"socialProviderId\": \"OTMupATk9DODV52RRUYaE\"}, \"socialType\": \"TIKTOK\"}' social-worker",

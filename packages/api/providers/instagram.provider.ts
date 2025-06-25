@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { database as db, socialProviders } from '@delulu/database';
 import {
   type MediaType,
   type PostReturnType,
@@ -135,10 +135,9 @@ async function getMediaDetails(
 
 export const instagramProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await database.socialProvider.findUnique({
-      where: {
-        id: socialProviderId,
-      },
+    const [profile] = await db.query.socialProviders.findMany({
+      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+      limit: 1,
     });
 
     if (!profile || !profile.accessToken || !profile.profileId) {

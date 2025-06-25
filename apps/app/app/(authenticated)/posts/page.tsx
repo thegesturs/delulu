@@ -4,7 +4,7 @@ import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@/trpc/react';
-import { PostStatusSchema } from '@delulu/database/prisma/types/zod';
+import { PostStatus } from '@delulu/database';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import {
@@ -27,12 +27,10 @@ import { Toggle } from '@delulu/design-system/components/ui/toggle';
 // import type { inferRouterOutputs } from '@trpc/server';
 import { LayoutGrid, List, Plus } from 'lucide-react';
 import React from 'react';
-import type { z } from 'zod';
 import PostLoading from './post-loading';
 
 // type RouterOutputs = inferRouterOutputs<AppRouter>;
 // type ApiPost = RouterOutputs['post']['getPostsByUserId']['posts'][number];
-type PostStatus = z.infer<typeof PostStatusSchema>;
 
 type PostStatusFilterType = 'all' | PostStatus;
 const ITEMS_PER_PAGE = 10;
@@ -107,7 +105,7 @@ export default function PostsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Posts</SelectItem>
-                {PostStatusSchema.options.map((status) => (
+                {Object.values(PostStatus).map((status) => (
                   <SelectItem key={status} value={status}>
                     {status.charAt(0) + status.slice(1).toLowerCase()}
                   </SelectItem>
@@ -192,7 +190,7 @@ export default function PostsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Posts</SelectItem>
-              {PostStatusSchema.options.map((status) => (
+              {Object.values(PostStatus).map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.charAt(0) + status.slice(1).toLowerCase()}
                 </SelectItem>
