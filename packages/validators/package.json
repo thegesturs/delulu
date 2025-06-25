@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@types/node": "22.14.1",
-    "fetch-blob": "^4.0.0",
     "zod": "catalog:"
   }
 }

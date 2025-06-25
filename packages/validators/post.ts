@@ -1,4 +1,3 @@
-import { File } from 'fetch-blob/file.js';
 import { z } from 'zod';
 
 export const videoTypes = ['MP4', 'MOV', 'MKV', 'WEBM'];
@@ -131,34 +130,6 @@ export const SocialPublishInputSchema = z.object({
 });
 
 export type SocialPublishInputType = z.infer<typeof SocialPublishInputSchema>;
-
-const youtubeContentSchema = z.object({
-  youtubeId: z.string(),
-  name: z.string(),
-  thumbnail: z.string(),
-  videoUrl: z.string(),
-  videoTags: z.array(z.string()),
-  videoTitle: z.string(),
-  videoDescription: z.string(),
-  thumbnailFile: z.instanceof(File).optional(),
-  videoFile: z.instanceof(File).optional(),
-});
-
-export const finalYoutubeContentSchema = youtubeContentSchema
-  .omit({
-    thumbnailFile: true,
-    videoFile: true,
-    youtubeId: true,
-  })
-  .extend({
-    awsRegion: z.string(),
-    s3BucketName: z.string(),
-    youtubeRefreshToken: z.string(),
-  });
-
-export type FinalYoutubeContentType = z.infer<typeof finalYoutubeContentSchema>;
-
-export type youtubeContentType = z.infer<typeof youtubeContentSchema>;
 
 export const savePostInputSchema = z.object({
   ...postSchema.shape,
