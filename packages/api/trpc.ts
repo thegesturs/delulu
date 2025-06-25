@@ -31,26 +31,28 @@ interface TRPCContext {
 }
 
 export const createTRPCContext = async (opts: TRPCContext) => {
-  const userAuth = await auth();
-  const clerkId = userAuth.userId;
-  const organizationId = userAuth.orgId ?? undefined;
+  const userAuth = await auth.api.getSession({
+    headers: opts.headers,
+  });
+  const userId = userAuth?.session.userId;
+  // const organizationId = userAuth?.session.orgId ?? undefined;
 
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> clerkId', clerkId);
+  console.log('>>> UserId', userId);
 
   //   const cache = opts.env['memoize-cache'];
   const source = opts.headers.get('x-trpc-source') ?? 'unknown';
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> tRPC Request from', source, 'by', clerkId);
+  console.log('>>> tRPC Request from', source, 'by', userId);
   //   const cacheTagManager = createCacheTagManager(cacheTags, clerkId);
 
   return {
     // env: opts.env,
     db: database,
-    userId: clerkId,
-    organizationId,
+    userId,
+    // organizationId,
     // cache,
     // cacheTagManager,
   };

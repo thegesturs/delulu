@@ -6,6 +6,7 @@ import { pinterestProvider } from './pinterest.provider';
 import { threadsProvider } from './threads.provider';
 import { tiktokProvider } from './tiktok.provider';
 import { twitterProvider } from './twitter.provider';
+import { youtubeProvider } from './youtube.provider';
 
 export const providerRegistry = {
   TWITTER: twitterProvider,
@@ -16,4 +17,5 @@ export const providerRegistry = {
   FACEBOOK: facebookProvider,
   PINTEREST: pinterestProvider,
   FARCASTER: farcasterProvider,
+  YOUTUBE: youtubeProvider,
 };

@@ -810,6 +810,9 @@ importers:
       drizzle-orm:
         specifier: 0.44.2
         version: 0.44.2(@neondatabase/serverless@1.0.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.10.1(prisma@6.10.1(typescript@5.8.3))(typescript@5.8.3))(@types/pg@8.15.4)(@upstash/redis@1.34.9)(kysely@0.28.2)(pg@8.16.2)(prisma@6.10.1(typescript@5.8.3))
+      drizzle-zod:
+        specifier: ^0.5.1
+        version: 0.5.1(drizzle-orm@0.44.2(@neondatabase/serverless@1.0.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.10.1(prisma@6.10.1(typescript@5.8.3))(typescript@5.8.3))(@types/pg@8.15.4)(@upstash/redis@1.34.9)(kysely@0.28.2)(pg@8.16.2)(prisma@6.10.1(typescript@5.8.3)))(zod@3.25.46)
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -8498,6 +8501,12 @@ packages:
         optional: true
       sqlite3:
         optional: true
+
+  drizzle-zod@0.5.1:
+    resolution: {integrity: sha512-C/8bvzUH/zSnVfwdSibOgFjLhtDtbKYmkbPbUCq46QZyZCH6kODIMSOgZ8R7rVjoI+tCj3k06MRJMDqsIeoS4A==}
+    peerDependencies:
+      drizzle-orm: '>=0.23.13'
+      zod: '*'
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -22324,6 +22333,11 @@ snapshots:
       kysely: 0.28.2
       pg: 8.16.2
       prisma: 6.10.1(typescript@5.8.3)
+
+  drizzle-zod@0.5.1(drizzle-orm@0.44.2(@neondatabase/serverless@1.0.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.10.1(prisma@6.10.1(typescript@5.8.3))(typescript@5.8.3))(@types/pg@8.15.4)(@upstash/redis@1.34.9)(kysely@0.28.2)(pg@8.16.2)(prisma@6.10.1(typescript@5.8.3)))(zod@3.25.46):
+    dependencies:
+      drizzle-orm: 0.44.2(@neondatabase/serverless@1.0.0)(@opentelemetry/api@1.9.0)(@prisma/client@6.10.1(prisma@6.10.1(typescript@5.8.3))(typescript@5.8.3))(@types/pg@8.15.4)(@upstash/redis@1.34.9)(kysely@0.28.2)(pg@8.16.2)(prisma@6.10.1(typescript@5.8.3))
+      zod: 3.25.46
 
   dunder-proto@1.0.1:
     dependencies:
