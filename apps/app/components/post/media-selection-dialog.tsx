@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { ImageIcon, Plus, Search, Upload, X } from 'lucide-react';
+import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 
+import { api } from '@/trpc/react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@delulu/design-system/components/ui/tabs';
 import { cn } from '@delulu/design-system/lib/utils';
 
 interface MediaItem {
@@ -20,101 +20,175 @@ interface MediaItem {
   url: string;
   bucketKey: string;
   mediaType: 'IMAGE' | 'VIDEO';
-  originalFilename?: string;
-  size?: number;
-  extension?: string;
-  altText?: string;
-  createdAt: string;
+  originalFilename?: string | null;
+  size?: number | null;
+  extension?: string | null;
+  altText?: string | null;
+  createdAt: string | Date;
 }
 
 interface MediaSelectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (media: MediaItem[]) => void;
-  maxSelection?: number;
-  mediaType?: 'IMAGE' | 'VIDEO' | 'ALL';
-  multiple?: boolean;
+  socialType: string;
+  currentMedia: MediaItem[];
+  maxImages: number;
+  maxVideos: number;
 }
 
 export function MediaSelectionDialog({
   isOpen,
   onClose,
   onSelect,
-  maxSelection = 10,
-  mediaType = 'ALL',
-  multiple = true,
+  socialType,
+  currentMedia,
+  maxImages,
+  maxVideos,
 }: MediaSelectionDialogProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
-  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Calculate current counts
+  const currentImageCount = currentMedia.filter(
+    (m) => m.mediaType === 'IMAGE'
+  ).length;
+  const currentVideoCount = currentMedia.filter(
+    (m) => m.mediaType === 'VIDEO'
+  ).length;
+
+  // Calculate what can still be selected
+  const remainingImages = maxImages - currentImageCount;
+  const remainingVideos = maxVideos - currentVideoCount;
+  const canSelectImages = remainingImages > 0;
+  const canSelectVideos = remainingVideos > 0;
+
+  // Use tRPC query to fetch media (start with first page)
   const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const [allLoadedMedia, setAllLoadedMedia] = useState<any[]>([]);
 
-  // Fetch existing media
-  const fetchMedia = useCallback(async (page = 0, append = false) => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        limit: '20',
-        offset: (page * 20).toString(),
-      });
-      
-      if (mediaType !== 'ALL') {
-        params.append('mediaType', mediaType);
-      }
-
-      const response = await fetch(`/api/media?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch media');
-      }
-
-      const media: MediaItem[] = await response.json();
-      
-      if (append) {
-        setExistingMedia(prev => [...prev, ...media]);
-      } else {
-        setExistingMedia(media);
-      }
-      
-      setHasMore(media.length === 20);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error('Error fetching media:', error);
-    } finally {
-      setIsLoading(false);
+  const {
+    data: mediaData,
+    isLoading,
+    refetch,
+  } = api.media.getUserMedia.useQuery(
+    {
+      limit: 20,
+      cursor: currentPage * 20,
+      search: searchQuery || undefined,
+    },
+    {
+      enabled: isOpen,
     }
-  }, [mediaType]);
-
-  // Load media when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchMedia(0, false);
-      setSelectedMedia([]);
-    }
-  }, [isOpen, fetchMedia]);
-
-  // Filter media based on search query
-  const filteredMedia = existingMedia.filter(media =>
-    !searchQuery || 
-    media.originalFilename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    media.altText?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleMediaSelect = (media: MediaItem) => {
-    if (!multiple) {
-      setSelectedMedia([media]);
-      return;
-    }
-
-    setSelectedMedia(prev => {
-      const isSelected = prev.some(m => m.id === media.id);
-      if (isSelected) {
-        return prev.filter(m => m.id !== media.id);
-      } else if (prev.length < maxSelection) {
-        return [...prev, media];
+  // Accumulate media from all loaded pages
+  useEffect(() => {
+    if (mediaData?.media) {
+      if (currentPage === 0) {
+        setAllLoadedMedia(mediaData.media);
+      } else {
+        setAllLoadedMedia((prev) => [...prev, ...mediaData.media]);
       }
-      return prev;
+    }
+  }, [mediaData?.media, currentPage]);
+
+  // Get all accumulated media
+  const allMedia = allLoadedMedia;
+
+  // Reset selection and pagination when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedMedia([]);
+      setCurrentPage(0);
+      setAllLoadedMedia([]);
+    }
+  }, [isOpen]);
+
+  // Reset pagination and refetch when search changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isOpen) {
+        setCurrentPage(0);
+        setAllLoadedMedia([]);
+        refetch();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isOpen, refetch]);
+
+  // Load more function
+  const loadMore = () => {
+    if (mediaData?.hasMore && !isLoading) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  // Filter media based on platform constraints and availability
+  const filteredMedia = allMedia.filter((media) => {
+    // Filter by what can still be selected
+    if (media.mediaType === 'IMAGE' && !canSelectImages) return false;
+    if (media.mediaType === 'VIDEO' && !canSelectVideos) return false;
+
+    return true;
+  });
+
+  const handleMediaSelect = (media: MediaItem) => {
+    setSelectedMedia((prev) => {
+      const isSelected = prev.some((m) => m.id === media.id);
+
+      if (isSelected) {
+        // Deselect media
+        return prev.filter((m) => m.id !== media.id);
+      }
+
+      // Check constraints before selecting
+      const selectedImages = prev.filter((m) => m.mediaType === 'IMAGE').length;
+      const selectedVideos = prev.filter((m) => m.mediaType === 'VIDEO').length;
+
+      if (media.mediaType === 'IMAGE') {
+        // Check if we can select more images
+        if (selectedImages + currentImageCount >= maxImages) return prev;
+
+        // Platform-specific constraints
+        if (
+          socialType === 'INSTAGRAM' ||
+          socialType === 'TWITTER' ||
+          socialType === 'LINKEDIN'
+        ) {
+          // If we already have videos (current + selected), can't add images
+          if (currentVideoCount > 0 || selectedVideos > 0) {
+            return prev;
+          }
+        }
+      } else if (media.mediaType === 'VIDEO') {
+        // Check if we can select more videos
+        if (selectedVideos + currentVideoCount >= maxVideos) {
+          return prev;
+        }
+
+        // Platform-specific constraints
+        if (
+          socialType === 'INSTAGRAM' ||
+          socialType === 'TWITTER' ||
+          socialType === 'LINKEDIN'
+        ) {
+          // If we already have images (current + selected), can't add videos
+          if (currentImageCount > 0 || selectedImages > 0) return prev;
+        }
+
+        // TikTok/YouTube: Only 1 video allowed
+        if (
+          (socialType === 'TIKTOK' || socialType === 'YOUTUBE') &&
+          (currentVideoCount > 0 || selectedVideos > 0)
+        ) {
+          return prev;
+        }
+      }
+
+      return [...prev, media];
     });
   };
 
@@ -123,52 +197,103 @@ export function MediaSelectionDialog({
     onClose();
   };
 
-  const loadMore = () => {
-    if (hasMore && !isLoading) {
-      fetchMedia(currentPage + 1, true);
+  // Calculate max selection info
+  const maxSelectable = Math.min(
+    remainingImages + remainingVideos,
+    socialType === 'TIKTOK' || socialType === 'YOUTUBE' ? 2 : 10
+  );
+
+  const getConstraintMessage = () => {
+    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
+      return `${remainingVideos} video(s) and ${remainingImages} thumbnail(s) remaining`;
     }
+    if (
+      socialType === 'INSTAGRAM' &&
+      (currentVideoCount > 0 ||
+        selectedMedia.some((m) => m.mediaType === 'VIDEO'))
+    ) {
+      return 'Only 1 video allowed (no images)';
+    }
+    if (
+      socialType === 'INSTAGRAM' &&
+      (currentImageCount > 0 ||
+        selectedMedia.some((m) => m.mediaType === 'IMAGE'))
+    ) {
+      return `${remainingImages} image(s) remaining (no videos)`;
+    }
+    return `${remainingImages} image(s) or ${remainingVideos} video(s) remaining`;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-h-[80vh] max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Select Media</DialogTitle>
+          <DialogTitle>Select from Your Media Library</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="existing" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="existing">Existing Media</TabsTrigger>
-            <TabsTrigger value="upload">Upload New</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search media..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-          <TabsContent value="existing" className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search media..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          {/* Constraint message */}
+          <div className="rounded bg-muted/50 p-2 text-muted-foreground text-sm">
+            {getConstraintMessage()}
+          </div>
 
-            {/* Media Grid */}
-            <div className="h-96 overflow-y-auto">
+          {/* Media Grid */}
+          <div className="h-96 overflow-y-auto">
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-muted-foreground">Loading media...</p>
+                </div>
+              </div>
+            ) : filteredMedia.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <ImageIcon className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="text-muted-foreground">No media found</p>
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    {searchQuery
+                      ? 'Try a different search term'
+                      : 'Upload some media first'}
+                  </p>
+                </div>
+              </div>
+            ) : (
               <div className="grid grid-cols-4 gap-3">
                 {filteredMedia.map((media) => {
-                  const isSelected = selectedMedia.some(m => m.id === media.id);
+                  const isSelected = selectedMedia.some(
+                    (m) => m.id === media.id
+                  );
+                  const canSelect =
+                    !isSelected &&
+                    ((media.mediaType === 'IMAGE' && canSelectImages) ||
+                      (media.mediaType === 'VIDEO' && canSelectVideos));
+
                   return (
                     <motion.div
                       key={media.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className={cn(
-                        'relative cursor-pointer rounded-lg border-2 bg-muted overflow-hidden aspect-square',
-                        isSelected ? 'border-primary' : 'border-border hover:border-input'
+                        'relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
+                        isSelected
+                          ? 'border-primary'
+                          : canSelect
+                            ? 'cursor-pointer border-border hover:border-input'
+                            : 'cursor-not-allowed border-border opacity-50'
                       )}
-                      onClick={() => handleMediaSelect(media)}
+                      onClick={() => canSelect && handleMediaSelect(media)}
                     >
                       {media.mediaType === 'IMAGE' ? (
                         <img
@@ -185,13 +310,7 @@ export function MediaSelectionDialog({
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
                             <div className="rounded-full bg-black bg-opacity-50 p-2">
-                              <svg
-                                className="h-6 w-6 text-white"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                              </svg>
+                              <Video className="h-4 w-4 text-white" />
                             </div>
                           </div>
                         </div>
@@ -216,53 +335,43 @@ export function MediaSelectionDialog({
 
                       {/* Media type indicator */}
                       <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
-                        <ImageIcon className="h-3 w-3" />
+                        {media.mediaType === 'IMAGE' ? (
+                          <ImageIcon className="h-3 w-3" />
+                        ) : (
+                          <Video className="h-3 w-3" />
+                        )}
                       </div>
                     </motion.div>
                   );
                 })}
               </div>
+            )}
 
-              {/* Load more button */}
-              {hasMore && (
-                <div className="mt-4 text-center">
-                  <Button
-                    variant="outline"
-                    onClick={loadMore}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Loading...' : 'Load More'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="upload" className="space-y-4">
-            <div className="h-96 flex items-center justify-center">
-              <div className="text-center">
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  Upload functionality will be integrated here
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  For now, please close this dialog and use the regular upload area
-                </p>
+            {/* Load more button */}
+            {mediaData?.hasMore && (
+              <div className="mt-4 text-center">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Loading...' : 'Load More'}
+                </Button>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            )}
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t pt-4">
-          <div className="text-sm text-muted-foreground">
-            {selectedMedia.length} of {maxSelection} selected
+          <div className="text-muted-foreground text-sm">
+            {selectedMedia.length} of {maxSelectable} selected
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirm}
               disabled={selectedMedia.length === 0}
             >

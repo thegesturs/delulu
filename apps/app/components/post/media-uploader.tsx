@@ -12,7 +12,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 
-import { uploadSingleFile } from '@/hooks/use-upload-media';
+import { useMediaStorage } from '@/hooks/use-media-storage';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
@@ -30,6 +30,7 @@ interface MediaFile {
   url?: string;
   size?: number;
   extension?: string;
+  originalFilename?: string;
   isUploading?: boolean;
   altText?: string;
   bucketUrl?: string; // for backward compatibility
@@ -331,6 +332,8 @@ export function MediaUploader({
     }))
   );
 
+  const { uploadAndSaveMedia } = useMediaStorage();
+
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -521,7 +524,7 @@ export function MediaUploader({
           if (!mediaFile.file) return mediaFile;
 
           try {
-            const uploadResult = await uploadSingleFile(mediaFile.file);
+            const uploadResult = await uploadAndSaveMedia(mediaFile.file);
 
             // Update the media file with upload results
             setMediaFiles((prev) =>
@@ -531,6 +534,7 @@ export function MediaUploader({
                       ...item,
                       bucketKey: uploadResult.bucketKey,
                       url: uploadResult.url,
+                      originalFilename: mediaFile.file?.name,
                       isUploading: false,
                       file: undefined, // Remove file after upload
                     }
@@ -542,6 +546,7 @@ export function MediaUploader({
               ...mediaFile,
               bucketKey: uploadResult.bucketKey,
               url: uploadResult.url,
+              originalFilename: mediaFile.file?.name,
               isUploading: false,
               file: undefined,
             };
@@ -614,10 +619,11 @@ export function MediaUploader({
         url: string;
         bucketKey: string;
         mediaType: 'IMAGE' | 'VIDEO';
-        originalFilename?: string;
-        size?: number;
-        extension?: string;
-        altText?: string;
+        originalFilename?: string | null;
+        size?: number | null;
+        extension?: string | null;
+        altText?: string | null;
+        createdAt: string | Date;
       }>
     ) => {
       const newMediaFiles = selectedMedia.map((media) => ({
@@ -626,9 +632,10 @@ export function MediaUploader({
         previewUrl: media.url,
         url: media.url,
         bucketKey: media.bucketKey,
-        altText: media.altText,
-        size: media.size,
-        extension: media.extension,
+        altText: media.altText || undefined,
+        size: media.size || undefined,
+        extension: media.extension || undefined,
+        originalFilename: media.originalFilename || undefined,
         isUploading: false,
       }));
 
@@ -787,26 +794,20 @@ export function MediaUploader({
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         onSelect={handleSelectExistingMedia}
-        maxSelection={maxImages + maxVideos - mediaFiles.length}
-        mediaType={
-          mediaFiles.some((f) => f.mediaType === 'VIDEO')
-            ? 'IMAGE'
-            : mediaFiles.some((f) => f.mediaType === 'IMAGE') &&
-                (socialType === 'INSTAGRAM' ||
-                  socialType === 'TWITTER' ||
-                  socialType === 'LINKEDIN')
-              ? 'VIDEO'
-              : 'ALL'
-        }
-        multiple={
-          !(
-            socialType === 'TIKTOK' ||
-            socialType === 'YOUTUBE' ||
-            (socialType === 'INSTAGRAM' &&
-              mediaFiles.some((f) => f.mediaType === 'VIDEO')) ||
-            mediaFiles.some((f) => f.mediaType === 'VIDEO')
-          )
-        }
+        socialType={socialType}
+        currentMedia={mediaFiles.map((m) => ({
+          id: m.id,
+          url: m.url || m.previewUrl,
+          bucketKey: m.bucketKey || '',
+          mediaType: m.mediaType,
+          originalFilename: m.originalFilename,
+          size: m.size,
+          extension: m.extension,
+          altText: m.altText,
+          createdAt: new Date().toISOString(),
+        }))}
+        maxImages={maxImages}
+        maxVideos={maxVideos}
       />
     </div>
   );
