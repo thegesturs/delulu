@@ -77,10 +77,9 @@ async function createPin(
 }
 
 async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.socialProvider.findUnique({
-    where: {
-      id: socialProviderId,
-    },
+  const profile = await database.query.socialProviders.findFirst({
+    where: (socialProviders, { eq }) =>
+      eq(socialProviders.id, socialProviderId),
   });
 
   if (!profile || !profile.accessToken) {

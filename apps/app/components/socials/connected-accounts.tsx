@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from '@/trpc/react';
-import type { SocialProvider } from '@delulu/database/prisma/types/zod';
+import type { SocialProvider } from '@delulu/database/schema';
 import type { SocialTypes } from '@delulu/validators/post';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
