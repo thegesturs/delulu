@@ -9,6 +9,8 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import type { z } from 'zod';
 import { alternatePostContent, platformPosts, posts } from '../post/post.sql';
 import { users } from '../user/user.sql';
 import { createUniqueIds } from '../utilts';
@@ -98,4 +100,9 @@ export const socialProvidersRelations = relations(
   })
 );
 
-export type SocialProvider = typeof socialProviders.$inferSelect;
+export const SocialProviderSelectSchema = createSelectSchema(socialProviders);
+
+export const SocialProviderInsertSchema = createInsertSchema(socialProviders);
+
+export type SocialProvider = z.infer<typeof SocialProviderSelectSchema>;
+export type SocialProviderInsert = z.infer<typeof SocialProviderInsertSchema>;

@@ -1,3 +1,4 @@
+import { contentSchema } from '@delulu/validators/post';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
@@ -11,7 +12,12 @@ import {
   timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { socialProviders } from '../social/social.sql';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { z } from 'zod';
+import {
+  SocialProviderSelectSchema,
+  socialProviders,
+} from '../social/social.sql';
 import { users } from '../user/user.sql';
 import { createUniqueIds } from '../utilts';
 
@@ -87,6 +93,22 @@ export const posts = pgTable(
   ]
 );
 
+export const PostSelectSchema = createSelectSchema(posts, {
+  privacyStatus: z.enum(privacyStatusEnum.enumValues),
+  status: z.enum(postStatusEnum.enumValues),
+  reviewStatus: z.enum(postReviewStatusEnum.enumValues),
+  content: z.array(contentSchema),
+});
+export const PostInsertSchema = createInsertSchema(posts, {
+  privacyStatus: z.enum(privacyStatusEnum.enumValues),
+  status: z.enum(postStatusEnum.enumValues),
+  reviewStatus: z.enum(postReviewStatusEnum.enumValues),
+  content: z.array(contentSchema),
+});
+
+export type Post = z.infer<typeof PostSelectSchema>;
+export type PostInsert = z.infer<typeof PostInsertSchema>;
+
 // Alternate Post Content table
 export const alternatePostContent = pgTable(
   'alternate_post_content',
@@ -107,6 +129,27 @@ export const alternatePostContent = pgTable(
   ]
 );
 
+export const AlternatePostContentSelectSchema = createSelectSchema(
+  alternatePostContent,
+  {
+    content: z.array(contentSchema),
+  }
+);
+
+export const AlternatePostContentInsertSchema = createInsertSchema(
+  alternatePostContent,
+  {
+    content: z.array(contentSchema),
+  }
+);
+
+export type AlternatePostContent = z.infer<
+  typeof AlternatePostContentSelectSchema
+>;
+export type AlternatePostContentInsert = z.infer<
+  typeof AlternatePostContentInsertSchema
+>;
+
 // Platform Posts table
 export const platformPosts = pgTable(
   'platform_posts',
@@ -122,6 +165,10 @@ export const platformPosts = pgTable(
     primaryKey({ columns: [table.postId, table.platformId] }),
   ]
 );
+
+export const PlatformPostSelectSchema = createSelectSchema(platformPosts);
+
+export const PlatformPostInsertSchema = createInsertSchema(platformPosts);
 
 // Relations
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -158,3 +205,13 @@ export const platformPostsRelations = relations(platformPosts, ({ one }) => ({
     references: [socialProviders.id],
   }),
 }));
+
+export const PostSelectSchemaWithRelations = PostSelectSchema.extend({
+  alternateContents: z.array(AlternatePostContentSelectSchema),
+  platformPosts: z.array(PlatformPostSelectSchema),
+  socialProviders: z.array(SocialProviderSelectSchema),
+});
+
+export type PostSelectWithRelations = z.infer<
+  typeof PostSelectSchemaWithRelations
+>;
