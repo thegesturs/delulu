@@ -4,7 +4,7 @@ import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@/trpc/react';
-import { PostStatus } from '@delulu/database';
+import { PostStatus } from '@delulu/database/schema/types';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import {
