@@ -110,10 +110,10 @@ async function getPostDetails(
 }
 
 async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.socialProvider.findUnique({
-    where: {
-      id: socialProviderId,
-    },
+  const [profile] = await database.query.socialProviders.findMany({
+    where: (socialProviders, { eq }) =>
+      eq(socialProviders.id, socialProviderId),
+    limit: 1,
   });
 
   if (!profile || !profile.accessToken || !profile.profileId) {

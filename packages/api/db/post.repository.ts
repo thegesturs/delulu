@@ -1,9 +1,19 @@
-import { database } from '@delulu/database';
-import type { Prisma } from '@delulu/database';
 import {
-  type PostReviewStatus,
-  PostStatus,
-  type PrivacyStatus,
+  alternatePostContent,
+  and,
+  asc,
+  count,
+  database,
+  desc,
+  eq,
+  gt,
+  gte,
+  lt,
+  lte,
+  platformPosts,
+  posts,
+  sql,
+  users,
 } from '@delulu/database';
 import type {
   SavePostInputType,
@@ -16,9 +26,9 @@ import { ApiPostContentItemSchema } from './types/post.types';
 
 // Types for filters
 export type PostFilters = {
-  status?: PostStatus;
-  privacyStatus?: PrivacyStatus;
-  reviewStatus?: PostReviewStatus;
+  status?: 'SAVED' | 'PUBLISHED' | 'SCHEDULED' | 'DELETED' | 'FAILED';
+  privacyStatus?: 'PUBLIC' | 'PRIVATE';
+  reviewStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
   organizationId?: string;
   isDeleted?: boolean;
   startDate?: Date;
@@ -31,262 +41,228 @@ export type PostFilters = {
 
 // Helper function to build where clause
 function buildWhereClause(filters: PostFilters = {}) {
-  const where: Prisma.PostWhereInput = {};
+  const conditions: ReturnType<typeof eq>[] = [];
 
   if (filters.status) {
-    where.status = filters.status;
+    conditions.push(eq(posts.status, filters.status));
   }
   if (filters.privacyStatus) {
-    where.privacyStatus = filters.privacyStatus;
+    conditions.push(eq(posts.privacyStatus, filters.privacyStatus));
   }
   if (filters.reviewStatus) {
-    where.reviewStatus = filters.reviewStatus;
+    conditions.push(eq(posts.reviewStatus, filters.reviewStatus));
   }
   if (filters.organizationId) {
-    where.organizationId = filters.organizationId;
+    conditions.push(eq(posts.organizationId, filters.organizationId));
   }
   if (filters.isDeleted !== undefined) {
-    where.isDeleted = filters.isDeleted;
+    conditions.push(eq(posts.isDeleted, filters.isDeleted));
   }
 
   if (filters.startDate) {
-    if (typeof where.createdAt === 'object' && where.createdAt !== null) {
-      (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
-    } else {
-      where.createdAt = { gte: filters.startDate };
-    }
+    conditions.push(gte(posts.createdAt, filters.startDate));
   }
   if (filters.endDate) {
-    if (typeof where.createdAt === 'object' && where.createdAt !== null) {
-      (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
-    } else {
-      where.createdAt = { lte: filters.endDate };
-    }
+    conditions.push(lte(posts.createdAt, filters.endDate));
   }
 
   if (filters.searchTerm) {
-    where.OR = [
-      { content: { path: ['$[*].text'], string_contains: filters.searchTerm } },
-    ];
-  }
-
-  if (typeof filters.hasSocialProviders === 'boolean') {
-    if (filters.hasSocialProviders) {
-      where.socialProviders = { some: {} };
-    } else {
-      where.socialProviders = { none: {} };
-    }
+    // Use JSON contains for searching in content
+    conditions.push(
+      sql`${posts.content}::text ILIKE ${'%' + filters.searchTerm + '%'}`
+    );
   }
 
   if (filters.scheduledBefore) {
-    if (typeof where.scheduledAt === 'object' && where.scheduledAt !== null) {
-      (where.scheduledAt as Prisma.DateTimeNullableFilter).lt =
-        filters.scheduledBefore;
-    } else {
-      where.scheduledAt = { lt: filters.scheduledBefore };
-    }
+    conditions.push(lt(posts.scheduledAt, filters.scheduledBefore));
   }
 
   if (filters.scheduledAfter) {
-    if (typeof where.scheduledAt === 'object' && where.scheduledAt !== null) {
-      (where.scheduledAt as Prisma.DateTimeNullableFilter).gt =
-        filters.scheduledAfter;
-    } else {
-      where.scheduledAt = { gt: filters.scheduledAfter };
-    }
+    conditions.push(gt(posts.scheduledAt, filters.scheduledAfter));
   }
 
-  return where;
+  return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
 // Get a single post by ID
 export async function getPostById(postId: string) {
-  return await database.post.findUnique({
-    where: { id: postId },
-    include: {
-      socialProviders: true,
+  const [post] = await database.query.posts.findMany({
+    where: (posts, { eq }) => eq(posts.id, postId),
+    limit: 1,
+    with: {
       alternateContents: {
-        include: {
-          socialProvider: {
-            select: {
-              id: true,
-              fullName: true,
-              socialType: true,
-            },
-          },
+        with: {
+          socialProvider: true,
         },
       },
     },
   });
+
+  return post || null;
 }
 
 // Get posts by user ID with filters
 export async function getPostsByUserId(
   userId: string,
   filters: PostFilters = {},
-  pagination?: { skip?: number; take?: number },
-  include?: Prisma.PostInclude
+  pagination?: { skip?: number; take?: number }
 ): Promise<PaginatedPostsResponse> {
-  const where = {
-    userId,
-    ...buildWhereClause(filters),
-  };
+  const whereConditions = [eq(posts.userId, userId)];
+  const filterConditions = buildWhereClause(filters);
+  if (filterConditions) {
+    whereConditions.push(filterConditions);
+  }
 
-  const [dbPosts, total] = await Promise.all([
-    database.post.findMany({
-      where,
-      include: {
-        socialProviders: true,
-        platformPosts: true,
-        ...include,
-      },
-      orderBy: { createdAt: 'desc' },
-      ...pagination,
-    }),
-    database.post.count({ where }),
+  const whereClause = and(...whereConditions);
+
+  const [databasePosts, totalResult] = await Promise.all([
+    database
+      .select()
+      .from(posts)
+      .where(whereClause)
+      .orderBy(desc(posts.createdAt))
+      .limit(pagination?.take || 50)
+      .offset(pagination?.skip || 0),
+    database.select({ count: count() }).from(posts).where(whereClause),
   ]);
 
-  console.log(dbPosts, 'posts');
-
-  const posts: ApiPost[] = dbPosts.map((post) => {
+  const transformedPosts: ApiPost[] = databasePosts.map((post) => {
     // Validate and transform content
     const parsedContent = z
       .array(ApiPostContentItemSchema)
       .safeParse(post.content);
     return {
       ...post,
-      content: parsedContent.success ? parsedContent.data : [], // Default to empty array if parsing fails or content is null/invalid
-      // Ensure other fields match ApiPost if necessary, though Prisma types should align for most
-      // For example, explicitly map status if it's not already the correct enum string
-      status: post.status as PostStatus,
-      privacyStatus: post.privacyStatus as PrivacyStatus,
-      reviewStatus: post.reviewStatus as PostReviewStatus,
-      // Map other potentially problematic fields here if they arise
+      content: parsedContent.success ? parsedContent.data : [],
+      status: post.status,
+      privacyStatus: post.privacyStatus,
+      reviewStatus: post.reviewStatus,
+      socialProviders: [],
+      platformPosts: [],
     };
   });
 
   return {
-    posts,
-    total,
+    posts: transformedPosts,
+    total: totalResult[0]?.count || 0,
   };
 }
 
 // Save a new post
-export async function savePost(
-  data: Prisma.PostCreateInput,
-  include?: Prisma.PostInclude
-) {
-  return await database.post.create({
-    data,
-    include: {
-      ...include,
-    },
-  });
+export async function savePost(data: typeof posts.$inferInsert) {
+  const [post] = await database.insert(posts).values(data).returning();
+  return post;
 }
 
 export async function saveIncomingPost(
   post: SavePostInputType,
-  postStatus: PostStatus,
+  postStatus: 'SAVED' | 'PUBLISHED' | 'SCHEDULED' | 'DELETED' | 'FAILED',
   userId?: string,
   organizationId?: string
 ) {
-  return await database.post.create({
-    data: {
+  const postId = `post_${nanoid(12)}`;
+
+  // Create the main post
+  const [createdPost] = await database
+    .insert(posts)
+    .values({
+      id: postId,
       content: post.content,
       status: postStatus,
-      id: `post_${nanoid(12)}`,
-      socialProviders: {
-        connect: post.socialProviders.map((provider) => ({
-          id: provider.socialId,
-        })),
-      },
-      userId: userId ?? undefined,
-      organizationId: organizationId ?? undefined,
-      alternateContents: {
-        create: post.alternativeContent.map((alt) => ({
-          content: alt.content,
-          socialProviderId: alt.socialProvider.socialId,
-        })),
-      },
-    },
-  });
+      userId: userId ?? null,
+      organizationId: organizationId ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  // Create alternate contents if any
+  if (post.alternativeContent?.length > 0) {
+    await database.insert(alternatePostContent).values(
+      post.alternativeContent.map((alt) => ({
+        postId,
+        socialProviderId: alt.socialProvider.socialId,
+        content: alt.content,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+    );
+  }
+
+  return createdPost;
 }
 
 // Update an existing post
 export async function updatePost(
   postId: string,
-  data: Prisma.PostUpdateInput,
-  include?: Prisma.PostInclude
+  data: Partial<typeof posts.$inferInsert>
 ) {
-  return await database.post.update({
-    where: { id: postId },
-    data,
-    include: {
-      ...include,
-    },
-  });
+  const [post] = await database
+    .update(posts)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(posts.id, postId))
+    .returning();
+  return post;
 }
 
 export async function updatePostContent(updatePostInput: UpdatePostInput) {
-  return await database.post.update({
-    where: { id: updatePostInput.postId },
-    data: {
+  // Update the main post
+  const [post] = await database
+    .update(posts)
+    .set({
       content: updatePostInput.content,
-      socialProviders: {
-        // Replace all providers with the new set
-        set: updatePostInput.socialProviders.map((provider) => ({
-          id: provider.socialId,
-        })),
-      },
-      alternateContents: {
-        // Delete all alternate contents that are not in the input
-        deleteMany: {
-          postId: updatePostInput.postId,
-          NOT: {
-            socialProviderId: {
-              in: updatePostInput.alternativeContent.map(
-                (alt) => alt.socialProvider.socialId
-              ),
-            },
-          },
-        },
-        // Update existing or create new ones
-        upsert: updatePostInput.alternativeContent.map((alt) => ({
-          where: {
-            postId_socialProviderId: {
-              postId: updatePostInput.postId,
-              socialProviderId: alt.socialProvider.socialId,
-            },
-          },
-          update: {
-            content: alt.content,
-          },
-          create: {
-            content: alt.content,
-            socialProviderId: alt.socialProvider.socialId,
-          },
-        })),
-      },
-    },
-  });
+      updatedAt: new Date(),
+    })
+    .where(eq(posts.id, updatePostInput.postId))
+    .returning();
+
+  // Handle alternate contents - delete existing ones first
+  await database
+    .delete(alternatePostContent)
+    .where(eq(alternatePostContent.postId, updatePostInput.postId));
+
+  // Insert new alternate contents
+  if (updatePostInput.alternativeContent?.length > 0) {
+    await database.insert(alternatePostContent).values(
+      updatePostInput.alternativeContent.map((alt) => ({
+        postId: updatePostInput.postId,
+        socialProviderId: alt.socialProvider.socialId,
+        content: alt.content,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+    );
+  }
+
+  return post;
 }
 
 // Soft delete a post
 export async function softDeletePost(postId: string) {
-  return await database.post.update({
-    where: { id: postId },
-    data: {
+  const [post] = await database
+    .update(posts)
+    .set({
       isDeleted: true,
-      status: PostStatus.DELETED,
-    },
-  });
+      status: 'DELETED',
+      updatedAt: new Date(),
+    })
+    .where(eq(posts.id, postId))
+    .returning();
+  return post;
 }
 
 // Hard delete a post
 export async function hardDeletePost(postId: string) {
-  return await database.post.delete({
-    where: { id: postId },
-  });
+  // Delete related alternate contents first
+  await database
+    .delete(alternatePostContent)
+    .where(eq(alternatePostContent.postId, postId));
+
+  // Delete related platform posts
+  await database.delete(platformPosts).where(eq(platformPosts.postId, postId));
+
+  // Delete the post
+  return await database.delete(posts).where(eq(posts.id, postId));
 }
 
 // Get scheduled posts
@@ -294,30 +270,49 @@ export async function getScheduledPosts(
   filters: PostFilters = {},
   pagination?: { skip?: number; take?: number }
 ) {
-  const where = {
-    status: PostStatus.SCHEDULED,
-    scheduledAt: { gt: new Date() },
-    ...buildWhereClause(filters),
-  };
+  const whereConditions = [
+    eq(posts.status, 'SCHEDULED'),
+    gt(posts.scheduledAt, new Date()),
+  ];
 
-  const [posts, total] = await Promise.all([
-    database.post.findMany({
-      where,
-      include: {
-        user: true,
-        organization: true,
-        socialProviders: true,
-        alternateContents: true,
-        platformPosts: true,
-      },
-      orderBy: { scheduledAt: 'asc' },
-      ...pagination,
-    }),
-    database.post.count({ where }),
+  const filterConditions = buildWhereClause(filters);
+  if (filterConditions) {
+    whereConditions.push(filterConditions);
+  }
+
+  const whereClause = and(...whereConditions);
+
+  const [scheduledPosts, totalResult] = await Promise.all([
+    database
+      .select({
+        id: posts.id,
+        content: posts.content,
+        status: posts.status,
+        privacyStatus: posts.privacyStatus,
+        reviewStatus: posts.reviewStatus,
+        scheduledAt: posts.scheduledAt,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        userId: posts.userId,
+        organizationId: posts.organizationId,
+        isDeleted: posts.isDeleted,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        },
+      })
+      .from(posts)
+      .leftJoin(users, eq(posts.userId, users.id))
+      .where(whereClause)
+      .orderBy(asc(posts.scheduledAt))
+      .limit(pagination?.take || 50)
+      .offset(pagination?.skip || 0),
+    database.select({ count: count() }).from(posts).where(whereClause),
   ]);
 
   return {
-    posts,
-    total,
+    posts: scheduledPosts,
+    total: totalResult[0]?.count || 0,
   };
 }

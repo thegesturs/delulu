@@ -1,6 +1,3 @@
-import { auth, currentUser } from '@delulu/auth/server';
-import { authenticate } from '@delulu/collaboration/auth';
-
 const COLORS = [
   'var(--color-red-500)',
   'var(--color-orange-500)',
@@ -21,22 +18,23 @@ const COLORS = [
   'var(--color-rose-500)',
 ];
 
-export const POST = async () => {
-  const user = await currentUser();
-  const { orgId } = await auth();
+export const POST = () => {
+  // const user = await currentUser();
+  // const { orgId } = await auth();
 
-  if (!user || !orgId) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+  // if (!user || !orgId) {
+  //   return new Response('Unauthorized', { status: 401 });
+  // }
 
-  return authenticate({
-    userId: user.id,
-    orgId,
-    userInfo: {
-      name:
-        user.fullName ?? user.emailAddresses.at(0)?.emailAddress ?? undefined,
-      avatar: user.imageUrl ?? undefined,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    },
-  });
+  // return authenticate({
+  //   userId: user.id,
+  //   orgId,
+  //   userInfo: {
+  //     name:
+  //       user.fullName ?? user.emailAddresses.at(0)?.emailAddress ?? undefined,
+  //     avatar: user.imageUrl ?? undefined,
+  //     color: COLORS[Math.floor(Math.random() * COLORS.length)],
+  //   },
+  // });
+  return new Response('Unauthorized', { status: 401 });
 };

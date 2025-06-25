@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { database as db, eq, socialProviders } from '@delulu/database';
 import {
   type PostReturnType,
   getValidMediaUrls,
@@ -23,10 +23,10 @@ interface TikTokVideoUploadResponse {
  * @throws {TRPCError} - If the profile is not found or token refresh fails
  */
 async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.socialProvider.findUnique({
-    where: {
-      id: socialProviderId,
-    },
+  const [profile] = await db.query.socialProviders.findMany({
+    where: (socialProviders, { eq }) =>
+      eq(socialProviders.id, socialProviderId),
+    limit: 1,
   });
 
   if (!profile) {
@@ -62,18 +62,16 @@ async function getAccessTokenAndProfile(socialProviderId: string) {
       const data = response.data;
       if (data) {
         // Update the profile with new tokens
-        const updatedProfile = await database.socialProvider.update({
-          where: {
-            id: socialProviderId,
-          },
-          data: {
+        const [updatedProfile] = await db
+          .update(socialProviders)
+          .set({
             accessToken: data.access_token,
             refreshToken: data.refresh_token, // TikTok may return a new refresh token
             expiresIn: new Date(Date.now() + data.expires_in * 1000),
-            updatedAt: new Date(),
             lastSyncedAt: new Date(),
-          },
-        });
+          })
+          .where(eq(socialProviders.id, socialProviderId))
+          .returning();
         return updatedProfile;
       }
     } catch (err) {

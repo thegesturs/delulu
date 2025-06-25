@@ -1,4 +1,4 @@
-import { database } from '@delulu/database';
+import { database as db } from '@delulu/database';
 import {
   type MediaType,
   type PostReturnType,
@@ -144,10 +144,10 @@ export const linkedinProvider: SocialProvider = {
  * @throws {TRPCError} - If the profile is not found
  */
 async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.socialProvider.findUnique({
-    where: {
-      id: socialProviderId,
-    },
+  const [profile] = await db.query.socialProviders.findMany({
+    where: (socialProviders, { eq }) =>
+      eq(socialProviders.id, socialProviderId),
+    limit: 1,
   });
 
   if (!profile || !profile.accessToken) {

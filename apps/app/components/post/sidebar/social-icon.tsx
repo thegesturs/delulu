@@ -5,7 +5,6 @@ import { AiFillYoutube } from 'react-icons/ai';
 import { AiOutlineTwitter } from 'react-icons/ai';
 import {
   FaFacebook,
-  FaGithub,
   FaInstagram,
   FaLinkedinIn,
   FaTiktok,
@@ -39,9 +38,6 @@ export const SocialIcon = ({ type, className, size }: SocialIconProps) => {
   }
   if (type === SocialTypes.LENS) {
     return <Image src="/lens.svg" width={30} height={30} alt="lens" />;
-  }
-  if (type === SocialTypes.GITHUB) {
-    return <FaGithub className={cn('h-3 w-3', className, sizeClass)} />;
   }
   if (type === SocialTypes.INSTAGRAM) {
     return <FaInstagram className={cn('h-3 w-3', className, sizeClass)} />;

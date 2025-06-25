@@ -14,11 +14,6 @@ export {
   currentPlanEnum,
 } from './social/social.sql';
 
-export const schema = {
-  user,
-  post,
-  social,
-};
 
 // Export all queries for easier imports
 export { userQueries } from './user/user.queries';
