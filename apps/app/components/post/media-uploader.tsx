@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  FolderOpen,
   ImageIcon,
   Plus,
   Upload,
@@ -11,18 +12,29 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 
+import { uploadSingleFile } from '@/hooks/use-upload-media';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
 import { useShallow } from 'zustand/shallow';
+import { MediaSelectionDialog } from './media-selection-dialog';
 
 interface MediaFile {
   id: string;
-  file: File;
+  file?: File;
   mediaType: 'IMAGE' | 'VIDEO';
   previewUrl: string;
+  bucketKey?: string;
+  url?: string;
+  size?: number;
+  extension?: string;
+  isUploading?: boolean;
+  altText?: string;
+  bucketUrl?: string; // for backward compatibility
+  thumbnailBucketUrl?: string;
+  thumbnailBucketKey?: string;
 }
 
 interface MediaUploaderProps {
@@ -82,6 +94,15 @@ export function MediaPreview({
           </video>
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 group-hover:hidden">
             <Video className="h-6 w-6 text-white" />
+          </div>
+        </div>
+      )}
+
+      {media.isUploading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="flex items-center space-x-2 text-white">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <span className="text-sm">Uploading...</span>
           </div>
         </div>
       )}
@@ -311,6 +332,7 @@ export function MediaUploader({
   );
 
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isUserAction = useRef(false);
   const isGlobal = socialType === SocialTypes.DEFAULT;
@@ -325,21 +347,41 @@ export function MediaUploader({
     return (content?.media || [])
       .map((media) => ({
         id: crypto.randomUUID(),
-        file: media.file!,
         mediaType: media.mediaType,
-        previewUrl: media.previewUrl || '',
+        previewUrl: media.url || '',
+        bucketKey: media.bucketKey,
+        url: media.url,
+        altText: media.altText,
+        bucketUrl: media.bucketUrl,
+        thumbnailBucketUrl: media.thumbnailBucketUrl,
+        thumbnailBucketKey: media.thumbnailBucketKey,
+        isUploading: false,
       }))
-      .filter((m) => m.file && m.previewUrl);
+      .filter((m) => m.url || m.bucketKey);
   });
 
   // Update store only when mediaFiles change due to user actions
   useEffect(() => {
     if (isUserAction.current && orderId !== undefined) {
-      const storeMedia = mediaFiles.map(({ file, mediaType, previewUrl }) => ({
-        file,
-        mediaType,
-        previewUrl,
-      }));
+      const storeMedia = mediaFiles.map(
+        ({
+          mediaType,
+          url,
+          bucketKey,
+          altText,
+          bucketUrl,
+          thumbnailBucketUrl,
+          thumbnailBucketKey,
+        }) => ({
+          mediaType,
+          url,
+          bucketKey,
+          altText,
+          bucketUrl,
+          thumbnailBucketUrl,
+          thumbnailBucketKey,
+        })
+      );
 
       if (isGlobal) {
         setPost({
@@ -381,7 +423,7 @@ export function MediaUploader({
   } = platformConfig;
 
   const handleFileProcessing = useCallback(
-    (incomingFiles: File[]) => {
+    async (incomingFiles: File[]) => {
       let filesToProcess = [...incomingFiles];
       const currentImages = mediaFiles.filter(
         (f) => f.mediaType === 'IMAGE'
@@ -453,16 +495,76 @@ export function MediaUploader({
         }
       }
 
-      newMediaFiles = filesToProcess.map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        mediaType: file.type.startsWith('image/') ? 'IMAGE' : 'VIDEO',
-        previewUrl: URL.createObjectURL(file),
-      }));
+      // Create initial media files with uploading state
+      newMediaFiles = filesToProcess.map((file) => {
+        const extension = file.name.split('.').pop() || '';
+        return {
+          id: crypto.randomUUID(),
+          file,
+          mediaType: file.type.startsWith('image/')
+            ? ('IMAGE' as const)
+            : ('VIDEO' as const),
+          previewUrl: URL.createObjectURL(file),
+          size: file.size,
+          extension,
+          isUploading: true,
+        };
+      });
 
       const updatedMediaFiles = [...mediaFiles, ...newMediaFiles];
       isUserAction.current = true;
       setMediaFiles(updatedMediaFiles);
+
+      // Upload files immediately
+      try {
+        const uploadPromises = newMediaFiles.map(async (mediaFile) => {
+          if (!mediaFile.file) return mediaFile;
+
+          try {
+            const uploadResult = await uploadSingleFile(mediaFile.file);
+
+            // Update the media file with upload results
+            setMediaFiles((prev) =>
+              prev.map((item) =>
+                item.id === mediaFile.id
+                  ? {
+                      ...item,
+                      bucketKey: uploadResult.bucketKey,
+                      url: uploadResult.url,
+                      isUploading: false,
+                      file: undefined, // Remove file after upload
+                    }
+                  : item
+              )
+            );
+
+            return {
+              ...mediaFile,
+              bucketKey: uploadResult.bucketKey,
+              url: uploadResult.url,
+              isUploading: false,
+              file: undefined,
+            };
+          } catch (error) {
+            console.error(
+              'Upload failed for file:',
+              mediaFile.file?.name,
+              error
+            );
+
+            // Remove failed upload from list
+            setMediaFiles((prev) =>
+              prev.filter((item) => item.id !== mediaFile.id)
+            );
+
+            return null;
+          }
+        });
+
+        await Promise.all(uploadPromises);
+      } catch (error) {
+        console.error('Upload process failed:', error);
+      }
     },
     [mediaFiles, socialType, maxImages, maxVideos]
   );
@@ -504,6 +606,37 @@ export function MediaUploader({
     isUserAction.current = true;
     setMediaFiles([]);
   }, [mediaFiles]);
+
+  const handleSelectExistingMedia = useCallback(
+    (
+      selectedMedia: Array<{
+        id: string;
+        url: string;
+        bucketKey: string;
+        mediaType: 'IMAGE' | 'VIDEO';
+        originalFilename?: string;
+        size?: number;
+        extension?: string;
+        altText?: string;
+      }>
+    ) => {
+      const newMediaFiles = selectedMedia.map((media) => ({
+        id: crypto.randomUUID(),
+        mediaType: media.mediaType,
+        previewUrl: media.url,
+        url: media.url,
+        bucketKey: media.bucketKey,
+        altText: media.altText,
+        size: media.size,
+        extension: media.extension,
+        isUploading: false,
+      }));
+
+      isUserAction.current = true;
+      setMediaFiles((prev) => [...prev, ...newMediaFiles]);
+    },
+    []
+  );
 
   const getAddButtonAspectRatio = () => {
     if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
@@ -554,31 +687,49 @@ export function MediaUploader({
   return (
     <div className="space-y-4">
       {canUploadMore && (
-        <UploadZone
-          isDragOver={isDragOver}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragOver(true);
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          fileInputRef={fileInputRef}
-          acceptedFileTypes={acceptedFileTypes}
-          uploadInstruction={uploadInstruction}
-          countInstruction={countInstruction}
-          aspectRatioInstruction={aspectRatioInstruction}
-          platformHint={platformHint}
-          multiple={
-            !(
-              socialType === 'TIKTOK' ||
-              socialType === 'YOUTUBE' ||
-              (socialType === 'INSTAGRAM' &&
-                mediaFiles.some((f) => f.mediaType === 'VIDEO')) ||
-              mediaFiles.some((f) => f.mediaType === 'VIDEO')
-            )
-          }
-          onFileInput={handleFileInput}
-        />
+        <>
+          <UploadZone
+            isDragOver={isDragOver}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            fileInputRef={fileInputRef}
+            acceptedFileTypes={acceptedFileTypes}
+            uploadInstruction={uploadInstruction}
+            countInstruction={countInstruction}
+            aspectRatioInstruction={aspectRatioInstruction}
+            platformHint={platformHint}
+            multiple={
+              !(
+                socialType === 'TIKTOK' ||
+                socialType === 'YOUTUBE' ||
+                (socialType === 'INSTAGRAM' &&
+                  mediaFiles.some((f) => f.mediaType === 'VIDEO')) ||
+                mediaFiles.some((f) => f.mediaType === 'VIDEO')
+              )
+            }
+            onFileInput={handleFileInput}
+          />
+
+          <div className="flex items-center space-x-2">
+            <div className="flex-1 border-border border-t" />
+            <span className="px-2 text-muted-foreground text-xs">OR</span>
+            <div className="flex-1 border-border border-t" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(true)}
+            className="w-full"
+          >
+            <FolderOpen className="mr-2 h-4 w-4" />
+            Select from existing media
+          </Button>
+        </>
       )}
 
       <AnimatePresence>
@@ -631,6 +782,32 @@ export function MediaUploader({
           />
         )}
       </AnimatePresence>
+
+      <MediaSelectionDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSelect={handleSelectExistingMedia}
+        maxSelection={maxImages + maxVideos - mediaFiles.length}
+        mediaType={
+          mediaFiles.some((f) => f.mediaType === 'VIDEO')
+            ? 'IMAGE'
+            : mediaFiles.some((f) => f.mediaType === 'IMAGE') &&
+                (socialType === 'INSTAGRAM' ||
+                  socialType === 'TWITTER' ||
+                  socialType === 'LINKEDIN')
+              ? 'VIDEO'
+              : 'ALL'
+        }
+        multiple={
+          !(
+            socialType === 'TIKTOK' ||
+            socialType === 'YOUTUBE' ||
+            (socialType === 'INSTAGRAM' &&
+              mediaFiles.some((f) => f.mediaType === 'VIDEO')) ||
+            mediaFiles.some((f) => f.mediaType === 'VIDEO')
+          )
+        }
+      />
     </div>
   );
 }

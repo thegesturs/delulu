@@ -1,10 +1,12 @@
 import type { ContentType, SocialProviderType } from '@delulu/validators/post';
+import { mediaQueries } from '@delulu/database/schema';
 
 interface UploadMediaResult {
   bucketKey: string;
+  url: string;
 }
 
-async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
+export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   // Get the presigned URL
   const formData = new FormData();
   formData.append('file', file);
@@ -36,7 +38,33 @@ async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
     throw new Error(`Failed to upload file: ${errorText}`);
   }
 
-  return { bucketKey };
+  // Get download URL after successful upload
+  const downloadUrl = await getDownloadUrl(bucketKey);
+
+  // Save media details to database
+  const extension = file.name.split('.').pop() || '';
+  const mediaData = {
+    bucketKey,
+    url: downloadUrl,
+    mediaType: file.type.startsWith('image/') ? 'IMAGE' as const : 'VIDEO' as const,
+    originalFilename: file.name,
+    size: file.size,
+    extension,
+  };
+
+  const saveResponse = await fetch('/api/media', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mediaData),
+  });
+
+  if (!saveResponse.ok) {
+    console.warn('Failed to save media to database:', await saveResponse.text());
+  }
+
+  return { bucketKey, url: downloadUrl };
 }
 
 async function getDownloadUrl(key: string): Promise<string> {
@@ -55,26 +83,15 @@ export async function uploadContentMedia(
     contents.map(async (content) => {
       const updatedMedia = await Promise.all(
         content.media.map(async (media) => {
-          if (!media.file) {
-            // If there's a bucketKey but no file, get a fresh download URL
-            if (media.bucketKey) {
-              const downloadUrl = await getDownloadUrl(media.bucketKey);
-              return {
-                ...media,
-                url: downloadUrl,
-              };
-            }
-            return media;
+          // If there's a bucketKey but no url, get a fresh download URL
+          if (media.bucketKey && !media.url) {
+            const downloadUrl = await getDownloadUrl(media.bucketKey);
+            return {
+              ...media,
+              url: downloadUrl,
+            };
           }
-
-          const result = await uploadSingleFile(media.file);
-          const downloadUrl = await getDownloadUrl(result.bucketKey);
-
-          return {
-            ...media,
-            url: downloadUrl,
-            bucketKey: result.bucketKey,
-          };
+          return media;
         })
       );
 

@@ -15,6 +15,13 @@
       "when": 1750881289740,
       "tag": "0001_nebulous_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1750882423006,
+      "tag": "0002_useful_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }
