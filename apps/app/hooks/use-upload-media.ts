@@ -1,5 +1,4 @@
 import type { ContentType, SocialProviderType } from '@delulu/validators/post';
-import { mediaQueries } from '@delulu/database/schema';
 
 interface UploadMediaResult {
   bucketKey: string;
@@ -41,28 +40,8 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   // Get download URL after successful upload
   const downloadUrl = await getDownloadUrl(bucketKey);
 
-  // Save media details to database
-  const extension = file.name.split('.').pop() || '';
-  const mediaData = {
-    bucketKey,
-    url: downloadUrl,
-    mediaType: file.type.startsWith('image/') ? 'IMAGE' as const : 'VIDEO' as const,
-    originalFilename: file.name,
-    size: file.size,
-    extension,
-  };
-
-  const saveResponse = await fetch('/api/media', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(mediaData),
-  });
-
-  if (!saveResponse.ok) {
-    console.warn('Failed to save media to database:', await saveResponse.text());
-  }
+  // Note: Media will be saved to database when the post is published
+  // For now, we just return the upload result
 
   return { bucketKey, url: downloadUrl };
 }
