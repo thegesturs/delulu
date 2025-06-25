@@ -3,7 +3,7 @@ import {
   savePostInputSchema,
   updatePostInputSchema,
 } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
+import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { protectedProcedure } from '../trpc';
 
@@ -28,7 +28,7 @@ const getPostsInputSchema = z.object({
     .optional(),
 });
 
-export const posting = {
+export const postRouter = {
   getPosts: protectedProcedure
     .input(getPostsInputSchema)
     .query(async ({ input, ctx }) => {
@@ -87,4 +87,4 @@ export const posting = {
     .mutation(async ({ input }) => {
       return await postQueries.softDeletePost(input);
     }),
-};
+} satisfies TRPCRouterRecord;

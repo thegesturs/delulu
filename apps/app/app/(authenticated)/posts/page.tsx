@@ -47,10 +47,10 @@ export default function PostsPage() {
     isLoading,
     error,
     isFetching,
-  } = api.post.getPostsByUserId.useQuery({
+  } = api.post.getPosts.useQuery({
     filters: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      searchTerm: searchTerm || undefined,
+      // searchTerm: searchTerm || undefined,
     },
     pagination: {
       take: ITEMS_PER_PAGE,

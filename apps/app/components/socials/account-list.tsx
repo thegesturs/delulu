@@ -1,6 +1,6 @@
 'use client';
 
-import type { SocialProvider } from '@delulu/database/prisma/types/zod';
+import type { SocialProvider } from '@delulu/database/schema';
 import type { SocialTypes } from '@delulu/validators/post';
 import { Search } from 'lucide-react';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory

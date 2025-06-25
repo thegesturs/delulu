@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { r2Provider } from '@delulu/api/providers/r2.provider';
-import { getAuth } from '@delulu/auth/server';
+import { auth } from '@delulu/auth/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const { userId } = getAuth(request);
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+  const userId = session?.session.userId;
   if (!userId) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
@@ -37,7 +40,10 @@ export async function POST(request: NextRequest) {
 
 // Add a new route to get download URLs
 export async function GET(request: NextRequest) {
-  const { userId } = getAuth(request);
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+  const userId = session?.session.userId;
   if (!userId) {
     return new NextResponse('Unauthorized', { status: 401 });
   }

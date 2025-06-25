@@ -33,7 +33,7 @@ export function PostSidebar() {
     api.socialProvider.createPost.useMutation({
       onSuccess: () => {
         toast.success('Post created successfully');
-        utils.post.getPostsByUserId.invalidate();
+        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
@@ -45,7 +45,7 @@ export function PostSidebar() {
     api.post.updatePost.useMutation({
       onSuccess: () => {
         toast.success('Post updated successfully');
-        utils.post.getPostsByUserId.invalidate();
+        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
@@ -57,17 +57,13 @@ export function PostSidebar() {
     api.post.savePost.useMutation({
       onSuccess: () => {
         toast.success('Post saved successfully');
-        utils.post.getPostsByUserId.invalidate();
+        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
         toast.error('Failed to save post');
       },
     });
-
-  // const handleSchedule = useCallback(() => {
-  //   // TODO: Implement scheduling logic
-  // }, []);
 
   const handlePostNow = async () => {
     try {

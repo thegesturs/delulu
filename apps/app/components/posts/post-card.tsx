@@ -1,8 +1,6 @@
 'use client';
 
 import { api } from '@/trpc/react';
-import type { ApiPostContentItem } from '@delulu/api/db/types/post.types';
-import type { PostStatus } from '@delulu/database/schema';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
@@ -45,11 +43,11 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const utils = api.useUtils();
   const router = useRouter();
   const { mutateAsync: softDeletePost, isPending: isDeleting } =
-    api.post.softDeletePost.useMutation({
+    api.post.deletePost.useMutation({
       onSuccess: () => {
         setOpenDeletePost(false);
         toast.success('Post deleted successfully');
-        utils.post.getPostsByUserId.invalidate();
+        utils.post.getPosts.invalidate();
       },
       onError: () => {
         toast.error('Failed to delete post');
@@ -59,7 +57,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     api.socialProvider.createPostFromPostId.useMutation({
       onSuccess: () => {
         toast.success('Your post is being published. It will be posted soon.');
-        utils.post.getPostsByUserId.invalidate();
+        utils.post.getPosts.invalidate();
         setShowPreview(false);
       },
       onError: () => {
@@ -76,11 +74,11 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   } as const;
 
   const postId = post.id as string;
-  const postStatus = post.status as PostStatus;
-  const postContent = post.content as ApiPostContentItem[];
+  const postStatus = post.status;
+  const postContent = post.content;
 
   const handleDelete = async () => {
-    await softDeletePost({ id: postId });
+    await softDeletePost(postId);
   };
 
   const handleEdit = (id: string) => {
