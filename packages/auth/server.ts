@@ -1,3 +1,4 @@
+import { analytics } from '@delulu/analytics/posthog/server';
 import { database, schema } from '@delulu/database';
 import { resend } from '@delulu/email';
 import { betterAuth } from 'better-auth';
@@ -43,6 +44,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    autoSignIn: true,
     sendResetPassword: async ({ user, url }) => {
       await resend.emails.send({
         from: 'Delulu Social <noreply@delulu.social>',
@@ -78,6 +80,38 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: ['google'],
       updateUserInfoOnLink: true,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await analytics.identify({
+            distinctId: user.id,
+            properties: {
+              email: user.email,
+              firstName: user.name?.split(' ')[0],
+              lastName: user.name?.split(' ')[1],
+              createdAt: user.createdAt,
+              avatar: user.image,
+            },
+          });
+        },
+      },
+      update: {
+        after: async (user) => {
+          await analytics.identify({
+            distinctId: user.id,
+            properties: {
+              email: user.email,
+              firstName: user.name?.split(' ')[0],
+              lastName: user.name?.split(' ')[1],
+              createdAt: user.createdAt,
+              avatar: user.image,
+            },
+          });
+        },
+      },
     },
   },
 });
