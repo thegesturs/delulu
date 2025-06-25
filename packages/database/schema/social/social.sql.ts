@@ -56,8 +56,6 @@ export const socialProviders = pgTable(
       .$defaultFn(() => createUniqueIds('social')),
     organizationId: varchar('organization_id', { length: 256 }),
     userId: varchar('user_id', { length: 191 }),
-    clientId: varchar('client_id', { length: 191 }),
-    clientSecret: varchar('client_secret', { length: 191 }),
     accessToken: text('access_token').notNull(),
     refreshToken: text('refresh_token'),
     expiresIn: timestamp('expires_in', { withTimezone: true }).notNull(),
@@ -74,13 +72,13 @@ export const socialProviders = pgTable(
       .defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
-      .defaultNow(),
+      .defaultNow()
+      .$onUpdate(() => new Date()),
     isActive: boolean('is_active').notNull().default(true),
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },
   (table) => [
-    unique().on(table.profileId, table.organizationId),
-    unique().on(table.userId, table.profileId),
+    unique().on(table.profileId, table.organizationId, table.userId),
     index('social_providers_user_id_idx').on(table.userId),
     index('social_providers_organization_id_idx').on(table.organizationId),
   ]

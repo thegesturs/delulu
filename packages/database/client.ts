@@ -11,7 +11,6 @@ export const schema = {
 };
 
 // Database connection
-console.log('>>> DATABASE_URL', process.env.DATABASE_URL);
 const sql = neon(process.env.DATABASE_URL!);
 
 // Create Drizzle client with schema

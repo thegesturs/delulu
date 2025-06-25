@@ -8,6 +8,13 @@
       "when": 1750795442572,
       "tag": "0000_unique_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1750881289740,
+      "tag": "0001_nebulous_molten_man",
+      "breakpoints": true
     }
   ]
 }

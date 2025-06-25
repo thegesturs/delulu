@@ -1,7 +1,3 @@
-import * as post from './post/post.sql';
-import * as social from './social/social.sql';
-import * as user from './user/user.sql';
-
 // Export all enums for easier imports
 export {
   postStatusEnum,
@@ -13,7 +9,6 @@ export {
   socialTypeEnum,
   currentPlanEnum,
 } from './social/social.sql';
-
 
 // Export all queries for easier imports
 export { userQueries } from './user/user.queries';
