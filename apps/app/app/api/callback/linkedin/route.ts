@@ -1,7 +1,6 @@
 import { env } from '@/env';
 import { auth } from '@delulu/auth/server';
 import { and, database, eq, ne, socialProviders } from '@delulu/database';
-import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -174,7 +173,6 @@ export async function GET(request: NextRequest) {
     await database
       .insert(socialProviders)
       .values({
-        id: `social_${nanoid(12)}`,
         userId,
         socialType: 'LINKEDIN',
         accessToken: access_token,

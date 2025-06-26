@@ -1,6 +1,7 @@
 'use client';
 
 import type { SocialProvider } from '@delulu/database';
+import type { SocialType } from '@delulu/database/schema';
 import {
   Avatar,
   AvatarFallback,
@@ -22,7 +23,6 @@ import {
   TooltipTrigger,
 } from '@delulu/design-system/components/ui/tooltip';
 import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
-import type { SocialTypes } from '@delulu/validators/post';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -85,7 +85,7 @@ function isExpired(expiresIn: Date): boolean {
 
 interface AccountCardProps {
   account: SocialProvider;
-  onConnect: (platform: keyof typeof SocialTypes) => void;
+  onConnect: (platform: SocialType) => void;
   // Add onDelete later when implementing delete functionality
 }
 

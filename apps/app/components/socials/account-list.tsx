@@ -1,14 +1,13 @@
 'use client';
 
-import type { SocialProvider } from '@delulu/database/schema';
-import type { SocialTypes } from '@delulu/validators/post';
+import type { SocialProvider, SocialType } from '@delulu/database/schema';
 import { Search } from 'lucide-react';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
 
 interface AccountListProps {
   accounts: SocialProvider[];
   viewMode: 'grid' | 'list';
-  onConnect: (platform: keyof typeof SocialTypes) => void;
+  onConnect: (platform: SocialType) => void;
 }
 
 export function AccountList({
