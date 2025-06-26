@@ -1,8 +1,7 @@
 'use client';
 
 import { api } from '@/trpc/react';
-import type { SocialProvider } from '@delulu/database/schema';
-import type { SocialTypes } from '@delulu/validators/post';
+import type { SocialProvider, SocialType } from '@delulu/database/schema';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AccountFilters } from './account-filter';
@@ -70,7 +69,9 @@ export default function ConnectedAccounts() {
   }, [accounts, searchQuery, filterPlatform, filterStatus]);
 
   const stats = useMemo(() => {
-    if (!accounts) return { active: 0, expired: 0, expiring: 0, total: 0 };
+    if (!accounts) {
+      return { active: 0, expired: 0, expiring: 0, total: 0 };
+    }
 
     const active = accounts.filter(
       (a: SocialProvider) =>
@@ -85,14 +86,9 @@ export default function ConnectedAccounts() {
     return { active, expired, expiring, total: accounts.length };
   }, [accounts]);
 
-  const handleConnect = (platform: keyof typeof SocialTypes) => {
+  const handleConnect = (platform: SocialType) => {
     // Removed Instagram and YouTube as they were not handled by connectAccount
-    if (
-      platform === 'TWITTER' ||
-      platform === 'LINKEDIN' ||
-      platform === 'TIKTOK' ||
-      platform === 'INSTAGRAM'
-    ) {
+    if (platform !== 'LENS') {
       connectAccount({ provider: platform });
     }
   };

@@ -9,6 +9,9 @@ export { createMiddleware as noseconeMiddleware } from '@nosecone/next';
 // https://docs.arcjet.com/nosecone/quick-start
 export const noseconeOptions: NoseconeOptions = {
   ...noseconeDefaults,
+  crossOriginEmbedderPolicy: {
+    policy: 'unsafe-none',
+  },
   contentSecurityPolicy: {
     ...noseconeDefaults.contentSecurityPolicy,
     directives: {
@@ -17,7 +20,6 @@ export const noseconeOptions: NoseconeOptions = {
         // We have to use unsafe-inline because next-themes and Vercel Analytics
         // do not support nonce
         // https://github.com/pacocoursey/next-themes/issues/106
-        // https://github.com/vercel/analytics/issues/122
         //...noseconeDefaults.contentSecurityPolicy.directives.scriptSrc,
         "'self'",
         "'unsafe-inline'",
@@ -30,6 +32,7 @@ export const noseconeOptions: NoseconeOptions = {
         'https://*.clerk.accounts.dev',
         'https://*.google-analytics.com',
         'https://clerk-telemetry.com',
+        'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,
@@ -39,6 +42,16 @@ export const noseconeOptions: NoseconeOptions = {
       imgSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.imgSrc,
         'https://img.clerk.com',
+        'https://media.delulu.social',
+        'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
+        'https://lh3.googleusercontent.com',
+        'https://media.licdn.com',
+        'https://avatars.githubusercontent.com',
+      ],
+      mediaSrc: [
+        ...noseconeDefaults.contentSecurityPolicy.directives.mediaSrc,
+        'https://media.delulu.social',
+        'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
       ],
       objectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.objectSrc,

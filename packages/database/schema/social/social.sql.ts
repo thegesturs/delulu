@@ -78,7 +78,8 @@ export const socialProviders = pgTable(
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   },
   (table) => [
-    unique().on(table.profileId, table.organizationId, table.userId),
+    unique().on(table.profileId, table.userId),
+    unique().on(table.profileId, table.organizationId),
     index('social_providers_user_id_idx').on(table.userId),
     index('social_providers_organization_id_idx').on(table.organizationId),
   ]

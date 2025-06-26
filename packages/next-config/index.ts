@@ -12,28 +12,7 @@ export const config: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'img.clerk.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-      {
-        protocol: 'https',
-        hostname:
-          'delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'assets.aceternity.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'api.qrserver.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        hostname: '*',
       },
     ],
   },

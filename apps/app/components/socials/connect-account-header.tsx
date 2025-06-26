@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@delulu/design-system/components/ui/dialog';
-import type { SocialTypes } from '@delulu/validators/post';
+import type { SocialType } from '@delulu/database/schema';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -23,7 +23,7 @@ import { FaXTwitter } from 'react-icons/fa6';
 import { SiFarcaster, SiThreads } from 'react-icons/si';
 
 interface ConnectedAccountsHeaderProps {
-  onConnect: (platform: keyof typeof SocialTypes) => void;
+  onConnect: (platform: SocialType) => void;
 }
 
 export function ConnectedAccountsHeader({
@@ -35,10 +35,10 @@ export function ConnectedAccountsHeader({
     setShowFarcasterConnect(true);
   };
 
-  const handleFarcasterSuccess = () => {
-    // Refresh the page or refetch connected accounts
-    window.location.reload();
-  };
+  // const handleFarcasterSuccess = () => {
+  //   // Refresh the page or refetch connected accounts
+  //   window.location.reload();
+  // };
 
   return (
     <div className="space-y-4">
