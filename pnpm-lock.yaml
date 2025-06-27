@@ -31,6 +31,11 @@ catalogs:
       specifier: ^3.24.2
       version: 3.25.46
 
+patchedDependencies:
+  '@react-email/render':
+    hash: 92f89530296b4ce8582ac6f61f071d83d1f255144b1949b82ceaeb264c8dc08b
+    path: patches/@react-email__render.patch
+
 importers:
 
   .:
@@ -18460,7 +18465,7 @@ snapshots:
       '@react-email/link': 0.0.12(react@19.1.0)
       '@react-email/markdown': 0.0.14(react@19.1.0)
       '@react-email/preview': 0.0.12(react@19.1.0)
-      '@react-email/render': 1.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-email/render': 1.0.6(patch_hash=92f89530296b4ce8582ac6f61f071d83d1f255144b1949b82ceaeb264c8dc08b)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@react-email/row': 0.0.12(react@19.1.0)
       '@react-email/section': 0.0.16(react@19.1.0)
       '@react-email/tailwind': 1.0.4(react@19.1.0)
@@ -18510,7 +18515,7 @@ snapshots:
     dependencies:
       react: 19.1.0
 
-  '@react-email/render@1.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@react-email/render@1.0.6(patch_hash=92f89530296b4ce8582ac6f61f071d83d1f255144b1949b82ceaeb264c8dc08b)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       html-to-text: 9.0.5
       prettier: 3.5.3
@@ -26365,7 +26370,7 @@ snapshots:
 
   resend@4.5.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
-      '@react-email/render': 1.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-email/render': 1.0.6(patch_hash=92f89530296b4ce8582ac6f61f071d83d1f255144b1949b82ceaeb264c8dc08b)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - react
       - react-dom
