@@ -1,12 +1,11 @@
 import { env } from '@/env';
 import { withContentCollections } from '@content-collections/next';
-import { withToolbar } from '@delulu/feature-flags/lib/toolbar';
 import { config, withAnalyzer } from '@delulu/next-config';
-import { withLogging, withSentry } from '@delulu/observability/next-config';
+import { withLogging } from '@delulu/observability/next-config';
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import type { NextConfig } from 'next';
 
-let nextConfig: NextConfig = withToolbar(withLogging(config));
+let nextConfig: NextConfig = withLogging(config);
 
 nextConfig.images?.remotePatterns?.push(
   {
@@ -29,10 +28,6 @@ if (process.env.NODE_ENV === 'production') {
   ];
 
   nextConfig.redirects = redirects;
-}
-
-if (env.VERCEL) {
-  nextConfig = withSentry(nextConfig);
 }
 
 if (env.ANALYZE === 'true') {

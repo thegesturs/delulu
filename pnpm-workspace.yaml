@@ -23,3 +23,6 @@ ignoredBuiltDependencies:
   - esbuild
   - sharp
   - workerd
+
+patchedDependencies:
+  '@react-email/render': patches/@react-email__render.patch
