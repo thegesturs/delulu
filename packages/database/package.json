@@ -42,7 +42,6 @@
     "bufferutil": "^4.0.9",
     "nanoid": "^5.1.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "zod-prisma-types": "^3.2.4"
+    "typescript": "^5.8.3"
   }
 }
