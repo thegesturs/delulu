@@ -8,11 +8,11 @@ const description = 'Verify your email address to complete your account setup.';
 export const metadata: Metadata = createMetadata({ title, description });
 
 type VerifyEmailPageProps = {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 };
 
-const VerifyEmailPage = ({ searchParams }: VerifyEmailPageProps) => {
-  const token = searchParams.token;
+const VerifyEmailPage = async ({ searchParams }: VerifyEmailPageProps) => {
+  const token = (await searchParams).token;
 
   return <VerifyEmail token={token} redirectTo="/sign-in" />;
 };
