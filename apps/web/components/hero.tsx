@@ -10,8 +10,6 @@ import Link from 'next/link';
 import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
-import AppDark from '../app/images/app-dark.png';
-import AppLight from '../app/images/app-light.png';
 import { DesktopMockup } from './desktop-mockup';
 
 export function Hero() {
@@ -21,7 +19,7 @@ export function Hero() {
   ) as React.RefObject<HTMLDivElement>;
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const image = isDark ? AppDark : AppLight;
+  const image = isDark ? '/images/app-dark.png' : '/images/app-light.png';
   return (
     <div
       ref={parentRef}
