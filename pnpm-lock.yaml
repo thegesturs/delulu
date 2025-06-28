@@ -351,8 +351,8 @@ importers:
         specifier: ^8.6.12
         version: 8.6.14(esbuild@0.25.5)(next@15.3.0(@babel/core@7.27.3)(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))(type-fest@4.41.0)(typescript@5.8.3)(webpack-hot-middleware@2.26.1)(webpack@5.99.9(esbuild@0.25.5))
       '@storybook/react':
-        specifier: ^8.6.12
-        version: 8.6.14(@storybook/test@8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3)))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))(typescript@5.8.3)
+        specifier: ^9.0.14
+        version: 9.0.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))(typescript@5.8.3)
       '@storybook/test':
         specifier: ^8.6.12
         version: 8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))
@@ -6356,6 +6356,13 @@ packages:
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-beta
       storybook: ^8.6.14
 
+  '@storybook/react-dom-shim@9.0.14':
+    resolution: {integrity: sha512-fXMzhgFMnGZUhWm9zWiR8qOB90OykPhkB/qiebFbD/wUedPyp3H1+NAzX1/UWV2SYqr+aFK9vH1PokAYbpTRsw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-beta
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-beta
+      storybook: ^9.0.14
+
   '@storybook/react@8.6.14':
     resolution: {integrity: sha512-BOepx5bBFwl/CPI+F+LnmMmsG1wQYmrX/UQXgUbHQUU9Tj7E2ndTnNbpIuSLc8IrM03ru+DfwSg1Co3cxWtT+g==}
     engines: {node: '>=18.0.0'}
@@ -6368,6 +6375,18 @@ packages:
     peerDependenciesMeta:
       '@storybook/test':
         optional: true
+      typescript:
+        optional: true
+
+  '@storybook/react@9.0.14':
+    resolution: {integrity: sha512-Ig4Y1xUOMcOWtQ/H73JZa4MeE0GJvYOcK16AhbfvPZMotdXCFyPbb1/pWhS209HuGwfNTVvWGz9rk7KrHmKsNw==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-beta
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0-beta
+      storybook: ^9.0.14
+      typescript: '>= 4.9.x'
+    peerDependenciesMeta:
       typescript:
         optional: true
 
@@ -7893,8 +7912,8 @@ packages:
   console-browserify@1.2.0:
     resolution: {integrity: sha512-ZMkYO/LkF17QvCPqM0gxw8yUzigAOZOSWSHg91FH6orS7vcEj5dVZTidN2fQ14yBSdg97RqhSNwLUXInd52OTA==}
 
-  console-table-printer@2.14.3:
-    resolution: {integrity: sha512-X5OCFnjYlXzRuC8ac5hPA2QflRjJvNKJocMhlnqK/Ap7q3DHXr0NJ0TGzwmEKOiOdJrjsSwEd0m+a32JAYPrKQ==}
+  console-table-printer@2.14.6:
+    resolution: {integrity: sha512-MCBl5HNVaFuuHW6FGbL/4fB7N/ormCy+tQ+sxTrF6QtSbSNETvPuOVbkJBhzDgYhvjWGrTma4eYJa37ZuoQsPw==}
 
   constant-case@2.0.0:
     resolution: {integrity: sha512-eS0N9WwmjTqrOmR3o83F5vW8Z+9R1HnVz3xmzT2PMFug9ly+Au/fxRWlEBSb6LcZwspSsEn9Xs1uw9YgzAg1EQ==}
@@ -8753,6 +8772,12 @@ packages:
     engines: {node: '>= 16'}
     peerDependencies:
       express: ^4.11 || 5 || ^5.0.0-beta.1
+
+  express-rate-limit@7.5.1:
+    resolution: {integrity: sha512-7iN8iPMDzOMHPUYllBEsQdWVB6fPDMPqwjBaFrgr4Jgr/+okjvzAy+UHlYYL/Vs0OsOrMkwS6PJDkFlJwoxUnw==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: '>= 4.11'
 
   express@5.0.1:
     resolution: {integrity: sha512-ORF7g6qGnD+YtUG9yx4DFoqCShNMmUKiXuT5oWMHiOvt/4WFbHC6yCwQMTSBMno7AqntNCAzzcnnjowRkTL9eQ==}
@@ -9825,8 +9850,8 @@ packages:
     resolution: {integrity: sha512-4YAVLoF0Sf0UTqlhgQMFU9iQECdah7n+13ANkiuVfRvlK+uI0Etbgd7bVP36dKlG+NXWbhGua8vnGt+sdhvT7A==}
     engines: {node: '>=18.0.0'}
 
-  langsmith@0.3.31:
-    resolution: {integrity: sha512-9lwuLZuN3tXFYQ6eMg0rmbBw7oxQo4bu1NYeylbjz27bOdG1XB9XNoxaiIArkK4ciLdOIOhPMBXP4bkvZOgHRw==}
+  langsmith@0.3.34:
+    resolution: {integrity: sha512-rxYuuypqaSzIuNjZMTsCVAgG0cYdI516dwuKn58bu4YuBRlLaLeNlHewRyoqP9lrEAlpkekCV9fUwwZ7lO8f2g==}
     peerDependencies:
       openai: '*'
     peerDependenciesMeta:
@@ -10923,8 +10948,8 @@ packages:
   peberminta@0.9.0:
     resolution: {integrity: sha512-XIxfHpEuSJbITd1H3EeQwpcZbTLHc+VVr8ANI9t5sit565tsI4/xK3KWTUFE2e6QiangUkh3B0jihzmGnNrRsQ==}
 
-  pg-cloudflare@1.2.6:
-    resolution: {integrity: sha512-uxmJAnmIgmYgnSFzgOf2cqGQBzwnRYcrEgXuFjJNEkpedEIPBSEzxY7ph4uA9k1mI+l/GR0HjPNS6FKNZe8SBQ==}
+  pg-cloudflare@1.2.7:
+    resolution: {integrity: sha512-YgCtzMH0ptvZJslLM1ffsY4EuGaU0cx4XSdXLRFae8bPP4dS5xL1tNB3k2o/N64cHJpwU7dxKli/nZ2lUa5fLg==}
 
   pg-connection-string@2.9.1:
     resolution: {integrity: sha512-nkc6NpDcvPVpZXxrreI/FOtX3XemeLl8E0qFr6F2Lrm/I8WOnaWNhIPK2Z7OHpw7gh5XJThi6j6ppgNoaT1w4w==}
@@ -10947,6 +10972,9 @@ packages:
 
   pg-protocol@1.10.2:
     resolution: {integrity: sha512-Ci7jy8PbaWxfsck2dwZdERcDG2A0MG8JoQILs+uZNjABFuBuItAZCWUNz8sXRDMoui24rJw7WlXqgpMdBSN/vQ==}
+
+  pg-protocol@1.10.3:
+    resolution: {integrity: sha512-6DIBgBQaTKDJyxnXaLiLR8wBpQQcGWuAESkRBX/t6OwA8YsqP+iVSiond2EDy6Y/dsGk8rh/jtax3js5NeV7JQ==}
 
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
@@ -11911,8 +11939,8 @@ packages:
   simple-swizzle@0.2.2:
     resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
 
-  simple-wcswidth@1.0.1:
-    resolution: {integrity: sha512-xMO/8eNREtaROt7tJvWJqHBDTMFN4eiQ5I4JRMuilwfnFcV5W9u7RUkueNkdw0jPqGMX36iCywelS5yilTuOxg==}
+  simple-wcswidth@1.1.2:
+    resolution: {integrity: sha512-j7piyCjAeTDSjzTSQ7DokZtMNwNlEAyxqSZeCS+CXH7fJ4jx3FuJ/mTW3mE+6JLs4VJBbcll0Kjn+KXI5t21Iw==}
 
   sirv@2.0.4:
     resolution: {integrity: sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ==}
@@ -13179,6 +13207,11 @@ packages:
     peerDependencies:
       zod: ^3.24.1
 
+  zod-to-json-schema@3.24.6:
+    resolution: {integrity: sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod@3.22.3:
     resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
 
@@ -13190,6 +13223,9 @@ packages:
 
   zod@3.25.60:
     resolution: {integrity: sha512-VyPT/ZfyggoJtTnGCfPGx2OOW9idfmyqsqZCAvYscOlXKCGKPCeSfr44Ewp8fqvtfNMe1T88qjWIFKopTL9jSQ==}
+
+  zod@3.25.67:
+    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
@@ -16494,13 +16530,13 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.20
-      langsmith: 0.3.31(openai@4.103.0(ws@8.18.2(bufferutil@4.0.9))(zod@3.25.46))
+      langsmith: 0.3.34(openai@4.103.0(ws@8.18.2(bufferutil@4.0.9))(zod@3.25.46))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 10.0.0
-      zod: 3.25.60
-      zod-to-json-schema: 3.24.5(zod@3.25.60)
+      zod: 3.25.67
+      zod-to-json-schema: 3.24.6(zod@3.25.67)
     transitivePeerDependencies:
       - openai
 
@@ -16590,11 +16626,11 @@ snapshots:
       cross-spawn: 7.0.6
       eventsource: 3.0.7
       express: 5.1.0
-      express-rate-limit: 7.5.0(express@5.1.0)
+      express-rate-limit: 7.5.1(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.25.60
-      zod-to-json-schema: 3.24.5(zod@3.25.60)
+      zod: 3.25.67
+      zod-to-json-schema: 3.24.6(zod@3.25.67)
     transitivePeerDependencies:
       - supports-color
 
@@ -19950,6 +19986,12 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.5.3)
 
+  '@storybook/react-dom-shim@9.0.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))':
+    dependencies:
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.5.3)
+
   '@storybook/react@8.6.14(@storybook/test@8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3)))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))(typescript@5.8.3)':
     dependencies:
       '@storybook/components': 8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))
@@ -19963,6 +20005,16 @@ snapshots:
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.5.3)
     optionalDependencies:
       '@storybook/test': 8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))
+      typescript: 5.8.3
+
+  '@storybook/react@9.0.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))(typescript@5.8.3)':
+    dependencies:
+      '@storybook/global': 5.0.0
+      '@storybook/react-dom-shim': 9.0.14(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.5.3)
+    optionalDependencies:
       typescript: 5.8.3
 
   '@storybook/test@8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.5.3))':
@@ -21717,9 +21769,9 @@ snapshots:
 
   console-browserify@1.2.0: {}
 
-  console-table-printer@2.14.3:
+  console-table-printer@2.14.6:
     dependencies:
-      simple-wcswidth: 1.0.1
+      simple-wcswidth: 1.1.2
 
   constant-case@2.0.0:
     dependencies:
@@ -22645,6 +22697,10 @@ snapshots:
   expect-type@1.2.1: {}
 
   express-rate-limit@7.5.0(express@5.1.0):
+    dependencies:
+      express: 5.1.0
+
+  express-rate-limit@7.5.1(express@5.1.0):
     dependencies:
       express: 5.1.0
 
@@ -23938,11 +23994,11 @@ snapshots:
 
   kysely@0.28.2: {}
 
-  langsmith@0.3.31(openai@4.103.0(ws@8.18.2(bufferutil@4.0.9))(zod@3.25.46)):
+  langsmith@0.3.34(openai@4.103.0(ws@8.18.2(bufferutil@4.0.9))(zod@3.25.46)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
-      console-table-printer: 2.14.3
+      console-table-printer: 2.14.6
       p-queue: 6.6.2
       p-retry: 4.6.2
       semver: 7.7.2
@@ -25307,7 +25363,7 @@ snapshots:
 
   peberminta@0.9.0: {}
 
-  pg-cloudflare@1.2.6:
+  pg-cloudflare@1.2.7:
     optional: true
 
   pg-connection-string@2.9.1:
@@ -25325,6 +25381,9 @@ snapshots:
   pg-protocol@1.10.0: {}
 
   pg-protocol@1.10.2: {}
+
+  pg-protocol@1.10.3:
+    optional: true
 
   pg-types@2.2.0:
     dependencies:
@@ -25348,11 +25407,11 @@ snapshots:
     dependencies:
       pg-connection-string: 2.9.1
       pg-pool: 3.10.1(pg@8.16.2)
-      pg-protocol: 1.10.2
+      pg-protocol: 1.10.3
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
-      pg-cloudflare: 1.2.6
+      pg-cloudflare: 1.2.7
     optional: true
 
   pgpass@1.0.5:
@@ -26620,7 +26679,7 @@ snapshots:
     dependencies:
       is-arrayish: 0.3.2
 
-  simple-wcswidth@1.0.1: {}
+  simple-wcswidth@1.1.2: {}
 
   sirv@2.0.4:
     dependencies:
@@ -28086,6 +28145,10 @@ snapshots:
     dependencies:
       zod: 3.25.60
 
+  zod-to-json-schema@3.24.6(zod@3.25.67):
+    dependencies:
+      zod: 3.25.67
+
   zod@3.22.3: {}
 
   zod@3.24.2: {}
@@ -28093,6 +28156,8 @@ snapshots:
   zod@3.25.46: {}
 
   zod@3.25.60: {}
+
+  zod@3.25.67: {}
 
   zustand@4.5.7(@types/react@19.1.1)(react@19.1.0):
     dependencies:
