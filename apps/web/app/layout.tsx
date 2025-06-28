@@ -12,11 +12,20 @@ import {
   createOrganizationSchema,
   createWebSiteSchema,
 } from '@delulu/seo/json-ld';
+import { createMetadata } from '@delulu/seo/metadata';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 type RootLayoutProperties = {
   readonly children: ReactNode;
 };
+
+export const metadata: Metadata = createMetadata({
+  title: 'Delulu Social',
+  description:
+    'Social media management platform for creating and publishing content across multiple social networks',
+  image: '/images/logo.png',
+});
 
 const RootLayout = ({ children }: RootLayoutProperties) => {
   const baseUrl = env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
@@ -34,12 +43,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
       </head>
       <body>
         <ClientLocaleProvider>
-          <DesignSystemProvider
-            withAuth={false}
-            privacyUrl="https://delulu.social/legal/privacy-policy"
-            termsUrl="https://delulu.social/legal/terms-of-service"
-          >
-            {/* <Header dictionary={dictionary} /> */}
+          <DesignSystemProvider>
             <Navbar />
             {children}
             <Footer />
