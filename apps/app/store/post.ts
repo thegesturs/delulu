@@ -1,8 +1,4 @@
-import type {
-  FullPostType,
-  SocialProviderType,
-  youtubeContentType,
-} from '@delulu/validators/post';
+import type { FullPostType, SocialProviderType } from '@delulu/validators/post';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
@@ -12,7 +8,6 @@ interface PostState {
   date: Date | undefined;
   time: string | null;
   post: FullPostType;
-  youtubeContent: youtubeContentType;
   selectedSocialProviders: SocialProviderType[];
   shouldReset: boolean;
 }
@@ -31,15 +26,6 @@ const initialState: PostState = {
   date: undefined,
   time: '00:00',
   shouldReset: false,
-  youtubeContent: {
-    youtubeId: '',
-    name: '',
-    thumbnail: '',
-    videoDescription: '',
-    videoTags: [],
-    videoTitle: '',
-    videoUrl: '',
-  },
   post: {
     id: '',
     content: [

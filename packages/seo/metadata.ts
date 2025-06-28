@@ -60,7 +60,9 @@ export const createMetadata = ({
       'social media scheduler',
       'social media automation',
     ],
-    metadataBase: productionUrl ? new URL(`${productionUrl}`) : undefined,
+    metadataBase: productionUrl
+      ? new URL(`${productionUrl}`)
+      : new URL('https://delulu.social'),
     authors: [author],
     creator: author.name,
     publisher,

@@ -3,12 +3,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 --turbopack",
-    "build": "pnpm prisma:generate && next build",
+    "build": "next build",
     "start": "next start",
     "analyze": "ANALYZE=true npm run build",
     "test": "NODE_ENV=test vitest run",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "prisma:generate": "prisma generate --schema=../../packages/database/prisma/schema.prisma",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
@@ -57,7 +56,6 @@
     "twitter-api-sdk": "^1.2.1",
     "wrangler": "^4.16.1",
     "zod": "catalog:",
-    "zod-prisma-types": "^3.2.4",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

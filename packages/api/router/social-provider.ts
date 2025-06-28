@@ -1,4 +1,4 @@
-import { createPostInQueue } from '@api/services/post.service';
+// import { createPostInQueue } from '@api/services/post.service';
 import {
   alternatePostContent,
   database,
@@ -70,7 +70,8 @@ export const socialProviderRouter = {
 
         postId = post.id;
       }
-      await createPostInQueue({ ...input, id: postId });
+      //TODO: Make this work using AWS SQS
+      // await createPostInQueue({ ...input, id: postId });
       return {
         success: true,
       };
@@ -111,7 +112,8 @@ export const socialProviderRouter = {
         })),
       };
 
-      await createPostInQueue(postData);
+      //TODO: Make this work using AWS SQS
+      // await createPostInQueue(postData);
       return {
         success: true,
       };

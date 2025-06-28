@@ -8,11 +8,11 @@ const description = 'Enter your new password to reset your account.';
 export const metadata: Metadata = createMetadata({ title, description });
 
 type ResetPasswordPageProps = {
-  searchParams: { token?: string };
+  searchParams: Promise<{ token?: string }>;
 };
 
-const ResetPasswordPage = ({ searchParams }: ResetPasswordPageProps) => {
-  const token = searchParams.token;
+const ResetPasswordPage = async ({ searchParams }: ResetPasswordPageProps) => {
+  const token = (await searchParams).token;
 
   return <ResetPassword token={token} redirectTo="/sign-in" />;
 };
