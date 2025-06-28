@@ -209,9 +209,6 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.46
-      zod-prisma-types:
-        specifier: ^3.2.4
-        version: 3.2.4(@prisma/client@6.10.1(prisma@6.10.1(typescript@5.8.3))(typescript@5.8.3))(prisma@6.10.1(typescript@5.8.3))
       zustand:
         specifier: ^5.0.5
         version: 5.0.5(@types/react@19.1.1)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))

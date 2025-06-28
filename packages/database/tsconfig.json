@@ -8,9 +8,5 @@
     "noImplicitAny": false
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": [
-    "node_modules",
-    "prisma/types/zod/index.ts",
-    "prisma/types/zod/**/*"
-  ]
+  "exclude": ["node_modules"]
 }
