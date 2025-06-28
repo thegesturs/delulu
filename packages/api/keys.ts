@@ -83,4 +83,5 @@ export const keys = () =>
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
       YOUTUBE_CALLBACK_URL: process.env.YOUTUBE_CALLBACK_URL,
     },
+    skipValidation: true,
   });

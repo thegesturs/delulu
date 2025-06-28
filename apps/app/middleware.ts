@@ -2,14 +2,14 @@ import { getSessionCookie } from '@delulu/auth/server';
 import {
   noseconeMiddleware,
   noseconeOptions,
-  noseconeOptionsWithToolbar,
 } from '@delulu/security/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
-import { env } from './env';
 
-const securityHeaders = env.FLAGS_SECRET
-  ? noseconeMiddleware(noseconeOptionsWithToolbar)
-  : noseconeMiddleware(noseconeOptions);
+// const securityHeaders = env.FLAGS_SECRET
+//   ? noseconeMiddleware(noseconeOptionsWithToolbar)
+//   : noseconeMiddleware(noseconeOptions);
+
+const securityHeaders = noseconeMiddleware(noseconeOptions);
 
 // Helper function to check if route is public
 function isPublicRoute(pathname: string): boolean {

@@ -13,4 +13,5 @@ export const keys = () =>
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
       RESEND_TOKEN: process.env.RESEND_TOKEN,
     },
+    skipValidation: true,
   });
