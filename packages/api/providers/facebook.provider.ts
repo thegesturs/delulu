@@ -191,6 +191,8 @@ export const facebookProvider: SocialProvider = {
         'pages_read_engagement',
         'pages_manage_posts',
         'pages_show_list',
+        'pages_manage_metadata',
+        'public_profile',
       ].join(','),
     });
 

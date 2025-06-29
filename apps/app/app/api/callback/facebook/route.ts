@@ -1,8 +1,7 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
-import { nanoid } from 'nanoid';
+import {} from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -45,8 +44,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    const userId = session.user.id;
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -170,6 +167,8 @@ export async function GET(request: NextRequest) {
 
     const pagesData = (await pagesResponse.json()) as FacebookPageResponse;
 
+    console.log('pagesData', pagesData);
+
     if (!pagesData.data || pagesData.data.length === 0) {
       return new NextResponse(null, {
         status: 302,
@@ -180,91 +179,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Use the first page (you might want to let users choose)
-    const firstPage = pagesData.data[0];
-
-    // Check if this Facebook account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, firstPage.id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
-
-    // If found, handle the transfer
-    if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
-          userId,
-          accessToken: firstPage.access_token,
-          expiresIn: new Date(
-            Date.now() + longLivedTokenData.expires_in * 1000
-          ),
-          fullName: firstPage.name,
-          username: firstPage.name,
-          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
-
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?notification=account_transferred&platform=facebook',
-        },
-      });
-    }
-
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
-        id: `social_${nanoid(12)}`,
-        userId,
-        socialType: 'FACEBOOK',
-        accessToken: firstPage.access_token,
-        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-        profileId: firstPage.id,
-        username: firstPage.name,
-        fullName: firstPage.name,
-        profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-        isActive: true,
-        lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: firstPage.access_token,
-          expiresIn: new Date(
-            Date.now() + longLivedTokenData.expires_in * 1000
-          ),
-          fullName: firstPage.name,
-          username: firstPage.name,
-          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        },
-      });
-
-    // Successful connection
+    // Redirect to page selection UI with pages data
+    const encodedPages = encodeURIComponent(JSON.stringify(pagesData.data));
     return new NextResponse(null, {
       status: 302,
       headers: {
-        Location: '/socials?success=true&provider=facebook',
+        Location: `/facebook-page-select?pages=${encodedPages}&code=${code}`,
       },
     });
   } catch (error) {

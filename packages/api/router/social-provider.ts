@@ -4,8 +4,10 @@ import {
   database,
   postQueries,
   posts,
+  socialProviders,
   socialQueries,
 } from '@delulu/database';
+import { and, eq, ne } from '@delulu/database';
 import {
   type SavePostInputType,
   SocialTypeSchema,
@@ -15,7 +17,7 @@ import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
-import { protectedProcedure } from '../trpc';
+import { protectedProcedure, publicProcedure } from '../trpc';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -117,5 +119,87 @@ export const socialProviderRouter = {
       return {
         success: true,
       };
+    }),
+  connectFacebookPage: publicProcedure
+    .input(
+      z.object({
+        pageId: z.string(),
+        pageName: z.string(),
+        pageAccessToken: z.string(),
+        code: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.userId;
+      if (!userId) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You must be logged in to connect a Facebook page',
+        });
+      }
+
+      // Check if this Facebook page is already connected to a different user
+      const existingProvider = await database
+        .select()
+        .from(socialProviders)
+        .where(
+          and(
+            eq(socialProviders.profileId, input.pageId),
+            ne(socialProviders.userId, userId)
+          )
+        )
+        .limit(1);
+
+      // If found, handle the transfer
+      if (existingProvider.length > 0) {
+        await database
+          .update(socialProviders)
+          .set({
+            userId,
+            accessToken: input.pageAccessToken,
+            fullName: input.pageName,
+            username: input.pageName,
+            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+            refreshTokenExpiresIn: new Date(
+              Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+            ),
+            updatedAt: new Date(),
+            isActive: true,
+            lastSyncedAt: new Date(),
+          })
+          .where(eq(socialProviders.id, existingProvider[0].id));
+
+        return { status: 'transferred' };
+      }
+
+      // Upsert the social provider using conflict resolution
+      await database
+        .insert(socialProviders)
+        .values({
+          userId,
+          socialType: 'FACEBOOK',
+          accessToken: input.pageAccessToken,
+          profileId: input.pageId,
+          username: input.pageName,
+          fullName: input.pageName,
+          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+          isActive: true,
+          lastSyncedAt: new Date(),
+          expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
+        })
+        .onConflictDoUpdate({
+          target: [socialProviders.userId, socialProviders.profileId],
+          set: {
+            accessToken: input.pageAccessToken,
+            fullName: input.pageName,
+            username: input.pageName,
+            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+            updatedAt: new Date(),
+            isActive: true,
+            lastSyncedAt: new Date(),
+          },
+        });
+
+      return { status: 'connected' };
     }),
 } satisfies TRPCRouterRecord;
