@@ -28,7 +28,57 @@ interface FacebookPageResponse {
     name: string;
     id: string;
     tasks: string[];
+    picture: {
+      data: {
+        url: string;
+        width: number;
+        height: number;
+        is_silhouette: boolean;
+      };
+    };
+    cover: {
+      id: string;
+      source: string;
+      offset_y: number;
+    };
+    link: string;
+    followers_count: number;
+    fan_count: number;
+    verification_status: string;
   }>;
+  paging?: {
+    cursors: {
+      before: string;
+      after: string;
+    };
+    next?: string;
+  };
+}
+
+async function getAllPages(
+  accessToken: string
+): Promise<FacebookPageResponse['data']> {
+  let allPages: FacebookPageResponse['data'] = [];
+  let nextUrl = `https://graph.facebook.com/v23.0/me/accounts?fields=access_token,category,category_list,name,id,tasks,picture{url,width,height,is_silhouette},cover,link,followers_count,fan_count,verification_status&access_token=${accessToken}`;
+
+  while (nextUrl) {
+    const response = await fetchWithTimeout(nextUrl, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      console.error('Facebook pages fetch failed:', await response.text());
+      throw new Error('Failed to fetch Facebook pages');
+    }
+
+    const pagesData = (await response.json()) as FacebookPageResponse;
+    allPages = [...allPages, ...pagesData.data];
+
+    // Get the next page URL if it exists
+    nextUrl = pagesData.paging?.next || '';
+  }
+
+  return allPages;
 }
 
 export async function GET(request: NextRequest) {
@@ -146,16 +196,30 @@ export async function GET(request: NextRequest) {
     const longLivedTokenData =
       (await longLivedTokenResponse.json()) as FacebookLongLivedTokenResponse;
 
-    // Get user pages
-    const pagesResponse = await fetchWithTimeout(
-      `https://graph.facebook.com/v23.0/me/accounts?access_token=${longLivedTokenData.access_token}`,
-      {
-        method: 'GET',
-      }
-    );
+    // Get all user pages with pagination
+    try {
+      const allPages = await getAllPages(longLivedTokenData.access_token);
 
-    if (!pagesResponse.ok) {
-      console.error('Facebook pages fetch failed:', await pagesResponse.text());
+      if (!allPages || allPages.length === 0) {
+        return new NextResponse(null, {
+          status: 302,
+          headers: {
+            Location:
+              '/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook',
+          },
+        });
+      }
+
+      // Redirect to page selection UI with pages data
+      const encodedPages = encodeURIComponent(JSON.stringify(allPages));
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location: `/facebook-page-select?pages=${encodedPages}&code=${code}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching Facebook pages:', error);
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -164,29 +228,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    const pagesData = (await pagesResponse.json()) as FacebookPageResponse;
-
-    console.log('pagesData', pagesData);
-
-    if (!pagesData.data || pagesData.data.length === 0) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook',
-        },
-      });
-    }
-
-    // Redirect to page selection UI with pages data
-    const encodedPages = encodeURIComponent(JSON.stringify(pagesData.data));
-    return new NextResponse(null, {
-      status: 302,
-      headers: {
-        Location: `/facebook-page-select?pages=${encodedPages}&code=${code}`,
-      },
-    });
   } catch (error) {
     console.error('Facebook callback error:', error);
     return new NextResponse(null, {

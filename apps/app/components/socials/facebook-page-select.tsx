@@ -1,6 +1,12 @@
 'use client';
 
 import { api } from '@/trpc/react';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@delulu/design-system/components/ui/avatar';
+import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -10,18 +16,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
-import {
-  RadioGroup,
-  RadioGroupItem,
-} from '@delulu/design-system/components/ui/radio-group';
+import { Input } from '@delulu/design-system/components/ui/input';
+import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
+import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { FaFacebookF } from 'react-icons/fa6';
 
 interface FacebookPage {
   id: string;
   name: string;
   access_token: string;
   category: string;
+  picture?: {
+    data: {
+      url: string;
+      width: number;
+      height: number;
+      is_silhouette: boolean;
+    };
+  };
+  cover?: {
+    id: string;
+    source: string;
+    offset_y: number;
+  };
+  link?: string;
+  followers_count?: number;
+  fan_count?: number;
+  verification_status?: string;
 }
 
 interface FacebookPageSelectProps {
@@ -29,8 +52,20 @@ interface FacebookPageSelectProps {
   code: string;
 }
 
+function formatNumber(num?: number): string {
+  if (!num) return '0';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
 export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
-  const [selectedPageId, setSelectedPageId] = useState<string>(pages[0]?.id);
+  const [selectedPageId, setSelectedPageId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
   const { mutate: connectPage, isPending } =
@@ -57,57 +92,120 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
     });
   };
 
+  const filteredPages = pages.filter(
+    (page) =>
+      page.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      page.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Dialog open>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Select Facebook Page</DialogTitle>
-          <DialogDescription>
-            Choose the Facebook page you want to connect to your account.
-          </DialogDescription>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+              <FaFacebookF className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">
+                Select Facebook Page
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                Choose the Facebook page you want to connect to your account
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="py-6">
-          <RadioGroup
-            value={selectedPageId}
-            onValueChange={setSelectedPageId}
-            className="space-y-4"
-          >
-            {pages.map((page) => (
-              <div
-                key={page.id}
-                className="flex items-center space-x-4 rounded-lg border p-4"
-              >
-                <RadioGroupItem value={page.id} id={page.id} />
-                <div className="flex-1">
-                  <label
-                    htmlFor={page.id}
-                    className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {page.name}
-                  </label>
-                  <p className="text-muted-foreground text-sm">
-                    {page.category}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </RadioGroup>
+        <div className="relative mt-4">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+          <Input
+            placeholder="Search pages..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
-        <DialogFooter>
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-2">
+            {filteredPages.map((page) => (
+              <button
+                key={page.id}
+                type="button"
+                onClick={() => setSelectedPageId(page.id)}
+                className={`w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent ${
+                  selectedPageId === page.id
+                    ? 'border-primary bg-accent'
+                    : 'border-border'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={page.picture?.data.url} alt={page.name} />
+                    <AvatarFallback>
+                      {page.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-medium">{page.name}</h3>
+                      {page.verification_status === 'verified' && (
+                        <Badge variant="default" className="bg-blue-600">
+                          Verified
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="truncate text-muted-foreground text-sm">
+                      {page.category}
+                    </p>
+                    <div className="mt-1 flex items-center gap-4 text-muted-foreground text-xs">
+                      <span>
+                        {formatNumber(page.followers_count)} followers
+                      </span>
+                      <span>{formatNumber(page.fan_count)} likes</span>
+                    </div>
+                  </div>
+                  {selectedPageId === page.id && (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
+                      <svg
+                        className="h-4 w-4 text-primary-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="mt-6 flex items-center justify-between sm:justify-between">
           <Button
+            variant="outline"
             onClick={() =>
               router.push(
                 '/socials?error=user_cancelled&code=FACEBOOK_007&provider=facebook'
               )
             }
-            variant="outline"
           >
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isPending}>
-            {isPending ? 'Connecting...' : 'Connect Page'}
+          <Button
+            onClick={handleConfirm}
+            disabled={!selectedPageId || isPending}
+            className="min-w-[100px]"
+          >
+            {isPending ? 'Connecting...' : 'Connect'}
           </Button>
         </DialogFooter>
       </DialogContent>

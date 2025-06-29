@@ -24,20 +24,15 @@ export const noseconeOptions: NoseconeOptions = {
         "'self'",
         "'unsafe-inline'",
         'https://www.googletagmanager.com',
-        'https://*.clerk.accounts.dev',
-        'https://va.vercel-scripts.com',
       ],
       connectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.connectSrc,
-        'https://*.clerk.accounts.dev',
         'https://*.google-analytics.com',
-        'https://clerk-telemetry.com',
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,
         'blob:',
-        'https://*.clerk.accounts.dev',
       ],
       imgSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.imgSrc,
@@ -52,7 +47,10 @@ export const noseconeOptions: NoseconeOptions = {
         // Instagram
         'https://scontent.cdninstagram.com',
         // Facebook
-        'https://scontent.cdninstagram.com',
+        'https://*.fna.fbcdn.net',
+        // 'https://graph.facebook.com/104342151909645',
+        // 'https://graph.facebook.com/103236081716810/picture?type=large',
+        'https://graph.facebook.com/',
         // Farcaster
         'https://farcaster.xyz',
         // Threads
