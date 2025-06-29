@@ -229,7 +229,7 @@ export const instagramProvider: SocialProvider = {
         'instagram_business_content_publish',
         'instagram_business_manage_insights',
       ].join(','),
-      force_reauth: 'true',
+      force_reauth: 'false',
     });
 
     return `https://www.instagram.com/oauth/authorize?${params.toString()}`;

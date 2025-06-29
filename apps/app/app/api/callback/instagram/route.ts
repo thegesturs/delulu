@@ -1,11 +1,10 @@
+import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
 import { and, database, eq, ne, socialProviders } from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
-const TIMEOUT_MS = 8000;
 
 interface InstagramTokenResponse {
   access_token: string;
@@ -16,26 +15,6 @@ interface InstagramLongLivedTokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
-}
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout = TIMEOUT_MS
-) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw new Error('Request timed out');
-  }
 }
 
 export async function GET(request: NextRequest) {

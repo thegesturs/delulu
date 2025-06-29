@@ -1,11 +1,10 @@
+import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
-import { database, socialProviders, eq, and, ne } from '@delulu/database';
+import { and, database, eq, ne, socialProviders } from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
-const TIMEOUT_MS = 8000;
 
 interface FacebookTokenResponse {
   access_token: string;
@@ -31,26 +30,6 @@ interface FacebookPageResponse {
     id: string;
     tasks: string[];
   }>;
-}
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout = TIMEOUT_MS
-) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw new Error('Request timed out');
-  }
 }
 
 export async function GET(request: NextRequest) {
@@ -223,11 +202,15 @@ export async function GET(request: NextRequest) {
         .set({
           userId,
           accessToken: firstPage.access_token,
-          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+          expiresIn: new Date(
+            Date.now() + longLivedTokenData.expires_in * 1000
+          ),
           fullName: firstPage.name,
           username: firstPage.name,
           profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-          refreshTokenExpiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
+          refreshTokenExpiresIn: new Date(
+            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+          ),
           updatedAt: new Date(),
           isActive: true,
           lastSyncedAt: new Date(),
@@ -237,7 +220,8 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, {
         status: 302,
         headers: {
-          Location: '/socials?notification=account_transferred&platform=facebook',
+          Location:
+            '/socials?notification=account_transferred&platform=facebook',
         },
       });
     }
@@ -264,7 +248,9 @@ export async function GET(request: NextRequest) {
         target: [socialProviders.userId, socialProviders.profileId],
         set: {
           accessToken: firstPage.access_token,
-          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+          expiresIn: new Date(
+            Date.now() + longLivedTokenData.expires_in * 1000
+          ),
           fullName: firstPage.name,
           username: firstPage.name,
           profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,

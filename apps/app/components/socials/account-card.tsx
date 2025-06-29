@@ -27,22 +27,30 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Instagram,
-  Linkedin,
   MoreHorizontal,
   RefreshCw,
   Trash2,
-  Twitter,
-  Youtube,
 } from 'lucide-react';
 import { FaTiktok } from 'react-icons/fa';
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaLinkedin,
+  FaThreads,
+  FaTwitter,
+  FaYoutube,
+} from 'react-icons/fa6';
+import { SiFarcaster } from 'react-icons/si';
 
 const socialIcons = {
-  TWITTER: Twitter,
-  INSTAGRAM: Instagram,
-  LINKEDIN: Linkedin,
-  YOUTUBE: Youtube,
+  TWITTER: FaTwitter,
+  INSTAGRAM: FaInstagram,
+  LINKEDIN: FaLinkedin,
+  YOUTUBE: FaYoutube,
   TIKTOK: FaTiktok,
+  THREADS: FaThreads,
+  FARCASTER: SiFarcaster,
+  FACEBOOK: FaFacebookF,
 };
 
 const socialColors = {
@@ -51,6 +59,9 @@ const socialColors = {
   LINKEDIN: 'bg-sky-700',
   YOUTUBE: 'bg-red-600',
   TIKTOK: 'bg-red-600',
+  FARCASTER: 'bg-black',
+  FACEBOOK: 'bg-blue-500',
+  THREADS: 'bg-black',
 };
 
 function formatTimeAgo(date: Date | null): string {

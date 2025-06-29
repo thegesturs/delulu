@@ -1,6 +1,8 @@
 packages:
-  - apps/*
-  - packages/*
+  - 'apps/*'
+  - 'packages/*'
+  - 'turbo/*'
+  - 'scripts'
 
 catalog:
   '@trpc/client': 11.1.0
@@ -23,6 +25,3 @@ ignoredBuiltDependencies:
   - esbuild
   - sharp
   - workerd
-
-patchedDependencies:
-  '@react-email/render': patches/@react-email__render.patch

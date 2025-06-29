@@ -41,12 +41,22 @@ export const noseconeOptions: NoseconeOptions = {
       ],
       imgSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.imgSrc,
-        'https://img.clerk.com',
         'https://media.delulu.social',
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
+        // Google
         'https://lh3.googleusercontent.com',
+        // LinkedIn
         'https://media.licdn.com',
+        // GitHub
         'https://avatars.githubusercontent.com',
+        // Instagram
+        'https://scontent.cdninstagram.com',
+        // Facebook
+        'https://scontent.cdninstagram.com',
+        // Farcaster
+        'https://farcaster.xyz',
+        // Threads
+        'https://*.threads.net',
       ],
       mediaSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.mediaSrc,
