@@ -1,8 +1,8 @@
 import { analytics } from '@delulu/analytics/posthog/server';
 import { database, schema } from '@delulu/database';
-import { resend } from '@delulu/email';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { nanoid } from 'nanoid';
 import { keys } from './keys';
 
 export const auth = betterAuth({
@@ -111,6 +111,11 @@ export const auth = betterAuth({
           });
         },
       },
+    },
+  },
+  advanced: {
+    generateId: (options) => {
+      return `${options.model}_${nanoid(12)}`;
     },
   },
 });

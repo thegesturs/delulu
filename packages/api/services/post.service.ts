@@ -3,14 +3,20 @@ import { type SavePostInputType, SocialTypes } from '@delulu/validators/post';
 // import { Queue } from 'bullmq';
 
 export const createPostInQueue = async (post: SavePostInputType) => {
+//   console.log('Post:', post.socialProviders);
   for (const provider of post.socialProviders) {
+    console.log('Provider:', provider);
+
     // Skip providers that are not implemented
     if (
       provider.socialType === SocialTypes.LENS ||
-      provider.socialType === SocialTypes.DEFAULT
+      provider.socialType === SocialTypes.DEFAULT 
+    //   provider.socialType === SocialTypes.FACEBOOK
     ) {
       continue;
     }
+
+    console.log('Provider:', provider);
 
     // Find alternative content for this provider if it exists
     const alternativeContent = post.alternativeContent.find(
@@ -19,6 +25,8 @@ export const createPostInQueue = async (post: SavePostInputType) => {
 
     // Use alternative content if available, otherwise use default content
     const contentToPost = alternativeContent?.content ?? post.content;
+
+    console.log('Content To Post:', contentToPost, provider.socialType);
 
     const providerImpl = providerRegistry[provider.socialType];
     const result = await providerImpl.publish({

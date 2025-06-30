@@ -88,7 +88,6 @@ export const socialProviderRouter = {
     .mutation(async ({ input }) => {
       // Get the post with its related data
       const post = await postQueries.getPostById(input.postId);
-      console.log('Post:', post);
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -116,10 +115,10 @@ export const socialProviderRouter = {
         })),
       };
 
-      console.log('Post data:', postData);
-
       //TODO: Make this work using AWS SQS
-      await createPostInQueue(postData);
+      console.log('Post data:', 'stuff');
+      const test = await createPostInQueue(postData);
+      console.log('Test:', test);
       return {
         success: true,
       };

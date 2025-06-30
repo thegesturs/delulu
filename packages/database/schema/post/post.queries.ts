@@ -1,12 +1,18 @@
-import { type ContentType, contentSchema } from '@delulu/validators/post';
+import {
+  type ContentType,
+  type SavePostInputType,
+  contentSchema,
+} from '@delulu/validators/post';
 import { and, asc, count, desc, eq, gt, gte, lt, lte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { database } from '../../index';
 import {
   type Post,
   type PostInsert,
+  type PostStatus,
   alternatePostContent,
   platformPosts,
+  postSocialProviders,
   posts,
 } from './post.sql';
 
@@ -137,18 +143,17 @@ export const postQueries = {
     };
   },
 
-  saveIncomingPost: async (
-    post: {
-      content: ContentType[];
-      alternativeContent?: {
-        socialProvider: { socialId: string };
-        content: ContentType[];
-      }[];
-    },
-    postStatus: Post['status'],
-    userId?: string,
-    organizationId?: string
-  ) => {
+  saveIncomingPost: async ({
+    post,
+    userId,
+    organizationId,
+    postStatus,
+  }: {
+    post: SavePostInputType;
+    userId?: string;
+    organizationId?: string;
+    postStatus: PostStatus;
+  }) => {
     return await database.transaction(async (tx) => {
       // Create the main post
       const [createdPost] = await tx
@@ -172,6 +177,14 @@ export const postQueries = {
             content: alt.content as PostInsert['content'],
             createdAt: new Date(),
             updatedAt: new Date(),
+          }))
+        );
+      }
+      if (post.socialProviders && post.socialProviders.length > 0) {
+        await tx.insert(postSocialProviders).values(
+          post.socialProviders.map((provider) => ({
+            postId: createdPost.id,
+            socialProviderId: provider.socialId,
           }))
         );
       }

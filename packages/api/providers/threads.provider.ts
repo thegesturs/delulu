@@ -18,6 +18,7 @@ interface ThreadsMediaPublishResponse {
 interface ThreadsMediaResponse {
   id: string;
   permalink: string;
+  link_attachment_url?: string;
 }
 
 async function createMediaContainer(
@@ -44,6 +45,11 @@ async function createMediaContainer(
     }
   } else {
     params.append('media_type', 'TEXT');
+    // Extract first URL from text for link preview
+    const urlMatch = text.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      params.append('link_attachment', urlMatch[0]);
+    }
   }
 
   if (options.replyToId) {
@@ -76,33 +82,42 @@ async function waitForContainerProcessing(
   accessToken: string
 ): Promise<void> {
   let attempts = 0;
-  const maxAttempts = 20;
+  const maxAttempts = 30; // Increased to 30 attempts = 90 seconds total
   const delay = 3000; // 3 seconds
 
   while (attempts < maxAttempts) {
-    const statusResponse = await axios.get(
-      `https://graph.threads.net/v1.0/${containerId}`,
-      {
-        params: {
-          fields: 'status_code,status',
-          access_token: accessToken,
-        },
-      }
-    );
-
-    const status = statusResponse.data.status;
-    if (status === 'FINISHED') {
-      return;
-    }
-
-    if (status === 'ERROR') {
-      throw new Error(
-        `Media processing failed: ${statusResponse.data.error_message}`
+    try {
+      const statusResponse = await axios.get(
+        `https://graph.threads.net/v1.0/${containerId}`,
+        {
+          params: {
+            access_token: accessToken,
+          },
+        }
       );
-    }
 
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    attempts++;
+      const status = statusResponse.data.status;
+      if (status === 'FINISHED') {
+        return;
+      }
+
+      if (status === 'ERROR' || status === 'EXPIRED') {
+        throw new Error(
+          `Media processing failed: ${statusResponse.data.error_message || status}`
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempts++;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 500) {
+        // If we get a 500 error, the container might still be processing
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        attempts++;
+        continue;
+      }
+      throw error;
+    }
   }
 
   throw new Error('Media processing timed out.');
@@ -130,7 +145,7 @@ async function getPostDetails(
     `https://graph.threads.net/v1.0/${mediaId}`,
     {
       params: {
-        fields: 'id,permalink',
+        fields: 'id,permalink,link_attachment_url',
         access_token: accessToken,
       },
     }
