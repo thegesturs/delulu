@@ -213,13 +213,12 @@ export async function GET(request: NextRequest) {
 
       // Store pages data with a stable key based on user ID and code
       const key = `fb-pages-${session.user.id}-${code}`;
-      await getCloudflareContext().env.DELULU_FACEBOOK_PAGES.put(
-        key,
-        JSON.stringify(allPages),
-        {
-          expirationTtl: 300, // 5 minutes in seconds
-        }
-      );
+      const { env } = await getCloudflareContext({
+        async: true,
+      });
+      await env.DELULU_FACEBOOK_PAGES.put(key, JSON.stringify(allPages), {
+        expirationTtl: 300, // 5 minutes in seconds
+      });
 
       // Redirect to page selection UI with data key
       return new NextResponse(null, {
