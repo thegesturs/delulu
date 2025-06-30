@@ -33,6 +33,10 @@ const ERROR_MESSAGES = {
     title: 'Internal Error',
     description: 'An unexpected error occurred. Please try again later.',
   },
+  user_cancelled: {
+    title: 'Connection Cancelled',
+    description: 'You cancelled the social account connection process.',
+  },
 };
 
 const NOTIFICATIONS = {

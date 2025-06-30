@@ -22,6 +22,7 @@ import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FaFacebookF } from 'react-icons/fa6';
+import { toast } from 'sonner';
 
 interface FacebookPage {
   id: string;
@@ -66,6 +67,7 @@ function formatNumber(num?: number): string {
 export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
   const { mutate: connectPage, isPending } =
@@ -80,9 +82,17 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
       },
     });
 
+  const handleCancel = () => {
+    setIsCancelling(true);
+    router.push('/socials?error=user_cancelled&provider=facebook');
+  };
+
   const handleConfirm = () => {
     const selectedPage = pages.find((page) => page.id === selectedPageId);
-    if (!selectedPage) return;
+    if (!selectedPage) {
+      toast.error('No page selected');
+      return;
+    }
 
     connectPage({
       pageId: selectedPage.id,
@@ -192,13 +202,10 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
         <DialogFooter className="mt-6 flex items-center justify-between sm:justify-between">
           <Button
             variant="outline"
-            onClick={() =>
-              router.push(
-                '/socials?error=user_cancelled&code=FACEBOOK_007&provider=facebook'
-              )
-            }
+            onClick={handleCancel}
+            disabled={isCancelling}
           >
-            Cancel
+            {isCancelling ? 'Cancelling...' : 'Cancel'}
           </Button>
           <Button
             onClick={handleConfirm}
