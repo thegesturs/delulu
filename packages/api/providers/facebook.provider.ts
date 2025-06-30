@@ -4,6 +4,7 @@ import type { MediaType, PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { nanoid } from 'nanoid';
 
 import type { SocialProvider } from './types';
 
@@ -184,18 +185,28 @@ export const facebookProvider: SocialProvider = {
 
   connectUrl: () => {
     const params = new URLSearchParams({
-      client_id: keys().FACEBOOK_CLIENT_ID,
+      app_id: keys().FACEBOOK_CLIENT_ID,
       redirect_uri: keys().FACEBOOK_CALLBACK_URL,
       response_type: 'code',
+      return_scopes: 'false',
+      fblfb: 'false',
+      kid_directed_site: 'false',
       scope: [
-        'pages_read_engagement',
-        'pages_manage_posts',
-        'pages_show_list',
-        'pages_manage_metadata',
         'public_profile',
+        'pages_show_list',
+        'pages_manage_posts',
+        'pages_read_engagement',
+        'read_insights',
+        'pages_manage_engagement',
+        'pages_read_user_content',
+        'business_management',
       ].join(','),
+      state: JSON.stringify({ state: nanoid(10) }),
+      tp: 'unspecified',
+      is_limited_login_shim: 'false',
+      source: 'gdp_delegated',
     });
 
-    return `https://www.facebook.com/v23.0/dialog/oauth?${params.toString()}`;
+    return `https://www.facebook.com/privacy/consent/gdp/?${params.toString()}`;
   },
 };
