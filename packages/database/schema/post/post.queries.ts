@@ -86,7 +86,11 @@ export const postQueries = {
             socialProvider: true,
           },
         },
-        socialProviders: true,
+        postToSocialProviders: {
+          with: {
+            socialProvider: true,
+          },
+        },
       },
     });
     return post || null;

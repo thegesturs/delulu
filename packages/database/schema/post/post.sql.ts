@@ -170,6 +170,33 @@ export const PlatformPostSelectSchema = createSelectSchema(platformPosts);
 
 export const PlatformPostInsertSchema = createInsertSchema(platformPosts);
 
+// Posts to Social Providers join table
+export const postSocialProviders = pgTable(
+  'post_social_providers',
+  {
+    postId: varchar('post_id', { length: 191 })
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    socialProviderId: varchar('social_provider_id', { length: 191 })
+      .notNull()
+      .references(() => socialProviders.id, { onDelete: 'cascade' }),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.postId, t.socialProviderId] }),
+    postIdIdx: index('post_social_providers_post_id_idx').on(t.postId),
+    providerIdIdx: index('post_social_providers_provider_id_idx').on(
+      t.socialProviderId
+    ),
+  })
+);
+
 // Relations
 export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, {
@@ -178,8 +205,22 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   alternateContents: many(alternatePostContent),
   platformPosts: many(platformPosts),
-  socialProviders: many(socialProviders),
+  postToSocialProviders: many(postSocialProviders),
 }));
+
+export const postSocialProvidersRelations = relations(
+  postSocialProviders,
+  ({ one }) => ({
+    post: one(posts, {
+      fields: [postSocialProviders.postId],
+      references: [posts.id],
+    }),
+    socialProvider: one(socialProviders, {
+      fields: [postSocialProviders.socialProviderId],
+      references: [socialProviders.id],
+    }),
+  })
+);
 
 export const alternatePostContentRelations = relations(
   alternatePostContent,

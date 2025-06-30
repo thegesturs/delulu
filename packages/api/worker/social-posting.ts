@@ -27,22 +27,22 @@ const worker = new Worker(
       });
 
       console.log('Result:', result);
-      await database.post.update({
-        where: {
-          id: result.postId,
-        },
-        data: {
-          status: 'PUBLISHED',
-          platformPosts: {
-            create: {
-              platformPostId: result.platformPostId,
-              platformId: result.platformId,
-              platformPostUrl: result.platformPostUrl,
-              id: `social_post_${nanoid(12)}`,
-            },
-          },
-        },
-      });
+      // await database.post.update({
+      //   where: {
+      //     id: result.postId,
+      //   },
+      //   data: {
+      //     status: 'PUBLISHED',
+      //     platformPosts: {
+      //       create: {
+      //         platformPostId: result.platformPostId,
+      //         platformId: result.platformId,
+      //         platformPostUrl: result.platformPostUrl,
+      //         id: `social_post_${nanoid(12)}`,
+      //       },
+      //     },
+      //   },
+      // });
       console.log('Post posted:', result);
       return result;
     }

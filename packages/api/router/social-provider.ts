@@ -1,3 +1,4 @@
+import { createPostInQueue } from '@api/services/post.service';
 // import { createPostInQueue } from '@api/services/post.service';
 import {
   alternatePostContent,
@@ -87,6 +88,7 @@ export const socialProviderRouter = {
     .mutation(async ({ input }) => {
       // Get the post with its related data
       const post = await postQueries.getPostById(input.postId);
+      console.log('Post:', post);
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -99,10 +101,10 @@ export const socialProviderRouter = {
       const postData: SavePostInputType = {
         id: post.id,
         content: post.content,
-        socialProviders: post.socialProviders.map((provider) => ({
-          socialId: provider.id,
-          name: provider.fullName,
-          socialType: provider.socialType,
+        socialProviders: post.postToSocialProviders.map((provider) => ({
+          socialId: provider.socialProvider.id,
+          name: provider.socialProvider.fullName,
+          socialType: provider.socialProvider.socialType,
         })),
         alternativeContent: post.alternateContents.map((alt) => ({
           socialProvider: {
@@ -114,8 +116,10 @@ export const socialProviderRouter = {
         })),
       };
 
+      console.log('Post data:', postData);
+
       //TODO: Make this work using AWS SQS
-      // await createPostInQueue(postData);
+      await createPostInQueue(postData);
       return {
         success: true,
       };
