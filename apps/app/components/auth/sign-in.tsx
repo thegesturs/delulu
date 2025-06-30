@@ -48,6 +48,7 @@ export const SignIn = ({
     const result = await signIn.email({
       email,
       password,
+      callbackURL: redirectTo || '/',
     });
 
     if (result.data) {
@@ -70,6 +71,7 @@ export const SignIn = ({
     setIsLoading(true);
     const result = await signIn.social({
       provider: 'google',
+      callbackURL: redirectTo || '/',
     });
     if (result.error) {
       setError(result.error.message || 'Something went wrong');

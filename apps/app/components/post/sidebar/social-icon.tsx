@@ -10,6 +10,9 @@ import {
   FaTiktok,
 } from 'react-icons/fa';
 
+import { FaThreads } from 'react-icons/fa6';
+import { SiFarcaster } from 'react-icons/si';
+
 interface SocialIconProps {
   type: SocialType | 'DEFAULT';
   className?: string;
@@ -47,6 +50,12 @@ export const SocialIcon = ({ type, className, size }: SocialIconProps) => {
   }
   if (type === SocialTypes.TIKTOK) {
     return <FaTiktok className={cn('h-3 w-3', className, sizeClass)} />;
+  }
+  if (type === SocialTypes.THREADS) {
+    return <FaThreads className={cn('h-3 w-3', className, sizeClass)} />;
+  }
+  if (type === SocialTypes.FARCASTER) {
+    return <SiFarcaster className={cn('h-3 w-3', className, sizeClass)} />;
   }
   return null;
 };
