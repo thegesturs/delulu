@@ -74,5 +74,13 @@
     //   "binding": "NEXT_INC_CACHE_R2_BUCKET",
     //   "bucket_name": "<BUCKET_NAME>",
     // },
+  ],
+  // KV namespace for storing Facebook pages data temporarily
+  "kv_namespaces": [
+    {
+      "binding": "DELULU_FACEBOOK_PAGES",
+      "id": "e4eecde6b80f429b94485436a905c864",
+      "preview_id": "8763e908a84c4725a860b33307d47c80"
+    }
   ]
 }

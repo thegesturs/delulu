@@ -185,28 +185,19 @@ export const facebookProvider: SocialProvider = {
 
   connectUrl: () => {
     const params = new URLSearchParams({
-      app_id: keys().FACEBOOK_CLIENT_ID,
+      client_id: keys().FACEBOOK_CLIENT_ID,
       redirect_uri: keys().FACEBOOK_CALLBACK_URL,
       response_type: 'code',
-      return_scopes: 'false',
-      fblfb: 'false',
-      kid_directed_site: 'false',
       scope: [
         'public_profile',
         'pages_show_list',
         'pages_manage_posts',
         'pages_read_engagement',
-        'read_insights',
-        'pages_manage_engagement',
-        'pages_read_user_content',
         'business_management',
       ].join(','),
       state: JSON.stringify({ state: nanoid(10) }),
-      tp: 'unspecified',
-      is_limited_login_shim: 'false',
-      source: 'gdp_delegated',
     });
 
-    return `https://www.facebook.com/privacy/consent/gdp/?${params.toString()}`;
+    return `https://www.facebook.com/dialog/oauth?${params.toString()}`;
   },
 };
