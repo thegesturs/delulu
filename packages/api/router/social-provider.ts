@@ -37,6 +37,14 @@ export const socialProviderRouter = {
     );
     return userSocialProviders;
   }),
+  deleteSocial: protectedProcedure
+    .input(z.object({ socialId: z.string() }))
+    .mutation(async ({ input }) => {
+      await socialQueries.deleteSocialProvider(input.socialId);
+      return {
+        success: true,
+      };
+    }),
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {

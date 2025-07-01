@@ -8,12 +8,14 @@ interface AccountListProps {
   accounts: SocialProvider[];
   viewMode: 'grid' | 'list';
   onConnect: (platform: SocialType) => void;
+  onDelete: (socialId: string) => void;
 }
 
 export function AccountList({
   accounts,
   viewMode,
   onConnect,
+  onDelete,
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
@@ -38,7 +40,12 @@ export function AccountList({
       }
     >
       {accounts.map((account) => (
-        <AccountCard key={account.id} account={account} onConnect={onConnect} />
+        <AccountCard
+          key={account.id}
+          account={account}
+          onConnect={onConnect}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );

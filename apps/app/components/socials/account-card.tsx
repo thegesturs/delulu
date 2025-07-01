@@ -2,6 +2,7 @@
 
 import type { SocialProvider } from '@delulu/database';
 import type { SocialType } from '@delulu/database/schema';
+import {} from '@delulu/design-system/components/ui/alert-dialog';
 import {
   Avatar,
   AvatarFallback,
@@ -31,6 +32,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
+import { useState } from 'react';
 import { FaTiktok } from 'react-icons/fa';
 import {
   FaFacebookF,
@@ -41,6 +43,7 @@ import {
   FaYoutube,
 } from 'react-icons/fa6';
 import { SiFarcaster } from 'react-icons/si';
+import DeleteAlertDialog from '../alerts/delete-post';
 
 const socialIcons = {
   TWITTER: FaTwitter,
@@ -97,10 +100,16 @@ function isExpired(expiresIn: Date): boolean {
 interface AccountCardProps {
   account: SocialProvider;
   onConnect: (platform: SocialType) => void;
-  // Add onDelete later when implementing delete functionality
+  onDelete: (socialId: string) => void;
 }
 
-export function AccountCard({ account, onConnect }: AccountCardProps) {
+export function AccountCard({
+  account,
+  onConnect,
+  onDelete,
+}: AccountCardProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = account.refreshTokenExpiresIn
@@ -223,7 +232,10 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
                   Reconnect
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Account
                 </DropdownMenuItem>
@@ -232,6 +244,17 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
           </div>
         </div>
       </CardContent>
+      <DeleteAlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          setIsDeleting(true);
+          onDelete(account.id);
+        }}
+        title="Delete Account"
+        description="Are you sure you want to delete this account? This action cannot be undone."
+        isLoading={isDeleting}
+      />
     </Card>
   );
 }

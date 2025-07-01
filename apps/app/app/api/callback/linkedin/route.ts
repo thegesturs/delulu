@@ -24,14 +24,6 @@ interface LinkedInUserResponse {
   };
 }
 
-interface LinkedInEmailResponse {
-  elements: Array<{
-    'handle~': {
-      emailAddress: string;
-    };
-  }>;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -104,24 +96,8 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as LinkedInUserResponse;
 
-    // Get LinkedIn email
-    const emailResponse = await fetch(
-      'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          'X-Restli-Protocol-Version': '2.0.0',
-          'LinkedIn-Version': '202304',
-        },
-      }
-    );
-
-    if (!emailResponse.ok) {
-      throw new Error('linkedin_email_fetch_failed');
-    }
-
-    const emailData = (await emailResponse.json()) as LinkedInEmailResponse;
-    const email = emailData.elements[0]?.['handle~']?.emailAddress;
+    // Remove email fetch since we don't have that scope anymore
+    const username = `${userObject.localizedFirstName.toLowerCase()}.${userObject.localizedLastName.toLowerCase()}`;
 
     // Get profile image URL from the complex response structure
     const profileImage =
@@ -150,7 +126,7 @@ export async function GET(request: NextRequest) {
           refreshToken: null, // LinkedIn doesn't provide refresh tokens
           expiresIn: new Date(Date.now() + expires_in * 1000),
           fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: email,
+          username: username,
           profileImage: profileImage,
           updatedAt: new Date(),
           isActive: true,
@@ -179,7 +155,7 @@ export async function GET(request: NextRequest) {
         refreshToken: null, // LinkedIn doesn't provide refresh tokens
         expiresIn: new Date(Date.now() + expires_in * 1000),
         profileId: userObject.id,
-        username: email || undefined,
+        username: username,
         fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
         profileImage: profileImage,
         isActive: true,
@@ -197,7 +173,7 @@ export async function GET(request: NextRequest) {
           refreshToken: null,
           expiresIn: new Date(Date.now() + expires_in * 1000),
           fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: email,
+          username: username,
           profileImage: profileImage,
           updatedAt: new Date(),
           isActive: true,

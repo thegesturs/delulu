@@ -4,6 +4,7 @@ import { api } from '@/trpc/react';
 import type { SocialProvider, SocialType } from '@delulu/database/schema';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { AccountFilters } from './account-filter';
 import { AccountList } from './account-list';
 import { AccountStats } from './account-stats';
@@ -28,6 +29,7 @@ export default function ConnectedAccounts() {
   const [filterPlatform, setFilterPlatform] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const utils = api.useUtils();
 
   const { data: accounts, isLoading: isLoadingAccounts } =
     api.socialProvider.getConnectedAccounts.useQuery();
@@ -38,6 +40,13 @@ export default function ConnectedAccounts() {
         window.location.href = url;
       },
     });
+
+  const { mutate: deleteSocial } = api.socialProvider.deleteSocial.useMutation({
+    onSuccess: () => {
+      toast.success('Account deleted successfully');
+      utils.socialProvider.getConnectedAccounts.invalidate();
+    },
+  });
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -122,7 +131,8 @@ export default function ConnectedAccounts() {
         <AccountList
           accounts={filteredAccounts}
           viewMode={viewMode}
-          onConnect={handleConnect} // Pass handleConnect to AccountList for reconnect functionality in AccountCard
+          onConnect={handleConnect}
+          onDelete={(socialId: string) => deleteSocial({ socialId })}
         />
       </div>
     </div>

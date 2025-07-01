@@ -25,22 +25,19 @@ interface LinkedInMediaAsset {
 }
 
 /**
- * Interface for LinkedIn post payload
+ * Interface for LinkedIn post payload using the new Marketing API
  */
 interface LinkedInPostPayload {
   author: string;
+  commentary: string;
+  visibility: 'PUBLIC';
   lifecycleState: 'PUBLISHED';
-  specificContent: {
-    'com.linkedin.ugc.ShareContent': {
-      shareCommentary: {
-        text: string;
-      };
-      shareMediaCategory: 'NONE' | 'IMAGE' | 'VIDEO';
-      media?: LinkedInMediaAsset[];
-    };
-  };
-  visibility: {
-    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC';
+  content?: {
+    media?: {
+      id: string;
+      altText?: string;
+      title?: string;
+    }[];
   };
 }
 
@@ -89,10 +86,15 @@ export const linkedinProvider: SocialProvider = {
       console.log('Media assets uploaded and ready:', mediaAssets);
 
       // Only proceed with post creation if all media is ready
+      // Detect if this is an organization account from the profileId format
+      // LinkedIn organization profileIds are typically numeric, while personal ones are alphanumeric
+      const isOrganization = /^\d+$/.test(profile.profileId);
+
       const postPayload = createPostPayload(
         firstContent.text,
         profile.profileId,
-        mediaAssets
+        mediaAssets,
+        isOrganization
       );
 
       const response = await publishToLinkedIn(
@@ -131,7 +133,21 @@ export const linkedinProvider: SocialProvider = {
   },
 
   connectUrl: () => {
-    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=r_liteprofile%20r_emailaddress%20w_member_social`;
+    const scopes = [
+      'r_member_postAnalytics',
+      'r_organization_followers',
+      'r_organization_social',
+      'rw_organization_admin',
+      'r_organization_social_feed',
+      'w_member_social',
+      'r_member_profileAnalytics',
+      'w_organization_social',
+      'r_basicprofile',
+      'w_organization_social_feed',
+      'w_member_social_feed',
+    ].join('%20');
+
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
     console.log('url', url);
     return url;
   },
@@ -211,52 +227,47 @@ async function uploadMediaAssets(
 }
 
 /**
- * Creates the payload for a LinkedIn post
+ * Creates the payload for a LinkedIn post using the new Marketing API
  * @param text - The text content of the post
  * @param profileId - LinkedIn profile ID
  * @param mediaAssets - Array of uploaded media assets
+ * @param isOrganization - Whether this is posting to an organization page
  * @returns LinkedInPostPayload - The formatted payload for the LinkedIn API
  */
 function createPostPayload(
   text: string,
   profileId: string,
-  mediaAssets: LinkedInMediaAsset[]
+  mediaAssets: LinkedInMediaAsset[],
+  isOrganization = false
 ): LinkedInPostPayload {
   const hasMedia = mediaAssets.length > 0;
-  const mediaCategory = hasMedia
-    ? mediaAssets[0].mediaTypeFamily === 'STILLIMAGE'
-      ? 'IMAGE'
-      : 'VIDEO'
-    : 'NONE';
 
-  console.log('mediaCategory', mediaCategory);
+  console.log(
+    'Creating post payload for:',
+    isOrganization ? 'organization' : 'person'
+  );
   console.log('hasMedia', mediaAssets);
 
-  const mediaAssetWithoutCategory = mediaAssets.map((asset) => {
-    return {
-      status: asset.status,
-      description: asset.description,
-      media: asset.media,
-      title: asset.title,
-    };
-  });
-
-  return {
-    author: `urn:li:person:${profileId}`,
+  const payload: LinkedInPostPayload = {
+    author: isOrganization
+      ? `urn:li:organization:${profileId}`
+      : `urn:li:person:${profileId}`,
+    commentary: text,
+    visibility: 'PUBLIC',
     lifecycleState: 'PUBLISHED',
-    specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: {
-          text: text,
-        },
-        shareMediaCategory: mediaCategory,
-        ...(hasMedia && { media: mediaAssetWithoutCategory }),
-      },
-    },
-    visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-    },
   };
+
+  if (hasMedia) {
+    payload.content = {
+      media: mediaAssets.map((asset) => ({
+        id: asset.media,
+        altText: asset.description.text,
+        title: asset.title.text,
+      })),
+    };
+  }
+
+  return payload;
 }
 
 /**
@@ -573,7 +584,7 @@ async function uploadMedia({
 }
 
 /**
- * Publishes a post to LinkedIn
+ * Publishes a post to LinkedIn using the new Marketing API
  * @param payload - The post payload
  * @param accessToken - LinkedIn access token
  * @returns Promise containing the response from LinkedIn
@@ -583,12 +594,14 @@ async function publishToLinkedIn(
   accessToken: string
 ): Promise<{ id: string }> {
   const response = await axios.post(
-    'https://api.linkedin.com/v2/ugcPosts',
+    'https://api.linkedin.com/rest/posts',
     payload,
     {
       headers: {
-        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202410',
+        'X-RestLi-Protocol-Version': '2.0.0',
         Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
     }
   );
