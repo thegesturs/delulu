@@ -30,15 +30,36 @@ interface LinkedInMediaAsset {
 interface LinkedInPostPayload {
   author: string;
   commentary: string;
-  visibility: 'PUBLIC';
+  visibility: 'PUBLIC' | 'CONNECTIONS';
+  distribution: {
+    feedDistribution: 'MAIN_FEED';
+    targetEntities?: [];
+    thirdPartyDistributionChannels?: [];
+  };
   lifecycleState: 'PUBLISHED';
   content?: {
-    media?: {
+    multiImage?: {
+      images: {
+        id: string;
+        altText?: string;
+      }[];
+    };
+    image?: {
       id: string;
       altText?: string;
-      title?: string;
-    }[];
+    };
+    video?: {
+      id: string;
+      altText?: string;
+    };
   };
+  isReshare?: boolean;
+}
+
+interface LinkedInUploadResult {
+  urn: string;
+  altText?: string;
+  mediaType: 'IMAGE' | 'VIDEO';
 }
 
 interface LinkedInVideoSpecs {
@@ -180,13 +201,13 @@ async function getAccessTokenAndProfile(socialProviderId: string) {
  * Uploads media assets to LinkedIn
  * @param media - Array of media items to upload
  * @param profile - LinkedIn profile information
- * @returns Promise<LinkedInMediaAsset[]> - Array of uploaded media assets
+ * @returns Promise<LinkedInUploadResult[]> - Array of uploaded media assets
  */
 async function uploadMediaAssets(
   media: MediaType[],
   profile: { accessToken: string; profileId: string }
-): Promise<LinkedInMediaAsset[]> {
-  const mediaAssets: LinkedInMediaAsset[] = [];
+): Promise<LinkedInUploadResult[]> {
+  const uploadedAssets: LinkedInUploadResult[] = [];
   const validMediaUrls = getValidMediaUrls(media);
 
   console.log('Starting media upload process with:', validMediaUrls);
@@ -199,388 +220,242 @@ async function uploadMediaAssets(
 
     try {
       console.log('Uploading media item:', mediaItem);
-      const uploadResponse = await uploadMedia({
-        authToken: profile.accessToken,
-        fileUrl: mediaItem.url,
-        isImage: mediaItem.mediaType === 'IMAGE',
-        media: { owner: profile.profileId },
+      const isImage = mediaItem.mediaType === 'IMAGE';
+      const ownerUrn = `urn:li:person:${profile.profileId}`;
+
+      const uploadResult = isImage
+        ? await uploadImage({
+            authToken: profile.accessToken,
+            ownerUrn,
+            fileUrl: mediaItem.url,
+          })
+        : await uploadVideo({
+            authToken: profile.accessToken,
+            ownerUrn,
+            fileUrl: mediaItem.url,
+          });
+
+      uploadedAssets.push({
+        urn: uploadResult.urn,
+        altText: mediaItem.altText,
+        mediaType: mediaItem.mediaType,
       });
 
-      console.log('Upload successful, asset ID:', uploadResponse);
-      mediaAssets.push({
-        status: 'READY',
-        description: { text: mediaItem.altText ?? '' },
-        media: uploadResponse.assetId,
-        title: { text: '' },
-        mediaTypeFamily: uploadResponse.mediaTypeFamily,
-      });
-      console.log('Added asset to mediaAssets array');
+      console.log('Upload successful, asset URN:', uploadResult.urn);
     } catch (error) {
       console.error('Failed to upload media:', error);
-      // Instead of silently continuing, we might want to throw the error
       throw error;
     }
   }
 
-  console.log('Completed media uploads, total assets:', mediaAssets.length);
-  return mediaAssets;
+  console.log('Completed media uploads, total assets:', uploadedAssets.length);
+  return uploadedAssets;
 }
 
 /**
  * Creates the payload for a LinkedIn post using the new Marketing API
  * @param text - The text content of the post
  * @param profileId - LinkedIn profile ID
- * @param mediaAssets - Array of uploaded media assets
+ * @param uploadedAssets - Array of uploaded media assets
  * @param isOrganization - Whether this is posting to an organization page
  * @returns LinkedInPostPayload - The formatted payload for the LinkedIn API
  */
 function createPostPayload(
   text: string,
   profileId: string,
-  mediaAssets: LinkedInMediaAsset[],
+  uploadedAssets: LinkedInUploadResult[],
   isOrganization = false
 ): LinkedInPostPayload {
-  const hasMedia = mediaAssets.length > 0;
-
-  console.log(
-    'Creating post payload for:',
-    isOrganization ? 'organization' : 'person'
-  );
-  console.log('hasMedia', mediaAssets);
+  const authorUrn = isOrganization
+    ? `urn:li:organization:${profileId}`
+    : `urn:li:person:${profileId}`;
 
   const payload: LinkedInPostPayload = {
-    author: isOrganization
-      ? `urn:li:organization:${profileId}`
-      : `urn:li:person:${profileId}`,
+    author: authorUrn,
     commentary: text,
     visibility: 'PUBLIC',
+    distribution: {
+      feedDistribution: 'MAIN_FEED',
+    },
     lifecycleState: 'PUBLISHED',
   };
 
-  if (hasMedia) {
-    payload.content = {
-      media: mediaAssets.map((asset) => ({
-        id: asset.media,
-        altText: asset.description.text,
-        title: asset.title.text,
-      })),
-    };
+  if (uploadedAssets.length > 0) {
+    if (uploadedAssets.length > 1) {
+      // Multi-image post
+      payload.content = {
+        multiImage: {
+          images: uploadedAssets.map((asset) => ({
+            id: asset.urn,
+            altText: asset.altText,
+          })),
+        },
+      };
+    } else {
+      // Single media post
+      const asset = uploadedAssets[0];
+      if (asset.mediaType === 'IMAGE') {
+        payload.content = {
+          image: { id: asset.urn, altText: asset.altText },
+        };
+      } else {
+        payload.content = {
+          video: { id: asset.urn, altText: asset.altText },
+        };
+      }
+    }
   }
 
   return payload;
 }
 
 /**
- * Checks the status of a LinkedIn media asset
- * @param assetId - The ID of the asset to check
- * @param authToken - LinkedIn access token
- * @returns Promise<{ status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED', mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> - The status of the asset and its media type family
+ * Uploads an image to LinkedIn using the new Images API
  */
-async function checkAssetStatus(
-  assetId: string,
-  authToken: string
-): Promise<{
-  status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
-  mediaTypeFamily: 'STILLIMAGE' | 'VIDEO';
-}> {
-  try {
-    const assetIdWithoutPrefix = assetId.replace(
-      'urn:li:digitalmediaAsset:',
-      ''
-    );
-
-    const response = await axios.get(
-      `https://api.linkedin.com/v2/assets/${assetIdWithoutPrefix}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'X-Restli-Protocol-Version': '2.0.0',
-        },
-      }
-    );
-
-    if (!response.data) {
-      console.warn('No data received from LinkedIn asset status check');
-      return { status: 'PROCESSING', mediaTypeFamily: 'STILLIMAGE' };
-    }
-
-    console.log('Asset status response:', response.data);
-
-    // For videos, we need to check the recipe status
-    if (response.data.mediaTypeFamily === 'VIDEO') {
-      const recipeStatus = response.data.recipes?.[0]?.status;
-      console.log('Video recipe status:', recipeStatus);
-      console.log('Video response:', response.data);
-
-      // Handle SERVER_ERROR explicitly
-      if (recipeStatus === 'SERVER_ERROR') {
-        console.warn('LinkedIn recipe returned SERVER_ERROR — will retry.');
-        console.log('Video response:', response.data);
-        return { status: 'PROCESSING', mediaTypeFamily: 'VIDEO' };
-      }
-
-      // Check for other error statuses or processing state
-      if (recipeStatus && recipeStatus !== 'AVAILABLE') {
-        if (
-          recipeStatus === 'PROCESSING_FAILED' ||
-          recipeStatus === 'TRANSCODE_ERROR'
-        ) {
-          throw new Error(`Video processing failed: ${recipeStatus}`);
-        }
-        console.log('Video is still processing:', recipeStatus);
-        return { status: 'PROCESSING', mediaTypeFamily: 'VIDEO' };
-      }
-    }
-
-    return {
-      status: response.data.status,
-      mediaTypeFamily: response.data.mediaTypeFamily,
-    };
-  } catch (error) {
-    console.error('Error checking asset status:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Response data:', error.response?.data);
-      // If we get a 403 or 404, the asset might still be processing
-      if (error.response?.status === 403 || error.response?.status === 404) {
-        return { status: 'PROCESSING', mediaTypeFamily: 'STILLIMAGE' };
-      }
-    }
-    throw error;
-  }
-}
-
-/**
- * Waits for a LinkedIn media asset to become available
- * @param assetId - The ID of the asset to wait for
- * @param authToken - LinkedIn access token
- * @param maxAttempts - Maximum number of attempts to check status
- * @param delayMs - Delay between status checks in milliseconds
- * @returns Promise<{ status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED', mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> - The status of the asset and its media type family
- */
-async function waitForAssetAvailability(
-  assetId: string,
-  authToken: string,
-  maxAttempts = 60,
-  delayMs = 5000
-): Promise<{
-  status: 'READY' | 'PROCESSING' | 'PROCESSING_FAILED' | 'ALLOWED';
-  mediaTypeFamily: 'STILLIMAGE' | 'VIDEO';
-}> {
-  let lastStatus = null;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    console.log(`Checking asset status attempt ${attempt + 1}/${maxAttempts}`);
-    const { status, mediaTypeFamily } = await checkAssetStatus(
-      assetId,
-      authToken
-    );
-
-    // Keep track of last status for better error messaging
-    lastStatus = status;
-
-    switch (status) {
-      case 'READY':
-      case 'ALLOWED':
-        console.log(`Asset is ${status}, type: ${mediaTypeFamily}`);
-        // For videos, wait a bit longer even after ALLOWED to ensure processing
-        if (mediaTypeFamily === 'VIDEO' && attempt < 2) {
-          console.log(
-            'Video detected, waiting additional time for processing...'
-          );
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-          continue;
-        }
-        return { status, mediaTypeFamily };
-      case 'PROCESSING_FAILED':
-        throw new Error('Asset processing failed');
-      case 'PROCESSING':
-        console.log('Asset is still processing, waiting...');
-        if (attempt === maxAttempts - 1) {
-          throw new Error(
-            `Asset processing timeout - took longer than expected. Last status: ${lastStatus}`
-          );
-        }
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        continue;
-      default:
-        console.error('Unexpected asset status:', status);
-        throw new Error(`Unknown asset status: ${status}`);
-    }
-  }
-
-  throw new Error(
-    `Asset processing timeout - took longer than expected. Last status: ${lastStatus}`
-  );
-}
-
-async function validateVideoForLinkedIn(fileUrl: string): Promise<void> {
-  try {
-    const response = await axios.get(fileUrl, {
-      responseType: 'stream',
-      headers: {
-        Range: 'bytes=0-0', // Just get the first byte to check if file is accessible
-      },
-    });
-
-    // Get content type and size from response headers
-    const contentType = response.headers['content-type'];
-    const contentLength = Number.parseInt(
-      response.headers['content-length'] || '0',
-      10
-    );
-
-    // Check file size
-    if (contentLength > LINKEDIN_VIDEO_SPECS.maxSize) {
-      throw new Error(`Video file size exceeds LinkedIn's limit of 5GB`);
-    }
-
-    // Check content type
-    if (!contentType.includes('video/mp4')) {
-      throw new Error('LinkedIn only supports MP4 video format');
-    }
-
-    console.log('Video validation passed:', {
-      size: contentLength,
-      type: contentType,
-    });
-  } catch (error) {
-    console.error('Video validation error:', error);
-    if (error instanceof Error) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Video validation failed: ${error.message}`,
-      });
-    }
-    throw error;
-  }
-}
-
-/**
- * Uploads media to LinkedIn and waits for it to be ready
- */
-async function uploadMedia({
+async function uploadImage({
   authToken,
+  ownerUrn,
   fileUrl,
-  isImage,
-  media: { owner },
 }: {
   authToken: string;
+  ownerUrn: string;
   fileUrl: string;
-  isImage: boolean;
-  media: {
-    owner: string;
-  };
-}): Promise<{ assetId: string; mediaTypeFamily: 'STILLIMAGE' | 'VIDEO' }> {
-  try {
-    // Validate video if not an image
-    if (!isImage) {
-      console.log('Validating video before upload...');
-      await validateVideoForLinkedIn(fileUrl);
-    }
-
-    // Step 1: Register the media upload
-    console.log(
-      `Registering ${isImage ? 'image' : 'video'} upload with LinkedIn...`
-    );
-    const registerResponse = await axios.post(
-      'https://api.linkedin.com/v2/assets?action=registerUpload',
-      {
-        registerUploadRequest: {
-          recipes: [
-            isImage
-              ? 'urn:li:digitalmediaRecipe:feedshare-image'
-              : 'urn:li:digitalmediaRecipe:feedshare-video',
-          ],
-          owner: `urn:li:person:${owner}`,
-          serviceRelationships: [
-            {
-              relationshipType: 'OWNER',
-              identifier: 'urn:li:userGeneratedContent',
-            },
-          ],
-        },
+}): Promise<{ urn: string }> {
+  // 1. Initialize Upload
+  const initResponse = await axios.post(
+    'https://api.linkedin.com/rest/images?action=initializeUpload',
+    { initializeUploadRequest: { owner: ownerUrn } },
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'LinkedIn-Version': '202410',
+        'X-Restli-Protocol-Version': '2.0.0',
       },
+    }
+  );
+
+  const { uploadUrl, image: imageUrn } = initResponse.data.value;
+
+  // 2. Upload Image to pre-signed URL
+  const imageResponse = await axios.get(fileUrl, {
+    responseType: 'arraybuffer',
+  });
+  await axios.put(uploadUrl, imageResponse.data, {
+    headers: { 'Content-Type': 'application/octet-stream' },
+  });
+
+  // 3. Verify upload (wait for it to be available)
+  await waitForAssetReady(imageUrn, authToken, 'image');
+
+  return { urn: imageUrn };
+}
+
+/**
+ * Uploads a video to LinkedIn using the new Videos API
+ */
+async function uploadVideo({
+  authToken,
+  ownerUrn,
+  fileUrl,
+}: {
+  authToken: string;
+  ownerUrn: string;
+  fileUrl: string;
+}): Promise<{ urn: string }> {
+  // 1. Initialize Upload
+  const initResponse = await axios.post(
+    'https://api.linkedin.com/rest/videos?action=initializeUpload',
+    {
+      initializeUploadRequest: {
+        owner: ownerUrn,
+        fileSizeBytes: (await axios.head(fileUrl)).headers['content-length'],
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'LinkedIn-Version': '202410',
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    }
+  );
+
+  const { video: videoUrn, uploadInstructions } = initResponse.data.value;
+
+  // 2. Upload video parts
+  // This example assumes a single part upload for simplicity.
+  // For larger files, you'd loop through uploadInstructions.
+  const uploadUrl = uploadInstructions[0].uploadUrl;
+  const videoResponse = await axios.get(fileUrl, {
+    responseType: 'arraybuffer',
+  });
+  await axios.put(uploadUrl, videoResponse.data, {
+    headers: { 'Content-Type': 'application/octet-stream' },
+  });
+
+  // 3. Finalize upload
+  await axios.post(
+    'https://api.linkedin.com/rest/videos?action=finalizeUpload',
+    {
+      finalizeUploadRequest: {
+        video: videoUrn,
+        uploadToken: initResponse.data.value.uploadToken,
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'LinkedIn-Version': '202410',
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    }
+  );
+
+  // 4. Verify upload
+  await waitForAssetReady(videoUrn, authToken, 'video');
+
+  return { urn: videoUrn };
+}
+
+async function waitForAssetReady(
+  assetUrn: string,
+  authToken: string,
+  assetType: 'image' | 'video',
+  maxAttempts = 20,
+  delayMs = 5000
+) {
+  const endpoint = assetType === 'image' ? 'images' : 'videos';
+  const id = encodeURIComponent(assetUrn);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    console.log(
+      `Checking ${assetType} status... Attempt ${attempt + 1}/${maxAttempts}`
+    );
+    const response = await axios.get(
+      `https://api.linkedin.com/rest/${endpoint}/${id}`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
+          'LinkedIn-Version': '202410',
           'X-Restli-Protocol-Version': '2.0.0',
         },
       }
     );
 
-    const uploadUrl =
-      registerResponse.data.value.uploadMechanism[
-        'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
-      ].uploadUrl;
-    const asset = registerResponse.data.value.asset;
+    const status = response.data.status;
+    console.log(`Asset status: ${status}`);
 
-    // Step 2: Get the file as a binary buffer
-    console.log('Fetching media file...');
-    const fileResponse = await axios({
-      method: 'get',
-      url: fileUrl,
-      responseType: 'stream',
-    });
-
-    // Step 3: Upload the file to LinkedIn using POST as per documentation
-    console.log('Uploading media to LinkedIn...');
-    try {
-      await axios.post(uploadUrl, fileResponse.data, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': isImage ? 'image/jpeg' : 'video/mp4',
-          'X-Restli-Protocol-Version': '2.0.0',
-        },
-        maxContentLength: Number.POSITIVE_INFINITY,
-        maxBodyLength: Number.POSITIVE_INFINITY,
-      });
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error('Upload error response:', error.response?.data);
-        if (error.response?.status === 413) {
-          throw new TRPCError({
-            code: 'PAYLOAD_TOO_LARGE',
-            message: 'Video file is too large for LinkedIn upload',
-          });
-        }
-      }
-      throw error;
+    if (status === 'AVAILABLE') {
+      console.log(`${assetType} is ready.`);
+      return;
+    }
+    if (status === 'FAILED') {
+      throw new Error(`${assetType} processing failed.`);
     }
 
-    // Step 4: Wait for the asset to be ready and get media type
-    console.log('Waiting for LinkedIn to process the media...');
-    const { status, mediaTypeFamily } = await waitForAssetAvailability(
-      asset,
-      authToken,
-      isImage ? 60 : 120, // Double the wait time for videos
-      isImage ? 5000 : 10000 // Double the check interval for videos
-    );
-
-    return {
-      assetId: asset,
-      mediaTypeFamily,
-    };
-  } catch (error) {
-    console.error('Error uploading media:', error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    if (axios.isAxiosError(error)) {
-      console.error('Response data:', error.response?.data);
-      if (error.response?.data?.message?.includes('duplicate')) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'This video has already been uploaded to LinkedIn',
-        });
-      }
-    }
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: `Failed to upload ${isImage ? 'image' : 'video'}: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }`,
-    });
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
+  throw new Error(`${assetType} did not become ready in time.`);
 }
 
 /**
@@ -606,9 +481,19 @@ async function publishToLinkedIn(
     }
   );
 
-  if (!response.data?.id) {
+  console.log('response', response);
+
+  // The post ID is in the response headers, not the body
+  const postId = response.headers['x-restli-id'];
+
+  if (response.status !== 201 || !postId) {
+    console.error('LinkedIn API Error: Failed to get post ID from response.', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
+    });
     throw new Error('Failed to get post ID from LinkedIn response');
   }
 
-  return { id: response.data.id };
+  return { id: postId };
 }
