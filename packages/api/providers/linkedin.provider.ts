@@ -48,8 +48,9 @@ interface LinkedInPostPayload {
       id: string;
       altText?: string;
     };
-    video?: {
+    media?: {
       id: string;
+      title: string;
       altText?: string;
     };
   };
@@ -300,7 +301,11 @@ function createPostPayload(
         };
       } else {
         payload.content = {
-          video: { id: asset.urn, altText: asset.altText },
+          media: {
+            id: asset.urn,
+            title: 'Video Post', // A title is required for videos
+            altText: asset.altText,
+          },
         };
       }
     }
@@ -368,7 +373,10 @@ async function uploadVideo({
     {
       initializeUploadRequest: {
         owner: ownerUrn,
-        fileSizeBytes: (await axios.head(fileUrl)).headers['content-length'],
+        fileSizeBytes: Number.parseInt(
+          (await axios.head(fileUrl)).headers['content-length'] ?? '0',
+          10
+        ),
       },
     },
     {
@@ -380,7 +388,13 @@ async function uploadVideo({
     }
   );
 
-  const { video: videoUrn, uploadInstructions } = initResponse.data.value;
+  console.log('initResponse', initResponse.data);
+
+  const {
+    video: videoUrn,
+    uploadInstructions,
+    uploadToken,
+  } = initResponse.data.value;
 
   // 2. Upload video parts
   // This example assumes a single part upload for simplicity.
@@ -389,9 +403,14 @@ async function uploadVideo({
   const videoResponse = await axios.get(fileUrl, {
     responseType: 'arraybuffer',
   });
-  await axios.put(uploadUrl, videoResponse.data, {
+  const uploadPartResponse = await axios.put(uploadUrl, videoResponse.data, {
     headers: { 'Content-Type': 'application/octet-stream' },
   });
+
+  const etag = uploadPartResponse.headers.etag;
+  if (!etag) {
+    throw new Error('Could not get ETag from video upload part.');
+  }
 
   // 3. Finalize upload
   await axios.post(
@@ -399,7 +418,8 @@ async function uploadVideo({
     {
       finalizeUploadRequest: {
         video: videoUrn,
-        uploadToken: initResponse.data.value.uploadToken,
+        uploadToken,
+        uploadedPartIds: [etag.replace(/"/g, '')],
       },
     },
     {
@@ -480,8 +500,6 @@ async function publishToLinkedIn(
       },
     }
   );
-
-  console.log('response', response);
 
   // The post ID is in the response headers, not the body
   const postId = response.headers['x-restli-id'];
