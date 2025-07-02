@@ -7,32 +7,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
+import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
+import {
+  type SupportedSocialPlatform,
+  socialDisplayNames,
+} from '@delulu/design-system/lib/social-config';
 import { Calendar } from 'lucide-react';
 import Image from 'next/image';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaTiktok,
-  FaTwitter,
-} from 'react-icons/fa';
 import type { Post } from './types';
-import { FaThreads } from 'react-icons/fa6';
 
 interface PostPreviewDialogProps {
   post: Post;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const socialIcons = {
-  TWITTER: FaTwitter,
-  LINKEDIN: FaLinkedin,
-  INSTAGRAM: FaInstagram,
-  TIKTOK: FaTiktok,
-  FACEBOOK: FaFacebook,
-  THREADS: FaThreads,
-} as const;
 
 const statusColors = {
   SAVED: 'orange',
@@ -105,12 +93,9 @@ export function PostPreviewDialog({
             )}
             <div className="grid gap-3">
               {post.postToSocialProviders.map((provider) => {
-                const Icon =
-                  socialIcons[
-                    provider.socialProvider
-                      .socialType as keyof typeof socialIcons
-                  ];
-                if (!Icon) {
+                const socialType = provider.socialProvider.socialType;
+                // Skip unsupported platforms
+                if (!Object.keys(socialDisplayNames).includes(socialType)) {
                   return null;
                 }
 
@@ -118,23 +103,22 @@ export function PostPreviewDialog({
                   (pp) => pp.platformId === provider.socialProvider.id
                 )?.platformPostUrl;
 
-                if (!platformPostUrl) {
-                  return null;
-                }
-
                 return (
                   <div
                     key={provider.socialProvider.profileId}
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon
-                        className={`h-5 w-5 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                      <SocialIcon
+                        type={socialType as SupportedSocialPlatform}
+                        size="md"
                       />
                       <div className="flex flex-col">
                         <span className="font-medium">
                           {provider.socialProvider.username ||
-                            provider.socialProvider.socialType}
+                            socialDisplayNames[
+                              socialType as SupportedSocialPlatform
+                            ]}
                         </span>
                         {!provider.socialProvider.isActive && (
                           <span className="text-muted-foreground text-sm">
@@ -144,7 +128,8 @@ export function PostPreviewDialog({
                       </div>
                     </div>
                     {provider.socialProvider.isActive &&
-                      post.status === 'PUBLISHED' && (
+                      post.status === 'PUBLISHED' &&
+                      platformPostUrl && (
                         <Button variant="outline" size="sm" asChild>
                           <a
                             href={platformPostUrl}

@@ -189,6 +189,9 @@ export const postQueries = {
       return createdPost;
     });
   },
+  updatePost: async (postId: string, post: PostInsert) => {
+    return await database.update(posts).set(post).where(eq(posts.id, postId));
+  },
 
   updatePostContent: async (
     postId: string,

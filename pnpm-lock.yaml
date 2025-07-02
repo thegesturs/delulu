@@ -985,6 +985,9 @@ importers:
       react-hook-form:
         specifier: ^7.55.0
         version: 7.59.0(react@19.1.0)
+      react-icons:
+        specifier: 'catalog:'
+        version: 5.5.0(react@19.1.0)
       react-moveable:
         specifier: ^0.56.0
         version: 0.56.0

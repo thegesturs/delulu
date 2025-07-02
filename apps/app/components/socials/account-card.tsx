@@ -25,6 +25,10 @@ import {
 } from '@delulu/design-system/components/ui/tooltip';
 import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
 import {
+  socialColors,
+  socialIcons,
+} from '@delulu/design-system/lib/social-config';
+import {
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -33,53 +37,29 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { FaTiktok } from 'react-icons/fa';
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaLinkedin,
-  FaThreads,
-  FaTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import { SiFarcaster } from 'react-icons/si';
 import DeleteAlertDialog from '../alerts/delete-post';
 
-const socialIcons = {
-  TWITTER: FaTwitter,
-  INSTAGRAM: FaInstagram,
-  LINKEDIN: FaLinkedin,
-  YOUTUBE: FaYoutube,
-  TIKTOK: FaTiktok,
-  THREADS: FaThreads,
-  FARCASTER: SiFarcaster,
-  FACEBOOK: FaFacebookF,
-};
-
-const socialColors = {
-  TWITTER: 'bg-sky-500',
-  INSTAGRAM: 'bg-gradient-to-r from-[#E4405F] to-[#FCAF45]',
-  LINKEDIN: 'bg-sky-700',
-  YOUTUBE: 'bg-red-600',
-  TIKTOK: 'bg-red-600',
-  FARCASTER: 'bg-black',
-  FACEBOOK: 'bg-blue-500',
-  THREADS: 'bg-black',
-};
-
 function formatTimeAgo(date: Date | null): string {
-  if (!date) return 'Never';
+  if (!date) {
+    return 'Never';
+  }
 
   const now = new Date();
   const diffInMinutes = Math.floor(
     (now.getTime() - date.getTime()) / (1000 * 60)
   );
 
-  if (diffInMinutes < 1) return 'Just now';
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  if (diffInMinutes < 1) {
+    return 'Just now';
+  }
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
 
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
 
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays}d ago`;

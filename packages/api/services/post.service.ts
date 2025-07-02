@@ -1,5 +1,5 @@
 import { providerRegistry } from '@api/providers';
-import { postQueries } from '@delulu/database';
+import { postQueries, PostStatus } from '@delulu/database';
 import { type SavePostInputType, SocialTypes } from '@delulu/validators/post';
 // import { Queue } from 'bullmq';
 
@@ -44,6 +44,10 @@ export const createPostInQueue = async (post: SavePostInputType) => {
       platformId: provider.socialId,
       platformPostId: result.platformPostId,
       platformPostUrl: result.platformPostUrl,
+    });
+
+    await postQueries.updatePost(post.id!, {
+      status: PostStatus.PUBLISHED,
     });
 
     // // Get the provider implementation
