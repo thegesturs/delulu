@@ -1,17 +1,18 @@
 import { providerRegistry } from '@api/providers';
+import { postQueries } from '@delulu/database';
 import { type SavePostInputType, SocialTypes } from '@delulu/validators/post';
 // import { Queue } from 'bullmq';
 
 export const createPostInQueue = async (post: SavePostInputType) => {
-//   console.log('Post:', post.socialProviders);
+  //   console.log('Post:', post.socialProviders);
   for (const provider of post.socialProviders) {
     console.log('Provider:', provider);
 
     // Skip providers that are not implemented
     if (
       provider.socialType === SocialTypes.LENS ||
-      provider.socialType === SocialTypes.DEFAULT 
-    //   provider.socialType === SocialTypes.FACEBOOK
+      provider.socialType === SocialTypes.DEFAULT
+      //   provider.socialType === SocialTypes.FACEBOOK
     ) {
       continue;
     }
@@ -38,7 +39,12 @@ export const createPostInQueue = async (post: SavePostInputType) => {
       socialProviderId: provider.socialId,
     });
 
-    console.log('Result:', result);
+    await postQueries.createPlatformPost({
+      postId: post.id!,
+      platformId: provider.socialId,
+      platformPostId: result.platformPostId,
+      platformPostUrl: result.platformPostUrl,
+    });
 
     // // Get the provider implementation
     // const providerImpl = providerRegistry[provider.socialType];

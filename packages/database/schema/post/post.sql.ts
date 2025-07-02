@@ -250,7 +250,13 @@ export const platformPostsRelations = relations(platformPosts, ({ one }) => ({
 export const PostSelectSchemaWithRelations = PostSelectSchema.extend({
   alternateContents: z.array(AlternatePostContentSelectSchema),
   platformPosts: z.array(PlatformPostSelectSchema),
-  socialProviders: z.array(SocialProviderSelectSchema),
+  postToSocialProviders: z.array(
+    z.object({
+      postId: z.string(),
+      socialProviderId: z.string(),
+      socialProvider: SocialProviderSelectSchema,
+    })
+  ),
 });
 
 export type PostSelectWithRelations = z.infer<

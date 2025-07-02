@@ -125,8 +125,8 @@ export const socialProviderRouter = {
 
       //TODO: Make this work using AWS SQS
       console.log('Post data:', 'stuff');
-      const test = await createPostInQueue(postData);
-      console.log('Test:', test);
+      const stuff = await createPostInQueue(postData);
+      console.log('Test:', stuff);
       return {
         success: true,
       };

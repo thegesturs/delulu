@@ -84,8 +84,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // biome-ignore lint/suspicious/useAwait: <explanation>
         after: async (user) => {
-          await analytics.identify({
+          analytics.identify({
             distinctId: user.id,
             properties: {
               email: user.email,
@@ -98,8 +99,9 @@ export const auth = betterAuth({
         },
       },
       update: {
+        // biome-ignore lint/suspicious/useAwait: <explanation>
         after: async (user) => {
-          await analytics.identify({
+          analytics.identify({
             distinctId: user.id,
             properties: {
               email: user.email,

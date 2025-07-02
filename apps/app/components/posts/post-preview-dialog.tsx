@@ -9,8 +9,15 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Calendar } from 'lucide-react';
 import Image from 'next/image';
-import { FaInstagram, FaLinkedin, FaTiktok, FaTwitter } from 'react-icons/fa';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaTiktok,
+  FaTwitter,
+} from 'react-icons/fa';
 import type { Post } from './types';
+import { FaThreads } from 'react-icons/fa6';
 
 interface PostPreviewDialogProps {
   post: Post;
@@ -23,6 +30,8 @@ const socialIcons = {
   LINKEDIN: FaLinkedin,
   INSTAGRAM: FaInstagram,
   TIKTOK: FaTiktok,
+  FACEBOOK: FaFacebook,
+  THREADS: FaThreads,
 } as const;
 
 const statusColors = {
@@ -40,6 +49,8 @@ export function PostPreviewDialog({
 }: PostPreviewDialogProps) {
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
+
+  console.log(post.platformPosts, post.postToSocialProviders);
 
   return (
     <Dialog {...{ open, onOpenChange }}>
@@ -93,15 +104,18 @@ export function PostPreviewDialog({
               <h3 className="font-medium">Publishing to:</h3>
             )}
             <div className="grid gap-3">
-              {post.socialProviders.map((provider) => {
+              {post.postToSocialProviders.map((provider) => {
                 const Icon =
-                  socialIcons[provider.socialType as keyof typeof socialIcons];
+                  socialIcons[
+                    provider.socialProvider
+                      .socialType as keyof typeof socialIcons
+                  ];
                 if (!Icon) {
                   return null;
                 }
 
                 const platformPostUrl = post.platformPosts?.find(
-                  (pp) => pp.platformId === provider.id
+                  (pp) => pp.platformId === provider.socialProvider.id
                 )?.platformPostUrl;
 
                 if (!platformPostUrl) {
@@ -110,35 +124,37 @@ export function PostPreviewDialog({
 
                 return (
                   <div
-                    key={provider.profileId}
+                    key={provider.socialProvider.profileId}
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
                       <Icon
-                        className={`h-5 w-5 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                        className={`h-5 w-5 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
                       />
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {provider.username || provider.socialType}
+                          {provider.socialProvider.username ||
+                            provider.socialProvider.socialType}
                         </span>
-                        {!provider.isActive && (
+                        {!provider.socialProvider.isActive && (
                           <span className="text-muted-foreground text-sm">
                             Not connected
                           </span>
                         )}
                       </div>
                     </div>
-                    {provider.isActive && post.status === 'PUBLISHED' && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={platformPostUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Post
-                        </a>
-                      </Button>
-                    )}
+                    {provider.socialProvider.isActive &&
+                      post.status === 'PUBLISHED' && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={platformPostUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Post
+                          </a>
+                        </Button>
+                      )}
                   </div>
                 );
               })}

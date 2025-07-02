@@ -1,10 +1,5 @@
-import {
-  type ContentType,
-  type SavePostInputType,
-  contentSchema,
-} from '@delulu/validators/post';
+import type { ContentType, SavePostInputType } from '@delulu/validators/post';
 import { and, asc, count, desc, eq, gt, gte, lt, lte, sql } from 'drizzle-orm';
-import { z } from 'zod';
 import { database } from '../../index';
 import {
   type Post,
@@ -116,29 +111,31 @@ export const postQueries = {
     const whereClause = and(...whereConditions);
 
     const [databasePosts, totalResult] = await Promise.all([
-      database
-        .select()
-        .from(posts)
-        .where(whereClause)
-        .orderBy(desc(posts.createdAt))
-        .limit(pagination?.take || 50)
-        .offset(pagination?.skip || 0),
+      database.query.posts.findMany({
+        where: whereClause,
+        orderBy: desc(posts.createdAt),
+        limit: pagination?.take || 50,
+        offset: pagination?.skip || 0,
+        with: {
+          platformPosts: true,
+          alternateContents: true,
+          postToSocialProviders: {
+            with: {
+              socialProvider: true,
+            },
+          },
+        },
+      }),
       database.select({ count: count() }).from(posts).where(whereClause),
     ]);
 
-    const transformedPosts = databasePosts.map((post) => {
-      const parsedContent = z.array(contentSchema).safeParse(post.content);
-      return {
-        ...post,
-        content: parsedContent.success ? parsedContent.data : [],
-        alternateContents: [],
-        platformPosts: [],
-        socialProviders: [],
-      };
-    });
+    // const transformedPosts = databasePosts.map((post) => {
+    //   const parsedPosts = PostSelectSchemaWithRelations.safeParse(post);
+    //   return parsedPosts;
+    // });
 
     return {
-      posts: transformedPosts,
+      posts: databasePosts,
       total: totalResult[0]?.count || 0,
     };
   },
@@ -298,18 +295,6 @@ export const postQueries = {
       .orderBy(desc(posts.createdAt));
   },
 
-  createPost: (postData: typeof posts.$inferInsert) => {
-    return database.insert(posts).values(postData).returning();
-  },
-
-  updatePost: (id: string, postData: Partial<typeof posts.$inferInsert>) => {
-    return database
-      .update(posts)
-      .set(postData)
-      .where(eq(posts.id, id))
-      .returning();
-  },
-
   deletePost: (id: string) => {
     return database
       .update(posts)
@@ -322,53 +307,6 @@ export const postQueries = {
     return database.delete(posts).where(eq(posts.id, id));
   },
 
-  // Alternate Content queries
-  getAlternateContent: (postId: string, socialProviderId: string) => {
-    return database
-      .select()
-      .from(alternatePostContent)
-      .where(
-        and(
-          eq(alternatePostContent.postId, postId),
-          eq(alternatePostContent.socialProviderId, socialProviderId)
-        )
-      )
-      .limit(1);
-  },
-
-  getPostAlternateContents: (postId: string) => {
-    return database
-      .select()
-      .from(alternatePostContent)
-      .where(eq(alternatePostContent.postId, postId));
-  },
-
-  createAlternateContent: (
-    contentData: typeof alternatePostContent.$inferInsert
-  ) => {
-    return database
-      .insert(alternatePostContent)
-      .values(contentData)
-      .returning();
-  },
-
-  updateAlternateContent: (
-    postId: string,
-    socialProviderId: string,
-    content: import('@delulu/validators/post').ContentType[]
-  ) => {
-    return database
-      .update(alternatePostContent)
-      .set({ content })
-      .where(
-        and(
-          eq(alternatePostContent.postId, postId),
-          eq(alternatePostContent.socialProviderId, socialProviderId)
-        )
-      )
-      .returning();
-  },
-
   deleteAlternateContent: (postId: string, socialProviderId: string) => {
     return database
       .delete(alternatePostContent)
@@ -378,6 +316,10 @@ export const postQueries = {
           eq(alternatePostContent.socialProviderId, socialProviderId)
         )
       );
+  },
+
+  createPlatformPost: (platformPostData: typeof platformPosts.$inferInsert) => {
+    return database.insert(platformPosts).values(platformPostData).returning();
   },
 
   // Platform Posts queries
@@ -399,10 +341,6 @@ export const postQueries = {
       .select()
       .from(platformPosts)
       .where(eq(platformPosts.postId, postId));
-  },
-
-  createPlatformPost: (platformPostData: typeof platformPosts.$inferInsert) => {
-    return database.insert(platformPosts).values(platformPostData).returning();
   },
 
   deletePostPlatformPosts: (postId: string) => {
