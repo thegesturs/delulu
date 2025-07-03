@@ -3,7 +3,7 @@ import type { PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { ok, err, type Result } from 'neverthrow';
+import { ok, err, type Result, fromPromise } from 'neverthrow';
 
 import type { SocialProvider } from './types';
 
@@ -71,8 +71,8 @@ async function uploadVideoToYouTube(
     Buffer.from(`\r\n--${boundary}--\r\n`),
   ]);
 
-  try {
-    const response = await axios.post(`${uploadUrl}?${params}`, body, {
+  return fromPromise(
+    axios.post(`${uploadUrl}?${params}`, body, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': `multipart/related; boundary=${boundary}`,
@@ -80,12 +80,16 @@ async function uploadVideoToYouTube(
       },
       maxBodyLength: Number.POSITIVE_INFINITY,
       maxContentLength: Number.POSITIVE_INFINITY,
-    });
+    }),
+    () => new Error('Failed to upload video to YouTube')
+  ).map(response => response.data);
+}
 
-    return ok(response.data);
-  } catch (error) {
-    return err(new Error('Failed to upload video to YouTube'));
-  }
+async function downloadVideoFile(url: string): Promise<Result<Buffer, Error>> {
+  return fromPromise(
+    axios.get(url, { responseType: 'arraybuffer' }),
+    () => new Error('Failed to download video file')
+  ).map(response => Buffer.from(response.data));
 }
 
 async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; accessToken: string }, Error>> {
@@ -106,78 +110,64 @@ async function getAccessTokenAndProfile(socialProviderId: string): Promise<Resul
 
 export const youtubeProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
-    const profileResult = await getAccessTokenAndProfile(socialProviderId);
-    if (profileResult.isErr()) {
-      return err(profileResult.error);
-    }
-    const profile = profileResult.value;
+    return (await getAccessTokenAndProfile(socialProviderId))
+      .andThen(profile => {
+        const firstContent = content.content[0];
 
-    const firstContent = content.content[0];
+        if (!firstContent) {
+          return Promise.resolve(err(new Error('No content to publish.')));
+        }
 
-    if (!firstContent) {
-      return err(new Error('No content to publish.'));
-    }
+        // YouTube Shorts requires video content
+        const validMedia = getValidMediaUrls(firstContent.media);
+        const videoMedia = validMedia.find(
+          (media) => media.mediaType === 'VIDEO' && media.url
+        );
 
-    // YouTube Shorts requires video content
-    const validMedia = getValidMediaUrls(firstContent.media);
-    const videoMedia = validMedia.find(
-      (media) => media.mediaType === 'VIDEO' && media.url
-    );
+        if (!videoMedia?.url) {
+          return Promise.resolve(err(new Error('YouTube Shorts requires a video file.')));
+        }
 
-    if (!videoMedia?.url) {
-      return err(new Error('YouTube Shorts requires a video file.'));
-    }
+        // Chain operations using neverthrow
+        return downloadVideoFile(videoMedia.url)
+          .then(videoBufferResult => 
+            videoBufferResult.andThen(videoBuffer => {
+              // Prepare metadata for YouTube Shorts
+              const metadata: YouTubeVideoMetadata = {
+                snippet: {
+                  title: firstContent.text.slice(0, 100) || 'YouTube Short',
+                  description: firstContent.text || '',
+                  tags: firstContent.tags || [],
+                  categoryId: '24',
+                  defaultLanguage: 'en',
+                },
+                status: {
+                  privacyStatus: 'public',
+                },
+              };
 
-    // Download video file
-    let videoBuffer: Buffer;
-    try {
-      const videoResponse = await axios.get(videoMedia.url, {
-        responseType: 'arraybuffer',
+              // Add #Shorts to description to help YouTube identify it as a Short
+              if (!metadata.snippet.description.includes('#Shorts')) {
+                metadata.snippet.description += '\n\n#Shorts';
+              }
+
+              return uploadVideoToYouTube(profile.accessToken, videoBuffer, metadata);
+            })
+          )
+          .then(uploadResult => 
+            uploadResult.map(uploadResponse => {
+              const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
+
+              return {
+                platformPostId: uploadResponse.id,
+                postId: content.postId,
+                platformId: profile.id,
+                platformPostUrl: shortsUrl,
+                postedAt: new Date(),
+              };
+            })
+          );
       });
-      videoBuffer = Buffer.from(videoResponse.data);
-    } catch (error) {
-      return err(new Error('Failed to download video file'));
-    }
-
-    // Prepare metadata for YouTube Shorts
-    const metadata: YouTubeVideoMetadata = {
-      snippet: {
-        title: firstContent.text.slice(0, 100) || 'YouTube Short',
-        description: firstContent.text || '',
-        tags: firstContent.tags || [],
-        categoryId: '24',
-        defaultLanguage: 'en',
-      },
-      status: {
-        privacyStatus: 'public',
-      },
-    };
-
-    // Add #Shorts to description to help YouTube identify it as a Short
-    if (!metadata.snippet.description.includes('#Shorts')) {
-      metadata.snippet.description += '\n\n#Shorts';
-    }
-
-    const uploadResult = await uploadVideoToYouTube(
-      profile.accessToken,
-      videoBuffer,
-      metadata
-    );
-
-    if (uploadResult.isErr()) {
-      return err(uploadResult.error);
-    }
-
-    const uploadResponse = uploadResult.value;
-    const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
-
-    return ok({
-      platformPostId: uploadResponse.id,
-      postId: content.postId,
-      platformId: profile.id,
-      platformPostUrl: shortsUrl,
-      postedAt: new Date(),
-    });
   },
 
   connectUrl: () => {

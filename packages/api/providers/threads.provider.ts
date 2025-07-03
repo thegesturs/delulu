@@ -1,10 +1,9 @@
 import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
+import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { ok, err, type Result } from 'neverthrow';
+import { type Result, ResultAsync, err, fromPromise, ok } from 'neverthrow';
 
 import type { SocialProvider } from './types';
 
@@ -57,12 +56,10 @@ async function createMediaContainer(
     params.append('reply_to_id', options.replyToId);
   }
 
-  try {
-    const response = await axios.post(`${endpoint}?${params.toString()}`);
-    return ok(response.data);
-  } catch (error) {
-    return err(new Error('Failed to create media container'));
-  }
+  return fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    () => new Error('Failed to create media container')
+  ).map((response) => response.data);
 }
 
 async function createCarouselContainer(
@@ -78,12 +75,10 @@ async function createCarouselContainer(
     text,
   });
 
-  try {
-    const response = await axios.post(`${endpoint}?${params.toString()}`);
-    return ok(response.data);
-  } catch (error) {
-    return err(new Error('Failed to create carousel container'));
-  }
+  return fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    () => new Error('Failed to create carousel container')
+  ).map((response) => response.data);
 }
 
 async function waitForContainerProcessing(
@@ -91,42 +86,46 @@ async function waitForContainerProcessing(
   accessToken: string
 ): Promise<Result<void, Error>> {
   let attempts = 0;
-  const maxAttempts = 30; // Increased to 30 attempts = 90 seconds total
-  const delay = 3000; // 3 seconds
+  const maxAttempts = 30;
+  const delay = 3000;
 
   while (attempts < maxAttempts) {
-    try {
-      const statusResponse = await axios.get(
-        `https://graph.threads.net/v1.0/${containerId}`,
-        {
-          params: {
-            access_token: accessToken,
-          },
+    const statusResult = await fromPromise(
+      axios.get(`https://graph.threads.net/v1.0/${containerId}`, {
+        params: { access_token: accessToken },
+      }),
+      (error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 500) {
+          return new Error('Server error - container still processing');
         }
-      );
-
-      const status = statusResponse.data.status;
-      if (status === 'FINISHED') {
-        return ok(undefined);
+        return new Error('Failed to check container processing status');
       }
+    );
 
-      if (status === 'ERROR' || status === 'EXPIRED') {
-        return err(new Error(
-          `Media processing failed: ${statusResponse.data.error_message || status}`
-        ));
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      attempts++;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 500) {
-        // If we get a 500 error, the container might still be processing
+    if (statusResult.isErr()) {
+      if (statusResult.error.message.includes('Server error')) {
         await new Promise((resolve) => setTimeout(resolve, delay));
         attempts++;
         continue;
       }
-      return err(new Error('Failed to check container processing status'));
+      return err(statusResult.error);
     }
+
+    const status = statusResult.value.data.status;
+    if (status === 'FINISHED') {
+      return ok(undefined);
+    }
+
+    if (status === 'ERROR' || status === 'EXPIRED') {
+      return err(
+        new Error(
+          `Media processing failed: ${statusResult.value.data.error_message || status}`
+        )
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    attempts++;
   }
 
   return err(new Error('Media processing timed out.'));
@@ -142,20 +141,18 @@ async function publishContainer(
     access_token: profile.accessToken,
   });
 
-  try {
-    const response = await axios.post(`${endpoint}?${params.toString()}`);
-    return ok(response.data);
-  } catch (error) {
-    return err(new Error('Failed to publish container'));
-  }
+  return fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    () => new Error('Failed to publish container')
+  ).map((response) => response.data);
 }
 
 async function getPostDetails(
   mediaId: string,
   accessToken: string
 ): Promise<Result<ThreadsMediaResponse, Error>> {
-  try {
-    const response = await axios.get<ThreadsMediaResponse>(
+  return fromPromise(
+    axios.get<ThreadsMediaResponse>(
       `https://graph.threads.net/v1.0/${mediaId}`,
       {
         params: {
@@ -163,14 +160,16 @@ async function getPostDetails(
           access_token: accessToken,
         },
       }
-    );
-    return ok(response.data);
-  } catch (error) {
-    return err(new Error('Failed to get post details'));
-  }
+    ),
+    () => new Error('Failed to get post details')
+  ).map((response) => response.data);
 }
 
-async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; profileId: string; accessToken: string }, Error>> {
+async function getAccessTokenAndProfile(
+  socialProviderId: string
+): Promise<
+  Result<{ id: string; profileId: string; accessToken: string }, Error>
+> {
   const [profile] = await database.query.socialProviders.findMany({
     where: (socialProviders, { eq }) =>
       eq(socialProviders.id, socialProviderId),
@@ -178,7 +177,9 @@ async function getAccessTokenAndProfile(socialProviderId: string): Promise<Resul
   });
 
   if (!profile || !profile.accessToken || !profile.profileId) {
-    return err(new Error('Threads profile not found or is missing required fields.'));
+    return err(
+      new Error('Threads profile not found or is missing required fields.')
+    );
   }
   return ok({
     id: profile.id,
@@ -209,33 +210,35 @@ export const threadsProvider: SocialProvider = {
       let containerId: string;
 
       if (validMedia.length > 1) {
-        // Carousel post
-        const itemResults = await Promise.all(
+        // Carousel post - use ResultAsync to handle multiple async operations
+        const itemResults = await ResultAsync.combine(
           validMedia.map((media) =>
-            createMediaContainer(media, profile, post.text, {
-              isCarouselItem: true,
-            })
+            ResultAsync.fromPromise(
+              createMediaContainer(media, profile, post.text, {
+                isCarouselItem: true,
+              }),
+              (err) => err as Error
+            )
           )
         );
 
-        // Check if any carousel items failed
-        for (const result of itemResults) {
-          if (result.isErr()) {
-            return err(result.error);
-          }
+        if (itemResults.isErr()) {
+          return err(itemResults.error);
         }
 
-        const itemContainerIds = itemResults.map(r => r._unsafeUnwrap().id);
+        const itemContainerIds = itemResults.value.map(
+          (container) => container._unsafeUnwrap().id
+        );
         const carouselResult = await createCarouselContainer(
           itemContainerIds,
           profile,
           post.text
         );
-        
+
         if (carouselResult.isErr()) {
           return err(carouselResult.error);
         }
-        
+
         containerId = carouselResult.value.id;
       } else {
         // Single media or text-only post
@@ -245,15 +248,18 @@ export const threadsProvider: SocialProvider = {
           post.text,
           { replyToId: lastPostId }
         );
-        
+
         if (singleResult.isErr()) {
           return err(singleResult.error);
         }
-        
+
         containerId = singleResult.value.id;
       }
 
-      const processingResult = await waitForContainerProcessing(containerId, profile.accessToken);
+      const processingResult = await waitForContainerProcessing(
+        containerId,
+        profile.accessToken
+      );
       if (processingResult.isErr()) {
         return err(processingResult.error);
       }
