@@ -13,9 +13,6 @@ import type {
 import {
   ProfileNotFoundError,
   InvalidMediaError,
-  MediaUploadError,
-  MediaProcessingError,
-  PublishError,
   createAPIError,
   type SocialProviderError,
   InstagramError,
