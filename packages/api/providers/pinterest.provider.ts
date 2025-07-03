@@ -5,7 +5,8 @@ import { getValidMediaUrls } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
 
-import type { SocialProvider } from './types';
+import { type Result, ok } from 'neverthrow';
+import type { SocialProvider } from './types.js';
 
 interface PinterestBoardResponse {
   id: string;
@@ -92,7 +93,10 @@ async function getAccessTokenAndProfile(socialProviderId: string) {
 }
 
 export const pinterestProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
+  publish: async ({
+    content,
+    socialProviderId,
+  }): Promise<Result<PostReturnType, Error>> => {
     const profile = await getAccessTokenAndProfile(socialProviderId);
     const firstContent = content.content[0];
 
@@ -130,13 +134,13 @@ export const pinterestProvider: SocialProvider = {
         defaultBoard.id
       );
 
-      return {
+      return ok({
         platformPostId: pinResponse.id,
         postId: content.postId,
         platformId: profile.id,
         platformPostUrl: pinResponse.link,
         postedAt: new Date(),
-      };
+      });
     } catch (error) {
       console.error('Error posting to Pinterest:', error);
       if (axios.isAxiosError(error) && error.response?.data) {
@@ -163,6 +167,6 @@ export const pinterestProvider: SocialProvider = {
       ].join(','),
     });
 
-    return `https://www.pinterest.com/oauth/?${params.toString()}`;
+    return ok(`https://www.pinterest.com/oauth/?${params.toString()}`);
   },
 };

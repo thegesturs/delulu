@@ -6,6 +6,7 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { ok, err, type Result } from 'neverthrow';
 import { keys } from '../keys';
 import type { SocialProvider } from './types';
 
@@ -77,111 +78,10 @@ const LINKEDIN_VIDEO_SPECS: LinkedInVideoSpecs = {
   maxDuration: 10 * 60, // 10 minutes
 };
 
-export const linkedinProvider: SocialProvider = {
-  /**
-   * Publishes content to LinkedIn, supporting text posts with multiple media attachments
-   * @param content - The content to be published, containing text and media
-   * @param socialProviderId - The ID of the social provider to use for authentication
-   * @returns Promise<PostReturnType> - Information about the published post
-   * @throws {TRPCError} - If authentication fails or if there's an error posting to LinkedIn
-   */
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
-    if (!profile.profileId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'LinkedIn profile ID not found',
-      });
-    }
-
-    const firstContent = content.content[0];
-    if (!firstContent) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish',
-      });
-    }
-
-    try {
-      // First upload all media and wait for them to be ready
-      const mediaAssets = await uploadMediaAssets(firstContent.media, profile);
-      console.log('Media assets uploaded and ready:', mediaAssets);
-
-      // Only proceed with post creation if all media is ready
-      // Detect if this is an organization account from the profileId format
-      // LinkedIn organization profileIds are typically numeric, while personal ones are alphanumeric
-      const isOrganization = /^\d+$/.test(profile.profileId);
-
-      const postPayload = createPostPayload(
-        firstContent.text,
-        profile.profileId,
-        mediaAssets,
-        isOrganization
-      );
-
-      const response = await publishToLinkedIn(
-        postPayload,
-        profile.accessToken
-      );
-
-      return {
-        platformPostId: response.id,
-        postId: content.postId,
-        platformId: socialProviderId,
-        platformPostUrl: `https://www.linkedin.com/feed/update/${response.id}`,
-        postedAt: new Date(),
-      };
-    } catch (error) {
-      console.error('Error posting to LinkedIn:', error);
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error('LinkedIn API Error:', error.response.data);
-        // Check for duplicate content error
-        if (
-          error.response.status === 422 &&
-          error.response.data.message?.includes('duplicate')
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'This content has already been posted to LinkedIn',
-          });
-        }
-      }
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to post to LinkedIn',
-        cause: error,
-      });
-    }
-  },
-
-  connectUrl: () => {
-    const scopes = [
-      'r_member_postAnalytics',
-      'r_organization_followers',
-      'r_organization_social',
-      'rw_organization_admin',
-      'r_organization_social_feed',
-      'w_member_social',
-      'r_member_profileAnalytics',
-      'w_organization_social',
-      'r_basicprofile',
-      'w_organization_social_feed',
-      'w_member_social_feed',
-    ].join('%20');
-
-    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
-    console.log('url', url);
-    return url;
-  },
-};
-
 /**
  * Retrieves the access token and profile information for a LinkedIn account
- * @param socialProviderId - The ID of the social provider
- * @returns Promise containing the profile information and access token
- * @throws {TRPCError} - If the profile is not found
  */
-async function getAccessTokenAndProfile(socialProviderId: string) {
+async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; profileId: string; accessToken: string }, Error>> {
   const [profile] = await db.query.socialProviders.findMany({
     where: (socialProviders, { eq }) =>
       eq(socialProviders.id, socialProviderId),
@@ -189,25 +89,23 @@ async function getAccessTokenAndProfile(socialProviderId: string) {
   });
 
   if (!profile || !profile.accessToken) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'LinkedIn profile not found',
-    });
+    return err(new Error('LinkedIn profile not found'));
   }
 
-  return profile;
+  return ok({
+    id: profile.id,
+    profileId: profile.profileId || '',
+    accessToken: profile.accessToken,
+  });
 }
 
 /**
  * Uploads media assets to LinkedIn
- * @param media - Array of media items to upload
- * @param profile - LinkedIn profile information
- * @returns Promise<LinkedInUploadResult[]> - Array of uploaded media assets
  */
 async function uploadMediaAssets(
   media: MediaType[],
   profile: { accessToken: string; profileId: string }
-): Promise<LinkedInUploadResult[]> {
+): Promise<Result<LinkedInUploadResult[], Error>> {
   const uploadedAssets: LinkedInUploadResult[] = [];
   const validMediaUrls = getValidMediaUrls(media);
 
@@ -219,47 +117,41 @@ async function uploadMediaAssets(
       continue;
     }
 
-    try {
-      console.log('Uploading media item:', mediaItem);
-      const isImage = mediaItem.mediaType === 'IMAGE';
-      const ownerUrn = `urn:li:person:${profile.profileId}`;
+    console.log('Uploading media item:', mediaItem);
+    const isImage = mediaItem.mediaType === 'IMAGE';
+    const ownerUrn = `urn:li:person:${profile.profileId}`;
 
-      const uploadResult = isImage
-        ? await uploadImage({
-            authToken: profile.accessToken,
-            ownerUrn,
-            fileUrl: mediaItem.url,
-          })
-        : await uploadVideo({
-            authToken: profile.accessToken,
-            ownerUrn,
-            fileUrl: mediaItem.url,
-          });
+    const uploadResult = isImage
+      ? await uploadImage({
+          authToken: profile.accessToken,
+          ownerUrn,
+          fileUrl: mediaItem.url,
+        })
+      : await uploadVideo({
+          authToken: profile.accessToken,
+          ownerUrn,
+          fileUrl: mediaItem.url,
+        });
 
-      uploadedAssets.push({
-        urn: uploadResult.urn,
-        altText: mediaItem.altText,
-        mediaType: mediaItem.mediaType,
-      });
-
-      console.log('Upload successful, asset URN:', uploadResult.urn);
-    } catch (error) {
-      console.error('Failed to upload media:', error);
-      throw error;
+    if (uploadResult.isErr()) {
+      return err(uploadResult.error);
     }
+
+    uploadedAssets.push({
+      urn: uploadResult.value.urn,
+      altText: mediaItem.altText,
+      mediaType: mediaItem.mediaType,
+    });
+
+    console.log('Upload successful, asset URN:', uploadResult.value.urn);
   }
 
   console.log('Completed media uploads, total assets:', uploadedAssets.length);
-  return uploadedAssets;
+  return ok(uploadedAssets);
 }
 
 /**
  * Creates the payload for a LinkedIn post using the new Marketing API
- * @param text - The text content of the post
- * @param profileId - LinkedIn profile ID
- * @param uploadedAssets - Array of uploaded media assets
- * @param isOrganization - Whether this is posting to an organization page
- * @returns LinkedInPostPayload - The formatted payload for the LinkedIn API
  */
 function createPostPayload(
   text: string,
@@ -325,34 +217,41 @@ async function uploadImage({
   authToken: string;
   ownerUrn: string;
   fileUrl: string;
-}): Promise<{ urn: string }> {
-  // 1. Initialize Upload
-  const initResponse = await axios.post(
-    'https://api.linkedin.com/rest/images?action=initializeUpload',
-    { initializeUploadRequest: { owner: ownerUrn } },
-    {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'LinkedIn-Version': '202410',
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
+}): Promise<Result<{ urn: string }, Error>> {
+  try {
+    // 1. Initialize Upload
+    const initResponse = await axios.post(
+      'https://api.linkedin.com/rest/images?action=initializeUpload',
+      { initializeUploadRequest: { owner: ownerUrn } },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'LinkedIn-Version': '202410',
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      }
+    );
+
+    const { uploadUrl, image: imageUrn } = initResponse.data.value;
+
+    // 2. Upload Image to pre-signed URL
+    const imageResponse = await axios.get(fileUrl, {
+      responseType: 'arraybuffer',
+    });
+    await axios.put(uploadUrl, imageResponse.data, {
+      headers: { 'Content-Type': 'application/octet-stream' },
+    });
+
+    // 3. Verify upload (wait for it to be available)
+    const waitResult = await waitForAssetReady(imageUrn, authToken, 'image');
+    if (waitResult.isErr()) {
+      return err(waitResult.error);
     }
-  );
 
-  const { uploadUrl, image: imageUrn } = initResponse.data.value;
-
-  // 2. Upload Image to pre-signed URL
-  const imageResponse = await axios.get(fileUrl, {
-    responseType: 'arraybuffer',
-  });
-  await axios.put(uploadUrl, imageResponse.data, {
-    headers: { 'Content-Type': 'application/octet-stream' },
-  });
-
-  // 3. Verify upload (wait for it to be available)
-  await waitForAssetReady(imageUrn, authToken, 'image');
-
-  return { urn: imageUrn };
+    return ok({ urn: imageUrn });
+  } catch (error) {
+    return err(new Error('Failed to upload image to LinkedIn'));
+  }
 }
 
 /**
@@ -366,93 +265,20 @@ async function uploadVideo({
   authToken: string;
   ownerUrn: string;
   fileUrl: string;
-}): Promise<{ urn: string }> {
-  // 1. Initialize Upload
-  const initResponse = await axios.post(
-    'https://api.linkedin.com/rest/videos?action=initializeUpload',
-    {
-      initializeUploadRequest: {
-        owner: ownerUrn,
-        fileSizeBytes: Number.parseInt(
-          (await axios.head(fileUrl)).headers['content-length'] ?? '0',
-          10
-        ),
+}): Promise<Result<{ urn: string }, Error>> {
+  try {
+    // 1. Initialize Upload
+    const initResponse = await axios.post(
+      'https://api.linkedin.com/rest/videos?action=initializeUpload',
+      {
+        initializeUploadRequest: {
+          owner: ownerUrn,
+          fileSizeBytes: Number.parseInt(
+            (await axios.head(fileUrl)).headers['content-length'] ?? '0',
+            10
+          ),
+        },
       },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'LinkedIn-Version': '202410',
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
-    }
-  );
-
-  console.log('initResponse', initResponse.data);
-
-  const {
-    video: videoUrn,
-    uploadInstructions,
-    uploadToken,
-  } = initResponse.data.value;
-
-  // 2. Upload video parts
-  // This example assumes a single part upload for simplicity.
-  // For larger files, you'd loop through uploadInstructions.
-  const uploadUrl = uploadInstructions[0].uploadUrl;
-  const videoResponse = await axios.get(fileUrl, {
-    responseType: 'arraybuffer',
-  });
-  const uploadPartResponse = await axios.put(uploadUrl, videoResponse.data, {
-    headers: { 'Content-Type': 'application/octet-stream' },
-  });
-
-  const etag = uploadPartResponse.headers.etag;
-  if (!etag) {
-    throw new Error('Could not get ETag from video upload part.');
-  }
-
-  // 3. Finalize upload
-  await axios.post(
-    'https://api.linkedin.com/rest/videos?action=finalizeUpload',
-    {
-      finalizeUploadRequest: {
-        video: videoUrn,
-        uploadToken,
-        uploadedPartIds: [etag.replace(/"/g, '')],
-      },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'LinkedIn-Version': '202410',
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
-    }
-  );
-
-  // 4. Verify upload
-  await waitForAssetReady(videoUrn, authToken, 'video');
-
-  return { urn: videoUrn };
-}
-
-async function waitForAssetReady(
-  assetUrn: string,
-  authToken: string,
-  assetType: 'image' | 'video',
-  maxAttempts = 20,
-  delayMs = 5000
-) {
-  const endpoint = assetType === 'image' ? 'images' : 'videos';
-  const id = encodeURIComponent(assetUrn);
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    console.log(
-      `Checking ${assetType} status... Attempt ${attempt + 1}/${maxAttempts}`
-    );
-    const response = await axios.get(
-      `https://api.linkedin.com/rest/${endpoint}/${id}`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -462,56 +288,222 @@ async function waitForAssetReady(
       }
     );
 
-    const status = response.data.status;
-    console.log(`Asset status: ${status}`);
+    console.log('initResponse', initResponse.data);
 
-    if (status === 'AVAILABLE') {
-      console.log(`${assetType} is ready.`);
-      return;
-    }
-    if (status === 'FAILED') {
-      throw new Error(`${assetType} processing failed.`);
+    const {
+      video: videoUrn,
+      uploadInstructions,
+      uploadToken,
+    } = initResponse.data.value;
+
+    // 2. Upload video parts
+    // This example assumes a single part upload for simplicity.
+    // For larger files, you'd loop through uploadInstructions.
+    const uploadUrl = uploadInstructions[0].uploadUrl;
+    const videoResponse = await axios.get(fileUrl, {
+      responseType: 'arraybuffer',
+    });
+    const uploadPartResponse = await axios.put(uploadUrl, videoResponse.data, {
+      headers: { 'Content-Type': 'application/octet-stream' },
+    });
+
+    const etag = uploadPartResponse.headers.etag;
+    if (!etag) {
+      return err(new Error('Could not get ETag from video upload part.'));
     }
 
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    // 3. Finalize upload
+    await axios.post(
+      'https://api.linkedin.com/rest/videos?action=finalizeUpload',
+      {
+        finalizeUploadRequest: {
+          video: videoUrn,
+          uploadToken,
+          uploadedPartIds: [etag.replace(/"/g, '')],
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'LinkedIn-Version': '202410',
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      }
+    );
+
+    // 4. Verify upload
+    const waitResult = await waitForAssetReady(videoUrn, authToken, 'video');
+    if (waitResult.isErr()) {
+      return err(waitResult.error);
+    }
+
+    return ok({ urn: videoUrn });
+  } catch (error) {
+    return err(new Error('Failed to upload video to LinkedIn'));
   }
-  throw new Error(`${assetType} did not become ready in time.`);
+}
+
+async function waitForAssetReady(
+  assetUrn: string,
+  authToken: string,
+  assetType: 'image' | 'video',
+  maxAttempts = 20,
+  delayMs = 5000
+): Promise<Result<void, Error>> {
+  const endpoint = assetType === 'image' ? 'images' : 'videos';
+  const id = encodeURIComponent(assetUrn);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    console.log(
+      `Checking ${assetType} status... Attempt ${attempt + 1}/${maxAttempts}`
+    );
+    try {
+      const response = await axios.get(
+        `https://api.linkedin.com/rest/${endpoint}/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            'LinkedIn-Version': '202410',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+        }
+      );
+
+      const status = response.data.status;
+      console.log(`Asset status: ${status}`);
+
+      if (status === 'AVAILABLE') {
+        console.log(`${assetType} is ready.`);
+        return ok(undefined);
+      }
+      if (status === 'FAILED') {
+        return err(new Error(`${assetType} processing failed.`));
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    } catch (error) {
+      return err(new Error(`Failed to check ${assetType} status`));
+    }
+  }
+  return err(new Error(`${assetType} did not become ready in time.`));
 }
 
 /**
  * Publishes a post to LinkedIn using the new Marketing API
- * @param payload - The post payload
- * @param accessToken - LinkedIn access token
- * @returns Promise containing the response from LinkedIn
  */
 async function publishToLinkedIn(
   payload: LinkedInPostPayload,
   accessToken: string
-): Promise<{ id: string }> {
-  const response = await axios.post(
-    'https://api.linkedin.com/rest/posts',
-    payload,
-    {
-      headers: {
-        'LinkedIn-Version': '202410',
-        'X-RestLi-Protocol-Version': '2.0.0',
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
+): Promise<Result<{ id: string }, Error>> {
+  try {
+    const response = await axios.post(
+      'https://api.linkedin.com/rest/posts',
+      payload,
+      {
+        headers: {
+          'LinkedIn-Version': '202410',
+          'X-RestLi-Protocol-Version': '2.0.0',
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    // The post ID is in the response headers, not the body
+    const postId = response.headers['x-restli-id'];
+
+    if (response.status !== 201 || !postId) {
+      console.error('LinkedIn API Error: Failed to get post ID from response.', {
+        status: response.status,
+        headers: response.headers,
+        data: response.data,
+      });
+      return err(new Error('Failed to get post ID from LinkedIn response'));
     }
-  );
 
-  // The post ID is in the response headers, not the body
-  const postId = response.headers['x-restli-id'];
-
-  if (response.status !== 201 || !postId) {
-    console.error('LinkedIn API Error: Failed to get post ID from response.', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-    throw new Error('Failed to get post ID from LinkedIn response');
+    return ok({ id: postId });
+  } catch (error) {
+    return err(new Error('Failed to publish post to LinkedIn'));
   }
-
-  return { id: postId };
 }
+
+export const linkedinProvider: SocialProvider = {
+  /**
+   * Publishes content to LinkedIn, supporting text posts with multiple media attachments
+   */
+  publish: async ({ content, socialProviderId }) => {
+    const profileResult = await getAccessTokenAndProfile(socialProviderId);
+    if (profileResult.isErr()) {
+      return err(profileResult.error);
+    }
+    const profile = profileResult.value;
+
+    if (!profile.profileId) {
+      return err(new Error('LinkedIn profile ID not found'));
+    }
+
+    const firstContent = content.content[0];
+    if (!firstContent) {
+      return err(new Error('No content to publish'));
+    }
+
+    // First upload all media and wait for them to be ready
+    const mediaResult = await uploadMediaAssets(firstContent.media, profile);
+    if (mediaResult.isErr()) {
+      return err(mediaResult.error);
+    }
+    const mediaAssets = mediaResult.value;
+    console.log('Media assets uploaded and ready:', mediaAssets);
+
+    // Only proceed with post creation if all media is ready
+    // Detect if this is an organization account from the profileId format
+    // LinkedIn organization profileIds are typically numeric, while personal ones are alphanumeric
+    const isOrganization = /^\d+$/.test(profile.profileId);
+
+    const postPayload = createPostPayload(
+      firstContent.text,
+      profile.profileId,
+      mediaAssets,
+      isOrganization
+    );
+
+    const publishResult = await publishToLinkedIn(
+      postPayload,
+      profile.accessToken
+    );
+
+    if (publishResult.isErr()) {
+      return err(publishResult.error);
+    }
+
+    const response = publishResult.value;
+
+    return ok({
+      platformPostId: response.id,
+      postId: content.postId,
+      platformId: socialProviderId,
+      platformPostUrl: `https://www.linkedin.com/feed/update/${response.id}`,
+      postedAt: new Date(),
+    });
+  },
+
+  connectUrl: () => {
+    const scopes = [
+      'r_member_postAnalytics',
+      'r_organization_followers',
+      'r_organization_social',
+      'rw_organization_admin',
+      'r_organization_social_feed',
+      'w_member_social',
+      'r_member_profileAnalytics',
+      'w_organization_social',
+      'r_basicprofile',
+      'w_organization_social_feed',
+      'w_member_social_feed',
+    ].join('%20');
+
+    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
+    console.log('url', url);
+    return ok(url);
+  },
+};

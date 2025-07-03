@@ -18,12 +18,26 @@ async function processMessage(messageBody: string) {
     socialProviderId: socialPublishInput.socialProviderId,
   });
 
+  if (result.isErr()) {
+    await postQueries.postPublishedOrFailed({
+      postId: socialPublishInput.postId,
+      platformPostData: {
+        failureReason: result.error.message,
+        socialProviderId: socialPublishInput.socialProviderId,
+        postedAt: new Date(),
+        postId: socialPublishInput.postId,
+      },
+      status: 'FAILED',
+    });
+    return;
+  }
+
   await postQueries.postPublishedOrFailed({
     postId: socialPublishInput.postId,
     platformPostData: {
-      platformPostId: result.platformPostId,
-      socialProviderId: result.platformId,
-      platformPostUrl: result.platformPostUrl,
+      platformPostId: result.value.platformPostId,
+      socialProviderId: result.value.platformId,
+      platformPostUrl: result.value.platformPostUrl,
       postedAt: new Date(),
       postId: socialPublishInput.postId,
     },

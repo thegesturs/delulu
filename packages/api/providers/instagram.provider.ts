@@ -7,6 +7,7 @@ import {
 } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { ok, err, type Result } from 'neverthrow';
 import type { SocialProvider } from './types';
 
 interface InstagramMediaContainer {
@@ -28,12 +29,9 @@ async function uploadSingleMedia(
   profile: { profileId: string; accessToken: string },
   caption: string,
   isPartOfCarousel = false
-): Promise<InstagramMediaContainer> {
+): Promise<Result<InstagramMediaContainer, Error>> {
   if (!media.url) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Media URL is required',
-    });
+    return err(new Error('Media URL is required'));
   }
 
   const isVideo = media.mediaType === 'VIDEO';
@@ -47,16 +45,20 @@ async function uploadSingleMedia(
   };
   mediaParams[isVideo ? 'video_url' : 'image_url'] = media.url;
 
-  const params = new URLSearchParams(mediaParams);
-  const response = await axios.post(`${endpoint}?${params.toString()}`);
-  return response.data;
+  try {
+    const params = new URLSearchParams(mediaParams);
+    const response = await axios.post(`${endpoint}?${params.toString()}`);
+    return ok(response.data);
+  } catch (error) {
+    return err(new Error('Failed to upload media to Instagram'));
+  }
 }
 
 async function createCarouselContainer(
   mediaContainers: InstagramMediaContainer[],
   profile: { profileId: string; accessToken: string },
   caption: string
-): Promise<string> {
+): Promise<Result<string, Error>> {
   const endpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -65,156 +67,192 @@ async function createCarouselContainer(
     children: mediaContainers.map((container) => container.id).join(','),
   });
 
-  const response = await axios.post(`${endpoint}?${params.toString()}`);
-  return response.data.id;
+  try {
+    const response = await axios.post(`${endpoint}?${params.toString()}`);
+    return ok(response.data.id);
+  } catch (error) {
+    return err(new Error('Failed to create carousel container'));
+  }
 }
 
 async function waitForMediaProcessing(
   containerId: string,
   profile: { accessToken: string }
-): Promise<void> {
+): Promise<Result<void, Error>> {
   let maxAttempts = 30;
   while (maxAttempts > 0) {
-    const statusResponse = await axios.get(
-      `https://graph.instagram.com/v23.0/${containerId}`,
-      {
-        params: {
-          access_token: profile.accessToken,
-          fields: 'status_code',
-        },
+    try {
+      const statusResponse = await axios.get(
+        `https://graph.instagram.com/v23.0/${containerId}`,
+        {
+          params: {
+            access_token: profile.accessToken,
+            fields: 'status_code',
+          },
+        }
+      );
+
+      const status = statusResponse.data.status_code;
+      if (status === 'FINISHED') {
+        return ok(undefined);
       }
-    );
 
-    const status = statusResponse.data.status_code;
-    if (status === 'FINISHED') {
-      return;
+      if (status === 'ERROR') {
+        return err(new Error('Media processing failed'));
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      maxAttempts--;
+    } catch (error) {
+      return err(new Error('Failed to check media processing status'));
     }
-
-    if (status === 'ERROR') {
-      throw new Error('Media processing failed');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    maxAttempts--;
   }
 
-  throw new Error('Media processing timed out');
+  return err(new Error('Media processing timed out'));
 }
 
 async function publishMedia(
   containerId: string,
   profile: { profileId: string; accessToken: string }
-): Promise<string> {
+): Promise<Result<string, Error>> {
   const endpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media_publish`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
     creation_id: containerId,
   });
 
-  const response = await axios.post<InstagramMediaPublishResponse>(
-    `${endpoint}?${params.toString()}`
-  );
-  return response.data.id;
+  try {
+    const response = await axios.post<InstagramMediaPublishResponse>(
+      `${endpoint}?${params.toString()}`
+    );
+    return ok(response.data.id);
+  } catch (error) {
+    return err(new Error('Failed to publish media'));
+  }
 }
 
 async function getMediaDetails(
   mediaId: string,
   profile: { accessToken: string }
-): Promise<InstagramMediaResponse> {
-  const response = await axios.get<InstagramMediaResponse>(
-    `https://graph.instagram.com/v23.0/${mediaId}`,
-    {
-      params: {
-        access_token: profile.accessToken,
-        fields: 'id,permalink',
-      },
-    }
-  );
-  return response.data;
+): Promise<Result<InstagramMediaResponse, Error>> {
+  try {
+    const response = await axios.get<InstagramMediaResponse>(
+      `https://graph.instagram.com/v23.0/${mediaId}`,
+      {
+        params: {
+          access_token: profile.accessToken,
+          fields: 'id,permalink',
+        },
+      }
+    );
+    return ok(response.data);
+  } catch (error) {
+    return err(new Error('Failed to get media details'));
+  }
+}
+
+async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; profileId: string; accessToken: string }, Error>> {
+  const [profile] = await db.query.socialProviders.findMany({
+    where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+    limit: 1,
+  });
+
+  if (!profile || !profile.accessToken || !profile.profileId) {
+    return err(new Error('Instagram profile not found'));
+  }
+
+  return ok({
+    id: profile.id,
+    profileId: profile.profileId,
+    accessToken: profile.accessToken,
+  });
 }
 
 export const instagramProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const [profile] = await db.query.socialProviders.findMany({
-      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
-      limit: 1,
-    });
-
-    if (!profile || !profile.accessToken || !profile.profileId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Instagram profile not found',
-      });
+  publish: async ({ content, socialProviderId }) => {
+    const profileResult = await getAccessTokenAndProfile(socialProviderId);
+    if (profileResult.isErr()) {
+      return err(profileResult.error);
     }
+    const profile = profileResult.value;
 
     const firstContent = content.content[0];
     if (!firstContent) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish',
-      });
+      return err(new Error('No content to publish'));
     }
 
     // Validate media
     const validMedia = getValidMediaUrls(firstContent.media);
     if (validMedia.length === 0) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'No valid media found. Instagram requires at least one image or video.',
-      });
+      return err(new Error(
+        'No valid media found. Instagram requires at least one image or video.'
+      ));
     }
 
-    try {
-      // Upload all media
-      const mediaContainers = await Promise.all(
-        validMedia.map((media) =>
-          uploadSingleMedia(
-            media,
-            profile,
-            firstContent.text,
-            validMedia.length > 1
-          )
+    // Upload all media
+    const mediaResults = await Promise.all(
+      validMedia.map((media) =>
+        uploadSingleMedia(
+          media,
+          profile,
+          firstContent.text,
+          validMedia.length > 1
         )
-      );
+      )
+    );
 
-      // Create carousel container if multiple media
-      const finalContainerId =
-        mediaContainers.length > 1
-          ? await createCarouselContainer(
-              mediaContainers,
-              profile,
-              firstContent.text
-            )
-          : mediaContainers[0].id;
-
-      // Wait for media processing
-      await waitForMediaProcessing(finalContainerId, profile);
-
-      // Publish the media
-      const publishedMediaId = await publishMedia(finalContainerId, profile);
-
-      // Get final media details
-      const mediaDetails = await getMediaDetails(publishedMediaId, profile);
-
-      return {
-        platformPostId: mediaDetails.id,
-        postId: content.postId,
-        platformId: profile.id,
-        platformPostUrl: mediaDetails.permalink,
-        postedAt: new Date(),
-      };
-    } catch (error) {
-      console.error('Error posting to Instagram:', error);
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error('Instagram API Error:', error.response.data);
+    // Check if any uploads failed
+    for (const result of mediaResults) {
+      if (result.isErr()) {
+        return err(result.error);
       }
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to post to Instagram',
-        cause: error,
-      });
     }
+
+    const mediaContainers = mediaResults.map(r => r._unsafeUnwrap());
+
+    // Create carousel container if multiple media
+    let finalContainerId: string;
+    if (mediaContainers.length > 1) {
+      const carouselResult = await createCarouselContainer(
+        mediaContainers,
+        profile,
+        firstContent.text
+      );
+      if (carouselResult.isErr()) {
+        return err(carouselResult.error);
+      }
+      finalContainerId = carouselResult.value;
+    } else {
+      finalContainerId = mediaContainers[0].id;
+    }
+
+    // Wait for media processing
+    const processingResult = await waitForMediaProcessing(finalContainerId, profile);
+    if (processingResult.isErr()) {
+      return err(processingResult.error);
+    }
+
+    // Publish the media
+    const publishResult = await publishMedia(finalContainerId, profile);
+    if (publishResult.isErr()) {
+      return err(publishResult.error);
+    }
+
+    // Get final media details
+    const detailsResult = await getMediaDetails(publishResult.value, profile);
+    if (detailsResult.isErr()) {
+      return err(detailsResult.error);
+    }
+
+    const mediaDetails = detailsResult.value;
+
+    return ok({
+      platformPostId: mediaDetails.id,
+      postId: content.postId,
+      platformId: profile.id,
+      platformPostUrl: mediaDetails.permalink,
+      postedAt: new Date(),
+    });
   },
 
   connectUrl: () => {
@@ -232,6 +270,6 @@ export const instagramProvider: SocialProvider = {
       force_reauth: 'false',
     });
 
-    return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
+    return ok(`https://www.instagram.com/oauth/authorize?${params.toString()}`);
   },
 };

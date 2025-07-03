@@ -3,6 +3,7 @@ import type { PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { ok, err, type Result } from 'neverthrow';
 
 import type { SocialProvider } from './types';
 
@@ -42,7 +43,7 @@ async function uploadVideoToYouTube(
   accessToken: string,
   videoFile: Buffer | string,
   metadata: YouTubeVideoMetadata
-): Promise<YouTubeVideoUploadResponse> {
+): Promise<Result<YouTubeVideoUploadResponse, Error>> {
   const uploadUrl = 'https://www.googleapis.com/upload/youtube/v3/videos';
 
   // For Shorts, we need to ensure video is ≤60 seconds and vertical/square aspect ratio
@@ -70,45 +71,51 @@ async function uploadVideoToYouTube(
     Buffer.from(`\r\n--${boundary}--\r\n`),
   ]);
 
-  const response = await axios.post(`${uploadUrl}?${params}`, body, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-      'Content-Length': body.length.toString(),
-    },
-    maxBodyLength: Number.POSITIVE_INFINITY,
-    maxContentLength: Number.POSITIVE_INFINITY,
-  });
+  try {
+    const response = await axios.post(`${uploadUrl}?${params}`, body, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+        'Content-Length': body.length.toString(),
+      },
+      maxBodyLength: Number.POSITIVE_INFINITY,
+      maxContentLength: Number.POSITIVE_INFINITY,
+    });
 
-  return response.data;
+    return ok(response.data);
+  } catch (error) {
+    return err(new Error('Failed to upload video to YouTube'));
+  }
 }
 
-async function getAccessTokenAndProfile(socialProviderId: string) {
+async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; accessToken: string }, Error>> {
   const profile = await database.query.socialProviders.findFirst({
     where: (socialProviders, { eq }) =>
       eq(socialProviders.id, socialProviderId),
   });
 
   if (!profile || !profile.accessToken) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'YouTube profile not found or access token is missing.',
-    });
+    return err(new Error('YouTube profile not found or access token is missing.'));
   }
 
-  return profile;
+  return ok({
+    id: profile.id,
+    accessToken: profile.accessToken,
+  });
 }
 
 export const youtubeProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
+  publish: async ({ content, socialProviderId }) => {
+    const profileResult = await getAccessTokenAndProfile(socialProviderId);
+    if (profileResult.isErr()) {
+      return err(profileResult.error);
+    }
+    const profile = profileResult.value;
+
     const firstContent = content.content[0];
 
     if (!firstContent) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish.',
-      });
+      return err(new Error('No content to publish.'));
     }
 
     // YouTube Shorts requires video content
@@ -118,71 +125,59 @@ export const youtubeProvider: SocialProvider = {
     );
 
     if (!videoMedia?.url) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'YouTube Shorts requires a video file.',
-      });
+      return err(new Error('YouTube Shorts requires a video file.'));
     }
 
+    // Download video file
+    let videoBuffer: Buffer;
     try {
-      // Download video file
       const videoResponse = await axios.get(videoMedia.url, {
         responseType: 'arraybuffer',
       });
-      const videoBuffer = Buffer.from(videoResponse.data);
-
-      // Prepare metadata for YouTube Shorts
-      const metadata: YouTubeVideoMetadata = {
-        snippet: {
-          title: firstContent.text.slice(0, 100) || 'YouTube Short',
-          description: firstContent.text || '',
-          tags: firstContent.tags || [],
-          categoryId: '24',
-          defaultLanguage: 'en',
-        },
-        status: {
-          privacyStatus: 'public',
-        },
-      };
-
-      // Add #Shorts to description to help YouTube identify it as a Short
-      if (!metadata.snippet.description.includes('#Shorts')) {
-        metadata.snippet.description += '\n\n#Shorts';
-      }
-
-      const uploadResponse = await uploadVideoToYouTube(
-        profile.accessToken,
-        videoBuffer,
-        metadata
-      );
-
-      // const videoUrl = `https://www.youtube.com/watch?v=${uploadResponse.id}`;
-      const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
-
-      return {
-        platformPostId: uploadResponse.id,
-        postId: content.postId,
-        platformId: profile.id,
-        platformPostUrl: shortsUrl,
-        postedAt: new Date(),
-        // metadata: {
-        //   videoUrl,
-        //   shortsUrl,
-        //   uploadStatus: uploadResponse.status.uploadStatus,
-        //   privacyStatus: uploadResponse.status.privacyStatus,
-        // },
-      };
+      videoBuffer = Buffer.from(videoResponse.data);
     } catch (error) {
-      console.error('Error uploading to YouTube:', error);
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error('YouTube API Error:', error.response.data);
-      }
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to upload video to YouTube Shorts',
-        cause: error,
-      });
+      return err(new Error('Failed to download video file'));
     }
+
+    // Prepare metadata for YouTube Shorts
+    const metadata: YouTubeVideoMetadata = {
+      snippet: {
+        title: firstContent.text.slice(0, 100) || 'YouTube Short',
+        description: firstContent.text || '',
+        tags: firstContent.tags || [],
+        categoryId: '24',
+        defaultLanguage: 'en',
+      },
+      status: {
+        privacyStatus: 'public',
+      },
+    };
+
+    // Add #Shorts to description to help YouTube identify it as a Short
+    if (!metadata.snippet.description.includes('#Shorts')) {
+      metadata.snippet.description += '\n\n#Shorts';
+    }
+
+    const uploadResult = await uploadVideoToYouTube(
+      profile.accessToken,
+      videoBuffer,
+      metadata
+    );
+
+    if (uploadResult.isErr()) {
+      return err(uploadResult.error);
+    }
+
+    const uploadResponse = uploadResult.value;
+    const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
+
+    return ok({
+      platformPostId: uploadResponse.id,
+      postId: content.postId,
+      platformId: profile.id,
+      platformPostUrl: shortsUrl,
+      postedAt: new Date(),
+    });
   },
 
   connectUrl: () => {
@@ -201,6 +196,6 @@ export const youtubeProvider: SocialProvider = {
       state: 'youtube_oauth_state',
     });
 
-    return `${baseUrl}?${params}`;
+    return ok(`${baseUrl}?${params}`);
   },
 };

@@ -25,6 +25,7 @@
     "dotenv-cli": "^7.4.1",
     "install": "^0.13.0",
     "nanoid": "^5.1.5",
+    "neverthrow": "^8.2.0",
     "openai": "^4.67.3",
     "superjson": "2.2.1",
     "twitter-api-sdk": "^1.2.1",
