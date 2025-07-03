@@ -6,24 +6,9 @@ settings:
 
 catalogs:
   default:
-    '@tanstack/react-query':
-      specifier: 5.69.0
-      version: 5.69.0
-    '@trpc/client':
-      specifier: 11.1.0
-      version: 11.1.0
-    '@trpc/react-query':
-      specifier: 11.1.0
-      version: 11.1.0
     '@trpc/server':
       specifier: 11.1.0
       version: 11.1.0
-    '@trpc/tanstack-react-query':
-      specifier: 11.1.0
-      version: 11.1.0
-    react-icons:
-      specifier: ^5.5.0
-      version: 5.5.0
     typescript:
       specifier: ^5.7.2
       version: 5.8.3
