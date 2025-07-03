@@ -155,14 +155,16 @@ export const platformPosts = pgTable(
   'platform_posts',
   {
     postId: varchar('post_id', { length: 191 }).notNull(),
-    platformId: varchar('platform_id', { length: 191 }).notNull(),
-    platformPostId: varchar('platform_post_id', { length: 191 }).notNull(),
-    platformPostUrl: text('platform_post_url').notNull(),
+    socialProviderId: varchar('social_provider_id', { length: 191 }).notNull(),
+    platformPostId: varchar('platform_post_id', { length: 191 }),
+    platformPostUrl: text('platform_post_url'),
+    postedAt: timestamp('posted_at', { withTimezone: true }),
+    failureReason: text('failure_reason'),
   },
   (table) => [
     index('platform_posts_post_id_idx').on(table.postId),
-    index('platform_posts_platform_id_idx').on(table.platformId),
-    primaryKey({ columns: [table.postId, table.platformId] }),
+    index('platform_posts_social_provider_id_idx').on(table.socialProviderId),
+    primaryKey({ columns: [table.postId, table.socialProviderId] }),
   ]
 );
 
@@ -242,7 +244,7 @@ export const platformPostsRelations = relations(platformPosts, ({ one }) => ({
     references: [posts.id],
   }),
   socialProvider: one(socialProviders, {
-    fields: [platformPosts.platformId],
+    fields: [platformPosts.socialProviderId],
     references: [socialProviders.id],
   }),
 }));

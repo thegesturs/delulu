@@ -325,15 +325,36 @@ export const postQueries = {
     return database.insert(platformPosts).values(platformPostData).returning();
   },
 
+  postPublishedOrFailed: ({
+    postId,
+    platformPostData,
+    status,
+  }: {
+    postId: string;
+    platformPostData: typeof platformPosts.$inferInsert;
+    status: 'PUBLISHED' | 'FAILED';
+  }) => {
+    return database.transaction(async (tx) => {
+      await tx
+        .update(posts)
+        .set({
+          status: status,
+          updatedAt: new Date(),
+        })
+        .where(eq(posts.id, postId));
+      await tx.insert(platformPosts).values(platformPostData);
+    });
+  },
+
   // Platform Posts queries
-  getPlatformPostById: (postId: string, platformId: string) => {
+  getPlatformPostById: (postId: string, socialProviderId: string) => {
     return database
       .select()
       .from(platformPosts)
       .where(
         and(
           eq(platformPosts.postId, postId),
-          eq(platformPosts.platformId, platformId)
+          eq(platformPosts.socialProviderId, socialProviderId)
         )
       )
       .limit(1);

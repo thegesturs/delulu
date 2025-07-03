@@ -1,55 +1,35 @@
 import { providerRegistry } from '@delulu/api/providers';
-import { database } from '@delulu/database';
+import { type SocialType, postQueries } from '@delulu/database';
 import type { SocialPublishInputType } from '@delulu/validators/post';
-import { nanoid } from 'nanoid';
 
 async function processMessage(messageBody: string) {
-  try {
-    const { socialPublishInput, socialType } = JSON.parse(messageBody) as {
-      socialPublishInput: SocialPublishInputType;
-      socialType: 'LINKEDIN' | 'TWITTER' | 'TIKTOK';
-    };
+  const { socialPublishInput, socialType } = JSON.parse(messageBody) as {
+    socialPublishInput: SocialPublishInputType;
+    socialType: SocialType;
+  };
 
-    console.log('Processing message:', socialPublishInput.postId);
-
-    if (
-      socialType === 'TWITTER' ||
-      socialType === 'LINKEDIN' ||
-      socialType === 'TIKTOK'
-    ) {
-      const providerImpl =
-        providerRegistry[socialType as 'LINKEDIN' | 'TWITTER' | 'TIKTOK'];
-      const result = await providerImpl.publish({
-        content: socialPublishInput,
-        socialProviderId: socialPublishInput.socialProviderId,
-      });
-
-      console.log('Result:', result);
-      await database.post.update({
-        where: {
-          id: result.postId,
-        },
-        data: {
-          status: 'PUBLISHED',
-          platformPosts: {
-            create: {
-              platformPostId: result.platformPostId,
-              platformId: result.platformId,
-              platformPostUrl: result.platformPostUrl,
-              id: `social_post_${nanoid(12)}`,
-            },
-          },
-        },
-      });
-      console.log('Post posted:', result);
-      return result;
-    }
-
-    throw new Error(`Unsupported socialType: ${socialType}`);
-  } catch (error) {
-    console.error('Error processing message:', error);
-    throw error;
+  if (socialType === 'LENS') {
+    return;
   }
+
+  const providerImpl = providerRegistry[socialType];
+  const result = await providerImpl.publish({
+    content: socialPublishInput,
+    socialProviderId: socialPublishInput.socialProviderId,
+  });
+
+  await postQueries.postPublishedOrFailed({
+    postId: socialPublishInput.postId,
+    platformPostData: {
+      platformPostId: result.platformPostId,
+      socialProviderId: result.platformId,
+      platformPostUrl: result.platformPostUrl,
+      postedAt: new Date(),
+      postId: socialPublishInput.postId,
+    },
+    status: 'PUBLISHED',
+  });
+  return result;
 }
 
 // Get message from ECS environment variable

@@ -1,5 +1,5 @@
 import { providerRegistry } from '@api/providers';
-import { postQueries, PostStatus } from '@delulu/database';
+import { PostStatus, postQueries } from '@delulu/database';
 import { type SavePostInputType, SocialTypes } from '@delulu/validators/post';
 // import { Queue } from 'bullmq';
 
@@ -41,9 +41,10 @@ export const createPostInQueue = async (post: SavePostInputType) => {
 
     await postQueries.createPlatformPost({
       postId: post.id!,
-      platformId: provider.socialId,
+      socialProviderId: provider.socialId,
       platformPostId: result.platformPostId,
       platformPostUrl: result.platformPostUrl,
+      postedAt: new Date(),
     });
 
     await postQueries.updatePost(post.id!, {
