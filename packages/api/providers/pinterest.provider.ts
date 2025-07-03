@@ -2,11 +2,24 @@ import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
 import type { MediaType, PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import { ok, err, errAsync, ResultAsync } from 'neverthrow';
 
-import { type Result, ok } from 'neverthrow';
-import type { SocialProvider } from './types.js';
+import type { SocialProvider } from './types';
+import {
+  ProfileNotFoundError,
+  InvalidMediaError,
+  PublishError,
+  createAPIError,
+  type SocialProviderError,
+  PinterestError,
+} from './errors';
+
+// Types
+interface PinterestProfile {
+  id: string;
+  accessToken: string;
+}
 
 interface PinterestBoardResponse {
   id: string;
@@ -18,44 +31,49 @@ interface PinterestPinResponse {
   link: string;
 }
 
-async function getDefaultBoard(profile: {
-  accessToken: string;
-}): Promise<PinterestBoardResponse> {
-  const response = await axios.get<{ items: PinterestBoardResponse[] }>(
-    'https://api.pinterest.com/v5/boards',
-    {
-      headers: {
-        Authorization: `Bearer ${profile.accessToken}`,
-      },
+// Profile management
+const getProfile = (socialProviderId: string): ResultAsync<PinterestProfile, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    database.query.socialProviders.findFirst({
+      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+    }),
+    () => new PinterestError('Database query failed')
+  ).andThen((profile) => {
+    if (!profile?.accessToken) {
+      return err(new ProfileNotFoundError('Pinterest'));
     }
-  );
-
-  const boards = response.data.items;
-  if (boards.length === 0) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'No boards found for this Pinterest account',
+    return ok({
+      id: profile.id,
+      accessToken: profile.accessToken,
     });
-  }
+  });
 
-  return boards[0];
-}
+// Get user boards
+const getUserBoards = (accessToken: string): ResultAsync<PinterestBoardResponse[], SocialProviderError> =>
+  ResultAsync.fromPromise(
+    axios.get('https://api.pinterest.com/v5/boards', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }),
+    (error) => createAPIError('Pinterest', error)
+  ).map(response => response.data.items || []);
 
-async function createPin(
+// Create pin
+const createPin = (
   media: MediaType,
-  profile: { accessToken: string },
-  note: string,
-  boardId: string
-): Promise<PinterestPinResponse> {
+  text: string,
+  boardId: string,
+  accessToken: string
+): ResultAsync<PinterestPinResponse, SocialProviderError> => {
   if (!media.url) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: 'Media URL is required for Pinterest pins',
-    });
+    return errAsync(new InvalidMediaError('Pinterest', 'Media URL is required'));
   }
 
   const pinData = {
-    note: note || '',
+    link: media.url,
+    title: text.slice(0, 100) || 'Pin',
+    description: text || '',
     board_id: boardId,
     media_source: {
       source_type: 'image_url',
@@ -63,95 +81,60 @@ async function createPin(
     },
   };
 
-  const response = await axios.post<PinterestPinResponse>(
-    'https://api.pinterest.com/v5/pins',
-    pinData,
-    {
+  return ResultAsync.fromPromise(
+    axios.post('https://api.pinterest.com/v5/pins', pinData, {
       headers: {
-        Authorization: `Bearer ${profile.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-    }
-  );
+    }),
+    (error) => createAPIError('Pinterest', error)
+  ).map(response => response.data);
+};
 
-  return response.data;
-}
-
-async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.query.socialProviders.findFirst({
-    where: (socialProviders, { eq }) =>
-      eq(socialProviders.id, socialProviderId),
-  });
-
-  if (!profile || !profile.accessToken) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'Pinterest profile not found or is missing required fields.',
-    });
+// Main publish function
+const publishContent = (
+  content: { content: Array<{ text: string; media: MediaType[] }>; postId: string },
+  profile: PinterestProfile
+): ResultAsync<PostReturnType, SocialProviderError> => {
+  const firstContent = content.content[0];
+  
+  if (!firstContent) {
+    return errAsync(new InvalidMediaError('Pinterest', 'No content to publish'));
   }
-  return profile;
-}
 
+  const validMedia = getValidMediaUrls(firstContent.media);
+  const imageMedia = validMedia.find(media => media.mediaType === 'IMAGE' && media.url);
+
+  if (!imageMedia) {
+    return errAsync(new InvalidMediaError('Pinterest', 'Pinterest requires an image'));
+  }
+
+  return getUserBoards(profile.accessToken)
+    .andThen(boards => {
+      if (boards.length === 0) {
+        return err(new PublishError('Pinterest', 'No boards available'));
+      }
+      
+      // Use the first available board
+      const boardId = boards[0].id;
+      return createPin(imageMedia, firstContent.text, boardId, profile.accessToken);
+    })
+    .map(pinResponse => ({
+      platformPostId: pinResponse.id,
+      postId: content.postId,
+      platformId: profile.id,
+      platformPostUrl: pinResponse.link,
+      postedAt: new Date(),
+    }));
+};
+
+// Provider implementation
 export const pinterestProvider: SocialProvider = {
-  publish: async ({
-    content,
-    socialProviderId,
-  }): Promise<Result<PostReturnType, Error>> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
-    const firstContent = content.content[0];
-
-    if (!firstContent) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish.',
-      });
-    }
-
-    try {
-      const validMedia = getValidMediaUrls(firstContent.media);
-
-      if (validMedia.length === 0) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Pinterest requires at least one image to create a pin.',
-        });
-      }
-
-      const firstMedia = validMedia[0];
-      if (firstMedia.mediaType === 'VIDEO') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message:
-            'Pinterest API v5 does not support video uploads via this endpoint.',
-        });
-      }
-
-      const defaultBoard = await getDefaultBoard(profile);
-      const pinResponse = await createPin(
-        firstMedia,
-        profile,
-        firstContent.text,
-        defaultBoard.id
-      );
-
-      return ok({
-        platformPostId: pinResponse.id,
-        postId: content.postId,
-        platformId: profile.id,
-        platformPostUrl: pinResponse.link,
-        postedAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Error posting to Pinterest:', error);
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error('Pinterest API Error:', error.response.data);
-      }
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to post to Pinterest',
-        cause: error,
-      });
-    }
+  publish: async ({ content, socialProviderId }) => {
+    const result = await getProfile(socialProviderId)
+      .andThen(profile => publishContent(content, profile));
+    return result;
   },
 
   connectUrl: () => {
@@ -159,12 +142,8 @@ export const pinterestProvider: SocialProvider = {
       client_id: keys().PINTEREST_CLIENT_ID,
       redirect_uri: keys().PINTEREST_CALLBACK_URL,
       response_type: 'code',
-      scope: [
-        'boards:read',
-        'pins:read',
-        'pins:write',
-        'user_accounts:read',
-      ].join(','),
+      scope: 'boards:read,pins:write',
+      state: 'pinterest_oauth_state',
     });
 
     return ok(`https://www.pinterest.com/oauth/?${params.toString()}`);

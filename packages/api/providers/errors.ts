@@ -7,7 +7,7 @@ export abstract class SocialProviderError extends Error {
 // Authentication errors
 export class ProfileNotFoundError extends SocialProviderError {
   readonly code = 'PROFILE_NOT_FOUND';
-  constructor(public readonly provider: string) {
+  constructor(readonly provider: string) {
     super(`${provider} profile not found or is missing required fields`);
     this.name = 'ProfileNotFoundError';
   }
@@ -32,7 +32,10 @@ export class NoContentError extends SocialProviderError {
 
 export class InvalidMediaError extends SocialProviderError {
   readonly code = 'INVALID_MEDIA';
-  constructor(public readonly provider: string, public readonly reason: string) {
+  constructor(
+    public readonly provider: string,
+    public readonly reason: string
+  ) {
     super(`Invalid media for ${provider}: ${reason}`);
     this.name = 'InvalidMediaError';
   }
@@ -40,7 +43,10 @@ export class InvalidMediaError extends SocialProviderError {
 
 export class MediaUploadError extends SocialProviderError {
   readonly code = 'MEDIA_UPLOAD_FAILED';
-  constructor(public readonly provider: string, public readonly mediaType: 'IMAGE' | 'VIDEO') {
+  constructor(
+    public readonly provider: string,
+    public readonly mediaType: 'IMAGE' | 'VIDEO'
+  ) {
     super(`Failed to upload ${mediaType.toLowerCase()} to ${provider}`);
     this.name = 'MediaUploadError';
   }
@@ -49,8 +55,13 @@ export class MediaUploadError extends SocialProviderError {
 // Processing errors
 export class MediaProcessingError extends SocialProviderError {
   readonly code = 'MEDIA_PROCESSING_FAILED';
-  constructor(public readonly provider: string, public readonly reason?: string) {
-    super(`Media processing failed for ${provider}${reason ? `: ${reason}` : ''}`);
+  constructor(
+    public readonly provider: string,
+    public readonly reason?: string
+  ) {
+    super(
+      `Media processing failed for ${provider}${reason ? `: ${reason}` : ''}`
+    );
     this.name = 'MediaProcessingError';
   }
 }
@@ -66,7 +77,10 @@ export class MediaProcessingTimeoutError extends SocialProviderError {
 // Publishing errors
 export class PublishError extends SocialProviderError {
   readonly code = 'PUBLISH_FAILED';
-  constructor(public readonly provider: string, public readonly reason?: string) {
+  constructor(
+    public readonly provider: string,
+    public readonly reason?: string
+  ) {
     super(`Failed to publish to ${provider}${reason ? `: ${reason}` : ''}`);
     this.name = 'PublishError';
   }
@@ -84,19 +98,26 @@ export class PostCreationError extends SocialProviderError {
 export class APIError extends SocialProviderError {
   readonly code = 'API_ERROR';
   constructor(
-    public readonly provider: string, 
+    public readonly provider: string,
     public readonly statusCode: number,
     public readonly apiMessage?: string
   ) {
-    super(`${provider} API error (${statusCode})${apiMessage ? `: ${apiMessage}` : ''}`);
+    super(
+      `${provider} API error (${statusCode})${apiMessage ? `: ${apiMessage}` : ''}`
+    );
     this.name = 'APIError';
   }
 }
 
 export class RateLimitError extends SocialProviderError {
   readonly code = 'RATE_LIMIT_EXCEEDED';
-  constructor(public readonly provider: string, public readonly retryAfter?: number) {
-    super(`Rate limit exceeded for ${provider}${retryAfter ? `. Retry after ${retryAfter}s` : ''}`);
+  constructor(
+    public readonly provider: string,
+    public readonly retryAfter?: number
+  ) {
+    super(
+      `Rate limit exceeded for ${provider}${retryAfter ? `. Retry after ${retryAfter}s` : ''}`
+    );
     this.name = 'RateLimitError';
   }
 }
@@ -104,7 +125,10 @@ export class RateLimitError extends SocialProviderError {
 // Network errors
 export class NetworkError extends SocialProviderError {
   readonly code = 'NETWORK_ERROR';
-  constructor(public readonly provider: string, public readonly operation: string) {
+  constructor(
+    public readonly provider: string,
+    public readonly operation: string
+  ) {
     super(`Network error during ${operation} for ${provider}`);
     this.name = 'NetworkError';
   }
@@ -192,6 +216,15 @@ export class FarcasterError extends SocialProviderError {
   }
 }
 
+export class R2Error extends SocialProviderError {
+  readonly code = 'R2_ERROR';
+  readonly provider = 'R2';
+  constructor(message: string) {
+    super(message);
+    this.name = 'R2Error';
+  }
+}
+
 // Helper function to create API errors from axios errors
 export function createAPIError(provider: string, error: any): APIError {
   if (error?.response?.status) {
@@ -206,7 +239,9 @@ export function createAPIError(provider: string, error: any): APIError {
 
 // Helper function to determine if error is retryable
 export function isRetryableError(error: SocialProviderError): boolean {
-  return error instanceof NetworkError || 
-         error instanceof RateLimitError ||
-         (error instanceof APIError && error.statusCode >= 500);
+  return (
+    error instanceof NetworkError ||
+    error instanceof RateLimitError ||
+    (error instanceof APIError && error.statusCode >= 500)
+  );
 }

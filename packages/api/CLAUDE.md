@@ -230,6 +230,36 @@ const result = await resultAsync;
 return result;
 ```
 
+## Platform-Specific Media Handling Rules
+
+### Single Video Platforms (Facebook, TikTok, Instagram, YouTube)
+- **Videos**: Only ONE video per post (no carousel for videos)
+- **Images**: Multiple images go into carousel/album for the SAME post
+- **Mixed content**: Not supported - either video OR images, not both
+
+### Thread-Style Platforms (Threads, Twitter)
+- **Multiple images**: All images go into SINGLE post
+- **Multiple content items**: Each content item becomes a REPLY (thread style)
+- **Order**: Content items are processed in `order` sequence to maintain thread flow
+
+### Pin-Style Platforms (Pinterest)
+- **Images only**: One image per pin
+- **Multiple images**: Create separate pins
+
+## Common Types
+
+All providers should use shared types from `./common-types.ts`:
+
+```typescript
+import type { 
+  BaseProviderProfile, 
+  FacebookProfile, 
+  PostContent, 
+  PublishInput,
+  PostPublishResult 
+} from './common-types';
+```
+
 ## File Structure Template
 
 Each provider should follow this structure:
@@ -238,10 +268,7 @@ Each provider should follow this structure:
 // 1. Imports
 import { ok, err, okAsync, errAsync, ResultAsync } from 'neverthrow';
 import { SocialProviderError, SpecificError } from './errors';
-
-// 2. Types and Interfaces
-interface ProviderProfile { /* ... */ }
-interface APIResponse { /* ... */ }
+import type { ProviderSpecificProfile, PostContent } from './common-types';
 
 // 3. Pure utility functions
 const createParams = (data) => ({ /* ... */ });

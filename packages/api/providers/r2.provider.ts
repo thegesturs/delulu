@@ -4,7 +4,15 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ResultAsync } from 'neverthrow';
 import { keys } from '../keys';
+import { R2Error, type SocialProviderError } from './errors';
+
+// Types
+interface R2SignedUploadResponse {
+  uploadUrl: string;
+  key: string;
+}
 
 export class R2Provider {
   private s3Client: S3Client;
@@ -25,44 +33,61 @@ export class R2Provider {
     });
   }
 
-  async getSignedDownloadUrl(key: string): Promise<string> {
+  getSignedDownloadUrl(key: string): ResultAsync<string, SocialProviderError> {
+    if (!key || key.trim() === '') {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2Error('Key is required for download URL'))
+      );
+    }
+
     const command = new GetObjectCommand({
       Bucket: this.bucketName,
       Key: key,
     });
 
-    return (
-      await getSignedUrl(this.s3Client, command, { expiresIn: 3600 })
-    ).replace(
-      `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
-      'https://media.delulu.social'
+    return ResultAsync.fromPromise(
+      getSignedUrl(this.s3Client, command, { expiresIn: 3600 }),
+      (error) => new R2Error(`Failed to generate download URL: ${error}`)
+    ).map((url) => 
+      url.replace(
+        `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
+        'https://media.delulu.social'
+      )
     );
   }
 
-  async getSignedUploadUrl(
+  getSignedUploadUrl(
     key: string,
     contentType: string
-  ): Promise<{
-    uploadUrl: string;
-    key: string;
-  }> {
+  ): ResultAsync<R2SignedUploadResponse, SocialProviderError> {
+    if (!key || key.trim() === '') {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2Error('Key is required for upload URL'))
+      );
+    }
+
+    if (!contentType || contentType.trim() === '') {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2Error('Content type is required for upload URL'))
+      );
+    }
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       ContentType: contentType,
     });
 
-    const uploadUrl = await getSignedUrl(this.s3Client, command, {
-      expiresIn: 3600,
-      signableHeaders: new Set(['content-type']), // Ensure content-type is signed
-    });
-
-    console.log('uploadUrl', uploadUrl);
-
-    return {
+    return ResultAsync.fromPromise(
+      getSignedUrl(this.s3Client, command, {
+        expiresIn: 3600,
+        signableHeaders: new Set(['content-type']),
+      }),
+      (error) => new R2Error(`Failed to generate upload URL: ${error}`)
+    ).map((uploadUrl) => ({
       uploadUrl,
       key,
-    };
+    }));
   }
 }
 
