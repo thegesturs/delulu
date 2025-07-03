@@ -1,23 +1,27 @@
 import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
-import type { MediaType } from '@delulu/validators/post';
+import type { MediaType, PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import { type Result, ResultAsync, err, fromPromise, ok } from 'neverthrow';
+import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
-import type { SocialProvider } from './types';
 import {
-  ProfileNotFoundError,
-  InvalidMediaError,
-  MediaUploadError,
   MediaProcessingError,
   MediaProcessingTimeoutError,
-  PublishError,
   NoContentError,
-  createAPIError,
+  ProfileNotFoundError,
   type SocialProviderError,
   ThreadsError,
+  createAPIError,
 } from './errors';
+import type { SocialProvider } from './types';
+
+// Types
+interface ThreadsProfile {
+  id: string;
+  profileId: string;
+  accessToken: string;
+}
 
 interface ThreadsMediaContainer {
   id: string;
@@ -33,15 +37,37 @@ interface ThreadsMediaResponse {
   link_attachment_url?: string;
 }
 
-async function createMediaContainer(
+// Profile management
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<ThreadsProfile, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    database.query.socialProviders.findFirst({
+      where: (socialProviders, { eq }) =>
+        eq(socialProviders.id, socialProviderId),
+    }),
+    () => new ThreadsError('Database query failed')
+  ).andThen((profile) => {
+    if (!profile?.accessToken || !profile.profileId) {
+      return err(new ProfileNotFoundError('Threads'));
+    }
+    return ok({
+      id: profile.id,
+      profileId: profile.profileId,
+      accessToken: profile.accessToken,
+    });
+  });
+
+// Media container creation
+const createMediaContainer = (
   media: MediaType | null,
-  profile: { profileId: string; accessToken: string },
+  profile: ThreadsProfile,
   text: string,
   options: {
     isCarouselItem?: boolean;
     replyToId?: string;
   } = {}
-): Promise<Result<ThreadsMediaContainer, Error>> {
+): ResultAsync<ThreadsMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -58,7 +84,8 @@ async function createMediaContainer(
   } else {
     params.append('media_type', 'TEXT');
     // Extract first URL from text for link preview
-    const urlMatch = text.match(/https?:\/\/[^\s]+/);
+    const urlRegex = /https?:\/\/[^\s]+/;
+    const urlMatch = text.match(urlRegex);
     if (urlMatch) {
       params.append('link_attachment', urlMatch[0]);
     }
@@ -68,17 +95,17 @@ async function createMediaContainer(
     params.append('reply_to_id', options.replyToId);
   }
 
-  return fromPromise(
+  return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    () => new Error('Failed to create media container')
+    (error) => createAPIError('Threads', error)
   ).map((response) => response.data);
-}
+};
 
-async function createCarouselContainer(
+const createCarouselContainer = (
   childrenIds: string[],
-  profile: { profileId: string; accessToken: string },
+  profile: ThreadsProfile,
   text: string
-): Promise<Result<ThreadsMediaContainer, Error>> {
+): ResultAsync<ThreadsMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -87,83 +114,89 @@ async function createCarouselContainer(
     text,
   });
 
-  return fromPromise(
+  return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    () => new Error('Failed to create carousel container')
+    (error) => createAPIError('Threads', error)
   ).map((response) => response.data);
-}
+};
 
-async function waitForContainerProcessing(
+const waitForContainerProcessing = (
   containerId: string,
-  accessToken: string
-): Promise<Result<void, Error>> {
-  let attempts = 0;
-  const maxAttempts = 30;
-  const delay = 3000;
+  accessToken: string,
+  maxAttempts = 30,
+  delay = 3000
+): ResultAsync<void, SocialProviderError> => {
+  const poll = async (attempts: number): Promise<void> => {
+    if (attempts >= maxAttempts) {
+      throw new MediaProcessingTimeoutError('Threads');
+    }
 
-  while (attempts < maxAttempts) {
-    const statusResult = await fromPromise(
+    const statusResult = await ResultAsync.fromPromise(
       axios.get(`https://graph.threads.net/v1.0/${containerId}`, {
         params: { access_token: accessToken },
       }),
       (error) => {
         if (axios.isAxiosError(error) && error.response?.status === 500) {
-          return new Error('Server error - container still processing');
+          return new MediaProcessingError(
+            'Threads',
+            'Server error - container still processing'
+          );
         }
-        return new Error('Failed to check container processing status');
+        return createAPIError('Threads', error);
       }
     );
 
     if (statusResult.isErr()) {
-      if (statusResult.error.message.includes('Server error')) {
+      if (statusResult.error instanceof MediaProcessingError) {
         await new Promise((resolve) => setTimeout(resolve, delay));
-        attempts++;
-        continue;
+        return poll(attempts + 1);
       }
-      return err(statusResult.error);
+      throw statusResult.error;
     }
 
     const status = statusResult.value.data.status;
     if (status === 'FINISHED') {
-      return ok(undefined);
+      return;
     }
 
     if (status === 'ERROR' || status === 'EXPIRED') {
-      return err(
-        new Error(
-          `Media processing failed: ${statusResult.value.data.error_message || status}`
-        )
+      throw new MediaProcessingError(
+        'Threads',
+        `Media processing failed: ${statusResult.value.data.error_message || status}`
       );
     }
 
     await new Promise((resolve) => setTimeout(resolve, delay));
-    attempts++;
-  }
+    return poll(attempts + 1);
+  };
 
-  return err(new Error('Media processing timed out.'));
-}
+  return ResultAsync.fromPromise(
+    poll(0),
+    (error) => error as SocialProviderError
+  );
+};
 
-async function publishContainer(
+const publishContainer = (
   creationId: string,
-  profile: { profileId: string; accessToken: string }
-): Promise<Result<ThreadsMediaPublishResponse, Error>> {
+  profile: ThreadsProfile
+): ResultAsync<ThreadsMediaPublishResponse, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads_publish`;
   const params = new URLSearchParams({
     creation_id: creationId,
     access_token: profile.accessToken,
   });
 
-  return fromPromise(
+  return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    () => new Error('Failed to publish container')
+    (error) => createAPIError('Threads', error)
   ).map((response) => response.data);
-}
+};
 
-async function getPostDetails(
+const getPostDetails = (
   mediaId: string,
   accessToken: string
-): Promise<Result<ThreadsMediaResponse, Error>> {
-  return fromPromise(
+): ResultAsync<ThreadsMediaResponse, SocialProviderError> => {
+  return ResultAsync.fromPromise(
     axios.get<ThreadsMediaResponse>(
       `https://graph.threads.net/v1.0/${mediaId}`,
       {
@@ -173,137 +206,111 @@ async function getPostDetails(
         },
       }
     ),
-    () => new Error('Failed to get post details')
+    (error) => createAPIError('Threads', error)
   ).map((response) => response.data);
-}
+};
 
-async function getAccessTokenAndProfile(
-  socialProviderId: string
-): Promise<
-  Result<{ id: string; profileId: string; accessToken: string }, Error>
-> {
-  const [profile] = await database.query.socialProviders.findMany({
-    where: (socialProviders, { eq }) =>
-      eq(socialProviders.id, socialProviderId),
-    limit: 1,
-  });
+// Process single post content
+const processPostContent = (
+  post: { text: string; media: MediaType[]; order: number },
+  profile: ThreadsProfile,
+  replyToId?: string
+): ResultAsync<string, SocialProviderError> => {
+  const validMedia = getValidMediaUrls(post.media);
 
-  if (!profile || !profile.accessToken || !profile.profileId) {
-    return err(
-      new Error('Threads profile not found or is missing required fields.')
-    );
+  if (validMedia.length > 1) {
+    // Carousel post
+    return ResultAsync.combine(
+      validMedia.map((media) =>
+        createMediaContainer(media, profile, post.text, {
+          isCarouselItem: true,
+        })
+      )
+    ).andThen((itemContainers) => {
+      const itemIds = itemContainers.map((container) => container.id);
+      return createCarouselContainer(itemIds, profile, post.text).andThen(
+        (carouselContainer) =>
+          waitForContainerProcessing(carouselContainer.id, profile.accessToken)
+            .andThen(() => publishContainer(carouselContainer.id, profile))
+            .map((publishResponse) => publishResponse.id)
+      );
+    });
   }
-  return ok({
-    id: profile.id,
-    profileId: profile.profileId,
-    accessToken: profile.accessToken,
-  });
-}
 
+  // Single media or text-only post
+  const media = validMedia[0] || null;
+  return createMediaContainer(media, profile, post.text, { replyToId }).andThen(
+    (container) =>
+      waitForContainerProcessing(container.id, profile.accessToken)
+        .andThen(() => publishContainer(container.id, profile))
+        .map((publishResponse) => publishResponse.id)
+  );
+};
+
+// Main publish function
+const publishContent = (
+  content: {
+    content: Array<{ text: string; media: MediaType[]; order: number }>;
+    postId: string;
+  },
+  profile: ThreadsProfile
+): ResultAsync<PostReturnType, SocialProviderError> => {
+  const posts = content.content.sort((a, b) => a.order - b.order);
+
+  if (posts.length === 0) {
+    return errAsync(new NoContentError('Threads'));
+  }
+
+  // Process posts sequentially to maintain thread order
+  const processSequentially = async (
+    remainingPosts: typeof posts,
+    lastPostId?: string
+  ): Promise<{ postId: string; details: ThreadsMediaResponse }> => {
+    const [currentPost, ...nextPosts] = remainingPosts;
+
+    const postIdResult = await processPostContent(
+      currentPost,
+      profile,
+      lastPostId
+    );
+    if (postIdResult.isErr()) {
+      throw postIdResult.error;
+    }
+
+    const postId = postIdResult.value;
+    const detailsResult = await getPostDetails(postId, profile.accessToken);
+    if (detailsResult.isErr()) {
+      throw detailsResult.error;
+    }
+
+    const details = detailsResult.value;
+
+    if (nextPosts.length > 0) {
+      return processSequentially(nextPosts, postId);
+    }
+
+    return { postId, details };
+  };
+
+  return ResultAsync.fromPromise(
+    processSequentially(posts),
+    (error) => error as SocialProviderError
+  ).map(({ postId, details }) => ({
+    platformPostId: postId,
+    postId: content.postId,
+    platformId: profile.id,
+    platformPostUrl: details.permalink,
+    postedAt: new Date(),
+  }));
+};
+
+// Provider implementation
 export const threadsProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
-    const profileResult = await getAccessTokenAndProfile(socialProviderId);
-    if (profileResult.isErr()) {
-      return err(profileResult.error);
-    }
-    const profile = profileResult.value;
-
-    const posts = content.content.sort((a, b) => a.order - b.order);
-
-    if (posts.length === 0) {
-      return err(new Error('No content to publish.'));
-    }
-
-    let lastPostId: string | undefined;
-    let lastPostDetails: ThreadsMediaResponse | undefined;
-
-    for (const post of posts) {
-      const validMedia = getValidMediaUrls(post.media);
-      let containerId: string;
-
-      if (validMedia.length > 1) {
-        // Carousel post - use ResultAsync to handle multiple async operations
-        const itemResults = await ResultAsync.combine(
-          validMedia.map((media) =>
-            ResultAsync.fromPromise(
-              createMediaContainer(media, profile, post.text, {
-                isCarouselItem: true,
-              }),
-              (err) => err as Error
-            )
-          )
-        );
-
-        if (itemResults.isErr()) {
-          return err(itemResults.error);
-        }
-
-        const itemContainerIds = itemResults.value.map(
-          (container) => container.id
-        );
-        const carouselResult = await createCarouselContainer(
-          itemContainerIds,
-          profile,
-          post.text
-        );
-
-        if (carouselResult.isErr()) {
-          return err(carouselResult.error);
-        }
-
-        containerId = carouselResult.value.id;
-      } else {
-        // Single media or text-only post
-        const singleResult = await createMediaContainer(
-          validMedia[0] ?? null,
-          profile,
-          post.text,
-          { replyToId: lastPostId }
-        );
-
-        if (singleResult.isErr()) {
-          return err(singleResult.error);
-        }
-
-        containerId = singleResult.value.id;
-      }
-
-      const processingResult = await waitForContainerProcessing(
-        containerId,
-        profile.accessToken
-      );
-      if (processingResult.isErr()) {
-        return err(processingResult.error);
-      }
-
-      const publishResult = await publishContainer(containerId, profile);
-      if (publishResult.isErr()) {
-        return err(publishResult.error);
-      }
-
-      const detailsResult = await getPostDetails(
-        publishResult.value.id,
-        profile.accessToken
-      );
-      if (detailsResult.isErr()) {
-        return err(detailsResult.error);
-      }
-
-      lastPostDetails = detailsResult.value;
-      lastPostId = publishResult.value.id;
-    }
-
-    if (!lastPostDetails || !lastPostId) {
-      return err(new Error('Failed to publish any content to Threads.'));
-    }
-
-    return ok({
-      platformPostId: lastPostId,
-      postId: content.postId,
-      platformId: profile.id,
-      platformPostUrl: lastPostDetails.permalink,
-      postedAt: new Date(),
-    });
+    const result = await getProfile(socialProviderId).andThen((profile) =>
+      publishContent(content, profile)
+    );
+    return result;
   },
 
   connectUrl: () => {
