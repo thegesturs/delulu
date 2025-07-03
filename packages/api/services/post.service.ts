@@ -39,11 +39,16 @@ export const createPostInQueue = async (post: SavePostInputType) => {
       socialProviderId: provider.socialId,
     });
 
+    if (result.isErr()) {
+      console.error('Error publishing post:', result.error);
+      continue;
+    }
+
     await postQueries.createPlatformPost({
       postId: post.id!,
       socialProviderId: provider.socialId,
-      platformPostId: result.platformPostId,
-      platformPostUrl: result.platformPostUrl,
+      platformPostId: result.value.platformPostId,
+      platformPostUrl: result.value.platformPostUrl,
       postedAt: new Date(),
     });
 

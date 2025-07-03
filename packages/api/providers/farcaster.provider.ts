@@ -1,12 +1,29 @@
 import { database } from '@delulu/database';
-import type { PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
 import axios from 'axios';
-import { ok, err, type Result } from 'neverthrow';
+import { ok, err, errAsync, ResultAsync } from 'neverthrow';
 
 import type { SocialProvider } from './types';
+import type { 
+  PostContent,
+  PostPublishResult
+} from './common-types';
+import {
+  ProfileNotFoundError,
+  InvalidMediaError,
+  createAPIError,
+  type SocialProviderError,
+  FarcasterError,
+} from './errors';
 
+// Farcaster-specific profile interface
+interface FarcasterProfile {
+  id: string;
+  fid: string;
+  signerUuid: string;
+}
+
+// Farcaster API types
 interface FarcasterCastRequest {
   text: string;
   embeds?: Array<{
@@ -22,114 +39,83 @@ interface FarcasterCastResponse {
   text: string;
 }
 
-async function submitCast(
-  profile: { fid: string; signerUuid: string },
+// Profile management
+const getProfile = (socialProviderId: string): ResultAsync<FarcasterProfile, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    database.query.socialProviders.findFirst({
+      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+    }),
+    () => new FarcasterError('Database query failed')
+  ).andThen((profile) => {
+    if (!profile?.accessToken || !profile.profileId) {
+      return err(new ProfileNotFoundError('Farcaster'));
+    }
+    return ok({
+      id: profile.id,
+      fid: profile.profileId, // Farcaster uses FID as profileId
+      signerUuid: profile.accessToken, // Signer UUID stored as accessToken
+    });
+  });
+
+// Submit cast to Farcaster
+const submitCast = (
+  profile: FarcasterProfile,
   castData: FarcasterCastRequest
-): Promise<Result<FarcasterCastResponse, Error>> {
-  // For now, let's use a simplified approach that works with the Warpcast API
-  // This requires the signerUuid to be a valid Bearer token from the signer approval process
-  try {
-    const response = await axios.post(
-      'https://api.warpcast.com/v2/casts',
-      {
-        text: castData.text.slice(0, 320),
-        embeds: castData.embeds || [],
-        parent: castData.parent,
+): ResultAsync<FarcasterCastResponse, SocialProviderError> => {
+  return ResultAsync.fromPromise(
+    axios.post('https://api.warpcast.com/v2/casts', castData, {
+      headers: {
+        Authorization: `Bearer ${profile.signerUuid}`,
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          Authorization: `Bearer ${profile.signerUuid}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    }),
+    (error) => createAPIError('Farcaster', error)
+  ).map(response => response.data.result.cast);
+};
 
-    // Warpcast API returns a different structure
-    const cast = response.data.result?.cast || response.data;
-    return ok({
-      hash: cast.hash,
-      timestamp: cast.timestamp,
-      fid: cast.author?.fid || Number.parseInt(profile.fid),
-      text: cast.text,
-    });
-  } catch (error) {
-    // Fallback: If Warpcast API fails, we can try the Hub API approach
-    console.warn('Warpcast API failed, falling back to Hub API');
-
-    // This is a placeholder for proper Hub API implementation
-    // In production, you'd use @farcaster/hub-nodejs for proper message signing
-    const timestamp = Math.floor(Date.now() / 1000);
-    const hash = `0x${Date.now().toString(16)}`;
-
-    return ok({
-      hash,
-      timestamp,
-      fid: Number.parseInt(profile.fid),
-      text: castData.text,
-    });
+// Main publish function - Farcaster supports text and embeds
+const publishContent = (
+  content: { content: PostContent[]; postId: string },
+  profile: FarcasterProfile
+): ResultAsync<PostPublishResult, SocialProviderError> => {
+  const firstContent = content.content[0];
+  
+  if (!firstContent) {
+    return errAsync(new InvalidMediaError('Farcaster', 'No content to publish'));
   }
-}
 
-async function getAccessTokenAndProfile(socialProviderId: string): Promise<Result<{ id: string; fid: string; signerUuid: string }, Error>> {
-  const [profile] = await database.query.socialProviders.findMany({
-    where: (socialProviders, { eq }) =>
-      eq(socialProviders.id, socialProviderId),
-    limit: 1,
-  });
+  // Farcaster doesn't upload media directly, but can embed URLs
+  const validMedia = getValidMediaUrls(firstContent.media);
+  const embeds = validMedia
+    .filter(media => media.url)
+    .map(media => ({ url: media.url! }));
 
-  if (!profile || !profile.profileId || !profile.accessToken) {
-    return err(new Error('Farcaster profile not found or is missing required fields.'));
-  }
-  return ok({
-    id: profile.id,
-    fid: profile.profileId,
-    signerUuid: profile.accessToken,
-  });
-}
+  const castData: FarcasterCastRequest = {
+    text: firstContent.text,
+    ...(embeds.length > 0 && { embeds }),
+  };
 
-export const farcasterProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }) => {
-    const profileResult = await getAccessTokenAndProfile(socialProviderId);
-    if (profileResult.isErr()) {
-      return err(profileResult.error);
-    }
-    const profile = profileResult.value;
-
-    const firstContent = content.content[0];
-
-    if (!firstContent) {
-      return err(new Error('No content to publish.'));
-    }
-
-    const validMedia = getValidMediaUrls(firstContent.media);
-    const embeds = validMedia
-      .map((media) => (media.url ? { url: media.url } : null))
-      .filter((embed): embed is { url: string } => embed !== null);
-
-    const castData: FarcasterCastRequest = {
-      text: firstContent.text,
-      embeds: embeds.length > 0 ? embeds : undefined,
-    };
-
-    const castResult = await submitCast(profile, castData);
-    if (castResult.isErr()) {
-      return err(castResult.error);
-    }
-    
-    const castResponse = castResult.value;
-    const castUrl = `https://warpcast.com/~/conversations/${castResponse.hash}`;
-
-    return ok({
+  return submitCast(profile, castData)
+    .map(castResponse => ({
       platformPostId: castResponse.hash,
       postId: content.postId,
       platformId: profile.id,
-      platformPostUrl: castUrl,
+      platformPostUrl: `https://warpcast.com/${profile.fid}/${castResponse.hash}`,
       postedAt: new Date(castResponse.timestamp * 1000),
-    });
+    }));
+};
+
+// Provider implementation
+export const farcasterProvider: SocialProvider = {
+  publish: async ({ content, socialProviderId }) => {
+    const result = await getProfile(socialProviderId)
+      .andThen(profile => publishContent(content, profile));
+    return result;
   },
 
   connectUrl: () => {
-    // Farcaster uses a different flow - return a placeholder that triggers the signer request
-    return ok('farcaster://connect');
+    // Farcaster uses a different auth flow through Warpcast
+    // This would typically redirect to Warpcast for signer approval
+    return ok('https://warpcast.com/~/developers/signed-key-requests');
   },
 };

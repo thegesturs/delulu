@@ -70,6 +70,28 @@ export interface FacebookPostDetails {
   permalink_url: string;
 }
 
+export interface FacebookVideoStatus {
+  video_status: string;
+  uploading_phase?: {
+    status: string;
+    bytes_transferred?: number;
+  };
+  processing_phase?: {
+    status: string;
+    error?: {
+      message: string;
+    };
+  };
+  publishing_phase?: {
+    status: string;
+  };
+}
+
+export interface FacebookVideoInitResponse {
+  videoId: string;
+  uploadUrl: string;
+}
+
 export interface ThreadsMediaContainer {
   id: string;
 }
@@ -91,10 +113,28 @@ export interface YouTubeVideoUploadResponse {
     description: string;
     tags?: string[];
     categoryId: string;
+    defaultLanguage?: string;
+    defaultAudioLanguage?: string;
   };
   status: {
     uploadStatus: string;
     privacyStatus: string;
+    license: string;
+    embeddable: boolean;
+    publicStatsViewable: boolean;
+  };
+}
+
+export interface YouTubeVideoMetadata {
+  snippet: {
+    title: string;
+    description: string;
+    tags?: string[];
+    categoryId: string;
+    defaultLanguage?: string;
+  };
+  status: {
+    privacyStatus: 'public' | 'private' | 'unlisted';
   };
 }
 

@@ -1,11 +1,21 @@
 import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
+import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 
+import type { 
+  FacebookProfile, 
+  PostContent, 
+  PostPublishResult,
+  FacebookMediaUploadResponse,
+  FacebookPostResponse,
+  FacebookPostDetails,
+  FacebookVideoStatus,
+  FacebookVideoInitResponse
+} from './common-types';
 import {
   FacebookError,
   InvalidMediaError,
@@ -18,50 +28,6 @@ import {
   createAPIError,
 } from './errors';
 import type { SocialProvider } from './types';
-
-// Types
-interface FacebookProfile {
-  id: string;
-  profileId: string;
-  accessToken: string;
-}
-
-interface FacebookMediaUploadResponse {
-  id: string;
-  upload_url?: string;
-}
-
-interface FacebookPostResponse {
-  id: string;
-  post_id?: string;
-}
-
-interface FacebookPostDetails {
-  id: string;
-  permalink_url: string;
-}
-
-interface FacebookVideoStatus {
-  video_status: string;
-  uploading_phase?: {
-    status: string;
-    bytes_transferred?: number;
-  };
-  processing_phase?: {
-    status: string;
-    error?: {
-      message: string;
-    };
-  };
-  publishing_phase?: {
-    status: string;
-  };
-}
-
-interface FacebookVideoInitResponse {
-  videoId: string;
-  uploadUrl: string;
-}
 
 // Pure functions for data transformation
 const createPhotoUploadParams = (
@@ -325,12 +291,9 @@ const processVideoMedia = (
 
 // Main publish function - clean composition
 const publishContent = (
-  content: {
-    content: Array<{ text: string; media: MediaType[] }>;
-    postId: string;
-  },
+  content: { content: PostContent[]; postId: string },
   profile: FacebookProfile
-): ResultAsync<PostReturnType, SocialProviderError> => {
+): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
   if (!firstContent) {
     return errAsync(new InvalidMediaError('Facebook', 'No content to publish'));

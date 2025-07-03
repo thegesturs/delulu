@@ -1,56 +1,23 @@
 import { database } from '@delulu/database';
-import type { PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ok, err, errAsync, ResultAsync } from 'neverthrow';
 
 import type { SocialProvider } from './types';
+import type { 
+  BaseProviderProfile as YouTubeProfile,
+  PostContent,
+  PostPublishResult,
+  YouTubeVideoUploadResponse,
+  YouTubeVideoMetadata
+} from './common-types';
 import {
   ProfileNotFoundError,
   InvalidMediaError,
-
   createAPIError,
   type SocialProviderError,
   YouTubeError,
 } from './errors';
-
-// Types
-interface YouTubeProfile {
-  id: string;
-  accessToken: string;
-}
-
-interface YouTubeVideoUploadResponse {
-  id: string;
-  snippet: {
-    title: string;
-    description: string;
-    tags?: string[];
-    categoryId: string;
-    defaultLanguage?: string;
-    defaultAudioLanguage?: string;
-  };
-  status: {
-    uploadStatus: string;
-    privacyStatus: string;
-    license: string;
-    embeddable: boolean;
-    publicStatsViewable: boolean;
-  };
-}
-
-interface YouTubeVideoMetadata {
-  snippet: {
-    title: string;
-    description: string;
-    tags?: string[];
-    categoryId: string;
-    defaultLanguage?: string;
-  };
-  status: {
-    privacyStatus: 'public' | 'private' | 'unlisted';
-  };
-}
 
 // Profile management
 const getProfile = (socialProviderId: string): ResultAsync<YouTubeProfile, SocialProviderError> =>
@@ -117,9 +84,9 @@ const uploadVideoToYouTube = (
 
 // Main publish function
 const publishContent = (
-  content: { content: Array<{ text: string; media: any[]; tags?: string[] }>; postId: string },
+  content: { content: PostContent[]; postId: string },
   profile: YouTubeProfile
-): ResultAsync<PostReturnType, SocialProviderError> => {
+): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
   
   if (!firstContent) {

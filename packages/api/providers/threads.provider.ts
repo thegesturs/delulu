@@ -1,10 +1,18 @@
 import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
+import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
+import type {
+  ThreadsProfile,
+  PostContent,
+  PostPublishResult,
+  ThreadsMediaContainer,
+  ThreadsMediaPublishResponse,
+  ThreadsMediaResponse
+} from './common-types';
 import {
   MediaProcessingError,
   MediaProcessingTimeoutError,
@@ -15,27 +23,6 @@ import {
   createAPIError,
 } from './errors';
 import type { SocialProvider } from './types';
-
-// Types
-interface ThreadsProfile {
-  id: string;
-  profileId: string;
-  accessToken: string;
-}
-
-interface ThreadsMediaContainer {
-  id: string;
-}
-
-interface ThreadsMediaPublishResponse {
-  id: string;
-}
-
-interface ThreadsMediaResponse {
-  id: string;
-  permalink: string;
-  link_attachment_url?: string;
-}
 
 // Profile management
 const getProfile = (
@@ -212,7 +199,7 @@ const getPostDetails = (
 
 // Process single post content
 const processPostContent = (
-  post: { text: string; media: MediaType[]; order: number },
+  post: PostContent,
   profile: ThreadsProfile,
   replyToId?: string
 ): ResultAsync<string, SocialProviderError> => {
@@ -249,12 +236,9 @@ const processPostContent = (
 
 // Main publish function
 const publishContent = (
-  content: {
-    content: Array<{ text: string; media: MediaType[]; order: number }>;
-    postId: string;
-  },
+  content: { content: PostContent[]; postId: string },
   profile: ThreadsProfile
-): ResultAsync<PostReturnType, SocialProviderError> => {
+): ResultAsync<PostPublishResult, SocialProviderError> => {
   const posts = content.content.sort((a, b) => a.order - b.order);
 
   if (posts.length === 0) {
