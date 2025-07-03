@@ -125,27 +125,30 @@ async function initializeVideoUpload(
 }
 
 async function uploadVideoContent(
-  uploadUrl: string,
+  videoId: string,
   videoUrl: string,
   accessToken: string
 ): Promise<void> {
-  console.log('🎥 Starting video content upload...', { videoUrl });
+  console.log('🎥 Starting video content upload...', { videoUrl, videoId });
   try {
-    // First, get the video file size
-    console.log('🎥 Getting video file size...');
-    const fileResponse = await axios.head(videoUrl);
-    const fileSize = fileResponse.headers['content-length'];
-    console.log('🎥 Video file size:', fileSize);
+    // Use the correct rupload endpoint with video ID
+    const uploadEndpoint = `https://rupload.facebook.com/video-upload/v23.0/${videoId}`;
 
-    // Upload using the file URL
-    console.log('🎥 Uploading video content...');
-    await axios.post(uploadUrl, null, {
+    console.log('🎥 Uploading video content to:', uploadEndpoint);
+    const response = await axios.post(uploadEndpoint, null, {
       headers: {
         Authorization: `OAuth ${accessToken}`,
         file_url: videoUrl,
       },
     });
-    console.log('🎥 Video content upload completed');
+
+    console.log('🎥 Video content upload response:', response.data);
+
+    if (!response.data.success) {
+      throw new Error('Video upload failed - no success response');
+    }
+
+    console.log('🎥 Video content upload completed successfully');
   } catch (error) {
     console.error('🚨 Error uploading video content:', error);
     if (axios.isAxiosError(error) && error.response?.data) {
@@ -371,12 +374,8 @@ export const facebookProvider: SocialProvider = {
             console.log('🎥 Video upload initialized:', { videoId });
 
             // Upload the video content
-            console.log('🎥 Uploading video content to:', uploadUrl);
-            await uploadVideoContent(
-              uploadUrl,
-              media.url!,
-              profile.accessToken
-            );
+            console.log('🎥 Uploading video content for video ID:', videoId);
+            await uploadVideoContent(videoId, media.url!, profile.accessToken);
             console.log('🎥 Video content uploaded successfully');
 
             // Poll for video status
@@ -396,16 +395,8 @@ export const facebookProvider: SocialProvider = {
                 status.video_status === 'ready' ||
                 status.video_status === 'published'
               ) {
-                // Publish the video
-                console.log('🎥 Video ready, publishing...');
-                await publishVideo(
-                  profile,
-                  videoId,
-                  firstContent.text,
-                  isReel,
-                  false
-                );
-                console.log('🎥 Video published successfully');
+                // Video is ready - just add to media IDs, no need to publish again
+                console.log('🎥 Video is ready and already published as reel');
                 mediaIds.push(videoId);
                 break;
               }
@@ -462,7 +453,23 @@ export const facebookProvider: SocialProvider = {
         }
       }
 
-      // Create the post with media (if any were successfully uploaded)
+      // Check if we have reels (videos) - reels are standalone and don't need feed posts
+      const hasReels = validMedia.some((media) => media.mediaType === 'VIDEO');
+
+      if (hasReels && mediaIds.length > 0) {
+        // Reels are already published, return reel info
+        console.log(
+          '🎥 Reel published successfully, no additional feed post needed'
+        );
+        return {
+          platformPostId: mediaIds[0], // Use the video/reel ID
+          postId: content.postId,
+          platformId: profile.id,
+          platformPostUrl: `https://www.facebook.com/${profile.profileId}/videos/${mediaIds[0]}`,
+          postedAt: new Date(),
+        };
+      }
+      // Create regular feed post for photos/text only
       console.log('📝 Creating feed post with media IDs:', mediaIds);
       const postResponse = await createFeedPost(
         profile,
