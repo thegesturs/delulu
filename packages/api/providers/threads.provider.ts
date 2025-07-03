@@ -6,6 +6,18 @@ import axios from 'axios';
 import { type Result, ResultAsync, err, fromPromise, ok } from 'neverthrow';
 
 import type { SocialProvider } from './types';
+import {
+  ProfileNotFoundError,
+  InvalidMediaError,
+  MediaUploadError,
+  MediaProcessingError,
+  MediaProcessingTimeoutError,
+  PublishError,
+  NoContentError,
+  createAPIError,
+  type SocialProviderError,
+  ThreadsError,
+} from './errors';
 
 interface ThreadsMediaContainer {
   id: string;
@@ -227,7 +239,7 @@ export const threadsProvider: SocialProvider = {
         }
 
         const itemContainerIds = itemResults.value.map(
-          (container) => container._unsafeUnwrap().id
+          (container) => container.id
         );
         const carouselResult = await createCarouselContainer(
           itemContainerIds,

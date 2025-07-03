@@ -3,13 +3,14 @@ import type {
   SocialPublishInputType,
 } from '@delulu/validators/post';
 import type { Result } from 'neverthrow';
+import type { SocialProviderError } from './errors';
 
 export type SocialProvider = {
   publish: (input: {
     content: SocialPublishInputType;
     socialProviderId: string;
-  }) => Promise<Result<PostReturnType, Error>>;
-  connectUrl: () => Promise<Result<string, Error>> | Result<string, Error>;
+  }) => Promise<Result<PostReturnType, SocialProviderError>>;
+  connectUrl: () => Promise<Result<string, SocialProviderError>> | Result<string, SocialProviderError>;
   //   connect: (input: ConnectInput) => Promise<ConnectResult>;
   //   reconnect: (input: ConnectInput) => Promise<ConnectResult>;
 };
