@@ -154,7 +154,7 @@ const getMediaDetails = (
   accessToken: string
 ): ResultAsync<InstagramMediaResponse, SocialProviderError> => {
   return ResultAsync.fromPromise(
-      axios.get(`https://graph.facebook.com/v23.0/${mediaId}`, {
+    axios.get(`https://graph.facebook.com/v23.0/${mediaId}`, {
       params: {
         fields: 'id,permalink',
         access_token: accessToken,
@@ -271,18 +271,19 @@ export const instagramProvider: SocialProvider = {
 
   connectUrl: () => {
     const params = new URLSearchParams({
-      client_id: keys().FACEBOOK_CLIENT_ID,
+      client_id: keys().INSTAGRAM_CLIENT_ID,
       redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
       response_type: 'code',
       scope: [
-        'instagram_basic',
-        'instagram_content_publish',
-        'pages_show_list',
-        'pages_read_engagement',
+        'instagram_business_basic',
+        'instagram_business_manage_messages',
+        'instagram_business_manage_comments',
+        'instagram_business_content_publish',
+        'instagram_business_manage_insights',
       ].join(','),
       state: nanoid(),
     });
 
-    return ok(`https://www.facebook.com/dialog/oauth?${params.toString()}`);
+    return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   },
 };

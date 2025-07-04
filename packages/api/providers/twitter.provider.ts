@@ -6,14 +6,7 @@ import {
   getValidMediaUrls,
 } from '@delulu/validators/post';
 import axios from 'axios';
-import {
-  type Result,
-  ResultAsync,
-  err,
-  errAsync,
-  ok,
-  okAsync,
-} from 'neverthrow';
+import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 import { Client, auth } from 'twitter-api-sdk';
 import type { PostContent, PostPublishResult } from './common-types';
 import {
@@ -584,7 +577,7 @@ const publishTwitterThread = (
 /**
  * Generate Twitter OAuth URL
  */
-const generateConnectUrl = (): Result<string, SocialProviderError> => {
+const generateConnectUrl = (): string => {
   try {
     const authClient = new auth.OAuth2User({
       client_id: keys().TWITTER_CLIENT_ID,
@@ -599,9 +592,9 @@ const generateConnectUrl = (): Result<string, SocialProviderError> => {
       code_challenge: 'challenge',
     });
 
-    return ok(url);
+    return url;
   } catch {
-    return err(new TwitterError('Failed to generate OAuth URL'));
+    throw new TwitterError('Failed to generate OAuth URL');
   }
 };
 

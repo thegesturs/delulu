@@ -134,6 +134,6 @@ export const tiktokProvider: SocialProvider = {
       state: nanoid(10),
     });
 
-    return ok(`https://www.tiktok.com/auth/authorize/?${params.toString()}`);
+    return `https://www.tiktok.com/auth/authorize/?${params.toString()}`;
   },
 };

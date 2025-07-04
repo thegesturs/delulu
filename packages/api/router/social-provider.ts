@@ -36,7 +36,9 @@ export const socialProviderRouter = {
       })
     )
     .mutation(({ input }) => {
-      return providerRegistry[input.provider].connectUrl();
+      const link = providerRegistry[input.provider].connectUrl()
+      
+      return link;
     }),
 
   getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {

@@ -16,11 +16,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@delulu/design-system/components/ui/tooltip';
+import { socialIcons } from '@delulu/design-system/lib/social-config';
 import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import { FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
 import { toast } from 'sonner';
 import DeletePostAlert from '../alerts/delete-post';
 import { PostPreviewDialog } from './post-preview-dialog';
@@ -30,12 +30,6 @@ interface PostCardProps {
   post: Post;
   layout?: PostLayout;
 }
-
-const socialIcons = {
-  TWITTER: FaTwitter,
-  LINKEDIN: FaLinkedin,
-  INSTAGRAM: FaInstagram,
-} as const;
 
 export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);

@@ -166,6 +166,6 @@ export const pinterestProvider: SocialProvider = {
       state: nanoid(),
     });
 
-    return ok(`https://www.pinterest.com/oauth/?${params.toString()}`);
+    return `https://www.pinterest.com/oauth/?${params.toString()}`;
   },
 };

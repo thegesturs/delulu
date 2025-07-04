@@ -316,6 +316,6 @@ export const threadsProvider: SocialProvider = {
       ].join(','),
     });
 
-    return ok(`https://threads.net/oauth/authorize?${params.toString()}`);
+    return `https://threads.net/oauth/authorize?${params.toString()}`;
   },
 };

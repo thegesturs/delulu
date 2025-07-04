@@ -115,6 +115,6 @@ export const farcasterProvider: SocialProvider = {
   connectUrl: () => {
     // Farcaster uses a different auth flow through Warpcast
     // This would typically redirect to Warpcast for signer approval
-    return ok('https://warpcast.com/~/developers/signed-key-requests');
+    return 'https://warpcast.com/~/developers/signed-key-requests';
   },
 };

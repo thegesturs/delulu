@@ -10,7 +10,7 @@ export type SocialProvider = {
     content: SocialPublishInputType;
     socialProviderId: string;
   }) => Promise<Result<PostReturnType, SocialProviderError>>;
-  connectUrl: () => Promise<Result<string, SocialProviderError>> | Result<string, SocialProviderError>;
+  connectUrl: () => string;
   //   connect: (input: ConnectInput) => Promise<ConnectResult>;
   //   reconnect: (input: ConnectInput) => Promise<ConnectResult>;
 };

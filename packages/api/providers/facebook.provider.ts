@@ -367,7 +367,6 @@ export const facebookProvider: SocialProvider = {
         'pages_show_list',
         'pages_manage_posts',
         'pages_read_engagement',
-        'pages_read_user_engagement',
         'business_management',
         'pages_manage_metadata',
         'publish_video',
@@ -379,6 +378,6 @@ export const facebookProvider: SocialProvider = {
       state: JSON.stringify({ state: nanoid(10) }),
     });
 
-    return ok(`https://www.facebook.com/dialog/oauth?${params.toString()}`);
+    return `https://www.facebook.com/dialog/oauth?${params.toString()}`;
   },
 };
