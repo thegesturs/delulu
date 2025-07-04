@@ -17,6 +17,13 @@ interface ThreadsLongLivedTokenResponse {
   expires_in: number;
 }
 
+interface ThreadsUser {
+  id: string;
+  username: string;
+  name: string;
+  threads_profile_picture_url: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -77,12 +84,6 @@ export async function GET(request: NextRequest) {
     );
 
     if (!tokenResponse.ok) {
-      console.error(
-        env.THREADS_CLIENT_ID,
-        env.THREADS_CLIENT_SECRET,
-        'Threads token exchange failed:',
-        await tokenResponse.text()
-      );
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userObject = await userResponse.json();
+    const userObject = (await userResponse.json()) as ThreadsUser;
 
     // Check if this Threads account is already connected to a different user
     const existingProvider = await database

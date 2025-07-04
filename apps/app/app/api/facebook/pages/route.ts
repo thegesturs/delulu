@@ -1,3 +1,4 @@
+import { decryptData } from '@delulu/auth/encrypt';
 import { auth } from '@delulu/auth/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
@@ -27,13 +28,15 @@ export async function GET(request: NextRequest) {
       async: true,
     });
 
-    const pagesData = await env.DELULU_FACEBOOK_PAGES.get(key);
+    const encryptedData = await env.DELULU_FACEBOOK_PAGES.get(key);
 
-    if (!pagesData) {
+    if (!encryptedData) {
       return new NextResponse(null, { status: 404 });
     }
 
-    return NextResponse.json(JSON.parse(pagesData));
+    // Decrypt the data before returning
+    const decryptedData = await decryptData(encryptedData);
+    return NextResponse.json(JSON.parse(decryptedData));
   } catch (error) {
     console.error('Error fetching Facebook pages:', error);
     return new NextResponse(null, { status: 500 });

@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
+import { encryptData } from '@delulu/auth/encrypt';
 import { auth } from '@delulu/auth/server';
-import {} from '@delulu/database';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -216,7 +216,10 @@ export async function GET(request: NextRequest) {
       const { env } = await getCloudflareContext({
         async: true,
       });
-      await env.DELULU_FACEBOOK_PAGES.put(key, JSON.stringify(allPages), {
+
+      // Encrypt the pages data before storing
+      const encryptedData = await encryptData(JSON.stringify(allPages));
+      await env.DELULU_FACEBOOK_PAGES.put(key, encryptedData, {
         expirationTtl: 300, // 5 minutes in seconds
       });
 
