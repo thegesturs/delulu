@@ -4,7 +4,14 @@ import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { nanoid } from 'nanoid';
-import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
+import {
+  type Result,
+  ResultAsync,
+  err,
+  errAsync,
+  ok,
+  okAsync,
+} from 'neverthrow';
 
 import type {
   FacebookMediaUploadResponse,
@@ -186,14 +193,16 @@ const waitForVideoProcessing = (
   maxAttempts = 30,
   interval = 10000
 ): ResultAsync<void, SocialProviderError> => {
-  const poll = async (attempts: number): Promise<void> => {
+  const poll = async (
+    attempts: number
+  ): Promise<Result<void, SocialProviderError>> => {
     if (attempts >= maxAttempts) {
-      throw new MediaProcessingTimeoutError('Facebook');
+      return err(new MediaProcessingTimeoutError('Facebook'));
     }
 
     const statusResult = await checkVideoStatus(videoId, accessToken);
     if (statusResult.isErr()) {
-      throw statusResult.error;
+      return err(statusResult.error);
     }
 
     const status = statusResult.value;
@@ -202,13 +211,15 @@ const waitForVideoProcessing = (
       status.video_status === 'ready' ||
       status.video_status === 'published'
     ) {
-      return;
+      return ok(undefined);
     }
 
     if (status.processing_phase?.error) {
-      throw new MediaProcessingError(
-        'Facebook',
-        status.processing_phase.error.message
+      return err(
+        new MediaProcessingError(
+          'Facebook',
+          status.processing_phase.error.message
+        )
       );
     }
 
@@ -219,7 +230,12 @@ const waitForVideoProcessing = (
   return ResultAsync.fromPromise(
     poll(0),
     (error) => error as SocialProviderError
-  );
+  ).andThen((result) => {
+    if (result.isErr()) {
+      return errAsync(result.error);
+    }
+    return ok(undefined);
+  });
 };
 
 // Post creation
