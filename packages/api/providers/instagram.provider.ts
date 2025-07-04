@@ -13,6 +13,8 @@ import type {
 import {
   InstagramError,
   InvalidMediaError,
+  MediaProcessingError,
+  MediaProcessingTimeoutError,
   ProfileNotFoundError,
   type SocialProviderError,
   createAPIError,
@@ -23,6 +25,14 @@ import type { SocialProvider } from './types';
 interface InstagramMediaContainer {
   id: string;
   status_code?: string;
+}
+
+interface InstagramContainerStatus {
+  id: string;
+  status_code: 'IN_PROGRESS' | 'FINISHED' | 'ERROR';
+  error?: {
+    message: string;
+  };
 }
 
 interface InstagramMediaPublishResponse {
@@ -78,6 +88,8 @@ const createSingleMediaContainer = (
   if (media.mediaType === 'VIDEO') {
     params.append('media_type', 'REELS');
     params.append('video_url', media.url);
+    // Add share_to_feed parameter for REELS
+    params.append('share_to_feed', 'true');
   } else {
     params.append('image_url', media.url);
   }
@@ -148,6 +160,74 @@ const publishMediaContainer = (
     axios.post(`${endpoint}?${params.toString()}`),
     (error: unknown) => createAPIError('Instagram', error)
   ).map((response) => response.data);
+};
+
+// Check container status
+const checkContainerStatus = (
+  containerId: string,
+  accessToken: string
+): ResultAsync<InstagramContainerStatus, SocialProviderError> => {
+  return ResultAsync.fromPromise(
+    axios.get(`https://graph.instagram.com/v23.0/${containerId}`, {
+      params: {
+        fields: 'id,status_code',
+        access_token: accessToken,
+      },
+    }),
+    (error: unknown) => createAPIError('Instagram', error)
+  ).map((response) => response.data);
+};
+
+// Wait for container processing to complete
+const waitForContainerProcessing = (
+  containerId: string,
+  accessToken: string,
+  maxAttempts = 30,
+  interval = 10000
+): ResultAsync<void, SocialProviderError> => {
+  const poll = async (attempts: number): Promise<void> => {
+    if (attempts >= maxAttempts) {
+      throw new MediaProcessingTimeoutError('Instagram');
+    }
+
+    const statusResult = await checkContainerStatus(containerId, accessToken);
+    if (statusResult.isErr()) {
+      throw statusResult.error;
+    }
+
+    const status = statusResult.value;
+
+    if (status.status_code === 'FINISHED') {
+      return;
+    }
+
+    if (status.status_code === 'ERROR') {
+      throw new MediaProcessingError(
+        'Instagram',
+        status.error?.message || 'Container processing failed'
+      );
+    }
+
+    if (status.status_code === 'IN_PROGRESS') {
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      return poll(attempts + 1);
+    }
+  };
+
+  return ResultAsync.fromPromise(poll(0), (error: unknown) => {
+    if (
+      error instanceof MediaProcessingTimeoutError ||
+      error instanceof MediaProcessingError
+    ) {
+      return error;
+    }
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown polling error';
+    return new MediaProcessingError(
+      'Instagram',
+      `Container processing failed: ${errorMessage}`
+    );
+  });
 };
 
 // Get published media details
@@ -246,6 +326,12 @@ const publishContent = (
   }
 
   return containerPromise
+    .andThen((container) => {
+      // Wait for container processing to complete before publishing
+      return waitForContainerProcessing(container.id, profile.accessToken).map(
+        () => container
+      );
+    })
     .andThen((container) =>
       publishMediaContainer(container.id, profile.profileId, profile.accessToken)
     )
