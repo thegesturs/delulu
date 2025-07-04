@@ -12,13 +12,13 @@
   "dependencies": {
     "@react-email/components": "0.0.36",
     "@delulu/email": "workspace:*",
-    "react": "19.1.0",
+    "react": "catalog:react19",
     "react-email": "4.0.7"
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
-    "@types/react": "19.1.1",
+    "@types/react": "catalog:react19",
     "next": "15.3.0",
     "typescript": "^5.8.3"
   }

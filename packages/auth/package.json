@@ -23,8 +23,8 @@
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
-    "@types/react": "19.1.1",
-    "@types/react-dom": "^19.1.2",
+    "@types/react": "catalog:react19",
+    "@types/react-dom": "catalog:react19",
     "drizzle-kit": "0.31.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"

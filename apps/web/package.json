@@ -42,7 +42,7 @@
     "mdx-bundler": "^10.1.1",
     "motion": "^12.15.0",
     "next": "15.3.0",
-    "react": "19.1.0",
+    "react": "catalog:react19",
     "react-dom": "19.1.0",
     "react-icons": "catalog:",
     "react-intl": "^7.1.11",

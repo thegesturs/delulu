@@ -28,7 +28,7 @@
     "drizzle-kit": "0.31.2",
     "drizzle-orm": "0.44.2",
     "drizzle-zod": "^0.5.1",
-    "react": "^19.1.0",
+    "react": "catalog:react19",
     "server-only": "^0.0.1",
     "undici": "^7.8.0",
     "ws": "^8.18.1",
@@ -37,7 +37,7 @@
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
-    "@types/react": "^19.1.5",
+    "@types/react": "catalog:react19",
     "@types/ws": "^8.18.1",
     "bufferutil": "^4.0.9",
     "nanoid": "^5.1.5",
