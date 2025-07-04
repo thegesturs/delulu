@@ -68,7 +68,7 @@ const createSingleMediaContainer = (
     );
   }
 
-  const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
+  const endpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
 
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -84,7 +84,7 @@ const createSingleMediaContainer = (
 
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    (error) => createAPIError('Instagram', error)
+    (error: unknown) => createAPIError('Instagram', error)
   ).map((response) => response.data);
 };
 
@@ -101,7 +101,7 @@ const createCarouselContainer = (
   > => {
     return ResultAsync.combine(
       mediaUrls.map((url) => {
-        const itemEndpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
+        const itemEndpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
         const itemParams = new URLSearchParams({
           image_url: url,
           is_carousel_item: 'true',
@@ -110,14 +110,14 @@ const createCarouselContainer = (
 
         return ResultAsync.fromPromise(
           axios.post(`${itemEndpoint}?${itemParams.toString()}`),
-          (error) => createAPIError('Instagram', error)
+          (error: unknown) => createAPIError('Instagram', error)
         ).map((response) => response.data.id);
       })
     );
   };
 
   return createCarouselItems().andThen((mediaIds) => {
-    const carouselEndpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
+    const carouselEndpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
     const carouselParams = new URLSearchParams({
       media_type: 'CAROUSEL',
       children: mediaIds.join(','),
@@ -127,7 +127,7 @@ const createCarouselContainer = (
 
     return ResultAsync.fromPromise(
       axios.post(`${carouselEndpoint}?${carouselParams.toString()}`),
-      (error) => createAPIError('Instagram', error)
+      (error: unknown) => createAPIError('Instagram', error)
     ).map((response) => response.data);
   });
 };
@@ -135,16 +135,18 @@ const createCarouselContainer = (
 // Publish media container
 const publishMediaContainer = (
   containerId: string,
+  profileId: string,
   accessToken: string
 ): ResultAsync<InstagramMediaPublishResponse, SocialProviderError> => {
-  const endpoint = `https://graph.facebook.com/v23.0/${containerId}/publish`;
+  const endpoint = `https://graph.instagram.com/v23.0/${profileId}/media_publish`;
   const params = new URLSearchParams({
+    creation_id: containerId,
     access_token: accessToken,
   });
 
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    (error) => createAPIError('Instagram', error)
+    (error: unknown) => createAPIError('Instagram', error)
   ).map((response) => response.data);
 };
 
@@ -154,13 +156,13 @@ const getMediaDetails = (
   accessToken: string
 ): ResultAsync<InstagramMediaResponse, SocialProviderError> => {
   return ResultAsync.fromPromise(
-    axios.get(`https://graph.facebook.com/v23.0/${mediaId}`, {
+    axios.get(`https://graph.instagram.com/v23.0/${mediaId}`, {
       params: {
         fields: 'id,permalink',
         access_token: accessToken,
       },
     }),
-    (error) => createAPIError('Instagram', error)
+    (error: unknown) => createAPIError('Instagram', error)
   ).map((response) => response.data);
 };
 
@@ -245,7 +247,7 @@ const publishContent = (
 
   return containerPromise
     .andThen((container) =>
-      publishMediaContainer(container.id, profile.accessToken)
+      publishMediaContainer(container.id, profile.profileId, profile.accessToken)
     )
     .andThen((publishResponse) =>
       getMediaDetails(publishResponse.id, profile.accessToken).map(
