@@ -1,6 +1,5 @@
 import { keys } from '@delulu/api/keys';
 import { socialQueries } from '@delulu/database';
-import type {} from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -38,20 +37,7 @@ const getProfile = (
     socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new LinkedInError('Database query failed')
   ).andThen((profile) => {
-    console.log('LinkedIn: Raw profile data from DB:', {
-      id: profile?.id,
-      profileId: profile?.profileId,
-      hasAccessToken: !!profile?.accessToken,
-      socialType: profile?.socialType,
-      username: profile?.username,
-      fullName: profile?.fullName,
-    });
-
     if (!profile?.accessToken || !profile.profileId) {
-      console.error('LinkedIn: Missing required profile data', {
-        hasAccessToken: !!profile?.accessToken,
-        hasProfileId: !!profile?.profileId,
-      });
       return err(new ProfileNotFoundError('LinkedIn'));
     }
 
@@ -60,12 +46,6 @@ const getProfile = (
       accessToken: profile.accessToken,
       profileId: profile.profileId,
     };
-
-    console.log('LinkedIn: Extracted profile for API:', {
-      id: linkedinProfile.id,
-      profileId: linkedinProfile.profileId,
-      accessTokenLength: linkedinProfile.accessToken.length,
-    });
 
     return ok(linkedinProfile);
   });
@@ -124,26 +104,19 @@ const uploadVideoToLinkedIn = (
   profileId: string,
   accessToken: string
 ): ResultAsync<string, SocialProviderError> => {
-  console.log('LinkedIn: Starting video upload process:', {
-    videoUrl,
-    profileId,
-    accessTokenLength: accessToken.length,
-  });
-
   // Step 1: Download the video as a buffer
   return ResultAsync.fromPromise(
     axios.get(videoUrl, { responseType: 'arraybuffer' }),
-    (error) => {
-      console.error('LinkedIn: Failed to download video:', error);
-      return new InvalidMediaError('LinkedIn', 'Failed to download video');
+    (error: unknown) => {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      return new InvalidMediaError(
+        'LinkedIn',
+        `Failed to download video from ${videoUrl}: ${errorMessage}`
+      );
     }
   ).andThen((response) => {
     const videoBuffer = response.data;
-    console.log(
-      'LinkedIn: Video downloaded, size:',
-      videoBuffer.length,
-      'bytes'
-    );
 
     // Step 2: Register upload with LinkedIn
     const initializeRequest = {
@@ -154,11 +127,6 @@ const uploadVideoToLinkedIn = (
         uploadThumbnail: false,
       },
     };
-
-    console.log(
-      'LinkedIn: Initializing video upload with request:',
-      JSON.stringify(initializeRequest, null, 2)
-    );
 
     return ResultAsync.fromPromise(
       axios.post(
@@ -193,7 +161,7 @@ const uploadVideoToLinkedIn = (
             'Content-Type': 'application/octet-stream',
           },
         }),
-        (error) => {
+        () => {
           return new MediaUploadError('LinkedIn', 'VIDEO');
         }
       ).andThen((uploadResponse) => {
@@ -220,10 +188,10 @@ const uploadVideoToLinkedIn = (
               },
             }
           ),
-          (error) => {
+          (error: unknown) => {
             return createAPIError('LinkedIn', error);
           }
-        ).map((finalizeResponse) => {
+        ).map(() => {
           return assetUrn;
         });
       });
@@ -249,7 +217,7 @@ const checkVideoProcessingStatus = (
         'X-Restli-Protocol-Version': '2.0.0',
       },
     }),
-    (error) => {
+    (error: unknown) => {
       return createAPIError('LinkedIn', error);
     }
   ).map((response) => {
@@ -281,7 +249,6 @@ const waitForVideoProcessing = (
     const status = statusResult.value;
 
     if (status === 'AVAILABLE') {
-      console.log('LinkedIn: Video processing completed successfully');
       return;
     }
 
@@ -290,18 +257,25 @@ const waitForVideoProcessing = (
     }
 
     if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
-      console.log(
-        `LinkedIn: Video still processing (${status}), waiting ${interval}ms...`
-      );
       await new Promise((resolve) => setTimeout(resolve, interval));
       return poll(attempts + 1);
     }
   };
 
-  return ResultAsync.fromPromise(
-    poll(0),
-    (error) => error as SocialProviderError
-  );
+  return ResultAsync.fromPromise(poll(0), (error: unknown) => {
+    if (
+      error instanceof MediaProcessingTimeoutError ||
+      error instanceof MediaProcessingError
+    ) {
+      return error;
+    }
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown polling error';
+    return new MediaProcessingError(
+      'LinkedIn',
+      `Video processing failed: ${errorMessage}`
+    );
+  });
 };
 
 // Helper: Build LinkedIn post data for any media type
@@ -413,14 +387,6 @@ const createAndPublishPost = (
     contentType
   );
 
-  console.log('LinkedIn: About to post with data:', {
-    authorUrn,
-    contentType,
-    textLength: text.length,
-    mediaCount: mediaAssets.length,
-    postData: JSON.stringify(postData, null, 2),
-  });
-
   return ResultAsync.fromPromise(
     axios.post('https://api.linkedin.com/rest/posts', postData, {
       headers: {
@@ -430,23 +396,12 @@ const createAndPublishPost = (
         'LinkedIn-Version': '202501',
       },
     }),
-    (error) => {
-      console.error('LinkedIn: API Error Details:', {
-        error,
-      });
+    (error: unknown) => {
       return createAPIError('LinkedIn', error);
     }
   ).map((response) => {
-    console.log('LinkedIn: API Success Response:', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-
     // The new API returns the post ID in the x-restli-id header
     const postId = response.headers['x-restli-id'] || response.data?.id;
-
-    console.log('LinkedIn: Extracted post ID:', postId);
 
     return { id: postId };
   });
@@ -458,26 +413,11 @@ const publishContent = (
   profile: LinkedInProfile,
   isOrg?: boolean
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
-  console.log('LinkedIn: Publishing content:', {
-    postId: content.postId,
-    contentCount: content.content.length,
-    profileId: profile.profileId,
-    isOrg: !!isOrg,
-  });
-
   const firstContent = content.content[0];
 
   if (!firstContent) {
-    console.error('LinkedIn: No content to publish');
     return errAsync(new InvalidMediaError('LinkedIn', 'No content to publish'));
   }
-
-  console.log('LinkedIn: First content item:', {
-    textLength: firstContent.text.length,
-    mediaCount: firstContent.media.length,
-    text: firstContent.text.substring(0, 100) + '...',
-    mediaTypes: firstContent.media.map((m) => m.mediaType),
-  });
 
   const validMedia = getValidMediaUrls(firstContent.media);
   const imageMedia = validMedia.filter(
@@ -487,35 +427,17 @@ const publishContent = (
     (media) => media.mediaType === 'VIDEO' && media.url
   );
 
-  console.log('LinkedIn: Media processing:', {
-    totalMedia: firstContent.media.length,
-    validMedia: validMedia.length,
-    imageMedia: imageMedia.length,
-    videoMedia: videoMedia.length,
-    videoUrls: videoMedia.map((v) => v.url),
-  });
-
   let uploadPromise: ResultAsync<LinkedInMediaAsset[], SocialProviderError>;
 
   if (videoMedia.length > 0) {
     // Only support one video per post for now
     const video = videoMedia[0];
-    console.log('LinkedIn: Uploading video:', {
-      videoUrl: video.url,
-      altText: video.altText,
-      profileId: profile.profileId,
-    });
 
     uploadPromise = uploadVideoToLinkedIn(
       video.url!,
       profile.profileId,
       profile.accessToken
     ).andThen((assetUrn) => {
-      console.log(
-        'LinkedIn: Video upload successful, waiting for processing:',
-        assetUrn
-      );
-
       // Wait for video processing to complete before proceeding
       return waitForVideoProcessing(assetUrn, profile.accessToken).map(() => [
         {
