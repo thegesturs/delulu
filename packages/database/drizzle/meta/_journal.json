@@ -36,6 +36,13 @@
       "when": 1751305746978,
       "tag": "0004_hot_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1751625439927,
+      "tag": "0005_melodic_nightshade",
+      "breakpoints": true
     }
   ]
 }
