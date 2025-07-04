@@ -44,17 +44,19 @@ export const noseconeOptions: NoseconeOptions = {
         'https://media.licdn.com',
         // GitHub
         'https://avatars.githubusercontent.com',
-        // Instagram
+        // Instagram CDN - specific subdomain patterns
         'https://scontent.cdninstagram.com',
-        // Facebook
-        'https://*.fna.fbcdn.net',
-        // 'https://graph.facebook.com/104342151909645',
-        // 'https://graph.facebook.com/103236081716810/picture?type=large',
-        'https://graph.facebook.com/',
+        'https://scontent-*.cdninstagram.com',
+        // Facebook Graph API - restricted to specific endpoints
+        'https://graph.facebook.com',
+        // Facebook CDN - specific domains only
+        'https://scontent.fna.fbcdn.net',
+        'https://external.fna.fbcdn.net',
         // Farcaster
         'https://farcaster.xyz',
-        // Threads
-        'https://*.threads.net',
+        // Threads - specific domains only
+        'https://scontent.threads.net',
+        'https://static.threads.net',
       ],
       mediaSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.mediaSrc,
