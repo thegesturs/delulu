@@ -1,5 +1,10 @@
 import { decryptData } from '@delulu/auth/encrypt';
 import { auth } from '@delulu/auth/server';
+import { 
+  FacebookPagesWithTokenSchema,
+  type FacebookPagesWithToken,
+  type FacebookPagesPublic 
+} from '@delulu/validators/facebook';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -34,9 +39,23 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { status: 404 });
     }
 
-    // Decrypt the data before returning
+    // Decrypt the data and validate with proper schema
     const decryptedData = await decryptData(encryptedData);
-    return NextResponse.json(JSON.parse(decryptedData));
+    const rawPages = JSON.parse(decryptedData);
+    
+    // Validate the data structure with Zod schema
+    const pagesValidationResult = FacebookPagesWithTokenSchema.safeParse(rawPages);
+    if (!pagesValidationResult.success) {
+      console.error('Invalid Facebook pages data structure:', pagesValidationResult.error);
+      return new NextResponse(null, { status: 500 });
+    }
+    
+    const pages: FacebookPagesWithToken = pagesValidationResult.data;
+    
+    // Remove access_token from each page before sending to frontend
+    const sanitizedPages: FacebookPagesPublic = pages.map(({ access_token, ...page }) => page);
+    
+    return NextResponse.json(sanitizedPages);
   } catch (error) {
     console.error('Error fetching Facebook pages:', error);
     return new NextResponse(null, { status: 500 });

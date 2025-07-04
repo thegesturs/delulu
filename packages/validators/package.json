@@ -8,6 +8,11 @@
       "import": "./post.ts",
       "require": "./post.ts",
       "types": "./post.ts"
+    },
+    "./facebook": {
+      "import": "./facebook.ts",
+      "require": "./facebook.ts",
+      "types": "./facebook.ts"
     }
   },
   "scripts": {

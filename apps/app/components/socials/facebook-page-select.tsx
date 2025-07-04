@@ -8,6 +8,7 @@ import {
 } from '@delulu/design-system/components/ui/avatar';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
+import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import {
   Dialog,
   DialogContent,
@@ -24,37 +25,15 @@ import { useState } from 'react';
 import { FaFacebookF } from 'react-icons/fa6';
 import { toast } from 'sonner';
 
-interface FacebookPage {
-  id: string;
-  name: string;
-  access_token: string;
-  category: string;
-  picture?: {
-    data: {
-      url: string;
-      width: number;
-      height: number;
-      is_silhouette: boolean;
-    };
-  };
-  cover?: {
-    id: string;
-    source: string;
-    offset_y: number;
-  };
-  link?: string;
-  followers_count?: number;
-  fan_count?: number;
-  verification_status?: string;
-}
-
 interface FacebookPageSelectProps {
-  pages: FacebookPage[];
+  pages: FacebookPagePublic[];
   code: string;
 }
 
 function formatNumber(num?: number): string {
-  if (!num) return '0';
+  if (!num) {
+    return '0';
+  }
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
   }
@@ -97,7 +76,6 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
     connectPage({
       pageId: selectedPage.id,
       pageName: selectedPage.name,
-      pageAccessToken: selectedPage.access_token,
       code,
     });
   };

@@ -1,5 +1,6 @@
 import { createPostInQueue } from '@api/services/post.service';
 // import { createPostInQueue } from '@api/services/post.service';
+import { decryptData } from '@delulu/auth/encrypt';
 import {
   alternatePostContent,
   database,
@@ -9,6 +10,13 @@ import {
   socialQueries,
 } from '@delulu/database';
 import { and, eq, ne } from '@delulu/database';
+import {
+  FacebookPageConnectionSchema,
+  type FacebookPagesWithToken,
+  FacebookPagesWithTokenSchema,
+} from '@delulu/validators/facebook';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
 import {
   type SavePostInputType,
   SocialTypeSchema,
@@ -132,20 +140,66 @@ export const socialProviderRouter = {
       };
     }),
   connectFacebookPage: publicProcedure
-    .input(
-      z.object({
-        pageId: z.string(),
-        pageName: z.string(),
-        pageAccessToken: z.string(),
-        code: z.string(),
-      })
-    )
+    .input(FacebookPageConnectionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.userId;
       if (!userId) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'You must be logged in to connect a Facebook page',
+        });
+      }
+
+      // Securely retrieve the page access token from KV storage
+      let pageAccessToken: string;
+      try {
+        const { env } = await getCloudflareContext({ async: true });
+        const key = `fb-pages-${userId}-${input.code}`;
+
+        // Type assertion for Cloudflare KV namespace
+        const facebookPagesKV = env.DELULU_FACEBOOK_PAGES;
+        const encryptedData = await facebookPagesKV.get(key);
+        if (!encryptedData) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Facebook pages data not found or expired',
+          });
+        }
+
+        const decryptedData = await decryptData(encryptedData);
+        const rawPages = JSON.parse(decryptedData);
+
+        // Validate the data structure with Zod schema
+        const pagesValidationResult =
+          FacebookPagesWithTokenSchema.safeParse(rawPages);
+        if (!pagesValidationResult.success) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Invalid Facebook pages data structure',
+          });
+        }
+
+        const pages: FacebookPagesWithToken = pagesValidationResult.data;
+
+        const selectedPage = pages.find((page) => page.id === input.pageId);
+        if (!selectedPage?.access_token) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Selected Facebook page not found',
+          });
+        }
+
+        pageAccessToken = selectedPage.access_token;
+
+        // Clean up the KV storage entry after retrieving the token
+        await facebookPagesKV.delete(key);
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve Facebook page data',
         });
       }
 
@@ -167,7 +221,7 @@ export const socialProviderRouter = {
           existingProvider[0].id,
           {
             userId,
-            accessToken: input.pageAccessToken,
+            accessToken: pageAccessToken,
             fullName: input.pageName,
             username: input.pageName,
             profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
@@ -188,7 +242,7 @@ export const socialProviderRouter = {
         {
           userId,
           socialType: 'FACEBOOK',
-          accessToken: input.pageAccessToken,
+          accessToken: pageAccessToken,
           profileId: input.pageId,
           username: input.pageName,
           fullName: input.pageName,
@@ -198,7 +252,7 @@ export const socialProviderRouter = {
           expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
         },
         {
-          accessToken: input.pageAccessToken,
+          accessToken: pageAccessToken,
           fullName: input.pageName,
           username: input.pageName,
           profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
