@@ -1,29 +1,39 @@
+import type { IncomingMessage } from 'node:http';
+import https from 'node:https';
+import type { Readable } from 'node:stream';
 import { database } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { ok, err, errAsync, ResultAsync } from 'neverthrow';
+import { google } from 'googleapis';
+import { nanoid } from 'nanoid';
+import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
-import type { SocialProvider } from './types';
-import type { 
-  BaseProviderProfile as YouTubeProfile,
+import type {
   PostContent,
   PostPublishResult,
+  BaseProviderProfile as YouTubeProfile,
+  YouTubeVideoMetadata,
   YouTubeVideoUploadResponse,
-  YouTubeVideoMetadata
 } from './common-types';
 import {
-  ProfileNotFoundError,
   InvalidMediaError,
-  createAPIError,
+  ProfileNotFoundError,
   type SocialProviderError,
   YouTubeError,
+  createAPIError,
 } from './errors';
+import type { SocialProvider } from './types';
+
+// Constants for file size limits (100MB)
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 // Profile management
-const getProfile = (socialProviderId: string): ResultAsync<YouTubeProfile, SocialProviderError> =>
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<YouTubeProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+      where: (socialProviders, { eq }) =>
+        eq(socialProviders.id, socialProviderId),
     }),
     () => new YouTubeError('Database query failed')
   ).andThen((profile) => {
@@ -36,50 +46,111 @@ const getProfile = (socialProviderId: string): ResultAsync<YouTubeProfile, Socia
     });
   });
 
-// Video file download
-const downloadVideoFile = (url: string): ResultAsync<Buffer, SocialProviderError> =>
+// Get video stream from URL
+const getVideoStream = (
+  url: string
+): ResultAsync<Readable, SocialProviderError> =>
   ResultAsync.fromPromise(
-    axios.get(url, { responseType: 'arraybuffer' }),
-    (error) => createAPIError('YouTube', error)
-  ).map(response => Buffer.from(response.data));
+    new Promise<Readable>((resolve, reject) => {
+      https
+        .get(url, (response: IncomingMessage) => {
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to get video stream. Status Code: ${response.statusCode}`
+              )
+            );
+            return;
+          }
 
-// Video upload to YouTube
+          const contentLength = Number.parseInt(
+            response.headers['content-length'] ?? '0',
+            10
+          );
+          if (contentLength > MAX_FILE_SIZE) {
+            reject(
+              new Error(
+                `File size exceeds limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`
+              )
+            );
+            return;
+          }
+
+          resolve(response);
+        })
+        .on('error', reject);
+    }),
+    (error) =>
+      error instanceof Error
+        ? new InvalidMediaError('YouTube', error.message)
+        : createAPIError('YouTube', error)
+  );
+
+// Video upload to YouTube with streaming
 const uploadVideoToYouTube = (
   accessToken: string,
-  videoFile: Buffer,
+  videoStream: Readable,
   metadata: YouTubeVideoMetadata
 ): ResultAsync<YouTubeVideoUploadResponse, SocialProviderError> => {
-  const uploadUrl = 'https://www.googleapis.com/upload/youtube/v3/videos';
-  const params = new URLSearchParams({
-    part: 'snippet,status',
-    uploadType: 'multipart',
-  });
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
 
-  const boundary = '-------314159265358979323846';
-  const metadataJson = JSON.stringify(metadata);
-
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}\r\n`),
-    Buffer.from('Content-Type: application/json; charset=UTF-8\r\n\r\n'),
-    Buffer.from(metadataJson),
-    Buffer.from(`\r\n--${boundary}\r\n`),
-    Buffer.from('Content-Type: video/mp4\r\n\r\n'),
-    videoFile,
-    Buffer.from(`\r\n--${boundary}--\r\n`),
-  ]);
+  const youtube = google.youtube({ version: 'v3', auth });
 
   return ResultAsync.fromPromise(
-    axios.post(`${uploadUrl}?${params}`, body, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': `multipart/related; boundary=${boundary}`,
-        'Content-Length': body.length.toString(),
+    youtube.videos.insert({
+      part: ['snippet', 'status'],
+      requestBody: {
+        snippet: {
+          ...metadata.snippet,
+          tags: metadata.snippet.tags ?? [],
+        },
+        status: {
+          ...metadata.status,
+          madeForKids: false,
+        },
       },
-      maxBodyLength: Number.POSITIVE_INFINITY,
-      maxContentLength: Number.POSITIVE_INFINITY,
+      media: {
+        body: videoStream,
+        mimeType: 'video/mp4',
+      },
     }),
-    (error) => createAPIError('YouTube', error)
-  ).map(response => response.data);
+    (error): SocialProviderError => {
+      if (error instanceof Error && error.message.includes('401')) {
+        return new YouTubeError('Invalid YouTube access token');
+      }
+      return createAPIError('YouTube', error);
+    }
+  ).andThen((response) => {
+    const data = response.data;
+    if (!data.id) {
+      return err(
+        new YouTubeError('Failed to get video ID from YouTube response')
+      );
+    }
+
+    return ok({
+      id: data.id,
+      snippet: {
+        title: data.snippet?.title ?? metadata.snippet.title,
+        description: data.snippet?.description ?? metadata.snippet.description,
+        tags: data.snippet?.tags ?? metadata.snippet.tags ?? [],
+        categoryId: data.snippet?.categoryId ?? metadata.snippet.categoryId,
+        defaultLanguage:
+          data.snippet?.defaultLanguage ?? metadata.snippet.defaultLanguage,
+        defaultAudioLanguage:
+          data.snippet?.defaultLanguage ?? metadata.snippet.defaultLanguage,
+      },
+      status: {
+        uploadStatus: 'processed', // YouTube API doesn't return this directly
+        privacyStatus:
+          data.status?.privacyStatus ?? metadata.status.privacyStatus,
+        license: 'youtube', // Default YouTube license
+        embeddable: true,
+        publicStatsViewable: true,
+      },
+    });
+  });
 };
 
 // Main publish function
@@ -88,7 +159,7 @@ const publishContent = (
   profile: YouTubeProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
-  
+
   if (!firstContent) {
     return errAsync(new InvalidMediaError('YouTube', 'No content to publish'));
   }
@@ -100,11 +171,13 @@ const publishContent = (
   );
 
   if (!videoMedia?.url) {
-    return errAsync(new InvalidMediaError('YouTube', 'YouTube Shorts requires a video file'));
+    return errAsync(
+      new InvalidMediaError('YouTube', 'YouTube Shorts requires a video file')
+    );
   }
 
-  return downloadVideoFile(videoMedia.url)
-    .andThen(videoBuffer => {
+  return getVideoStream(videoMedia.url)
+    .andThen((videoStream) => {
       // Prepare metadata for YouTube Shorts
       const metadata: YouTubeVideoMetadata = {
         snippet: {
@@ -124,9 +197,9 @@ const publishContent = (
         metadata.snippet.description += '\n\n#Shorts';
       }
 
-      return uploadVideoToYouTube(profile.accessToken, videoBuffer, metadata);
+      return uploadVideoToYouTube(profile.accessToken, videoStream, metadata);
     })
-    .map(uploadResponse => {
+    .map((uploadResponse) => {
       const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
 
       return {
@@ -142,8 +215,9 @@ const publishContent = (
 // Provider implementation
 export const youtubeProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
-    const result = await getProfile(socialProviderId)
-      .andThen(profile => publishContent(content, profile));
+    const result = await getProfile(socialProviderId).andThen((profile) =>
+      publishContent(content, profile)
+    );
     return result;
   },
 
@@ -160,7 +234,7 @@ export const youtubeProvider: SocialProvider = {
       ].join(' '),
       access_type: 'offline',
       prompt: 'consent',
-      state: 'youtube_oauth_state',
+      state: nanoid(),
     });
 
     return ok(`${baseUrl}?${params}`);

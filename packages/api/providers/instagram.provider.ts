@@ -2,21 +2,22 @@ import { keys } from '@delulu/api/keys';
 import { database } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import { ok, err, errAsync, ResultAsync } from 'neverthrow';
+import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
-import type { SocialProvider } from './types';
-import type { 
+import { nanoid } from 'nanoid';
+import type {
   FacebookProfile as InstagramProfile,
   PostContent,
-  PostPublishResult
+  PostPublishResult,
 } from './common-types';
 import {
-  ProfileNotFoundError,
-  InvalidMediaError,
-  createAPIError,
-  type SocialProviderError,
   InstagramError,
+  InvalidMediaError,
+  ProfileNotFoundError,
+  type SocialProviderError,
+  createAPIError,
 } from './errors';
+import type { SocialProvider } from './types';
 
 // Instagram API response types
 interface InstagramMediaContainer {
@@ -34,10 +35,13 @@ interface InstagramMediaResponse {
 }
 
 // Profile management
-const getProfile = (socialProviderId: string): ResultAsync<InstagramProfile, SocialProviderError> =>
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<InstagramProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) => eq(socialProviders.id, socialProviderId),
+      where: (socialProviders, { eq }) =>
+        eq(socialProviders.id, socialProviderId),
     }),
     () => new InstagramError('Database query failed')
   ).andThen((profile) => {
@@ -58,7 +62,7 @@ const createSingleMediaContainer = (
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
-  
+
   const params = new URLSearchParams({
     access_token: profile.accessToken,
     caption,
@@ -74,7 +78,7 @@ const createSingleMediaContainer = (
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
     (error) => createAPIError('Instagram', error)
-  ).map(response => response.data);
+  ).map((response) => response.data);
 };
 
 // Create carousel container for multiple images
@@ -84,9 +88,12 @@ const createCarouselContainer = (
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
   // First create individual media containers for carousel items
-  const createCarouselItems = (): ResultAsync<string[], SocialProviderError> => {
+  const createCarouselItems = (): ResultAsync<
+    string[],
+    SocialProviderError
+  > => {
     return ResultAsync.combine(
-      mediaUrls.map(url => {
+      mediaUrls.map((url) => {
         const itemEndpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
         const itemParams = new URLSearchParams({
           image_url: url,
@@ -97,12 +104,12 @@ const createCarouselContainer = (
         return ResultAsync.fromPromise(
           axios.post(`${itemEndpoint}?${itemParams.toString()}`),
           (error) => createAPIError('Instagram', error)
-        ).map(response => response.data.id);
+        ).map((response) => response.data.id);
       })
     );
   };
 
-  return createCarouselItems().andThen(mediaIds => {
+  return createCarouselItems().andThen((mediaIds) => {
     const carouselEndpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
     const carouselParams = new URLSearchParams({
       media_type: 'CAROUSEL',
@@ -114,7 +121,7 @@ const createCarouselContainer = (
     return ResultAsync.fromPromise(
       axios.post(`${carouselEndpoint}?${carouselParams.toString()}`),
       (error) => createAPIError('Instagram', error)
-    ).map(response => response.data);
+    ).map((response) => response.data);
   });
 };
 
@@ -131,7 +138,7 @@ const publishMediaContainer = (
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
     (error) => createAPIError('Instagram', error)
-  ).map(response => response.data);
+  ).map((response) => response.data);
 };
 
 // Get published media details
@@ -147,7 +154,7 @@ const getMediaDetails = (
       },
     }),
     (error) => createAPIError('Instagram', error)
-  ).map(response => response.data);
+  ).map((response) => response.data);
 };
 
 // Main publish function - Instagram supports single video OR multiple images
@@ -156,30 +163,54 @@ const publishContent = (
   profile: InstagramProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
-  
+
   if (!firstContent) {
-    return errAsync(new InvalidMediaError('Instagram', 'No content to publish'));
+    return errAsync(
+      new InvalidMediaError('Instagram', 'No content to publish')
+    );
   }
 
   const validMedia = getValidMediaUrls(firstContent.media);
-  
+
   if (validMedia.length === 0) {
-    return errAsync(new InvalidMediaError('Instagram', 'Instagram requires at least one image or video'));
+    return errAsync(
+      new InvalidMediaError(
+        'Instagram',
+        'Instagram requires at least one image or video'
+      )
+    );
   }
 
   // Check for videos - Instagram supports only ONE video (Reels)
-  const videoMedia = validMedia.filter(media => media.mediaType === 'VIDEO' && media.url);
-  const imageMedia = validMedia.filter(media => media.mediaType === 'IMAGE' && media.url);
+  const videoMedia = validMedia.filter(
+    (media) => media.mediaType === 'VIDEO' && media.url
+  );
+  const imageMedia = validMedia.filter(
+    (media) => media.mediaType === 'IMAGE' && media.url
+  );
 
   if (videoMedia.length > 1) {
-    return errAsync(new InvalidMediaError('Instagram', 'Instagram supports only one video per post'));
+    return errAsync(
+      new InvalidMediaError(
+        'Instagram',
+        'Instagram supports only one video per post'
+      )
+    );
   }
 
   if (videoMedia.length > 0 && imageMedia.length > 0) {
-    return errAsync(new InvalidMediaError('Instagram', 'Instagram does not support mixing videos and images'));
+    return errAsync(
+      new InvalidMediaError(
+        'Instagram',
+        'Instagram does not support mixing videos and images'
+      )
+    );
   }
 
-  let containerPromise: ResultAsync<InstagramMediaContainer, SocialProviderError>;
+  let containerPromise: ResultAsync<
+    InstagramMediaContainer,
+    SocialProviderError
+  >;
 
   if (videoMedia.length === 1) {
     // Single video (Reels)
@@ -197,29 +228,37 @@ const publishContent = (
     );
   } else {
     // Multiple images (Carousel)
-    const imageUrls = imageMedia.map(media => media.url!);
-    containerPromise = createCarouselContainer(imageUrls, profile, firstContent.text);
+    const imageUrls = imageMedia.map((media) => media.url!);
+    containerPromise = createCarouselContainer(
+      imageUrls,
+      profile,
+      firstContent.text
+    );
   }
 
   return containerPromise
-    .andThen(container => publishMediaContainer(container.id, profile.accessToken))
-    .andThen(publishResponse => 
-      getMediaDetails(publishResponse.id, profile.accessToken)
-        .map(mediaDetails => ({
+    .andThen((container) =>
+      publishMediaContainer(container.id, profile.accessToken)
+    )
+    .andThen((publishResponse) =>
+      getMediaDetails(publishResponse.id, profile.accessToken).map(
+        (mediaDetails) => ({
           platformPostId: publishResponse.id,
           postId: content.postId,
           platformId: profile.id,
           platformPostUrl: mediaDetails.permalink,
           postedAt: new Date(),
-        }))
+        })
+      )
     );
 };
 
 // Provider implementation
 export const instagramProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
-    const result = await getProfile(socialProviderId)
-      .andThen(profile => publishContent(content, profile));
+    const result = await getProfile(socialProviderId).andThen((profile) =>
+      publishContent(content, profile)
+    );
     return result;
   },
 
@@ -234,7 +273,7 @@ export const instagramProvider: SocialProvider = {
         'pages_show_list',
         'pages_read_engagement',
       ].join(','),
-      state: 'instagram_oauth_state',
+      state: nanoid(),
     });
 
     return ok(`https://www.facebook.com/dialog/oauth?${params.toString()}`);

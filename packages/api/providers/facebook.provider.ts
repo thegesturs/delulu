@@ -6,15 +6,15 @@ import axios from 'axios';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 
-import type { 
-  FacebookProfile, 
-  PostContent, 
-  PostPublishResult,
+import type {
   FacebookMediaUploadResponse,
-  FacebookPostResponse,
   FacebookPostDetails,
+  FacebookPostResponse,
+  FacebookProfile,
+  FacebookVideoInitResponse,
   FacebookVideoStatus,
-  FacebookVideoInitResponse
+  PostContent,
+  PostPublishResult,
 } from './common-types';
 import {
   FacebookError,
