@@ -3,15 +3,15 @@ import { database } from '@delulu/database';
 import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { type Result, ResultAsync, err, errAsync, ok } from 'neverthrow';
 
 import type {
-  ThreadsProfile,
   PostContent,
   PostPublishResult,
   ThreadsMediaContainer,
   ThreadsMediaPublishResponse,
-  ThreadsMediaResponse
+  ThreadsMediaResponse,
+  ThreadsProfile,
 } from './common-types';
 import {
   MediaProcessingError,
@@ -249,7 +249,12 @@ const publishContent = (
   const processSequentially = async (
     remainingPosts: typeof posts,
     lastPostId?: string
-  ): Promise<{ postId: string; details: ThreadsMediaResponse }> => {
+  ): Promise<
+    Result<
+      { postId: string; details: ThreadsMediaResponse },
+      SocialProviderError
+    >
+  > => {
     const [currentPost, ...nextPosts] = remainingPosts;
 
     const postIdResult = await processPostContent(
@@ -258,13 +263,13 @@ const publishContent = (
       lastPostId
     );
     if (postIdResult.isErr()) {
-      throw postIdResult.error;
+      return err(postIdResult.error);
     }
 
     const postId = postIdResult.value;
     const detailsResult = await getPostDetails(postId, profile.accessToken);
     if (detailsResult.isErr()) {
-      throw detailsResult.error;
+      return err(detailsResult.error);
     }
 
     const details = detailsResult.value;
@@ -273,11 +278,16 @@ const publishContent = (
       return processSequentially(nextPosts, postId);
     }
 
-    return { postId, details };
+    return ok({ postId, details });
   };
 
   return ResultAsync.fromPromise(
-    processSequentially(posts),
+    processSequentially(posts).then((result) => {
+      if (result.isErr()) {
+        throw result.error;
+      }
+      return result.value;
+    }),
     (error) => error as SocialProviderError
   ).map(({ postId, details }) => ({
     platformPostId: postId,
