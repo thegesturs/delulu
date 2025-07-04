@@ -58,6 +58,16 @@ const createSingleMediaContainer = (
   profile: InstagramProfile,
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
+  // Validate caption length - Instagram limit is 2200 characters
+  if (caption.length > 2200) {
+    return errAsync(
+      new InvalidMediaError(
+        'Instagram',
+        "Caption exceeds Instagram's 2200 character limit"
+      )
+    );
+  }
+
   const endpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
 
   const params = new URLSearchParams({
