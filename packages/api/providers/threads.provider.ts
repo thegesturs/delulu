@@ -24,6 +24,9 @@ import {
 } from './errors';
 import type { SocialProvider } from './types';
 
+const urlRegex =
+  /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
+
 // Profile management
 const getProfile = (
   socialProviderId: string
@@ -71,7 +74,6 @@ const createMediaContainer = (
   } else {
     params.append('media_type', 'TEXT');
     // Extract first URL from text for link preview
-    const urlRegex = /https?:\/\/[^\s]+/;
     const urlMatch = text.match(urlRegex);
     if (urlMatch) {
       params.append('link_attachment', urlMatch[0]);
@@ -113,9 +115,11 @@ const waitForContainerProcessing = (
   maxAttempts = 30,
   delay = 3000
 ): ResultAsync<void, SocialProviderError> => {
-  const poll = async (attempts: number): Promise<void> => {
+  const poll = async (
+    attempts: number
+  ): Promise<Result<void, SocialProviderError>> => {
     if (attempts >= maxAttempts) {
-      throw new MediaProcessingTimeoutError('Threads');
+      return err(new MediaProcessingTimeoutError('Threads'));
     }
 
     const statusResult = await ResultAsync.fromPromise(
@@ -138,18 +142,20 @@ const waitForContainerProcessing = (
         await new Promise((resolve) => setTimeout(resolve, delay));
         return poll(attempts + 1);
       }
-      throw statusResult.error;
+      return err(statusResult.error);
     }
 
     const status = statusResult.value.data.status;
     if (status === 'FINISHED') {
-      return;
+      return ok(undefined);
     }
 
     if (status === 'ERROR' || status === 'EXPIRED') {
-      throw new MediaProcessingError(
-        'Threads',
-        `Media processing failed: ${statusResult.value.data.error_message || status}`
+      return err(
+        new MediaProcessingError(
+          'Threads',
+          `Media processing failed: ${statusResult.value.data.error_message || status}`
+        )
       );
     }
 
@@ -160,7 +166,15 @@ const waitForContainerProcessing = (
   return ResultAsync.fromPromise(
     poll(0),
     (error) => error as SocialProviderError
-  );
+  ).andThen((result) => {
+    if (result.isErr()) {
+      return errAsync(result.error);
+    }
+    return ResultAsync.fromPromise(
+      Promise.resolve(result.value),
+      (error) => error as SocialProviderError
+    );
+  });
 };
 
 const publishContainer = (
@@ -246,50 +260,34 @@ const publishContent = (
   }
 
   // Process posts sequentially to maintain thread order
-  const processSequentially = async (
-    remainingPosts: typeof posts,
+  const processSequentially = (
+    remainingPosts: PostContent[],
     lastPostId?: string
-  ): Promise<
-    Result<
-      { postId: string; details: ThreadsMediaResponse },
-      SocialProviderError
-    >
+  ): ResultAsync<
+    { postId: string; details: ThreadsMediaResponse },
+    SocialProviderError
   > => {
     const [currentPost, ...nextPosts] = remainingPosts;
 
-    const postIdResult = await processPostContent(
-      currentPost,
-      profile,
-      lastPostId
-    );
-    if (postIdResult.isErr()) {
-      return err(postIdResult.error);
-    }
-
-    const postId = postIdResult.value;
-    const detailsResult = await getPostDetails(postId, profile.accessToken);
-    if (detailsResult.isErr()) {
-      return err(detailsResult.error);
-    }
-
-    const details = detailsResult.value;
-
-    if (nextPosts.length > 0) {
-      return processSequentially(nextPosts, postId);
-    }
-
-    return ok({ postId, details });
+    return processPostContent(currentPost, profile, lastPostId)
+      .andThen((postId) =>
+        getPostDetails(postId, profile.accessToken).map((details) => ({
+          postId,
+          details,
+        }))
+      )
+      .andThen((result) => {
+        if (nextPosts.length > 0) {
+          return processSequentially(nextPosts, result.postId);
+        }
+        return ResultAsync.fromPromise(
+          Promise.resolve(result),
+          () => new ThreadsError('Should never happen')
+        );
+      });
   };
 
-  return ResultAsync.fromPromise(
-    processSequentially(posts).then((result) => {
-      if (result.isErr()) {
-        throw result.error;
-      }
-      return result.value;
-    }),
-    (error) => error as SocialProviderError
-  ).map(({ postId, details }) => ({
+  return processSequentially(posts).map(({ postId, details }) => ({
     platformPostId: postId,
     postId: content.postId,
     platformId: profile.id,

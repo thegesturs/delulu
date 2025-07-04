@@ -4,6 +4,7 @@ import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
+import { nanoid } from 'nanoid';
 import type {
   BaseProviderProfile as LinkedInProfile,
   PostContent,
@@ -18,7 +19,6 @@ import {
   createAPIError,
 } from './errors';
 import type { SocialProvider } from './types';
-import { nanoid } from 'nanoid';
 
 interface LinkedInPostResponse {
   id: string;
@@ -92,32 +92,136 @@ const uploadImageToLinkedIn = (
   });
 };
 
-// Create text-only post
-const createTextPost = (
-  text: string,
+// Helper: Upload video to LinkedIn and return asset URN
+const uploadVideoToLinkedIn = (
+  videoUrl: string,
   profileId: string,
   accessToken: string
-): ResultAsync<LinkedInPostResponse, SocialProviderError> => {
-  const postData = {
-    author: `urn:li:person:${profileId}`,
+): ResultAsync<string, SocialProviderError> => {
+  // Step 1: Download the video as a buffer
+  return ResultAsync.fromPromise(
+    axios.get(videoUrl, { responseType: 'arraybuffer' }),
+    (error) => new InvalidMediaError('LinkedIn', 'Failed to download video')
+  ).andThen((response) => {
+    const videoBuffer = response.data;
+    // Step 2: Register upload with LinkedIn
+    return ResultAsync.fromPromise(
+      axios.post(
+        'https://api.linkedin.com/rest/videos?action=initializeUpload',
+        {
+          initializeUploadRequest: {
+            owner: `urn:li:person:${profileId}`,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'LinkedIn-Version': '202405',
+            'X-Restli-Protocol-Version': '2.0.0',
+          },
+        }
+      ),
+      (error) => createAPIError('LinkedIn', error)
+    ).andThen((registerRes) => {
+      const uploadUrl = registerRes.data.value.uploadUrl;
+      const assetUrn = registerRes.data.value.video;
+      // Step 3: Upload the video binary to LinkedIn
+      return ResultAsync.fromPromise(
+        axios.put(uploadUrl, videoBuffer, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/octet-stream',
+          },
+        }),
+        (error) => new MediaUploadError('LinkedIn', 'VIDEO')
+      ).map(() => assetUrn);
+    });
+  });
+};
+
+// Helper: Build LinkedIn post data for any media type
+interface LinkedInMediaAsset {
+  assetUrn: string;
+  type: 'IMAGE' | 'VIDEO';
+  title?: string;
+  description?: string;
+}
+
+interface BuildLinkedInPostDataOptions {
+  visibility?: 'PUBLIC' | 'CONNECTIONS';
+}
+
+function buildLinkedInPostData(
+  authorUrn: string,
+  text: string,
+  media: LinkedInMediaAsset[],
+  shareMediaCategory: 'NONE' | 'IMAGE' | 'VIDEO',
+  options?: BuildLinkedInPostDataOptions
+) {
+  type LinkedInMediaObject = {
+    status: 'READY';
+    description?: { text: string };
+    media: string;
+    title?: { text: string };
+  };
+  let mediaArr: LinkedInMediaObject[] = [];
+  if (shareMediaCategory === 'IMAGE' || shareMediaCategory === 'VIDEO') {
+    mediaArr = media.map((m) => ({
+      status: 'READY',
+      description: m.description ? { text: m.description } : undefined,
+      media: m.assetUrn,
+      title: m.title ? { text: m.title } : undefined,
+    }));
+  }
+  return {
+    author: authorUrn,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
         shareCommentary: {
-          text: text,
+          text,
         },
-        shareMediaCategory: 'NONE',
+        shareMediaCategory,
+        ...(mediaArr.length > 0 ? { media: mediaArr } : {}),
       },
     },
     visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+      'com.linkedin.ugc.MemberNetworkVisibility':
+        options?.visibility || 'PUBLIC',
     },
   };
+}
+
+// Helper: Create and publish post to LinkedIn
+const createAndPublishPost = (
+  text: string,
+  mediaAssets: LinkedInMediaAsset[],
+  profile: LinkedInProfile,
+  isOrg?: boolean
+): ResultAsync<LinkedInPostResponse, SocialProviderError> => {
+  const authorUrn = isOrg
+    ? `urn:li:organization:${profile.id}`
+    : `urn:li:person:${profile.id}`;
+
+  const shareMediaCategory =
+    mediaAssets.length === 0
+      ? 'NONE'
+      : mediaAssets[0].type === 'VIDEO'
+        ? 'VIDEO'
+        : 'IMAGE';
+
+  const postData = buildLinkedInPostData(
+    authorUrn,
+    text,
+    mediaAssets,
+    shareMediaCategory
+  );
 
   return ResultAsync.fromPromise(
     axios.post('https://api.linkedin.com/v2/ugcPosts', postData, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${profile.accessToken}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
       },
@@ -126,60 +230,11 @@ const createTextPost = (
   ).map((response) => response.data);
 };
 
-// Create post with images (LinkedIn supports multiple images)
-const createImagePost = (
-  text: string,
-  imageUrls: string[],
-  profileId: string,
-  accessToken: string
-): ResultAsync<LinkedInPostResponse, SocialProviderError> => {
-  // Upload all images and get asset URNs
-  return ResultAsync.combine(
-    imageUrls.map((url) => uploadImageToLinkedIn(url, profileId, accessToken))
-  ).andThen((assetUrns) => {
-    const media = assetUrns.map((assetUrn) => ({
-      status: 'READY',
-      description: {
-        text: 'Image description',
-      },
-      media: assetUrn,
-      title: {
-        text: 'Image',
-      },
-    }));
-    const postData = {
-      author: `urn:li:person:${profileId}`,
-      lifecycleState: 'PUBLISHED',
-      specificContent: {
-        'com.linkedin.ugc.ShareContent': {
-          shareCommentary: {
-            text: text,
-          },
-          shareMediaCategory: 'IMAGE',
-          media: media,
-        },
-      },
-      visibility: {
-        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
-      },
-    };
-    return ResultAsync.fromPromise(
-      axios.post('https://api.linkedin.com/v2/ugcPosts', postData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-          'X-Restli-Protocol-Version': '2.0.0',
-        },
-      }),
-      (error) => createAPIError('LinkedIn', error)
-    ).map((response) => response.data);
-  });
-};
-
-// Main publish function - LinkedIn supports text and multiple images (no videos for now)
+// Main publish function
 const publishContent = (
   content: { content: PostContent[]; postId: string },
-  profile: LinkedInProfile
+  profile: LinkedInProfile,
+  isOrg?: boolean
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
 
@@ -191,45 +246,59 @@ const publishContent = (
   const imageMedia = validMedia.filter(
     (media) => media.mediaType === 'IMAGE' && media.url
   );
-  const videoMedia = validMedia.filter((media) => media.mediaType === 'VIDEO');
+  const videoMedia = validMedia.filter(
+    (media) => media.mediaType === 'VIDEO' && media.url
+  );
 
-  // LinkedIn video support is complex and requires special permissions
+  let uploadPromise: ResultAsync<LinkedInMediaAsset[], SocialProviderError>;
+
   if (videoMedia.length > 0) {
-    return errAsync(
-      new InvalidMediaError(
-        'LinkedIn',
-        'Video publishing not currently supported'
-      )
-    );
-  }
-
-  let publishPromise: ResultAsync<LinkedInPostResponse, SocialProviderError>;
-
-  if (imageMedia.length === 0) {
-    // Text-only post
-    publishPromise = createTextPost(
-      firstContent.text,
+    // Only support one video per post for now
+    const video = videoMedia[0];
+    uploadPromise = uploadVideoToLinkedIn(
+      video.url!,
       profile.id,
       profile.accessToken
+    ).map((assetUrn) => [
+      {
+        assetUrn,
+        type: 'VIDEO',
+        title: video.altText || 'Video',
+        description: 'Video description',
+      },
+    ]);
+  } else if (imageMedia.length > 0) {
+    // Support multiple images
+    uploadPromise = ResultAsync.combine(
+      imageMedia.map((img) =>
+        uploadImageToLinkedIn(img.url!, profile.id, profile.accessToken)
+      )
+    ).map((assetUrns) =>
+      assetUrns.map((assetUrn) => ({
+        assetUrn,
+        type: 'IMAGE',
+        title: 'Image',
+        description: 'Image description',
+      }))
     );
   } else {
-    // Post with images (LinkedIn supports multiple images)
-    const imageUrls = imageMedia.map((media) => media.url!);
-    publishPromise = createImagePost(
-      firstContent.text,
-      imageUrls,
-      profile.id,
-      profile.accessToken
+    uploadPromise = ResultAsync.fromPromise(
+      Promise.resolve([]) as Promise<LinkedInMediaAsset[]>,
+      () => new LinkedInError('Empty media array')
     );
   }
 
-  return publishPromise.map((postResponse) => ({
-    platformPostId: postResponse.id,
-    postId: content.postId,
-    platformId: profile.id,
-    platformPostUrl: `https://www.linkedin.com/feed/update/${postResponse.id}`,
-    postedAt: new Date(),
-  }));
+  return uploadPromise
+    .andThen((mediaAssets) =>
+      createAndPublishPost(firstContent.text, mediaAssets, profile, isOrg)
+    )
+    .map((postResponse) => ({
+      platformPostId: postResponse.id,
+      postId: content.postId,
+      platformId: profile.id,
+      platformPostUrl: `https://www.linkedin.com/feed/update/${postResponse.id}`,
+      postedAt: new Date(),
+    }));
 };
 
 // Provider implementation
