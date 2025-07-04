@@ -2,13 +2,33 @@ import { keys } from '@delulu/api/keys';
 import { database as db, eq, socialProviders } from '@delulu/database';
 import {
   type MediaType,
-  type PostReturnType,
   getFileType,
   getValidMediaUrls,
 } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import {
+  type Result,
+  ResultAsync,
+  err,
+  errAsync,
+  ok,
+  okAsync,
+} from 'neverthrow';
 import { Client, auth } from 'twitter-api-sdk';
+import type { PostContent, PostPublishResult } from './common-types';
+import {
+  APIError,
+  MediaProcessingError,
+  MediaProcessingTimeoutError,
+  MediaUploadError,
+  NetworkError,
+  NoContentError,
+  PostCreationError,
+  ProfileNotFoundError,
+  type SocialProviderError,
+  TwitterError,
+  createAPIError,
+} from './errors';
 import type { SocialProvider } from './types';
 
 /**
@@ -21,639 +41,595 @@ interface Tweet {
 }
 
 /**
- * Interface for the response of a posted tweet
+ * Interface for Twitter profile data
  */
+interface TwitterProfileData {
+  id: string;
+  accessToken: string;
+  refreshToken?: string;
+  username?: string;
+  expiresIn?: Date;
+}
 
-export const twitterProvider: SocialProvider = {
-  /**
-   * Publishes content to Twitter, supporting multiple tweets (thread) with media attachments
-   * @param content - The content to be published, containing an array of tweets with text and media
-   * @param socialProviderId - The ID of the social provider to use for authentication
-   * @returns Promise<TweetResponse> - Information about the first tweet in the thread
-   * @throws {TRPCError} - If authentication fails or if there's an error posting to Twitter
-   */
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
-    if (!profile) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Social provider not found',
-      });
+/**
+ * Get Twitter profile from database
+ */
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<TwitterProfileData, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    db.query.socialProviders.findMany({
+      where: (socialProviders, { eq }) =>
+        eq(socialProviders.id, socialProviderId),
+      limit: 1,
+    }),
+    () => new TwitterError('Database query failed')
+  ).andThen(([profile]) => {
+    if (!profile?.accessToken) {
+      return err(new ProfileNotFoundError('Twitter'));
     }
+    return ok({
+      id: profile.id,
+      accessToken: profile.accessToken,
+      refreshToken: profile.refreshToken || undefined,
+      username: profile.username || undefined,
+      expiresIn: profile.expiresIn || undefined,
+    });
+  });
 
-    console.log('Profile:', profile);
+/**
+ * Refresh Twitter access token if expired
+ */
+const refreshAccessToken = (
+  profile: TwitterProfileData
+): ResultAsync<TwitterProfileData, SocialProviderError> => {
+  if (!profile.expiresIn || !profile.refreshToken) {
+    return okAsync(profile);
+  }
 
-    const client = new Client(profile.accessToken);
-    const tweets = sortTweets(content.content);
+  if (profile.expiresIn > new Date()) {
+    return okAsync(profile);
+  }
 
-    if (!tweets.length) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish',
-      });
-    }
+  const bearerToken = Buffer.from(
+    `${keys().TWITTER_CLIENT_ID}:${keys().TWITTER_CLIENT_SECRET}`
+  ).toString('base64');
 
-    try {
-      const firstTweetResult = await postFirstTweet(tweets[0], client, profile);
-      console.log('First tweet result:', firstTweetResult);
-      await postThreadReplies(
-        tweets.slice(1),
-        client,
-        profile,
-        firstTweetResult.tweetId
+  return ResultAsync.fromPromise(
+    fetch('https://api.twitter.com/2/oauth2/token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${bearerToken}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: profile.refreshToken,
+      }),
+    }),
+    (error) => new NetworkError('Twitter', 'token refresh')
+  )
+    .andThen((response) => {
+      if (!response.ok) {
+        return errAsync(
+          new APIError('Twitter', response.status, 'Token refresh failed')
+        );
+      }
+      return ResultAsync.fromPromise(
+        response.json() as Promise<{
+          access_token: string;
+          refresh_token: string;
+          expires_in: number;
+        }>,
+        (error) => new TwitterError('Failed to parse token response')
       );
-
-      return {
-        platformPostId: firstTweetResult.tweetId,
-        postId: content.postId,
-        platformId: profile.id,
-        platformPostUrl: `https://x.com/${profile.username ?? 'unknown'}/status/${firstTweetResult.tweetId}`,
-        postedAt: new Date(),
+    })
+    .andThen((data) => {
+      const updatedProfile = {
+        ...profile,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: new Date(Date.now() + data.expires_in * 1000),
       };
-    } catch (error) {
-      console.error('Error posting thread to Twitter:', error);
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to post thread to Twitter',
-        cause: error,
-      });
-    }
-  },
 
-  connectUrl: () => {
-    const authClient = new auth.OAuth2User({
-      client_id: keys().TWITTER_CLIENT_ID,
-      client_secret: keys().TWITTER_CLIENT_SECRET,
-      callback: keys().TWITTER_CALLBACK_URL,
-      scopes: ['users.read', 'tweet.read', 'offline.access', 'tweet.write'],
+      return ResultAsync.fromPromise(
+        db
+          .update(socialProviders)
+          .set({
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+            expiresIn: new Date(Date.now() + data.expires_in * 1000),
+            updatedAt: new Date(),
+            lastSyncedAt: new Date(),
+          })
+          .where(eq(socialProviders.id, profile.id)),
+        () => new TwitterError('Failed to update token in database')
+      ).map(() => updatedProfile);
     });
-    const url = authClient.generateAuthURL({
-      state: keys().TWITTER_STATE,
-      code_challenge_method: 'plain',
-      code_challenge: 'challenge',
-    });
-    return url;
-  },
 };
 
 /**
- * Sorts tweets by their order property
- * @param tweets - Array of tweets to sort
- * @returns Sorted array of tweets
+ * Validate and sort tweets by order
  */
-function sortTweets(
-  tweets: Array<{ text: string; media: MediaType[]; order: number }>
-): Tweet[] {
-  return tweets
+const validateAndSortTweets = (
+  content: PostContent[]
+): ResultAsync<Tweet[], SocialProviderError> => {
+  if (!content.length) {
+    return errAsync(new NoContentError('Twitter'));
+  }
+
+  const tweets: Tweet[] = content
     .map((tweet) => ({
       text: tweet.text,
       media: tweet.media,
       order: tweet.order,
     }))
     .sort((a, b) => a.order - b.order);
-}
+
+  return okAsync(tweets);
+};
 
 /**
- * Uploads media files for a tweet
- * @param media - Array of media objects containing URLs
- * @param profileId - Twitter profile ID
- * @param accessToken - Twitter access token
- * @returns Array of media IDs
+ * Upload media to Twitter
  */
-async function uploadTweetMedia(
-  media: MediaType[],
-  profileId: string,
-  accessToken: string
-): Promise<string[]> {
-  const mediaIds: string[] = [];
-  if (!media.length) {
-    return mediaIds;
-  }
-
-  const validMediaUrls = getValidMediaUrls(media.slice(0, 4));
-  for (const mediaItem of validMediaUrls) {
-    if (mediaItem.url) {
-      try {
-        const mediaId = await uploadMediaToTwitter(
-          mediaItem.url,
-          profileId,
-          accessToken
-        );
-        mediaIds.push(mediaId);
-      } catch (error) {
-        console.error('Failed to upload media:', error);
-      }
-    }
-  }
-  return mediaIds;
-}
-
-/**
- * Posts the first tweet of a thread
- * @param tweet - The tweet content and media
- * @param client - Twitter API client
- * @param profile - Twitter profile information
- * @returns Object containing the tweet ID
- */
-async function postFirstTweet(
-  tweet: Tweet,
-  client: Client,
-  profile: { id: string; accessToken: string }
-): Promise<{ tweetId: string }> {
-  const mediaIds = await uploadTweetMedia(
-    tweet.media,
-    profile.id,
-    profile.accessToken
-  );
-  console.log('Media IDs:', mediaIds);
-
-  const response = await client.tweets.createTweet({
-    text: tweet.text,
-    ...(mediaIds.length > 0 && {
-      media: { media_ids: mediaIds },
-    }),
-  });
-  console.log('Response:', response);
-
-  if (!response.data) {
-    throw new TRPCError({
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to create first tweet',
-    });
-  }
-
-  return { tweetId: response.data.id };
-}
-
-/**
- * Posts the remaining tweets as replies in the thread
- * @param tweets - Array of remaining tweets to post
- * @param client - Twitter API client
- * @param profile - Twitter profile information
- * @param replyToTweetId - ID of the tweet to reply to
- */
-async function postThreadReplies(
-  tweets: Tweet[],
-  client: Client,
-  profile: { id: string; accessToken: string },
-  replyToTweetId: string
-): Promise<void> {
-  let currentReplyToId = replyToTweetId;
-
-  for (const tweet of tweets) {
-    const mediaIds = await uploadTweetMedia(
-      tweet.media,
-      profile.id,
-      profile.accessToken
-    );
-
-    const replyResponse = await client.tweets.createTweet({
-      text: tweet.text,
-      reply: {
-        in_reply_to_tweet_id: currentReplyToId,
-      },
-      ...(mediaIds.length > 0 && {
-        media: { media_ids: mediaIds },
-      }),
-    });
-
-    if (!replyResponse.data) {
-      console.error('Failed to create reply tweet in thread');
-      continue;
-    }
-
-    currentReplyToId = replyResponse.data.id;
-  }
-}
-
-// Helper Functions
-
-async function getAccessTokenAndProfile(tokenId: string) {
-  const [token] = await db.query.socialProviders.findMany({
-    where: (socialProviders, { eq }) => eq(socialProviders.id, tokenId),
-    limit: 1,
-  });
-  if (!token) {
-    throw new Error('Token not found');
-  }
-  if (token.expiresIn && token.refreshToken && token.accessToken) {
-    if (token.expiresIn < new Date()) {
-      const bearerToken = Buffer.from(
-        `${keys().TWITTER_CLIENT_ID}:${keys().TWITTER_CLIENT_SECRET}`
-      ).toString('base64');
-      try {
-        const response = await fetch('https://api.twitter.com/2/oauth2/token', {
-          method: 'POST',
-          headers: {
-            Authorization: `Basic ${bearerToken}`,
-          },
-          body: new URLSearchParams({
-            grant_type: 'refresh_token',
-            refresh_token: token.refreshToken,
-          }),
-        });
-
-        const data = (await response.json()) as {
-          access_token: string;
-          refresh_token: string;
-          expires_in: number;
-        };
-
-        if (data) {
-          await db
-            .update(socialProviders)
-            .set({
-              accessToken: data.access_token,
-              refreshToken: data.refresh_token,
-              expiresIn: new Date(Date.now() + data.expires_in * 1000),
-              updatedAt: new Date(),
-              lastSyncedAt: new Date(),
-            })
-            .where(eq(socialProviders.id, tokenId));
-        }
-        return { ...token, accessToken: data.access_token };
-      } catch (err) {
-        console.error(err);
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to refresh access token',
-        });
-      }
-    } else {
-      return token;
-    }
-  }
-}
-
-// Media upload types
-interface MediaUploadInitResponse {
-  data: {
-    id: string;
-    media_key: string;
-    expires_after_secs: number;
-    processing_info?: {
-      state: 'pending' | 'in_progress' | 'succeeded' | 'failed';
-      check_after_secs?: number;
-      progress_percent?: number;
-    };
-    size?: number;
-  };
-  errors?: Array<{
-    detail: string;
-    status: number;
-    title: string;
-    type: string;
-  }>;
-}
-
-interface MediaUploadStatusResponse {
-  data: {
-    id: string;
-    media_key: string;
-    expires_after_secs: number;
-    processing_info?: {
-      state: 'pending' | 'in_progress' | 'succeeded' | 'failed';
-      check_after_secs?: number;
-      progress_percent?: number;
-      error?: {
-        code: number;
-        name: string;
-        message: string;
-      };
-    };
-    size?: number;
-  };
-  errors?: Array<{
-    detail: string;
-    status: number;
-    title: string;
-    type: string;
-  }>;
-}
-
-// Media category mapping based on file type
-function getMediaCategory(mimeType: string): string {
-  if (mimeType.startsWith('image/')) {
-    if (mimeType === 'image/gif') {
-      return 'tweet_gif';
-    }
-    return 'tweet_image';
-  }
-  if (mimeType.startsWith('video/')) {
-    return 'amplify_video'; // Using amplify_video for better video support
-  }
-  return 'tweet_image'; // fallback
-}
-
-// Chunk size for uploads (5MB chunks recommended)
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-
-export async function uploadMediaToTwitter(
+const uploadMediaToTwitter = (
   fileUrl: string,
   profileId: string,
   accessToken: string
-): Promise<string> {
-  try {
-    // Download the file
-    const fileResponse = await axios({
-      method: 'get',
-      url: fileUrl,
-      responseType: 'arraybuffer',
-    });
+): ResultAsync<string, SocialProviderError> => {
+  // Download the file
+  const downloadFile = (): ResultAsync<
+    { buffer: Buffer; mimeType: string },
+    SocialProviderError
+  > =>
+    ResultAsync.fromPromise(
+      axios({
+        method: 'get',
+        url: fileUrl,
+        responseType: 'arraybuffer',
+      }),
+      (error) => createAPIError('Twitter', error)
+    ).map((response) => ({
+      buffer: Buffer.from(response.data),
+      mimeType: getFileType(fileUrl),
+    }));
 
-    const fileBuffer = Buffer.from(fileResponse.data);
-    const mimeType = getFileType(fileUrl);
-    const mediaCategory = getMediaCategory(mimeType);
-
-    // Step 1: Initialize upload
-    const initResponse = await initializeMediaUpload({
-      accessToken,
-      totalBytes: fileBuffer.length,
-      mediaType: mimeType,
-      mediaCategory,
-      additionalOwners: [profileId],
-    });
-
-    const mediaId = initResponse.data.id;
-    if (!mediaId) {
-      throw new Error('Failed to get media_id from INIT response');
+  // Get media category based on file type
+  const getMediaCategory = (mimeType: string): string => {
+    if (mimeType.startsWith('image/')) {
+      return mimeType === 'image/gif' ? 'tweet_gif' : 'tweet_image';
     }
-
-    // Step 2: Upload file in chunks
-    await uploadMediaChunks({
-      accessToken,
-      mediaId,
-      fileBuffer,
-      mimeType,
-    });
-
-    // Step 3: Finalize upload
-    const finalizeResponse = await finalizeMediaUpload({
-      accessToken,
-      mediaId,
-    });
-
-    // Step 4: Check processing status if needed
-    if (finalizeResponse.data.processing_info) {
-      await waitForProcessingComplete({
-        accessToken,
-        mediaId,
-      });
+    if (mimeType.startsWith('video/')) {
+      return 'amplify_video';
     }
-
-    return mediaId;
-  } catch (error) {
-    console.error('Error uploading media to Twitter V2:', error);
-    // Check if error is an AxiosError to potentially log more details
-    if (axios.isAxiosError(error) && error.response) {
-      console.error('Twitter API Error Response:', error.response.data);
-    }
-    throw new Error(
-      `Failed to upload media to Twitter V2: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-  }
-}
-
-// Initialize media upload (V2)
-async function initializeMediaUpload({
-  accessToken,
-  totalBytes,
-  mediaType,
-  mediaCategory,
-  additionalOwners,
-}: {
-  accessToken: string;
-  totalBytes: number;
-  mediaType: string;
-  mediaCategory: string;
-  additionalOwners?: string[];
-}): Promise<MediaUploadInitResponse> {
-  const payload: {
-    total_bytes: number;
-    media_type: string;
-    media_category: string;
-    additional_owners?: string[];
-    shared?: boolean;
-  } = {
-    total_bytes: totalBytes,
-    media_type: mediaType,
-    media_category: mediaCategory,
+    return 'tweet_image';
   };
 
-  if (additionalOwners && additionalOwners.length > 0) {
-    payload.additional_owners = additionalOwners;
-  }
-  // Set shared to true as per the provided example documentation
-  payload.shared = true;
+  // Initialize media upload
+  const initializeUpload = (
+    totalBytes: number,
+    mimeType: string,
+    mediaCategory: string
+  ): ResultAsync<{ mediaId: string }, SocialProviderError> => {
+    const payload = {
+      total_bytes: totalBytes,
+      media_type: mimeType,
+      media_category: mediaCategory,
+      additional_owners: [profileId],
+      shared: true,
+    };
 
-  const response = await fetch(
-    'https://api.twitter.com/2/media/upload/initialize', // Updated endpoint
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json', // Updated Content-Type
-      },
-      body: JSON.stringify(payload), // Updated to JSON payload
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text(); // Read response body once
-    console.log('Error text:', errorText); // Preserve user's log
-
-    let errorDetails = {};
-    try {
-      // Attempt to parse the errorText as JSON, as Twitter often returns JSON errors
-      errorDetails = JSON.parse(errorText);
-    } catch (e) {
-      // If errorText is not valid JSON, log the parsing error and proceed with raw text
-      console.error('Error parsing JSON from error text response:', e);
-    }
-
-    console.error(`Initialize media upload failed: ${response.status}`, {
-      responseText: errorText,
-      parsedDetails: errorDetails,
-    });
-    throw new Error(
-      `Initialize media upload failed: ${response.status} - ${errorText}`
-    );
-  }
-
-  // If response is OK, expect JSON
-  return response.json() as Promise<MediaUploadInitResponse>;
-}
-
-// Upload file in chunks (V2)
-// Note: This function and subsequent FINALIZE/STATUS are assumed to still use
-// the 'https://api.x.com/2/media/upload' with command parameters and FormData
-// as per the guide previously discussed, as the new documentation snippet
-// only covered the 'initialize' step.
-async function uploadMediaChunks({
-  accessToken,
-  mediaId,
-  fileBuffer,
-  mimeType,
-}: {
-  accessToken: string;
-  mediaId: string;
-  fileBuffer: Buffer;
-  mimeType: string;
-}): Promise<void> {
-  const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
-
-  for (let segmentIndex = 0; segmentIndex < totalChunks; segmentIndex++) {
-    const start = segmentIndex * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, fileBuffer.length);
-    const chunk = fileBuffer.slice(start, end);
-
-    const formData = new FormData();
-    formData.append('command', 'APPEND');
-    formData.append('media_id', mediaId);
-    formData.append('segment_index', segmentIndex.toString());
-    formData.append('media', new Blob([chunk], { type: mimeType }));
-
-    const response = await fetch('https://api.x.com/2/media/upload', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        `Chunk V2 upload failed for segment ${segmentIndex}: ${response.status} ${errorText}`,
-        await response.json().catch(() => ({}))
-      );
-      throw new Error(
-        `Chunk V2 upload failed for segment ${segmentIndex}: ${response.status} ${errorText}`
-      );
-    }
-  }
-}
-
-// Finalize media upload (V2)
-async function finalizeMediaUpload({
-  accessToken,
-  mediaId,
-}: {
-  accessToken: string;
-  mediaId: string;
-}): Promise<MediaUploadStatusResponse> {
-  const formData = new FormData();
-  formData.append('command', 'FINALIZE');
-  formData.append('media_id', mediaId);
-
-  const response = await fetch('https://api.x.com/2/media/upload', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(
-      `Finalize V2 upload failed: ${response.status} ${errorText}`,
-      await response.json().catch(() => ({}))
-    );
-    throw new Error(
-      `Finalize V2 upload failed: ${response.status} ${errorText}`
-    );
-  }
-  return response.json() as Promise<MediaUploadStatusResponse>;
-}
-
-// Wait for media processing to complete - this logic should largely remain the same
-// as it's about polling based on the response from FINALIZE/STATUS.
-async function waitForProcessingComplete({
-  accessToken,
-  mediaId,
-  maxWaitTime = 300000, // 5 minutes max
-}: {
-  accessToken: string;
-  mediaId: string;
-  maxWaitTime?: number;
-}): Promise<void> {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < maxWaitTime) {
-    const statusResponse = await getMediaUploadStatus({
-      accessToken,
-      mediaId,
-    });
-
-    // The V2 response structure for STATUS has data.processing_info
-    const processingInfo = statusResponse.data.processing_info;
-
-    if (!processingInfo) {
-      // If processing_info is not present, it might mean success or an issue.
-      // The quickstart implies FINALIZE response dictates if STATUS is needed.
-      // If FINALIZE didn't have processing_info, we might not even call this.
-      // If it did, and now it's gone, assume success or check state if available.
-      // For safety, let's assume it implies readiness if we are in this loop
-      // *after* FINALIZE indicated processing.
-      console.log(
-        'Processing info not found in STATUS response, assuming complete for V2.'
-      );
-      return;
-    }
-
-    switch (processingInfo.state) {
-      case 'succeeded':
-        return;
-      case 'failed':
-        throw new Error(
-          `Media processing V2 failed: ${processingInfo.error?.message || 'Unknown error'}`
+    return ResultAsync.fromPromise(
+      fetch('https://api.twitter.com/2/media/upload/initialize', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+      (error) => new NetworkError('Twitter', 'media upload initialization')
+    )
+      .andThen((response) => {
+        if (!response.ok) {
+          return errAsync(
+            new APIError(
+              'Twitter',
+              response.status,
+              'Media upload initialization failed'
+            )
+          );
+        }
+        return ResultAsync.fromPromise(
+          response.json() as Promise<{ data: { id: string } }>,
+          (error) =>
+            new TwitterError('Failed to parse upload initialization response')
         );
-      case 'pending':
-      case 'in_progress': {
-        const waitTime = (processingInfo.check_after_secs || 5) * 1000;
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        break;
-      }
-      default:
-        // This is an unknown state, potentially from a type mismatch or API change.
-        // To be safe, log it and re-throw or handle as an error.
-        console.error(`Unknown processing V2 state: ${processingInfo.state}`);
-        throw new Error(`Unknown processing V2 state: ${processingInfo.state}`);
-    }
-  }
-  throw new Error('Media processing V2 timeout - took longer than expected');
-}
+      })
+      .andThen((data) => {
+        if (!data.data?.id) {
+          return err(new MediaUploadError('Twitter', 'IMAGE'));
+        }
+        return ok({ mediaId: data.data.id });
+      });
+  };
 
-// Get media upload status (V2)
-async function getMediaUploadStatus({
-  accessToken,
-  mediaId,
-}: {
-  accessToken: string;
-  mediaId: string;
-}): Promise<MediaUploadStatusResponse> {
-  const params = new URLSearchParams({
-    command: 'STATUS',
-    media_id: mediaId,
+  // Upload file chunks
+  const uploadChunks = (
+    mediaId: string,
+    fileBuffer: Buffer,
+    mimeType: string
+  ): ResultAsync<void, SocialProviderError> => {
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+    const totalChunks = Math.ceil(fileBuffer.length / CHUNK_SIZE);
+
+    const uploadChunk = (
+      segmentIndex: number
+    ): ResultAsync<void, SocialProviderError> => {
+      const start = segmentIndex * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, fileBuffer.length);
+      const chunk = fileBuffer.slice(start, end);
+
+      const formData = new FormData();
+      formData.append('command', 'APPEND');
+      formData.append('media_id', mediaId);
+      formData.append('segment_index', segmentIndex.toString());
+      formData.append('media', new Blob([chunk], { type: mimeType }));
+
+      return ResultAsync.fromPromise(
+        fetch('https://api.x.com/2/media/upload', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        }),
+        (error) => new NetworkError('Twitter', 'chunk upload')
+      ).andThen((response) => {
+        if (!response.ok) {
+          return errAsync(
+            new APIError(
+              'Twitter',
+              response.status,
+              `Chunk upload failed for segment ${segmentIndex}`
+            )
+          );
+        }
+        return okAsync(undefined);
+      });
+    };
+
+    const uploadAllChunks = async (): Promise<void> => {
+      for (let i = 0; i < totalChunks; i++) {
+        const result = await uploadChunk(i);
+        if (result.isErr()) {
+          throw result.error;
+        }
+      }
+    };
+
+    return ResultAsync.fromPromise(
+      uploadAllChunks(),
+      (error) => error as SocialProviderError
+    );
+  };
+
+  // Finalize upload
+  const finalizeUpload = (
+    mediaId: string
+  ): ResultAsync<{ processingRequired: boolean }, SocialProviderError> => {
+    const formData = new FormData();
+    formData.append('command', 'FINALIZE');
+    formData.append('media_id', mediaId);
+
+    return ResultAsync.fromPromise(
+      fetch('https://api.x.com/2/media/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      }),
+      (error) => new NetworkError('Twitter', 'media finalization')
+    )
+      .andThen((response) => {
+        if (!response.ok) {
+          return errAsync(
+            new APIError(
+              'Twitter',
+              response.status,
+              'Media finalization failed'
+            )
+          );
+        }
+        return ResultAsync.fromPromise(
+          response.json() as Promise<{
+            data: { processing_info?: { state: string } };
+          }>,
+          (error) => new TwitterError('Failed to parse finalization response')
+        );
+      })
+      .map((data) => ({
+        processingRequired: !!data.data.processing_info,
+      }));
+  };
+
+  // Wait for processing completion
+  const waitForProcessing = (
+    mediaId: string
+  ): ResultAsync<void, SocialProviderError> => {
+    const checkStatus = (): ResultAsync<
+      { isComplete: boolean; hasError: boolean; errorMessage?: string },
+      SocialProviderError
+    > => {
+      const params = new URLSearchParams({
+        command: 'STATUS',
+        media_id: mediaId,
+      });
+
+      return ResultAsync.fromPromise(
+        fetch(`https://api.x.com/2/media/upload?${params.toString()}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }),
+        (error) => new NetworkError('Twitter', 'status check')
+      )
+        .andThen((response) => {
+          if (!response.ok) {
+            return errAsync(
+              new APIError('Twitter', response.status, 'Status check failed')
+            );
+          }
+          return ResultAsync.fromPromise(
+            response.json() as Promise<{
+              data: {
+                processing_info?: {
+                  state: string;
+                  error?: { message: string };
+                };
+              };
+            }>,
+            (error) => new TwitterError('Failed to parse status response')
+          );
+        })
+        .map((data) => {
+          const processingInfo = data.data.processing_info;
+          if (!processingInfo) {
+            return { isComplete: true, hasError: false };
+          }
+
+          switch (processingInfo.state) {
+            case 'succeeded':
+              return { isComplete: true, hasError: false };
+            case 'failed':
+              return {
+                isComplete: true,
+                hasError: true,
+                errorMessage: processingInfo.error?.message,
+              };
+            default:
+              return { isComplete: false, hasError: false };
+          }
+        });
+    };
+
+    const poll = async (attempts: number): Promise<void> => {
+      const maxAttempts = 30;
+      const interval = 10000; // 10 seconds
+
+      if (attempts >= maxAttempts) {
+        throw new MediaProcessingTimeoutError('Twitter');
+      }
+
+      const statusResult = await checkStatus();
+      if (statusResult.isErr()) {
+        throw statusResult.error;
+      }
+
+      const status = statusResult.value;
+
+      if (status.isComplete) {
+        if (status.hasError) {
+          throw new MediaProcessingError('Twitter', status.errorMessage);
+        }
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      return poll(attempts + 1);
+    };
+
+    return ResultAsync.fromPromise(
+      poll(0),
+      (error) => error as SocialProviderError
+    );
+  };
+
+  // Main upload flow
+  return downloadFile().andThen(({ buffer, mimeType }) => {
+    const mediaCategory = getMediaCategory(mimeType);
+    return initializeUpload(buffer.length, mimeType, mediaCategory).andThen(
+      ({ mediaId }) =>
+        uploadChunks(mediaId, buffer, mimeType)
+          .andThen(() => finalizeUpload(mediaId))
+          .andThen(({ processingRequired }) => {
+            if (processingRequired) {
+              return waitForProcessing(mediaId).map(() => mediaId);
+            }
+            return okAsync(mediaId);
+          })
+    );
   });
-  const response = await fetch(
-    `https://api.x.com/2/media/upload?${params.toString()}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+};
+
+/**
+ * Upload multiple media files for a tweet
+ */
+const uploadTweetMedia = (
+  media: MediaType[],
+  profileId: string,
+  accessToken: string
+): ResultAsync<string[], SocialProviderError> => {
+  if (!media.length) {
+    return okAsync([]);
+  }
+
+  const validMediaUrls = getValidMediaUrls(media.slice(0, 4));
+  const uploadPromises = validMediaUrls
+    .filter((item) => item.url)
+    .map((item) => uploadMediaToTwitter(item.url!, profileId, accessToken));
+
+  return ResultAsync.combine(uploadPromises);
+};
+
+/**
+ * Post first tweet in thread
+ */
+const postFirstTweet = (
+  tweet: Tweet,
+  client: Client,
+  profile: TwitterProfileData
+): ResultAsync<{ tweetId: string }, SocialProviderError> => {
+  return uploadTweetMedia(tweet.media, profile.id, profile.accessToken).andThen(
+    (mediaIds) => {
+      const tweetData = {
+        text: tweet.text,
+        ...(mediaIds.length > 0 && { media: { media_ids: mediaIds } }),
+      };
+
+      return ResultAsync.fromPromise(
+        client.tweets.createTweet(tweetData),
+        (error) => createAPIError('Twitter', error)
+      ).andThen((response) => {
+        if (!response.data?.id) {
+          return err(new PostCreationError('Twitter'));
+        }
+        return ok({ tweetId: response.data.id });
+      });
     }
   );
+};
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(
-      `Status check V2 failed: ${response.status} ${errorText}`,
-      await response.json().catch(() => ({}))
-    );
-    throw new Error(`Status check V2 failed: ${response.status} ${errorText}`);
+/**
+ * Post thread replies
+ */
+const postThreadReplies = (
+  tweets: Tweet[],
+  client: Client,
+  profile: TwitterProfileData,
+  replyToTweetId: string
+): ResultAsync<void, SocialProviderError> => {
+  if (!tweets.length) {
+    return okAsync(undefined);
   }
-  return response.json() as Promise<MediaUploadStatusResponse>;
-}
+
+  const postReplies = async (currentReplyToId: string): Promise<void> => {
+    let replyId = currentReplyToId;
+
+    for (const tweet of tweets) {
+      const mediaResult = await uploadTweetMedia(
+        tweet.media,
+        profile.id,
+        profile.accessToken
+      );
+      if (mediaResult.isErr()) {
+        throw mediaResult.error;
+      }
+
+      const mediaIds = mediaResult.value;
+      const tweetData = {
+        text: tweet.text,
+        reply: { in_reply_to_tweet_id: replyId },
+        ...(mediaIds.length > 0 && { media: { media_ids: mediaIds } }),
+      };
+
+      const replyResult = await ResultAsync.fromPromise(
+        client.tweets.createTweet(tweetData),
+        (error) => createAPIError('Twitter', error)
+      );
+
+      if (replyResult.isErr()) {
+        throw replyResult.error;
+      }
+
+      if (!replyResult.value.data?.id) {
+        continue; // Skip failed replies but continue with thread
+      }
+
+      replyId = replyResult.value.data.id;
+    }
+  };
+
+  return ResultAsync.fromPromise(
+    postReplies(replyToTweetId),
+    (error) => error as SocialProviderError
+  );
+};
+
+/**
+ * Publish Twitter thread
+ */
+const publishTwitterThread = (
+  tweets: Tweet[],
+  profile: TwitterProfileData,
+  postId: string
+): ResultAsync<PostPublishResult, SocialProviderError> => {
+  const client = new Client(profile.accessToken);
+
+  return postFirstTweet(tweets[0], client, profile).andThen(({ tweetId }) =>
+    postThreadReplies(tweets.slice(1), client, profile, tweetId).map(() => ({
+      platformPostId: tweetId,
+      postId,
+      platformId: profile.id,
+      platformPostUrl: `https://x.com/${profile.username ?? 'unknown'}/status/${tweetId}`,
+      postedAt: new Date(),
+    }))
+  );
+};
+
+/**
+ * Generate Twitter OAuth URL
+ */
+const generateConnectUrl = (): Result<string, SocialProviderError> => {
+  try {
+    const authClient = new auth.OAuth2User({
+      client_id: keys().TWITTER_CLIENT_ID,
+      client_secret: keys().TWITTER_CLIENT_SECRET,
+      callback: keys().TWITTER_CALLBACK_URL,
+      scopes: ['users.read', 'tweet.read', 'offline.access', 'tweet.write'],
+    });
+
+    const url = authClient.generateAuthURL({
+      state: keys().TWITTER_STATE,
+      code_challenge_method: 'plain',
+      code_challenge: 'challenge',
+    });
+
+    return ok(url);
+  } catch {
+    return err(new TwitterError('Failed to generate OAuth URL'));
+  }
+};
+
+/**
+ * Main Twitter provider implementation
+ */
+export const twitterProvider: SocialProvider = {
+  /**
+   * Publishes content to Twitter, supporting multiple tweets (thread) with media attachments
+   */
+  publish: async ({ content, socialProviderId }) => {
+    const result = await getProfile(socialProviderId)
+      .andThen((profile) => refreshAccessToken(profile))
+      .andThen((profile) =>
+        validateAndSortTweets(content.content).andThen((tweets) =>
+          publishTwitterThread(tweets, profile, content.postId)
+        )
+      );
+
+    return result;
+  },
+
+  connectUrl: () => generateConnectUrl(),
+};
