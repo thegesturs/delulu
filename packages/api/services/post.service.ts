@@ -1,6 +1,7 @@
 import { providerRegistry } from '@api/providers';
-import { PostStatus, postQueries } from '@delulu/database';
+import { postQueries } from '@delulu/database';
 import { type SavePostInputType, SocialTypes } from '@delulu/validators/post';
+
 // import { Queue } from 'bullmq';
 
 export const createPostInQueue = async (post: SavePostInputType) => {
@@ -27,8 +28,6 @@ export const createPostInQueue = async (post: SavePostInputType) => {
     // Use alternative content if available, otherwise use default content
     const contentToPost = alternativeContent?.content ?? post.content;
 
-    console.log('Content To Post:', contentToPost, provider.socialType);
-
     const providerImpl = providerRegistry[provider.socialType];
     const result = await providerImpl.publish({
       content: {
@@ -40,21 +39,30 @@ export const createPostInQueue = async (post: SavePostInputType) => {
     });
 
     if (result.isErr()) {
-      console.error('Error publishing post:', result.error);
-      continue;
+      await postQueries.postPublishedOrFailed({
+        postId: post.id!,
+        platformPostData: {
+          postId: post.id!,
+          socialProviderId: provider.socialId,
+          failureReason: result.error.message,
+        },
+        status: 'FAILED',
+      });
     }
 
-    await postQueries.createPlatformPost({
-      postId: post.id!,
-      socialProviderId: provider.socialId,
-      platformPostId: result.value.platformPostId,
-      platformPostUrl: result.value.platformPostUrl,
-      postedAt: new Date(),
-    });
-
-    await postQueries.updatePost(post.id!, {
-      status: PostStatus.PUBLISHED,
-    });
+    if (result.isOk()) {
+      await postQueries.postPublishedOrFailed({
+        postId: post.id!,
+        platformPostData: {
+          postId: post.id!,
+          socialProviderId: provider.socialId,
+          platformPostId: result.value.platformPostId,
+          platformPostUrl: result.value.platformPostUrl,
+          postedAt: result.value.postedAt,
+        },
+        status: 'PUBLISHED',
+      });
+    }
 
     // // Get the provider implementation
     // const providerImpl = providerRegistry[provider.socialType];
