@@ -1,6 +1,13 @@
 import { env } from '@/env';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -116,11 +123,11 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: access_token,
           refreshToken: null, // LinkedIn doesn't provide refresh tokens
@@ -134,8 +141,8 @@ export async function GET(request: NextRequest) {
             Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
           ),
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return NextResponse.redirect(
         new URL(
@@ -145,10 +152,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         userId,
         socialType: 'LINKEDIN',
         accessToken: access_token,
@@ -165,24 +171,22 @@ export async function GET(request: NextRequest) {
         refreshTokenExpiresIn: new Date(
           Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
         ),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: access_token,
-          refreshToken: null,
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: username,
-          profileImage: profileImage,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-        },
-      });
+      },
+      {
+        accessToken: access_token,
+        refreshToken: null,
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        username: username,
+        profileImage: profileImage,
+        updatedAt: new Date(),
+        isActive: true,
+        lastSyncedAt: new Date(),
+        refreshTokenExpiresIn: new Date(
+          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+        ),
+      }
+    );
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

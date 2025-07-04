@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { socialQueries } from '@delulu/database';
 import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
@@ -63,10 +63,7 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<FacebookProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) =>
-        eq(socialProviders.id, socialProviderId),
-    }),
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new FacebookError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken || !profile.profileId) {

@@ -1,6 +1,13 @@
 import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -152,11 +159,11 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
@@ -166,8 +173,8 @@ export async function GET(request: NextRequest) {
           updatedAt: new Date(),
           isActive: true,
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return new NextResponse(null, {
         status: 302,
@@ -178,10 +185,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         userId,
         socialType: 'PINTEREST',
         accessToken: tokenData.access_token,
@@ -195,20 +201,18 @@ export async function GET(request: NextRequest) {
         lastSyncedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          fullName: userObject.username,
-          username: userObject.username,
-          profileImage: userObject.profile_image,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        },
-      });
+      },
+      {
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        fullName: userObject.username,
+        username: userObject.username,
+        profileImage: userObject.profile_image,
+        updatedAt: new Date(),
+        isActive: true,
+        lastSyncedAt: new Date(),
+      }
+    );
 
     // Successful connection
     return new NextResponse(null, {

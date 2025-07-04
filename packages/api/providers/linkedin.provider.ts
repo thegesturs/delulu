@@ -1,5 +1,6 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { socialQueries } from '@delulu/database';
+import type {} from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -29,10 +30,7 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<LinkedInProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) =>
-        eq(socialProviders.id, socialProviderId),
-    }),
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new LinkedInError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken) {

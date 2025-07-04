@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database as db, eq, socialProviders } from '@delulu/database';
+import { socialQueries } from '@delulu/database';
 import {
   type MediaType,
   getFileType,
@@ -52,19 +52,15 @@ interface TwitterProfileData {
 }
 
 /**
- * Get Twitter profile from database
+ * Get Twitter profile from database with decrypted tokens
  */
 const getProfile = (
   socialProviderId: string
 ): ResultAsync<TwitterProfileData, SocialProviderError> =>
   ResultAsync.fromPromise(
-    db.query.socialProviders.findMany({
-      where: (socialProviders, { eq }) =>
-        eq(socialProviders.id, socialProviderId),
-      limit: 1,
-    }),
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new TwitterError('Database query failed')
-  ).andThen(([profile]) => {
+  ).andThen((profile) => {
     if (!profile?.accessToken) {
       return err(new ProfileNotFoundError('Twitter'));
     }
@@ -132,16 +128,13 @@ const refreshAccessToken = (
       };
 
       return ResultAsync.fromPromise(
-        db
-          .update(socialProviders)
-          .set({
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-            expiresIn: new Date(Date.now() + data.expires_in * 1000),
-            updatedAt: new Date(),
-            lastSyncedAt: new Date(),
-          })
-          .where(eq(socialProviders.id, profile.id)),
+        socialQueries.updateSocialProviderWithEncryption(profile.id, {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresIn: new Date(Date.now() + data.expires_in * 1000),
+          updatedAt: new Date(),
+          lastSyncedAt: new Date(),
+        }),
         () => new TwitterError('Failed to update token in database')
       ).map(() => updatedProfile);
     });

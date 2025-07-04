@@ -1,5 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
+import { socialQueries } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -39,10 +39,7 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<InstagramProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) =>
-        eq(socialProviders.id, socialProviderId),
-    }),
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new InstagramError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken || !profile.profileId) {

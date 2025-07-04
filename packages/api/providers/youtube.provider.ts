@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import type { Readable } from 'node:stream';
-import { database } from '@delulu/database';
+import { socialQueries } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
@@ -31,10 +31,7 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<YouTubeProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    database.query.socialProviders.findFirst({
-      where: (socialProviders, { eq }) =>
-        eq(socialProviders.id, socialProviderId),
-    }),
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new YouTubeError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken) {
@@ -146,7 +143,7 @@ const uploadVideoToYouTube = (
         privacyStatus:
           data.status?.privacyStatus ?? metadata.status.privacyStatus,
         license: 'youtube', // Default YouTube license
-        embeddable: true,                                     
+        embeddable: true,
         publicStatsViewable: true,
       },
     });

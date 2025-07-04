@@ -1,7 +1,14 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -153,11 +160,11 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: longLivedTokenData.access_token,
           expiresIn: new Date(
@@ -166,14 +173,14 @@ export async function GET(request: NextRequest) {
           fullName: userObject.name,
           username: userObject.username,
           profileImage: userObject.threads_profile_picture_url,
+          updatedAt: new Date(),
+          isActive: true,
           refreshTokenExpiresIn: new Date(
             Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
           ),
-          updatedAt: new Date(),
-          isActive: true,
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return new NextResponse(null, {
         status: 302,
@@ -184,10 +191,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         id: `social_${nanoid(12)}`,
         userId,
         socialType: 'THREADS',
@@ -199,30 +205,23 @@ export async function GET(request: NextRequest) {
         profileImage: userObject.threads_profile_picture_url,
         isActive: true,
         lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
         refreshTokenExpiresIn: new Date(
           Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
         ),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: longLivedTokenData.access_token,
-          expiresIn: new Date(
-            Date.now() + longLivedTokenData.expires_in * 1000
-          ),
-          fullName: userObject.name,
-          username: userObject.username,
-          profileImage: userObject.threads_profile_picture_url,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-        },
-      });
+      },
+      {
+        accessToken: longLivedTokenData.access_token,
+        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+        fullName: userObject.name,
+        username: userObject.username,
+        profileImage: userObject.threads_profile_picture_url,
+        isActive: true,
+        lastSyncedAt: new Date(),
+        refreshTokenExpiresIn: new Date(
+          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+        ),
+      }
+    );
 
     return new NextResponse(null, {
       status: 302,

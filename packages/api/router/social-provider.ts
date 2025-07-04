@@ -161,11 +161,11 @@ export const socialProviderRouter = {
         )
         .limit(1);
 
-      // If found, handle the transfer
+      // If found, handle the transfer using encrypted update
       if (existingProvider.length > 0) {
-        await database
-          .update(socialProviders)
-          .set({
+        await socialQueries.updateSocialProviderWithEncryption(
+          existingProvider[0].id,
+          {
             userId,
             accessToken: input.pageAccessToken,
             fullName: input.pageName,
@@ -177,16 +177,15 @@ export const socialProviderRouter = {
             updatedAt: new Date(),
             isActive: true,
             lastSyncedAt: new Date(),
-          })
-          .where(eq(socialProviders.id, existingProvider[0].id));
+          }
+        );
 
         return { status: 'transferred' };
       }
 
-      // Upsert the social provider using conflict resolution
-      await database
-        .insert(socialProviders)
-        .values({
+      // Upsert the social provider using conflict resolution with encryption
+      await socialQueries.upsertSocialProviderWithEncryption(
+        {
           userId,
           socialType: 'FACEBOOK',
           accessToken: input.pageAccessToken,
@@ -197,19 +196,17 @@ export const socialProviderRouter = {
           isActive: true,
           lastSyncedAt: new Date(),
           expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
-        })
-        .onConflictDoUpdate({
-          target: [socialProviders.userId, socialProviders.profileId],
-          set: {
-            accessToken: input.pageAccessToken,
-            fullName: input.pageName,
-            username: input.pageName,
-            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-            updatedAt: new Date(),
-            isActive: true,
-            lastSyncedAt: new Date(),
-          },
-        });
+        },
+        {
+          accessToken: input.pageAccessToken,
+          fullName: input.pageName,
+          username: input.pageName,
+          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        }
+      );
 
       return { status: 'connected' };
     }),

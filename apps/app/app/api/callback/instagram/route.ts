@@ -1,7 +1,14 @@
+import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
-import { keys } from '@delulu/api/keys';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -15,6 +22,14 @@ interface InstagramLongLivedTokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
+}
+
+interface InstagramUserResponse {
+  id: string;
+  name: string;
+  username: string;
+  account_type: string;
+  profile_picture_url: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -69,10 +84,10 @@ export async function GET(request: NextRequest) {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: keys().INSTAGRAM_CLIENT_ID,
-          client_secret: keys().INSTAGRAM_CLIENT_SECRET,
+          client_id: env.INSTAGRAM_CLIENT_ID,
+          client_secret: env.INSTAGRAM_CLIENT_SECRET,
           grant_type: 'authorization_code',
-          redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
+          redirect_uri: env.INSTAGRAM_CALLBACK_URL,
           code,
         }).toString(),
       }
@@ -97,7 +112,7 @@ export async function GET(request: NextRequest) {
     // Exchange short-lived token for long-lived token
     const longLivedTokenResponse = await fetchWithTimeout(
       `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${
-        keys().INSTAGRAM_CLIENT_SECRET
+        env.INSTAGRAM_CLIENT_SECRET
       }&access_token=${tokenData.access_token}`,
       {
         method: 'GET',
@@ -140,7 +155,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userObject = await userResponse.json();
+    const userObject = (await userResponse.json()) as InstagramUserResponse;
 
     // Check if this Instagram account is already connected to a different user
     const existingProvider = await database
@@ -154,11 +169,11 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: longLivedTokenData.access_token,
           expiresIn: new Date(
@@ -167,14 +182,14 @@ export async function GET(request: NextRequest) {
           fullName: userObject.name,
           username: userObject.username,
           profileImage: userObject.profile_picture_url,
-          updatedAt: new Date(),
           refreshTokenExpiresIn: new Date(
             Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
           ),
+          updatedAt: new Date(),
           isActive: true,
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return new NextResponse(null, {
         status: 302,
@@ -185,10 +200,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         id: `social_${nanoid(12)}`,
         userId,
         socialType: 'INSTAGRAM',
@@ -205,25 +219,21 @@ export async function GET(request: NextRequest) {
         lastSyncedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: longLivedTokenData.access_token,
-          expiresIn: new Date(
-            Date.now() + longLivedTokenData.expires_in * 1000
-          ),
-          fullName: userObject.name,
-          username: userObject.username,
-          profileImage: userObject.profile_picture_url,
-          updatedAt: new Date(),
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        },
-      });
+      },
+      {
+        accessToken: longLivedTokenData.access_token,
+        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
+        fullName: userObject.name,
+        username: userObject.username,
+        profileImage: userObject.profile_picture_url,
+        updatedAt: new Date(),
+        refreshTokenExpiresIn: new Date(
+          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+        ),
+        isActive: true,
+        lastSyncedAt: new Date(),
+      }
+    );
 
     // Successful connection
     return new NextResponse(null, {
