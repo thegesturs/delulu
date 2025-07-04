@@ -146,7 +146,7 @@ const uploadVideoToYouTube = (
         privacyStatus:
           data.status?.privacyStatus ?? metadata.status.privacyStatus,
         license: 'youtube', // Default YouTube license
-        embeddable: true,
+        embeddable: true,                                     
         publicStatsViewable: true,
       },
     });
