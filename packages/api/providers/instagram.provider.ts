@@ -68,7 +68,7 @@ const createSingleMediaContainer = (
     );
   }
 
-  const endpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
+  const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
 
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -101,7 +101,7 @@ const createCarouselContainer = (
   > => {
     return ResultAsync.combine(
       mediaUrls.map((url) => {
-        const itemEndpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
+        const itemEndpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
         const itemParams = new URLSearchParams({
           image_url: url,
           is_carousel_item: 'true',
@@ -117,7 +117,7 @@ const createCarouselContainer = (
   };
 
   return createCarouselItems().andThen((mediaIds) => {
-    const carouselEndpoint = `https://graph.facebook.com/v18.0/${profile.profileId}/media`;
+    const carouselEndpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/media`;
     const carouselParams = new URLSearchParams({
       media_type: 'CAROUSEL',
       children: mediaIds.join(','),
@@ -137,7 +137,7 @@ const publishMediaContainer = (
   containerId: string,
   accessToken: string
 ): ResultAsync<InstagramMediaPublishResponse, SocialProviderError> => {
-  const endpoint = `https://graph.facebook.com/v18.0/${containerId}/publish`;
+  const endpoint = `https://graph.facebook.com/v23.0/${containerId}/publish`;
   const params = new URLSearchParams({
     access_token: accessToken,
   });
@@ -154,7 +154,7 @@ const getMediaDetails = (
   accessToken: string
 ): ResultAsync<InstagramMediaResponse, SocialProviderError> => {
   return ResultAsync.fromPromise(
-    axios.get(`https://graph.facebook.com/v18.0/${mediaId}`, {
+      axios.get(`https://graph.facebook.com/v23.0/${mediaId}`, {
       params: {
         fields: 'id,permalink',
         access_token: accessToken,
