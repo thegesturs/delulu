@@ -81,9 +81,11 @@ export interface FacebookVideoStatus {
     error?: {
       message: string;
     };
+    error_message?: string;
   };
   publishing_phase?: {
     status: string;
+    publish_status?: string;
   };
 }
 

@@ -45,6 +45,7 @@ export const createPostInQueue = async (post: SavePostInputType) => {
           postId: post.id!,
           socialProviderId: provider.socialId,
           failureReason: result.error.message,
+          postedAt: new Date(),
         },
         status: 'FAILED',
       });

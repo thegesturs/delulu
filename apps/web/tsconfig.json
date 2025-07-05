@@ -2,7 +2,6 @@
   "extends": ["@delulu/typescript-config/nextjs.json"],
   "compilerOptions": {
     "baseUrl": ".",
-    "types": ["@react-three/fiber"],
     "paths": {
       "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"],
