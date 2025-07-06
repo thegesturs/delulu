@@ -3,15 +3,22 @@ import { socialQueries } from '@delulu/database';
 import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import { type Result, ResultAsync, err, errAsync, ok } from 'neverthrow';
+import {
+  type Result,
+  ResultAsync,
+  err,
+  errAsync,
+  ok,
+  okAsync,
+} from 'neverthrow';
 
 import type {
+  BaseProviderProfile,
   PostContent,
   PostPublishResult,
   ThreadsMediaContainer,
   ThreadsMediaPublishResponse,
   ThreadsMediaResponse,
-  ThreadsProfile,
 } from './common-types';
 import {
   MediaProcessingError,
@@ -30,7 +37,7 @@ const urlRegex =
 // Profile management
 const getProfile = (
   socialProviderId: string
-): ResultAsync<ThreadsProfile, SocialProviderError> =>
+): ResultAsync<BaseProviderProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new ThreadsError('Database query failed')
@@ -42,13 +49,14 @@ const getProfile = (
       id: profile.id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
+      username: profile.username!,
     });
   });
 
 // Media container creation
 const createMediaContainer = (
   media: MediaType | null,
-  profile: ThreadsProfile,
+  profile: BaseProviderProfile,
   text: string,
   options: {
     isCarouselItem?: boolean;
@@ -89,7 +97,7 @@ const createMediaContainer = (
 
 const createCarouselContainer = (
   childrenIds: string[],
-  profile: ThreadsProfile,
+  profile: BaseProviderProfile,
   text: string
 ): ResultAsync<ThreadsMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads`;
@@ -167,16 +175,13 @@ const waitForContainerProcessing = (
     if (result.isErr()) {
       return errAsync(result.error);
     }
-    return ResultAsync.fromPromise(
-      Promise.resolve(result.value),
-      (error) => error as SocialProviderError
-    );
+    return okAsync(result.value);
   });
 };
 
 const publishContainer = (
   creationId: string,
-  profile: ThreadsProfile
+  profile: BaseProviderProfile
 ): ResultAsync<ThreadsMediaPublishResponse, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads_publish`;
   const params = new URLSearchParams({
@@ -211,7 +216,7 @@ const getPostDetails = (
 // Process single post content
 const processPostContent = (
   post: PostContent,
-  profile: ThreadsProfile,
+  profile: BaseProviderProfile,
   replyToId?: string
 ): ResultAsync<string, SocialProviderError> => {
   const validMedia = getValidMediaUrls(post.media);
@@ -248,7 +253,7 @@ const processPostContent = (
 // Main publish function
 const publishContent = (
   content: { content: PostContent[]; postId: string },
-  profile: ThreadsProfile
+  profile: BaseProviderProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const posts = content.content.sort((a, b) => a.order - b.order);
 

@@ -2,7 +2,7 @@ import { keys } from '@delulu/api/keys';
 import { socialQueries } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 import type {
   BaseProviderProfile,
   PostContent,
@@ -45,6 +45,7 @@ const getProfile = (
       id: profile.id,
       accessToken: profile.accessToken,
       profileId: profile.profileId,
+      username: profile.username!,
     };
 
     return ok(linkedinProfile);
@@ -75,7 +76,7 @@ const uploadImageToLinkedIn = (
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'LinkedIn-Version': '202501', // Use current version
+            'LinkedIn-Version': '2025-07', // Use current version
             'X-Restli-Protocol-Version': '2.0.0',
           },
         }
@@ -136,7 +137,7 @@ const uploadVideoToLinkedIn = (
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'LinkedIn-Version': '202501',
+            'LinkedIn-Version': '2025-07',
             'X-Restli-Protocol-Version': '2.0.0',
           },
         }
@@ -183,7 +184,7 @@ const uploadVideoToLinkedIn = (
               headers: {
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
-                'LinkedIn-Version': '202501',
+                'LinkedIn-Version': '2025-07',
                 'X-Restli-Protocol-Version': '2.0.0',
               },
             }
@@ -213,7 +214,7 @@ const checkVideoProcessingStatus = (
     axios.get(`https://api.linkedin.com/rest/videos/${encodedUrn}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'LinkedIn-Version': '202501',
+        'LinkedIn-Version': '2025-07',
         'X-Restli-Protocol-Version': '2.0.0',
       },
     }),
@@ -233,49 +234,32 @@ const waitForVideoProcessing = (
   maxAttempts = 30,
   interval = 10000
 ): ResultAsync<void, SocialProviderError> => {
-  const poll = async (attempts: number): Promise<void> => {
+  const poll = (attempts: number): ResultAsync<void, SocialProviderError> => {
     if (attempts >= maxAttempts) {
-      throw new MediaProcessingTimeoutError('LinkedIn');
+      return errAsync(new MediaProcessingTimeoutError('LinkedIn'));
     }
 
-    const statusResult = await checkVideoProcessingStatus(
-      videoUrn,
-      accessToken
-    );
-    if (statusResult.isErr()) {
-      throw statusResult.error;
-    }
+    return checkVideoProcessingStatus(videoUrn, accessToken).andThen((status) => {
+      if (status === 'AVAILABLE') {
+        return okAsync(undefined);
+      }
 
-    const status = statusResult.value;
+      if (status === 'PROCESSING_FAILED') {
+        return errAsync(new MediaProcessingError('LinkedIn', 'Video processing failed'));
+      }
 
-    if (status === 'AVAILABLE') {
-      return;
-    }
+      if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
+        return ResultAsync.fromPromise(
+          new Promise((resolve) => setTimeout(resolve, interval)),
+          () => new MediaProcessingError('LinkedIn', 'Timeout during wait')
+        ).andThen(() => poll(attempts + 1));
+      }
 
-    if (status === 'PROCESSING_FAILED') {
-      throw new MediaProcessingError('LinkedIn', 'Video processing failed');
-    }
-
-    if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
-      await new Promise((resolve) => setTimeout(resolve, interval));
-      return poll(attempts + 1);
-    }
+      return errAsync(new MediaProcessingError('LinkedIn', `Unknown status: ${status}`));
+    });
   };
 
-  return ResultAsync.fromPromise(poll(0), (error: unknown) => {
-    if (
-      error instanceof MediaProcessingTimeoutError ||
-      error instanceof MediaProcessingError
-    ) {
-      return error;
-    }
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown polling error';
-    return new MediaProcessingError(
-      'LinkedIn',
-      `Video processing failed: ${errorMessage}`
-    );
-  });
+  return poll(0);
 };
 
 // Helper: Build LinkedIn post data for any media type
@@ -393,7 +377,7 @@ const createAndPublishPost = (
         Authorization: `Bearer ${profile.accessToken}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202501',
+        'LinkedIn-Version': '2025-07',
       },
     }),
     (error: unknown) => {
@@ -493,17 +477,12 @@ export const linkedinProvider: SocialProvider = {
 
   connectUrl: () => {
     const scopes = [
-      'r_member_postAnalytics',
-      'r_organization_followers',
-      'r_organization_social',
-      'rw_organization_admin',
-      'r_organization_social_feed',
+      'openid',
+      'profile',
       'w_member_social',
-      'r_member_profileAnalytics',
-      'w_organization_social',
-      'r_basicprofile',
-      'w_organization_social_feed',
-      'w_member_social_feed',
+      'rw_organization',
+      'r_organization_social',
+      'r_member_social',
     ].join('%20');
 
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
