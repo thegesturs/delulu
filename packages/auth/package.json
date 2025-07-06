@@ -4,11 +4,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./index.ts",
-      "require": "./index.ts",
-      "types": "./index.ts"
-    },
     "./*": {
       "import": "./src/*.ts",
       "require": "./src/*.ts",
