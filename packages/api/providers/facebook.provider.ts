@@ -250,8 +250,8 @@ const publishReel = (
       return err(new PublishError('Facebook', 'Reel publish failed'));
     }
     console.log('[Facebook] Reel published successfully');
-    // Return the post_id if available, otherwise use video_id
-    return ok(response.data.post_id || videoId);
+    // Always return video_id - we need to wait for processing to complete
+    return ok(videoId);
   });
 };
 
@@ -268,65 +268,54 @@ const waitForVideoProcessing = (
     interval,
   });
 
-  const poll = async (attempts: number): Promise<void> => {
+  const poll = (attempts: number): ResultAsync<void, SocialProviderError> => {
     console.log(`[Facebook] Polling attempt ${attempts + 1}/${maxAttempts}`);
 
     if (attempts >= maxAttempts) {
       console.error('[Facebook] Video processing timeout');
-      throw new MediaProcessingTimeoutError('Facebook');
+      return errAsync(new MediaProcessingTimeoutError('Facebook'));
     }
 
-    const statusResult = await checkVideoStatus(videoId, accessToken);
-    if (statusResult.isErr()) {
-      console.error(
-        '[Facebook] Video status check failed:',
-        statusResult.error
-      );
-      throw statusResult.error;
-    }
+    return checkVideoStatus(videoId, accessToken).andThen((status) => {
+      console.log(`[Facebook] Video status: ${status.video_status}`);
 
-    const status = statusResult.value;
-    console.log(`[Facebook] Video status: ${status.video_status}`);
-
-    // Handle error status - stop immediately
-    if (status.video_status === 'error') {
-      console.error('[Facebook] Video processing failed with error status');
-      if (status.processing_phase?.errors) {
-        console.error('[Facebook] Processing errors:', status.processing_phase.errors);
+      // Handle error status - stop immediately
+      if (status.video_status === 'error') {
+        console.error('[Facebook] Video processing failed with error status');
+        if (status.processing_phase?.errors) {
+          console.error('[Facebook] Processing errors:', status.processing_phase.errors);
+        }
+        return errAsync(new MediaProcessingError('Facebook', 'Video processing failed'));
       }
-      throw new MediaProcessingError('Facebook', 'Video processing failed');
-    }
 
-    if (
-      status.video_status === 'ready' ||
-      status.video_status === 'published' ||
-      (status.video_status === 'upload_complete' &&
-        status.processing_phase?.status === 'complete')
-    ) {
-      console.log('[Facebook] Video processing completed successfully');
-      return;
-    }
+      // Handle processing phase errors
+      if (status.processing_phase?.status === 'error') {
+        console.error('[Facebook] Video processing phase failed');
+        if (status.processing_phase?.errors) {
+          console.error('[Facebook] Processing errors:', status.processing_phase.errors);
+        }
+        return errAsync(new MediaProcessingError('Facebook', 'Video processing phase failed'));
+      }
 
-    if (status.processing_phase?.error) {
-      console.error(
-        '[Facebook] Video processing error:',
-        status.processing_phase.error
-      );
-      throw new MediaProcessingError(
-        'Facebook',
-        status.processing_phase.error.message
-      );
-    }
+      if (
+        status.video_status === 'ready' ||
+        status.video_status === 'published' ||
+        (status.video_status === 'upload_complete' &&
+          status.processing_phase?.status === 'complete')
+      ) {
+        console.log('[Facebook] Video processing completed successfully');
+        return okAsync(undefined);
+      }
 
-    console.log(`[Facebook] Video still processing, waiting ${interval}ms...`);
-    await new Promise((resolve) => setTimeout(resolve, interval));
-    return poll(attempts + 1);
+      console.log(`[Facebook] Video still processing, waiting ${interval}ms...`);
+      return ResultAsync.fromPromise(
+        new Promise((resolve) => setTimeout(resolve, interval)),
+        () => new MediaProcessingError('Facebook', 'Timeout error')
+      ).andThen(() => poll(attempts + 1));
+    });
   };
 
-  return ResultAsync.fromPromise(
-    poll(0),
-    (error) => error as SocialProviderError
-  );
+  return poll(0);
 };
 
 // Post creation
@@ -395,17 +384,8 @@ const processReelMedia = (
   return initializeReelUpload(profile).andThen(({ videoId, uploadUrl }) =>
     uploadReelContent(uploadUrl, media.url!, profile.accessToken)
       .andThen(() => publishReel(profile, videoId, text))
-      .andThen((publishedId) => {
-        // If we got a post_id from publish, the reel is already published
-        // No need to wait for video processing
-        if (publishedId !== videoId) {
-          console.log('[Facebook] Reel published with post_id:', publishedId);
-          return okAsync(publishedId);
-        }
-        // Otherwise wait for processing
-        return waitForVideoProcessing(videoId, profile.accessToken)
-          .andThen(() => okAsync(videoId));
-      })
+      .andThen(() => waitForVideoProcessing(videoId, profile.accessToken))
+      .andThen(() => okAsync(videoId))
   );
 };
 
