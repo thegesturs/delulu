@@ -5,8 +5,16 @@
 
 declare module "sst" {
   export interface Resource {
+    "LAMBDA_SECRET_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "MyVpc": {
       "type": "sst.aws.Vpc"
+    }
+    "SocialPostsApi": {
+      "type": "sst.aws.ApiGatewayV2"
+      "url": string
     }
     "SocialPostsQueue": {
       "type": "sst.aws.Queue"

@@ -22,6 +22,15 @@ export default $config({
 
     const queue = new sst.aws.Queue('SocialPostsQueue');
 
+    const SECRET_KEY = new sst.Secret('LAMBDA_SECRET_KEY');
+
+    // Add new API + Lambda function to trigger SQS
+    const api = new sst.aws.ApiGatewayV2('SocialPostsApi', {
+      link: [queue, SECRET_KEY],
+    });
+
+    api.route('POST /trigger', 'src/trigger-sqs.handler');
+
     const task = new sst.aws.Task('SocialPostsTask', {
       cluster,
       cpu: '0.5 vCPU',
@@ -43,6 +52,7 @@ export default $config({
 
     return {
       SocialPostsQueueURL: queue.url,
+      SocialPostsApiEndpoint: api.url,
     };
   },
 });

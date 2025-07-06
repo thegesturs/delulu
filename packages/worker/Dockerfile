@@ -34,8 +34,6 @@ COPY packages/typescript-config ./packages/typescript-config
 # Copy environment file
 COPY packages/worker/.env.local ./packages/worker/.env.local
 
-RUN pnpm worker:prisma:generate
-
 # Set environment variables
 ENV NODE_ENV=production
 
