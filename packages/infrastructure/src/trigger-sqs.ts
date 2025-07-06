@@ -8,7 +8,11 @@ export async function handler(event: {
   body: string;
 }) {
   // Validate secret key
-  const authHeader = event.headers['x-api-key'] || event.headers['X-Api-Key'];
+
+  console.log('Event', event);
+  const authHeader = event.headers['x-api-key'] ?? event.headers['X-Api-Key'];
+  console.log('Auth header', authHeader);
+  console.log('Secret key', Resource.LAMBDA_SECRET_KEY.value);
   if (authHeader !== Resource.LAMBDA_SECRET_KEY.value) {
     return {
       statusCode: 401,
@@ -27,12 +31,13 @@ export async function handler(event: {
     }
 
     // Send message to SQS
-    await sqs.send(
+    const result = await sqs.send(
       new SendMessageCommand({
         QueueUrl: Resource.SocialPostsQueue.url,
         MessageBody: messageBody,
       })
     );
+    console.log('Message sent to queue successfully', result);
 
     return {
       statusCode: 200,

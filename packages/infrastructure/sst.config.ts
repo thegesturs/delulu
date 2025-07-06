@@ -42,6 +42,10 @@ export default $config({
       environment: {
         QUEUE_URL: queue.url,
       },
+      dev: {
+        command: 'tsx index.ts',
+        directory: 'packages/worker',
+      },
     });
 
     queue.subscribe({

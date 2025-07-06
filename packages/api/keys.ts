@@ -44,6 +44,8 @@ export const keys = () =>
       TIKTOK_CLIENT_ID: z.string().min(1),
       TIKTOK_CLIENT_SECRET: z.string().min(1),
       TIKTOK_CALLBACK_URL: z.string().min(1),
+
+      POSTING_SECRET_KEY: z.string().min(1),
     },
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
@@ -82,6 +84,7 @@ export const keys = () =>
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
       YOUTUBE_CALLBACK_URL: process.env.YOUTUBE_CALLBACK_URL,
+
+      POSTING_SECRET_KEY: process.env.POSTING_SECRET_KEY,
     },
-    skipValidation: true,
   });
