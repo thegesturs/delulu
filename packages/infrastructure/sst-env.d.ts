@@ -12,10 +12,6 @@ declare module "sst" {
     "MyVpc": {
       "type": "sst.aws.Vpc"
     }
-    "SocialPostsApi": {
-      "type": "sst.aws.ApiGatewayV2"
-      "url": string
-    }
     "SocialPostsQueue": {
       "type": "sst.aws.Queue"
       "url": string
@@ -28,6 +24,11 @@ declare module "sst" {
       "subnets": any
       "taskDefinition": string
       "type": "sst.aws.Task"
+    }
+    "TriggerSqsFunction": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
     }
   }
 }
