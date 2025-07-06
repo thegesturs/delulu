@@ -7,12 +7,7 @@ export async function handler(event: {
   headers: Record<string, string>;
   body: string;
 }) {
-  // Validate secret key
-
-  console.log('Event', event);
   const authHeader = event.headers['x-api-key'] ?? event.headers['X-Api-Key'];
-  console.log('Auth header', authHeader);
-  console.log('Secret key', Resource.LAMBDA_SECRET_KEY.value);
   if (authHeader !== Resource.LAMBDA_SECRET_KEY.value) {
     return {
       statusCode: 401,

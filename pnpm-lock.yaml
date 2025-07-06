@@ -842,6 +842,9 @@ importers:
         specifier: 'catalog:'
         version: 3.25.67
     devDependencies:
+      '@delulu/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

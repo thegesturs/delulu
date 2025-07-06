@@ -3,10 +3,13 @@ import { type SocialType, postQueries } from '@delulu/database';
 import type { SocialPublishInputType } from '@delulu/validators/post';
 
 async function processMessage(messageBody: string) {
+  console.log('Message body', messageBody);
   const { socialPublishInput, socialType } = JSON.parse(messageBody) as {
     socialPublishInput: SocialPublishInputType;
     socialType: SocialType;
   };
+
+  console.log('Social publish input', socialPublishInput);
 
   if (socialType === 'LENS') {
     return;
@@ -48,6 +51,9 @@ async function processMessage(messageBody: string) {
 
 // Get message from ECS environment variable
 const messageBody = process.env.MESSAGE_BODY;
+
+console.log('Message body', messageBody);
+
 if (!messageBody) {
   throw new Error('No MESSAGE_BODY environment variable provided');
 }

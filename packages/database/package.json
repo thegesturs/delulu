@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
+    "@delulu/auth": "workspace:*",
     "@types/node": "22.14.1",
     "@types/react": "catalog:react19",
     "@types/ws": "^8.18.1",
