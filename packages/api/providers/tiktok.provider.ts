@@ -129,15 +129,13 @@ export const tiktokProvider: SocialProvider = {
 
   connectUrl: () => {
     const params = new URLSearchParams({
+      response_type: 'code',
       client_key: keys().TIKTOK_CLIENT_ID,
       redirect_uri: keys().TIKTOK_CALLBACK_URL,
-      response_type: 'code',
-      response_mode: 'query',
-      scope:
-        'user.info.basic,video.publish,video.upload,user.info.profile,user.info.stats,video.list',
+      scope: 'user.info.basic,video.publish,video.upload,user.info.profile',
       state: nanoid(10),
     });
 
-    return `https://www.tiktok.com/auth/authorize/?${params.toString()}`;
+    return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
   },
 };

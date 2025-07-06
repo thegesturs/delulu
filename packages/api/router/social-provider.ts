@@ -37,6 +37,8 @@ export const socialProviderRouter = {
     )
     .mutation(({ input }) => {
       const link = providerRegistry[input.provider].connectUrl()
+
+      console.log('Link:', link);
       
       return link;
     }),
