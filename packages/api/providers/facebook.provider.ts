@@ -43,6 +43,8 @@ const createPhotoUploadParams = (
   new URLSearchParams({
     access_token: profile.accessToken,
     url: mediaUrl,
+    published: 'false',
+    temporary: 'true',
   });
 
 const createVideoInitParams = (accessToken: string) => ({
@@ -58,6 +60,7 @@ const createFeedPostData = (
   const data: Record<string, string> = {
     access_token: profile.accessToken,
     message,
+    timeline_visibility: 'normal',
   };
 
   // Add attached_media in the correct format for Facebook API

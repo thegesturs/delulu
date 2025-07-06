@@ -100,7 +100,7 @@ export function PostPreviewDialog({
                 }
 
                 const platformPostUrl = post.platformPosts?.find(
-                  (pp) => pp.platformId === provider.socialProvider.id
+                  (pp) => pp.socialProviderId === provider.socialProvider.id
                 )?.platformPostUrl;
 
                 return (
