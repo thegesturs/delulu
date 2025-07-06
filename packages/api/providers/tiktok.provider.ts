@@ -35,6 +35,8 @@ const getProfile = (
       id: profile.id,
       accessToken: profile.accessToken,
       refreshToken: profile.refreshToken,
+      username: profile.username!,
+      profileId: profile.profileId!,
     });
   });
 
@@ -111,7 +113,7 @@ const publishContent = (
     platformPostId: uploadResponse.data.publish_id,
     postId: content.postId,
     platformId: profile.id,
-    platformPostUrl: `https://www.tiktok.com/@username/video/${uploadResponse.data.publish_id}`,
+    platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
     postedAt: new Date(),
   }));
 };
@@ -130,7 +132,9 @@ export const tiktokProvider: SocialProvider = {
       client_key: keys().TIKTOK_CLIENT_ID,
       redirect_uri: keys().TIKTOK_CALLBACK_URL,
       response_type: 'code',
-      scope: 'user.info.basic,video.publish',
+      response_mode: 'query',
+      scope:
+        'user.info.basic,video.publish,video.upload,user.info.profile,user.info.stats,video.list',
       state: nanoid(10),
     });
 

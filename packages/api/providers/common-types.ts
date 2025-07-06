@@ -4,14 +4,7 @@ import type { MediaType, PostReturnType } from '@delulu/validators/post';
 export interface BaseProviderProfile {
   id: string;
   accessToken: string;
-}
-
-// Extended profiles for providers that need additional fields
-export interface FacebookProfile extends BaseProviderProfile {
-  profileId: string;
-}
-
-export interface ThreadsProfile extends BaseProviderProfile {
+  username: string;
   profileId: string;
 }
 
@@ -21,7 +14,6 @@ export interface TikTokProfile extends BaseProviderProfile {
 
 export interface TwitterProfile extends BaseProviderProfile {
   refreshToken: string;
-  username: string;
 }
 
 // Content types
@@ -78,10 +70,15 @@ export interface FacebookVideoStatus {
   };
   processing_phase?: {
     status: string;
+    errors?: {
+      message: string;
+      code: number;
+    }[];
     error?: {
       message: string;
+      code: number;
     };
-    error_message?: string;
+    error_code?: number;
   };
   publishing_phase?: {
     status: string;
