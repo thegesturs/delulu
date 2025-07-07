@@ -12,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import { FaThreads, FaXTwitter } from 'react-icons/fa6';
 import { SiFarcaster } from 'react-icons/si';
+import { TbSocial } from 'react-icons/tb';
 
 export type SupportedSocialPlatform =
   | 'TWITTER'
@@ -22,7 +23,8 @@ export type SupportedSocialPlatform =
   | 'FACEBOOK'
   | 'THREADS'
   | 'FARCASTER'
-  | 'PINTEREST';
+  | 'PINTEREST'
+  | 'BLUESKY';
 
 export const socialIcons = {
   TWITTER: FaXTwitter,
@@ -34,6 +36,7 @@ export const socialIcons = {
   THREADS: FaThreads,
   FARCASTER: SiFarcaster,
   PINTEREST: FaPinterest,
+  BLUESKY: TbSocial,
 } as const;
 
 export const socialColors = {
@@ -46,6 +49,7 @@ export const socialColors = {
   THREADS: 'text-black dark:text-white',
   FARCASTER: 'text-purple-600',
   PINTEREST: 'text-red-600',
+  BLUESKY: 'text-sky-500',
 } as const;
 
 export const socialBackgroundColors = {
@@ -58,6 +62,7 @@ export const socialBackgroundColors = {
   THREADS: 'bg-black dark:bg-white',
   FARCASTER: 'bg-purple-600',
   PINTEREST: 'bg-red-600',
+  BLUESKY: 'bg-sky-500',
 } as const;
 
 export const socialDisplayNames = {
@@ -70,6 +75,7 @@ export const socialDisplayNames = {
   THREADS: 'Threads',
   FARCASTER: 'Farcaster',
   PINTEREST: 'Pinterest',
+  BLUESKY: 'Bluesky',
 } as const;
 
 export const socialDescriptions = {
@@ -82,6 +88,7 @@ export const socialDescriptions = {
   THREADS: 'Connect your Threads profile',
   FARCASTER: 'Connect your Farcaster account',
   PINTEREST: 'Connect your Pinterest account',
+  BLUESKY: 'Connect your Bluesky account',
 } as const;
 
 export const sizeClasses = {
