@@ -239,24 +239,30 @@ const waitForVideoProcessing = (
       return errAsync(new MediaProcessingTimeoutError('LinkedIn'));
     }
 
-    return checkVideoProcessingStatus(videoUrn, accessToken).andThen((status) => {
-      if (status === 'AVAILABLE') {
-        return okAsync(undefined);
-      }
+    return checkVideoProcessingStatus(videoUrn, accessToken).andThen(
+      (status) => {
+        if (status === 'AVAILABLE') {
+          return okAsync(undefined);
+        }
 
-      if (status === 'PROCESSING_FAILED') {
-        return errAsync(new MediaProcessingError('LinkedIn', 'Video processing failed'));
-      }
+        if (status === 'PROCESSING_FAILED') {
+          return errAsync(
+            new MediaProcessingError('LinkedIn', 'Video processing failed')
+          );
+        }
 
-      if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
-        return ResultAsync.fromPromise(
-          new Promise((resolve) => setTimeout(resolve, interval)),
-          () => new MediaProcessingError('LinkedIn', 'Timeout during wait')
-        ).andThen(() => poll(attempts + 1));
-      }
+        if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
+          return ResultAsync.fromPromise(
+            new Promise((resolve) => setTimeout(resolve, interval)),
+            () => new MediaProcessingError('LinkedIn', 'Timeout during wait')
+          ).andThen(() => poll(attempts + 1));
+        }
 
-      return errAsync(new MediaProcessingError('LinkedIn', `Unknown status: ${status}`));
-    });
+        return errAsync(
+          new MediaProcessingError('LinkedIn', `Unknown status: ${status}`)
+        );
+      }
+    );
   };
 
   return poll(0);
@@ -477,12 +483,17 @@ export const linkedinProvider: SocialProvider = {
 
   connectUrl: () => {
     const scopes = [
-      'openid',
-      'profile',
-      'w_member_social',
-      'rw_organization',
+      'r_member_postAnalytics',
+      'r_organization_followers',
       'r_organization_social',
-      'r_member_social',
+      'rw_organization_admin',
+      'r_organization_social_feed',
+      'w_member_social',
+      'r_member_profileAnalytics',
+      'w_organization_social',
+      'r_basicprofile',
+      'w_organization_social_feed',
+      'w_member_social_feed',
     ].join('%20');
 
     const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
