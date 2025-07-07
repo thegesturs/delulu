@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm sst dev",
     "sso": "aws sso login --profile=delulu_social",
-    "build": "sst build",
+    "build": "tsc",
     "deploy": "sst deploy",
     "remove": "sst remove",
     "console": "sst console",

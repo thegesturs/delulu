@@ -1,6 +1,5 @@
 import { createPostInQueue } from '@api/services/post.service';
-// import { createPostInQueue } from '@api/services/post.service';
-import { decryptData } from '@delulu/auth/encrypt';
+import { decryptData } from '@delulu/database/encrypt';
 import {
   alternatePostContent,
   database,

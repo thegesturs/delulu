@@ -9,6 +9,11 @@
       "import": "./index.ts",
       "require": "./index.ts",
       "types": "./index.ts"
+    },
+    "./encrypt": {
+      "import": "./utils/encrypt.ts",
+      "require": "./utils/encrypt.ts",
+      "types": "./utils/encrypt.ts"
     }
   },
   "scripts": {

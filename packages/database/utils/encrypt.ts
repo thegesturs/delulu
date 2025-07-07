@@ -19,8 +19,7 @@ function ab2str(buf: ArrayBuffer): string {
 /**
  * Derives an encryption key from a password using PBKDF2
  */
-async function getKey(password: string): Promise<CryptoKey> {
-  const salt = str2ab('delulu-social'); // Using a static salt since we're using a strong secret
+async function getKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     str2ab(password),
@@ -44,11 +43,17 @@ async function getKey(password: string): Promise<CryptoKey> {
 }
 
 /**
- * Encrypts data using AES-GCM
+ * Encrypts data using AES-GCM with a random salt
  */
 export async function encryptData(data: string): Promise<string> {
-  const key = await getKey(keys().BETTER_AUTH_SECRET);
+  // Generate random salt and IV
+  const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  // Generate key using the random salt
+  const key = await getKey(keys().BETTER_AUTH_SECRET, salt);
+
+  // Encrypt the data
   const encryptedData = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
@@ -58,32 +63,32 @@ export async function encryptData(data: string): Promise<string> {
     str2ab(data)
   );
 
-  // Combine IV and encrypted data
+  // Combine salt, IV and encrypted data
   const combined = new Uint8Array(
-    iv.length + new Uint8Array(encryptedData).length
+    salt.length + iv.length + new Uint8Array(encryptedData).length
   );
-  combined.set(iv);
-  combined.set(new Uint8Array(encryptedData), iv.length);
+  combined.set(salt); // First 16 bytes: salt
+  combined.set(iv, salt.length); // Next 12 bytes: IV
+  combined.set(new Uint8Array(encryptedData), salt.length + iv.length); // Rest: encrypted data
 
-  // Convert to base64 for storage
-  return btoa(String.fromCharCode(...combined));
+  // Convert to base64 using a more robust method
+  return Buffer.from(combined).toString('base64');
 }
 
 /**
  * Decrypts data using AES-GCM
  */
 export async function decryptData(encryptedData: string): Promise<string> {
-  const key = await getKey(keys().BETTER_AUTH_SECRET);
+  // Convert from base64
+  const combined = new Uint8Array(Buffer.from(encryptedData, 'base64'));
 
-  // Convert from base64 and split IV and data
-  const combined = new Uint8Array(
-    atob(encryptedData)
-      .split('')
-      .map((c) => c.charCodeAt(0))
-  );
+  // Extract salt (first 16 bytes), IV (next 12 bytes) and data (rest)
+  const salt = combined.slice(0, 16);
+  const iv = combined.slice(16, 28);
+  const data = combined.slice(28);
 
-  const iv = combined.slice(0, 12);
-  const data = combined.slice(12);
+  // Generate key using the extracted salt
+  const key = await getKey(keys().BETTER_AUTH_SECRET, salt);
 
   const decryptedData = await crypto.subtle.decrypt(
     {

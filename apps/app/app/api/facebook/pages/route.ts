@@ -1,4 +1,4 @@
-import { decryptData } from '@delulu/auth/encrypt';
+import { decryptData } from '@delulu/database/encrypt';
 import { auth } from '@delulu/auth/server';
 import { 
   FacebookPagesWithTokenSchema,
