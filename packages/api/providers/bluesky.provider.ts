@@ -163,7 +163,8 @@ const createRichText = (text: string): RichTextResult => {
   const urlRegex = /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&=]*)/g;
   let urlMatch: RegExpExecArray | null;
   
-  while ((urlMatch = urlRegex.exec(text)) !== null) {
+  urlMatch = urlRegex.exec(text);
+  while (urlMatch !== null) {
     const start = new TextEncoder().encode(text.substring(0, urlMatch.index)).length;
     const end = start + new TextEncoder().encode(urlMatch[0]).length;
     
@@ -179,13 +180,15 @@ const createRichText = (text: string): RichTextResult => {
         },
       ],
     });
+    urlMatch = urlRegex.exec(text);
   }
   
   // Find mentions - @handle.domain or @handle
   const mentionRegex = /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
   let mentionMatch: RegExpExecArray | null;
   
-  while ((mentionMatch = mentionRegex.exec(text)) !== null) {
+  mentionMatch = mentionRegex.exec(text);
+  while (mentionMatch !== null) {
     const start = new TextEncoder().encode(text.substring(0, mentionMatch.index)).length;
     const end = start + new TextEncoder().encode(mentionMatch[0]).length;
     
@@ -203,6 +206,7 @@ const createRichText = (text: string): RichTextResult => {
         },
       ],
     });
+    mentionMatch = mentionRegex.exec(text);
   }
   
   return {
@@ -348,7 +352,7 @@ const publishContent = (
     return processSequentially(posts).map((postResponse) => {
       // Extract the record key from the AT-URI for the post URL
       const uriParts = postResponse.uri.split('/');
-      const recordKey = uriParts[uriParts.length - 1] || '';
+      const recordKey = uriParts.at(-1) || '';
       
       return {
         platformPostId: postResponse.uri,
