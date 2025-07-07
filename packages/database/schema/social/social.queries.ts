@@ -1,6 +1,6 @@
-import { decryptData, encryptData } from '../../utilts/encrypt';
 import { and, desc, eq } from 'drizzle-orm';
 import { database } from '../../index';
+import { decryptData, encryptData } from '../../utils/encrypt';
 import type { SocialType } from './social.sql';
 import { socialProviders } from './social.sql';
 
