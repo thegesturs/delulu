@@ -9,7 +9,7 @@ const config = defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './'),
+      '@': path.resolve(process.cwd(), './'),
       '@delulu': path.resolve(__dirname, '../../packages'),
     },
   },
