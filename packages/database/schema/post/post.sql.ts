@@ -155,20 +155,49 @@ export const platformPosts = pgTable(
   'platform_posts',
   {
     postId: varchar('post_id', { length: 191 }).notNull(),
-    platformId: varchar('platform_id', { length: 191 }).notNull(),
-    platformPostId: varchar('platform_post_id', { length: 191 }).notNull(),
-    platformPostUrl: text('platform_post_url').notNull(),
+    socialProviderId: varchar('social_provider_id', { length: 191 }).notNull(),
+    platformPostId: varchar('platform_post_id', { length: 191 }),
+    platformPostUrl: text('platform_post_url'),
+    postedAt: timestamp('posted_at', { withTimezone: true }),
+    failureReason: text('failure_reason'),
   },
   (table) => [
     index('platform_posts_post_id_idx').on(table.postId),
-    index('platform_posts_platform_id_idx').on(table.platformId),
-    primaryKey({ columns: [table.postId, table.platformId] }),
+    index('platform_posts_social_provider_id_idx').on(table.socialProviderId),
+    primaryKey({ columns: [table.postId, table.socialProviderId] }),
   ]
 );
 
 export const PlatformPostSelectSchema = createSelectSchema(platformPosts);
 
 export const PlatformPostInsertSchema = createInsertSchema(platformPosts);
+
+// Posts to Social Providers join table
+export const postSocialProviders = pgTable(
+  'post_social_providers',
+  {
+    postId: varchar('post_id', { length: 191 })
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    socialProviderId: varchar('social_provider_id', { length: 191 })
+      .notNull()
+      .references(() => socialProviders.id, { onDelete: 'cascade' }),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.postId, t.socialProviderId] }),
+    postIdIdx: index('post_social_providers_post_id_idx').on(t.postId),
+    providerIdIdx: index('post_social_providers_provider_id_idx').on(
+      t.socialProviderId
+    ),
+  })
+);
 
 // Relations
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -178,8 +207,22 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   alternateContents: many(alternatePostContent),
   platformPosts: many(platformPosts),
-  socialProviders: many(socialProviders),
+  postToSocialProviders: many(postSocialProviders),
 }));
+
+export const postSocialProvidersRelations = relations(
+  postSocialProviders,
+  ({ one }) => ({
+    post: one(posts, {
+      fields: [postSocialProviders.postId],
+      references: [posts.id],
+    }),
+    socialProvider: one(socialProviders, {
+      fields: [postSocialProviders.socialProviderId],
+      references: [socialProviders.id],
+    }),
+  })
+);
 
 export const alternatePostContentRelations = relations(
   alternatePostContent,
@@ -201,7 +244,7 @@ export const platformPostsRelations = relations(platformPosts, ({ one }) => ({
     references: [posts.id],
   }),
   socialProvider: one(socialProviders, {
-    fields: [platformPosts.platformId],
+    fields: [platformPosts.socialProviderId],
     references: [socialProviders.id],
   }),
 }));
@@ -209,7 +252,13 @@ export const platformPostsRelations = relations(platformPosts, ({ one }) => ({
 export const PostSelectSchemaWithRelations = PostSelectSchema.extend({
   alternateContents: z.array(AlternatePostContentSelectSchema),
   platformPosts: z.array(PlatformPostSelectSchema),
-  socialProviders: z.array(SocialProviderSelectSchema),
+  postToSocialProviders: z.array(
+    z.object({
+      postId: z.string(),
+      socialProviderId: z.string(),
+      socialProvider: SocialProviderSelectSchema,
+    })
+  ),
 });
 
 export type PostSelectWithRelations = z.infer<

@@ -16,11 +16,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@delulu/design-system/components/ui/tooltip';
+import { socialIcons } from '@delulu/design-system/lib/social-config';
 import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import { FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
 import { toast } from 'sonner';
 import DeletePostAlert from '../alerts/delete-post';
 import { PostPreviewDialog } from './post-preview-dialog';
@@ -30,12 +30,6 @@ interface PostCardProps {
   post: Post;
   layout?: PostLayout;
 }
-
-const socialIcons = {
-  TWITTER: FaTwitter,
-  LINKEDIN: FaLinkedin,
-  INSTAGRAM: FaInstagram,
-} as const;
 
 export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
@@ -200,17 +194,19 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
 
               {/* Social Icons - flex-shrink-0 */}
               <div className="flex flex-shrink-0 items-center gap-1.5">
-                {post.socialProviders.map((provider) => {
+                {post.postToSocialProviders.map((provider) => {
                   const Icon =
                     socialIcons[
-                      provider.socialType as keyof typeof socialIcons
+                      provider.socialProvider
+                        .socialType as keyof typeof socialIcons
                     ];
                   return Icon ? (
                     <Icon
-                      key={provider.profileId as string}
-                      className={`h-4 w-4 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                      key={provider.socialProvider.profileId as string}
+                      className={`h-4 w-4 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
                       title={
-                        (provider.username || provider.socialType) as string
+                        (provider.socialProvider.username ||
+                          provider.socialProvider.socialType) as string
                       }
                     />
                   ) : null;
@@ -276,24 +272,28 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                   </div>
                 )}
                 <div className="flex items-center gap-1.5">
-                  {post.socialProviders.map((provider) => {
+                  {post.postToSocialProviders.map((provider) => {
                     const Icon =
                       socialIcons[
-                        provider.socialType as keyof typeof socialIcons
+                        provider.socialProvider
+                          .socialType as keyof typeof socialIcons
                       ];
                     return Icon ? (
-                      <Tooltip key={provider.profileId as string}>
+                      <Tooltip
+                        key={provider.socialProvider.profileId as string}
+                      >
                         <TooltipTrigger>
                           <Icon
-                            className={`h-4 w-4 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                            className={`h-4 w-4 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
                             title={
-                              (provider.username ||
-                                provider.socialType) as string
+                              (provider.socialProvider.username ||
+                                provider.socialProvider.socialType) as string
                             }
                           />
                         </TooltipTrigger>
                         <TooltipContent>
-                          {provider.fullName ?? provider.username}
+                          {provider.socialProvider.fullName ??
+                            provider.socialProvider.username}
                         </TooltipContent>
                       </Tooltip>
                     ) : null;

@@ -20,6 +20,8 @@ COPY packages/api/package.json ./packages/api/
 COPY packages/database/package.json ./packages/database/
 COPY packages/validators/package.json ./packages/validators/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/email/package.json ./packages/email/
 
 # Install dependencies
 RUN pnpm install
@@ -30,14 +32,14 @@ COPY packages/api ./packages/api
 COPY packages/database ./packages/database
 COPY packages/validators ./packages/validators
 COPY packages/typescript-config ./packages/typescript-config
+COPY packages/auth ./packages/auth
+COPY packages/email ./packages/email
 
 # Copy environment file
 COPY packages/worker/.env.local ./packages/worker/.env.local
-
-RUN pnpm worker:prisma:generate
 
 # Set environment variables
 ENV NODE_ENV=production
 
 # Start the worker
-CMD ["pnpm", "dev:worker"] 
+CMD ["sh", "-c", "cd packages/worker && NODE_OPTIONS='--experimental-global-webcrypto' pnpm dev"] 

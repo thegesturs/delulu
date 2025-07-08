@@ -1,34 +1,68 @@
 import { keys } from '@delulu/api/keys';
-import { database } from '@delulu/database';
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
+import { socialQueries } from '@delulu/database';
+import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
 import axios from 'axios';
+import {
+  type Result,
+  ResultAsync,
+  err,
+  errAsync,
+  ok,
+  okAsync,
+} from 'neverthrow';
 
+import type {
+  BaseProviderProfile,
+  PostContent,
+  PostPublishResult,
+  ThreadsMediaContainer,
+  ThreadsMediaPublishResponse,
+  ThreadsMediaResponse,
+} from './common-types';
+import {
+  MediaProcessingError,
+  MediaProcessingTimeoutError,
+  NoContentError,
+  ProfileNotFoundError,
+  type SocialProviderError,
+  ThreadsError,
+  createAPIError,
+} from './errors';
 import type { SocialProvider } from './types';
 
-interface ThreadsMediaContainer {
-  id: string;
-}
+const urlRegex =
+  /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/;
 
-interface ThreadsMediaPublishResponse {
-  id: string;
-}
+// Profile management
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<BaseProviderProfile, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    () => new ThreadsError('Database query failed')
+  ).andThen((profile) => {
+    if (!profile?.accessToken || !profile.profileId) {
+      return err(new ProfileNotFoundError('Threads'));
+    }
+    return ok({
+      id: profile.id,
+      profileId: profile.profileId,
+      accessToken: profile.accessToken,
+      username: profile.username!,
+    });
+  });
 
-interface ThreadsMediaResponse {
-  id: string;
-  permalink: string;
-}
-
-async function createMediaContainer(
+// Media container creation
+const createMediaContainer = (
   media: MediaType | null,
-  profile: { profileId: string; accessToken: string },
+  profile: BaseProviderProfile,
   text: string,
   options: {
     isCarouselItem?: boolean;
     replyToId?: string;
   } = {}
-): Promise<ThreadsMediaContainer> {
+): ResultAsync<ThreadsMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -44,21 +78,28 @@ async function createMediaContainer(
     }
   } else {
     params.append('media_type', 'TEXT');
+    // Extract first URL from text for link preview
+    const urlMatch = text.match(urlRegex);
+    if (urlMatch) {
+      params.append('link_attachment', urlMatch[0]);
+    }
   }
 
   if (options.replyToId) {
     params.append('reply_to_id', options.replyToId);
   }
 
-  const response = await axios.post(`${endpoint}?${params.toString()}`);
-  return response.data;
-}
+  return ResultAsync.fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    (error) => createAPIError('Threads', error)
+  ).map((response) => response.data);
+};
 
-async function createCarouselContainer(
+const createCarouselContainer = (
   childrenIds: string[],
-  profile: { profileId: string; accessToken: string },
+  profile: BaseProviderProfile,
   text: string
-): Promise<ThreadsMediaContainer> {
+): ResultAsync<ThreadsMediaContainer, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads`;
   const params = new URLSearchParams({
     access_token: profile.accessToken,
@@ -67,161 +108,203 @@ async function createCarouselContainer(
     text,
   });
 
-  const response = await axios.post(`${endpoint}?${params.toString()}`);
-  return response.data;
-}
+  return ResultAsync.fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    (error) => createAPIError('Threads', error)
+  ).map((response) => response.data);
+};
 
-async function waitForContainerProcessing(
+const waitForContainerProcessing = (
   containerId: string,
-  accessToken: string
-): Promise<void> {
-  let attempts = 0;
-  const maxAttempts = 20;
-  const delay = 3000; // 3 seconds
+  accessToken: string,
+  maxAttempts = 30,
+  delay = 3000
+): ResultAsync<void, SocialProviderError> => {
+  const poll = async (
+    attempts: number
+  ): Promise<Result<void, SocialProviderError>> => {
+    if (attempts >= maxAttempts) {
+      return err(new MediaProcessingTimeoutError('Threads'));
+    }
 
-  while (attempts < maxAttempts) {
-    const statusResponse = await axios.get(
-      `https://graph.threads.net/v1.0/${containerId}`,
-      {
-        params: {
-          fields: 'status_code,status',
-          access_token: accessToken,
-        },
+    const statusResult = await ResultAsync.fromPromise(
+      axios.get(`https://graph.threads.net/v1.0/${containerId}`, {
+        params: { access_token: accessToken },
+      }),
+      (error) => {
+        if (axios.isAxiosError(error) && error.response?.status === 500) {
+          return new MediaProcessingError(
+            'Threads',
+            'Server error - container still processing'
+          );
+        }
+        return createAPIError('Threads', error);
       }
     );
 
-    const status = statusResponse.data.status;
-    if (status === 'FINISHED') {
-      return;
+    if (statusResult.isErr()) {
+      if (statusResult.error instanceof MediaProcessingError) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return poll(attempts + 1);
+      }
+      return err(statusResult.error);
     }
 
-    if (status === 'ERROR') {
-      throw new Error(
-        `Media processing failed: ${statusResponse.data.error_message}`
+    const status = statusResult.value.data.status;
+    if (status === 'FINISHED') {
+      return ok(undefined);
+    }
+
+    if (status === 'ERROR' || status === 'EXPIRED') {
+      return err(
+        new MediaProcessingError(
+          'Threads',
+          `Media processing failed: ${statusResult.value.data.error_message || status}`
+        )
       );
     }
 
     await new Promise((resolve) => setTimeout(resolve, delay));
-    attempts++;
-  }
+    return poll(attempts + 1);
+  };
 
-  throw new Error('Media processing timed out.');
-}
+  return ResultAsync.fromPromise(
+    poll(0),
+    (error) => error as SocialProviderError
+  ).andThen((result) => {
+    if (result.isErr()) {
+      return errAsync(result.error);
+    }
+    return okAsync(result.value);
+  });
+};
 
-async function publishContainer(
+const publishContainer = (
   creationId: string,
-  profile: { profileId: string; accessToken: string }
-): Promise<ThreadsMediaPublishResponse> {
+  profile: BaseProviderProfile
+): ResultAsync<ThreadsMediaPublishResponse, SocialProviderError> => {
   const endpoint = `https://graph.threads.net/v1.0/${profile.profileId}/threads_publish`;
   const params = new URLSearchParams({
     creation_id: creationId,
     access_token: profile.accessToken,
   });
 
-  const response = await axios.post(`${endpoint}?${params.toString()}`);
-  return response.data;
-}
+  return ResultAsync.fromPromise(
+    axios.post(`${endpoint}?${params.toString()}`),
+    (error) => createAPIError('Threads', error)
+  ).map((response) => response.data);
+};
 
-async function getPostDetails(
+const getPostDetails = (
   mediaId: string,
   accessToken: string
-): Promise<ThreadsMediaResponse> {
-  const response = await axios.get<ThreadsMediaResponse>(
-    `https://graph.threads.net/v1.0/${mediaId}`,
-    {
-      params: {
-        fields: 'id,permalink',
-        access_token: accessToken,
-      },
-    }
-  );
-  return response.data;
-}
+): ResultAsync<ThreadsMediaResponse, SocialProviderError> => {
+  return ResultAsync.fromPromise(
+    axios.get<ThreadsMediaResponse>(
+      `https://graph.threads.net/v1.0/${mediaId}`,
+      {
+        params: {
+          fields: 'id,permalink,link_attachment_url',
+          access_token: accessToken,
+        },
+      }
+    ),
+    (error) => createAPIError('Threads', error)
+  ).map((response) => response.data);
+};
 
-async function getAccessTokenAndProfile(socialProviderId: string) {
-  const [profile] = await database.query.socialProviders.findMany({
-    where: (socialProviders, { eq }) =>
-      eq(socialProviders.id, socialProviderId),
-    limit: 1,
-  });
+// Process single post content
+const processPostContent = (
+  post: PostContent,
+  profile: BaseProviderProfile,
+  replyToId?: string
+): ResultAsync<string, SocialProviderError> => {
+  const validMedia = getValidMediaUrls(post.media);
 
-  if (!profile || !profile.accessToken || !profile.profileId) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'Threads profile not found or is missing required fields.',
+  if (validMedia.length > 1) {
+    // Carousel post
+    return ResultAsync.combine(
+      validMedia.map((media) =>
+        createMediaContainer(media, profile, post.text, {
+          isCarouselItem: true,
+        })
+      )
+    ).andThen((itemContainers) => {
+      const itemIds = itemContainers.map((container) => container.id);
+      return createCarouselContainer(itemIds, profile, post.text).andThen(
+        (carouselContainer) =>
+          waitForContainerProcessing(carouselContainer.id, profile.accessToken)
+            .andThen(() => publishContainer(carouselContainer.id, profile))
+            .map((publishResponse) => publishResponse.id)
+      );
     });
   }
-  return profile;
-}
 
+  // Single media or text-only post
+  const media = validMedia[0] || null;
+  return createMediaContainer(media, profile, post.text, { replyToId }).andThen(
+    (container) =>
+      waitForContainerProcessing(container.id, profile.accessToken)
+        .andThen(() => publishContainer(container.id, profile))
+        .map((publishResponse) => publishResponse.id)
+  );
+};
+
+// Main publish function
+const publishContent = (
+  content: { content: PostContent[]; postId: string },
+  profile: BaseProviderProfile
+): ResultAsync<PostPublishResult, SocialProviderError> => {
+  const posts = content.content.sort((a, b) => a.order - b.order);
+
+  if (posts.length === 0) {
+    return errAsync(new NoContentError('Threads'));
+  }
+
+  // Process posts sequentially to maintain thread order
+  const processSequentially = (
+    remainingPosts: PostContent[],
+    lastPostId?: string
+  ): ResultAsync<
+    { postId: string; details: ThreadsMediaResponse },
+    SocialProviderError
+  > => {
+    const [currentPost, ...nextPosts] = remainingPosts;
+
+    return processPostContent(currentPost, profile, lastPostId)
+      .andThen((postId) =>
+        getPostDetails(postId, profile.accessToken).map((details) => ({
+          postId,
+          details,
+        }))
+      )
+      .andThen((result) => {
+        if (nextPosts.length > 0) {
+          return processSequentially(nextPosts, result.postId);
+        }
+        return ResultAsync.fromPromise(
+          Promise.resolve(result),
+          () => new ThreadsError('Should never happen')
+        );
+      });
+  };
+
+  return processSequentially(posts).map(({ postId, details }) => ({
+    platformPostId: postId,
+    postId: content.postId,
+    platformId: profile.id,
+    platformPostUrl: details.permalink,
+    postedAt: new Date(),
+  }));
+};
+
+// Provider implementation
 export const threadsProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
-    const posts = content.content.sort((a, b) => a.order - b.order);
-
-    if (posts.length === 0) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish.',
-      });
-    }
-
-    let lastPostId: string | undefined;
-    let lastPostDetails: ThreadsMediaResponse | undefined;
-
-    for (const post of posts) {
-      const validMedia = getValidMediaUrls(post.media);
-      let containerId: string;
-
-      if (validMedia.length > 1) {
-        // Carousel post
-        const itemContainerIds = await Promise.all(
-          validMedia.map((media) =>
-            createMediaContainer(media, profile, post.text, {
-              isCarouselItem: true,
-            }).then((c) => c.id)
-          )
-        );
-        const carouselContainer = await createCarouselContainer(
-          itemContainerIds,
-          profile,
-          post.text
-        );
-        containerId = carouselContainer.id;
-      } else {
-        // Single media or text-only post
-        const singleContainer = await createMediaContainer(
-          validMedia[0] ?? null,
-          profile,
-          post.text,
-          { replyToId: lastPostId }
-        );
-        containerId = singleContainer.id;
-      }
-
-      await waitForContainerProcessing(containerId, profile.accessToken);
-      const publishedContainer = await publishContainer(containerId, profile);
-      lastPostDetails = await getPostDetails(
-        publishedContainer.id,
-        profile.accessToken
-      );
-      lastPostId = publishedContainer.id;
-    }
-
-    if (!lastPostDetails || !lastPostId) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to publish any content to Threads.',
-      });
-    }
-
-    return {
-      platformPostId: lastPostId,
-      postId: content.postId,
-      platformId: profile.id,
-      platformPostUrl: lastPostDetails.permalink,
-      postedAt: new Date(),
-    };
+  publish: async ({ content, socialProviderId }) => {
+    const result = await getProfile(socialProviderId).andThen((profile) =>
+      publishContent(content, profile)
+    );
+    return result;
   },
 
   connectUrl: () => {

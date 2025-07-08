@@ -7,9 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
+import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
+import {
+  type SupportedSocialPlatform,
+  socialDisplayNames,
+} from '@delulu/design-system/lib/social-config';
 import { Calendar } from 'lucide-react';
 import Image from 'next/image';
-import { FaInstagram, FaLinkedin, FaTiktok, FaTwitter } from 'react-icons/fa';
 import type { Post } from './types';
 
 interface PostPreviewDialogProps {
@@ -17,13 +21,6 @@ interface PostPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const socialIcons = {
-  TWITTER: FaTwitter,
-  LINKEDIN: FaLinkedin,
-  INSTAGRAM: FaInstagram,
-  TIKTOK: FaTiktok,
-} as const;
 
 const statusColors = {
   SAVED: 'orange',
@@ -40,6 +37,8 @@ export function PostPreviewDialog({
 }: PostPreviewDialogProps) {
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
+
+  console.log(post.platformPosts, post.postToSocialProviders);
 
   return (
     <Dialog {...{ open, onOpenChange }}>
@@ -93,52 +92,54 @@ export function PostPreviewDialog({
               <h3 className="font-medium">Publishing to:</h3>
             )}
             <div className="grid gap-3">
-              {post.socialProviders.map((provider) => {
-                const Icon =
-                  socialIcons[provider.socialType as keyof typeof socialIcons];
-                if (!Icon) {
+              {post.postToSocialProviders.map((provider) => {
+                const socialType = provider.socialProvider.socialType;
+                // Skip unsupported platforms
+                if (!Object.keys(socialDisplayNames).includes(socialType)) {
                   return null;
                 }
 
                 const platformPostUrl = post.platformPosts?.find(
-                  (pp) => pp.platformId === provider.id
+                  (pp) => pp.socialProviderId === provider.socialProvider.id
                 )?.platformPostUrl;
-
-                if (!platformPostUrl) {
-                  return null;
-                }
 
                 return (
                   <div
-                    key={provider.profileId}
+                    key={provider.socialProvider.profileId}
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon
-                        className={`h-5 w-5 ${provider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
+                      <SocialIcon
+                        type={socialType as SupportedSocialPlatform}
+                        size="md"
                       />
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {provider.username || provider.socialType}
+                          {provider.socialProvider.username ||
+                            socialDisplayNames[
+                              socialType as SupportedSocialPlatform
+                            ]}
                         </span>
-                        {!provider.isActive && (
+                        {!provider.socialProvider.isActive && (
                           <span className="text-muted-foreground text-sm">
                             Not connected
                           </span>
                         )}
                       </div>
                     </div>
-                    {provider.isActive && post.status === 'PUBLISHED' && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={platformPostUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Post
-                        </a>
-                      </Button>
-                    )}
+                    {provider.socialProvider.isActive &&
+                      post.status === 'PUBLISHED' &&
+                      platformPostUrl && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={platformPostUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View Post
+                          </a>
+                        </Button>
+                      )}
                   </div>
                 );
               })}

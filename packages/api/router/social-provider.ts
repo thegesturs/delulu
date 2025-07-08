@@ -1,11 +1,21 @@
-// import { createPostInQueue } from '@api/services/post.service';
+import { createPostInQueue } from '@api/services/post.service';
+import { decryptData } from '@delulu/database/encrypt';
 import {
   alternatePostContent,
   database,
   postQueries,
   posts,
+  socialProviders,
   socialQueries,
 } from '@delulu/database';
+import { and, eq, ne } from '@delulu/database';
+import {
+  FacebookPageConnectionSchema,
+  type FacebookPagesWithToken,
+  FacebookPagesWithTokenSchema,
+} from '@delulu/validators/facebook';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
 import {
   type SavePostInputType,
   SocialTypeSchema,
@@ -15,7 +25,7 @@ import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
-import { protectedProcedure } from '../trpc';
+import { protectedProcedure, publicProcedure } from '../trpc';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -25,7 +35,11 @@ export const socialProviderRouter = {
       })
     )
     .mutation(({ input }) => {
-      return providerRegistry[input.provider].connectUrl();
+      const link = providerRegistry[input.provider].connectUrl()
+
+      console.log('Link:', link);
+      
+      return link;
     }),
 
   getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
@@ -34,6 +48,14 @@ export const socialProviderRouter = {
     );
     return userSocialProviders;
   }),
+  deleteSocial: protectedProcedure
+    .input(z.object({ socialId: z.string() }))
+    .mutation(async ({ input }) => {
+      await socialQueries.deleteSocialProvider(input.socialId);
+      return {
+        success: true,
+      };
+    }),
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -97,10 +119,10 @@ export const socialProviderRouter = {
       const postData: SavePostInputType = {
         id: post.id,
         content: post.content,
-        socialProviders: post.socialProviders.map((provider) => ({
-          socialId: provider.id,
-          name: provider.fullName,
-          socialType: provider.socialType,
+        socialProviders: post.postToSocialProviders.map((provider) => ({
+          socialId: provider.socialProvider.id,
+          name: provider.socialProvider.fullName,
+          socialType: provider.socialProvider.socialType,
         })),
         alternativeContent: post.alternateContents.map((alt) => ({
           socialProvider: {
@@ -113,9 +135,136 @@ export const socialProviderRouter = {
       };
 
       //TODO: Make this work using AWS SQS
-      // await createPostInQueue(postData);
+      console.log('Post data:', 'stuff');
+      const stuff = await createPostInQueue(postData);
+      console.log('Test:', stuff);
       return {
         success: true,
       };
+    }),
+  connectFacebookPage: publicProcedure
+    .input(FacebookPageConnectionSchema)
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.userId;
+      if (!userId) {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'You must be logged in to connect a Facebook page',
+        });
+      }
+
+      // Securely retrieve the page access token from KV storage
+      let pageAccessToken: string;
+      try {
+        const { env } = await getCloudflareContext({ async: true });
+        const key = `fb-pages-${userId}-${input.code}`;
+
+        // Type assertion for Cloudflare KV namespace
+        const facebookPagesKV = env.DELULU_FACEBOOK_PAGES;
+        const encryptedData = await facebookPagesKV.get(key);
+        if (!encryptedData) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Facebook pages data not found or expired',
+          });
+        }
+
+        const decryptedData = await decryptData(encryptedData);
+        const rawPages = JSON.parse(decryptedData);
+
+        // Validate the data structure with Zod schema
+        const pagesValidationResult =
+          FacebookPagesWithTokenSchema.safeParse(rawPages);
+        if (!pagesValidationResult.success) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Invalid Facebook pages data structure',
+          });
+        }
+
+        const pages: FacebookPagesWithToken = pagesValidationResult.data;
+
+        const selectedPage = pages.find((page) => page.id === input.pageId);
+        if (!selectedPage?.access_token) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Selected Facebook page not found',
+          });
+        }
+
+        pageAccessToken = selectedPage.access_token;
+
+        // Clean up the KV storage entry after retrieving the token
+        await facebookPagesKV.delete(key);
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve Facebook page data',
+        });
+      }
+
+      // Check if this Facebook page is already connected to a different user
+      const existingProvider = await database
+        .select()
+        .from(socialProviders)
+        .where(
+          and(
+            eq(socialProviders.profileId, input.pageId),
+            ne(socialProviders.userId, userId)
+          )
+        )
+        .limit(1);
+
+      // If found, handle the transfer using encrypted update
+      if (existingProvider.length > 0) {
+        await socialQueries.updateSocialProviderWithEncryption(
+          existingProvider[0].id,
+          {
+            userId,
+            accessToken: pageAccessToken,
+            fullName: input.pageName,
+            username: input.pageName,
+            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+            refreshTokenExpiresIn: new Date(
+              Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+            ),
+            updatedAt: new Date(),
+            isActive: true,
+            lastSyncedAt: new Date(),
+          }
+        );
+
+        return { status: 'transferred' };
+      }
+
+      // Upsert the social provider using conflict resolution with encryption
+      await socialQueries.upsertSocialProviderWithEncryption(
+        {
+          userId,
+          socialType: 'FACEBOOK',
+          accessToken: pageAccessToken,
+          profileId: input.pageId,
+          username: input.pageName,
+          fullName: input.pageName,
+          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+          isActive: true,
+          lastSyncedAt: new Date(),
+          expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
+        },
+        {
+          accessToken: pageAccessToken,
+          fullName: input.pageName,
+          username: input.pageName,
+          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
+          updatedAt: new Date(),
+          isActive: true,
+          lastSyncedAt: new Date(),
+        }
+      );
+
+      return { status: 'connected' };
     }),
 } satisfies TRPCRouterRecord;

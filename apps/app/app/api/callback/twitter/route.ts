@@ -1,10 +1,16 @@
+import { env } from '@/env';
 import { auth } from '@delulu/auth/server';
-import { database, socialProviders, eq, and, ne } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
+import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
-import { env } from '@/env';
-import { nanoid } from 'nanoid';
 
 interface TwitterResponse {
   access_token: string;
@@ -137,11 +143,11 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: access_token,
           refreshToken: refresh_token,
@@ -152,8 +158,8 @@ export async function GET(request: NextRequest) {
           updatedAt: new Date(),
           isActive: true,
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return NextResponse.redirect(
         new URL(
@@ -163,11 +169,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
-        id: `social_${nanoid(12)}`,
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         userId,
         socialType: 'TWITTER',
         accessToken: access_token,
@@ -179,23 +183,18 @@ export async function GET(request: NextRequest) {
         profileImage: userObject.profile_image_url ?? '',
         isActive: true,
         lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: userObject.name ?? '',
-          username: userObject.username,
-          profileImage: userObject.profile_image_url ?? '',
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        },
-      });
+      },
+      {
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        fullName: userObject.name ?? '',
+        username: userObject.username,
+        profileImage: userObject.profile_image_url ?? '',
+        isActive: true,
+        lastSyncedAt: new Date(),
+      }
+    );
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

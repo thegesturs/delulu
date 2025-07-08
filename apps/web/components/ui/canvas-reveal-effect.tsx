@@ -1,9 +1,13 @@
+//@ts-nocheck
+
 'use client';
+
 import { cn } from '@delulu/design-system/lib/utils';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type React from 'react';
 import { useCallback, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import '@react-three/fiber';
 
 export const CanvasRevealEffect = ({
   animationSpeed = 0.4,

@@ -8,9 +8,9 @@ import {
   AlertDialogTitle,
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader } from 'lucide-react';
 
-export default function DeletePostAlert({
+export default function DeleteAlertDialog({
   open,
   onOpenChange,
   onConfirm,
@@ -40,12 +40,10 @@ export default function DeletePostAlert({
             variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
+            className="flex items-center gap-2"
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Delete'
-            )}
+            {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : null}
+            Delete
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

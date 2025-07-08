@@ -64,12 +64,11 @@ export const postRouter = {
   savePost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
-      return await postQueries.saveIncomingPost(
-        input,
-        'SAVED',
-        ctx.userId,
-        undefined
-      );
+      return await postQueries.saveIncomingPost({
+        post: input,
+        userId: ctx.userId,
+        postStatus: 'SAVED',
+      });
     }),
 
   updatePost: protectedProcedure

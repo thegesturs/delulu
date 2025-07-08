@@ -2,6 +2,7 @@
 
 import type { SocialProvider } from '@delulu/database';
 import type { SocialType } from '@delulu/database/schema';
+import {} from '@delulu/design-system/components/ui/alert-dialog';
 import {
   Avatar,
   AvatarFallback,
@@ -24,48 +25,41 @@ import {
 } from '@delulu/design-system/components/ui/tooltip';
 import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
 import {
+  socialColors,
+  socialIcons,
+} from '@delulu/design-system/lib/social-config';
+import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  Instagram,
-  Linkedin,
   MoreHorizontal,
   RefreshCw,
   Trash2,
-  Twitter,
-  Youtube,
 } from 'lucide-react';
-import { FaTiktok } from 'react-icons/fa';
-
-const socialIcons = {
-  TWITTER: Twitter,
-  INSTAGRAM: Instagram,
-  LINKEDIN: Linkedin,
-  YOUTUBE: Youtube,
-  TIKTOK: FaTiktok,
-};
-
-const socialColors = {
-  TWITTER: 'bg-sky-500',
-  INSTAGRAM: 'bg-gradient-to-r from-[#E4405F] to-[#FCAF45]',
-  LINKEDIN: 'bg-sky-700',
-  YOUTUBE: 'bg-red-600',
-  TIKTOK: 'bg-red-600',
-};
+import { useState } from 'react';
+import DeleteAlertDialog from '../alerts/delete-post';
 
 function formatTimeAgo(date: Date | null): string {
-  if (!date) return 'Never';
+  if (!date) {
+    return 'Never';
+  }
 
   const now = new Date();
   const diffInMinutes = Math.floor(
     (now.getTime() - date.getTime()) / (1000 * 60)
   );
 
-  if (diffInMinutes < 1) return 'Just now';
-  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  if (diffInMinutes < 1) {
+    return 'Just now';
+  }
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
 
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
 
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays}d ago`;
@@ -86,10 +80,16 @@ function isExpired(expiresIn: Date): boolean {
 interface AccountCardProps {
   account: SocialProvider;
   onConnect: (platform: SocialType) => void;
-  // Add onDelete later when implementing delete functionality
+  onDelete: (socialId: string) => void;
 }
 
-export function AccountCard({ account, onConnect }: AccountCardProps) {
+export function AccountCard({
+  account,
+  onConnect,
+  onDelete,
+}: AccountCardProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = account.refreshTokenExpiresIn
@@ -212,7 +212,10 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
                   Reconnect
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete Account
                 </DropdownMenuItem>
@@ -221,6 +224,17 @@ export function AccountCard({ account, onConnect }: AccountCardProps) {
           </div>
         </div>
       </CardContent>
+      <DeleteAlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          setIsDeleting(true);
+          onDelete(account.id);
+        }}
+        title="Delete Account"
+        description="Are you sure you want to delete this account? This action cannot be undone."
+        isLoading={isDeleting}
+      />
     </Card>
   );
 }

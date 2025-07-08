@@ -3,6 +3,7 @@ import { database, schema } from '@delulu/database';
 import { resend } from '@delulu/email';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { nanoid } from 'nanoid';
 import { keys } from './keys';
 
 export const auth = betterAuth({
@@ -84,8 +85,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // biome-ignore lint/suspicious/useAwait: <explanation>
         after: async (user) => {
-          await analytics.identify({
+          analytics.identify({
             distinctId: user.id,
             properties: {
               email: user.email,
@@ -98,8 +100,9 @@ export const auth = betterAuth({
         },
       },
       update: {
+        // biome-ignore lint/suspicious/useAwait: <explanation>
         after: async (user) => {
-          await analytics.identify({
+          analytics.identify({
             distinctId: user.id,
             properties: {
               email: user.email,
@@ -111,6 +114,11 @@ export const auth = betterAuth({
           });
         },
       },
+    },
+  },
+  advanced: {
+    generateId: (options) => {
+      return `${options.model}_${nanoid(12)}`;
     },
   },
 });

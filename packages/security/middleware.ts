@@ -24,29 +24,39 @@ export const noseconeOptions: NoseconeOptions = {
         "'self'",
         "'unsafe-inline'",
         'https://www.googletagmanager.com',
-        'https://*.clerk.accounts.dev',
-        'https://va.vercel-scripts.com',
       ],
       connectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.connectSrc,
-        'https://*.clerk.accounts.dev',
         'https://*.google-analytics.com',
-        'https://clerk-telemetry.com',
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,
         'blob:',
-        'https://*.clerk.accounts.dev',
       ],
       imgSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.imgSrc,
-        'https://img.clerk.com',
         'https://media.delulu.social',
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
+        // Google
         'https://lh3.googleusercontent.com',
+        // LinkedIn
         'https://media.licdn.com',
+        // GitHub
         'https://avatars.githubusercontent.com',
+        // Instagram CDN - specific subdomain patterns
+        'https://scontent.cdninstagram.com',
+        'https://scontent-*.cdninstagram.com',
+        // Facebook Graph API - restricted to specific endpoints
+        'https://graph.facebook.com',
+        // Facebook CDN - specific domains only
+        'https://scontent.fna.fbcdn.net',
+        'https://external.fna.fbcdn.net',
+        // Farcaster
+        'https://farcaster.xyz',
+        // Threads - specific domains only
+        'https://scontent.threads.net',
+        'https://static.threads.net',
       ],
       mediaSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.mediaSrc,

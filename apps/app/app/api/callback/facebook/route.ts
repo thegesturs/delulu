@@ -1,11 +1,10 @@
+import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
+import { encryptData } from '@delulu/database/encrypt';
 import { auth } from '@delulu/auth/server';
-import { database, socialProviders, eq, and, ne } from '@delulu/database';
-import { nanoid } from 'nanoid';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
-const TIMEOUT_MS = 8000;
 
 interface FacebookTokenResponse {
   access_token: string;
@@ -30,27 +29,57 @@ interface FacebookPageResponse {
     name: string;
     id: string;
     tasks: string[];
+    picture: {
+      data: {
+        url: string;
+        width: number;
+        height: number;
+        is_silhouette: boolean;
+      };
+    };
+    cover: {
+      id: string;
+      source: string;
+      offset_y: number;
+    };
+    link: string;
+    followers_count: number;
+    fan_count: number;
+    verification_status: string;
   }>;
+  paging?: {
+    cursors: {
+      before: string;
+      after: string;
+    };
+    next?: string;
+  };
 }
 
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout = TIMEOUT_MS
-) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
+async function getAllPages(
+  accessToken: string
+): Promise<FacebookPageResponse['data']> {
+  let allPages: FacebookPageResponse['data'] = [];
+  let nextUrl = `https://graph.facebook.com/v23.0/me/accounts?fields=access_token,category,category_list,name,id,tasks,picture{url,width,height,is_silhouette},cover,link,followers_count,fan_count,verification_status&access_token=${accessToken}`;
+
+  while (nextUrl) {
+    const response = await fetchWithTimeout(nextUrl, {
+      method: 'GET',
     });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw new Error('Request timed out');
+
+    if (!response.ok) {
+      console.error('Facebook pages fetch failed:', await response.text());
+      throw new Error('Failed to fetch Facebook pages');
+    }
+
+    const pagesData = (await response.json()) as FacebookPageResponse;
+    allPages = [...allPages, ...pagesData.data];
+
+    // Get the next page URL if it exists
+    nextUrl = pagesData.paging?.next || '';
   }
+
+  return allPages;
 }
 
 export async function GET(request: NextRequest) {
@@ -66,8 +95,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    const userId = session.user.id;
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -170,16 +197,41 @@ export async function GET(request: NextRequest) {
     const longLivedTokenData =
       (await longLivedTokenResponse.json()) as FacebookLongLivedTokenResponse;
 
-    // Get user pages
-    const pagesResponse = await fetchWithTimeout(
-      `https://graph.facebook.com/v23.0/me/accounts?access_token=${longLivedTokenData.access_token}`,
-      {
-        method: 'GET',
-      }
-    );
+    // Get all user pages with pagination
+    try {
+      const allPages = await getAllPages(longLivedTokenData.access_token);
 
-    if (!pagesResponse.ok) {
-      console.error('Facebook pages fetch failed:', await pagesResponse.text());
+      if (!allPages || allPages.length === 0) {
+        return new NextResponse(null, {
+          status: 302,
+          headers: {
+            Location:
+              '/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook',
+          },
+        });
+      }
+
+      // Store pages data with a stable key based on user ID and code
+      const key = `fb-pages-${session.user.id}-${code}`;
+      const { env } = await getCloudflareContext({
+        async: true,
+      });
+
+      // Encrypt the pages data before storing
+      const encryptedData = await encryptData(JSON.stringify(allPages));
+      await env.DELULU_FACEBOOK_PAGES.put(key, encryptedData, {
+        expirationTtl: 300, // 5 minutes in seconds
+      });
+
+      // Redirect to page selection UI with data key
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location: `/facebook-page-select?key=${key}&code=${code}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching Facebook pages:', error);
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -188,99 +240,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    const pagesData = (await pagesResponse.json()) as FacebookPageResponse;
-
-    if (!pagesData.data || pagesData.data.length === 0) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook',
-        },
-      });
-    }
-
-    // Use the first page (you might want to let users choose)
-    const firstPage = pagesData.data[0];
-
-    // Check if this Facebook account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, firstPage.id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
-
-    // If found, handle the transfer
-    if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
-          userId,
-          accessToken: firstPage.access_token,
-          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-          fullName: firstPage.name,
-          username: firstPage.name,
-          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-          refreshTokenExpiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
-
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location: '/socials?notification=account_transferred&platform=facebook',
-        },
-      });
-    }
-
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
-        id: `social_${nanoid(12)}`,
-        userId,
-        socialType: 'FACEBOOK',
-        accessToken: firstPage.access_token,
-        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-        profileId: firstPage.id,
-        username: firstPage.name,
-        fullName: firstPage.name,
-        profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-        isActive: true,
-        lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: firstPage.access_token,
-          expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-          fullName: firstPage.name,
-          username: firstPage.name,
-          profileImage: `https://graph.facebook.com/${firstPage.id}/picture?type=large`,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        },
-      });
-
-    // Successful connection
-    return new NextResponse(null, {
-      status: 302,
-      headers: {
-        Location: '/socials?success=true&provider=facebook',
-      },
-    });
   } catch (error) {
     console.error('Facebook callback error:', error);
     return new NextResponse(null, {

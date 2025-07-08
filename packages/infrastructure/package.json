@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm sst dev",
-    "build": "sst build",
+    "sso": "aws sso login --profile=delulu_social",
+    "build": "tsc",
     "deploy": "sst deploy",
     "remove": "sst remove",
     "console": "sst console",
@@ -13,8 +14,9 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@aws-sdk/client-sqs": "^3.840.0",
+    "@delulu/typescript-config": "workspace:*",
     "sst": "^3.17.4",
-    "typescript": "catalog:",
-    "@delulu/typescript-config": "workspace:*"
+    "typescript": "catalog:"
   }
 }

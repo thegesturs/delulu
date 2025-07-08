@@ -1,6 +1,14 @@
 import { env } from '@/env';
 import { auth } from '@delulu/auth/server';
-import { and, database, eq, ne, socialProviders } from '@delulu/database';
+import {
+  and,
+  database,
+  eq,
+  ne,
+  socialProviders,
+  socialQueries,
+} from '@delulu/database';
+import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -24,12 +32,98 @@ interface LinkedInUserResponse {
   };
 }
 
-interface LinkedInEmailResponse {
-  elements: Array<{
-    'handle~': {
-      emailAddress: string;
-    };
-  }>;
+/**
+ * Sanitizes and creates a safe username from first and last names
+ */
+function sanitizeText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  
+  return text
+    .toLowerCase()
+    .trim()
+    // Remove or replace special characters and spaces
+    .replace(/[^a-z0-9]/g, '')
+    // Remove consecutive spaces that became empty
+    .replace(/\s+/g, '')
+    // Limit length to prevent overly long usernames
+    .substring(0, 20);
+}
+
+/**
+ * Generates a unique username from first and last names with fallback strategies
+ */
+async function generateUniqueUsername(
+  firstName: string, 
+  lastName: string, 
+  linkedinId: string
+): Promise<string> {
+  // Validate and sanitize inputs
+  const sanitizedFirst = sanitizeText(firstName);
+  const sanitizedLast = sanitizeText(lastName);
+  
+  // Strategy 1: Use first.last format if both names are valid
+  if (sanitizedFirst && sanitizedLast) {
+    const baseUsername = `${sanitizedFirst}.${sanitizedLast}`;
+    const uniqueUsername = await ensureUniqueUsername(baseUsername);
+    if (uniqueUsername) return uniqueUsername;
+  }
+  
+  // Strategy 2: Use just first name if available
+  if (sanitizedFirst) {
+    const baseUsername = sanitizedFirst;
+    const uniqueUsername = await ensureUniqueUsername(baseUsername);
+    if (uniqueUsername) return uniqueUsername;
+  }
+  
+  // Strategy 3: Use just last name if available
+  if (sanitizedLast) {
+    const baseUsername = sanitizedLast;
+    const uniqueUsername = await ensureUniqueUsername(baseUsername);
+    if (uniqueUsername) return uniqueUsername;
+  }
+  
+  // Strategy 4: Fallback to linkedin ID based username
+  const fallbackUsername = `linkedin_${sanitizeText(linkedinId)}`;
+  const uniqueUsername = await ensureUniqueUsername(fallbackUsername);
+  if (uniqueUsername) return uniqueUsername;
+  
+  // Strategy 5: Last resort - generate random username
+  return `user_${nanoid(8).toLowerCase()}`;
+}
+
+/**
+ * Ensures username uniqueness by checking against existing usernames
+ */
+async function ensureUniqueUsername(baseUsername: string): Promise<string | null> {
+  if (!baseUsername || baseUsername.length < 2) return null;
+  
+  // Check if base username is available
+  const existing = await database
+    .select({ username: socialProviders.username })
+    .from(socialProviders)
+    .where(eq(socialProviders.username, baseUsername))
+    .limit(1);
+    
+  if (existing.length === 0) {
+    return baseUsername;
+  }
+  
+  // Try with numeric suffixes
+  for (let i = 1; i <= 99; i++) {
+    const candidateUsername = `${baseUsername}${i}`;
+    const existingWithSuffix = await database
+      .select({ username: socialProviders.username })
+      .from(socialProviders)
+      .where(eq(socialProviders.username, candidateUsername))
+      .limit(1);
+      
+    if (existingWithSuffix.length === 0) {
+      return candidateUsername;
+    }
+  }
+  
+  // If all numeric suffixes are taken, append a random string
+  return `${baseUsername}_${nanoid(4).toLowerCase()}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -104,24 +198,12 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as LinkedInUserResponse;
 
-    // Get LinkedIn email
-    const emailResponse = await fetch(
-      'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          'X-Restli-Protocol-Version': '2.0.0',
-          'LinkedIn-Version': '202304',
-        },
-      }
+    // Generate a safe and unique username
+    const username = await generateUniqueUsername(
+      userObject.localizedFirstName,
+      userObject.localizedLastName,
+      userObject.id
     );
-
-    if (!emailResponse.ok) {
-      throw new Error('linkedin_email_fetch_failed');
-    }
-
-    const emailData = (await emailResponse.json()) as LinkedInEmailResponse;
-    const email = emailData.elements[0]?.['handle~']?.emailAddress;
 
     // Get profile image URL from the complex response structure
     const profileImage =
@@ -140,17 +222,17 @@ export async function GET(request: NextRequest) {
       )
       .limit(1);
 
-    // If found, handle the transfer
+    // If found, handle the transfer using encrypted update
     if (existingProvider.length > 0) {
-      await database
-        .update(socialProviders)
-        .set({
+      await socialQueries.updateSocialProviderWithEncryption(
+        existingProvider[0].id,
+        {
           userId,
           accessToken: access_token,
           refreshToken: null, // LinkedIn doesn't provide refresh tokens
           expiresIn: new Date(Date.now() + expires_in * 1000),
           fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: email,
+          username: username,
           profileImage: profileImage,
           updatedAt: new Date(),
           isActive: true,
@@ -158,8 +240,8 @@ export async function GET(request: NextRequest) {
             Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
           ),
           lastSyncedAt: new Date(),
-        })
-        .where(eq(socialProviders.id, existingProvider[0].id));
+        }
+      );
 
       return NextResponse.redirect(
         new URL(
@@ -169,17 +251,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Upsert the social provider using conflict resolution
-    await database
-      .insert(socialProviders)
-      .values({
+    // Upsert the social provider using conflict resolution with encryption
+    await socialQueries.upsertSocialProviderWithEncryption(
+      {
         userId,
         socialType: 'LINKEDIN',
         accessToken: access_token,
         refreshToken: null, // LinkedIn doesn't provide refresh tokens
         expiresIn: new Date(Date.now() + expires_in * 1000),
         profileId: userObject.id,
-        username: email || undefined,
+        username: username,
         fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
         profileImage: profileImage,
         isActive: true,
@@ -189,24 +270,22 @@ export async function GET(request: NextRequest) {
         refreshTokenExpiresIn: new Date(
           Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
         ),
-      })
-      .onConflictDoUpdate({
-        target: [socialProviders.userId, socialProviders.profileId],
-        set: {
-          accessToken: access_token,
-          refreshToken: null,
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: email,
-          profileImage: profileImage,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-        },
-      });
+      },
+      {
+        accessToken: access_token,
+        refreshToken: null,
+        expiresIn: new Date(Date.now() + expires_in * 1000),
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        username: username,
+        profileImage: profileImage,
+        updatedAt: new Date(),
+        isActive: true,
+        lastSyncedAt: new Date(),
+        refreshTokenExpiresIn: new Date(
+          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
+        ),
+      }
+    );
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

@@ -5,7 +5,12 @@
     "noPropertyAccessFromIndexSignature": false,
     "outDir": "dist",
     "strict": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "paths": {
+      "@delulu/auth": ["../auth/src"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]

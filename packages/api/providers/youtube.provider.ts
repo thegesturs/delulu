@@ -1,143 +1,187 @@
-import { database } from '@delulu/database';
-import type { PostReturnType } from '@delulu/validators/post';
+import type { IncomingMessage } from 'node:http';
+import https from 'node:https';
+import type { Readable } from 'node:stream';
+import { socialQueries } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
-import { TRPCError } from '@trpc/server';
-import axios from 'axios';
+import { google } from 'googleapis';
+import { nanoid } from 'nanoid';
+import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
+import type {
+  PostContent,
+  PostPublishResult,
+  BaseProviderProfile as YouTubeProfile,
+  YouTubeVideoMetadata,
+  YouTubeVideoUploadResponse,
+} from './common-types';
+import {
+  InvalidMediaError,
+  ProfileNotFoundError,
+  type SocialProviderError,
+  YouTubeError,
+  createAPIError,
+} from './errors';
 import type { SocialProvider } from './types';
 
-interface YouTubeVideoUploadResponse {
-  id: string;
-  snippet: {
-    title: string;
-    description: string;
-    tags?: string[];
-    categoryId: string;
-    defaultLanguage?: string;
-    defaultAudioLanguage?: string;
-  };
-  status: {
-    uploadStatus: string;
-    privacyStatus: string;
-    license: string;
-    embeddable: boolean;
-    publicStatsViewable: boolean;
-  };
-}
+// Constants for file size limits (100MB)
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
-interface YouTubeVideoMetadata {
-  snippet: {
-    title: string;
-    description: string;
-    tags?: string[];
-    categoryId: string; // "22" for People & Blogs, "24" for Entertainment
-    defaultLanguage?: string;
-  };
-  status: {
-    privacyStatus: 'public' | 'private' | 'unlisted';
-  };
-}
-
-async function uploadVideoToYouTube(
-  accessToken: string,
-  videoFile: Buffer | string,
-  metadata: YouTubeVideoMetadata
-): Promise<YouTubeVideoUploadResponse> {
-  const uploadUrl = 'https://www.googleapis.com/upload/youtube/v3/videos';
-
-  // For Shorts, we need to ensure video is ≤60 seconds and vertical/square aspect ratio
-  const params = new URLSearchParams({
-    part: 'snippet,status',
-    uploadType: 'multipart',
-  });
-
-  const boundary = '-------314159265358979323846';
-
-  // Create multipart form data
-  const metadataJson = JSON.stringify(metadata);
-  const videoData =
-    typeof videoFile === 'string'
-      ? Buffer.from(videoFile, 'base64')
-      : videoFile;
-
-  const body = Buffer.concat([
-    Buffer.from(`--${boundary}\r\n`),
-    Buffer.from('Content-Type: application/json; charset=UTF-8\r\n\r\n'),
-    Buffer.from(metadataJson),
-    Buffer.from(`\r\n--${boundary}\r\n`),
-    Buffer.from('Content-Type: video/mp4\r\n\r\n'),
-    videoData,
-    Buffer.from(`\r\n--${boundary}--\r\n`),
-  ]);
-
-  const response = await axios.post(`${uploadUrl}?${params}`, body, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`,
-      'Content-Length': body.length.toString(),
-    },
-    maxBodyLength: Number.POSITIVE_INFINITY,
-    maxContentLength: Number.POSITIVE_INFINITY,
-  });
-
-  return response.data;
-}
-
-async function getAccessTokenAndProfile(socialProviderId: string) {
-  const profile = await database.query.socialProviders.findFirst({
-    where: (socialProviders, { eq }) =>
-      eq(socialProviders.id, socialProviderId),
-  });
-
-  if (!profile || !profile.accessToken) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'YouTube profile not found or access token is missing.',
+// Profile management
+const getProfile = (
+  socialProviderId: string
+): ResultAsync<YouTubeProfile, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    () => new YouTubeError('Database query failed')
+  ).andThen((profile) => {
+    if (!profile?.accessToken) {
+      return err(new ProfileNotFoundError('YouTube'));
+    }
+    return ok({
+      id: profile.id,
+      accessToken: profile.accessToken,
     });
+  });
+
+// Get video stream from URL
+const getVideoStream = (
+  url: string
+): ResultAsync<Readable, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    new Promise<Readable>((resolve, reject) => {
+      https
+        .get(url, (response: IncomingMessage) => {
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to get video stream. Status Code: ${response.statusCode}`
+              )
+            );
+            return;
+          }
+
+          const contentLength = Number.parseInt(
+            response.headers['content-length'] ?? '0',
+            10
+          );
+          if (contentLength > MAX_FILE_SIZE) {
+            reject(
+              new Error(
+                `File size exceeds limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`
+              )
+            );
+            return;
+          }
+
+          resolve(response);
+        })
+        .on('error', reject);
+    }),
+    (error) =>
+      error instanceof Error
+        ? new InvalidMediaError('YouTube', error.message)
+        : createAPIError('YouTube', error)
+  );
+
+// Video upload to YouTube with streaming
+const uploadVideoToYouTube = (
+  accessToken: string,
+  videoStream: Readable,
+  metadata: YouTubeVideoMetadata
+): ResultAsync<YouTubeVideoUploadResponse, SocialProviderError> => {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtube = google.youtube({ version: 'v3', auth });
+
+  return ResultAsync.fromPromise(
+    youtube.videos.insert({
+      part: ['snippet', 'status'],
+      requestBody: {
+        snippet: {
+          ...metadata.snippet,
+          tags: metadata.snippet.tags ?? [],
+        },
+        status: {
+          ...metadata.status,
+          madeForKids: false,
+        },
+      },
+      media: {
+        body: videoStream,
+        mimeType: 'video/mp4',
+      },
+    }),
+    (error): SocialProviderError => {
+      if (error instanceof Error && error.message.includes('401')) {
+        return new YouTubeError('Invalid YouTube access token');
+      }
+      return createAPIError('YouTube', error);
+    }
+  ).andThen((response) => {
+    const data = response.data;
+    if (!data.id) {
+      return err(
+        new YouTubeError('Failed to get video ID from YouTube response')
+      );
+    }
+
+    return ok({
+      id: data.id,
+      snippet: {
+        title: data.snippet?.title ?? metadata.snippet.title,
+        description: data.snippet?.description ?? metadata.snippet.description,
+        tags: data.snippet?.tags ?? metadata.snippet.tags ?? [],
+        categoryId: data.snippet?.categoryId ?? metadata.snippet.categoryId,
+        defaultLanguage:
+          data.snippet?.defaultLanguage ?? metadata.snippet.defaultLanguage,
+        defaultAudioLanguage:
+          data.snippet?.defaultLanguage ?? metadata.snippet.defaultLanguage,
+      },
+      status: {
+        uploadStatus: 'processed', // YouTube API doesn't return this directly
+        privacyStatus:
+          data.status?.privacyStatus ?? metadata.status.privacyStatus,
+        license: 'youtube', // Default YouTube license
+        embeddable: true,
+        publicStatsViewable: true,
+      },
+    });
+  });
+};
+
+// Main publish function
+const publishContent = (
+  content: { content: PostContent[]; postId: string },
+  profile: YouTubeProfile
+): ResultAsync<PostPublishResult, SocialProviderError> => {
+  const firstContent = content.content[0];
+
+  if (!firstContent) {
+    return errAsync(new InvalidMediaError('YouTube', 'No content to publish'));
   }
 
-  return profile;
-}
+  // YouTube Shorts requires video content
+  const validMedia = getValidMediaUrls(firstContent.media);
+  const videoMedia = validMedia.find(
+    (media) => media.mediaType === 'VIDEO' && media.url
+  );
 
-export const youtubeProvider: SocialProvider = {
-  publish: async ({ content, socialProviderId }): Promise<PostReturnType> => {
-    const profile = await getAccessTokenAndProfile(socialProviderId);
-    const firstContent = content.content[0];
-
-    if (!firstContent) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'No content to publish.',
-      });
-    }
-
-    // YouTube Shorts requires video content
-    const validMedia = getValidMediaUrls(firstContent.media);
-    const videoMedia = validMedia.find(
-      (media) => media.mediaType === 'VIDEO' && media.url
+  if (!videoMedia?.url) {
+    return errAsync(
+      new InvalidMediaError('YouTube', 'YouTube Shorts requires a video file')
     );
+  }
 
-    if (!videoMedia?.url) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'YouTube Shorts requires a video file.',
-      });
-    }
-
-    try {
-      // Download video file
-      const videoResponse = await axios.get(videoMedia.url, {
-        responseType: 'arraybuffer',
-      });
-      const videoBuffer = Buffer.from(videoResponse.data);
-
+  return getVideoStream(videoMedia.url)
+    .andThen((videoStream) => {
       // Prepare metadata for YouTube Shorts
       const metadata: YouTubeVideoMetadata = {
         snippet: {
           title: firstContent.text.slice(0, 100) || 'YouTube Short',
           description: firstContent.text || '',
           tags: firstContent.tags || [],
-          categoryId: '24',
+          categoryId: '24', // Entertainment
           defaultLanguage: 'en',
         },
         status: {
@@ -150,13 +194,9 @@ export const youtubeProvider: SocialProvider = {
         metadata.snippet.description += '\n\n#Shorts';
       }
 
-      const uploadResponse = await uploadVideoToYouTube(
-        profile.accessToken,
-        videoBuffer,
-        metadata
-      );
-
-      // const videoUrl = `https://www.youtube.com/watch?v=${uploadResponse.id}`;
+      return uploadVideoToYouTube(profile.accessToken, videoStream, metadata);
+    })
+    .map((uploadResponse) => {
       const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
 
       return {
@@ -165,24 +205,17 @@ export const youtubeProvider: SocialProvider = {
         platformId: profile.id,
         platformPostUrl: shortsUrl,
         postedAt: new Date(),
-        // metadata: {
-        //   videoUrl,
-        //   shortsUrl,
-        //   uploadStatus: uploadResponse.status.uploadStatus,
-        //   privacyStatus: uploadResponse.status.privacyStatus,
-        // },
       };
-    } catch (error) {
-      console.error('Error uploading to YouTube:', error);
-      if (axios.isAxiosError(error) && error.response?.data) {
-        console.error('YouTube API Error:', error.response.data);
-      }
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to upload video to YouTube Shorts',
-        cause: error,
-      });
-    }
+    });
+};
+
+// Provider implementation
+export const youtubeProvider: SocialProvider = {
+  publish: async ({ content, socialProviderId }) => {
+    const result = await getProfile(socialProviderId).andThen((profile) =>
+      publishContent(content, profile)
+    );
+    return result;
   },
 
   connectUrl: () => {
@@ -198,9 +231,9 @@ export const youtubeProvider: SocialProvider = {
       ].join(' '),
       access_type: 'offline',
       prompt: 'consent',
-      state: 'youtube_oauth_state',
+      state: nanoid(),
     });
 
-    return `${baseUrl}?${params}`;
+    return ok(`${baseUrl}?${params}`);
   },
 };

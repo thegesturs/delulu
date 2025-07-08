@@ -5,6 +5,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "LAMBDA_SECRET_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "MyVpc": {
       "type": "sst.aws.Vpc"
     }
@@ -20,6 +24,11 @@ declare module "sst" {
       "subnets": any
       "taskDefinition": string
       "type": "sst.aws.Task"
+    }
+    "TriggerSqsFunction": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
     }
   }
 }

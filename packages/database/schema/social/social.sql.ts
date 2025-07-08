@@ -11,7 +11,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import type { z } from 'zod';
-import { alternatePostContent, platformPosts, posts } from '../post/post.sql';
+import {
+  alternatePostContent,
+  platformPosts,
+  postSocialProviders,
+} from '../post/post.sql';
 import { users } from '../user/user.sql';
 import { createUniqueIds } from '../utilts';
 
@@ -93,7 +97,7 @@ export const socialProvidersRelations = relations(
       fields: [socialProviders.userId],
       references: [users.id],
     }),
-    posts: many(posts),
+    postToSocialProviders: many(postSocialProviders),
     alternateContents: many(alternatePostContent),
     platformPosts: many(platformPosts),
   })

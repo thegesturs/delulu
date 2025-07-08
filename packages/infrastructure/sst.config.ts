@@ -22,6 +22,14 @@ export default $config({
 
     const queue = new sst.aws.Queue('SocialPostsQueue');
 
+    const SECRET_KEY = new sst.Secret('LAMBDA_SECRET_KEY');
+
+    const triggerFunction = new sst.aws.Function('TriggerSqsFunction', {
+      handler: 'src/trigger-sqs.handler',
+      url: true, // Expose as HTTP endpoint
+      link: [queue, SECRET_KEY],
+    });
+
     const task = new sst.aws.Task('SocialPostsTask', {
       cluster,
       cpu: '0.5 vCPU',
@@ -33,7 +41,9 @@ export default $config({
       },
       environment: {
         QUEUE_URL: queue.url,
+        DEBUG: 'true',
       },
+      dev: false,
     });
 
     queue.subscribe({
@@ -43,6 +53,7 @@ export default $config({
 
     return {
       SocialPostsQueueURL: queue.url,
+      SocialPostsApiEndpoint: triggerFunction.url,
     };
   },
 });

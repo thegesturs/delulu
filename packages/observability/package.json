@@ -10,15 +10,15 @@
     "@logtail/next": "^0.2.0",
     "@sentry/nextjs": "^9.12.0",
     "@t3-oss/env-nextjs": "^0.12.0",
-    "react": "^19.1.0",
+    "react": "catalog:react19",
     "server-only": "^0.0.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
-    "@types/react": "19.1.1",
-    "@types/react-dom": "^19.1.2",
+    "@types/react": "catalog:react19",
+    "@types/react-dom": "catalog:react19",
     "typescript": "^5.8.3"
   }
 }

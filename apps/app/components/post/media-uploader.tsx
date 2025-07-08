@@ -527,8 +527,9 @@ export function MediaUploader({
             const uploadResult = await uploadAndSaveMedia(mediaFile.file);
 
             // Update the media file with upload results
-            setMediaFiles((prev) =>
-              prev.map((item) =>
+            setMediaFiles((prev) => {
+              isUserAction.current = true; // Ensure store update happens
+              return prev.map((item) =>
                 item.id === mediaFile.id
                   ? {
                       ...item,
@@ -539,8 +540,8 @@ export function MediaUploader({
                       file: undefined, // Remove file after upload
                     }
                   : item
-              )
-            );
+              );
+            });
 
             return {
               ...mediaFile,
@@ -558,9 +559,10 @@ export function MediaUploader({
             );
 
             // Remove failed upload from list
-            setMediaFiles((prev) =>
-              prev.filter((item) => item.id !== mediaFile.id)
-            );
+            setMediaFiles((prev) => {
+              isUserAction.current = true; // Ensure store update happens
+              return prev.filter((item) => item.id !== mediaFile.id);
+            });
 
             return null;
           }
