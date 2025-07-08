@@ -2,12 +2,12 @@ import { createMetadata } from '@delulu/seo/metadata';
 import type { Metadata } from 'next';
 
 import CTA from '@/components/home/cta';
-import { DottedNoise } from '@/components/home/dotted-noise';
 import { FAQ } from '@/components/home/faq';
 import { Features } from '@/components/home/features';
 import { Features2 } from '@/components/home/features2';
 import Features3 from '@/components/home/features3';
 import { Hero } from '@/components/home/hero';
+import LiquidDots from '@/components/home/liquid-dots';
 import { LogoCloud } from '@/components/home/logos-cloud';
 import Pricing from '@/components/home/pricing';
 
@@ -47,7 +47,7 @@ export const generateMetadata = (): Metadata => {
 const Home = () => {
   return (
     <>
-      <DottedNoise />
+      <LiquidDots />
       <Hero />
       <LogoCloud />
       <Features />

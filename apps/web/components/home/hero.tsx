@@ -1,5 +1,5 @@
 'use client';
-import { useTranslation } from '@/lib/useTranslation';
+// import { useTranslation } from '@/lib/useTranslation';
 import { useTheme } from '@delulu/design-system';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { useMediaQuery } from '@delulu/design-system/hooks/use-media-query';
@@ -13,7 +13,7 @@ import Balancer from 'react-wrap-balancer';
 import { DesktopMockup } from './desktop-mockup';
 
 export function Hero() {
-  const { t } = useTranslation();
+  // const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(
     null
   ) as React.RefObject<HTMLDivElement>;
@@ -35,7 +35,7 @@ export function Hero() {
             'bg-clip-text text-transparent'
           )}
         >
-          <Balancer>{t('hero.title')}</Balancer>
+          <Balancer>Delulu Social</Balancer>
         </motion.h2>
       </div>
       <motion.p
@@ -44,7 +44,9 @@ export function Hero() {
         transition={{ duration: 0.2, delay: 0.5 }}
         className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-muted-foreground sm:text-base"
       >
-        {t('hero.subtitle')}
+        Manage all your social media platforms in one place. Create, schedule,
+        and publish content across Instagram, Facebook, Twitter, LinkedIn,
+        TikTok, Pinterest, and more.
       </motion.p>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -53,7 +55,7 @@ export function Hero() {
         className="z-10 mt-6 mb-8 flex w-full flex-col items-center justify-center gap-4 px-4 sm:mt-8 sm:mb-10 sm:flex-row sm:px-8 md:mb-20"
       >
         <Button asChild>
-          <Link href="/login">{t('hero.cta')}</Link>
+          <Link href="/login">Get Started</Link>
         </Button>
       </motion.div>
 
