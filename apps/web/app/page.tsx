@@ -2,6 +2,7 @@ import { createMetadata } from '@delulu/seo/metadata';
 import type { Metadata } from 'next';
 
 import CTA from '@/components/cta';
+import { DottedNoise } from '@/components/dotted-noise';
 import { FAQ } from '@/components/faq';
 import { Features } from '@/components/features';
 import { Features2 } from '@/components/features2';
@@ -46,6 +47,7 @@ export const generateMetadata = (): Metadata => {
 const Home = () => {
   return (
     <>
+      <DottedNoise />
       <Hero />
       <LogoCloud />
       <Features />

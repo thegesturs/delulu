@@ -523,6 +523,9 @@ importers:
       shiki:
         specifier: ^3.2.2
         version: 3.7.0
+      simplex-noise:
+        specifier: ^4.0.3
+        version: 4.0.3
       three:
         specifier: ^0.177.0
         version: 0.177.0
@@ -11765,6 +11768,9 @@ packages:
 
   simple-wcswidth@1.1.2:
     resolution: {integrity: sha512-j7piyCjAeTDSjzTSQ7DokZtMNwNlEAyxqSZeCS+CXH7fJ4jx3FuJ/mTW3mE+6JLs4VJBbcll0Kjn+KXI5t21Iw==}
+
+  simplex-noise@4.0.3:
+    resolution: {integrity: sha512-qSE2I4AngLQG7BXqoZj51jokT4WUXe8mOBrvfOXpci8+6Yu44+/dD5zqDpOx3Ux792eamTd2lLcI8jqFntk/lg==}
 
   sirv@2.0.4:
     resolution: {integrity: sha512-94Bdh3cC2PKrbgSOUqTiGPWVZeSiXfKOVZNJniWoqrWrRkB1CJzBU3NEbiTsPcYy1lDsANA/THzS+9WBiy5nfQ==}
@@ -26050,6 +26056,8 @@ snapshots:
       is-arrayish: 0.3.2
 
   simple-wcswidth@1.1.2: {}
+
+  simplex-noise@4.0.3: {}
 
   sirv@2.0.4:
     dependencies:
