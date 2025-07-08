@@ -97,7 +97,22 @@ export default function LiquidDots() {
 
           ctx.beginPath();
           if (distanceFromCenter < blobEdge) {
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.4)'; // Keep dots same color
+            // Calculate dot color based on distance from center
+            const distanceRatio = distanceFromCenter / blobRadius;
+            let dotColor: string;
+
+            if (distanceRatio < 0.3) {
+              // Center area - lighter
+              dotColor = 'rgba(99, 102, 241, 0.45)';
+            } else if (distanceRatio < 0.7) {
+              // Middle area - medium
+              dotColor = 'rgba(79, 82, 201, 0.4)';
+            } else {
+              // Edge area - darker
+              dotColor = 'rgba(59, 62, 171, 0.35)';
+            }
+
+            ctx.fillStyle = dotColor;
           } else {
             ctx.fillStyle = 'rgba(10,10,10)'; // Original color for dots outside
           }
