@@ -31,6 +31,7 @@ export const socialTypeEnum = pgEnum('social_type', [
   'THREADS',
   'PINTEREST',
   'FARCASTER',
+  'BLUESKY',
 ]);
 
 export const currentPlanEnum = pgEnum('current_plan', [

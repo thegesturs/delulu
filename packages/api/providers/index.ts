@@ -1,3 +1,4 @@
+import { blueskyProvider } from './bluesky.provider';
 import { facebookProvider } from './facebook.provider';
 import { farcasterProvider } from './farcaster.provider';
 import { instagramProvider } from './instagram.provider';
@@ -18,4 +19,5 @@ export const providerRegistry = {
   PINTEREST: pinterestProvider,
   FARCASTER: farcasterProvider,
   YOUTUBE: youtubeProvider,
+  BLUESKY: blueskyProvider,
 };

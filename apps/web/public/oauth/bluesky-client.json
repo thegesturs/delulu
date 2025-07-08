@@ -1,0 +1,12 @@
+{
+  "client_name": "Delulu Social",
+  "client_uri": "https://delulu.social",
+  "redirect_uris": ["https://delulu.social/api/callback/bluesky"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "atproto transition:generic",
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true,
+  "require_pushed_authorization_requests": false
+}

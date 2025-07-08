@@ -16,6 +16,7 @@ export const LanguageSwitcher = () => {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-gray-700 text-sm hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         aria-label="Choose language"
@@ -27,9 +28,15 @@ export const LanguageSwitcher = () => {
       {isOpen && (
         <>
           {/* Backdrop */}
+          {/* biome-ignore lint/nursery/noStaticElementInteractions: <explanation> */}
           <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setIsOpen(false);
+              }
+            }}
           />
 
           {/* Dropdown */}
@@ -37,6 +44,7 @@ export const LanguageSwitcher = () => {
             <div className="max-h-60 overflow-y-auto py-1">
               {Object.entries(LOCALES).map(([code, name]) => (
                 <button
+                  type="button"
                   key={code}
                   onClick={() => handleLocaleChange(code as Locale)}
                   className={`${

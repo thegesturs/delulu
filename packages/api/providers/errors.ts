@@ -259,6 +259,16 @@ export class R2Error extends SocialProviderError {
   }
 }
 
+export class BlueskyError extends SocialProviderError {
+  readonly code = 'BLUESKY_ERROR';
+  readonly provider = 'Bluesky';
+  
+  constructor(message: string) {
+    super(message);
+    this.name = 'BlueskyError';
+  }
+}
+
 // Helper function to create API errors from axios errors
 export function createAPIError(provider: string, error: unknown): APIError {
   if (error && typeof error === 'object' && 'response' in error) {
