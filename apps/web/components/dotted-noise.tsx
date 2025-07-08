@@ -28,12 +28,13 @@ export function DottedNoise({ className }: DottedNoiseProps) {
     window.addEventListener('resize', updateCanvasSize);
 
     // Parameters for the effect
-    const dotSpacing = 16; // Slightly denser grid
-    const dotRadius = 1.5; // Slightly larger dots
-    const noiseScale = 0.003; // Scale of the distortion
-    const timeScale = 0.0002; // Speed of the fluid movement
-    const distortionStrength = 12; // How much the fluid distorts the grid
+    const dotSpacing = 16; // Space between dots
+    const dotRadius = 1.5; // Base dot size
+    const noiseScale = 0.003; // Scale of the noise
+    const timeScale = 0.0002; // Speed of movement
+    const distortionStrength = 12; // How much the fluid distorts
     const fluidScale = 0.7; // Scale of the fluid pattern
+    const flowDirection = -1; // -1 for right to left, 1 for left to right
     let frame = 0;
 
     // Improved simplex noise implementation
@@ -116,11 +117,11 @@ export function DottedNoise({ className }: DottedNoiseProps) {
         ) {
           // Calculate fluid distortion
           const fluidNoise1 = noise(
-            baseX * noiseScale + time,
+            (baseX + time * flowDirection * 500) * noiseScale,
             baseY * noiseScale + time * 0.5
           );
           const fluidNoise2 = noise(
-            baseX * noiseScale * 2 - time * 1.5,
+            (baseX + time * flowDirection * 750) * noiseScale * 2,
             baseY * noiseScale * 2 + time
           );
 
@@ -129,7 +130,7 @@ export function DottedNoise({ className }: DottedNoiseProps) {
 
           // Calculate distorted position
           const distortX = baseX + fluid * distortionStrength;
-          const distortY = baseY + fluid * distortionStrength;
+          const distortY = baseY + fluid * distortionStrength * 0.5; // Less vertical distortion
 
           // Calculate fluid intensity for coloring
           const fluidIntensity = Math.abs(fluid);
@@ -137,14 +138,14 @@ export function DottedNoise({ className }: DottedNoiseProps) {
           // Create gradient of indigo shades based on fluid intensity
           const alpha =
             fluidIntensity > 0.2
-              ? Math.min(0.85, fluidIntensity * 1.5) // Brighter in fluid areas
-              : Math.max(0.15, fluidIntensity * 0.5); // Darker outside fluid
+              ? Math.min(0.75, fluidIntensity * 1.2) // Slightly less bright in fluid areas
+              : Math.max(0.05, fluidIntensity * 0.15); // Much darker outside fluid
 
           // Use different indigo shades based on intensity
           const indigo =
             fluidIntensity > 0.3
               ? `rgba(129, 140, 248, ${alpha})` // Lighter indigo in intense areas
-              : `rgba(99, 102, 241, ${alpha})`; // Regular indigo elsewhere
+              : `rgba(79, 70, 229, ${alpha * 0.6})`; // Darker and more transparent outside
 
           context.fillStyle = indigo;
           context.beginPath();
