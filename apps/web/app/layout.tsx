@@ -1,7 +1,6 @@
 import './styles.css';
-import { Footer } from '@/components/footer';
-import { ClientLocaleProvider } from '@/components/locale-provider';
-import { Navbar } from '@/components/navbar';
+import { Footer } from '@/components/layout/footer';
+import { Navbar } from '@/components/layout/navbar';
 import { env } from '@/env';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
@@ -42,13 +41,11 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
         <JsonLd code={createAISoftwareApplicationSchema(baseUrl)} />
       </head>
       <body>
-        <ClientLocaleProvider>
-          <DesignSystemProvider>
-            <Navbar />
-            {children}
-            <Footer />
-          </DesignSystemProvider>
-        </ClientLocaleProvider>
+        <DesignSystemProvider>
+          <Navbar />
+          {children}
+          <Footer />
+        </DesignSystemProvider>
         {/* <Toolbar /> */}
       </body>
     </html>

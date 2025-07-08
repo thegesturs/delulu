@@ -10,7 +10,7 @@ import {
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
-import { Logo } from './logo';
+import { Logo } from '../logo';
 
 interface NavbarProps {
   navItems: {

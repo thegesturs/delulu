@@ -1,9 +1,9 @@
 'use client';
+import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 import { cn } from '@delulu/design-system/lib/utils';
 import { motion, useAnimation, useInView } from 'motion/react';
 import Link from 'next/link';
 import React, { useEffect } from 'react';
-import { CanvasRevealEffect } from './ui/canvas-reveal-effect';
 
 interface FeatureCard {
   percentage: string;

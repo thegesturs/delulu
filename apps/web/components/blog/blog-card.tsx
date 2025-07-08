@@ -1,11 +1,11 @@
 import { BlurImage } from '@/components/blog/blur-image';
+import { Logo } from '@/components/logo';
 import { truncate } from '@/lib/utils';
 import type { Blog } from 'content-collections';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';
 import Balancer from 'react-wrap-balancer';
-import { Logo } from '../logo';
 
 export const BlogCard = ({ blog }: { blog: Blog }) => {
   return (
