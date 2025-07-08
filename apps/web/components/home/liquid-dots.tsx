@@ -56,7 +56,7 @@ export default function LiquidDots() {
       }
       ctx.closePath();
 
-      // Fill blob with gradient
+      // Fill blob with more subtle gradient
       const gradient = ctx.createRadialGradient(
         centerX,
         centerY,
@@ -65,8 +65,10 @@ export default function LiquidDots() {
         centerY,
         blobRadius
       );
-      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-      gradient.addColorStop(1, 'rgba(99, 102, 241, 0.1)');
+      // More subtle gradient with slightly lighter center
+      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)'); // Lighter center
+      gradient.addColorStop(0.4, 'rgba(79, 82, 201, 0.2)'); // Mid transition
+      gradient.addColorStop(1, 'rgba(59, 62, 171, 0.08)'); // Darker edges that blend with background
       ctx.fillStyle = gradient;
       ctx.fill();
 
@@ -95,7 +97,7 @@ export default function LiquidDots() {
 
           ctx.beginPath();
           if (distanceFromCenter < blobEdge) {
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.3)'; // Indigo for dots inside blob
+            ctx.fillStyle = 'rgba(99, 102, 241, 0.4)'; // Keep dots same color
           } else {
             ctx.fillStyle = 'rgba(10,10,10)'; // Original color for dots outside
           }
