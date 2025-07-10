@@ -1,0 +1,26 @@
+{
+  "name": "@delulu/cloudflare-types",
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "require": "./index.ts",
+      "types": "./index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit --emitDeclarationOnly false",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "cf-typegen": "cd ../../apps/app && pnpm cf-typegen && cp cloudflare-env.d.ts ../../packages/cloudflare-types/"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250710.0",
+    "@delulu/typescript-config": "workspace:*",
+    "@types/node": "22.14.1",
+    "typescript": "^5.8.3"
+  }
+}

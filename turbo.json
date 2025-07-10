@@ -14,6 +14,10 @@
         ".react-email/**"
       ]
     },
+    "cf-typegen": {
+      "dependsOn": [],
+      "outputs": ["cloudflare-env.d.ts"]
+    },
     "test": {
       "dependsOn": ["^test"]
     },
