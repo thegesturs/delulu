@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Error generating upload URL', { status: 500 });
     }
 
-    const { uploadUrl, bucketKey } = data.value;
+    const { uploadUrl, key: bucketKey } = data.value;
 
     return NextResponse.json({
       uploadUrl,

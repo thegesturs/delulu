@@ -28,6 +28,7 @@ export const SocialTypes = {
   THREADS: 'THREADS',
   PINTEREST: 'PINTEREST',
   FARCASTER: 'FARCASTER',
+  BLUESKY: 'BLUESKY',
 } as const;
 
 export type SocialType = (typeof SocialTypes)[keyof typeof SocialTypes];

@@ -19,7 +19,10 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
     throw new Error('Failed to get upload URL');
   }
 
-  const { uploadUrl, bucketKey } = await response.json();
+  const { uploadUrl, bucketKey } = (await response.json()) as {
+    uploadUrl: string;
+    bucketKey: string;
+  };
 
   console.log('uploadUrl', uploadUrl);
 
@@ -51,7 +54,9 @@ async function getDownloadUrl(key: string): Promise<string> {
   if (!response.ok) {
     throw new Error('Failed to get download URL');
   }
-  const { downloadUrl } = await response.json();
+  const { downloadUrl } = (await response.json()) as {
+    downloadUrl: string;
+  };
   return downloadUrl;
 }
 
