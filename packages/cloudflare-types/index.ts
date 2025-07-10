@@ -1,11 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { IncomingRequestCfProperties, ExecutionContext } from "@cloudflare/workers-types";
+import type { CloudflareEnv } from "./types";
 
-// Re-export generated Cloudflare types
-// Import the global declarations from the generated file
-import "./cloudflare-env";
-
-// Re-export the CloudflareEnv type from the global namespace
-export type CloudflareEnv = globalThis.CloudflareEnv;
+// Export CloudflareEnv type
+export type { CloudflareEnv } from "./types";
 
 /**
  * Get Cloudflare environment variables asynchronously
@@ -15,7 +13,7 @@ export async function getCloudflareEnv(): Promise<CloudflareEnv> {
   const context = await getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>({ 
     async: true 
   });
-  return context.env;
+  return context.env as unknown as CloudflareEnv;
 }
 
 /**
@@ -24,7 +22,7 @@ export async function getCloudflareEnv(): Promise<CloudflareEnv> {
  */
 export function getCloudflareEnvSync(): CloudflareEnv {
   const context = getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>();
-  return context.env;
+  return context.env as unknown as CloudflareEnv;
 }
 
 /**

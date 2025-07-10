@@ -15,7 +15,7 @@
     "build": "tsc --noEmit --emitDeclarationOnly false",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "cf-typegen": "cd ../../apps/app && pnpm cf-typegen && cp cloudflare-env.d.ts ../../packages/cloudflare-types/"
+    "cf-typegen": "cd ../../apps/app && pnpm cf-typegen && cp cloudflare-env.d.ts ../../packages/cloudflare-types/ && node ../../packages/cloudflare-types/scripts/extract-types.cjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.4.0"
