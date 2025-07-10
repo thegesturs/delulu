@@ -1,207 +1,252 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-interface BlobPoint {
-  x: number;
-  y: number;
-  angle: number;
-  radius: number;
+// Import shaders as raw text
+const vertexShader = `attribute vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}`;
+
+const fragmentShader = `precision highp float;
+uniform vec2 resolution;
+uniform float time;
+
+// Simplex noise function
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+float snoise(vec2 v) {
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+          -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
+// Flow effect with multiple layers of noise
+float flow(vec2 p) {
+  float n = snoise(p * 0.3 + time * 0.1) * 0.5;
+  n += snoise(p * 0.6 + time * 0.15) * 0.25;
+  n += snoise(p * 1.2 + time * 0.2) * 0.125;
+  n += snoise(p * 2.4 + time * 0.25) * 0.0625;
+  return n;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / resolution.xy;
+  vec2 p = (uv * 2.0 - 1.0) * vec2(resolution.x / resolution.y, 1.0);
+  
+  // Grid of dots
+  vec2 grid = fract(uv * 40.0) - 0.5;
+  float dots = 1.0 - smoothstep(0.05, 0.06, length(grid));
+  
+  // Flowing effect with improved noise
+  float f = flow(p);
+  vec3 color = vec3(0.0);
+  
+  // Combine dots with flow
+  float alpha = dots * 0.15; // Base dot opacity
+  
+  // Add flowing dark areas with smoother transition
+  float darkArea = smoothstep(0.2, 0.4, f + 0.4);
+  vec3 flowColor = vec3(0.31, 0.35, 0.76); // Indigo color
+  
+  // Final color with improved blending
+  color = mix(vec3(0.0), flowColor, alpha);
+  color = mix(color, vec3(0.0), darkArea * 0.9);
+
+  gl_FragColor = vec4(color, 1.0);
+}`;
+
+interface WebGLContext {
+  gl: WebGLRenderingContext;
+  program: WebGLProgram;
+  locations: {
+    position: number;
+    resolution: WebGLUniformLocation | null;
+    time: WebGLUniformLocation | null;
+  };
+}
+
+// WebGL setup functions
+function compileShader(
+  gl: WebGLRenderingContext,
+  type: number,
+  source: string
+): WebGLShader | null {
+  const shader = gl.createShader(type);
+  if (!shader) return null;
+
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+
+  return shader;
+}
+
+function setupWebGLProgram(gl: WebGLRenderingContext): WebGLContext | null {
+  const program = gl.createProgram();
+  if (!program) return null;
+
+  const vShader = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
+  const fShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
+
+  if (!vShader || !fShader) return null;
+
+  gl.attachShader(program, vShader);
+  gl.attachShader(program, fShader);
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error('Program linking error:', gl.getProgramInfoLog(program));
+    gl.deleteProgram(program);
+    return null;
+  }
+
+  // Set up attributes and uniforms
+  const positionLocation = gl.getAttribLocation(program, 'position');
+  const resolutionLocation = gl.getUniformLocation(program, 'resolution');
+  const timeLocation = gl.getUniformLocation(program, 'time');
+
+  return {
+    gl,
+    program,
+    locations: {
+      position: positionLocation,
+      resolution: resolutionLocation,
+      time: timeLocation,
+    },
+  };
+}
+
+function setupBuffers(gl: WebGLRenderingContext): void {
+  const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+}
+
+function resizeCanvas(
+  canvas: HTMLCanvasElement,
+  gl: WebGLRenderingContext
+): void {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+function renderWebGLFrame(
+  context: WebGLContext,
+  canvas: HTMLCanvasElement,
+  time: number
+): void {
+  const { gl, program, locations } = context;
+  // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+  gl.useProgram(program);
+  gl.uniform2f(locations.resolution, canvas.width, canvas.height);
+  gl.uniform1f(locations.time, time);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 export default function LiquidDots() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contextRef = useRef<WebGLContext | null>(null);
   const timeRef = useRef<number>(0);
-  const animationFrameRef = useRef<number | undefined>(undefined);
-  const blobsRef = useRef<BlobPoint[]>([]);
+  const frameRef = useRef<number | undefined>(undefined);
+  const isAnimatingRef = useRef(true);
+
+  const updateFrame = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+
+    if (!isAnimatingRef.current || !context || !canvas) return;
+
+    timeRef.current += 0.001;
+    renderWebGLFrame(context, canvas, timeRef.current);
+    frameRef.current = requestAnimationFrame(updateFrame);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Initialize WebGL
+    const gl = canvas.getContext('webgl', { antialias: true });
+    if (!gl) return;
 
-    // Set canvas size with device pixel ratio for sharp rendering
-    const dpr = window.devicePixelRatio || 1;
-    const updateCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
-    };
+    // Create program and initialize buffers
+    const context = setupWebGLProgram(gl);
+    if (!context) return;
 
-    updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
+    contextRef.current = context;
+    setupBuffers(gl);
 
-    // Initialize blob points
-    const initBlobs = () => {
-      blobsRef.current = [];
-      const numBlobs = 5; // Number of organic shapes
+    // Set up vertex attributes
+    gl.enableVertexAttribArray(context.locations.position);
+    gl.vertexAttribPointer(
+      context.locations.position,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
 
-      for (let i = 0; i < numBlobs; i++) {
-        blobsRef.current.push({
-          x: (Math.random() * canvas.width) / dpr,
-          y: (Math.random() * canvas.height) / dpr,
-          angle: Math.random() * Math.PI * 2,
-          radius:
-            (Math.random() * 0.1 + 0.1) *
-            Math.min(canvas.width / dpr, canvas.height / dpr),
-        });
+    // Handle canvas size
+    resizeCanvas(canvas, gl);
+    const handleResize = () => {
+      if (contextRef.current) {
+        resizeCanvas(canvas, contextRef.current.gl);
       }
     };
+    window.addEventListener('resize', handleResize);
 
-    initBlobs();
-
-    // Draw dots and blobs
-    const draw = () => {
-      timeRef.current += 0.002;
-
-      // Clear canvas
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-
-      // Update blob positions with smooth movement
-      blobsRef.current.forEach((blob) => {
-        blob.x += Math.cos(blob.angle + timeRef.current) * 0.5;
-        blob.y += Math.sin(blob.angle + timeRef.current * 0.7) * 0.5;
-
-        // Wrap around edges
-        if (blob.x < -blob.radius) blob.x = canvas.width / dpr + blob.radius;
-        if (blob.x > canvas.width / dpr + blob.radius) blob.x = -blob.radius;
-        if (blob.y < -blob.radius) blob.y = canvas.height / dpr + blob.radius;
-        if (blob.y > canvas.height / dpr + blob.radius) blob.y = -blob.radius;
-      });
-
-      // Draw organic shapes
-      ctx.beginPath();
-      blobsRef.current.forEach((blob, index) => {
-        const points: [number, number][] = [];
-        const numPoints = 20;
-
-        // Create points around the blob
-        for (let i = 0; i < numPoints; i++) {
-          const angle = (i / numPoints) * Math.PI * 2;
-          const noise =
-            Math.sin(angle * 3 + timeRef.current + index) * (blob.radius * 0.2);
-          const x = blob.x + Math.cos(angle) * (blob.radius + noise);
-          const y = blob.y + Math.sin(angle) * (blob.radius + noise);
-          points.push([x, y]);
-        }
-
-        // Draw curved path through points
-        if (points.length > 0) {
-          ctx.moveTo(points[0][0], points[0][1]);
-          for (let i = 1; i < points.length; i++) {
-            const xc = (points[i][0] + points[i - 1][0]) / 2;
-            const yc = (points[i][1] + points[i - 1][1]) / 2;
-            ctx.quadraticCurveTo(points[i - 1][0], points[i - 1][1], xc, yc);
-          }
-          // Close the shape
-          const xc = (points[0][0] + points[points.length - 1][0]) / 2;
-          const yc = (points[0][1] + points[points.length - 1][1]) / 2;
-          ctx.quadraticCurveTo(
-            points[points.length - 1][0],
-            points[points.length - 1][1],
-            xc,
-            yc
-          );
-        }
-      });
-
-      // Fill all shapes with gradient
-      const gradient = ctx.createRadialGradient(
-        canvas.width / dpr / 2,
-        canvas.height / dpr / 2,
-        0,
-        canvas.width / dpr / 2,
-        canvas.height / dpr / 2,
-        canvas.width / dpr / 2
-      );
-      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-      gradient.addColorStop(0.4, 'rgba(79, 82, 201, 0.2)');
-      gradient.addColorStop(1, 'rgba(59, 62, 171, 0.08)');
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      // Draw grid of dots
-      const spacing = 13;
-      const rows = Math.floor(canvas.height / dpr / spacing);
-      const cols = Math.floor(canvas.width / dpr / spacing);
-
-      for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-          const x = j * spacing + spacing / 2;
-          const y = i * spacing + spacing / 2;
-
-          // Check if dot is inside any blob area
-          let isInBlob = false;
-          let minDistance = Number.POSITIVE_INFINITY;
-          let closestBlob: BlobPoint | null = null;
-
-          for (const blob of blobsRef.current) {
-            const distanceFromCenter = Math.sqrt(
-              (x - blob.x) ** 2 + (y - blob.y) ** 2
-            );
-            if (distanceFromCenter < minDistance) {
-              minDistance = distanceFromCenter;
-              closestBlob = blob;
-            }
-
-            const blobEdge =
-              blob.radius +
-              Math.sin(
-                Math.atan2(y - blob.y, x - blob.x) * 4 + timeRef.current
-              ) *
-                20;
-            if (distanceFromCenter < blobEdge) {
-              isInBlob = true;
-            }
-          }
-
-          ctx.beginPath();
-          if (isInBlob && closestBlob) {
-            // Calculate dot color based on distance from closest blob center
-            const distanceRatio = minDistance / closestBlob.radius;
-            let dotColor: string;
-
-            if (distanceRatio < 0.3) {
-              dotColor = 'rgba(99, 102, 241, 0.45)';
-            } else if (distanceRatio < 0.7) {
-              dotColor = 'rgba(79, 82, 201, 0.4)';
-            } else {
-              dotColor = 'rgba(59, 62, 171, 0.35)';
-            }
-
-            ctx.fillStyle = dotColor;
-          } else {
-            ctx.fillStyle = 'rgba(10,10,10)';
-          }
-          ctx.arc(x, y, 1.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      animationFrameRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
+    // Start animation
+    updateFrame();
 
     // Cleanup
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      isAnimatingRef.current = false;
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
       }
-      window.removeEventListener('resize', updateCanvasSize);
+      window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [updateFrame]);
 
   return (
     <div className="relative h-[95vh] w-full overflow-hidden">
       <canvas
         ref={canvasRef}
         className="h-full w-full"
-        style={{ background: 'black' }}
+        style={{ background: '#000' }}
       />
     </div>
   );
