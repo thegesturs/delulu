@@ -785,6 +785,10 @@ importers:
         version: 5.8.3
 
   packages/cloudflare-types:
+    dependencies:
+      '@opennextjs/cloudflare':
+        specifier: ^1.4.0
+        version: 1.4.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9))
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250710.0

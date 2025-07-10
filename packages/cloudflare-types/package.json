@@ -17,6 +17,9 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "cf-typegen": "cd ../../apps/app && pnpm cf-typegen && cp cloudflare-env.d.ts ../../packages/cloudflare-types/"
   },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.4.0"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250710.0",
     "@delulu/typescript-config": "workspace:*",

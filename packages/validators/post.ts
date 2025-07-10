@@ -43,6 +43,7 @@ export const SocialTypeSchema = z.enum([
   'THREADS',
   'PINTEREST',
   'FARCASTER',
+  'BLUESKY',
 ]);
 
 // Implement it later, once basic features are one
