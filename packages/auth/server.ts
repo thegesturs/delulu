@@ -17,6 +17,7 @@ export const auth = betterAuth({
     },
     usePlural: true,
   }),
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
   emailVerification: {
     async sendVerificationEmail({ user, url }) {
       await resend.emails.send({
