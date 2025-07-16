@@ -855,8 +855,8 @@ importers:
         specifier: 0.44.2
         version: 0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2)
       drizzle-zod:
-        specifier: ^0.5.1
-        version: 0.5.1(drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2))(zod@3.25.67)
+        specifier: ^0.8.2
+        version: 0.8.2(drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2))(zod@3.25.67)
       react:
         specifier: catalog:react19
         version: 19.1.0
@@ -1292,7 +1292,7 @@ importers:
     dependencies:
       '@stripe/agent-toolkit':
         specifier: ^0.6.1
-        version: 0.6.1(@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+        version: 0.6.1(@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -8332,11 +8332,11 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-zod@0.5.1:
-    resolution: {integrity: sha512-C/8bvzUH/zSnVfwdSibOgFjLhtDtbKYmkbPbUCq46QZyZCH6kODIMSOgZ8R7rVjoI+tCj3k06MRJMDqsIeoS4A==}
+  drizzle-zod@0.8.2:
+    resolution: {integrity: sha512-9Do/16OjFFNrQDZgvMtxtDDwKWbFOxUAIwNPKX98SfxrP8H18vhN1BvNXbhelLcdgCE7GEaXDJqBjMExSkhpkA==}
     peerDependencies:
-      drizzle-orm: '>=0.23.13'
-      zod: '*'
+      drizzle-orm: '>=0.36.0'
+      zod: ^3.25.1
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -9774,11 +9774,20 @@ packages:
     resolution: {integrity: sha512-4YAVLoF0Sf0UTqlhgQMFU9iQECdah7n+13ANkiuVfRvlK+uI0Etbgd7bVP36dKlG+NXWbhGua8vnGt+sdhvT7A==}
     engines: {node: '>=18.0.0'}
 
-  langsmith@0.3.34:
-    resolution: {integrity: sha512-rxYuuypqaSzIuNjZMTsCVAgG0cYdI516dwuKn58bu4YuBRlLaLeNlHewRyoqP9lrEAlpkekCV9fUwwZ7lO8f2g==}
+  langsmith@0.3.46:
+    resolution: {integrity: sha512-Hhi4/cMjhWIGpu0DW5eQrXBbeeKQWPYYQyJCYzhFjod+xinMry4i8QR0gxrrgjGOgfMuU6nyK79YqjGTEPVbDA==}
     peerDependencies:
+      '@opentelemetry/api': '*'
+      '@opentelemetry/exporter-trace-otlp-proto': '*'
+      '@opentelemetry/sdk-trace-base': '*'
       openai: '*'
     peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@opentelemetry/exporter-trace-otlp-proto':
+        optional: true
+      '@opentelemetry/sdk-trace-base':
+        optional: true
       openai:
         optional: true
 
@@ -13088,6 +13097,9 @@ packages:
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
   zustand@5.0.6:
     resolution: {integrity: sha512-ihAqNeUVhe0MAD+X8M5UzqyZ9k3FFZLBTtqo6JLPwV53cbRB/mJwBI0PxcIgqhBBHlEs8G45OTDTMq3gNcLq3A==}
     engines: {node: '>=12.20.0'}
@@ -16302,21 +16314,24 @@ snapshots:
 
   '@knocklabs/types@0.1.5': {}
 
-  '@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
+  '@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.20
-      langsmith: 0.3.34(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+      langsmith: 0.3.46(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 10.0.0
-      zod: 3.25.67
-      zod-to-json-schema: 3.24.6(zod@3.25.67)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@opentelemetry/exporter-trace-otlp-proto'
+      - '@opentelemetry/sdk-trace-base'
       - openai
 
   '@levischuck/tiny-cbor@0.2.11': {}
@@ -19414,9 +19429,9 @@ snapshots:
     dependencies:
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
 
-  '@stripe/agent-toolkit@0.6.1(@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
+  '@stripe/agent-toolkit@0.6.1(@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
     dependencies:
-      '@langchain/core': 0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+      '@langchain/core': 0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       '@modelcontextprotocol/sdk': 1.6.1
       ai: 4.3.16(react@19.1.0)(zod@3.25.67)
       openai: 4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)
@@ -21633,7 +21648,7 @@ snapshots:
       '@upstash/redis': 1.35.0
       kysely: 0.28.2
 
-  drizzle-zod@0.5.1(drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2))(zod@3.25.67):
+  drizzle-zod@0.8.2(drizzle-orm@0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2))(zod@3.25.67):
     dependencies:
       drizzle-orm: 0.44.2(@cloudflare/workers-types@4.20250710.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(@upstash/redis@1.35.0)(kysely@0.28.2)
       zod: 3.25.67
@@ -23473,7 +23488,7 @@ snapshots:
 
   kysely@0.28.2: {}
 
-  langsmith@0.3.34(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)):
+  langsmith@0.3.46(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -23483,6 +23498,8 @@ snapshots:
       semver: 7.7.2
       uuid: 10.0.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       openai: 4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)
 
   leac@0.6.0: {}
@@ -27580,11 +27597,17 @@ snapshots:
     dependencies:
       zod: 3.25.67
 
+  zod-to-json-schema@3.24.6(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
+
   zod@3.22.3: {}
 
   zod@3.24.2: {}
 
   zod@3.25.67: {}
+
+  zod@3.25.76: {}
 
   zustand@5.0.6(@types/react@19.1.0)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0)):
     optionalDependencies:
