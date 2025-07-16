@@ -1,4 +1,5 @@
 import { contentSchema } from '@delulu/validators/post';
+import type { ContentType } from '@delulu/validators/post';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
@@ -73,10 +74,7 @@ export const posts = pgTable(
     privacyStatus: privacyStatusEnum('privacy_status')
       .notNull()
       .default('UNLISTED'),
-    content: json('content')
-      .$type<import('@delulu/validators/post').ContentType[]>()
-      .notNull()
-      .default([]),
+    content: json('content').$type<ContentType[]>().notNull().default([]),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -115,10 +113,7 @@ export const alternatePostContent = pgTable(
   {
     postId: varchar('post_id', { length: 191 }).notNull(),
     socialProviderId: varchar('social_provider_id', { length: 191 }).notNull(),
-    content: json('content')
-      .$type<import('@delulu/validators/post').ContentType[]>()
-      .notNull()
-      .default([]),
+    content: json('content').$type<ContentType[]>().notNull().default([]),
   },
   (table) => [
     primaryKey({ columns: [table.postId, table.socialProviderId] }),

@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+
 import * as post from './schema/post/post.sql';
 import * as social from './schema/social/social.sql';
 import * as user from './schema/user/user.sql';
@@ -10,8 +10,9 @@ export const schema = {
   ...social,
 };
 
-const sql = neon(process.env.DATABASE_URL!);
-export const db = drizzle({ client: sql, schema });
+export const db = drizzle(process.env.DATABASE_URL!, {
+  schema,
+});
 
 // Export types
 export type Database = typeof db;
