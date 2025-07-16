@@ -5,7 +5,7 @@ import {
   type FacebookPagesWithToken,
   type FacebookPagesPublic 
 } from '@delulu/validators/facebook';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -29,9 +29,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { status: 403 });
     }
 
-    const { env } = await getCloudflareContext({
-      async: true,
-    });
+    const env = await getCloudflareEnv();
 
     const encryptedData = await env.DELULU_FACEBOOK_PAGES.get(key);
 

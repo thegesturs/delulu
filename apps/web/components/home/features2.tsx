@@ -16,7 +16,7 @@ import {
   FaTwitter,
   FaYoutube,
 } from 'react-icons/fa';
-import { LogoIcon } from './logo';
+import { LogoIcon } from '../logo';
 
 export function Features2() {
   return (

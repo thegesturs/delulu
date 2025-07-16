@@ -26,14 +26,14 @@ export function AlternativeContentSelector() {
   );
 
   // Calculate providers without alternative content
-  const availableProviders = useMemo(() => {
-    return socialProviders.filter(
-      (provider) =>
-        !post.alternativeContent.some(
-          (content) => content.socialProvider.socialId === provider.socialId
-        )
-    );
-  }, [socialProviders, post.alternativeContent]);
+  // const availableProviders = useMemo(() => {
+  //   return socialProviders.filter(
+  //     (provider) =>
+  //       !post.alternativeContent.some(
+  //         (content) => content.socialProvider.socialId === provider.socialId
+  //       )
+  //   );
+  // }, [socialProviders, post.alternativeContent]);
 
   const handleProviderToggle = (provider: {
     socialId: string;

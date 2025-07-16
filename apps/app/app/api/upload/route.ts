@@ -23,10 +23,13 @@ export async function POST(request: NextRequest) {
     const uniqueFileName = `${randomUUID()}.${fileExtension}`;
     const key = `${userId}/${uniqueFileName}`;
 
-    const { uploadUrl, key: bucketKey } = await r2Provider.getSignedUploadUrl(
-      key,
-      file.type
-    );
+    const data = await r2Provider.getSignedUploadUrl(key, file.type);
+
+    if (data.isErr()) {
+      return new NextResponse('Error generating upload URL', { status: 500 });
+    }
+
+    const { uploadUrl, key: bucketKey } = data.value;
 
     return NextResponse.json({
       uploadUrl,

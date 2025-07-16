@@ -15,6 +15,10 @@ nextConfig.images?.remotePatterns?.push(
   {
     protocol: 'https',
     hostname: 'images.unsplash.com',
+  },
+  {
+    protocol: 'https',
+    hostname: 'assets.aceternity.com',
   }
 );
 

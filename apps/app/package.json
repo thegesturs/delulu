@@ -19,6 +19,7 @@
     "@delulu/analytics": "workspace:*",
     "@delulu/api": "workspace:*",
     "@delulu/auth": "workspace:*",
+    "@delulu/cloudflare-types": "workspace:*",
     "@delulu/collaboration": "workspace:*",
     "@delulu/database": "workspace:*",
     "@delulu/design-system": "workspace:*",

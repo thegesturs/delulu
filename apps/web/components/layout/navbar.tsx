@@ -1,4 +1,5 @@
 'use client';
+import { Logo } from '@/components/logo';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import {
@@ -10,7 +11,6 @@ import {
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
-import { Logo } from './logo';
 
 interface NavbarProps {
   navItems: {

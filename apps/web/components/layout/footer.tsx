@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { FaLinkedin, FaTwitter } from 'react-icons/fa';
-import { Logo } from './logo';
+import { Logo } from '../logo';
 
 export function Footer() {
   const pages = [

@@ -1,5 +1,5 @@
 import { createPostInQueue } from '@api/services/post.service';
-import { decryptData } from '@delulu/database/encrypt';
+import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
   alternatePostContent,
   database,
@@ -9,12 +9,12 @@ import {
   socialQueries,
 } from '@delulu/database';
 import { and, eq, ne } from '@delulu/database';
+import { decryptData } from '@delulu/database/encrypt';
 import {
   FacebookPageConnectionSchema,
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
 } from '@delulu/validators/facebook';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import {
   type SavePostInputType,
@@ -22,7 +22,6 @@ import {
   savePostInputSchema,
 } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
-import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure, publicProcedure } from '../trpc';
@@ -35,10 +34,10 @@ export const socialProviderRouter = {
       })
     )
     .mutation(({ input }) => {
-      const link = providerRegistry[input.provider].connectUrl()
+      const link = providerRegistry[input.provider].connectUrl();
 
       console.log('Link:', link);
-      
+
       return link;
     }),
 
@@ -59,15 +58,11 @@ export const socialProviderRouter = {
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
-      let postId = input.id;
       if (!input.id) {
-        const newPostId = `post_${nanoid(12)}`;
-
         // Create the main post
         const [post] = await database
           .insert(posts)
           .values({
-            id: newPostId,
             content: input.content,
             status: 'SAVED',
             userId: ctx.userId,
@@ -81,7 +76,7 @@ export const socialProviderRouter = {
         if (input.alternativeContent?.length > 0) {
           await database.insert(alternatePostContent).values(
             input.alternativeContent.map((alt) => ({
-              postId: newPostId,
+              postId: post.id,
               socialProviderId: alt.socialProvider.socialId,
               content: alt.content,
               createdAt: new Date(),
@@ -89,8 +84,6 @@ export const socialProviderRouter = {
             }))
           );
         }
-
-        postId = post.id;
       }
       //TODO: Make this work using AWS SQS
       // await createPostInQueue({ ...input, id: postId });
@@ -156,7 +149,7 @@ export const socialProviderRouter = {
       // Securely retrieve the page access token from KV storage
       let pageAccessToken: string;
       try {
-        const { env } = await getCloudflareContext({ async: true });
+        const env = await getCloudflareEnv();
         const key = `fb-pages-${userId}-${input.code}`;
 
         // Type assertion for Cloudflare KV namespace

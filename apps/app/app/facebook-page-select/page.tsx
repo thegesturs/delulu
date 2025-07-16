@@ -7,9 +7,9 @@ import type { FacebookPagesPublic } from '@delulu/validators/facebook';
 import { TriangleAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-
-export default function FacebookPageSelectPage() {
+function FacebookPageSelectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const key = searchParams.get('key');
@@ -84,4 +84,12 @@ export default function FacebookPageSelectPage() {
   }
 
   return <FacebookPageSelect pages={pages} code={code} />;
+}
+
+export default function FacebookPageSelectPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FacebookPageSelectContent />
+    </Suspense>
+  );
 }

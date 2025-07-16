@@ -6,7 +6,7 @@ import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
 import { nanoid } from 'nanoid';
 import type {
-  FacebookProfile as InstagramProfile,
+  BaseProviderProfile,
   PostContent,
   PostPublishResult,
 } from './common-types';
@@ -47,7 +47,7 @@ interface InstagramMediaResponse {
 // Profile management
 const getProfile = (
   socialProviderId: string
-): ResultAsync<InstagramProfile, SocialProviderError> =>
+): ResultAsync<BaseProviderProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
     () => new InstagramError('Database query failed')
@@ -59,13 +59,14 @@ const getProfile = (
       id: profile.id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
+      username: profile.username ?? '',
     });
   });
 
 // Create media container for single media
 const createSingleMediaContainer = (
   media: { url: string; mediaType: 'IMAGE' | 'VIDEO' },
-  profile: InstagramProfile,
+  profile: BaseProviderProfile,
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
   // Validate caption length - Instagram limit is 2200 characters
@@ -103,7 +104,7 @@ const createSingleMediaContainer = (
 // Create carousel container for multiple images
 const createCarouselContainer = (
   mediaUrls: string[],
-  profile: InstagramProfile,
+  profile: BaseProviderProfile,
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
   // First create individual media containers for carousel items
@@ -249,7 +250,7 @@ const getMediaDetails = (
 // Main publish function - Instagram supports single video OR multiple images
 const publishContent = (
   content: { content: PostContent[]; postId: string },
-  profile: InstagramProfile
+  profile: BaseProviderProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
 
@@ -333,7 +334,11 @@ const publishContent = (
       );
     })
     .andThen((container) =>
-      publishMediaContainer(container.id, profile.profileId, profile.accessToken)
+      publishMediaContainer(
+        container.id,
+        profile.profileId,
+        profile.accessToken
+      )
     )
     .andThen((publishResponse) =>
       getMediaDetails(publishResponse.id, profile.accessToken).map(

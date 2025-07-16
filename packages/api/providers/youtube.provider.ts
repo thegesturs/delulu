@@ -7,6 +7,7 @@ import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
 
+import { keys } from '@api/keys';
 import type {
   PostContent,
   PostPublishResult,
@@ -39,7 +40,9 @@ const getProfile = (
     }
     return ok({
       id: profile.id,
+      profileId: profile.profileId,
       accessToken: profile.accessToken,
+      username: profile.username ?? '',
     });
   });
 
@@ -221,8 +224,8 @@ export const youtubeProvider: SocialProvider = {
   connectUrl: () => {
     const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
     const params = new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      redirect_uri: process.env.YOUTUBE_CALLBACK_URL!,
+      client_id: keys().GOOGLE_CLIENT_ID,
+      redirect_uri: keys().YOUTUBE_CALLBACK_URL,
       response_type: 'code',
       scope: [
         'https://www.googleapis.com/auth/youtube.upload',
@@ -234,6 +237,6 @@ export const youtubeProvider: SocialProvider = {
       state: nanoid(),
     });
 
-    return ok(`${baseUrl}?${params}`);
+    return `${baseUrl}?${params}`;
   },
 };
