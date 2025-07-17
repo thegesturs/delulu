@@ -13,21 +13,23 @@ export function useMediaStorage() {
   const uploadAndSaveMedia = async (file: File): Promise<MediaUploadResult> => {
     // First upload the file
     const uploadResult = await uploadSingleFile(file);
-    
+
     try {
       // Then save media details to database
       const extension = file.name.split('.').pop() || '';
       const mediaData = {
         bucketKey: uploadResult.bucketKey,
         url: uploadResult.url,
-        mediaType: file.type.startsWith('image/') ? 'IMAGE' as const : 'VIDEO' as const,
+        mediaType: file.type.startsWith('image/')
+          ? ('IMAGE' as const)
+          : ('VIDEO' as const),
         originalFilename: file.name,
         size: file.size,
         extension,
       };
 
       const savedMedia = await createMediaMutation.mutateAsync(mediaData);
-      
+
       return {
         ...uploadResult,
         mediaId: savedMedia.id,

@@ -22,7 +22,7 @@ vi.mock('@delulu/auth/client', () => ({
 
 test('Sign In Page', async () => {
   render(<SignIn />);
-  
+
   await waitFor(() => {
     expect(screen.getByText('Welcome back')).toBeDefined();
   });

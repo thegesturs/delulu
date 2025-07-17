@@ -6,7 +6,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
- :root {
+:root {
   --background: oklch(0.9827 0.0026 286.3511);
   --foreground: oklch(0.2527 0.0207 284.8269);
   --card: oklch(1.0 0 0);
@@ -224,10 +224,7 @@
       height: 0;
     }
   }
-} 
-
-
-
+}
 
 body {
   letter-spacing: var(--tracking-normal);

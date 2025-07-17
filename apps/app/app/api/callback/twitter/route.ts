@@ -8,7 +8,6 @@ import {
   socialProviders,
   socialQueries,
 } from '@delulu/database';
-import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 

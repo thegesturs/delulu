@@ -283,18 +283,28 @@ const waitForVideoProcessing = (
       if (status.video_status === 'error') {
         console.error('[Facebook] Video processing failed with error status');
         if (status.processing_phase?.errors) {
-          console.error('[Facebook] Processing errors:', status.processing_phase.errors);
+          console.error(
+            '[Facebook] Processing errors:',
+            status.processing_phase.errors
+          );
         }
-        return errAsync(new MediaProcessingError('Facebook', 'Video processing failed'));
+        return errAsync(
+          new MediaProcessingError('Facebook', 'Video processing failed')
+        );
       }
 
       // Handle processing phase errors
       if (status.processing_phase?.status === 'error') {
         console.error('[Facebook] Video processing phase failed');
         if (status.processing_phase?.errors) {
-          console.error('[Facebook] Processing errors:', status.processing_phase.errors);
+          console.error(
+            '[Facebook] Processing errors:',
+            status.processing_phase.errors
+          );
         }
-        return errAsync(new MediaProcessingError('Facebook', 'Video processing phase failed'));
+        return errAsync(
+          new MediaProcessingError('Facebook', 'Video processing phase failed')
+        );
       }
 
       if (
@@ -307,7 +317,9 @@ const waitForVideoProcessing = (
         return okAsync(undefined);
       }
 
-      console.log(`[Facebook] Video still processing, waiting ${interval}ms...`);
+      console.log(
+        `[Facebook] Video still processing, waiting ${interval}ms...`
+      );
       return ResultAsync.fromPromise(
         new Promise((resolve) => setTimeout(resolve, interval)),
         () => new MediaProcessingError('Facebook', 'Timeout error')

@@ -69,20 +69,30 @@ export const FacebookPageConnectionResponseSchema = z.object({
 });
 
 // Export TypeScript types derived from Zod schemas
-export type FacebookPagePictureData = z.infer<typeof FacebookPagePictureDataSchema>;
+export type FacebookPagePictureData = z.infer<
+  typeof FacebookPagePictureDataSchema
+>;
 export type FacebookPagePicture = z.infer<typeof FacebookPagePictureSchema>;
 export type FacebookPageCover = z.infer<typeof FacebookPageCoverSchema>;
 export type FacebookPageWithToken = z.infer<typeof FacebookPageWithTokenSchema>;
 export type FacebookPagePublic = z.infer<typeof FacebookPagePublicSchema>;
-export type FacebookPageConnection = z.infer<typeof FacebookPageConnectionSchema>;
-export type FacebookPageConnectionResponse = z.infer<typeof FacebookPageConnectionResponseSchema>;
+export type FacebookPageConnection = z.infer<
+  typeof FacebookPageConnectionSchema
+>;
+export type FacebookPageConnectionResponse = z.infer<
+  typeof FacebookPageConnectionResponseSchema
+>;
 
 /**
  * Array schemas for multiple pages
  */
-export const FacebookPagesWithTokenSchema = z.array(FacebookPageWithTokenSchema);
+export const FacebookPagesWithTokenSchema = z.array(
+  FacebookPageWithTokenSchema
+);
 export const FacebookPagesPublicSchema = z.array(FacebookPagePublicSchema);
 
 // Array types
-export type FacebookPagesWithToken = z.infer<typeof FacebookPagesWithTokenSchema>;
+export type FacebookPagesWithToken = z.infer<
+  typeof FacebookPagesWithTokenSchema
+>;
 export type FacebookPagesPublic = z.infer<typeof FacebookPagesPublicSchema>;

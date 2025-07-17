@@ -246,10 +246,7 @@
       "compositePrimaryKeys": {
         "alternate_post_content_post_id_social_provider_id_pk": {
           "name": "alternate_post_content_post_id_social_provider_id_pk",
-          "columns": [
-            "post_id",
-            "social_provider_id"
-          ]
+          "columns": ["post_id", "social_provider_id"]
         }
       },
       "uniqueConstraints": {},
@@ -334,10 +331,7 @@
       "compositePrimaryKeys": {
         "platform_posts_post_id_social_provider_id_pk": {
           "name": "platform_posts_post_id_social_provider_id_pk",
-          "columns": [
-            "post_id",
-            "social_provider_id"
-          ]
+          "columns": ["post_id", "social_provider_id"]
         }
       },
       "uniqueConstraints": {},
@@ -420,12 +414,8 @@
           "name": "post_social_providers_post_id_posts_id_fk",
           "tableFrom": "post_social_providers",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -433,12 +423,8 @@
           "name": "post_social_providers_social_provider_id_social_providers_id_fk",
           "tableFrom": "post_social_providers",
           "tableTo": "social_providers",
-          "columnsFrom": [
-            "social_provider_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["social_provider_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -446,10 +432,7 @@
       "compositePrimaryKeys": {
         "post_social_providers_post_id_social_provider_id_pk": {
           "name": "post_social_providers_post_id_social_provider_id_pk",
-          "columns": [
-            "post_id",
-            "social_provider_id"
-          ]
+          "columns": ["post_id", "social_provider_id"]
         }
       },
       "uniqueConstraints": {},
@@ -746,18 +729,12 @@
         "social_providers_profile_id_user_id_unique": {
           "name": "social_providers_profile_id_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "profile_id",
-            "user_id"
-          ]
+          "columns": ["profile_id", "user_id"]
         },
         "social_providers_profile_id_organization_id_unique": {
           "name": "social_providers_profile_id_organization_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "profile_id",
-            "organization_id"
-          ]
+          "columns": ["profile_id", "organization_id"]
         }
       },
       "policies": {},
@@ -872,10 +849,7 @@
         "account_provider_id_account_id_unique": {
           "name": "account_provider_id_account_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_id",
-            "account_id"
-          ]
+          "columns": ["provider_id", "account_id"]
         }
       },
       "policies": {},
@@ -960,9 +934,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1087,9 +1059,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -1146,10 +1116,7 @@
         "verification_identifier_value_unique": {
           "name": "verification_identifier_value_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "identifier",
-            "value"
-          ]
+          "columns": ["identifier", "value"]
         }
       },
       "policies": {},
@@ -1161,49 +1128,27 @@
     "public.media_type": {
       "name": "media_type",
       "schema": "public",
-      "values": [
-        "IMAGE",
-        "VIDEO"
-      ]
+      "values": ["IMAGE", "VIDEO"]
     },
     "public.post_review_status": {
       "name": "post_review_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "APPROVED",
-        "REJECTED"
-      ]
+      "values": ["PENDING", "APPROVED", "REJECTED"]
     },
     "public.post_status": {
       "name": "post_status",
       "schema": "public",
-      "values": [
-        "SAVED",
-        "PUBLISHED",
-        "SCHEDULED",
-        "DELETED",
-        "FAILED"
-      ]
+      "values": ["SAVED", "PUBLISHED", "SCHEDULED", "DELETED", "FAILED"]
     },
     "public.privacy_status": {
       "name": "privacy_status",
       "schema": "public",
-      "values": [
-        "PUBLIC",
-        "PRIVATE",
-        "UNLISTED"
-      ]
+      "values": ["PUBLIC", "PRIVATE", "UNLISTED"]
     },
     "public.current_plan": {
       "name": "current_plan",
       "schema": "public",
-      "values": [
-        "FREE",
-        "PRO",
-        "PRO2",
-        "PRO3"
-      ]
+      "values": ["FREE", "PRO", "PRO2", "PRO3"]
     },
     "public.social_type": {
       "name": "social_type",

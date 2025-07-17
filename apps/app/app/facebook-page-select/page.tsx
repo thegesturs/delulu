@@ -1,11 +1,15 @@
 'use client';
 
 import { FacebookPageSelect } from '@/components/socials/facebook-page-select';
-import { Alert, AlertDescription, AlertTitle } from '@delulu/design-system/components/ui/alert';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@delulu/design-system/components/ui/alert';
 import { Button } from '@delulu/design-system/components/ui/button';
 import type { FacebookPagesPublic } from '@delulu/validators/facebook';
-import { TriangleAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { TriangleAlert } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -15,7 +19,12 @@ function FacebookPageSelectContent() {
   const key = searchParams.get('key');
   const code = searchParams.get('code');
 
-  const { data: pages, error, refetch, isLoading } = useQuery<FacebookPagesPublic>({
+  const {
+    data: pages,
+    error,
+    refetch,
+    isLoading,
+  } = useQuery<FacebookPagesPublic>({
     queryKey: ['facebook-pages', key],
     queryFn: async () => {
       if (!key) {
@@ -40,28 +49,28 @@ function FacebookPageSelectContent() {
             <TriangleAlert />
             <AlertTitle>Failed to Load Facebook Pages</AlertTitle>
             <AlertDescription>
-              We couldn't load your Facebook pages. This might be due to a temporary issue
-              or an expired session.
+              We couldn't load your Facebook pages. This might be due to a
+              temporary issue or an expired session.
             </AlertDescription>
           </Alert>
-          
+
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button 
-              onClick={() => refetch()} 
+            <Button
+              onClick={() => refetch()}
               disabled={isLoading}
               className="flex-1"
             >
               {isLoading ? 'Retrying...' : 'Try Again'}
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.push('/socials')}
               className="flex-1"
             >
               Back to Social Accounts
             </Button>
           </div>
-          
+
           <div className="text-center">
             <p className="text-muted-foreground text-sm">
               If the problem persists, you may need to{' '}

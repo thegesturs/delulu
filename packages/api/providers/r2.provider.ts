@@ -48,7 +48,7 @@ export class R2Provider {
     return ResultAsync.fromPromise(
       getSignedUrl(this.s3Client, command, { expiresIn: 3600 }),
       (error) => new R2Error(`Failed to generate download URL: ${error}`)
-    ).map((url) => 
+    ).map((url) =>
       url.replace(
         `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
         'https://media.delulu.social'

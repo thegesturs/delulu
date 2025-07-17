@@ -37,56 +37,58 @@ interface LinkedInUserResponse {
  */
 function sanitizeText(text: string): string {
   if (!text || typeof text !== 'string') return '';
-  
-  return text
-    .toLowerCase()
-    .trim()
-    // Remove or replace special characters and spaces
-    .replace(/[^a-z0-9]/g, '')
-    // Remove consecutive spaces that became empty
-    .replace(/\s+/g, '')
-    // Limit length to prevent overly long usernames
-    .substring(0, 20);
+
+  return (
+    text
+      .toLowerCase()
+      .trim()
+      // Remove or replace special characters and spaces
+      .replace(/[^a-z0-9]/g, '')
+      // Remove consecutive spaces that became empty
+      .replace(/\s+/g, '')
+      // Limit length to prevent overly long usernames
+      .substring(0, 20)
+  );
 }
 
 /**
  * Generates a unique username from first and last names with fallback strategies
  */
 async function generateUniqueUsername(
-  firstName: string, 
-  lastName: string, 
+  firstName: string,
+  lastName: string,
   linkedinId: string
 ): Promise<string> {
   // Validate and sanitize inputs
   const sanitizedFirst = sanitizeText(firstName);
   const sanitizedLast = sanitizeText(lastName);
-  
+
   // Strategy 1: Use first.last format if both names are valid
   if (sanitizedFirst && sanitizedLast) {
     const baseUsername = `${sanitizedFirst}.${sanitizedLast}`;
     const uniqueUsername = await ensureUniqueUsername(baseUsername);
     if (uniqueUsername) return uniqueUsername;
   }
-  
+
   // Strategy 2: Use just first name if available
   if (sanitizedFirst) {
     const baseUsername = sanitizedFirst;
     const uniqueUsername = await ensureUniqueUsername(baseUsername);
     if (uniqueUsername) return uniqueUsername;
   }
-  
+
   // Strategy 3: Use just last name if available
   if (sanitizedLast) {
     const baseUsername = sanitizedLast;
     const uniqueUsername = await ensureUniqueUsername(baseUsername);
     if (uniqueUsername) return uniqueUsername;
   }
-  
+
   // Strategy 4: Fallback to linkedin ID based username
   const fallbackUsername = `linkedin_${sanitizeText(linkedinId)}`;
   const uniqueUsername = await ensureUniqueUsername(fallbackUsername);
   if (uniqueUsername) return uniqueUsername;
-  
+
   // Strategy 5: Last resort - generate random username
   return `user_${nanoid(8).toLowerCase()}`;
 }
@@ -94,20 +96,22 @@ async function generateUniqueUsername(
 /**
  * Ensures username uniqueness by checking against existing usernames
  */
-async function ensureUniqueUsername(baseUsername: string): Promise<string | null> {
+async function ensureUniqueUsername(
+  baseUsername: string
+): Promise<string | null> {
   if (!baseUsername || baseUsername.length < 2) return null;
-  
+
   // Check if base username is available
   const existing = await database
     .select({ username: socialProviders.username })
     .from(socialProviders)
     .where(eq(socialProviders.username, baseUsername))
     .limit(1);
-    
+
   if (existing.length === 0) {
     return baseUsername;
   }
-  
+
   // Try with numeric suffixes
   for (let i = 1; i <= 99; i++) {
     const candidateUsername = `${baseUsername}${i}`;
@@ -116,12 +120,12 @@ async function ensureUniqueUsername(baseUsername: string): Promise<string | null
       .from(socialProviders)
       .where(eq(socialProviders.username, candidateUsername))
       .limit(1);
-      
+
     if (existingWithSuffix.length === 0) {
       return candidateUsername;
     }
   }
-  
+
   // If all numeric suffixes are taken, append a random string
   return `${baseUsername}_${nanoid(4).toLowerCase()}`;
 }

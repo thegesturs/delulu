@@ -28,8 +28,8 @@
     "db:seed": "tsx seed.ts"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.0",
     "@t3-oss/env-nextjs": "^0.12.0",
+    "convex": "^1.25.4",
     "drizzle-kit": "0.31.2",
     "drizzle-orm": "0.44.2",
     "drizzle-zod": "^0.5.1",

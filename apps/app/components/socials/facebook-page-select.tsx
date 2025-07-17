@@ -8,7 +8,6 @@ import {
 } from '@delulu/design-system/components/ui/avatar';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
-import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
+import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

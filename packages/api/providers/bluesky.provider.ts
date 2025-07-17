@@ -1,13 +1,7 @@
 import { socialQueries } from '@delulu/database';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
-import {
-  ResultAsync,
-  err,
-  errAsync,
-  ok,
-  okAsync,
-} from 'neverthrow';
+import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 
 import type {
   BaseProviderProfile,
@@ -55,7 +49,7 @@ interface BlueskyAuthResponse {
 class BlueskyError extends SocialProviderError {
   readonly code = 'BLUESKY_ERROR';
   readonly provider = 'Bluesky';
-  
+
   constructor(message: string) {
     super(message);
     this.name = 'BlueskyError';
@@ -104,29 +98,32 @@ const uploadMediaBlob = (
   return ResultAsync.fromPromise(
     fetch(mediaUrl),
     () => new MediaUploadError('Bluesky', 'IMAGE')
-  ).andThen((response) => {
-    if (!response.ok) {
-      return errAsync(new MediaUploadError('Bluesky', 'IMAGE'));
-    }
-    return ResultAsync.fromPromise(
-      response.arrayBuffer(),
-      () => new MediaUploadError('Bluesky', 'IMAGE')
-    );
-  }).andThen((arrayBuffer) => {
-    return ResultAsync.fromPromise(
-      axios.post(
-        'https://bsky.social/xrpc/com.atproto.repo.uploadBlob',
-        arrayBuffer,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/octet-stream',
-          },
-        }
-      ),
-      (error) => createAPIError('Bluesky', error)
-    );
-  }).map((response) => response.data);
+  )
+    .andThen((response) => {
+      if (!response.ok) {
+        return errAsync(new MediaUploadError('Bluesky', 'IMAGE'));
+      }
+      return ResultAsync.fromPromise(
+        response.arrayBuffer(),
+        () => new MediaUploadError('Bluesky', 'IMAGE')
+      );
+    })
+    .andThen((arrayBuffer) => {
+      return ResultAsync.fromPromise(
+        axios.post(
+          'https://bsky.social/xrpc/com.atproto.repo.uploadBlob',
+          arrayBuffer,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/octet-stream',
+            },
+          }
+        ),
+        (error) => createAPIError('Bluesky', error)
+      );
+    })
+    .map((response) => response.data);
 };
 
 // AT Protocol facet types
@@ -158,16 +155,19 @@ interface RichTextResult {
 // Create rich text with facets for mentions and links according to AT Protocol specs
 const createRichText = (text: string): RichTextResult => {
   const facets: RichTextFacet[] = [];
-  
+
   // Find URLs - more comprehensive regex
-  const urlRegex = /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&=]*)/g;
+  const urlRegex =
+    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&=]*)/g;
   let urlMatch: RegExpExecArray | null;
-  
+
   urlMatch = urlRegex.exec(text);
   while (urlMatch !== null) {
-    const start = new TextEncoder().encode(text.substring(0, urlMatch.index)).length;
+    const start = new TextEncoder().encode(
+      text.substring(0, urlMatch.index)
+    ).length;
     const end = start + new TextEncoder().encode(urlMatch[0]).length;
-    
+
     facets.push({
       index: {
         byteStart: start,
@@ -182,16 +182,19 @@ const createRichText = (text: string): RichTextResult => {
     });
     urlMatch = urlRegex.exec(text);
   }
-  
+
   // Find mentions - @handle.domain or @handle
-  const mentionRegex = /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
+  const mentionRegex =
+    /@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?/g;
   let mentionMatch: RegExpExecArray | null;
-  
+
   mentionMatch = mentionRegex.exec(text);
   while (mentionMatch !== null) {
-    const start = new TextEncoder().encode(text.substring(0, mentionMatch.index)).length;
+    const start = new TextEncoder().encode(
+      text.substring(0, mentionMatch.index)
+    ).length;
     const end = start + new TextEncoder().encode(mentionMatch[0]).length;
-    
+
     // For mentions, we'd need to resolve the handle to a DID
     // For now, we'll just include the mention without a DID (basic text formatting)
     facets.push({
@@ -208,7 +211,7 @@ const createRichText = (text: string): RichTextResult => {
     });
     mentionMatch = mentionRegex.exec(text);
   }
-  
+
   return {
     text,
     facets: facets.length > 0 ? facets : undefined,
@@ -251,74 +254,76 @@ const createPost = (
 ): ResultAsync<BlueskyPostResponse, SocialProviderError> => {
   const validMedia = getValidMediaUrls(content.media);
   const richText = createRichText(content.text);
-  
+
   // Process media uploads first - filter out media without URLs
   const mediaWithUrls = validMedia.filter((media) => media.url);
-  const mediaUploadPromises = mediaWithUrls.map((media) => 
+  const mediaUploadPromises = mediaWithUrls.map((media) =>
     uploadMediaBlob(media.url!, authResponse.accessJwt)
   );
-  
-  return ResultAsync.combine(mediaUploadPromises).andThen((mediaBlobs) => {
-    const record: BlueskyPostRecord = {
-      $type: 'app.bsky.feed.post',
-      text: richText.text,
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Add facets for rich text
-    if (richText.facets) {
-      record.facets = richText.facets;
-    }
-    
-    // Add reply information
-    if (replyTo) {
-      record.reply = {
-        root: replyTo,
-        parent: replyTo,
+
+  return ResultAsync.combine(mediaUploadPromises)
+    .andThen((mediaBlobs) => {
+      const record: BlueskyPostRecord = {
+        $type: 'app.bsky.feed.post',
+        text: richText.text,
+        createdAt: new Date().toISOString(),
       };
-    }
-    
-    // Add embedded media
-    if (mediaBlobs.length > 0) {
-      if (mediaBlobs.length === 1) {
-        record.embed = {
-          $type: 'app.bsky.embed.images',
-          images: [
-            {
-              alt: content.text.substring(0, 100), // Use first 100 chars as alt text
-              image: mediaBlobs[0].blob,
-            },
-          ],
-        };
-      } else {
-        record.embed = {
-          $type: 'app.bsky.embed.images',
-          images: mediaBlobs.map((blob) => ({
-            alt: content.text.substring(0, 100),
-            image: blob.blob,
-          })),
+
+      // Add facets for rich text
+      if (richText.facets) {
+        record.facets = richText.facets;
+      }
+
+      // Add reply information
+      if (replyTo) {
+        record.reply = {
+          root: replyTo,
+          parent: replyTo,
         };
       }
-    }
-    
-    return ResultAsync.fromPromise(
-      axios.post(
-        'https://bsky.social/xrpc/com.atproto.repo.createRecord',
-        {
-          repo: authResponse.did,
-          collection: 'app.bsky.feed.post',
-          record,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${authResponse.accessJwt}`,
-            'Content-Type': 'application/json',
-          },
+
+      // Add embedded media
+      if (mediaBlobs.length > 0) {
+        if (mediaBlobs.length === 1) {
+          record.embed = {
+            $type: 'app.bsky.embed.images',
+            images: [
+              {
+                alt: content.text.substring(0, 100), // Use first 100 chars as alt text
+                image: mediaBlobs[0].blob,
+              },
+            ],
+          };
+        } else {
+          record.embed = {
+            $type: 'app.bsky.embed.images',
+            images: mediaBlobs.map((blob) => ({
+              alt: content.text.substring(0, 100),
+              image: blob.blob,
+            })),
+          };
         }
-      ),
-      (error) => createAPIError('Bluesky', error)
-    );
-  }).map((response) => response.data);
+      }
+
+      return ResultAsync.fromPromise(
+        axios.post(
+          'https://bsky.social/xrpc/com.atproto.repo.createRecord',
+          {
+            repo: authResponse.did,
+            collection: 'app.bsky.feed.post',
+            record,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${authResponse.accessJwt}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        (error) => createAPIError('Bluesky', error)
+      );
+    })
+    .map((response) => response.data);
 };
 
 // Main publish function
@@ -327,11 +332,11 @@ const publishContent = (
   profile: BlueskyProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const posts = content.content.sort((a, b) => a.order - b.order);
-  
+
   if (posts.length === 0) {
     return errAsync(new NoContentError('Bluesky'));
   }
-  
+
   return authenticateWithBluesky(profile).andThen((authResponse) => {
     // Process posts sequentially to maintain thread order
     const processSequentially = (
@@ -339,21 +344,22 @@ const publishContent = (
       lastPost?: { uri: string; cid: string }
     ): ResultAsync<BlueskyPostResponse, SocialProviderError> => {
       const [currentPost, ...nextPosts] = remainingPosts;
-      
-      return createPost(currentPost, authResponse, lastPost)
-        .andThen((postResponse) => {
+
+      return createPost(currentPost, authResponse, lastPost).andThen(
+        (postResponse) => {
           if (nextPosts.length > 0) {
             return processSequentially(nextPosts, postResponse);
           }
           return okAsync(postResponse);
-        });
+        }
+      );
     };
-    
+
     return processSequentially(posts).map((postResponse) => {
       // Extract the record key from the AT-URI for the post URL
       const uriParts = postResponse.uri.split('/');
       const recordKey = uriParts.at(-1) || '';
-      
+
       return {
         platformPostId: postResponse.uri,
         postId: content.postId,
@@ -373,7 +379,7 @@ export const blueskyProvider: SocialProvider = {
     );
     return result;
   },
-  
+
   connectUrl: () => {
     // Bluesky OAuth URL - uses client metadata URL as client_id
     const params = new URLSearchParams({
@@ -384,7 +390,7 @@ export const blueskyProvider: SocialProvider = {
       code_challenge_method: 'S256',
       // code_challenge would be generated dynamically in real implementation
     });
-    
+
     return `https://bsky.social/oauth/authorize?${params.toString()}`;
   },
 };

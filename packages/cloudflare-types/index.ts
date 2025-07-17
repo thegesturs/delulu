@@ -1,17 +1,23 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import type { IncomingRequestCfProperties, ExecutionContext } from "@cloudflare/workers-types";
-import type { CloudflareEnv } from "./types";
+import type {
+  ExecutionContext,
+  IncomingRequestCfProperties,
+} from '@cloudflare/workers-types';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type { CloudflareEnv } from './types';
 
 // Export CloudflareEnv type
-export type { CloudflareEnv } from "./types";
+export type { CloudflareEnv } from './types';
 
 /**
  * Get Cloudflare environment variables asynchronously
  * Uses getCloudflareContext internally for reliable access
  */
 export async function getCloudflareEnv(): Promise<CloudflareEnv> {
-  const context = await getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>({ 
-    async: true 
+  const context = await getCloudflareContext<
+    IncomingRequestCfProperties<unknown>,
+    ExecutionContext
+  >({
+    async: true,
   });
   return context.env as unknown as CloudflareEnv;
 }
@@ -21,7 +27,10 @@ export async function getCloudflareEnv(): Promise<CloudflareEnv> {
  * Uses getCloudflareContext internally for reliable access
  */
 export function getCloudflareEnvSync(): CloudflareEnv {
-  const context = getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>();
+  const context = getCloudflareContext<
+    IncomingRequestCfProperties<unknown>,
+    ExecutionContext
+  >();
   return context.env as unknown as CloudflareEnv;
 }
 
@@ -30,8 +39,11 @@ export function getCloudflareEnvSync(): CloudflareEnv {
  * Provides access to env, cf, ctx, and other context properties
  */
 export async function getCloudflareCtx() {
-  return await getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>({ 
-    async: true 
+  return await getCloudflareContext<
+    IncomingRequestCfProperties<unknown>,
+    ExecutionContext
+  >({
+    async: true,
   });
 }
 
@@ -40,5 +52,8 @@ export async function getCloudflareCtx() {
  * Provides access to env, cf, ctx, and other context properties
  */
 export function getCloudflareCtxSync() {
-  return getCloudflareContext<IncomingRequestCfProperties<unknown>, ExecutionContext>();
+  return getCloudflareContext<
+    IncomingRequestCfProperties<unknown>,
+    ExecutionContext
+  >();
 }

@@ -1,9 +1,9 @@
 'use client';
 
+import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 import { Button } from '@delulu/design-system/components/ui/button';
 import Link from 'next/link';
 import { FaClock, FaComments, FaMagic } from 'react-icons/fa';
-import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
 
 const CTA = () => {
   return (

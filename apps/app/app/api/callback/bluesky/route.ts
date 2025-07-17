@@ -8,7 +8,6 @@ import {
   socialProviders,
   socialQueries,
 } from '@delulu/database';
-import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -87,7 +86,10 @@ export async function GET(request: NextRequest) {
     );
 
     if (!tokenResponse.ok) {
-      console.error('Bluesky token exchange failed:', await tokenResponse.text());
+      console.error(
+        'Bluesky token exchange failed:',
+        await tokenResponse.text()
+      );
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -105,13 +107,16 @@ export async function GET(request: NextRequest) {
       {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
+          Authorization: `Bearer ${tokenData.access_token}`,
         },
       }
     );
 
     if (!profileResponse.ok) {
-      console.error('Bluesky profile fetch failed:', await profileResponse.text());
+      console.error(
+        'Bluesky profile fetch failed:',
+        await profileResponse.text()
+      );
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -192,9 +197,7 @@ export async function GET(request: NextRequest) {
         profileImage: profileData.avatar,
         isActive: true,
         lastSyncedAt: new Date(),
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ),
+        refreshTokenExpiresIn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       }
     );
 

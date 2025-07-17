@@ -226,7 +226,7 @@ export default function PostsPage() {
       {filteredPosts.length > 0 && (
         <PostsView posts={filteredPosts} layout={layout} />
       )}
-  
+
       {!(isLoading && !postsData) && totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <Pagination>

@@ -21,7 +21,7 @@ vi.mock('@delulu/auth/client', () => ({
 
 test('Sign Up Page', async () => {
   render(<SignUp />);
-  
+
   await waitFor(() => {
     expect(screen.getByText('Create your account')).toBeDefined();
   });

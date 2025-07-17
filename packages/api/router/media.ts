@@ -15,23 +15,28 @@ export const mediaRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor = 0, mediaType } = input;
-      
+
       const media = await mediaQueries.getMediaByUserId(ctx.userId, {
         limit: limit + 1, // Fetch one extra to determine if there are more
         offset: cursor,
         mediaType,
       });
-      
+
       // Filter by search if provided
       const filteredMedia = input.search
-        ? media.filter(item =>
-            item.originalFilename?.toLowerCase().includes(input.search!.toLowerCase()) ||
-            item.altText?.toLowerCase().includes(input.search!.toLowerCase())
+        ? media.filter(
+            (item) =>
+              item.originalFilename
+                ?.toLowerCase()
+                .includes(input.search!.toLowerCase()) ||
+              item.altText?.toLowerCase().includes(input.search!.toLowerCase())
           )
         : media;
 
       const hasMore = filteredMedia.length > limit;
-      const actualMedia = hasMore ? filteredMedia.slice(0, limit) : filteredMedia;
+      const actualMedia = hasMore
+        ? filteredMedia.slice(0, limit)
+        : filteredMedia;
 
       return {
         media: actualMedia,
@@ -45,11 +50,11 @@ export const mediaRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const media = await mediaQueries.getMediaById(input.id);
-      
+
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return media;
     }),
 
@@ -58,11 +63,11 @@ export const mediaRouter = createTRPCRouter({
     .input(z.object({ bucketKey: z.string() }))
     .query(async ({ ctx, input }) => {
       const media = await mediaQueries.getMediaByBucketKey(input.bucketKey);
-      
+
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return media;
     }),
 
@@ -102,13 +107,13 @@ export const mediaRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...updates } = input;
-      
+
       // Verify ownership
       const existingMedia = await mediaQueries.getMediaById(id);
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return await mediaQueries.updateMedia(id, updates);
     }),
 
@@ -121,13 +126,12 @@ export const mediaRouter = createTRPCRouter({
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return await mediaQueries.deleteMedia(input.id);
     }),
 
   // Get media stats
-  getStats: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await mediaQueries.getMediaStats(ctx.userId);
-    }),
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    return await mediaQueries.getMediaStats(ctx.userId);
+  }),
 });

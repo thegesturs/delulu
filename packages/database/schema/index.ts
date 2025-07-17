@@ -10,9 +10,7 @@ export {
   currentPlanEnum,
 } from './social/social.sql';
 
-export {
-  mediaTypeEnum,
-} from './media/media.sql';
+export { mediaTypeEnum } from './media/media.sql';
 
 // Export all queries for easier imports
 export { userQueries } from './user/user.queries';

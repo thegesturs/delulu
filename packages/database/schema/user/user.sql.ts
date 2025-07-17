@@ -17,7 +17,9 @@ import { createUniqueIds } from '../utilts';
 export const users = pgTable(
   'user',
   {
-    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('user')),
+    id: varchar('id', { length: 256 })
+      .primaryKey()
+      .$defaultFn(() => createUniqueIds('user')),
     name: text('name').notNull(),
     email: text('email').notNull(),
     emailVerified: boolean('email_verified').notNull().default(false),
@@ -36,7 +38,9 @@ export const users = pgTable(
 export const sessions = pgTable(
   'session',
   {
-    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('session')),
+    id: varchar('id', { length: 256 })
+      .primaryKey()
+      .$defaultFn(() => createUniqueIds('session')),
     token: text('token').notNull(),
     userId: varchar('user_id', { length: 256 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -60,7 +64,9 @@ export const sessions = pgTable(
 export const accounts = pgTable(
   'account',
   {
-    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('account')),
+    id: varchar('id', { length: 256 })
+      .primaryKey()
+      .$defaultFn(() => createUniqueIds('account')),
     userId: varchar('user_id', { length: 256 }).notNull(),
     accountId: varchar('account_id', { length: 256 }).notNull(),
     providerId: varchar('provider_id', { length: 256 }).notNull(),
@@ -92,7 +98,9 @@ export const accounts = pgTable(
 export const verifications = pgTable(
   'verification',
   {
-    id: varchar('id', { length: 256 }).primaryKey().$defaultFn(() => createUniqueIds('verification')),
+    id: varchar('id', { length: 256 })
+      .primaryKey()
+      .$defaultFn(() => createUniqueIds('verification')),
     identifier: varchar('identifier', { length: 256 }).notNull(),
     value: varchar('value', { length: 256 }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
