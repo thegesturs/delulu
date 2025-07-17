@@ -41,6 +41,8 @@
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
+    "@delulu/validators": "workspace:*",
+    "@prisma/generator-helper": "^5.0.0",
     "@types/node": "22.14.1",
     "@types/react": "catalog:react19",
     "@types/ws": "^8.18.1",

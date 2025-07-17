@@ -1,4 +1,4 @@
-import { getSessionCookie } from '@delulu/auth/server';
+import { getSessionCookie } from '@delulu/auth/middleware';
 import {
   noseconeMiddleware,
   noseconeOptions,

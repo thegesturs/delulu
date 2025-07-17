@@ -140,12 +140,8 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.prod
-.env.local
+.env*
+!/.env.example
 .dev.vars
 *.dev.vars
 *.vars
