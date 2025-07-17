@@ -1,38 +1,33 @@
 import { v } from 'convex/values';
-import { api } from './_generated/api';
+import { api } from './_generated/api.js';
+import type { Doc } from './_generated/dataModel.js';
 import {
   internalMutation,
   internalQuery,
   mutation,
   query,
-} from './_generated/server';
+} from './_generated/server.js';
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
   socialProviderUpdateSchema,
   socialTypeSchema,
-} from './schemas';
-import {
-  createUniqueIds,
-  decryptData,
-  encryptData,
-  getCurrentTimestamp,
-} from './utils';
+} from './schemas.js';
+import { decryptData, encryptData, getCurrentTimestamp } from './utils.js';
 
 // Decrypted social provider type for internal use
 const decryptedSocialProviderSchema = v.object({
   _id: v.id('socialProviders'),
-  id: v.string(),
   organizationId: v.optional(v.string()),
-  userId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
   accessToken: v.string(), // Decrypted
   refreshToken: v.optional(v.string()), // Decrypted
   expiresIn: v.number(),
   refreshTokenExpiresIn: v.optional(v.number()),
-  profileId: v.string(),
+  profileId: v.optional(v.string()),
   username: v.optional(v.string()),
-  fullName: v.string(),
-  profileImage: v.string(),
+  fullName: v.optional(v.string()),
+  profileImage: v.optional(v.string()),
   socialType: socialTypeSchema,
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -42,20 +37,19 @@ const decryptedSocialProviderSchema = v.object({
 
 // Social Provider queries
 export const getSocialProviderById = query({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.union(socialProviderSchema, v.null()),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
-
     return provider;
   },
 });
 
 export const getUserSocialProviders = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   returns: v.array(socialProviderSchema),
   handler: async (ctx, args) => {
     const providers = await ctx.db
@@ -90,73 +84,14 @@ export const getOrganizationSocialProviders = query({
   },
 });
 
-export const getSocialProvidersByType = query({
-  args: { userId: v.string(), socialType: socialTypeSchema },
-  returns: v.array(socialProviderSchema),
-  handler: async (ctx, args) => {
-    const providers = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field('socialType'), args.socialType),
-          q.eq(q.field('isActive'), true)
-        )
-      )
-      .collect();
-
-    // Sort by creation date (newest first)
-    providers.sort((a, b) => b.createdAt - a.createdAt);
-
-    return providers;
-  },
-});
-
-export const getSocialProviderByProfile = query({
-  args: {
-    profileId: v.string(),
-    organizationId: v.optional(v.string()),
-    userId: v.optional(v.string()),
-  },
-  returns: v.union(socialProviderSchema, v.null()),
-  handler: async (ctx, args) => {
-    let provider;
-
-    if (args.organizationId) {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id_and_organization', (q) =>
-          q
-            .eq('profileId', args.profileId)
-            .eq('organizationId', args.organizationId)
-        )
-        .unique();
-    } else if (args.userId) {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id_and_user', (q) =>
-          q.eq('profileId', args.profileId).eq('userId', args.userId)
-        )
-        .unique();
-    } else {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id', (q) => q.eq('profileId', args.profileId))
-        .unique();
-    }
-
-    return provider;
-  },
-});
-
 // Internal function to get social provider with decrypted tokens
 export const getSocialProviderWithDecryptedTokens = internalQuery({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.union(decryptedSocialProviderSchema, v.null()),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -182,67 +117,6 @@ export const getSocialProviderWithDecryptedTokens = internalQuery({
   },
 });
 
-// Internal function to get social provider by profile with decrypted tokens
-export const getSocialProviderByProfileWithDecryptedTokens = internalQuery({
-  args: {
-    profileId: v.string(),
-    organizationId: v.optional(v.string()),
-    userId: v.optional(v.string()),
-  },
-  returns: v.union(decryptedSocialProviderSchema, v.null()),
-  handler: async (ctx, args) => {
-    let provider;
-
-    if (args.organizationId) {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id_and_organization', (q) =>
-          q
-            .eq('profileId', args.profileId)
-            .eq('organizationId', args.organizationId)
-        )
-        .unique();
-    } else if (args.userId) {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id_and_user', (q) =>
-          q.eq('profileId', args.profileId).eq('userId', args.userId)
-        )
-        .unique();
-    } else {
-      provider = await ctx.db
-        .query('socialProviders')
-        .withIndex('by_profile_id', (q) => q.eq('profileId', args.profileId))
-        .unique();
-    }
-
-    if (!provider) {
-      return null;
-    }
-
-    try {
-      // Decrypt tokens
-      const decryptedAccessToken = await decryptData(provider.accessToken);
-      const decryptedRefreshToken = provider.refreshToken
-        ? await decryptData(provider.refreshToken)
-        : undefined;
-
-      return {
-        ...provider,
-        accessToken: decryptedAccessToken,
-        refreshToken: decryptedRefreshToken,
-      };
-    } catch (error) {
-      console.error(
-        'Failed to decrypt tokens for provider:',
-        args.profileId,
-        error
-      );
-      return null;
-    }
-  },
-});
-
 // Create social provider with encrypted tokens
 export const createSocialProvider = mutation({
   args: socialProviderCreateSchema.fields,
@@ -256,10 +130,8 @@ export const createSocialProvider = mutation({
         : undefined;
 
       const now = getCurrentTimestamp();
-      const socialId = createUniqueIds('social');
 
       const newSocialProviderId = await ctx.db.insert('socialProviders', {
-        id: socialId,
         organizationId: args.organizationId,
         userId: args.userId,
         accessToken: encryptedAccessToken,
@@ -287,14 +159,14 @@ export const createSocialProvider = mutation({
 // Update social provider with encrypted tokens
 export const updateSocialProvider = mutation({
   args: {
-    id: v.string(),
+    id: v.id('socialProviders'),
     ...socialProviderUpdateSchema.fields,
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -302,7 +174,7 @@ export const updateSocialProvider = mutation({
     }
 
     try {
-      const updateData: any = {
+      const updateData: Partial<Doc<'socialProviders'>> = {
         updatedAt: getCurrentTimestamp(),
       };
 
@@ -317,14 +189,24 @@ export const updateSocialProvider = mutation({
       }
 
       // Update other fields
-      if (args.expiresIn !== undefined) updateData.expiresIn = args.expiresIn;
-      if (args.refreshTokenExpiresIn !== undefined)
+      if (args.expiresIn !== undefined) {
+        updateData.expiresIn = args.expiresIn;
+      }
+      if (args.refreshTokenExpiresIn !== undefined) {
         updateData.refreshTokenExpiresIn = args.refreshTokenExpiresIn;
-      if (args.username !== undefined) updateData.username = args.username;
-      if (args.fullName !== undefined) updateData.fullName = args.fullName;
-      if (args.profileImage !== undefined)
+      }
+      if (args.username !== undefined) {
+        updateData.username = args.username;
+      }
+      if (args.fullName !== undefined) {
+        updateData.fullName = args.fullName;
+      }
+      if (args.profileImage !== undefined) {
         updateData.profileImage = args.profileImage;
-      if (args.isActive !== undefined) updateData.isActive = args.isActive;
+      }
+      if (args.isActive !== undefined) {
+        updateData.isActive = args.isActive;
+      }
 
       await ctx.db.patch(provider._id, updateData);
 
@@ -336,107 +218,13 @@ export const updateSocialProvider = mutation({
   },
 });
 
-// Upsert social provider with encrypted tokens
-export const upsertSocialProvider = mutation({
-  args: {
-    organizationId: v.optional(v.string()),
-    userId: v.optional(v.string()),
-    accessToken: v.string(),
-    refreshToken: v.optional(v.string()),
-    expiresIn: v.number(),
-    refreshTokenExpiresIn: v.optional(v.number()),
-    profileId: v.string(),
-    username: v.optional(v.string()),
-    fullName: v.string(),
-    profileImage: v.string(),
-    socialType: socialTypeSchema,
-    isActive: v.optional(v.boolean()),
-  },
-  returns: v.id('socialProviders'),
-  handler: async (ctx, args) => {
-    try {
-      // Check if provider already exists
-      let existingProvider;
-
-      if (args.organizationId) {
-        existingProvider = await ctx.db
-          .query('socialProviders')
-          .withIndex('by_profile_id_and_organization', (q) =>
-            q
-              .eq('profileId', args.profileId)
-              .eq('organizationId', args.organizationId)
-          )
-          .unique();
-      } else if (args.userId) {
-        existingProvider = await ctx.db
-          .query('socialProviders')
-          .withIndex('by_profile_id_and_user', (q) =>
-            q.eq('profileId', args.profileId).eq('userId', args.userId)
-          )
-          .unique();
-      }
-
-      // Encrypt tokens
-      const encryptedAccessToken = await encryptData(args.accessToken);
-      const encryptedRefreshToken = args.refreshToken
-        ? await encryptData(args.refreshToken)
-        : undefined;
-
-      const now = getCurrentTimestamp();
-
-      if (existingProvider) {
-        // Update existing provider
-        await ctx.db.patch(existingProvider._id, {
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresIn: args.expiresIn,
-          refreshTokenExpiresIn: args.refreshTokenExpiresIn,
-          username: args.username,
-          fullName: args.fullName,
-          profileImage: args.profileImage,
-          isActive: args.isActive ?? true,
-          updatedAt: now,
-        });
-
-        return existingProvider._id;
-      } else {
-        // Create new provider
-        const socialId = createUniqueIds('social');
-
-        const newSocialProviderId = await ctx.db.insert('socialProviders', {
-          id: socialId,
-          organizationId: args.organizationId,
-          userId: args.userId,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresIn: args.expiresIn,
-          refreshTokenExpiresIn: args.refreshTokenExpiresIn,
-          profileId: args.profileId,
-          username: args.username,
-          fullName: args.fullName,
-          profileImage: args.profileImage,
-          socialType: args.socialType,
-          createdAt: now,
-          updatedAt: now,
-          isActive: args.isActive ?? true,
-        });
-
-        return newSocialProviderId;
-      }
-    } catch (error) {
-      console.error('Failed to encrypt tokens during upsert:', error);
-      throw new Error('Token encryption failed');
-    }
-  },
-});
-
 export const deactivateSocialProvider = mutation({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -453,12 +241,12 @@ export const deactivateSocialProvider = mutation({
 });
 
 export const reactivateSocialProvider = mutation({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -475,12 +263,12 @@ export const reactivateSocialProvider = mutation({
 });
 
 export const updateSocialProviderSync = mutation({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -517,7 +305,7 @@ export const getExpiredTokens = query({
 
 // Internal function to clean up posts when social provider is deleted
 export const cleanupPostsForDeletedSocialProvider = internalMutation({
-  args: { socialProviderId: v.string() },
+  args: { socialProviderId: v.id('socialProviders') },
   returns: v.number(),
   handler: async (ctx, args) => {
     // Find all posts that reference this social provider
@@ -527,7 +315,7 @@ export const cleanupPostsForDeletedSocialProvider = internalMutation({
 
     for (const post of posts) {
       let needsUpdate = false;
-      const updateData: any = {};
+      const updateData: Partial<Doc<'posts'>> = {};
 
       // Remove from socialProviderIds array
       if (post.socialProviderIds.includes(args.socialProviderId)) {
@@ -567,12 +355,12 @@ export const cleanupPostsForDeletedSocialProvider = internalMutation({
 
 // Main delete function that handles cascade cleanup
 export const deleteSocialProvider = mutation({
-  args: { id: v.string() },
+  args: { id: v.id('socialProviders') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!provider) {
@@ -581,44 +369,15 @@ export const deleteSocialProvider = mutation({
 
     // Clean up posts that reference this social provider
     await ctx.runMutation(
-      api.socialProviders.cleanupPostsForDeletedSocialProvider,
+      api.cascadeDeletes.cleanupPostsForDeletedSocialProvider,
       {
         socialProviderId: args.id,
       }
     );
 
-    // Delete associated platform posts
-    const platformPosts = await ctx.db
-      .query('platformPosts')
-      .withIndex('by_social_provider_id', (q) =>
-        q.eq('socialProviderId', args.id)
-      )
-      .collect();
-
-    for (const platformPost of platformPosts) {
-      await ctx.db.delete(platformPost._id);
-    }
-
     // Delete the social provider
     await ctx.db.delete(provider._id);
 
     return true;
-  },
-});
-
-// Helper function to get active social providers
-export const getActiveSocialProviders = query({
-  args: {},
-  returns: v.array(socialProviderSchema),
-  handler: async (ctx, args) => {
-    const providers = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_is_active', (q) => q.eq('isActive', true))
-      .collect();
-
-    // Sort by creation date (newest first)
-    providers.sort((a, b) => b.createdAt - a.createdAt);
-
-    return providers;
   },
 });

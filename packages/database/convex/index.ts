@@ -14,13 +14,13 @@ export * from './users';
 export * from './posts';
 
 // Export social provider functions
-export * from './socialProviders';
+export * from './social-providers';
 
 // Export media functions
 export * from './media';
 
 // Export cascade delete functions
-export * from './cascadeDeletes';
+export * from './cascade-deletes';
 
 // Type exports for external use
 export type {
@@ -70,54 +70,6 @@ export const queryPatterns = {
   cleanupOrganizationData: 'cascadeDeletes.cleanupOrganizationData',
 };
 
-// Migration notes and differences from PostgreSQL
-export const migrationNotes = {
-  changes: {
-    // Key changes made during migration
-    embeddedRelationships:
-      'Posts now embed social provider IDs and alternative content instead of separate tables',
-    embeddedUserUsage:
-      'User usage is now embedded in the users table instead of a separate table',
-    customIdGeneration:
-      'Using custom ID generation with prefixes (user_, post_, etc.) instead of auto-incrementing IDs',
-    timestampsAsNumbers:
-      'All timestamps are stored as numbers (milliseconds since epoch) instead of Date objects',
-    encryptedTokens:
-      'Social provider tokens are encrypted before storage and decrypted when needed',
-    cascadeDeletes:
-      'Cascade deletes are handled via mutations instead of database constraints',
-    jsonContent: 'Post content is stored as JSON arrays with proper validation',
-    externalMediaStorage:
-      'Media table keeps the same external storage approach (S3, etc.)',
-  },
-
-  benefits: {
-    // Benefits of the Convex migration
-    realTimeUpdates: 'Automatic real-time updates when data changes',
-    betterPerformance: 'Optimized queries with proper indexing',
-    typeValidation: 'Built-in type validation with Convex validators',
-    simplifiedQueries: 'Easier to write and maintain queries',
-    scalability: "Better scalability with Convex's infrastructure",
-    lessComplexity: 'Reduced complexity with embedded relationships',
-  },
-
-  removedTables: {
-    // Tables that were removed and their replacements
-    postSocialProviders: 'Embedded as socialProviderIds array in posts table',
-    alternatePostContent: 'Embedded as alternativeContent array in posts table',
-    userUsage: 'Embedded as usage object in users table',
-  },
-
-  newPatterns: {
-    // New patterns introduced in Convex
-    cascadeDeletes: 'Use cascadeDeletes.* functions for proper cleanup',
-    encryptedTokens: 'Use internal functions for decrypted token access',
-    embeddedQueries:
-      'Single queries now fetch complete objects with embedded data',
-    timestampHelpers:
-      'Use getCurrentTimestamp() for consistent timestamp handling',
-  },
-};
 
 // Helper function to get the correct function reference for the API
 export function getFunctionReference(

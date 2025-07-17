@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
-import { api } from './_generated/api';
-import { mutation } from './_generated/server';
-import { getCurrentTimestamp } from './utils';
+import { api } from './_generated/api.js';
+import type { Doc, Id } from './_generated/dataModel.js';
+import { mutation } from './_generated/server.js';
+import { getCurrentTimestamp } from './utils.js';
 
 /**
  * Cascade delete mutation for social providers
@@ -12,7 +13,7 @@ import { getCurrentTimestamp } from './utils';
  * 4. Finally deletes the social provider itself
  */
 export const deleteSocialProviderWithCascade = mutation({
-  args: { socialProviderId: v.string() },
+  args: { socialProviderId: v.id('socialProviders') },
   returns: v.object({
     success: v.boolean(),
     updatedPostsCount: v.number(),
@@ -23,7 +24,7 @@ export const deleteSocialProviderWithCascade = mutation({
     // Check if social provider exists
     const provider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('id', args.socialProviderId))
+      .withIndex('by_id', (q) => q.eq('_id', args.socialProviderId))
       .unique();
 
     if (!provider) {
@@ -31,17 +32,21 @@ export const deleteSocialProviderWithCascade = mutation({
     }
 
     let updatedPostsCount = 0;
-    let deletedPlatformPostsCount = 0;
+    const deletedPlatformPostsCount = 0;
 
     // Step 1: Clean up posts that reference this social provider
     const posts = await ctx.db.query('posts').collect();
 
     for (const post of posts) {
       let needsUpdate = false;
-      const updateData: any = {};
+      const updateData: Partial<Doc<'posts'>> = {};
 
       // Remove from socialProviderIds array
-      if (post.socialProviderIds.includes(args.socialProviderId)) {
+      if (
+        post.socialProviderIds.includes(
+          args.socialProviderId as Id<'socialProviders'>
+        )
+      ) {
         updateData.socialProviderIds = post.socialProviderIds.filter(
           (id) => id !== args.socialProviderId
         );
@@ -72,19 +77,6 @@ export const deleteSocialProviderWithCascade = mutation({
       }
     }
 
-    // Step 2: Delete associated platform posts
-    const platformPosts = await ctx.db
-      .query('platformPosts')
-      .withIndex('by_social_provider_id', (q) =>
-        q.eq('socialProviderId', args.socialProviderId)
-      )
-      .collect();
-
-    for (const platformPost of platformPosts) {
-      await ctx.db.delete(platformPost._id);
-      deletedPlatformPostsCount++;
-    }
-
     // Step 3: Delete the social provider
     await ctx.db.delete(provider._id);
 
@@ -108,7 +100,7 @@ export const deleteSocialProviderWithCascade = mutation({
  * 6. Finally deletes the user itself
  */
 export const deleteUserWithCascade = mutation({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   returns: v.object({
     success: v.boolean(),
     deletedSessionsCount: v.number(),
@@ -122,7 +114,7 @@ export const deleteUserWithCascade = mutation({
     // Check if user exists
     const user = await ctx.db
       .query('users')
-      .withIndex('by_id', (q) => q.eq('id', args.userId))
+      .withIndex('by_id', (q) => q.eq('_id', args.userId))
       .unique();
 
     if (!user) {
@@ -164,16 +156,6 @@ export const deleteUserWithCascade = mutation({
       .collect();
 
     for (const post of posts) {
-      // Delete associated platform posts first
-      const platformPosts = await ctx.db
-        .query('platformPosts')
-        .withIndex('by_post_id', (q) => q.eq('postId', post.id))
-        .collect();
-
-      for (const platformPost of platformPosts) {
-        await ctx.db.delete(platformPost._id);
-      }
-
       // Delete the post
       await ctx.db.delete(post._id);
       deletedPostsCount++;
@@ -190,7 +172,7 @@ export const deleteUserWithCascade = mutation({
       await ctx.runMutation(
         api.cascadeDeletes.deleteSocialProviderWithCascade,
         {
-          socialProviderId: provider.id,
+          socialProviderId: provider._id,
         }
       );
       deletedSocialProvidersCount++;
@@ -229,44 +211,22 @@ export const deleteUserWithCascade = mutation({
  * 2. Finally deletes the post itself
  */
 export const deletePostWithCascade = mutation({
-  args: { postId: v.string() },
-  returns: v.object({
-    success: v.boolean(),
-    deletedPlatformPostsCount: v.number(),
-    message: v.string(),
-  }),
+  args: { postId: v.id('posts') },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     // Check if post exists
     const post = await ctx.db
       .query('posts')
-      .withIndex('by_id', (q) => q.eq('id', args.postId))
+      .withIndex('by_id', (q) => q.eq('_id', args.postId))
       .unique();
 
     if (!post) {
       throw new Error('Post not found');
     }
 
-    let deletedPlatformPostsCount = 0;
-
-    // Step 1: Delete associated platform posts
-    const platformPosts = await ctx.db
-      .query('platformPosts')
-      .withIndex('by_post_id', (q) => q.eq('postId', args.postId))
-      .collect();
-
-    for (const platformPost of platformPosts) {
-      await ctx.db.delete(platformPost._id);
-      deletedPlatformPostsCount++;
-    }
-
-    // Step 2: Delete the post
     await ctx.db.delete(post._id);
 
-    return {
-      success: true,
-      deletedPlatformPostsCount,
-      message: `Successfully deleted post. Removed ${deletedPlatformPostsCount} platform posts.`,
-    };
+    return true;
   },
 });
 
@@ -279,7 +239,7 @@ export const deletePostWithCascade = mutation({
  * Note: This doesn't delete the organization itself as that's handled elsewhere
  */
 export const cleanupOrganizationData = mutation({
-  args: { organizationId: v.string() },
+  args: { organizationId: v.id('organizations') },
   returns: v.object({
     success: v.boolean(),
     deletedPostsCount: v.number(),
@@ -303,7 +263,7 @@ export const cleanupOrganizationData = mutation({
     for (const post of posts) {
       // Use the cascade delete for posts
       await ctx.runMutation(api.cascadeDeletes.deletePostWithCascade, {
-        postId: post.id,
+        postId: post._id,
       });
       deletedPostsCount++;
     }
@@ -321,7 +281,7 @@ export const cleanupOrganizationData = mutation({
       await ctx.runMutation(
         api.cascadeDeletes.deleteSocialProviderWithCascade,
         {
-          socialProviderId: provider.id,
+          socialProviderId: provider._id,
         }
       );
       deletedSocialProvidersCount++;
@@ -351,37 +311,10 @@ export const cleanupOrganizationData = mutation({
 });
 
 /**
- * Soft delete mutation for posts
- * This marks a post as deleted without actually removing it
- */
-export const softDeletePost = mutation({
-  args: { postId: v.string() },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('id', args.postId))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
-
-    await ctx.db.patch(post._id, {
-      isDeleted: true,
-      status: 'DELETED',
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
-/**
  * Batch delete mutation for multiple posts
  */
 export const batchDeletePosts = mutation({
-  args: { postIds: v.array(v.string()) },
+  args: { postIds: v.array(v.id('posts')) },
   returns: v.object({
     success: v.boolean(),
     deletedCount: v.number(),

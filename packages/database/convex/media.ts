@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import type { Doc } from './_generated/dataModel';
 import { internalMutation, mutation, query } from './_generated/server';
 import {
   mediaCreateSchema,
@@ -8,29 +9,16 @@ import {
   mediaUpdateSchema,
   searchFiltersSchema,
 } from './schemas';
-import { createUniqueIds, getCurrentTimestamp, isValidUrl } from './utils';
+import { getCurrentTimestamp, isValidUrl } from './utils';
 
 // Media queries
 export const getMediaById = query({
-  args: { id: v.string() },
+  args: { id: v.id('media') },
   returns: v.union(mediaTableSchema, v.null()),
   handler: async (ctx, args) => {
     const media = await ctx.db
       .query('media')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
-      .unique();
-
-    return media;
-  },
-});
-
-export const getMediaByBucketKey = query({
-  args: { bucketKey: v.string() },
-  returns: v.union(mediaTableSchema, v.null()),
-  handler: async (ctx, args) => {
-    const media = await ctx.db
-      .query('media')
-      .withIndex('by_bucket_key', (q) => q.eq('bucketKey', args.bucketKey))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     return media;
@@ -39,7 +27,7 @@ export const getMediaByBucketKey = query({
 
 export const getMediaByUserId = query({
   args: {
-    userId: v.string(),
+    userId: v.id('users'),
     ...mediaFiltersSchema.fields,
   },
   returns: v.array(mediaTableSchema),
@@ -68,63 +56,6 @@ export const getMediaByUserId = query({
   },
 });
 
-export const getMediaByOrganizationId = query({
-  args: {
-    organizationId: v.string(),
-    ...mediaFiltersSchema.fields,
-  },
-  returns: v.array(mediaTableSchema),
-  handler: async (ctx, args) => {
-    const allMedia = await ctx.db
-      .query('media')
-      .withIndex('by_organization_id', (q) =>
-        q.eq('organizationId', args.organizationId)
-      )
-      .collect();
-
-    // Filter by media type if specified
-    let filteredMedia = allMedia;
-    if (args.mediaType) {
-      filteredMedia = allMedia.filter(
-        (media) => media.mediaType === args.mediaType
-      );
-    }
-
-    // Sort by creation date (newest first)
-    filteredMedia.sort((a, b) => b.createdAt - a.createdAt);
-
-    // Apply pagination
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
-
-    return filteredMedia.slice(offset, offset + limit);
-  },
-});
-
-export const getMediaByIds = query({
-  args: { ids: v.array(v.string()) },
-  returns: v.array(mediaTableSchema),
-  handler: async (ctx, args) => {
-    if (args.ids.length === 0) {
-      return [];
-    }
-
-    const mediaItems = await Promise.all(
-      args.ids.map(async (id) => {
-        return await ctx.db
-          .query('media')
-          .withIndex('by_id', (q) => q.eq('id', id))
-          .unique();
-      })
-    );
-
-    // Filter out null results and return
-    return mediaItems.filter(
-      (media): media is NonNullable<typeof media> => media !== null
-    );
-  },
-});
-
 export const createMedia = mutation({
   args: mediaCreateSchema.fields,
   returns: v.id('media'),
@@ -144,10 +75,8 @@ export const createMedia = mutation({
     }
 
     const now = getCurrentTimestamp();
-    const mediaId = createUniqueIds('media');
 
     const newMediaId = await ctx.db.insert('media', {
-      id: mediaId,
       userId: args.userId,
       organizationId: args.organizationId,
       bucketKey: args.bucketKey,
@@ -170,14 +99,14 @@ export const createMedia = mutation({
 
 export const updateMedia = mutation({
   args: {
-    id: v.string(),
+    id: v.id('media'),
     ...mediaUpdateSchema.fields,
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const media = await ctx.db
       .query('media')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!media) {
@@ -197,7 +126,7 @@ export const updateMedia = mutation({
       throw new Error('Invalid thumbnail bucket URL');
     }
 
-    const updateData: any = {
+    const updateData: Partial<Doc<'media'>> = {
       updatedAt: getCurrentTimestamp(),
     };
 
@@ -220,12 +149,12 @@ export const updateMedia = mutation({
 });
 
 export const deleteMedia = mutation({
-  args: { id: v.string() },
+  args: { id: v.id('media') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const media = await ctx.db
       .query('media')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
+      .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
     if (!media) {
@@ -239,7 +168,7 @@ export const deleteMedia = mutation({
 });
 
 export const getMediaStats = query({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   returns: mediaStatsSchema,
   handler: async (ctx, args) => {
     const userMedia = await ctx.db
@@ -308,14 +237,17 @@ export const searchMedia = query({
   args: searchFiltersSchema.fields,
   returns: v.array(mediaTableSchema),
   handler: async (ctx, args) => {
-    let mediaItems;
+    let mediaItems: Doc<'media'>[];
 
-    if (args.userId) {
+    const userId = args.userId;
+    const organizationId = args.organizationId;
+
+    if (userId) {
       mediaItems = await ctx.db
         .query('media')
-        .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
+        .withIndex('by_user_id', (q) => q.eq('userId', userId))
         .collect();
-    } else if (args.organizationId) {
+    } else if (organizationId) {
       mediaItems = await ctx.db
         .query('media')
         .withIndex('by_organization_id', (q) =>
@@ -361,24 +293,27 @@ export const searchMedia = query({
 
 export const getRecentMedia = query({
   args: {
-    userId: v.optional(v.string()),
-    organizationId: v.optional(v.string()),
+    userId: v.optional(v.id('users')),
+    organizationId: v.optional(v.id('organizations')),
     limit: v.optional(v.number()),
   },
   returns: v.array(mediaTableSchema),
   handler: async (ctx, args) => {
-    let mediaItems;
+    let mediaItems: Doc<'media'>[];
 
-    if (args.userId) {
+    const userId = args.userId;
+    const organizationId = args.organizationId;
+
+    if (userId) {
       mediaItems = await ctx.db
         .query('media')
-        .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
+        .withIndex('by_user_id', (q) => q.eq('userId', userId))
         .collect();
-    } else if (args.organizationId) {
+    } else if (organizationId) {
       mediaItems = await ctx.db
         .query('media')
         .withIndex('by_organization_id', (q) =>
-          q.eq('organizationId', args.organizationId)
+          q.eq('organizationId', organizationId)
         )
         .collect();
     } else {
@@ -397,7 +332,7 @@ export const getRecentMedia = query({
 });
 
 export const bulkDeleteMedia = mutation({
-  args: { ids: v.array(v.string()) },
+  args: { ids: v.array(v.id('media')) },
   returns: v.number(),
   handler: async (ctx, args) => {
     let deletedCount = 0;
@@ -405,7 +340,7 @@ export const bulkDeleteMedia = mutation({
     for (const id of args.ids) {
       const media = await ctx.db
         .query('media')
-        .withIndex('by_id', (q) => q.eq('id', id))
+        .withIndex('by_id', (q) => q.eq('_id', id))
         .unique();
 
       if (media) {
@@ -418,34 +353,9 @@ export const bulkDeleteMedia = mutation({
   },
 });
 
-export const updateMediaAltText = mutation({
-  args: {
-    id: v.string(),
-    altText: v.string(),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const media = await ctx.db
-      .query('media')
-      .withIndex('by_id', (q) => q.eq('id', args.id))
-      .unique();
-
-    if (!media) {
-      throw new Error('Media not found');
-    }
-
-    await ctx.db.patch(media._id, {
-      altText: args.altText,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
 // Internal function to clean up media for deleted users
 export const cleanupMediaForDeletedUser = internalMutation({
-  args: { userId: v.string() },
+  args: { userId: v.id('users') },
   returns: v.number(),
   handler: async (ctx, args) => {
     const userMedia = await ctx.db

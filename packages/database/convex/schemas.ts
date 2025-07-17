@@ -73,7 +73,7 @@ export const contentSchema = v.object({
 // ============================================================================
 
 export const alternativeContentSchema = v.object({
-  socialProviderId: v.string(),
+  socialProviderId: v.id('socialProviders'),
   content: v.array(contentSchema),
 });
 
@@ -83,7 +83,6 @@ export const alternativeContentSchema = v.object({
 
 // Base user schema without system fields
 export const baseUserSchema = v.object({
-  id: v.string(),
   name: v.string(),
   email: v.string(),
   emailVerified: v.boolean(),
@@ -125,9 +124,8 @@ export const userUpdateSchema = v.object({
 // ============================================================================
 
 export const baseSessionSchema = v.object({
-  id: v.string(),
   token: v.string(),
-  userId: v.string(),
+  userId: v.id('users'),
   expiresAt: v.number(),
   ipAddress: v.optional(v.string()),
   userAgent: v.optional(v.string()),
@@ -142,7 +140,7 @@ export const sessionSchema = v.object({
 
 export const sessionCreateSchema = v.object({
   token: v.string(),
-  userId: v.string(),
+  userId: v.id('users'),
   expiresAt: v.number(),
   ipAddress: v.optional(v.string()),
   userAgent: v.optional(v.string()),
@@ -153,8 +151,7 @@ export const sessionCreateSchema = v.object({
 // ============================================================================
 
 export const baseAccountSchema = v.object({
-  id: v.string(),
-  userId: v.string(),
+  userId: v.id('users'),
   accountId: v.string(),
   providerId: v.string(),
   accessToken: v.optional(v.string()),
@@ -174,7 +171,7 @@ export const accountSchema = v.object({
 });
 
 export const accountCreateSchema = v.object({
-  userId: v.string(),
+  userId: v.id('users'),
   accountId: v.string(),
   providerId: v.string(),
   accessToken: v.optional(v.string()),
@@ -191,12 +188,11 @@ export const accountCreateSchema = v.object({
 // ============================================================================
 
 export const baseVerificationSchema = v.object({
-  id: v.string(),
   identifier: v.string(),
   value: v.string(),
   expiresAt: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.number(),
+  createdAt: v.optional(v.number()),
+  updatedAt: v.optional(v.number()),
 });
 
 export const verificationSchema = v.object({
@@ -211,13 +207,26 @@ export const verificationCreateSchema = v.object({
 });
 
 // ============================================================================
+// PLATFORM POSTS SCHEMAS (Embedded in Posts)
+// ============================================================================
+
+export const embeddedPlatformPostSchema = v.object({
+  socialProviderId: v.id('socialProviders'),
+  platformPostId: v.optional(v.string()),
+  platformPostUrl: v.optional(v.string()),
+  postedAt: v.optional(v.number()),
+  failureReason: v.optional(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+// ============================================================================
 // POST SCHEMAS
 // ============================================================================
 
 // Base post schema without system fields
 export const basePostSchema = v.object({
-  id: v.string(),
-  userId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
   status: postStatusSchema,
   scheduledAt: v.optional(v.number()),
   reviewStatus: postReviewStatusSchema,
@@ -227,7 +236,8 @@ export const basePostSchema = v.object({
   privacyStatus: privacyStatusSchema,
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.array(v.string()),
+  socialProviderIds: v.array(v.id('socialProviders')),
+  platformPosts: v.optional(v.array(embeddedPlatformPostSchema)),
   createdAt: v.number(),
   updatedAt: v.number(),
   publishedAt: v.optional(v.number()),
@@ -243,7 +253,7 @@ export const postSchema = v.object({
 
 // Post creation schema (subset for mutations)
 export const postCreateSchema = v.object({
-  userId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
   organizationId: v.optional(v.string()),
   status: postStatusSchema,
   scheduledAt: v.optional(v.number()),
@@ -251,7 +261,7 @@ export const postCreateSchema = v.object({
   privacyStatus: v.optional(privacyStatusSchema),
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.array(v.string()),
+  socialProviderIds: v.array(v.id('socialProviders')),
 });
 
 // Post update schema (partial)
@@ -262,7 +272,7 @@ export const postUpdateSchema = v.object({
   privacyStatus: v.optional(privacyStatusSchema),
   content: v.optional(v.array(contentSchema)),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.optional(v.array(v.string())),
+  socialProviderIds: v.optional(v.array(v.id('socialProviders'))),
   postFailureReason: v.optional(v.string()),
   publishedAt: v.optional(v.number()),
   lastFailedAt: v.optional(v.number()),
@@ -275,9 +285,8 @@ export const postUpdateSchema = v.object({
 
 // Base social provider schema without system fields
 export const baseSocialProviderSchema = v.object({
-  id: v.string(),
   organizationId: v.optional(v.string()),
-  userId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
   accessToken: v.string(),
   refreshToken: v.optional(v.string()),
   expiresIn: v.number(),
@@ -302,7 +311,7 @@ export const socialProviderSchema = v.object({
 // Social provider creation schema
 export const socialProviderCreateSchema = v.object({
   organizationId: v.optional(v.string()),
-  userId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
   accessToken: v.string(),
   refreshToken: v.optional(v.string()),
   expiresIn: v.number(),
@@ -317,13 +326,16 @@ export const socialProviderCreateSchema = v.object({
 
 // Social provider update schema (partial)
 export const socialProviderUpdateSchema = v.object({
+  organizationId: v.optional(v.string()),
   accessToken: v.optional(v.string()),
   refreshToken: v.optional(v.string()),
   expiresIn: v.optional(v.number()),
   refreshTokenExpiresIn: v.optional(v.number()),
+  profileId: v.optional(v.string()),
   username: v.optional(v.string()),
   fullName: v.optional(v.string()),
   profileImage: v.optional(v.string()),
+  socialType: v.optional(socialTypeSchema),
   isActive: v.optional(v.boolean()),
 });
 
@@ -333,8 +345,7 @@ export const socialProviderUpdateSchema = v.object({
 
 // Base media table schema without system fields
 export const baseMediaTableSchema = v.object({
-  id: v.string(),
-  userId: v.string(),
+  userId: v.id('users'),
   organizationId: v.optional(v.string()),
   bucketKey: v.string(),
   url: v.string(),
@@ -358,7 +369,7 @@ export const mediaTableSchema = v.object({
 
 // Media creation schema
 export const mediaCreateSchema = v.object({
-  userId: v.string(),
+  userId: v.id('users'),
   organizationId: v.optional(v.string()),
   bucketKey: v.string(),
   url: v.string(),
@@ -382,42 +393,6 @@ export const mediaUpdateSchema = v.object({
   bucketUrl: v.optional(v.string()),
   thumbnailBucketUrl: v.optional(v.string()),
   thumbnailBucketKey: v.optional(v.string()),
-});
-
-// ============================================================================
-// PLATFORM POSTS SCHEMAS
-// ============================================================================
-
-export const basePlatformPostSchema = v.object({
-  postId: v.string(),
-  socialProviderId: v.string(),
-  platformPostId: v.optional(v.string()),
-  platformPostUrl: v.optional(v.string()),
-  postedAt: v.optional(v.number()),
-  failureReason: v.optional(v.string()),
-  createdAt: v.number(),
-  updatedAt: v.number(),
-});
-
-export const platformPostSchema = v.object({
-  _id: v.id('platformPosts'),
-  ...basePlatformPostSchema.fields,
-});
-
-export const platformPostCreateSchema = v.object({
-  postId: v.string(),
-  socialProviderId: v.string(),
-  platformPostId: v.optional(v.string()),
-  platformPostUrl: v.optional(v.string()),
-  postedAt: v.optional(v.number()),
-  failureReason: v.optional(v.string()),
-});
-
-export const platformPostUpdateSchema = v.object({
-  platformPostId: v.optional(v.string()),
-  platformPostUrl: v.optional(v.string()),
-  postedAt: v.optional(v.number()),
-  failureReason: v.optional(v.string()),
 });
 
 // ============================================================================
@@ -450,8 +425,8 @@ export const mediaFiltersSchema = v.object({
 
 // Search filters
 export const searchFiltersSchema = v.object({
-  userId: v.optional(v.string()),
-  organizationId: v.optional(v.string()),
+  userId: v.optional(v.id('users')),
+  organizationId: v.optional(v.id('organizations')),
   searchTerm: v.string(),
   mediaType: v.optional(mediaTypeSchema),
   limit: v.optional(v.number()),
