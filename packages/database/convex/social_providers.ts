@@ -12,7 +12,7 @@ import {
   socialProviderSchema,
   socialProviderUpdateSchema,
   socialTypeSchema,
-} from './schemas.js';
+} from './schemas/index.js';
 import { decryptData, encryptData, getCurrentTimestamp } from './utils.js';
 
 // Decrypted social provider type for internal use

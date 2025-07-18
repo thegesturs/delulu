@@ -5,6 +5,9 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nanoid } from 'nanoid';
 import { keys } from './keys';
+import { convexAdapter } from '@convex-dev/better-auth';
+import { convex } from '@convex-dev/better-auth/plugins';
+import { betterAuthComponent } from '@delulu/database/convex/auth';
 
 export const auth = betterAuth({
   database: drizzleAdapter(database, {

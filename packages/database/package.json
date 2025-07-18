@@ -7,12 +7,10 @@
   "exports": {
     ".": {
       "import": "./index.ts",
-      "require": "./index.ts",
       "types": "./index.ts"
     },
     "./encrypt": {
       "import": "./utils/encrypt.ts",
-      "require": "./utils/encrypt.ts",
       "types": "./utils/encrypt.ts"
     }
   },
@@ -28,6 +26,7 @@
     "db:seed": "tsx seed.ts"
   },
   "dependencies": {
+    "@convex-dev/better-auth": "^0.7.7",
     "@t3-oss/env-nextjs": "^0.12.0",
     "convex": "^1.25.4",
     "drizzle-kit": "0.31.2",

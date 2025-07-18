@@ -14,13 +14,13 @@ export * from './users';
 export * from './posts';
 
 // Export social provider functions
-export * from './social-providers';
+export * from './social_providers';
 
 // Export media functions
 export * from './media';
 
 // Export cascade delete functions
-export * from './cascade-deletes';
+export * from './cascade_deletes';
 
 // Type exports for external use
 export type {
@@ -69,7 +69,6 @@ export const queryPatterns = {
   deletePostWithCascade: 'cascadeDeletes.deletePostWithCascade',
   cleanupOrganizationData: 'cascadeDeletes.cleanupOrganizationData',
 };
-
 
 // Helper function to get the correct function reference for the API
 export function getFunctionReference(
