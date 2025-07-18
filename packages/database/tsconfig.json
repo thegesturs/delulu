@@ -8,6 +8,10 @@
     "noImplicitAny": false,
     "composite": true,
     "emitDeclarationOnly": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "paths": {
       "@delulu/*": ["../*"]
     }
@@ -17,6 +21,9 @@
   "references": [
     {
       "path": "../validators"
+    },
+    {
+      "path": "../email"
     }
   ]
 }

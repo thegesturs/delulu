@@ -848,6 +848,12 @@ importers:
       '@convex-dev/resend':
         specifier: ^0.1.4
         version: 0.1.4(convex-helpers@0.1.99(@standard-schema/spec@1.0.0)(convex@1.25.4(react@19.1.0))(hono@4.7.4)(react@19.1.0)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(react@19.1.0))(react@19.1.0)
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../email
+      '@react-email/components':
+        specifier: 0.0.36
+        version: 0.0.36(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -885,9 +891,6 @@ importers:
       '@delulu/validators':
         specifier: workspace:*
         version: link:../validators
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.22.0
       '@types/node':
         specifier: 22.14.1
         version: 22.14.1
@@ -4562,12 +4565,6 @@ packages:
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
-
-  '@prisma/debug@5.22.0':
-    resolution: {integrity: sha512-AUt44v3YJeggO2ZU5BkXI7M4hu9BF2zzH2iF2V5pyXT/lRTyWiElZ7It+bRH1EshoMRxHgpYg4VB6rCM+mG5jQ==}
-
-  '@prisma/generator-helper@5.22.0':
-    resolution: {integrity: sha512-LwqcBQ5/QsuAaLNQZAIVIAJDJBMjHwMwn16e06IYx/3Okj/xEEfw9IvrqB2cJCl3b2mCBlh3eVH0w9WGmi4aHg==}
 
   '@prisma/instrumentation@6.10.1':
     resolution: {integrity: sha512-JC8qzgEDuFKjuBsqrZvXHINUb12psnE6Qy3q5p2MBhalC1KW1MBBUwuonx6iS5TCfCdtNslHft8uc2r+EdLWWg==}
@@ -17235,12 +17232,6 @@ snapshots:
   '@polka/url@1.0.0-next.29': {}
 
   '@popperjs/core@2.11.8': {}
-
-  '@prisma/debug@5.22.0': {}
-
-  '@prisma/generator-helper@5.22.0':
-    dependencies:
-      '@prisma/debug': 5.22.0
 
   '@prisma/instrumentation@6.10.1(@opentelemetry/api@1.9.0)':
     dependencies:
