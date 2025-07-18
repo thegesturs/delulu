@@ -1,33 +1,34 @@
-import { analytics } from '@delulu/analytics/posthog/server';
-import { database, schema } from '@delulu/database';
-import { resend } from '@delulu/email';
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { nanoid } from 'nanoid';
-import { keys } from './keys';
 import { convexAdapter } from '@convex-dev/better-auth';
 import { convex } from '@convex-dev/better-auth/plugins';
+import { analytics } from '@delulu/analytics/posthog/server';
+import type { GenericCtx } from '@delulu/database/convex/_generated/server';
 import { betterAuthComponent } from '@delulu/database/convex/auth';
+import { resend } from '@delulu/email';
+import { betterAuth } from 'better-auth';
+import { nanoid } from 'nanoid';
+import { keys } from './keys';
 
-export const auth = betterAuth({
-  database: drizzleAdapter(database, {
-    provider: 'pg',
-    schema: {
-      users: schema.users,
-      accounts: schema.accounts,
-      sessions: schema.sessions,
-      verifications: schema.verifications,
-    },
-    usePlural: true,
-  }),
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
-  emailVerification: {
-    async sendVerificationEmail({ user, url }) {
-      await resend.emails.send({
-        from: 'Delulu Social <noreply@delulu.social>',
-        to: user.email,
-        subject: 'Verify Your Email Address',
-        html: `
+export const createAuth = (ctx: GenericCtx) =>
+  betterAuth({
+    // database: drizzleAdapter(database, {
+    //   provider: 'pg',
+    //   schema: {
+    //     users: schema.users,
+    //     accounts: schema.accounts,
+    //     sessions: schema.sessions,
+    //     verifications: schema.verifications,
+    //   },
+    //   usePlural: true,
+    // }),
+    database: convexAdapter(ctx, betterAuthComponent),
+    baseURL: process.env.NEXT_PUBLIC_APP_URL,
+    emailVerification: {
+      async sendVerificationEmail({ user, url }) {
+        await resend.emails.send({
+          from: 'Delulu Social <noreply@delulu.social>',
+          to: user.email,
+          subject: 'Verify Your Email Address',
+          html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #333; text-align: center;">Welcome to Delulu Social!</h1>
               <p>Hello,</p>
@@ -43,18 +44,18 @@ export const auth = betterAuth({
               <p style="color: #666; font-size: 12px;">This email was sent by Delulu Social. If you have any questions, please contact our support team.</p>
             </div>
           `,
-      });
+        });
+      },
     },
-  },
-  emailAndPassword: {
-    enabled: true,
-    autoSignIn: true,
-    sendResetPassword: async ({ user, url }) => {
-      await resend.emails.send({
-        from: 'Delulu Social <noreply@delulu.social>',
-        to: user.email,
-        subject: 'Reset Your Password',
-        html: `
+    emailAndPassword: {
+      enabled: true,
+      autoSignIn: true,
+      sendResetPassword: async ({ user, url }) => {
+        await resend.emails.send({
+          from: 'Delulu Social <noreply@delulu.social>',
+          to: user.email,
+          subject: 'Reset Your Password',
+          html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #333; text-align: center;">Reset Your Password</h1>
               <p>Hello,</p>
@@ -70,64 +71,65 @@ export const auth = betterAuth({
               <p style="color: #666; font-size: 12px;">This email was sent by Delulu Social. If you have any questions, please contact our support team.</p>
             </div>
           `,
-      });
-    },
-  },
-  socialProviders: {
-    google: {
-      clientId: keys().GOOGLE_CLIENT_ID,
-      clientSecret: keys().GOOGLE_CLIENT_SECRET,
-    },
-  },
-  account: {
-    accountLinking: {
-      enabled: true,
-      trustedProviders: ['google'],
-      updateUserInfoOnLink: true,
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        // biome-ignore lint/suspicious/useAwait: <explanation>
-        after: async (user) => {
-          analytics.identify({
-            distinctId: user.id,
-            properties: {
-              email: user.email,
-              firstName: user.name?.split(' ')[0],
-              lastName: user.name?.split(' ')[1],
-              createdAt: user.createdAt,
-              avatar: user.image,
-            },
-          });
-        },
-      },
-      update: {
-        // biome-ignore lint/suspicious/useAwait: <explanation>
-        after: async (user) => {
-          analytics.identify({
-            distinctId: user.id,
-            properties: {
-              email: user.email,
-              firstName: user.name?.split(' ')[0],
-              lastName: user.name?.split(' ')[1],
-              createdAt: user.createdAt,
-              avatar: user.image,
-            },
-          });
-        },
+        });
       },
     },
-  },
-  advanced: {
-    generateId: (options) => {
-      return `${options.model}_${nanoid(12)}`;
+    socialProviders: {
+      google: {
+        clientId: keys().GOOGLE_CLIENT_ID,
+        clientSecret: keys().GOOGLE_CLIENT_SECRET,
+      },
     },
-  },
-});
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['google'],
+        updateUserInfoOnLink: true,
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // biome-ignore lint/suspicious/useAwait: <explanation>
+          after: async (user) => {
+            analytics.identify({
+              distinctId: user.id,
+              properties: {
+                email: user.email,
+                firstName: user.name?.split(' ')[0],
+                lastName: user.name?.split(' ')[1],
+                createdAt: user.createdAt,
+                avatar: user.image,
+              },
+            });
+          },
+        },
+        update: {
+          // biome-ignore lint/suspicious/useAwait: <explanation>
+          after: async (user) => {
+            analytics.identify({
+              distinctId: user.id,
+              properties: {
+                email: user.email,
+                firstName: user.name?.split(' ')[0],
+                lastName: user.name?.split(' ')[1],
+                createdAt: user.createdAt,
+                avatar: user.image,
+              },
+            });
+          },
+        },
+      },
+    },
+    advanced: {
+      generateId: (options) => {
+        return `${options.model}_${nanoid(12)}`;
+      },
+    },
+    plugins: [convex()],
+  });
 
-export type Session = typeof auth.$Infer.Session;
-export type User = typeof auth.$Infer.Session.user;
+export type Session = ReturnType<typeof createAuth>['$Infer']['Session'];
+export type User = ReturnType<typeof createAuth>['$Infer']['Session']['user'];
 export { toNextJsHandler } from 'better-auth/next-js';
 export { getSessionCookie } from 'better-auth/cookies';

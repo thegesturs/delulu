@@ -49,7 +49,10 @@ export const {
 
   // Delete the user when they are deleted from Better Auth
   onDeleteUser: async (ctx, userId) => {
-    await ctx.db.delete(userId as Id<'users'>);
+    // Use cascade delete to clean up all related data
+    await ctx.runMutation(api.cascade_deletes.deleteUserWithCascade, {
+      userId: userId as Id<'users'>,
+    });
   },
 });
 
