@@ -137,26 +137,6 @@ export const deleteUser = mutation({
       throw new Error('User not found');
     }
 
-    // Delete user's sessions
-    const sessions = await ctx.db
-      .query('sessions')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.id))
-      .collect();
-
-    for (const session of sessions) {
-      await ctx.db.delete(session._id);
-    }
-
-    // Delete user's accounts
-    const accounts = await ctx.db
-      .query('accounts')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.id))
-      .collect();
-
-    for (const account of accounts) {
-      await ctx.db.delete(account._id);
-    }
-
     // Delete user's posts
     const posts = await ctx.db
       .query('posts')
