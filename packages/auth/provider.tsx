@@ -1,13 +1,18 @@
 'use client';
 
+import { authClient } from './client';
+import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react';
+import { ConvexReactClient } from 'convex/react';
 import type { ReactNode } from 'react';
 
-type AuthProviderProperties = {
-  children: ReactNode;
-};
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!, {
+  verbose: true,
+});
 
-export const AuthProvider = ({ children }: AuthProviderProperties) => {
-  // Better Auth doesn't need a provider wrapper like Clerk
-  // The auth client is configured in client.ts and used directly
-  return <>{children}</>;
-};
+export function ConvexClientProvider({ children }: { children: ReactNode }) {
+  return (
+    <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+      {children}
+    </ConvexBetterAuthProvider>
+  );
+}

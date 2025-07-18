@@ -133,3 +133,4 @@ export type Session = ReturnType<typeof createAuth>['$Infer']['Session'];
 export type User = ReturnType<typeof createAuth>['$Infer']['Session']['user'];
 export { toNextJsHandler } from 'better-auth/next-js';
 export { getSessionCookie } from 'better-auth/cookies';
+export { nextJsHandler } from '@convex-dev/better-auth/nextjs';
