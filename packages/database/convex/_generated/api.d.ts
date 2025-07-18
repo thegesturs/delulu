@@ -12,7 +12,7 @@ import type * as auth_server from "../auth/server.js";
 import type * as auth from "../auth.js";
 import type * as cascade_deletes from "../cascade_deletes.js";
 import type * as emails from "../emails.js";
-import type * as https from "../https.js";
+import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
 import type * as posts from "../posts.js";
@@ -45,7 +45,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cascade_deletes: typeof cascade_deletes;
   emails: typeof emails;
-  https: typeof https;
+  http: typeof http;
   index: typeof index;
   media: typeof media;
   posts: typeof posts;

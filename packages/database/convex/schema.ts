@@ -1,32 +1,28 @@
 import { defineSchema, defineTable } from 'convex/server';
 import {
-  baseAccountSchema,
   baseMediaTableSchema,
   basePostSchema,
-  baseSessionSchema,
   baseSocialProviderSchema,
   baseUserSchema,
-  baseVerificationSchema,
 } from './schemas';
 
 export default defineSchema({
   // Users table
-  users: defineTable(baseUserSchema.fields)
-    .index('by_email', ['email']),
+  users: defineTable(baseUserSchema.fields).index('by_email', ['email']),
 
-  // Sessions table
-  sessions: defineTable(baseSessionSchema.fields)
-    .index('by_token', ['token'])
-    .index('by_user_id', ['userId']),
+  // // Sessions table
+  // sessions: defineTable(baseSessionSchema.fields)
+  //   .index('by_token', ['token'])
+  //   .index('by_user_id', ['userId']),
 
-  // Accounts table
-  accounts: defineTable(baseAccountSchema.fields)
-    .index('by_user_id', ['userId'])
-    .index('by_provider_and_account', ['providerId', 'accountId']),
+  // // Accounts table
+  // accounts: defineTable(baseAccountSchema.fields)
+  //   .index('by_user_id', ['userId'])
+  //   .index('by_provider_and_account', ['providerId', 'accountId']),
 
-  // Verifications table
-  verifications: defineTable(baseVerificationSchema.fields)
-    .index('by_identifier_and_value', ['identifier', 'value']),
+  // // Verifications table
+  // verifications: defineTable(baseVerificationSchema.fields)
+  //   .index('by_identifier_and_value', ['identifier', 'value']),
 
   // Posts table with embedded relationships
   posts: defineTable(basePostSchema.fields)
@@ -53,5 +49,4 @@ export default defineSchema({
     .index('by_bucket_key', ['bucketKey'])
     .index('by_media_type', ['mediaType'])
     .index('by_created_at', ['createdAt']),
-
 });
