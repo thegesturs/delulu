@@ -854,12 +854,18 @@ importers:
       '@delulu/email':
         specifier: workspace:*
         version: link:../email
+      '@neondatabase/serverless':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@react-email/components':
         specifier: 0.0.36
         version: 0.0.36(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
+      better-auth:
+        specifier: ^1.2.10
+        version: 1.2.12
       convex:
         specifier: ^1.25.4
         version: 1.25.4(react@19.1.0)
@@ -888,6 +894,9 @@ importers:
         specifier: 'catalog:'
         version: 3.25.67
     devDependencies:
+      '@delulu/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -16571,7 +16580,6 @@ snapshots:
     dependencies:
       '@types/node': 22.15.34
       '@types/pg': 8.15.4
-    optional: true
 
   '@next/bundle-analyzer@15.3.4(bufferutil@4.0.9)':
     dependencies:

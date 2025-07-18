@@ -6,8 +6,9 @@
  * tl;dr - this is where all the tRPC server stuff is created and plugged in.
  * The pieces you will need to use are documented accordingly near the end
  */
-import { auth } from '@delulu/auth/server';
 import { database } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import { convex } from '@delulu/database/server';
 import { TRPCError, initTRPC } from '@trpc/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
@@ -31,10 +32,11 @@ interface TRPCContext {
 }
 
 export const createTRPCContext = async (opts: TRPCContext) => {
-  const userAuth = await auth.api.getSession({
-    headers: opts.headers,
-  });
-  const userId = userAuth?.session.userId;
+  // const userAuth = await auth.api.getSession({
+  //   headers: opts.headers,
+  // });
+  const user = await convex.query(api.auth.getCurrentUser);
+  const userId = user?._id;
   // const organizationId = userAuth?.session.orgId ?? undefined;
 
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>

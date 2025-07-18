@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { userCreateSchema, userSchema, userUpdateSchema } from './schemas';
-import {  getCurrentTimestamp, isValidEmail } from './utils';
+import { getCurrentTimestamp, isValidEmail } from './utils';
 
 // User queries
 export const getUserById = query({
@@ -243,7 +243,9 @@ export const updateUserUsage = mutation({
     if (args.generatedPosts !== undefined) {
       updatedUsage.generatedPosts = args.generatedPosts;
     }
-    if (args.drafts !== undefined) { updatedUsage.drafts = args.drafts; }
+    if (args.drafts !== undefined) {
+      updatedUsage.drafts = args.drafts;
+    }
     if (args.organization !== undefined) {
       updatedUsage.organization = args.organization;
     }
