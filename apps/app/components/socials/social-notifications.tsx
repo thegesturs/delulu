@@ -1,6 +1,7 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { SocialError } from '../error/social-error';
@@ -52,12 +53,7 @@ export function SocialNotifications() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { mutate: connectAccount } =
-    api.socialProvider.getSocialProviderConnectUrl.useMutation({
-      onSuccess: (url: string) => {
-        window.location.href = url;
-      },
-    });
+  const connectAccount = useMutation(api.social_providers.getSocialProviderConnectUrl);
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -75,12 +71,17 @@ export function SocialNotifications() {
     return null;
   }
 
-  const handleRetry = (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
+  const handleRetry = async (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
     if (providerToUse) {
-      connectAccount({ provider: providerToUse });
+      try {
+        const url = await connectAccount({ provider: providerToUse });
+        window.location.href = url;
+      } catch (error) {
+        console.error('Failed to get connect URL:', error);
+      }
     }
   };
 

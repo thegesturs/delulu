@@ -1,6 +1,11 @@
 import { v } from 'convex/values';
-import type { Doc } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import {
+  type MutationCtx,
+  type QueryCtx,
+  mutation,
+  query,
+} from './_generated/server';
 import {
   alternativeContentSchema,
   contentSchema,
@@ -11,6 +16,23 @@ import {
   postUpdateSchema,
 } from './schemas';
 import { getCurrentTimestamp } from './utils';
+
+// Helper function to get a post by ID
+const findPostById = async (
+  ctx: MutationCtx | QueryCtx,
+  postId: Id<'posts'>
+): Promise<Doc<'posts'>> => {
+  const post = await ctx.db
+    .query('posts')
+    .withIndex('by_id', (q) => q.eq('_id', postId))
+    .unique();
+
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
+  return post;
+};
 
 // Post queries
 export const getPostById = query({
@@ -142,45 +164,18 @@ export const updatePost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    await findPostById(ctx, args.id);
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= getCurrentTimestamp()) {
       throw new Error('Scheduled date must be in the future');
     }
 
-    const updateData: Partial<Doc<'posts'>> = {
+    // Patch with args and include updatedAt
+    await ctx.db.patch(args.id, {
+      ...args,
       updatedAt: getCurrentTimestamp(),
-    };
-
-    if (args.status !== undefined) updateData.status = args.status;
-    if (args.scheduledAt !== undefined)
-      updateData.scheduledAt = args.scheduledAt;
-    if (args.reviewStatus !== undefined)
-      updateData.reviewStatus = args.reviewStatus;
-    if (args.privacyStatus !== undefined)
-      updateData.privacyStatus = args.privacyStatus;
-    if (args.content !== undefined) updateData.content = args.content;
-    if (args.alternativeContent !== undefined)
-      updateData.alternativeContent = args.alternativeContent;
-    if (args.socialProviderIds !== undefined)
-      updateData.socialProviderIds = args.socialProviderIds;
-    if (args.postFailureReason !== undefined)
-      updateData.postFailureReason = args.postFailureReason;
-    if (args.publishedAt !== undefined)
-      updateData.publishedAt = args.publishedAt;
-    if (args.lastFailedAt !== undefined)
-      updateData.lastFailedAt = args.lastFailedAt;
-    if (args.retryCount !== undefined) updateData.retryCount = args.retryCount;
-
-    await ctx.db.patch(post._id, updateData);
+    });
 
     return true;
   },
@@ -190,14 +185,7 @@ export const softDeletePost = mutation({
   args: { id: v.id('posts') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.id);
 
     await ctx.db.patch(post._id, {
       isDeleted: true,
@@ -213,18 +201,8 @@ export const hardDeletePost = mutation({
   args: { id: v.id('posts') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
-
-    // Delete the post (platform posts are embedded, so they get deleted automatically)
+    const post = await findPostById(ctx, args.id);
     await ctx.db.delete(post._id);
-
     return true;
   },
 });
@@ -237,14 +215,7 @@ export const updatePostContent = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.id);
 
     await ctx.db.patch(post._id, {
       content: args.content,
@@ -263,14 +234,7 @@ export const markPostAsPublished = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.id);
 
     await ctx.db.patch(post._id, {
       status: 'PUBLISHED',
@@ -290,14 +254,7 @@ export const markPostAsFailed = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.id);
 
     const updateData: Partial<Doc<'posts'>> = {
       status: 'FAILED',
@@ -323,27 +280,15 @@ export const addSocialProviderToPost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.postId))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     // Check if social provider is already associated
     if (post.socialProviderIds.includes(args.socialProviderId)) {
       return true; // Already associated
     }
 
-    const updatedSocialProviderIds = [
-      ...post.socialProviderIds,
-      args.socialProviderId,
-    ];
-
     await ctx.db.patch(post._id, {
-      socialProviderIds: updatedSocialProviderIds,
+      socialProviderIds: [...post.socialProviderIds, args.socialProviderId],
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -358,14 +303,7 @@ export const removeSocialProviderFromPost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.postId))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     const updatedSocialProviderIds = post.socialProviderIds.filter(
       (id) => id !== args.socialProviderId
@@ -394,14 +332,7 @@ export const updateAlternativeContent = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.postId))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     const alternativeContent = post.alternativeContent || [];
 
@@ -440,14 +371,7 @@ export const removeAlternativeContent = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.postId))
-      .unique();
-
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     const updatedAlternativeContent = post.alternativeContent?.filter(
       (alt) => alt.socialProviderId !== args.socialProviderId
@@ -474,10 +398,7 @@ export const addPlatformPost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db.get(args.postId);
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     const now = getCurrentTimestamp();
     const platformPosts = post.platformPosts || [];
@@ -504,7 +425,7 @@ export const addPlatformPost = mutation({
       platformPosts.push(platformPost);
     }
 
-    await ctx.db.patch(args.postId, {
+    await ctx.db.patch(post._id, {
       platformPosts,
       updatedAt: now,
     });
@@ -527,7 +448,7 @@ export const getPlatformPostsByPostId = query({
     })
   ),
   handler: async (ctx, args) => {
-    const post = await ctx.db.get(args.postId);
+    const post = await findPostById(ctx, args.postId);
     return post?.platformPosts || [];
   },
 });
@@ -547,7 +468,7 @@ export const getPlatformPost = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    const post = await ctx.db.get(args.postId);
+    const post = await findPostById(ctx, args.postId);
     if (!post) return null;
 
     const platformPost = post.platformPosts?.find(
@@ -569,10 +490,7 @@ export const updatePlatformPost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db.get(args.postId);
-    if (!post) {
-      throw new Error('Post not found');
-    }
+    const post = await findPostById(ctx, args.postId);
 
     const platformPosts = post.platformPosts || [];
     const platformPostIndex = platformPosts.findIndex(
@@ -604,7 +522,7 @@ export const updatePlatformPost = mutation({
 
     platformPosts[platformPostIndex] = updatedPlatformPost;
 
-    await ctx.db.patch(args.postId, {
+    await ctx.db.patch(post._id, {
       platformPosts,
       updatedAt: now,
     });
@@ -617,7 +535,7 @@ export const deletePlatformPost = mutation({
   args: { postId: v.id('posts'), socialProviderId: v.id('socialProviders') },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const post = await ctx.db.get(args.postId);
+    const post = await findPostById(ctx, args.postId);
     if (!post) {
       return false;
     }
@@ -631,11 +549,123 @@ export const deletePlatformPost = mutation({
       return false; // Platform post not found
     }
 
-    await ctx.db.patch(args.postId, {
+    await ctx.db.patch(post._id, {
       platformPosts: filteredPlatformPosts,
       updatedAt: getCurrentTimestamp(),
     });
 
     return true;
+  },
+});
+
+// Get posts for current user with pagination (used by components)
+export const getPosts = query({
+  args: {
+    ...postFiltersSchema.fields,
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  returns: paginatedPostsSchema,
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user first
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Use the existing getPostsByUserId logic
+    const query = ctx.db
+      .query('posts')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id));
+
+    const posts = await query.collect();
+
+    // Filter posts based on criteria
+    const filteredPosts = posts.filter((post) => {
+      if (args.status && post.status !== args.status) {
+        return false;
+      }
+      if (args.privacyStatus && post.privacyStatus !== args.privacyStatus) {
+        return false;
+      }
+      if (args.reviewStatus && post.reviewStatus !== args.reviewStatus) {
+        return false;
+      }
+      if (args.organizationId && post.organizationId !== args.organizationId) {
+        return false;
+      }
+      if (args.isDeleted !== undefined && post.isDeleted !== args.isDeleted) {
+        return false;
+      }
+      if (args.isDeleted === undefined && post.isDeleted !== false) {
+        return false; // Exclude deleted by default
+      }
+      return true;
+    });
+
+    // Sort by creation date (newest first)
+    filteredPosts.sort((a, b) => b.createdAt - a.createdAt);
+
+    const total = filteredPosts.length;
+
+    // Apply pagination
+    const offset = args.offset || 0;
+    const limit = args.limit || 50;
+    const paginatedPosts = filteredPosts.slice(offset, offset + limit);
+
+    return {
+      posts: paginatedPosts,
+      total,
+    };
+  },
+});
+
+// Delete post by string ID (used by components)
+export const deletePost = mutation({
+  args: {
+    postId: v.id('posts'),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user first
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify ownership
+    const post = await findPostById(ctx, args.postId);
+    if (!post || post.userId !== user._id) {
+      throw new Error('Post not found or access denied');
+    }
+
+    // Soft delete the post
+    await ctx.db.patch(post._id, {
+      isDeleted: true,
+      status: 'DELETED',
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    return { success: true };
   },
 });

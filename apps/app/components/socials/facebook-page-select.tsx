@@ -1,6 +1,7 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useMutation } from 'convex/react';
 import {
   Avatar,
   AvatarFallback,
@@ -47,37 +48,38 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
-  const { mutate: connectPage, isPending } =
-    api.socialProvider.connectFacebookPage.useMutation({
-      onSuccess: () => {
-        router.push('/socials?success=true&provider=facebook');
-      },
-      onError: (error) => {
-        router.push(
-          `/socials?error=${error.message}&code=FACEBOOK_006&provider=facebook`
-        );
-      },
-    });
+  const connectPage = useMutation(api.social_providers.connectFacebookPage);
 
   const handleCancel = () => {
     setIsCancelling(true);
     router.push('/socials?error=user_cancelled&provider=facebook');
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const selectedPage = pages.find((page) => page.id === selectedPageId);
     if (!selectedPage) {
       toast.error('No page selected');
       return;
     }
 
-    connectPage({
-      pageId: selectedPage.id,
-      pageName: selectedPage.name,
-      code,
-    });
+    setIsPending(true);
+    try {
+      await connectPage({
+        pageId: selectedPage.id,
+        pageName: selectedPage.name,
+        code,
+      });
+      router.push('/socials?success=true&provider=facebook');
+    } catch (error: any) {
+      router.push(
+        `/socials?error=${error.message}&code=FACEBOOK_006&provider=facebook`
+      );
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const filteredPages = pages.filter(

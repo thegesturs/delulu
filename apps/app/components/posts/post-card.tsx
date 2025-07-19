@@ -1,6 +1,7 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
@@ -34,30 +35,12 @@ interface PostCardProps {
 export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
   const [openDeletePost, setOpenDeletePost] = React.useState(false);
-  const utils = api.useUtils();
   const router = useRouter();
-  const { mutateAsync: softDeletePost, isPending: isDeleting } =
-    api.post.deletePost.useMutation({
-      onSuccess: () => {
-        setOpenDeletePost(false);
-        toast.success('Post deleted successfully');
-        utils.post.getPosts.invalidate();
-      },
-      onError: () => {
-        toast.error('Failed to delete post');
-      },
-    });
-  const { mutateAsync: publishPost, isPending: isPublishing } =
-    api.socialProvider.createPostFromPostId.useMutation({
-      onSuccess: () => {
-        toast.success('Your post is being published. It will be posted soon.');
-        utils.post.getPosts.invalidate();
-        setShowPreview(false);
-      },
-      onError: () => {
-        toast.error('Failed to publish post');
-      },
-    });
+  
+  const softDeletePost = useMutation(api.posts.deletePost);
+  const publishPost = useMutation(api.social_providers.createPostFromPostId);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPublishing, setIsPublishing] = React.useState(false);
 
   const statusColors = {
     SAVED: 'orange',
@@ -67,12 +50,22 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     FAILED: 'destructive',
   } as const;
 
-  const postId = post.id as string;
+  const postId = post._id as string;
   const postStatus = post.status;
   const postContent = post.content;
 
   const handleDelete = async () => {
-    await softDeletePost(postId);
+    setIsDeleting(true);
+    try {
+      await softDeletePost({ postId });
+      setOpenDeletePost(false);
+      toast.success('Post deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete post');
+      console.error(error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleEdit = (id: string) => {
@@ -83,12 +76,18 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     console.log('Change schedule for post:', id);
   };
 
-  const handlePublish = (id: string) => {
-    toast.promise(publishPost({ postId: id }), {
-      loading: 'Publishing post...',
-      success: 'Post published successfully',
-      error: 'Failed to publish post',
-    });
+  const handlePublish = async (id: string) => {
+    setIsPublishing(true);
+    try {
+      await publishPost({ postId: id });
+      toast.success('Your post is being published. It will be posted soon.');
+      setShowPreview(false);
+    } catch (error) {
+      toast.error('Failed to publish post');
+      console.error(error);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const renderActionItems = () => {
@@ -188,29 +187,26 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               {post.scheduledAt && (
                 <div className="flex flex-shrink-0 items-center gap-1 text-muted-foreground text-xs">
                   <Calendar className="h-3 w-3" />
-                  {new Date(post.scheduledAt as Date).toLocaleDateString()}
+                  {new Date(post.scheduledAt).toLocaleDateString()}
                 </div>
               )}
 
               {/* Social Icons - flex-shrink-0 */}
               <div className="flex flex-shrink-0 items-center gap-1.5">
-                {post.postToSocialProviders.map((provider) => {
-                  const Icon =
-                    socialIcons[
-                      provider.socialProvider
-                        .socialType as keyof typeof socialIcons
-                    ];
-                  return Icon ? (
-                    <Icon
-                      key={provider.socialProvider.profileId as string}
-                      className={`h-4 w-4 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
-                      title={
-                        (provider.socialProvider.username ||
-                          provider.socialProvider.socialType) as string
-                      }
-                    />
-                  ) : null;
-                })}
+                {post.socialProviderIds.slice(0, 3).map((providerId, index) => (
+                  <div 
+                    key={providerId} 
+                    className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs"
+                    title={`Social account ${index + 1}`}
+                  >
+                    {index + 1}
+                  </div>
+                ))}
+                {post.socialProviderIds.length > 3 && (
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
+                    +{post.socialProviderIds.length - 3}
+                  </div>
+                )}
               </div>
 
               {/* Actions - flex-shrink-0 */}
@@ -268,36 +264,34 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                 {post.scheduledAt && (
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {new Date(post.scheduledAt as Date).toLocaleDateString()}
+                    {new Date(post.scheduledAt).toLocaleDateString()}
                   </div>
                 )}
                 <div className="flex items-center gap-1.5">
-                  {post.postToSocialProviders.map((provider) => {
-                    const Icon =
-                      socialIcons[
-                        provider.socialProvider
-                          .socialType as keyof typeof socialIcons
-                      ];
-                    return Icon ? (
-                      <Tooltip
-                        key={provider.socialProvider.profileId as string}
-                      >
-                        <TooltipTrigger>
-                          <Icon
-                            className={`h-4 w-4 ${provider.socialProvider.isActive ? 'text-primary' : 'text-muted-foreground/50'}`}
-                            title={
-                              (provider.socialProvider.username ||
-                                provider.socialProvider.socialType) as string
-                            }
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {provider.socialProvider.fullName ??
-                            provider.socialProvider.username}
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : null;
-                  })}
+                  {post.socialProviderIds.slice(0, 3).map((providerId, index) => (
+                    <Tooltip key={providerId}>
+                      <TooltipTrigger>
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
+                          {index + 1}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Social account {index + 1}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                  {post.socialProviderIds.length > 3 && (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
+                          +{post.socialProviderIds.length - 3}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {post.socialProviderIds.length - 3} more accounts
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
             </div>

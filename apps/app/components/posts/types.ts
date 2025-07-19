@@ -1,5 +1,2 @@
-import type { PostSelectWithRelations } from '@delulu/database';
-
-export type Post = PostSelectWithRelations;
-
-export type PostLayout = 'grid' | 'list';
+// Using proper Convex types
+export type { Post, PostLayout } from '@/types/convex';

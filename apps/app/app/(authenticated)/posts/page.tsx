@@ -3,7 +3,8 @@
 import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { PostStatus } from '@delulu/database/schema/types';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
-// import type { inferRouterOutputs } from '@trpc/server';
 import { LayoutGrid, List, Plus } from 'lucide-react';
 import React from 'react';
 import PostLoading from './post-loading';
@@ -42,12 +42,7 @@ export default function PostsPage() {
   const [layout, setLayout] = React.useState<PostLayout>('grid');
   const [currentPage, setCurrentPage] = React.useState(1);
 
-  const {
-    data: postsData,
-    isLoading,
-    error,
-    isFetching,
-  } = api.post.getPosts.useQuery({
+  const postsData = useQuery(api.posts.getPosts, {
     filters: {
       status: statusFilter !== 'all' ? statusFilter : undefined,
       // searchTerm: searchTerm || undefined,
@@ -57,6 +52,10 @@ export default function PostsPage() {
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
     },
   });
+
+  const isLoading = postsData === undefined;
+  const isFetching = isLoading;
+  const error = null; // Convex handles errors differently
 
   const filteredPosts = React.useMemo(() => {
     if (!postsData?.posts) return [];

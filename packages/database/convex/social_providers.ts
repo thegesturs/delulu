@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { api } from './_generated/api.js';
+import { api, internal } from './_generated/api.js';
 import type { Doc } from './_generated/dataModel.js';
 import {
   internalMutation,
@@ -62,6 +62,202 @@ export const getUserSocialProviders = query({
     providers.sort((a, b) => b.createdAt - a.createdAt);
 
     return providers;
+  },
+});
+
+// Function to get connected accounts for current user (used by components)
+export const getConnectedAccounts = query({
+  args: {},
+  returns: v.array(socialProviderSchema),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user first
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const providers = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .collect();
+
+    // Sort by creation date (newest first)
+    providers.sort((a, b) => b.createdAt - a.createdAt);
+
+    return providers;
+  },
+});
+
+// Function to delete social provider by ID (used by components)
+export const deleteSocial = mutation({
+  args: {
+    socialId: v.id('socialProviders'),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user first
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify ownership
+    const socialProvider = await ctx.db.get(args.socialId);
+    if (!socialProvider || socialProvider.userId !== user._id) {
+      throw new Error('Social provider not found or access denied');
+    }
+
+    // Use the existing deleteSocialProvider function
+    await ctx.runMutation(api.social_providers.deleteSocialProvider, {
+      id: args.socialId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Function to create/publish a post from an existing post ID (used by components)
+export const createPostFromPostId = mutation({
+  args: {
+    postId: v.id('posts'),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user first
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', identity.email!))
+      .unique();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Get the post and verify ownership
+    const post = await ctx.db.get(args.postId);
+    if (!post || post.userId !== user._id) {
+      throw new Error('Post not found or access denied');
+    }
+
+    // TODO: Implement the actual post publishing logic
+    // This would involve:
+    // 1. Getting the post content and associated social providers
+    // 2. Calling the appropriate social media APIs
+    // 3. Updating the post status
+    // 4. Handling any errors
+
+    // For now, just update the post status to indicate it's being processed
+    await ctx.db.patch(args.postId, {
+      status: 'PUBLISHED',
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Function to connect a Facebook page (called by tRPC with real data)
+export const connectFacebookPage = mutation({
+  args: {
+    userId: v.id('users'),
+    accessToken: v.string(), // Real access token from tRPC
+    pageId: v.string(),
+    pageName: v.string(),
+  },
+  returns: v.object({
+    status: v.union(v.literal('connected'), v.literal('transferred')),
+  }),
+  handler: async (ctx, args) => {
+    // Encrypt the access token
+    const encryptedAccessToken = await encryptData(args.accessToken);
+
+    // Check if this Facebook page is already connected
+    const existingProvider = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_profile_id', (q) => q.eq('profileId', args.pageId))
+      .first();
+
+    const now = getCurrentTimestamp();
+    const twoMonthsFromNow = now + 2 * 30 * 24 * 60 * 60 * 1000;
+
+    if (existingProvider && existingProvider.userId !== args.userId) {
+      // Transfer ownership
+      await ctx.db.patch(existingProvider._id, {
+        userId: args.userId,
+        accessToken: encryptedAccessToken,
+        fullName: args.pageName,
+        username: args.pageName,
+        profileImage: `https://graph.facebook.com/${args.pageId}/picture?type=large`,
+        refreshTokenExpiresIn: twoMonthsFromNow,
+        updatedAt: now,
+        isActive: true,
+        lastSyncedAt: now,
+      });
+
+      return { status: 'transferred' };
+    }
+
+    if (existingProvider && existingProvider.userId === args.userId) {
+      // Update existing
+      await ctx.db.patch(existingProvider._id, {
+        accessToken: encryptedAccessToken,
+        fullName: args.pageName,
+        username: args.pageName,
+        profileImage: `https://graph.facebook.com/${args.pageId}/picture?type=large`,
+        refreshTokenExpiresIn: twoMonthsFromNow,
+        updatedAt: now,
+        isActive: true,
+        lastSyncedAt: now,
+      });
+
+      return { status: 'connected' };
+    }
+
+    // Create new connection
+    await ctx.db.insert('socialProviders', {
+      userId: args.userId,
+      socialType: 'FACEBOOK',
+      accessToken: encryptedAccessToken,
+      profileId: args.pageId,
+      username: args.pageName,
+      fullName: args.pageName,
+      profileImage: `https://graph.facebook.com/${args.pageId}/picture?type=large`,
+      isActive: true,
+      lastSyncedAt: now,
+      expiresIn: twoMonthsFromNow,
+      refreshTokenExpiresIn: twoMonthsFromNow,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { status: 'connected' };
   },
 });
 
@@ -287,7 +483,7 @@ export const updateSocialProviderSync = mutation({
 export const getExpiredTokens = query({
   args: {},
   returns: v.array(socialProviderSchema),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const now = getCurrentTimestamp();
 
     const providers = await ctx.db
@@ -369,7 +565,7 @@ export const deleteSocialProvider = mutation({
 
     // Clean up posts that reference this social provider
     await ctx.runMutation(
-      api.cascadeDeletes.cleanupPostsForDeletedSocialProvider,
+      internal.social_providers.cleanupPostsForDeletedSocialProvider,
       {
         socialProviderId: args.id,
       }

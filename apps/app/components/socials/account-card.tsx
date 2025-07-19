@@ -1,7 +1,6 @@
 'use client';
 
-import type { SocialProvider } from '@delulu/database';
-import type { SocialType } from '@delulu/database/schema';
+import type { SocialProvider, SocialType } from '@/types/convex';
 import {} from '@delulu/design-system/components/ui/alert-dialog';
 import {
   Avatar,
@@ -39,15 +38,13 @@ import {
 import { useState } from 'react';
 import DeleteAlertDialog from '../alerts/delete-post';
 
-function formatTimeAgo(date: Date | null): string {
-  if (!date) {
+function formatTimeAgo(timestamp: number | null | undefined): string {
+  if (!timestamp) {
     return 'Never';
   }
 
-  const now = new Date();
-  const diffInMinutes = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60)
-  );
+  const now = Date.now();
+  const diffInMinutes = Math.floor((now - timestamp) / (1000 * 60));
 
   if (diffInMinutes < 1) {
     return 'Just now';
@@ -65,16 +62,16 @@ function formatTimeAgo(date: Date | null): string {
   return `${diffInDays}d ago`;
 }
 
-function isExpiringSoon(expiresIn: Date): boolean {
-  const now = new Date();
-  const diffInDays = Math.floor(
-    (expiresIn.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  );
+function isExpiringSoon(expiresIn: number | undefined): boolean {
+  if (!expiresIn) return false;
+  const now = Date.now();
+  const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
   return diffInDays <= 7 && diffInDays > 0;
 }
 
-function isExpired(expiresIn: Date): boolean {
-  return new Date() > expiresIn;
+function isExpired(expiresIn: number | undefined): boolean {
+  if (!expiresIn) return false;
+  return Date.now() > expiresIn;
 }
 
 interface AccountCardProps {
@@ -92,12 +89,8 @@ export function AccountCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
-  const isAccountExpired = account.refreshTokenExpiresIn
-    ? isExpired(account.refreshTokenExpiresIn)
-    : false;
-  const isAccountExpiringSoon = account.refreshTokenExpiresIn
-    ? isExpiringSoon(account.refreshTokenExpiresIn)
-    : false;
+  const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
+  const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
 
   return (
     <Card className="group hover:-translate-y-0.5 background-blue-sm background-blur shadow-sm transition-all duration-300 hover:bg-card/80 hover:shadow-md">
@@ -229,7 +222,7 @@ export function AccountCard({
         onOpenChange={setDeleteDialogOpen}
         onConfirm={() => {
           setIsDeleting(true);
-          onDelete(account.id);
+          onDelete(account._id);
         }}
         title="Delete Account"
         description="Are you sure you want to delete this account? This action cannot be undone."
