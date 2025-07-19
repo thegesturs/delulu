@@ -29,6 +29,8 @@ export const noseconeOptions: NoseconeOptions = {
         ...noseconeDefaults.contentSecurityPolicy.directives.connectSrc,
         'https://*.google-analytics.com',
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
+        'https://*.convex.cloud',
+        'wss://*.convex.cloud',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,

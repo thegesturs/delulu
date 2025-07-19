@@ -4,7 +4,6 @@ import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@delulu/database/convex/_generated/api';
-import { useQuery } from 'convex/react';
 import { PostStatus } from '@delulu/database/schema/types';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
@@ -25,6 +24,7 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
+import { useQuery } from 'convex/react';
 import { LayoutGrid, List, Plus } from 'lucide-react';
 import React from 'react';
 import PostLoading from './post-loading';
@@ -43,14 +43,9 @@ export default function PostsPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
 
   const postsData = useQuery(api.posts.getPosts, {
-    filters: {
-      status: statusFilter !== 'all' ? statusFilter : undefined,
-      // searchTerm: searchTerm || undefined,
-    },
-    pagination: {
-      take: ITEMS_PER_PAGE,
-      skip: (currentPage - 1) * ITEMS_PER_PAGE,
-    },
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    limit: ITEMS_PER_PAGE,
+    offset: (currentPage - 1) * ITEMS_PER_PAGE,
   });
 
   const isLoading = postsData === undefined;
@@ -151,7 +146,7 @@ export default function PostsPage() {
         </Header>
         <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
           <h3 className="font-semibold">Error loading posts</h3>
-          <p>{error.message}</p>
+          <p>Failed to load posts. Please try again later.</p>
         </div>
       </div>
     );
