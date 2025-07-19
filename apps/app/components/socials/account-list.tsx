@@ -1,6 +1,7 @@
 'use client';
 
-import type { SocialProvider, SocialType } from '@delulu/database/schema';
+import type { SocialProvider } from '@/types/convex';
+import type { SocialType } from '@delulu/database/convex/utils';
 import { Search } from 'lucide-react';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
 
@@ -41,7 +42,7 @@ export function AccountList({
     >
       {accounts.map((account) => (
         <AccountCard
-          key={account.id}
+          key={account._id}
           account={account}
           onConnect={onConnect}
           onDelete={onDelete}

@@ -1,7 +1,6 @@
 'use client';
 
 import { api } from '@delulu/database/convex/_generated/api';
-import { useMutation } from 'convex/react';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
@@ -17,7 +16,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@delulu/design-system/components/ui/tooltip';
-import { socialIcons } from '@delulu/design-system/lib/social-config';
+import { useMutation } from 'convex/react';
 import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -36,7 +35,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
   const [openDeletePost, setOpenDeletePost] = React.useState(false);
   const router = useRouter();
-  
+
   const softDeletePost = useMutation(api.posts.deletePost);
   const publishPost = useMutation(api.social_providers.createPostFromPostId);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -194,8 +193,8 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               {/* Social Icons - flex-shrink-0 */}
               <div className="flex flex-shrink-0 items-center gap-1.5">
                 {post.socialProviderIds.slice(0, 3).map((providerId, index) => (
-                  <div 
-                    key={providerId} 
+                  <div
+                    key={providerId}
                     className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs"
                     title={`Social account ${index + 1}`}
                   >
@@ -268,18 +267,20 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                   </div>
                 )}
                 <div className="flex items-center gap-1.5">
-                  {post.socialProviderIds.slice(0, 3).map((providerId, index) => (
-                    <Tooltip key={providerId}>
-                      <TooltipTrigger>
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
-                          {index + 1}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Social account {index + 1}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
+                  {post.socialProviderIds
+                    .slice(0, 3)
+                    .map((providerId, index) => (
+                      <Tooltip key={providerId}>
+                        <TooltipTrigger>
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
+                            {index + 1}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Social account {index + 1}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
                   {post.socialProviderIds.length > 3 && (
                     <Tooltip>
                       <TooltipTrigger>

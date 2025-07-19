@@ -38,8 +38,6 @@ export function PostPreviewDialog({
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
 
-  console.log(post.platformPosts, post.postToSocialProviders);
-
   return (
     <Dialog {...{ open, onOpenChange }}>
       <DialogContent className="max-w-2xl">
@@ -88,24 +86,24 @@ export function PostPreviewDialog({
 
           {/* Social Providers */}
           <div className="space-y-3">
-            {post.platformPosts?.length > 0 && (
+            {post.platformPosts && post.platformPosts?.length > 0 && (
               <h3 className="font-medium">Publishing to:</h3>
             )}
             <div className="grid gap-3">
-              {post.postToSocialProviders.map((provider) => {
-                const socialType = provider.socialProvider.socialType;
+              {post.socialProviders.map((provider) => {
+                const socialType = provider.socialType;
                 // Skip unsupported platforms
                 if (!Object.keys(socialDisplayNames).includes(socialType)) {
                   return null;
                 }
 
                 const platformPostUrl = post.platformPosts?.find(
-                  (pp) => pp.socialProviderId === provider.socialProvider.id
+                  (pp) => pp.socialProviderId === provider._id
                 )?.platformPostUrl;
 
                 return (
                   <div
-                    key={provider.socialProvider.profileId}
+                    key={provider._id}
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="flex items-center gap-3">
@@ -115,19 +113,19 @@ export function PostPreviewDialog({
                       />
                       <div className="flex flex-col">
                         <span className="font-medium">
-                          {provider.socialProvider.username ||
+                          {provider.username ||
                             socialDisplayNames[
                               socialType as SupportedSocialPlatform
                             ]}
                         </span>
-                        {!provider.socialProvider.isActive && (
+                        {!provider.isActive && (
                           <span className="text-muted-foreground text-sm">
                             Not connected
                           </span>
                         )}
                       </div>
                     </div>
-                    {provider.socialProvider.isActive &&
+                    {provider.isActive &&
                       post.status === 'PUBLISHED' &&
                       platformPostUrl && (
                         <Button variant="outline" size="sm" asChild>

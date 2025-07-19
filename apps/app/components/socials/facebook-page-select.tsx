@@ -1,7 +1,6 @@
 'use client';
 
-import { api } from '@delulu/database/convex/_generated/api';
-import { useMutation } from 'convex/react';
+import { api } from '@/trpc/react';
 import {
   Avatar,
   AvatarFallback,
@@ -9,6 +8,7 @@ import {
 } from '@delulu/design-system/components/ui/avatar';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
+import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,6 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
-import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -48,38 +47,37 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
-  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
-  const connectPage = useMutation(api.social_providers.connectFacebookPage);
+  const { mutate: connectPage, isPending } =
+    api.socialProvider.connectFacebookPage.useMutation({
+      onSuccess: () => {
+        router.push('/socials?success=true&provider=facebook');
+      },
+      onError: (error) => {
+        router.push(
+          `/socials?error=${error.message}&code=FACEBOOK_006&provider=facebook`
+        );
+      },
+    });
 
   const handleCancel = () => {
     setIsCancelling(true);
     router.push('/socials?error=user_cancelled&provider=facebook');
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     const selectedPage = pages.find((page) => page.id === selectedPageId);
     if (!selectedPage) {
       toast.error('No page selected');
       return;
     }
 
-    setIsPending(true);
-    try {
-      await connectPage({
-        pageId: selectedPage.id,
-        pageName: selectedPage.name,
-        code,
-      });
-      router.push('/socials?success=true&provider=facebook');
-    } catch (error: any) {
-      router.push(
-        `/socials?error=${error.message}&code=FACEBOOK_006&provider=facebook`
-      );
-    } finally {
-      setIsPending(false);
-    }
+    connectPage({
+      pageId: selectedPage.id,
+      pageName: selectedPage.name,
+      code,
+    });
   };
 
   const filteredPages = pages.filter(

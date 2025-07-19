@@ -1,5 +1,13 @@
 import { v } from 'convex/values';
-import { postStatusSchema, postReviewStatusSchema, privacyStatusSchema, mediaTypeSchema, contentSchema, alternativeContentSchema } from './enums';
+import {
+  alternativeContentSchema,
+  contentSchema,
+  mediaTypeSchema,
+  postReviewStatusSchema,
+  postStatusSchema,
+  privacyStatusSchema,
+} from './enums';
+import { socialProviderSchema } from './social_providers';
 
 // ============================================================================
 // PLATFORM POSTS SCHEMAS (Embedded in Posts)
@@ -44,6 +52,17 @@ export const basePostSchema = v.object({
 export const postSchema = v.object({
   _id: v.id('posts'),
   ...basePostSchema.fields,
+});
+
+export const getPostByIdSchema = v.object({
+  ...postSchema.fields,
+  socialProviders: v.array(socialProviderSchema),
+  alternativeContent: v.array(
+    v.object({
+      ...alternativeContentSchema.fields,
+      socialProvider: socialProviderSchema,
+    })
+  ),
 });
 
 // Post creation schema (subset for mutations)

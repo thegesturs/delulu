@@ -1,7 +1,6 @@
 'use client';
 
 import type { SocialProvider, SocialType } from '@/types/convex';
-import {} from '@delulu/design-system/components/ui/alert-dialog';
 import {
   Avatar,
   AvatarFallback,

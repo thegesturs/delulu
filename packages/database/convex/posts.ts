@@ -9,6 +9,7 @@ import {
 import {
   alternativeContentSchema,
   contentSchema,
+  getPostByIdSchema,
   paginatedPostsSchema,
   postCreateSchema,
   postFiltersSchema,
@@ -37,14 +38,59 @@ const findPostById = async (
 // Post queries
 export const getPostById = query({
   args: { id: v.id('posts') },
-  returns: v.union(postSchema, v.null()),
+  returns: v.union(getPostByIdSchema, v.null()),
   handler: async (ctx, args) => {
     const post = await ctx.db
       .query('posts')
       .withIndex('by_id', (q) => q.eq('_id', args.id))
       .unique();
 
-    return post;
+    if (!post) {
+      return null;
+    }
+
+    // Get social providers for the post
+    const socialProviders = await Promise.all(
+      post.socialProviderIds.map(async (id) => {
+        const provider = await ctx.db.get(id);
+        if (!provider) {
+          return null;
+        }
+        return provider;
+      })
+    );
+
+    // Filter out any null providers
+    const validSocialProviders = socialProviders.filter(
+      (p): p is NonNullable<typeof p> => p !== null
+    );
+
+    // Get alternative content with their social providers
+    const alternativeContent = post.alternativeContent || [];
+    const alternativeContentWithProviders = await Promise.all(
+      alternativeContent.map(async (alt) => {
+        const provider = await ctx.db.get(alt.socialProviderId);
+        if (!provider) {
+          return null;
+        }
+        return {
+          content: alt.content,
+          socialProviderId: alt.socialProviderId,
+          socialProvider: provider,
+        };
+      })
+    );
+
+    // Filter out any null alternative content
+    const validAlternativeContent = alternativeContentWithProviders.filter(
+      (a): a is NonNullable<typeof a> => a !== null
+    );
+
+    return {
+      ...post,
+      socialProviders: validSocialProviders,
+      alternativeContent: validAlternativeContent,
+    };
   },
 });
 

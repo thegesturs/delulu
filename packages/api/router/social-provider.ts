@@ -3,12 +3,10 @@ import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
   alternatePostContent,
   database,
-  postQueries,
   posts,
-  socialProviders,
   socialQueries,
 } from '@delulu/database';
-import { and, eq, ne } from '@delulu/database';
+import {} from '@delulu/database';
 import { decryptData } from '@delulu/database/encrypt';
 import {
   FacebookPageConnectionSchema,
@@ -16,6 +14,7 @@ import {
   FacebookPagesWithTokenSchema,
 } from '@delulu/validators/facebook';
 
+import { api } from '@delulu/database/convex/_generated/api';
 import {
   type SavePostInputType,
   SocialTypeSchema,
@@ -25,6 +24,27 @@ import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure, publicProcedure } from '../trpc';
+
+// Add type imports
+import type { SocialType } from '@delulu/database/convex/utils';
+
+// Define interfaces for the provider and alt objects
+interface PostToSocialProvider {
+  socialProvider: {
+    id: string;
+    fullName: string;
+    socialType: SocialType;
+  };
+}
+
+interface AlternateContent {
+  socialProvider: {
+    id: string;
+    fullName: string;
+    socialType: SocialType;
+  };
+  content: string;
+}
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -97,9 +117,11 @@ export const socialProviderRouter = {
         postId: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Get the post with its related data
-      const post = await postQueries.getPostById(input.postId);
+      const post = await ctx.db.query(api.posts.getPostById, {
+        postId: input.postId,
+      });
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -112,19 +134,23 @@ export const socialProviderRouter = {
       const postData: SavePostInputType = {
         id: post.id,
         content: post.content,
-        socialProviders: post.postToSocialProviders.map((provider) => ({
-          socialId: provider.socialProvider.id,
-          name: provider.socialProvider.fullName,
-          socialType: provider.socialProvider.socialType,
-        })),
-        alternativeContent: post.alternateContents.map((alt) => ({
-          socialProvider: {
-            socialId: alt.socialProvider.id,
-            name: alt.socialProvider.fullName,
-            socialType: alt.socialProvider.socialType,
-          },
-          content: alt.content,
-        })),
+        socialProviders: post.postToSocialProviders.map(
+          (provider: PostToSocialProvider) => ({
+            socialId: provider.socialProvider.id,
+            name: provider.socialProvider.fullName,
+            socialType: provider.socialProvider.socialType,
+          })
+        ),
+        alternativeContent: post.alternateContents.map(
+          (alt: AlternateContent) => ({
+            socialProvider: {
+              socialId: alt.socialProvider.id,
+              name: alt.socialProvider.fullName,
+              socialType: alt.socialProvider.socialType,
+            },
+            content: alt.content,
+          })
+        ),
       };
 
       //TODO: Make this work using AWS SQS
@@ -199,64 +225,12 @@ export const socialProviderRouter = {
         });
       }
 
-      // Check if this Facebook page is already connected to a different user
-      const existingProvider = await database
-        .select()
-        .from(socialProviders)
-        .where(
-          and(
-            eq(socialProviders.profileId, input.pageId),
-            ne(socialProviders.userId, userId)
-          )
-        )
-        .limit(1);
-
-      // If found, handle the transfer using encrypted update
-      if (existingProvider.length > 0) {
-        await socialQueries.updateSocialProviderWithEncryption(
-          existingProvider[0].id,
-          {
-            userId,
-            accessToken: pageAccessToken,
-            fullName: input.pageName,
-            username: input.pageName,
-            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-            refreshTokenExpiresIn: new Date(
-              Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-            ),
-            updatedAt: new Date(),
-            isActive: true,
-            lastSyncedAt: new Date(),
-          }
-        );
-
-        return { status: 'transferred' };
-      }
-
-      // Upsert the social provider using conflict resolution with encryption
-      await socialQueries.upsertSocialProviderWithEncryption(
-        {
-          userId,
-          socialType: 'FACEBOOK',
-          accessToken: pageAccessToken,
-          profileId: input.pageId,
-          username: input.pageName,
-          fullName: input.pageName,
-          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-          isActive: true,
-          lastSyncedAt: new Date(),
-          expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
-        },
-        {
-          accessToken: pageAccessToken,
-          fullName: input.pageName,
-          username: input.pageName,
-          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
+      await ctx.db.mutation(api.social_providers.connectFacebookPage, {
+        userId,
+        pageId: input.pageId,
+        pageName: input.pageName,
+        accessToken: pageAccessToken,
+      });
 
       return { status: 'connected' };
     }),

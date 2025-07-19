@@ -183,7 +183,6 @@ export const createPostFromPostId = mutation({
   },
 });
 
-// Function to connect a Facebook page (called by tRPC with real data)
 export const connectFacebookPage = mutation({
   args: {
     userId: v.id('users'),
@@ -221,7 +220,7 @@ export const connectFacebookPage = mutation({
         lastSyncedAt: now,
       });
 
-      return { status: 'transferred' };
+      return { status: 'transferred' as const };
     }
 
     if (existingProvider && existingProvider.userId === args.userId) {
@@ -237,7 +236,7 @@ export const connectFacebookPage = mutation({
         lastSyncedAt: now,
       });
 
-      return { status: 'connected' };
+      return { status: 'connected' as const };
     }
 
     // Create new connection
@@ -257,7 +256,7 @@ export const connectFacebookPage = mutation({
       updatedAt: now,
     });
 
-    return { status: 'connected' };
+    return { status: 'connected' as const };
   },
 });
 

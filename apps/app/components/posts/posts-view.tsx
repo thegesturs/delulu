@@ -18,7 +18,7 @@ export function PostsView({ posts, layout = 'grid' }: PostsViewProps) {
         }
       >
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} layout={layout} />
+          <PostCard key={post._id} post={post} layout={layout} />
         ))}
       </div>
     </div>

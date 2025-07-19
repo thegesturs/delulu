@@ -52,7 +52,7 @@ export const createTRPCContext = async (opts: TRPCContext) => {
 
   return {
     // env: opts.env,
-    db: database,
+    db: convex,
     userId,
     // organizationId,
     // cache,
