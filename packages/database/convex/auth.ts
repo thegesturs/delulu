@@ -63,6 +63,7 @@ export const getCurrentUser = query({
   handler: async (ctx) => {
     // Get user data from Better Auth - email, name, image, etc.
     const userMetadata = await betterAuthComponent.getAuthUser(ctx);
+    console.log('userMetadata', userMetadata);
 
     // Get user data from your application's database
     // (skip this if you have no fields in your users table schema)

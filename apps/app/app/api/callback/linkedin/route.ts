@@ -1,13 +1,7 @@
 import { env } from '@/env';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
+import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
+import { api } from '@delulu/database/convex/_generated/api';
+import { convex } from '@delulu/database/server';
 import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -95,48 +89,22 @@ async function generateUniqueUsername(
 
 /**
  * Ensures username uniqueness by checking against existing usernames
+ * For now, simplified to use random suffix - could be enhanced with Convex query later
  */
 async function ensureUniqueUsername(
   baseUsername: string
 ): Promise<string | null> {
   if (!baseUsername || baseUsername.length < 2) return null;
 
-  // Check if base username is available
-  const existing = await database
-    .select({ username: socialProviders.username })
-    .from(socialProviders)
-    .where(eq(socialProviders.username, baseUsername))
-    .limit(1);
-
-  if (existing.length === 0) {
-    return baseUsername;
-  }
-
-  // Try with numeric suffixes
-  for (let i = 1; i <= 99; i++) {
-    const candidateUsername = `${baseUsername}${i}`;
-    const existingWithSuffix = await database
-      .select({ username: socialProviders.username })
-      .from(socialProviders)
-      .where(eq(socialProviders.username, candidateUsername))
-      .limit(1);
-
-    if (existingWithSuffix.length === 0) {
-      return candidateUsername;
-    }
-  }
-
-  // If all numeric suffixes are taken, append a random string
+  // For now, use a random suffix to ensure uniqueness
+  // This could be enhanced later with a Convex query to check existing usernames
   return `${baseUsername}_${nanoid(4).toLowerCase()}`;
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-
-    if (!session?.user?.id) {
+    const token = await getToken(createAuth);
+    if (!token) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
@@ -145,7 +113,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    if (!user?._id) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=user_not_found&code=AUTH_002&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
+    const userId = user._id;
 
     if (!code) {
       return NextResponse.redirect(
@@ -214,39 +194,25 @@ export async function GET(request: NextRequest) {
       userObject.profilePicture?.['displayImage~']?.elements[0]?.identifiers[0]
         ?.identifier;
 
-    // Check if this LinkedIn account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, userObject.id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await convex.mutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        userId,
+        socialType: 'LINKEDIN',
+        accessToken: access_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: userObject.id,
+        username: username,
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        profileImage: profileImage ?? '/images/user.png',
+        isActive: true,
+      }
+    );
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: access_token,
-          refreshToken: null, // LinkedIn doesn't provide refresh tokens
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          username: username,
-          profileImage: profileImage,
-          updatedAt: new Date(),
-          isActive: true,
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return NextResponse.redirect(
         new URL(
           '/socials?notification=account_transferred&platform=linkedin',
@@ -254,42 +220,6 @@ export async function GET(request: NextRequest) {
         )
       );
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        userId,
-        socialType: 'LINKEDIN',
-        accessToken: access_token,
-        refreshToken: null, // LinkedIn doesn't provide refresh tokens
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        profileId: userObject.id,
-        username: username,
-        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-        profileImage: profileImage,
-        isActive: true,
-        lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-        ),
-      },
-      {
-        accessToken: access_token,
-        refreshToken: null,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-        username: username,
-        profileImage: profileImage,
-        updatedAt: new Date(),
-        isActive: true,
-        lastSyncedAt: new Date(),
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-        ),
-      }
-    );
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

@@ -1,6 +1,7 @@
 'use client';
 
 import type { SocialProvider } from '@/types/convex';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import type { SocialType } from '@delulu/database/convex/utils';
 import { Search } from 'lucide-react';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
@@ -9,7 +10,7 @@ interface AccountListProps {
   accounts: SocialProvider[];
   viewMode: 'grid' | 'list';
   onConnect: (platform: SocialType) => void;
-  onDelete: (socialId: string) => void;
+  onDelete: (socialId: Id<'socialProviders'>) => void;
 }
 
 export function AccountList({

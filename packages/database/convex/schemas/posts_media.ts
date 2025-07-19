@@ -41,6 +41,7 @@ export const basePostSchema = v.object({
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
   socialProviderIds: v.array(v.id('socialProviders')),
   platformPosts: v.optional(v.array(embeddedPlatformPostSchema)),
+  searchableText: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
   publishedAt: v.optional(v.number()),

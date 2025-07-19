@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@delulu/database/convex/_generated/api';
+import {api as TrpcApi} from '@/trpc/react'
 import { useQuery, useMutation } from 'convex/react';
 import type { SocialProvider, SocialType } from '@/types/convex';
 import { Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { AccountFilters } from './account-filter';
 import { AccountList } from './account-list';
 import { AccountStats } from './account-stats';
 import { ConnectedAccountsHeader } from './connect-account-header';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
@@ -36,8 +38,16 @@ export default function ConnectedAccounts() {
   const accounts = useQuery(api.social_providers.getConnectedAccounts);
   const isLoadingAccounts = accounts === undefined;
 
-  const connectAccount = useMutation(api.social_providers.getSocialProviderConnectUrl);
   const deleteSocial = useMutation(api.social_providers.deleteSocial);
+  const {mutateAsync: connectAccount} = TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data;
+    },
+    onError: (error) => {
+      toast.error('Failed to get connect URL');
+      console.error(error);
+    },
+  })
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -95,7 +105,7 @@ export default function ConnectedAccounts() {
     }
   };
 
-  const handleDeleteSocial = (socialId: string) => {
+  const handleDeleteSocial = (socialId: Id<'socialProviders'>) => {
     deleteSocial({ socialId })
       .then(() => {
         toast.success('Account deleted successfully');

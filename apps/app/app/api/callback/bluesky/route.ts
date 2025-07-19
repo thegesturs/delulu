@@ -1,13 +1,6 @@
 import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
+import { convex } from '@delulu/database/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -29,9 +22,9 @@ interface BlueskyProfile {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const user = await convex.query(api.auth.getCurrentUser);
 
-    if (!session?.user?.id) {
+    if (!user?._id) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -41,7 +34,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userId = session.user.id;
+    const userId = user._id;
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -128,39 +121,23 @@ export async function GET(request: NextRequest) {
 
     const profileData = (await profileResponse.json()) as BlueskyProfile;
 
-    // Check if this Bluesky account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, tokenData.did),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
+      userId,
+      socialType: 'BLUESKY',
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
+      refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+      profileId: tokenData.did,
+      username: tokenData.handle,
+      fullName: profileData.displayName || tokenData.handle,
+      profileImage: profileData.avatar,
+      isActive: true,
+    });
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresIn: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours default
-          fullName: profileData.displayName || tokenData.handle,
-          username: tokenData.handle,
-          profileImage: profileData.avatar,
-          updatedAt: new Date(),
-          isActive: true,
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
-          ),
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -169,37 +146,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        userId,
-        socialType: 'BLUESKY',
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresIn: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours default
-        profileId: tokenData.did,
-        username: tokenData.handle,
-        fullName: profileData.displayName || tokenData.handle,
-        profileImage: profileData.avatar,
-        isActive: true,
-        lastSyncedAt: new Date(),
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
-        ),
-      },
-      {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresIn: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        fullName: profileData.displayName || tokenData.handle,
-        username: tokenData.handle,
-        profileImage: profileData.avatar,
-        isActive: true,
-        lastSyncedAt: new Date(),
-        refreshTokenExpiresIn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      }
-    );
 
     return new NextResponse(null, {
       status: 302,

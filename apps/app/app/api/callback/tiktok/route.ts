@@ -1,13 +1,6 @@
 import { env } from '@/env';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
+import { convex } from '@delulu/database/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -46,7 +39,7 @@ const fetchWithTimeout = async (
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const user = await convex.query(api.auth.getCurrentUser);
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
@@ -54,7 +47,7 @@ export async function GET(request: NextRequest) {
     console.log('code', code);
     console.log('state', state);
 
-    if (!session?.user?.id) {
+    if (!user?._id) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=TIKTOK',
@@ -63,7 +56,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    const userId = user._id;
 
     if (!state || !code) {
       return NextResponse.redirect(
@@ -129,36 +122,22 @@ export async function GET(request: NextRequest) {
 
     const { display_name, avatar_url } = userData.data.user;
 
-    // Check if this TikTok account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, open_id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
+      userId,
+      socialType: 'TIKTOK',
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      expiresIn: Date.now() + expires_in * 1000,
+      profileId: open_id,
+      username: display_name,
+      fullName: display_name,
+      profileImage: avatar_url,
+      isActive: true,
+    });
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: display_name,
-          username: display_name,
-          profileImage: avatar_url,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return NextResponse.redirect(
         new URL(
           '/socials?notification=account_transferred&platform=tiktok',
@@ -166,33 +145,6 @@ export async function GET(request: NextRequest) {
         )
       );
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        userId,
-        socialType: 'TIKTOK',
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        profileId: open_id,
-        username: display_name,
-        fullName: display_name,
-        profileImage: avatar_url,
-        isActive: true,
-        lastSyncedAt: new Date(),
-      },
-      {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: display_name,
-        username: display_name,
-        profileImage: avatar_url,
-        isActive: true,
-        lastSyncedAt: new Date(),
-      }
-    );
 
     return NextResponse.redirect(
       new URL('/socials?success=true&provider=TIKTOK', env.NEXT_PUBLIC_APP_URL)

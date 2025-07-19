@@ -24,7 +24,12 @@ export default defineSchema({
       'organizationId',
       'isDeleted',
     ])
-    .index('by_user_created', ['userId', 'createdAt']),
+    .index('by_user_created', ['userId', 'createdAt'])
+    // Search index for full-text search
+    .searchIndex('search_content', {
+      searchField: 'searchableText',
+      filterFields: ['userId', 'status', 'isDeleted', 'organizationId'],
+    }),
 
   // Social Providers table
   socialProviders: defineTable(baseSocialProviderSchema.fields)

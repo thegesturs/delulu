@@ -1,3 +1,4 @@
+import { type PaginationResult, paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
 import {
@@ -7,14 +8,26 @@ import {
   query,
 } from './_generated/server';
 import { betterAuthComponent } from './auth';
+
+// Helper function to extract searchable text from post content
+function extractSearchableText(
+  content: Doc<'posts'>['content'],
+  alternativeContent?: Doc<'posts'>['alternativeContent']
+): string {
+  const mainText = content.map((c) => c.text || '').filter(Boolean);
+  const altText =
+    alternativeContent
+      ?.flatMap((alt) => alt.content?.map((c) => c.text || '') || [])
+      .filter(Boolean) || [];
+
+  return [...mainText, ...altText].join(' ').trim();
+}
 import {
   alternativeContentSchema,
   contentSchema,
   getPostByIdSchema,
-  paginatedPostsSchema,
   postCreateSchema,
   postFiltersSchema,
-  postSchema,
   postUpdateSchema,
 } from './schemas';
 import { getCurrentTimestamp } from './utils';
@@ -95,84 +108,6 @@ export const getPostById = query({
   },
 });
 
-export const getPostsByUserId = query({
-  args: {
-    userId: v.id('users'),
-    ...postFiltersSchema.fields,
-  },
-  returns: paginatedPostsSchema,
-  handler: async (ctx, args) => {
-    const query = ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId));
-
-    const posts = await query.collect();
-
-    // Filter posts based on criteria
-    const filteredPosts = posts.filter((post) => {
-      if (args.status && post.status !== args.status) return false;
-      if (args.privacyStatus && post.privacyStatus !== args.privacyStatus)
-        return false;
-      if (args.reviewStatus && post.reviewStatus !== args.reviewStatus)
-        return false;
-      if (args.organizationId && post.organizationId !== args.organizationId)
-        return false;
-      if (args.isDeleted !== undefined && post.isDeleted !== args.isDeleted)
-        return false;
-      return true;
-    });
-
-    // Sort by creation date (newest first)
-    filteredPosts.sort((a, b) => b.createdAt - a.createdAt);
-
-    const total = filteredPosts.length;
-
-    // Apply pagination
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
-    const paginatedPosts = filteredPosts.slice(offset, offset + limit);
-
-    return {
-      posts: paginatedPosts,
-      total,
-    };
-  },
-});
-
-export const getScheduledPosts = query({
-  args: {
-    organizationId: v.optional(v.string()),
-    limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
-  },
-  returns: v.array(postSchema),
-  handler: async (ctx, args) => {
-    const query = ctx.db
-      .query('posts')
-      .withIndex('by_status', (q) => q.eq('status', 'SCHEDULED'));
-
-    const posts = await query.collect();
-
-    // Filter for future scheduled posts and optionally by organization
-    const now = getCurrentTimestamp();
-    const filteredPosts = posts.filter((post) => {
-      if (!post.scheduledAt || post.scheduledAt <= now) return false;
-      if (args.organizationId && post.organizationId !== args.organizationId)
-        return false;
-      return true;
-    });
-
-    // Sort by scheduled date (earliest first)
-    filteredPosts.sort((a, b) => (a.scheduledAt || 0) - (b.scheduledAt || 0));
-
-    // Apply pagination
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
-
-    return filteredPosts.slice(offset, offset + limit);
-  },
-});
-
 export const createPost = mutation({
   args: postCreateSchema.fields,
   returns: v.id('posts'),
@@ -195,6 +130,10 @@ export const createPost = mutation({
       content: args.content,
       alternativeContent: args.alternativeContent,
       socialProviderIds: args.socialProviderIds,
+      searchableText: extractSearchableText(
+        args.content,
+        args.alternativeContent
+      ),
       createdAt: now,
       updatedAt: now,
       retryCount: 0,
@@ -267,54 +206,12 @@ export const updatePostContent = mutation({
     await ctx.db.patch(post._id, {
       content: args.content,
       alternativeContent: args.alternativeContent,
+      searchableText: extractSearchableText(
+        args.content,
+        args.alternativeContent
+      ),
       updatedAt: getCurrentTimestamp(),
     });
-
-    return true;
-  },
-});
-
-export const markPostAsPublished = mutation({
-  args: {
-    id: v.id('posts'),
-    publishedAt: v.optional(v.number()),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.id);
-
-    await ctx.db.patch(post._id, {
-      status: 'PUBLISHED',
-      publishedAt: args.publishedAt || getCurrentTimestamp(),
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
-export const markPostAsFailed = mutation({
-  args: {
-    id: v.id('posts'),
-    failureReason: v.string(),
-    incrementRetryCount: v.optional(v.boolean()),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.id);
-
-    const updateData: Partial<Doc<'posts'>> = {
-      status: 'FAILED',
-      postFailureReason: args.failureReason,
-      lastFailedAt: getCurrentTimestamp(),
-      updatedAt: getCurrentTimestamp(),
-    };
-
-    if (args.incrementRetryCount) {
-      updateData.retryCount = post.retryCount + 1;
-    }
-
-    await ctx.db.patch(post._id, updateData);
 
     return true;
   },
@@ -336,34 +233,6 @@ export const addSocialProviderToPost = mutation({
 
     await ctx.db.patch(post._id, {
       socialProviderIds: [...post.socialProviderIds, args.socialProviderId],
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
-export const removeSocialProviderFromPost = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-
-    const updatedSocialProviderIds = post.socialProviderIds.filter(
-      (id) => id !== args.socialProviderId
-    );
-
-    // Also remove any alternative content for this social provider
-    const updatedAlternativeContent = post.alternativeContent?.filter(
-      (alt) => alt.socialProviderId !== args.socialProviderId
-    );
-
-    await ctx.db.patch(post._id, {
-      socialProviderIds: updatedSocialProviderIds,
-      alternativeContent: updatedAlternativeContent,
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -404,28 +273,7 @@ export const updateAlternativeContent = mutation({
 
     await ctx.db.patch(post._id, {
       alternativeContent,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
-export const removeAlternativeContent = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-
-    const updatedAlternativeContent = post.alternativeContent?.filter(
-      (alt) => alt.socialProviderId !== args.socialProviderId
-    );
-
-    await ctx.db.patch(post._id, {
-      alternativeContent: updatedAlternativeContent,
+      searchableText: extractSearchableText(post.content, alternativeContent),
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -500,182 +348,171 @@ export const getPlatformPostsByPostId = query({
   },
 });
 
-export const getPlatformPost = query({
-  args: { postId: v.id('posts'), socialProviderId: v.id('socialProviders') },
-  returns: v.union(
-    v.object({
-      socialProviderId: v.id('socialProviders'),
-      platformPostId: v.optional(v.string()),
-      platformPostUrl: v.optional(v.string()),
-      postedAt: v.optional(v.number()),
-      failureReason: v.optional(v.string()),
-      createdAt: v.number(),
-      updatedAt: v.number(),
-    }),
-    v.null()
-  ),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-    if (!post) return null;
-
-    const platformPost = post.platformPosts?.find(
-      (p) => p.socialProviderId === args.socialProviderId
-    );
-
-    return platformPost || null;
-  },
-});
-
-export const updatePlatformPost = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-    platformPostId: v.optional(v.string()),
-    platformPostUrl: v.optional(v.string()),
-    postedAt: v.optional(v.number()),
-    failureReason: v.optional(v.string()),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-
-    const platformPosts = post.platformPosts || [];
-    const platformPostIndex = platformPosts.findIndex(
-      (p) => p.socialProviderId === args.socialProviderId
-    );
-
-    if (platformPostIndex === -1) {
-      throw new Error('Platform post not found');
-    }
-
-    const now = getCurrentTimestamp();
-    const updatedPlatformPost = {
-      ...platformPosts[platformPostIndex],
-      updatedAt: now,
-    };
-
-    if (args.platformPostId !== undefined) {
-      updatedPlatformPost.platformPostId = args.platformPostId;
-    }
-    if (args.platformPostUrl !== undefined) {
-      updatedPlatformPost.platformPostUrl = args.platformPostUrl;
-    }
-    if (args.postedAt !== undefined) {
-      updatedPlatformPost.postedAt = args.postedAt;
-    }
-    if (args.failureReason !== undefined) {
-      updatedPlatformPost.failureReason = args.failureReason;
-    }
-
-    platformPosts[platformPostIndex] = updatedPlatformPost;
-
-    await ctx.db.patch(post._id, {
-      platformPosts,
-      updatedAt: now,
-    });
-
-    return true;
-  },
-});
-
-export const deletePlatformPost = mutation({
-  args: { postId: v.id('posts'), socialProviderId: v.id('socialProviders') },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-    if (!post) {
-      return false;
-    }
-
-    const platformPosts = post.platformPosts || [];
-    const filteredPlatformPosts = platformPosts.filter(
-      (p) => p.socialProviderId !== args.socialProviderId
-    );
-
-    if (filteredPlatformPosts.length === platformPosts.length) {
-      return false; // Platform post not found
-    }
-
-    await ctx.db.patch(post._id, {
-      platformPosts: filteredPlatformPosts,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
 // Get posts for current user with pagination (used by components)
 export const getPosts = query({
   args: {
     ...postFiltersSchema.fields,
-    paginationOpts: v.object({
-      numItems: v.number(),
-      cursor: v.union(v.string(), v.null()),
-    }),
+    searchTerm: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
   },
-  returns: paginatedPostsSchema,
+  returns: v.object({
+    page: v.array(getPostByIdSchema),
+    isDone: v.boolean(),
+    continueCursor: v.union(v.string(), v.null()),
+  }),
   handler: async (ctx, args) => {
-    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    const userId = (await betterAuthComponent.getAuthUserId(
+      ctx
+    )) as Id<'users'>;
+
     if (!userId) {
-      throw new Error('Unauthorized');
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: null,
+      };
     }
 
-    // Start with the user+created index for efficient sorting
-    let query = ctx.db
-      .query('posts')
-      .withIndex('by_user_created', (q) =>
-        q.eq('userId', userId as Id<'users'>)
-      );
+    let paginationResult: PaginationResult<Doc<'posts'>>;
 
-    // If we have both status and org filters, switch to the compound index
-    if (args.status && args.organizationId) {
-      // Ensure status is not undefined before using it in the index
-      const status = args.status;
-      query = ctx.db.query('posts').withIndex('by_user_status_org', (q) =>
-        q
-          .eq('userId', userId as Id<'users'>)
-          .eq('status', status)
-          .eq('organizationId', args.organizationId)
-          .eq('isDeleted', args.isDeleted ?? false)
-      );
-    } else {
-      // Apply filters individually
-      if (args.status) {
-        query = query.filter((q) => q.eq(q.field('status'), args.status));
-      }
-      if (args.organizationId) {
-        query = query.filter((q) =>
-          q.eq(q.field('organizationId'), args.organizationId)
+    // Use search index when search term is provided
+    if (args.searchTerm) {
+      let searchQuery = ctx.db
+        .query('posts')
+        .withSearchIndex('search_content', (q) => {
+          let sq = q
+            .search('searchableText', args.searchTerm!)
+            .eq('userId', userId)
+            .eq('isDeleted', args.isDeleted ?? false);
+
+          if (args.status) {
+            sq = sq.eq('status', args.status);
+          }
+          if (args.organizationId) {
+            sq = sq.eq('organizationId', args.organizationId);
+          }
+
+          return sq;
+        });
+
+      // Apply additional filters not in search index
+      if (args.privacyStatus) {
+        searchQuery = searchQuery.filter((q) =>
+          q.eq(q.field('privacyStatus'), args.privacyStatus)
         );
       }
-      if (args.isDeleted !== undefined) {
-        query = query.filter((q) => q.eq(q.field('isDeleted'), args.isDeleted));
-      } else {
-        query = query.filter((q) => q.eq(q.field('isDeleted'), false));
+      if (args.reviewStatus) {
+        searchQuery = searchQuery.filter((q) =>
+          q.eq(q.field('reviewStatus'), args.reviewStatus)
+        );
       }
+
+      paginationResult = await searchQuery.paginate(args.paginationOpts);
+    } else {
+      // Use regular index when no search term
+      let query = ctx.db
+        .query('posts')
+        .withIndex('by_user_created', (q) => q.eq('userId', userId));
+
+      // If we have both status and org filters, switch to the compound index
+      if (args.status && args.organizationId) {
+        const status = args.status;
+        query = ctx.db.query('posts').withIndex('by_user_status_org', (q) =>
+          q
+            .eq('userId', userId)
+            .eq('status', status)
+            .eq('organizationId', args.organizationId)
+            .eq('isDeleted', args.isDeleted ?? false)
+        );
+      } else {
+        // Apply filters individually
+        if (args.status) {
+          query = query.filter((q) => q.eq(q.field('status'), args.status));
+        }
+        if (args.organizationId) {
+          query = query.filter((q) =>
+            q.eq(q.field('organizationId'), args.organizationId)
+          );
+        }
+        if (args.isDeleted !== undefined) {
+          query = query.filter((q) =>
+            q.eq(q.field('isDeleted'), args.isDeleted)
+          );
+        } else {
+          query = query.filter((q) => q.eq(q.field('isDeleted'), false));
+        }
+      }
+
+      // Apply remaining filters that aren't part of any index
+      if (args.privacyStatus) {
+        query = query.filter((q) =>
+          q.eq(q.field('privacyStatus'), args.privacyStatus)
+        );
+      }
+      if (args.reviewStatus) {
+        query = query.filter((q) =>
+          q.eq(q.field('reviewStatus'), args.reviewStatus)
+        );
+      }
+
+      // Order by creation date (newest first) and paginate
+      paginationResult = await query
+        .order('desc')
+        .paginate(args.paginationOpts);
     }
 
-    // Apply remaining filters that aren't part of any index
-    if (args.privacyStatus) {
-      query = query.filter((q) =>
-        q.eq(q.field('privacyStatus'), args.privacyStatus)
-      );
-    }
-    if (args.reviewStatus) {
-      query = query.filter((q) =>
-        q.eq(q.field('reviewStatus'), args.reviewStatus)
-      );
-    }
+    // Enrich each post with social providers and alternative content
+    const enrichedPosts = await Promise.all(
+      paginationResult.page.map(async (post: Doc<'posts'>) => {
+        // Get social providers for the post
+        const socialProviders = await Promise.all(
+          post.socialProviderIds.map(async (id) => {
+            const provider = await ctx.db.get(id);
+            if (!provider) {
+              return null;
+            }
+            return provider;
+          })
+        );
 
-    // Order by creation date (newest first) and paginate
-    const paginationResult = await query
-      .order('desc')
-      .paginate(args.paginationOpts);
+        // Filter out any null providers
+        const validSocialProviders = socialProviders.filter(
+          (p): p is NonNullable<typeof p> => p !== null
+        );
+
+        // Get alternative content with their social providers
+        const alternativeContent = post.alternativeContent || [];
+        const alternativeContentWithProviders = await Promise.all(
+          alternativeContent.map(async (alt) => {
+            const provider = await ctx.db.get(alt.socialProviderId);
+            if (!provider) {
+              return null;
+            }
+            return {
+              content: alt.content,
+              socialProviderId: alt.socialProviderId,
+              socialProvider: provider,
+            };
+          })
+        );
+
+        // Filter out any null alternative content
+        const validAlternativeContent = alternativeContentWithProviders.filter(
+          (a): a is NonNullable<typeof a> => a !== null
+        );
+
+        return {
+          ...post,
+          socialProviders: validSocialProviders,
+          alternativeContent: validAlternativeContent,
+        };
+      })
+    );
 
     return {
-      posts: paginationResult.page,
-      total: paginationResult.page.length, // Note: total count might be approximate
+      page: enrichedPosts,
+      isDone: paginationResult.isDone,
+      continueCursor: paginationResult.continueCursor,
     };
   },
 });

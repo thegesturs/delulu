@@ -1,12 +1,5 @@
-/**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1)
- * 2. You want to create a new middleware or type of procedure (see Part 3)
- *
- * tl;dr - this is where all the tRPC server stuff is created and plugged in.
- * The pieces you will need to use are documented accordingly near the end
- */
-import { database } from '@delulu/database';
+import { fetchQuery, getToken } from '@delulu/auth/server';
+import { createAuth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { convex } from '@delulu/database/server';
 import { TRPCError, initTRPC } from '@trpc/server';
@@ -35,7 +28,12 @@ export const createTRPCContext = async (opts: TRPCContext) => {
   // const userAuth = await auth.api.getSession({
   //   headers: opts.headers,
   // });
-  const user = await convex.query(api.auth.getCurrentUser);
+  const token = await getToken(createAuth);
+  if (!token) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'No token provided' });
+  }
+  console.log('>>> Token', token);
+  const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
   const userId = user?._id;
   // const organizationId = userAuth?.session.orgId ?? undefined;
 

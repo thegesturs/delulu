@@ -103,8 +103,6 @@ export const deleteUserWithCascade = mutation({
   args: { userId: v.id('users') },
   returns: v.object({
     success: v.boolean(),
-    deletedSessionsCount: v.number(),
-    deletedAccountsCount: v.number(),
     deletedPostsCount: v.number(),
     deletedSocialProvidersCount: v.number(),
     deletedMediaCount: v.number(),
@@ -121,33 +119,9 @@ export const deleteUserWithCascade = mutation({
       throw new Error('User not found');
     }
 
-    let deletedSessionsCount = 0;
-    let deletedAccountsCount = 0;
     let deletedPostsCount = 0;
     let deletedSocialProvidersCount = 0;
     let deletedMediaCount = 0;
-
-    // Step 1: Delete user's sessions
-    const sessions = await ctx.db
-      .query('sessions')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-      .collect();
-
-    for (const session of sessions) {
-      await ctx.db.delete(session._id);
-      deletedSessionsCount++;
-    }
-
-    // Step 2: Delete user's accounts
-    const accounts = await ctx.db
-      .query('accounts')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-      .collect();
-
-    for (const account of accounts) {
-      await ctx.db.delete(account._id);
-      deletedAccountsCount++;
-    }
 
     // Step 3: Delete user's posts (including platform posts)
     const posts = await ctx.db
@@ -194,12 +168,10 @@ export const deleteUserWithCascade = mutation({
 
     return {
       success: true,
-      deletedSessionsCount,
-      deletedAccountsCount,
       deletedPostsCount,
       deletedSocialProvidersCount,
       deletedMediaCount,
-      message: `Successfully deleted user. Removed ${deletedSessionsCount} sessions, ${deletedAccountsCount} accounts, ${deletedPostsCount} posts, ${deletedSocialProvidersCount} social providers, and ${deletedMediaCount} media items.`,
+      message: `Successfully deleted user. Removed  ${deletedPostsCount} posts, ${deletedSocialProvidersCount} social providers, and ${deletedMediaCount} media items.`,
     };
   },
 });
@@ -384,68 +356,6 @@ export const batchDeleteSocialProviders = mutation({
       deletedCount,
       failedCount,
       message: `Batch delete completed. ${deletedCount} social providers deleted, ${failedCount} failed.`,
-    };
-  },
-});
-
-/**
- * Cleanup expired sessions
- */
-export const cleanupExpiredSessions = mutation({
-  args: {},
-  returns: v.object({
-    success: v.boolean(),
-    deletedCount: v.number(),
-    message: v.string(),
-  }),
-  handler: async (ctx, args) => {
-    const now = getCurrentTimestamp();
-    let deletedCount = 0;
-
-    const sessions = await ctx.db.query('sessions').collect();
-
-    for (const session of sessions) {
-      if (session.expiresAt < now) {
-        await ctx.db.delete(session._id);
-        deletedCount++;
-      }
-    }
-
-    return {
-      success: true,
-      deletedCount,
-      message: `Cleaned up ${deletedCount} expired sessions.`,
-    };
-  },
-});
-
-/**
- * Cleanup expired verifications
- */
-export const cleanupExpiredVerifications = mutation({
-  args: {},
-  returns: v.object({
-    success: v.boolean(),
-    deletedCount: v.number(),
-    message: v.string(),
-  }),
-  handler: async (ctx, args) => {
-    const now = getCurrentTimestamp();
-    let deletedCount = 0;
-
-    const verifications = await ctx.db.query('verifications').collect();
-
-    for (const verification of verifications) {
-      if (verification.expiresAt < now) {
-        await ctx.db.delete(verification._id);
-        deletedCount++;
-      }
-    }
-
-    return {
-      success: true,
-      deletedCount,
-      message: `Cleaned up ${deletedCount} expired verifications.`,
     };
   },
 });

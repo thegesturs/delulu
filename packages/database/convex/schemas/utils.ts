@@ -1,16 +1,15 @@
 import { v } from 'convex/values';
-import { postStatusSchema, postReviewStatusSchema, privacyStatusSchema, mediaTypeSchema } from './enums';
+import {
+  mediaTypeSchema,
+  postReviewStatusSchema,
+  postStatusSchema,
+  privacyStatusSchema,
+} from './enums';
 import { postSchema } from './posts_media';
 
 // ============================================================================
 // UTILITY SCHEMAS FOR QUERIES
 // ============================================================================
-
-// Pagination options
-export const paginationSchema = v.object({
-  limit: v.optional(v.number()),
-  offset: v.optional(v.number()),
-});
 
 // Post filters
 export const postFiltersSchema = v.object({
@@ -19,8 +18,6 @@ export const postFiltersSchema = v.object({
   reviewStatus: v.optional(postReviewStatusSchema),
   organizationId: v.optional(v.string()),
   isDeleted: v.optional(v.boolean()),
-  limit: v.optional(v.number()),
-  offset: v.optional(v.number()),
 });
 
 // Media filters
@@ -45,8 +42,9 @@ export const searchFiltersSchema = v.object({
 // ============================================================================
 
 export const paginatedPostsSchema = v.object({
-  posts: v.array(postSchema),
-  total: v.number(),
+  page: v.array(postSchema),
+  isDone: v.boolean(),
+  continueCursor: v.union(v.string(), v.null()),
 });
 
 export const mediaStatsSchema = v.object({

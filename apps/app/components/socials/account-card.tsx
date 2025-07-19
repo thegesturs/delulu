@@ -1,6 +1,7 @@
 'use client';
 
 import type { SocialProvider, SocialType } from '@/types/convex';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import {
   Avatar,
   AvatarFallback,
@@ -76,7 +77,7 @@ function isExpired(expiresIn: number | undefined): boolean {
 interface AccountCardProps {
   account: SocialProvider;
   onConnect: (platform: SocialType) => void;
-  onDelete: (socialId: string) => void;
+  onDelete: (socialId: Id<'socialProviders'>) => void;
 }
 
 export function AccountCard({

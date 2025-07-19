@@ -1,7 +1,8 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import { encryptData } from '@delulu/database/encrypt';
+import { convex } from '@delulu/database/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -84,9 +85,9 @@ async function getAllPages(
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const user = await convex.query(api.auth.getCurrentUser);
 
-    if (!session?.user?.id) {
+    if (!user._id) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -100,7 +101,6 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
-    const errorDescription = searchParams.get('error_description');
 
     // Handle user denying access
     if (error === 'access_denied' && errorReason === 'user_denied') {
@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Store pages data with a stable key based on user ID and code
-      const key = `fb-pages-${session.user.id}-${code}`;
+      const key = `fb-pages-${user._id}-${code}`;
       const { env } = await getCloudflareContext({
         async: true,
       });

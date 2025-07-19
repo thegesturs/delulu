@@ -1,15 +1,8 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
-import { nanoid } from 'nanoid';
+import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
+import { convex } from '@delulu/database/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -34,9 +27,8 @@ interface InstagramUserResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-
-    if (!session?.user?.id) {
+    const token = await getToken(createAuth);
+    if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -46,13 +38,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userId = session.user.id;
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    if (!user?._id) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=user_not_found&code=AUTH_002&provider=instagram',
+        },
+      });
+    }
+
+    const userId = user._id;
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
-    const errorDescription = searchParams.get('error_description');
 
     // Handle user denying access
     if (error === 'access_denied' && errorReason === 'user_denied') {
@@ -157,40 +159,22 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as InstagramUserResponse;
 
-    // Check if this Instagram account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, userObject.id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
+      userId,
+      socialType: 'INSTAGRAM',
+      accessToken: longLivedTokenData.access_token,
+      expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
+      refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+      profileId: userObject.id,
+      username: userObject.username,
+      fullName: userObject.name,
+      profileImage: userObject.profile_picture_url,
+      isActive: true,
+    });
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: longLivedTokenData.access_token,
-          expiresIn: new Date(
-            Date.now() + longLivedTokenData.expires_in * 1000
-          ),
-          fullName: userObject.name,
-          username: userObject.username,
-          profileImage: userObject.profile_picture_url,
-          refreshTokenExpiresIn: new Date(
-            Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-          ),
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -199,41 +183,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        id: `social_${nanoid(12)}`,
-        userId,
-        socialType: 'INSTAGRAM',
-        accessToken: longLivedTokenData.access_token,
-        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-        profileId: userObject.id,
-        username: userObject.username,
-        fullName: userObject.name,
-        profileImage: userObject.profile_picture_url,
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-        ),
-        isActive: true,
-        lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        accessToken: longLivedTokenData.access_token,
-        expiresIn: new Date(Date.now() + longLivedTokenData.expires_in * 1000),
-        fullName: userObject.name,
-        username: userObject.username,
-        profileImage: userObject.profile_picture_url,
-        updatedAt: new Date(),
-        refreshTokenExpiresIn: new Date(
-          Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-        ),
-        isActive: true,
-        lastSyncedAt: new Date(),
-      }
-    );
 
     // Successful connection
     return new NextResponse(null, {

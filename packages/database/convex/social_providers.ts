@@ -1,12 +1,14 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api.js';
 import type { Doc } from './_generated/dataModel.js';
+import type { Id } from './_generated/dataModel.js';
 import {
   internalMutation,
   internalQuery,
   mutation,
   query,
 } from './_generated/server.js';
+import { betterAuthComponent } from './auth.js';
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
@@ -511,9 +513,16 @@ export const deleteSocialProvider = mutation({
 // Upsert social provider with encrypted tokens
 export const upsertSocialProvider = mutation({
   args: socialProviderCreateSchema.fields,
-  returns: v.id('socialProviders'),
+  returns: v.union(
+    v.literal('created'),
+    v.literal('account_transferred'),
+    v.literal('updated')
+  ),
   handler: async (ctx, args) => {
     try {
+      const userId = (await betterAuthComponent.getAuthUserId(
+        ctx
+      )) as Id<'users'>;
       const now = getCurrentTimestamp();
       // Encrypt tokens once
       const encryptedAccessToken = await encryptData(args.accessToken);
@@ -531,15 +540,19 @@ export const upsertSocialProvider = mutation({
         // Update existing provider
         await ctx.db.patch(existingProvider._id, {
           ...args,
+          userId,
           accessToken: encryptedAccessToken,
           refreshToken: encryptedRefreshToken,
           updatedAt: now,
         });
-        return existingProvider._id;
+        if (existingProvider.userId !== userId) {
+          return 'account_transferred';
+        }
+        return 'updated';
       }
 
       // Create new provider
-      return await ctx.db.insert('socialProviders', {
+      await ctx.db.insert('socialProviders', {
         ...args,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
@@ -547,6 +560,8 @@ export const upsertSocialProvider = mutation({
         updatedAt: now,
         isActive: args.isActive ?? true,
       });
+
+      return 'created';
     } catch (error) {
       console.error('Failed to encrypt tokens during upsert:', error);
       throw new Error('Token encryption failed');
