@@ -1,4 +1,5 @@
 import { fetchWithTimeout } from '@/lib/utils';
+import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
 import { convex } from '@delulu/database/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
@@ -22,14 +23,24 @@ interface BlueskyProfile {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await convex.query(api.auth.getCurrentUser);
-
-    if (!user?._id) {
+    const token = await getToken(createAuth);
+    if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
             '/socials?error=auth_required&code=AUTH_001&provider=bluesky',
+        },
+      });
+    }
+
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    if (!user?._id) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=user_not_found&code=AUTH_002&provider=bluesky',
         },
       });
     }

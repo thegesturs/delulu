@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { customAlphabet, nanoid } from 'nanoid';
+import {} from 'nanoid';
 
 // ID generation utilities
 export const UniqueIdsSchema = v.union(
@@ -29,16 +29,6 @@ export type UniqueIdsType =
   | 'verification'
   | 'alt_post';
 
-export function createUniqueIds(id: UniqueIdsType, custom?: boolean): string {
-  if (custom) {
-    const nanoid = customAlphabet('-abcdefghijklmnopqrstuvwxyz1234567890', 14);
-    return `${id}-${nanoid()}`;
-  }
-  return `${id}_${nanoid(11)}`;
-}
-
-// Encryption utilities using AES-GCM with PBKDF2 (same as PostgreSQL setup)
-import { keys } from '../keys';
 
 /**
  * Converts a string to an ArrayBuffer
@@ -91,7 +81,7 @@ export async function encryptData(data: string): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   // Generate key using the random salt
-  const key = await getKey(keys().BETTER_AUTH_SECRET, salt);
+  const key = await getKey(process.env.BETTER_AUTH_SECRET!, salt);
 
   // Encrypt the data
   const encryptedData = await crypto.subtle.encrypt(
@@ -128,7 +118,7 @@ export async function decryptData(encryptedData: string): Promise<string> {
   const data = combined.slice(28);
 
   // Generate key using the extracted salt
-  const key = await getKey(keys().BETTER_AUTH_SECRET, salt);
+  const key = await getKey(process.env.BETTER_AUTH_SECRET!, salt);
 
   const decryptedData = await crypto.subtle.decrypt(
     {

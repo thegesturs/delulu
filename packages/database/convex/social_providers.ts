@@ -8,13 +8,13 @@ import {
   mutation,
   query,
 } from './_generated/server.js';
-import { betterAuthComponent } from './auth.js';
+import { betterAuthComponent } from './auth';
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
   socialProviderUpdateSchema,
-} from './schemas/index.js';
-import { decryptData, encryptData, getCurrentTimestamp } from './utils.js';
+} from './schemas/index';
+import { decryptData, encryptData, getCurrentTimestamp } from './utils';
 
 // Social Provider queries
 export const getSocialProviderById = query({
@@ -50,26 +50,14 @@ export const getConnectedAccounts = query({
   args: {},
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('Unauthorized');
-    }
-
-    // Get user first
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', identity.email!))
-      .unique();
-
+    const user = await betterAuthComponent.getAuthUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      return [];
     }
-
     const providers = await ctx.db
       .query('socialProviders')
       .withIndex('by_user_id', (q) => q.eq('userId', user._id))
       .collect();
-
     // Sort by creation date (newest first)
     providers.sort((a, b) => b.createdAt - a.createdAt);
 
