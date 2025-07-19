@@ -23,7 +23,6 @@ export const baseSocialProviderSchema = v.object({
   isActive: v.boolean(),
   lastSyncedAt: v.optional(v.number()),
 });
-
 // Social provider schema with system fields (for returns)
 export const socialProviderSchema = v.object({
   _id: v.id('socialProviders'),

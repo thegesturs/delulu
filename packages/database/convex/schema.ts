@@ -10,27 +10,21 @@ export default defineSchema({
   // Users table
   users: defineTable(baseUserSchema.fields).index('by_email', ['email']),
 
-  // // Sessions table
-  // sessions: defineTable(baseSessionSchema.fields)
-  //   .index('by_token', ['token'])
-  //   .index('by_user_id', ['userId']),
-
-  // // Accounts table
-  // accounts: defineTable(baseAccountSchema.fields)
-  //   .index('by_user_id', ['userId'])
-  //   .index('by_provider_and_account', ['providerId', 'accountId']),
-
-  // // Verifications table
-  // verifications: defineTable(baseVerificationSchema.fields)
-  //   .index('by_identifier_and_value', ['identifier', 'value']),
-
   // Posts table with embedded relationships
   posts: defineTable(basePostSchema.fields)
     .index('by_user_id', ['userId'])
     .index('by_organization_id', ['organizationId'])
     .index('by_status', ['status'])
     .index('by_scheduled_at', ['scheduledAt'])
-    .index('by_created_at', ['createdAt']),
+    .index('by_created_at', ['createdAt'])
+    // Add compound index for common filter combinations
+    .index('by_user_status_org', [
+      'userId',
+      'status',
+      'organizationId',
+      'isDeleted',
+    ])
+    .index('by_user_created', ['userId', 'createdAt']),
 
   // Social Providers table
   socialProviders: defineTable(baseSocialProviderSchema.fields)

@@ -11,29 +11,8 @@ import {
   socialProviderCreateSchema,
   socialProviderSchema,
   socialProviderUpdateSchema,
-  socialTypeSchema,
 } from './schemas/index.js';
 import { decryptData, encryptData, getCurrentTimestamp } from './utils.js';
-
-// Decrypted social provider type for internal use
-const decryptedSocialProviderSchema = v.object({
-  _id: v.id('socialProviders'),
-  organizationId: v.optional(v.string()),
-  userId: v.optional(v.id('users')),
-  accessToken: v.string(), // Decrypted
-  refreshToken: v.optional(v.string()), // Decrypted
-  expiresIn: v.number(),
-  refreshTokenExpiresIn: v.optional(v.number()),
-  profileId: v.optional(v.string()),
-  username: v.optional(v.string()),
-  fullName: v.optional(v.string()),
-  profileImage: v.optional(v.string()),
-  socialType: socialTypeSchema,
-  createdAt: v.number(),
-  updatedAt: v.number(),
-  isActive: v.boolean(),
-  lastSyncedAt: v.optional(v.number()),
-});
 
 // Social Provider queries
 export const getSocialProviderById = query({
@@ -65,7 +44,6 @@ export const getUserSocialProviders = query({
   },
 });
 
-// Function to get connected accounts for current user (used by components)
 export const getConnectedAccounts = query({
   args: {},
   returns: v.array(socialProviderSchema),
@@ -130,53 +108,6 @@ export const deleteSocial = mutation({
     // Use the existing deleteSocialProvider function
     await ctx.runMutation(api.social_providers.deleteSocialProvider, {
       id: args.socialId,
-    });
-
-    return { success: true };
-  },
-});
-
-// Function to create/publish a post from an existing post ID (used by components)
-export const createPostFromPostId = mutation({
-  args: {
-    postId: v.id('posts'),
-  },
-  returns: v.object({
-    success: v.boolean(),
-  }),
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('Unauthorized');
-    }
-
-    // Get user first
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', identity.email!))
-      .unique();
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Get the post and verify ownership
-    const post = await ctx.db.get(args.postId);
-    if (!post || post.userId !== user._id) {
-      throw new Error('Post not found or access denied');
-    }
-
-    // TODO: Implement the actual post publishing logic
-    // This would involve:
-    // 1. Getting the post content and associated social providers
-    // 2. Calling the appropriate social media APIs
-    // 3. Updating the post status
-    // 4. Handling any errors
-
-    // For now, just update the post status to indicate it's being processed
-    await ctx.db.patch(args.postId, {
-      status: 'PUBLISHED',
-      updatedAt: getCurrentTimestamp(),
     });
 
     return { success: true };
@@ -282,7 +213,7 @@ export const getOrganizationSocialProviders = query({
 // Internal function to get social provider with decrypted tokens
 export const getSocialProviderWithDecryptedTokens = internalQuery({
   args: { id: v.id('socialProviders') },
-  returns: v.union(decryptedSocialProviderSchema, v.null()),
+  returns: v.union(socialProviderSchema, v.null()),
   handler: async (ctx, args) => {
     const provider = await ctx.db
       .query('socialProviders')
@@ -574,5 +505,51 @@ export const deleteSocialProvider = mutation({
     await ctx.db.delete(provider._id);
 
     return true;
+  },
+});
+
+// Upsert social provider with encrypted tokens
+export const upsertSocialProvider = mutation({
+  args: socialProviderCreateSchema.fields,
+  returns: v.id('socialProviders'),
+  handler: async (ctx, args) => {
+    try {
+      const now = getCurrentTimestamp();
+      // Encrypt tokens once
+      const encryptedAccessToken = await encryptData(args.accessToken);
+      const encryptedRefreshToken = args.refreshToken
+        ? await encryptData(args.refreshToken)
+        : undefined;
+
+      // Check if provider exists
+      const existingProvider = await ctx.db
+        .query('socialProviders')
+        .withIndex('by_profile_id', (q) => q.eq('profileId', args.profileId))
+        .unique();
+
+      if (existingProvider) {
+        // Update existing provider
+        await ctx.db.patch(existingProvider._id, {
+          ...args,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
+          updatedAt: now,
+        });
+        return existingProvider._id;
+      }
+
+      // Create new provider
+      return await ctx.db.insert('socialProviders', {
+        ...args,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        createdAt: now,
+        updatedAt: now,
+        isActive: args.isActive ?? true,
+      });
+    } catch (error) {
+      console.error('Failed to encrypt tokens during upsert:', error);
+      throw new Error('Token encryption failed');
+    }
   },
 });

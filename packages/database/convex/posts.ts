@@ -6,6 +6,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
+import { betterAuthComponent } from './auth';
 import {
   alternativeContentSchema,
   contentSchema,
@@ -608,69 +609,73 @@ export const deletePlatformPost = mutation({
 export const getPosts = query({
   args: {
     ...postFiltersSchema.fields,
-    limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
+    paginationOpts: v.object({
+      numItems: v.number(),
+      cursor: v.union(v.string(), v.null()),
+    }),
   },
   returns: paginatedPostsSchema,
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    // Get user first
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', identity.email!))
-      .unique();
+    // Start with the user+created index for efficient sorting
+    let query = ctx.db
+      .query('posts')
+      .withIndex('by_user_created', (q) =>
+        q.eq('userId', userId as Id<'users'>)
+      );
 
-    if (!user) {
-      throw new Error('User not found');
+    // If we have both status and org filters, switch to the compound index
+    if (args.status && args.organizationId) {
+      // Ensure status is not undefined before using it in the index
+      const status = args.status;
+      query = ctx.db.query('posts').withIndex('by_user_status_org', (q) =>
+        q
+          .eq('userId', userId as Id<'users'>)
+          .eq('status', status)
+          .eq('organizationId', args.organizationId)
+          .eq('isDeleted', args.isDeleted ?? false)
+      );
+    } else {
+      // Apply filters individually
+      if (args.status) {
+        query = query.filter((q) => q.eq(q.field('status'), args.status));
+      }
+      if (args.organizationId) {
+        query = query.filter((q) =>
+          q.eq(q.field('organizationId'), args.organizationId)
+        );
+      }
+      if (args.isDeleted !== undefined) {
+        query = query.filter((q) => q.eq(q.field('isDeleted'), args.isDeleted));
+      } else {
+        query = query.filter((q) => q.eq(q.field('isDeleted'), false));
+      }
     }
 
-    // Use the existing getPostsByUserId logic
-    const query = ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id));
+    // Apply remaining filters that aren't part of any index
+    if (args.privacyStatus) {
+      query = query.filter((q) =>
+        q.eq(q.field('privacyStatus'), args.privacyStatus)
+      );
+    }
+    if (args.reviewStatus) {
+      query = query.filter((q) =>
+        q.eq(q.field('reviewStatus'), args.reviewStatus)
+      );
+    }
 
-    const posts = await query.collect();
-
-    // Filter posts based on criteria
-    const filteredPosts = posts.filter((post) => {
-      if (args.status && post.status !== args.status) {
-        return false;
-      }
-      if (args.privacyStatus && post.privacyStatus !== args.privacyStatus) {
-        return false;
-      }
-      if (args.reviewStatus && post.reviewStatus !== args.reviewStatus) {
-        return false;
-      }
-      if (args.organizationId && post.organizationId !== args.organizationId) {
-        return false;
-      }
-      if (args.isDeleted !== undefined && post.isDeleted !== args.isDeleted) {
-        return false;
-      }
-      if (args.isDeleted === undefined && post.isDeleted !== false) {
-        return false; // Exclude deleted by default
-      }
-      return true;
-    });
-
-    // Sort by creation date (newest first)
-    filteredPosts.sort((a, b) => b.createdAt - a.createdAt);
-
-    const total = filteredPosts.length;
-
-    // Apply pagination
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
-    const paginatedPosts = filteredPosts.slice(offset, offset + limit);
+    // Order by creation date (newest first) and paginate
+    const paginationResult = await query
+      .order('desc')
+      .paginate(args.paginationOpts);
 
     return {
-      posts: paginatedPosts,
-      total,
+      posts: paginationResult.page,
+      total: paginationResult.page.length, // Note: total count might be approximate
     };
   },
 });
@@ -684,24 +689,14 @@ export const deletePost = mutation({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const userId = await betterAuthComponent.getAuthUserId(ctx);
+    if (!userId) {
       throw new Error('Unauthorized');
-    }
-
-    // Get user first
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', identity.email!))
-      .unique();
-
-    if (!user) {
-      throw new Error('User not found');
     }
 
     // Verify ownership
     const post = await findPostById(ctx, args.postId);
-    if (!post || post.userId !== user._id) {
+    if (!post || post.userId !== (userId as Id<'users'>)) {
       throw new Error('Post not found or access denied');
     }
 
