@@ -2,7 +2,7 @@
 
 import { api as TrpcApi } from '@/trpc/react';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { SocialError } from '../error/social-error';
 
@@ -48,7 +48,7 @@ const NOTIFICATIONS = {
   },
 };
 
-export function SocialNotifications() {
+function SocialNotificationsContent() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -134,4 +134,12 @@ export function SocialNotifications() {
   }
 
   return null;
+}
+
+export function SocialNotifications() {
+  return (
+    <Suspense>
+      <SocialNotificationsContent />
+    </Suspense>
+  );
 }

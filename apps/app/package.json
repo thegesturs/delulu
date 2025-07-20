@@ -23,7 +23,6 @@
     "@delulu/collaboration": "workspace:*",
     "@delulu/database": "workspace:*",
     "@delulu/design-system": "workspace:*",
-    "@delulu/feature-flags": "workspace:*",
     "@delulu/next-config": "workspace:*",
     "@delulu/notifications": "workspace:*",
     "@delulu/observability": "workspace:*",

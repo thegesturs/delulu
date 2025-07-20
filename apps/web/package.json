@@ -20,7 +20,6 @@
     "@delulu/cloudflare-types": "workspace:*",
     "@delulu/design-system": "workspace:*",
     "@delulu/email": "workspace:*",
-    "@delulu/feature-flags": "workspace:*",
     "@delulu/next-config": "workspace:*",
     "@delulu/observability": "workspace:*",
     "@delulu/rate-limit": "workspace:*",

@@ -3,9 +3,9 @@
 import { useAnalytics } from '@delulu/analytics/posthog/client';
 import { useUser } from '@delulu/auth/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
-export const PostHogIdentifier = () => {
+function PostHogIdentifierContent() {
   const { user } = useUser();
   const identified = useRef(false);
   const pathname = usePathname();
@@ -41,4 +41,12 @@ export const PostHogIdentifier = () => {
   }, [user, analytics]);
 
   return null;
+}
+
+export const PostHogIdentifier = () => {
+  return (
+    <Suspense>
+      <PostHogIdentifierContent />
+    </Suspense>
+  );
 };
