@@ -15,7 +15,8 @@ export const socialTypeSchema = v.union(
   v.literal('THREADS'),
   v.literal('PINTEREST'),
   v.literal('FARCASTER'),
-  v.literal('BLUESKY')
+  v.literal('BLUESKY'),
+  v.literal('DEFAULT')
 );
 
 export const postStatusSchema = v.union(

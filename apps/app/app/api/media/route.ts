@@ -1,6 +1,5 @@
 import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import { mediaQueries } from '@delulu/database/schema';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 

@@ -1,25 +1,14 @@
 import { createPostInQueue } from '@api/services/post.service';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
-  alternatePostContent,
-  database,
-  posts,
-  socialQueries,
-} from '@delulu/database';
-import {} from '@delulu/database';
-import { decryptData } from '@delulu/database/encrypt';
-import {
   FacebookPageConnectionSchema,
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
 } from '@delulu/validators/facebook';
 
 import { api } from '@delulu/database/convex/_generated/api';
-import {
-  type SavePostInputType,
-  SocialTypeSchema,
-  savePostInputSchema,
-} from '@delulu/validators/post';
+import { decryptData } from '@delulu/database/convex/utils';
+import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { providerRegistry } from '../providers';
@@ -41,53 +30,47 @@ export const socialProviderRouter = {
 
       return link;
     }),
-
-  getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
-    const userSocialProviders = await socialQueries.getUserSocialProviders(
-      ctx.userId
-    );
-    return userSocialProviders;
-  }),
-  deleteSocial: protectedProcedure
-    .input(z.object({ socialId: z.string() }))
-    .mutation(async ({ input }) => {
-      await socialQueries.deleteSocialProvider(input.socialId);
-      return {
-        success: true,
-      };
-    }),
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
       if (!input.id) {
-        // Create the main post
-        const [post] = await database
-          .insert(posts)
-          .values({
-            content: input.content,
-            status: 'SAVED',
-            userId: ctx.userId,
-            // organizationId: ctx.organizationId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
+        const savePostId = await ctx.db.mutation(api.posts.createPost, {
+          userId: ctx.userId,
+          content: input.content,
+          status: 'SAVED',
+          socialProviderIds: input.socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
+          alternativeContent: input.alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+        });
 
-        // Create alternate contents if any
-        if (input.alternativeContent?.length > 0) {
-          await database.insert(alternatePostContent).values(
-            input.alternativeContent.map((alt) => ({
-              postId: post.id,
-              socialProviderId: alt.socialProvider.socialId,
-              content: alt.content,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }))
-          );
+        if (!savePostId) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to save post',
+          });
         }
+
+        const post = await ctx.db.query(api.posts.getPostById, {
+          id: savePostId,
+        });
+        if (!post) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+        }
+        await createPostInQueue(post);
       }
-      //TODO: Make this work using AWS SQS
-      // await createPostInQueue({ ...input, id: postId });
+
+      const post = await ctx.db.query(api.posts.getPostById, {
+        id: input.id as Id<'posts'>,
+      });
+      if (!post) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+      }
+      await createPostInQueue(post);
       return {
         success: true,
       };
