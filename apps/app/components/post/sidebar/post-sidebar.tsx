@@ -33,7 +33,6 @@ export function PostSidebar() {
     api.socialProvider.createPost.useMutation({
       onSuccess: () => {
         toast.success('Post created successfully');
-        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
@@ -45,7 +44,6 @@ export function PostSidebar() {
     api.post.updatePost.useMutation({
       onSuccess: () => {
         toast.success('Post updated successfully');
-        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
