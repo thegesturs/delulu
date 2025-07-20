@@ -18,14 +18,15 @@ export const baseSocialProviderSchema = v.object({
   fullName: v.string(),
   profileImage: v.optional(v.string()),
   socialType: socialTypeSchema,
-  createdAt: v.number(),
   updatedAt: v.number(),
   isActive: v.boolean(),
   lastSyncedAt: v.optional(v.number()),
 });
+
 // Social provider schema with system fields (for returns)
 export const socialProviderSchema = v.object({
   _id: v.id('socialProviders'),
+  _creationTime: v.number(),
   ...baseSocialProviderSchema.fields,
 });
 

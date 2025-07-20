@@ -2,12 +2,7 @@ import { v } from 'convex/values';
 import { api, internal } from './_generated/api.js';
 import type { Doc } from './_generated/dataModel.js';
 import type { Id } from './_generated/dataModel.js';
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from './_generated/server.js';
+import { internalMutation, mutation, query } from './_generated/server.js';
 import { betterAuthComponent } from './auth';
 import {
   socialProviderCreateSchema,
@@ -40,7 +35,7 @@ export const getUserSocialProviders = query({
       .collect();
 
     // Sort by creation date (newest first)
-    providers.sort((a, b) => b.createdAt - a.createdAt);
+    providers.sort((a, b) => b._creationTime - a._creationTime);
 
     return providers;
   },
@@ -50,7 +45,7 @@ export const getConnectedAccounts = query({
   args: {},
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
-    const user = await betterAuthComponent.getAuthUser(ctx);
+    const user = await betterAuthComponent.getAuthUserId(ctx);
     console.log('>>> User', user);
     if (!user) {
       return [];
@@ -58,11 +53,11 @@ export const getConnectedAccounts = query({
 
     const providers = await ctx.db
       .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .withIndex('by_user_id', (q) => q.eq('userId', user as Id<'users'>))
       .collect();
     console.log('>>> Providers', providers);
     // Sort by creation date (newest first)
-    providers.sort((a, b) => b.createdAt - a.createdAt);
+    providers.sort((a, b) => b._creationTime - a._creationTime);
 
     return providers;
   },
@@ -176,7 +171,6 @@ export const connectFacebookPage = mutation({
       lastSyncedAt: now,
       expiresIn: twoMonthsFromNow,
       refreshTokenExpiresIn: twoMonthsFromNow,
-      createdAt: now,
       updatedAt: now,
     });
 
@@ -197,7 +191,7 @@ export const getOrganizationSocialProviders = query({
       .collect();
 
     // Sort by creation date (newest first)
-    providers.sort((a, b) => b.createdAt - a.createdAt);
+    providers.sort((a, b) => b._creationTime - a._creationTime);
 
     return providers;
   },
@@ -262,7 +256,6 @@ export const createSocialProvider = mutation({
         fullName: args.fullName,
         profileImage: args.profileImage,
         socialType: args.socialType,
-        createdAt: now,
         updatedAt: now,
         isActive: args.isActive ?? true,
       });
@@ -503,7 +496,6 @@ export const upsertSocialProvider = mutation({
         ...args,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
-        createdAt: now,
         updatedAt: now,
         isActive: args.isActive ?? true,
       });
