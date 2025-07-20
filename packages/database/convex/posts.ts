@@ -361,11 +361,9 @@ export const getPosts = query({
     continueCursor: v.string(),
   }),
   handler: async (ctx, args) => {
-    const userId = (await betterAuthComponent.getAuthUserId(
-      ctx
-    )) as Id<'users'>;
+    const user = await betterAuthComponent.getAuthUser(ctx);
 
-    if (!userId) {
+    if (!user) {
       return {
         page: [],
         isDone: true,
@@ -373,7 +371,11 @@ export const getPosts = query({
       };
     }
 
-    let paginationResult: PaginationResult<Doc<'posts'>>;
+    const userId = user.userId;
+
+    console.log('>>> User', user);
+
+    let paginationResult: PaginationResult<Doc<'posts'>>
 
     // Use search index when search term is provided
     if (args.searchTerm) {
@@ -413,6 +415,8 @@ export const getPosts = query({
       let query = ctx.db
         .query('posts')
         .withIndex('by_user_created', (q) => q.eq('userId', userId));
+
+      console.log('>>> Query', query);
 
       // If we have both status and org filters, switch to the compound index
       if (args.status && args.organizationId) {
@@ -461,6 +465,8 @@ export const getPosts = query({
         .paginate(args.paginationOpts);
     }
 
+    console.log('>>> Pagination Result', paginationResult);
+
     // Enrich each post with social providers and alternative content
     const enrichedPosts = await Promise.all(
       paginationResult.page.map(async (post: Doc<'posts'>) => {
@@ -508,6 +514,8 @@ export const getPosts = query({
         };
       })
     );
+
+    console.log('>>> Enriched Posts', enrichedPosts);
 
     return {
       page: enrichedPosts,
