@@ -1,4 +1,9 @@
-import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
+import {
+  createAuth,
+  fetchMutation,
+  fetchQuery,
+  getToken,
+} from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -38,7 +43,9 @@ export async function POST(req: NextRequest) {
       // You might want to add organizationId logic here if needed
     };
 
-    const savedMedia = await mediaQueries.createMedia(mediaData);
+    const savedMedia = await fetchMutation(api.media.createMedia, mediaData, {
+      token,
+    });
 
     return NextResponse.json(savedMedia);
   } catch (error) {
@@ -76,11 +83,16 @@ export async function GET(req: NextRequest) {
     const offset = Number.parseInt(searchParams.get('offset') || '0');
     const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
 
-    const media = await mediaQueries.getMediaByUserId(user._id, {
-      limit,
-      offset,
-      ...(mediaType && { mediaType }),
-    });
+    const media = await fetchQuery(
+      api.media.getMediaByUserId,
+      {
+        userId: user._id,
+        limit,
+        offset,
+        ...(mediaType && { mediaType }),
+      },
+      { token }
+    );
 
     return NextResponse.json(media);
   } catch (error) {
