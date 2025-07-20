@@ -375,7 +375,7 @@ export const getPosts = query({
 
     console.log('>>> User', user);
 
-    let paginationResult: PaginationResult<Doc<'posts'>>
+    let paginationResult: PaginationResult<Doc<'posts'>>;
 
     // Use search index when search term is provided
     if (args.searchTerm) {
@@ -416,16 +416,13 @@ export const getPosts = query({
         .query('posts')
         .withIndex('by_user_created', (q) => q.eq('userId', userId));
 
-      console.log('>>> Query', query);
-
       // If we have both status and org filters, switch to the compound index
       if (args.status && args.organizationId) {
         const status = args.status;
-        query = ctx.db.query('posts').withIndex('by_user_status_org', (q) =>
+        query = ctx.db.query('posts').withIndex('by_organization_status', (q) =>
           q
-            .eq('userId', userId)
-            .eq('status', status)
             .eq('organizationId', args.organizationId)
+            .eq('status', status)
             .eq('isDeleted', args.isDeleted ?? false)
         );
       } else {

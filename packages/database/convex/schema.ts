@@ -18,12 +18,8 @@ export default defineSchema({
     .index('by_scheduled_at', ['scheduledAt'])
     .index('by_created_at', ['createdAt'])
     // Add compound index for common filter combinations
-    .index('by_user_status_org', [
-      'userId',
-      'status',
-      'organizationId',
-      'isDeleted',
-    ])
+    .index('by_user_status', ['userId', 'status', 'isDeleted'])
+    .index('by_organization_status', ['organizationId', 'status', 'isDeleted'])
     .index('by_user_created', ['userId', 'createdAt'])
     // Search index for full-text search
     .searchIndex('search_content', {
