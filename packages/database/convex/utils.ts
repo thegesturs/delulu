@@ -29,7 +29,6 @@ export type UniqueIdsType =
   | 'verification'
   | 'alt_post';
 
-
 /**
  * Converts a string to an ArrayBuffer
  */
@@ -44,6 +43,30 @@ function str2ab(str: string): ArrayBuffer {
 function ab2str(buf: ArrayBuffer): string {
   const decoder = new TextDecoder();
   return decoder.decode(buf);
+}
+
+/**
+ * Converts an ArrayBuffer to a base64 string
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Converts a base64 string to an ArrayBuffer
+ */
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
 }
 
 /**
@@ -80,7 +103,6 @@ export async function encryptData(data: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  // Generate key using the random salt
   const key = await getKey(process.env.BETTER_AUTH_SECRET!, salt);
 
   // Encrypt the data
@@ -101,16 +123,16 @@ export async function encryptData(data: string): Promise<string> {
   combined.set(iv, salt.length); // Next 12 bytes: IV
   combined.set(new Uint8Array(encryptedData), salt.length + iv.length); // Rest: encrypted data
 
-  // Convert to base64 using a more robust method
-  return Buffer.from(combined).toString('base64');
+  // Convert to base64 using Web APIs
+  return arrayBufferToBase64(combined.buffer);
 }
 
 /**
  * Decrypts data using AES-GCM
  */
 export async function decryptData(encryptedData: string): Promise<string> {
-  // Convert from base64
-  const combined = new Uint8Array(Buffer.from(encryptedData, 'base64'));
+  // Convert from base64 using Web APIs
+  const combined = new Uint8Array(base64ToArrayBuffer(encryptedData));
 
   // Extract salt (first 16 bytes), IV (next 12 bytes) and data (rest)
   const salt = combined.slice(0, 16);

@@ -1,5 +1,6 @@
 'use client';
 
+import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -37,9 +38,9 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const router = useRouter();
 
   const softDeletePost = useMutation(api.posts.deletePost);
-  const publishPost = useMutation(api.social_providers.createPostFromPostId);
+  const { mutateAsync: createPostFromPostId, isPending: isPublishing } =
+    TrpcApi.socialProvider.createPostFromPostId.useMutation();
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const [isPublishing, setIsPublishing] = React.useState(false);
 
   const statusColors = {
     SAVED: 'orange',
@@ -49,7 +50,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     FAILED: 'destructive',
   } as const;
 
-  const postId = post._id as string;
+  const postId = post._id;
   const postStatus = post.status;
   const postContent = post.content;
 
@@ -76,16 +77,16 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   };
 
   const handlePublish = async (id: string) => {
-    setIsPublishing(true);
     try {
-      await publishPost({ postId: id });
+      toast.loading('Publishing post...');
+      await createPostFromPostId({ postId: id });
+      toast.dismiss();
       toast.success('Your post is being published. It will be posted soon.');
       setShowPreview(false);
     } catch (error) {
       toast.error('Failed to publish post');
       console.error(error);
-    } finally {
-      setIsPublishing(false);
+      toast.dismiss();
     }
   };
 
@@ -98,8 +99,12 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
           <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
             Edit
           </DropdownMenuItem>,
-          <DropdownMenuItem key="publish" onClick={() => handlePublish(postId)}>
-            Publish now
+          <DropdownMenuItem
+            key="publish"
+            onClick={() => handlePublish(postId)}
+            disabled={isPublishing}
+          >
+            {isPublishing ? 'Publishing...' : 'Publish now'}
           </DropdownMenuItem>,
           <DropdownMenuItem
             key="schedule"

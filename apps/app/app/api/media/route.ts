@@ -1,4 +1,5 @@
-import { auth } from '@delulu/auth/server';
+import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import { mediaQueries } from '@delulu/database/schema';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -18,11 +19,14 @@ const CreateMediaSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const user = session?.session.userId;
-    if (!user) {
+    const token = await getToken(createAuth);
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    if (!user._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -31,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const mediaData = {
       ...parsed,
-      userId: user,
+      userId: user._id,
       // You might want to add organizationId logic here if needed
     };
 
@@ -57,11 +61,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const user = session?.session.userId;
-    if (!user) {
+    const token = await getToken(createAuth);
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+    if (!user._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -70,7 +77,7 @@ export async function GET(req: NextRequest) {
     const offset = Number.parseInt(searchParams.get('offset') || '0');
     const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
 
-    const media = await mediaQueries.getMediaByUserId(user, {
+    const media = await mediaQueries.getMediaByUserId(user._id, {
       limit,
       offset,
       ...(mediaType && { mediaType }),

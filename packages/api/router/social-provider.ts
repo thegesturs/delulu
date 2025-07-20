@@ -25,26 +25,7 @@ import { z } from 'zod';
 import { providerRegistry } from '../providers';
 import { protectedProcedure, publicProcedure } from '../trpc';
 
-// Add type imports
-import type { SocialType } from '@delulu/database/convex/utils';
-
-// Define interfaces for the provider and alt objects
-interface PostToSocialProvider {
-  socialProvider: {
-    id: string;
-    fullName: string;
-    socialType: SocialType;
-  };
-}
-
-interface AlternateContent {
-  socialProvider: {
-    id: string;
-    fullName: string;
-    socialType: SocialType;
-  };
-  content: string;
-}
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -120,7 +101,7 @@ export const socialProviderRouter = {
     .mutation(async ({ input, ctx }) => {
       // Get the post with its related data
       const post = await ctx.db.query(api.posts.getPostById, {
-        postId: input.postId,
+        id: input.postId as Id<'posts'>,
       });
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
@@ -131,32 +112,8 @@ export const socialProviderRouter = {
           message: 'Post not found',
         });
       }
-      const postData: SavePostInputType = {
-        id: post.id,
-        content: post.content,
-        socialProviders: post.postToSocialProviders.map(
-          (provider: PostToSocialProvider) => ({
-            socialId: provider.socialProvider.id,
-            name: provider.socialProvider.fullName,
-            socialType: provider.socialProvider.socialType,
-          })
-        ),
-        alternativeContent: post.alternateContents.map(
-          (alt: AlternateContent) => ({
-            socialProvider: {
-              socialId: alt.socialProvider.id,
-              name: alt.socialProvider.fullName,
-              socialType: alt.socialProvider.socialType,
-            },
-            content: alt.content,
-          })
-        ),
-      };
 
-      //TODO: Make this work using AWS SQS
-      console.log('Post data:', 'stuff');
-      const stuff = await createPostInQueue(postData);
-      console.log('Test:', stuff);
+      const stuff = await createPostInQueue(post);
       return {
         success: true,
       };

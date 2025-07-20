@@ -1,9 +1,9 @@
 'use client';
 
-import { api } from '@delulu/database/convex/_generated/api';
-import { useMutation } from 'convex/react';
+import { api as TrpcApi } from '@/trpc/react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { SocialError } from '../error/social-error';
 
 const ERROR_MESSAGES = {
@@ -53,7 +53,8 @@ export function SocialNotifications() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const connectAccount = useMutation(api.social_providers.getSocialProviderConnectUrl);
+  const { mutateAsync: connectAccount, isPending: isConnecting } =
+    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation();
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -77,10 +78,14 @@ export function SocialNotifications() {
     const providerToUse = socialProvider || provider;
     if (providerToUse) {
       try {
+        toast.loading('Connecting to social account...');
         const url = await connectAccount({ provider: providerToUse });
         window.location.href = url;
       } catch (error) {
+        toast.error('Failed to connect to social account');
         console.error('Failed to get connect URL:', error);
+      } finally {
+        toast.dismiss();
       }
     }
   };

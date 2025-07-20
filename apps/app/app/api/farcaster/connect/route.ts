@@ -1,5 +1,6 @@
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
+import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
+import { api } from '@delulu/database/convex/_generated/api';
 import { ethers } from 'ethers';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -65,12 +66,21 @@ async function fetchWithTimeout(
 // Production-level Farcaster signer request with proper EIP-712 signature
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const userId = session?.user?.id;
+    const authToken = await getToken(createAuth);
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
-    if (!userId) {
+    const user = await fetchQuery(
+      api.auth.getCurrentUser,
+      {},
+      { token: authToken }
+    );
+
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -230,12 +240,20 @@ export async function POST(req: NextRequest) {
 // GET - Check status of signer request
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const userId = session?.user?.id;
+    const authToken = await getToken(createAuth);
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    const user = await fetchQuery(
+      api.auth.getCurrentUser,
+      {},
+      { token: authToken }
+    );
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -253,7 +271,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('🔍 Checking status for token:', token);
-    console.log('👤 User ID:', userId);
+    console.log('👤 User ID:', user._id);
 
     // // Find the pending request (commented out for testing)
     // const signerRequest = await database.farcasterSignerRequest.findFirst({
@@ -274,7 +292,7 @@ export async function GET(req: NextRequest) {
     const signerRequest = {
       id: 'mock_signer_request',
       token,
-      userId,
+      userId: user._id,
       state: 'pending',
     };
     console.log('🎭 Mock signer request:', signerRequest);
@@ -312,7 +330,7 @@ export async function GET(req: NextRequest) {
 
     if (state === 'completed' && signerUser && userFid) {
       console.log('✅ Connection completed! Would create social provider:', {
-        userId,
+        userId: user._id,
         profileId: userFid,
         displayName: signerUser.displayName,
         username: signerUser.username,

@@ -9,7 +9,6 @@ export type { SocialType, PostStatus } from '@delulu/database/convex/utils';
 export type PostDoc = NonNullable<
   FunctionReturnType<typeof api.posts.getPostById>
 >;
-
 export type PostId = Id<'posts'>;
 
 // Post type as returned by getPosts function (now returns raw postSchema documents)

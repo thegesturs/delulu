@@ -358,7 +358,7 @@ export const getPosts = query({
   returns: v.object({
     page: v.array(getPostByIdSchema),
     isDone: v.boolean(),
-    continueCursor: v.union(v.string(), v.null()),
+    continueCursor: v.string(),
   }),
   handler: async (ctx, args) => {
     const userId = (await betterAuthComponent.getAuthUserId(
@@ -369,7 +369,7 @@ export const getPosts = query({
       return {
         page: [],
         isDone: true,
-        continueCursor: null,
+        continueCursor: '',
       };
     }
 

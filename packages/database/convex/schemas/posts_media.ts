@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { type Infer, v } from 'convex/values';
 import {
   alternativeContentSchema,
   contentSchema,
@@ -65,6 +65,8 @@ export const getPostByIdSchema = v.object({
     })
   ),
 });
+
+export type GetPostByIdSchema = Infer<typeof getPostByIdSchema>;
 
 // Post creation schema (subset for mutations)
 export const postCreateSchema = v.object({

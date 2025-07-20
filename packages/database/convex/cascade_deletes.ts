@@ -144,7 +144,7 @@ export const deleteUserWithCascade = mutation({
     for (const provider of socialProviders) {
       // Use the cascade delete for social providers
       await ctx.runMutation(
-        api.cascadeDeletes.deleteSocialProviderWithCascade,
+        api.cascade_deletes.deleteSocialProviderWithCascade,
         {
           socialProviderId: provider._id,
         }
@@ -234,7 +234,7 @@ export const cleanupOrganizationData = mutation({
 
     for (const post of posts) {
       // Use the cascade delete for posts
-      await ctx.runMutation(api.cascadeDeletes.deletePostWithCascade, {
+      await ctx.runMutation(api.cascade_deletes.deletePostWithCascade, {
         postId: post._id,
       });
       deletedPostsCount++;
@@ -251,7 +251,7 @@ export const cleanupOrganizationData = mutation({
     for (const provider of socialProviders) {
       // Use the cascade delete for social providers
       await ctx.runMutation(
-        api.cascadeDeletes.deleteSocialProviderWithCascade,
+        api.cascade_deletes.deleteSocialProviderWithCascade,
         {
           socialProviderId: provider._id,
         }
@@ -299,7 +299,7 @@ export const batchDeletePosts = mutation({
 
     for (const postId of args.postIds) {
       try {
-        await ctx.runMutation(api.cascadeDeletes.deletePostWithCascade, {
+        await ctx.runMutation(api.cascade_deletes.deletePostWithCascade, {
           postId,
         });
         deletedCount++;
@@ -322,7 +322,7 @@ export const batchDeletePosts = mutation({
  * Batch delete mutation for multiple social providers
  */
 export const batchDeleteSocialProviders = mutation({
-  args: { socialProviderIds: v.array(v.string()) },
+  args: { socialProviderIds: v.array(v.id('socialProviders')) },
   returns: v.object({
     success: v.boolean(),
     deletedCount: v.number(),
@@ -336,7 +336,7 @@ export const batchDeleteSocialProviders = mutation({
     for (const socialProviderId of args.socialProviderIds) {
       try {
         await ctx.runMutation(
-          api.cascadeDeletes.deleteSocialProviderWithCascade,
+          api.cascade_deletes.deleteSocialProviderWithCascade,
           {
             socialProviderId,
           }
@@ -356,36 +356,6 @@ export const batchDeleteSocialProviders = mutation({
       deletedCount,
       failedCount,
       message: `Batch delete completed. ${deletedCount} social providers deleted, ${failedCount} failed.`,
-    };
-  },
-});
-
-/**
- * General cleanup mutation that runs all cleanup tasks
- */
-export const runGeneralCleanup = mutation({
-  args: {},
-  returns: v.object({
-    success: v.boolean(),
-    expiredSessionsDeleted: v.number(),
-    expiredVerificationsDeleted: v.number(),
-    message: v.string(),
-  }),
-  handler: async (ctx, args) => {
-    const sessionsResult = await ctx.runMutation(
-      api.cascadeDeletes.cleanupExpiredSessions,
-      {}
-    );
-    const verificationsResult = await ctx.runMutation(
-      api.cascadeDeletes.cleanupExpiredVerifications,
-      {}
-    );
-
-    return {
-      success: true,
-      expiredSessionsDeleted: sessionsResult.deletedCount,
-      expiredVerificationsDeleted: verificationsResult.deletedCount,
-      message: `General cleanup completed. Removed ${sessionsResult.deletedCount} expired sessions and ${verificationsResult.deletedCount} expired verifications.`,
     };
   },
 });

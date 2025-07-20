@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from '@/lib/utils';
-import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
-import { convex } from '@delulu/database/server';
+import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
+import { convex } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -133,19 +133,22 @@ export async function GET(request: NextRequest) {
     const profileData = (await profileResponse.json()) as BlueskyProfile;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      userId,
-      socialType: 'BLUESKY',
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
-      refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-      profileId: tokenData.did,
-      username: tokenData.handle,
-      fullName: profileData.displayName || tokenData.handle,
-      profileImage: profileData.avatar,
-      isActive: true,
-    });
+    const status = await convex.mutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        userId,
+        socialType: 'BLUESKY',
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
+        refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        profileId: tokenData.did,
+        username: tokenData.handle,
+        fullName: profileData.displayName || tokenData.handle,
+        profileImage: profileData.avatar,
+        isActive: true,
+      }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

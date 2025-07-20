@@ -51,13 +51,16 @@ export const getConnectedAccounts = query({
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
     const user = await betterAuthComponent.getAuthUser(ctx);
+    console.log('>>> User', user);
     if (!user) {
       return [];
     }
+
     const providers = await ctx.db
       .query('socialProviders')
       .withIndex('by_user_id', (q) => q.eq('userId', user._id))
       .collect();
+    console.log('>>> Providers', providers);
     // Sort by creation date (newest first)
     providers.sort((a, b) => b.createdAt - a.createdAt);
 

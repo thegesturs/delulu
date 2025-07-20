@@ -1,5 +1,6 @@
-import { auth } from '@delulu/auth/server';
+import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
+import { api } from '@delulu/database/convex/_generated/api';
 import { decryptData } from '@delulu/database/encrypt';
 import {
   type FacebookPagesPublic,
@@ -11,9 +12,11 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const token = await getToken(createAuth);
 
-    if (!session?.user?.id) {
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+
+    if (!user) {
       return new NextResponse(null, { status: 401 });
     }
 
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify the key belongs to the current user
-    if (!key.startsWith(`fb-pages-${session.user.id}-`)) {
+    if (!key.startsWith(`fb-pages-${user._id}-`)) {
       return new NextResponse(null, { status: 403 });
     }
 

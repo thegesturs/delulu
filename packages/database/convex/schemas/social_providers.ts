@@ -16,7 +16,7 @@ export const baseSocialProviderSchema = v.object({
   profileId: v.string(),
   username: v.optional(v.string()),
   fullName: v.string(),
-  profileImage: v.string(),
+  profileImage: v.optional(v.string()),
   socialType: socialTypeSchema,
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -40,7 +40,7 @@ export const socialProviderCreateSchema = v.object({
   profileId: v.string(),
   username: v.optional(v.string()),
   fullName: v.string(),
-  profileImage: v.string(),
+  profileImage: v.optional(v.string()),
   socialType: socialTypeSchema,
   isActive: v.optional(v.boolean()),
 });

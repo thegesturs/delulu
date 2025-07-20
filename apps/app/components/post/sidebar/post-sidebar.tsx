@@ -57,7 +57,6 @@ export function PostSidebar() {
     api.post.savePost.useMutation({
       onSuccess: () => {
         toast.success('Post saved successfully');
-        utils.post.getPosts.invalidate();
         router.push('/posts');
       },
       onError: () => {
