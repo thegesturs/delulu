@@ -27,6 +27,16 @@ export const postStatusSchema = v.union(
   v.literal('FAILED')
 );
 
+export const POST_STATUS = {
+  SAVED: 'SAVED',
+  PUBLISHED: 'PUBLISHED',
+  SCHEDULED: 'SCHEDULED',
+  DELETED: 'DELETED',
+  FAILED: 'FAILED',
+} as const;
+
+export type PostStatus = (typeof POST_STATUS)[keyof typeof POST_STATUS];
+
 export const postReviewStatusSchema = v.union(
   v.literal('PENDING'),
   v.literal('APPROVED'),

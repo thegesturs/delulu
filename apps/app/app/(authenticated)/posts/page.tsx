@@ -4,7 +4,7 @@ import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@delulu/database/convex/_generated/api';
-import { PostStatus } from '@delulu/database/schema/types';
+import { POST_STATUS, type PostStatus } from '@delulu/database/convex/schemas';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import {
@@ -108,7 +108,7 @@ export default function PostsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Posts</SelectItem>
-                {Object.values(PostStatus).map((status) => (
+                {Object.values(POST_STATUS).map((status) => (
                   <SelectItem key={status} value={status}>
                     {status.charAt(0) + status.slice(1).toLowerCase()}
                   </SelectItem>
@@ -191,7 +191,7 @@ export default function PostsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Posts</SelectItem>
-              {Object.values(PostStatus).map((status) => (
+              {Object.values(POST_STATUS).map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.charAt(0) + status.slice(1).toLowerCase()}
                 </SelectItem>
