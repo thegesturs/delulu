@@ -9,11 +9,15 @@ import {
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
-import { api } from '@/trpc/react';
+import { api as TrpcApi } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { useMutation } from 'convex/react';
 import { Loader } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
@@ -25,12 +29,11 @@ export function PostSidebar() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
   const socialProviders = useSelectedSocialProviders();
-  const utils = api.useUtils();
   const { postId } = useParams<{ postId: string | undefined }>();
   const router = useRouter();
 
   const { mutateAsync: createPost, isPending: isCreatingPost } =
-    api.socialProvider.createPost.useMutation({
+    TrpcApi.socialProvider.createPost.useMutation({
       onSuccess: () => {
         toast.success('Post created successfully');
         router.push('/posts');
@@ -40,41 +43,18 @@ export function PostSidebar() {
       },
     });
 
-  const { mutateAsync: updatePost, isPending: isUpdatingPost } =
-    api.post.updatePost.useMutation({
-      onSuccess: () => {
-        toast.success('Post updated successfully');
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to update post');
-      },
-    });
+  const updatePost = useMutation(api.posts.updatePost);
+  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
 
-  const { mutateAsync: savePost, isPending: isSavingPost } =
-    api.post.savePost.useMutation({
-      onSuccess: () => {
-        toast.success('Post saved successfully');
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to save post');
-      },
-    });
+  const createPostMutation = useMutation(api.posts.createPost);
+  const [isSavingPost, setIsSavingPost] = useState(false);
 
   const handlePostNow = async () => {
     try {
-      // First upload all media files
-      const { mainContent, alternativeContent } = await uploadAllContentMedia(
-        post.content,
-        post.alternativeContent
-      );
-
-      // Then create the post with uploaded media URLs
       await createPost({
-        content: mainContent,
+        content: post.content,
         socialProviders: socialProviders,
-        alternativeContent: alternativeContent,
+        alternativeContent: post.alternativeContent,
       });
     } catch (error) {
       console.error('Error posting:', error);
@@ -91,23 +71,43 @@ export function PostSidebar() {
       );
 
       if (postId) {
+        setIsUpdatingPost(true);
         await updatePost({
-          postId: postId,
+          id: postId as Id<'posts'>,
           content: mainContent,
-          socialProviders: socialProviders,
-          alternativeContent: alternativeContent,
+          alternativeContent: alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+          socialProviderIds: socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
         });
+        toast.success('Post updated successfully');
+        router.push('/posts');
       } else {
-        await savePost({
-          id: postId,
-          socialProviders: socialProviders,
-          alternativeContent: alternativeContent,
+        setIsSavingPost(true);
+        await createPostMutation({
           content: mainContent,
+          alternativeContent: alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+          socialProviderIds: socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
+          status: 'SAVED',
         });
+        toast.success('Post saved successfully');
+        router.push('/posts');
       }
     } catch (error) {
-      console.error('Error saving:', error);
-      // Handle error appropriately
+      toast.error(postId ? 'Failed to update post' : 'Failed to save post');
+    } finally {
+      setIsUpdatingPost(false);
+      setIsSavingPost(false);
     }
   };
 
