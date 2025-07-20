@@ -32,7 +32,7 @@ export function useMediaStorage() {
 
       return {
         ...uploadResult,
-        mediaId: savedMedia.id,
+        mediaId: savedMedia,
       };
     } catch (error) {
       console.warn('Failed to save media to database:', error);

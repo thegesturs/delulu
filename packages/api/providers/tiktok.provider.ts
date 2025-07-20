@@ -1,5 +1,7 @@
 import { keys } from '@delulu/api/keys';
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { nanoid } from 'nanoid';
@@ -25,14 +27,16 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<TikTokProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new TikTokError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken || !profile.refreshToken) {
       return err(new ProfileNotFoundError('TikTok'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       accessToken: profile.accessToken,
       refreshToken: profile.refreshToken,
       username: profile.username!,

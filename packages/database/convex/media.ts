@@ -56,6 +56,19 @@ export const getMediaByUserId = query({
   },
 });
 
+export const getMediaByBucketKey = query({
+  args: { bucketKey: v.string() },
+  returns: v.union(mediaTableSchema, v.null()),
+  handler: async (ctx, args) => {
+    const media = await ctx.db
+      .query('media')
+      .withIndex('by_bucket_key', (q) => q.eq('bucketKey', args.bucketKey))
+      .unique();
+
+    return media;
+  },
+});
+
 export const createMedia = mutation({
   args: mediaCreateSchema.fields,
   returns: v.id('media'),

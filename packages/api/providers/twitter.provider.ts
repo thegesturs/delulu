@@ -1,5 +1,7 @@
 import { keys } from '@delulu/api/keys';
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import {
   type MediaType,
   getFileType,
@@ -51,18 +53,20 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<TwitterProfileData, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new TwitterError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken) {
       return err(new ProfileNotFoundError('Twitter'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       accessToken: profile.accessToken,
       refreshToken: profile.refreshToken || undefined,
       username: profile.username || undefined,
-      expiresIn: profile.expiresIn || undefined,
+      expiresIn: profile.expiresIn ? new Date(profile.expiresIn) : undefined,
     });
   });
 
@@ -121,12 +125,11 @@ const refreshAccessToken = (
       };
 
       return ResultAsync.fromPromise(
-        socialQueries.updateSocialProviderWithEncryption(profile.id, {
+        convex.mutation(api.social_providers.updateSocialProvider, {
+          id: profile.id as Id<'socialProviders'>,
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
-          expiresIn: new Date(Date.now() + data.expires_in * 1000),
-          updatedAt: new Date(),
-          lastSyncedAt: new Date(),
+          expiresIn: Date.now() + data.expires_in * 1000,
         }),
         () => new TwitterError('Failed to update token in database')
       ).map(() => updatedProfile);

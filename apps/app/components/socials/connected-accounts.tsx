@@ -1,9 +1,10 @@
 'use client';
 
-import { api } from '@delulu/database/convex/_generated/api';
-import {api as TrpcApi} from '@/trpc/react'
-import { useQuery, useMutation } from 'convex/react';
+import { api as TrpcApi } from '@/trpc/react';
 import type { SocialProvider, SocialType } from '@/types/convex';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -11,16 +12,13 @@ import { AccountFilters } from './account-filter';
 import { AccountList } from './account-list';
 import { AccountStats } from './account-stats';
 import { ConnectedAccountsHeader } from './connect-account-header';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
 
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
 function isExpiringSoon(expiresIn: number | undefined): boolean {
   if (!expiresIn) return false;
   const now = Date.now();
-  const diffInDays = Math.floor(
-    (expiresIn - now) / (1000 * 60 * 60 * 24)
-  );
+  const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
   return diffInDays <= 7 && diffInDays > 0;
 }
 
@@ -39,15 +37,16 @@ export default function ConnectedAccounts() {
   const isLoadingAccounts = accounts === undefined;
 
   const deleteSocial = useMutation(api.social_providers.deleteSocial);
-  const {mutateAsync: connectAccount} = TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
-    onSuccess: (data) => {
-      window.location.href = data;
-    },
-    onError: (error) => {
-      toast.error('Failed to get connect URL');
-      console.error(error);
-    },
-  })
+  const { mutateAsync: connectAccount } =
+    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
+      onSuccess: (data) => {
+        window.location.href = data;
+      },
+      onError: (error) => {
+        toast.error('Failed to get connect URL');
+        console.error(error);
+      },
+    });
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -61,7 +60,9 @@ export default function ConnectedAccounts() {
         filterPlatform === 'all' || account.socialType === filterPlatform;
 
       const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
-      const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
+      const isAccountExpiringSoon = isExpiringSoon(
+        account.refreshTokenExpiresIn
+      );
 
       const matchesStatus =
         filterStatus === 'all' ||
@@ -93,7 +94,7 @@ export default function ConnectedAccounts() {
 
   const handleConnect = (platform: SocialType) => {
     // Removed Instagram and YouTube as they were not handled by connectAccount
-    if (platform !== 'LENS') {
+    if (platform !== 'LENS' && platform !== 'DEFAULT') {
       connectAccount({ provider: platform })
         .then((url: string) => {
           window.location.href = url;

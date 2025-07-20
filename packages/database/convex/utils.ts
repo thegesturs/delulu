@@ -165,7 +165,8 @@ export type SocialType =
   | 'THREADS'
   | 'PINTEREST'
   | 'FARCASTER'
-  | 'BLUESKY';
+  | 'BLUESKY'
+  | 'DEFAULT';
 
 export type PostStatus =
   | 'SAVED'

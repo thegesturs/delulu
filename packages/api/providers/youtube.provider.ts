@@ -1,7 +1,9 @@
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import type { Readable } from 'node:stream';
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
@@ -32,14 +34,16 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<YouTubeProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new YouTubeError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken) {
       return err(new ProfileNotFoundError('YouTube'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
       username: profile.username ?? '',

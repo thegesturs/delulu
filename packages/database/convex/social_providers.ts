@@ -204,7 +204,7 @@ export const getOrganizationSocialProviders = query({
 });
 
 // Internal function to get social provider with decrypted tokens
-export const getSocialProviderWithDecryptedTokens = internalQuery({
+export const getSocialProviderWithDecryptedTokens = query({
   args: { id: v.id('socialProviders') },
   returns: v.union(socialProviderSchema, v.null()),
   handler: async (ctx, args) => {
@@ -334,50 +334,6 @@ export const updateSocialProvider = mutation({
       console.error('Failed to encrypt tokens during update:', error);
       throw new Error('Token encryption failed');
     }
-  },
-});
-
-export const deactivateSocialProvider = mutation({
-  args: { id: v.id('socialProviders') },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const provider = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!provider) {
-      throw new Error('Social provider not found');
-    }
-
-    await ctx.db.patch(provider._id, {
-      isActive: false,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
-  },
-});
-
-export const reactivateSocialProvider = mutation({
-  args: { id: v.id('socialProviders') },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const provider = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!provider) {
-      throw new Error('Social provider not found');
-    }
-
-    await ctx.db.patch(provider._id, {
-      isActive: true,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
   },
 });
 

@@ -5,7 +5,7 @@ import {
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +18,7 @@ import {
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import type { SocialType } from '@delulu/validators/post';
+import { useQuery } from 'convex/react';
 import {
   AnimatePresence,
   LayoutGroup,
@@ -34,40 +35,8 @@ interface SocialSelectorItemProps {
   socialId: string;
 }
 
-// const mockSocialProviders = [
-//   {
-//     id: '1',
-//     fullName: 'I am Cool',
-//     username: 'I am Cool',
-//     socialType: SocialTypes.TWITTER,
-//     socialId: 'twitter',
-//   },
-//   {
-//     id: '2',
-//     fullName: 'I am Cool',
-//     username: 'I am Cool',
-//     socialType: SocialTypes.INSTAGRAM,
-//     socialId: 'instagram',
-//   },
-//   {
-//     id: '3',
-//     fullName: 'I am Cool',
-//     username: 'I am Cool',
-//     socialType: SocialTypes.LINKEDIN,
-//     socialId: 'linkedin',
-//   },
-//   {
-//     id: '4',
-//     fullName: 'I am Cool',
-//     username: 'I am Cool',
-//     socialType: SocialTypes.YOUTUBE,
-//     socialId: 'youtube',
-//   },
-// ];
-
 export default function SocialSelector() {
-  const { data: socialProviders } =
-    api.socialProvider.getConnectedAccounts.useQuery();
+  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
 
   return (
     <div className="flex flex-col gap-2">
@@ -84,10 +53,10 @@ export default function SocialSelector() {
             <AnimatePresence initial={false} mode="popLayout">
               {socialProviders?.map((account) => (
                 <SocialSelectorItem
-                  key={account.id}
+                  key={account._id}
                   socialProvider={account.socialType}
                   name={account.fullName ?? account.username}
-                  socialId={account.id}
+                  socialId={account._id}
                 />
               ))}
             </AnimatePresence>

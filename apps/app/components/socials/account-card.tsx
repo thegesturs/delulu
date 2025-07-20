@@ -63,14 +63,18 @@ function formatTimeAgo(timestamp: number | null | undefined): string {
 }
 
 function isExpiringSoon(expiresIn: number | undefined): boolean {
-  if (!expiresIn) return false;
+  if (!expiresIn) {
+    return false;
+  }
   const now = Date.now();
   const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
   return diffInDays <= 7 && diffInDays > 0;
 }
 
 function isExpired(expiresIn: number | undefined): boolean {
-  if (!expiresIn) return false;
+  if (!expiresIn) {
+    return false;
+  }
   return Date.now() > expiresIn;
 }
 

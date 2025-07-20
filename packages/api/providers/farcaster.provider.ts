@@ -1,4 +1,6 @@
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -41,14 +43,16 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<FarcasterProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new FarcasterError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken || !profile.profileId) {
       return err(new ProfileNotFoundError('Farcaster'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       fid: profile.profileId, // Farcaster uses FID as profileId
       signerUuid: profile.accessToken, // Signer UUID stored as accessToken
     });

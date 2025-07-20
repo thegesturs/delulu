@@ -1,5 +1,7 @@
 import { keys } from '@delulu/api/keys';
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import type { MediaType, PostReturnType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
@@ -37,14 +39,16 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<PinterestProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new PinterestError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken) {
       return err(new ProfileNotFoundError('Pinterest'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       accessToken: profile.accessToken,
     });
   });

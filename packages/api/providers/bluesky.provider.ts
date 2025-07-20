@@ -1,4 +1,6 @@
-import { socialQueries } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
@@ -61,14 +63,16 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<BlueskyProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    socialQueries.getSocialProviderWithDecryptedTokens(socialProviderId),
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
+      id: socialProviderId as Id<'socialProviders'> 
+    }),
     () => new BlueskyError('Database query failed')
   ).andThen((profile) => {
     if (!profile?.accessToken || !profile.profileId || !profile.refreshToken) {
       return err(new ProfileNotFoundError('Bluesky'));
     }
     return ok({
-      id: profile.id,
+      id: profile._id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
       refreshToken: profile.refreshToken,

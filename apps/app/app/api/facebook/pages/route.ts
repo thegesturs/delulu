@@ -1,7 +1,7 @@
 import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import { api } from '@delulu/database/convex/_generated/api';
-import { decryptData } from '@delulu/database/encrypt';
+import { decryptData } from '@delulu/database/convex/utils';
 import {
   type FacebookPagesPublic,
   type FacebookPagesWithToken,
