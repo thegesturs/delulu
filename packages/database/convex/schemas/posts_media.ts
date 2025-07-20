@@ -52,6 +52,7 @@ export const basePostSchema = v.object({
 // Post schema with system fields (for returns)
 export const postSchema = v.object({
   _id: v.id('posts'),
+  _creationTime: v.number(),
   ...basePostSchema.fields,
 });
 

@@ -114,13 +114,18 @@ export const createPost = mutation({
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
 
+    const user = await betterAuthComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= now) {
       throw new Error('Scheduled date must be in the future');
     }
 
     const newPostId = await ctx.db.insert('posts', {
-      userId: args.userId,
+      userId: user.userId,
       organizationId: args.organizationId,
       status: args.status,
       scheduledAt: args.scheduledAt,
