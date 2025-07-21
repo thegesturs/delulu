@@ -8,8 +8,8 @@ import { getValidMediaUrls } from '@delulu/validators/post';
 import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { keys } from '@delulu/api/keys';
 
-import { keys } from '@api/keys';
 import type {
   PostContent,
   PostPublishResult,

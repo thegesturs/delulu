@@ -36,8 +36,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<LinkedInProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new LinkedInError('Database query failed')
   ).andThen((profile) => {
@@ -80,7 +80,7 @@ const uploadImageToLinkedIn = (
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'LinkedIn-Version': '2025-07', // Use current version
+            'LinkedIn-Version': '202507', // Use current version
             'X-Restli-Protocol-Version': '2.0.0',
           },
         }
@@ -141,7 +141,7 @@ const uploadVideoToLinkedIn = (
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'LinkedIn-Version': '2025-07',
+            'LinkedIn-Version': '202507',
             'X-Restli-Protocol-Version': '2.0.0',
           },
         }
@@ -218,7 +218,7 @@ const checkVideoProcessingStatus = (
     axios.get(`https://api.linkedin.com/rest/videos/${encodedUrn}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'LinkedIn-Version': '2025-07',
+        'LinkedIn-Version': '202507',
         'X-Restli-Protocol-Version': '2.0.0',
       },
     }),

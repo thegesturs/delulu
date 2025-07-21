@@ -557,3 +557,56 @@ export const deletePost = mutation({
     return { success: true };
   },
 });
+
+export const updatePostPublishStatus = mutation({
+  args: {
+    postId: v.id('posts'),
+    status: v.union(v.literal('PUBLISHED'), v.literal('FAILED')),
+    platformPostData: v.object({
+      platformPostId: v.optional(v.string()),
+      platformPostUrl: v.optional(v.string()),
+      failureReason: v.optional(v.string()),
+      socialProviderId: v.id('socialProviders'),
+      postedAt: v.number(),
+      postId: v.id('posts'),
+    }),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const post = await findPostById(ctx, args.postId);
+    const now = getCurrentTimestamp();
+
+    const platformPosts = post.platformPosts || [];
+    const platformPost = {
+      socialProviderId: args.platformPostData.socialProviderId,
+      platformPostId: args.platformPostData.platformPostId,
+      platformPostUrl: args.platformPostData.platformPostUrl,
+      postedAt: args.platformPostData.postedAt,
+      failureReason: args.platformPostData.failureReason,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Add or update platform post
+    const existingIndex = platformPosts.findIndex(
+      (p) => p.socialProviderId === args.platformPostData.socialProviderId
+    );
+    if (existingIndex >= 0) {
+      platformPosts[existingIndex] = platformPost;
+    } else {
+      platformPosts.push(platformPost);
+    }
+
+    // Update post status and platform posts
+    await ctx.db.patch(post._id, {
+      status: args.status,
+      platformPosts,
+      updatedAt: now,
+      ...(args.status === 'PUBLISHED'
+        ? { publishedAt: now }
+        : { lastFailedAt: now }),
+    });
+
+    return true;
+  },
+});

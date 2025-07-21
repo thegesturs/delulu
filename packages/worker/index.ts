@@ -1,6 +1,11 @@
 import { providerRegistry } from '@delulu/api/providers';
-import { type SocialType, postQueries } from '@delulu/database';
-import type { SocialPublishInputType } from '@delulu/validators/post';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { convex } from '@delulu/database/server';
+import type {
+  SocialPublishInputType,
+  SocialType,
+} from '@delulu/validators/post';
 
 async function processMessage(messageBody: string) {
   console.log('Message body', messageBody);
@@ -11,7 +16,7 @@ async function processMessage(messageBody: string) {
 
   console.log('Social publish input', socialPublishInput);
 
-  if (socialType === 'LENS') {
+  if (socialType === 'LENS' || socialType === 'DEFAULT') {
     return;
   }
 
@@ -22,29 +27,30 @@ async function processMessage(messageBody: string) {
   });
 
   if (result.isErr()) {
-    await postQueries.postPublishedOrFailed({
-      postId: socialPublishInput.postId,
+    await convex.mutation(api.posts.updatePostPublishStatus, {
+      postId: socialPublishInput.postId as Id<'posts'>,
+      status: 'FAILED',
       platformPostData: {
         failureReason: result.error.message,
-        socialProviderId: socialPublishInput.socialProviderId,
-        postedAt: new Date(),
-        postId: socialPublishInput.postId,
+        socialProviderId:
+          socialPublishInput.socialProviderId as Id<'socialProviders'>,
+        postedAt: Date.now(),
+        postId: socialPublishInput.postId as Id<'posts'>,
       },
-      status: 'FAILED',
     });
     return;
   }
 
-  await postQueries.postPublishedOrFailed({
-    postId: socialPublishInput.postId,
+  await convex.mutation(api.posts.updatePostPublishStatus, {
+    postId: socialPublishInput.postId as Id<'posts'>,
+    status: 'PUBLISHED',
     platformPostData: {
       platformPostId: result.value.platformPostId,
-      socialProviderId: result.value.platformId,
+      socialProviderId: result.value.platformId as Id<'socialProviders'>,
       platformPostUrl: result.value.platformPostUrl,
-      postedAt: new Date(),
-      postId: socialPublishInput.postId,
+      postedAt: Date.now(),
+      postId: socialPublishInput.postId as Id<'posts'>,
     },
-    status: 'PUBLISHED',
   });
   return result;
 }
