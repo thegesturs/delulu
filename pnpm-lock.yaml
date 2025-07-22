@@ -1420,12 +1420,27 @@ importers:
       '@types/node':
         specifier: 22.14.1
         version: 22.14.1
+      axios:
+        specifier: ^1.9.0
+        version: 1.10.0
       dotenv-cli:
         specifier: ^7.4.1
         version: 7.4.4
+      googleapis:
+        specifier: ^150.0.1
+        version: 150.0.1
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
+      twitter-api-sdk:
+        specifier: ^1.2.1
+        version: 1.2.1
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.67
 
   turbo/generators: {}
 

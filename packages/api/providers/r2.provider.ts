@@ -6,7 +6,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ResultAsync } from 'neverthrow';
 import { keys } from '../keys';
-import { R2Error, type SocialProviderError } from './errors';
+import { R2UploadError, R2DownloadError, R2ConfigError } from './r2-errors';
 
 // Types
 interface R2SignedUploadResponse {
@@ -33,10 +33,10 @@ export class R2Provider {
     });
   }
 
-  getSignedDownloadUrl(key: string): ResultAsync<string, SocialProviderError> {
+  getSignedDownloadUrl(key: string): ResultAsync<string, R2DownloadError> {
     if (!key || key.trim() === '') {
       return ResultAsync.fromSafePromise(
-        Promise.reject(new R2Error('Key is required for download URL'))
+        Promise.reject(new R2DownloadError('Key is required for download URL'))
       );
     }
 
@@ -47,7 +47,7 @@ export class R2Provider {
 
     return ResultAsync.fromPromise(
       getSignedUrl(this.s3Client, command, { expiresIn: 3600 }),
-      (error) => new R2Error(`Failed to generate download URL: ${error}`)
+      (error) => new R2DownloadError(`Failed to generate download URL: ${error}`)
     ).map((url) =>
       url.replace(
         `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
@@ -59,16 +59,16 @@ export class R2Provider {
   getSignedUploadUrl(
     key: string,
     contentType: string
-  ): ResultAsync<R2SignedUploadResponse, SocialProviderError> {
+  ): ResultAsync<R2SignedUploadResponse, R2UploadError> {
     if (!key || key.trim() === '') {
       return ResultAsync.fromSafePromise(
-        Promise.reject(new R2Error('Key is required for upload URL'))
+        Promise.reject(new R2UploadError('Key is required for upload URL'))
       );
     }
 
     if (!contentType || contentType.trim() === '') {
       return ResultAsync.fromSafePromise(
-        Promise.reject(new R2Error('Content type is required for upload URL'))
+        Promise.reject(new R2UploadError('Content type is required for upload URL'))
       );
     }
 
@@ -83,7 +83,7 @@ export class R2Provider {
         expiresIn: 3600,
         signableHeaders: new Set(['content-type']),
       }),
-      (error) => new R2Error(`Failed to generate upload URL: ${error}`)
+      (error) => new R2UploadError(`Failed to generate upload URL: ${error}`)
     ).map((uploadUrl) => ({
       uploadUrl,
       key,

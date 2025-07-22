@@ -11,7 +11,7 @@ import { decryptData } from '@delulu/database/convex/utils';
 import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
-import { providerRegistry } from '../providers';
+import { connectUrlRegistry } from '../services/connect-url.service';
 import { protectedProcedure, publicProcedure } from '../trpc';
 
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
@@ -24,7 +24,7 @@ export const socialProviderRouter = {
       })
     )
     .mutation(({ input }) => {
-      const link = providerRegistry[input.provider].connectUrl();
+      const link = connectUrlRegistry[input.provider].connectUrl();
 
       console.log('Link:', link);
 

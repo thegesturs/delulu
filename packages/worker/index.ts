@@ -1,4 +1,4 @@
-import { providerRegistry } from '@delulu/api/providers';
+import { providerRegistry } from './providers';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/server';

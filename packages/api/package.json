@@ -9,7 +9,7 @@
     "worker": "dotenv -e .env -- tsx watch worker/social-posting.ts"
   },
   "exports": {
-    "./providers": "./providers/index.ts"
+    "./providers/r2": "./providers/r2.provider.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.20",
