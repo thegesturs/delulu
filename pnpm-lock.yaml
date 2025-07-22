@@ -193,6 +193,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      node:
+        specifier: ^20.19.4
+        version: 20.19.4
       react:
         specifier: catalog:react19
         version: 19.1.0
@@ -665,7 +668,7 @@ importers:
         specifier: 'catalog:'
         version: 11.1.0(typescript@5.8.3)
       '@types/node':
-        specifier: ^22.15.23
+        specifier: ^22.15.34
         version: 22.15.34
       ai:
         specifier: ^4.1.54
@@ -691,6 +694,9 @@ importers:
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+      node:
+        specifier: ^20.19.4
+        version: 20.19.4
       openai:
         specifier: ^4.67.3
         version: 4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)
@@ -9963,6 +9969,9 @@ packages:
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
+  node-bin-setup@1.1.4:
+    resolution: {integrity: sha512-vWNHOne0ZUavArqPP5LJta50+S8R261Fr5SvGul37HbEDcowvLjwdvd0ZeSr0r2lTSrPxl6okq9QUw8BFGiAxA==}
+
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
@@ -10010,6 +10019,11 @@ packages:
 
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
+
+  node@20.19.4:
+    resolution: {integrity: sha512-N0Yo0gnnKzDOXYUvR/ewjV/wKu2AFl+4eGs5IbVGjdFGsEtdSAOGc6ATMb3zi/cFHfdCn4eB+b+zOxJF6kvitw==}
+    engines: {npm: '>=5.0.0'}
+    hasBin: true
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -23551,6 +23565,8 @@ snapshots:
 
   node-addon-api@7.1.1: {}
 
+  node-bin-setup@1.1.4: {}
+
   node-domexception@1.0.0: {}
 
   node-fetch@2.6.7:
@@ -23619,6 +23635,10 @@ snapshots:
       webpack: 5.99.9(esbuild@0.25.5)
 
   node-releases@2.0.19: {}
+
+  node@20.19.4:
+    dependencies:
+      node-bin-setup: 1.1.4
 
   normalize-path@3.0.0: {}
 

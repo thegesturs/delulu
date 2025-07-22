@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
       // Encrypt the pages data before storing
       const encryptedData = await encryptData(JSON.stringify(allPages));
       await env.DELULU_FACEBOOK_PAGES.put(key, encryptedData, {
-        expirationTtl: 300, // 5 minutes in seconds
+        expirationTtl: 600, // 10 minutes in seconds
       });
 
       // Redirect to page selection UI with data key

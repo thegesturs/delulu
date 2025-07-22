@@ -1,10 +1,6 @@
-import {
-  createAuth,
-  fetchMutation,
-  fetchQuery,
-  getToken,
-} from '@delulu/auth/server';
+import { auth } from '@clerk/nextjs/server';
 import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation, fetchQuery } from '@delulu/database/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -23,14 +19,26 @@ const CreateMediaSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getToken(createAuth);
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = await getToken({ template: 'convex' });
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user._id) {
+    const user = await fetchQuery(
+      api.users.getUserByExternalId,
+      {
+        externalId: userId,
+      },
+      { token }
+    );
+    if (!user?._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -43,9 +51,7 @@ export async function POST(req: NextRequest) {
       // You might want to add organizationId logic here if needed
     };
 
-    const savedMedia = await fetchMutation(api.media.createMedia, mediaData, {
-      token,
-    });
+    const savedMedia = await fetchMutation(api.media.createMedia, mediaData);
 
     return NextResponse.json(savedMedia);
   } catch (error) {
@@ -67,14 +73,26 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const token = await getToken(createAuth);
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = await getToken({ template: 'convex' });
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user._id) {
+    const user = await fetchQuery(
+      api.users.getUserByExternalId,
+      {
+        externalId: userId,
+      },
+      { token }
+    );
+    if (!user?._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

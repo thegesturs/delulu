@@ -12,7 +12,7 @@ import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { connectUrlRegistry } from '../services/connect-url.service';
-import { protectedProcedure, publicProcedure } from '../trpc';
+import { protectedProcedure } from '../trpc';
 
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 
@@ -101,17 +101,10 @@ export const socialProviderRouter = {
         success: true,
       };
     }),
-  connectFacebookPage: publicProcedure
+  connectFacebookPage: protectedProcedure
     .input(FacebookPageConnectionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.userId;
-      if (!userId) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'You must be logged in to connect a Facebook page',
-        });
-      }
-
       // Securely retrieve the page access token from KV storage
       let pageAccessToken: string;
       try {

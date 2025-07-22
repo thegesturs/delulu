@@ -29,7 +29,6 @@ export const createTRPCContext = (opts: TRPCContext) => {
   //   headers: opts.headers,
   // });
 
-  //   const cache = opts.env['memoize-cache'];
   const source = opts.headers.get('x-trpc-source') ?? 'unknown';
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   // biome-ignore lint/suspicious/noConsole: <explanation>
@@ -131,6 +130,12 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const user = await fetchQuery(api.users.getUserByExternalId, {
     externalId: userId,
   });
+  if (!user?._id) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User not found',
+    });
+  }
   return next({
     ctx: {
       ...ctx,

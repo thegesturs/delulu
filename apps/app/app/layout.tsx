@@ -19,11 +19,11 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
           baseTheme: dark,
         }}
       >
-        <ConvexClientProvider>
-          <DesignSystemProvider>
+        <DesignSystemProvider>
+          <ConvexClientProvider>
             <TRPCReactProvider>{children}</TRPCReactProvider>
-          </DesignSystemProvider>
-        </ConvexClientProvider>
+          </ConvexClientProvider>
+        </DesignSystemProvider>
       </ClerkProvider>
     </body>
   </html>
