@@ -24,37 +24,19 @@ interface TRPCContext {
   headers: Headers;
 }
 
-export const createTRPCContext = async (opts: TRPCContext) => {
+export const createTRPCContext = (opts: TRPCContext) => {
   // const userAuth = await auth.api.getSession({
   //   headers: opts.headers,
   // });
-  const token = await getToken(createAuth);
-  if (!token) {
-    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'No token provided' });
-  }
-  console.log('>>> Token', token);
-  const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-  const userId = user?._id;
-  // const organizationId = userAuth?.session.orgId ?? undefined;
-
-  // biome-ignore lint/suspicious/noConsoleLog: <explanation>
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> UserId', userId);
 
   //   const cache = opts.env['memoize-cache'];
   const source = opts.headers.get('x-trpc-source') ?? 'unknown';
   // biome-ignore lint/suspicious/noConsoleLog: <explanation>
   // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> tRPC Request from', source, 'by', userId);
   //   const cacheTagManager = createCacheTagManager(cacheTags, clerkId);
 
   return {
-    // env: opts.env,
     db: convex,
-    userId,
-    // organizationId,
-    // cache,
-    // cacheTagManager,
   };
 };
 
@@ -137,14 +119,23 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.userId) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const token = await getToken(createAuth);
+  if (!token) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'No token provided',
+    });
   }
+  console.log('>>> Token', token);
+  const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
+  const userId = user?._id;
+  console.log('>>> UserId', userId);
   return next({
     ctx: {
       ...ctx,
-      userId: ctx.userId,
+      userId,
     },
   });
 });

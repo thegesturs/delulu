@@ -59,6 +59,8 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           async fetch(url, options) {
             const response = await fetch(url, {
               ...options,
+              credentials: 'include',
+              cache: 'no-store',
             });
             return response;
           },
