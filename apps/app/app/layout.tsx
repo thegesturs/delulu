@@ -1,6 +1,7 @@
 import './styles.css';
+import { ConvexClientProvider } from '@/components/providers/clerk-convex';
 import { TRPCReactProvider } from '@/trpc/react';
-import { ConvexClientProvider } from '@delulu/auth/provider';
+import { ClerkProvider } from '@clerk/nextjs';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
 import type { ReactNode } from 'react';
@@ -12,11 +13,13 @@ type RootLayoutProperties = {
 const RootLayout = ({ children }: RootLayoutProperties) => (
   <html lang="en" className={fonts} suppressHydrationWarning>
     <body>
-      <ConvexClientProvider>
-        <DesignSystemProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-        </DesignSystemProvider>
-      </ConvexClientProvider>
+      <ClerkProvider>
+        <ConvexClientProvider>
+          <DesignSystemProvider>
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+          </DesignSystemProvider>
+        </ConvexClientProvider>
+      </ClerkProvider>
     </body>
   </html>
 );

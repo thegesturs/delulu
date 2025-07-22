@@ -31,10 +31,12 @@ function PostHogIdentifierContent() {
     }
 
     analytics.identify(user.id, {
-      email: user.email,
-      firstName: user.name,
+      email: user.primaryEmailAddress?.emailAddress,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
       createdAt: user.createdAt,
-      avatar: user.image,
+      avatar: user.imageUrl,
     });
 
     identified.current = true;

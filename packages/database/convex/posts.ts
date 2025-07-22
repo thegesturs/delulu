@@ -7,7 +7,6 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { betterAuthComponent } from './auth';
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(

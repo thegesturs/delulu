@@ -1,6 +1,6 @@
 'use client';
 
-import { signOut, useUser } from '@delulu/auth/client';
+import { useUser, useClerk } from '@delulu/auth/client';
 import {
   Avatar,
   AvatarFallback,
@@ -28,10 +28,11 @@ export const UserButton = ({
   showName = true,
   appearance,
 }: UserButtonProps) => {
-  const { user, isLoading } = useUser();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
 
-  if (isLoading) {
+  if (!isLoaded) {
     return <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />;
   }
 
@@ -53,6 +54,9 @@ export const UserButton = ({
       .slice(0, 2);
   };
 
+  const displayName = user.fullName || user.firstName || 'User';
+  const primaryEmail = user.primaryEmailAddress?.emailAddress || '';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -64,16 +68,16 @@ export const UserButton = ({
             <Avatar
               className={`h-8 w-8 ${appearance?.elements?.avatarBox || ''}`}
             >
-              <AvatarImage src={user.image || undefined} alt={user.name} />
+              <AvatarImage src={user.imageUrl} alt={displayName} />
               <AvatarFallback className="bg-primary/10 text-primary">
-                {getInitials(user.name)}
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
             {showName && (
               <span
                 className={`truncate text-sm ${appearance?.elements?.userButtonOuterIdentifier || ''}`}
               >
-                {user.name}
+                {displayName}
               </span>
             )}
           </div>
@@ -82,14 +86,14 @@ export const UserButton = ({
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center gap-2 p-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.image || undefined} alt={user.name} />
+            <AvatarImage src={user.imageUrl} alt={displayName} />
             <AvatarFallback className="bg-primary/10 text-primary">
-              {getInitials(user.name)}
+              {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium text-sm">{user.name}</span>
-            <span className="text-muted-foreground text-xs">{user.email}</span>
+            <span className="font-medium text-sm">{displayName}</span>
+            <span className="text-muted-foreground text-xs">{primaryEmail}</span>
           </div>
         </div>
         <DropdownMenuSeparator />

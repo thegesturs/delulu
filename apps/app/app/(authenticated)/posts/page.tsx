@@ -20,6 +20,8 @@ import { LayoutGrid, List, Plus } from 'lucide-react';
 import React, { useEffect } from 'react';
 import PostLoading from './post-loading';
 
+export const dynamic = 'force-dynamic';
+
 type PostStatusFilterType = 'all' | PostStatus;
 const ITEMS_PER_PAGE = 10;
 

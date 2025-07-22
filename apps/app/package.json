@@ -16,6 +16,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.25.4",
     "@delulu/analytics": "workspace:*",
     "@delulu/api": "workspace:*",
     "@delulu/auth": "workspace:*",

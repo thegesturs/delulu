@@ -1,16 +1,10 @@
 export default {
   providers: [
     {
-      domain: `${process.env.CONVEX_SITE_URL}`,
-      applicationID: 'convex',
-    },
-    {
-      domain: `${process.env.NEXT_PUBLIC_APP_URL}`,
-      applicationID: 'convex',
-    },
-    {
-      domain: 'https://solulu.delulu.social',
-      applicationID: 'convex',
+      // Replace with your Clerk JWT issuer domain
+      // This should match your Clerk Frontend API URL from the JWT template
+      domain: process.env.CLERK_JWT_ISSUER_DOMAIN,
+      applicationID: "convex",
     },
   ],
 };

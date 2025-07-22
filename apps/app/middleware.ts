@@ -1,9 +1,8 @@
-import { getSessionCookie } from '@delulu/auth/middleware';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import {
   noseconeMiddleware,
   noseconeOptions,
 } from '@delulu/security/middleware';
-import { type NextRequest, NextResponse } from 'next/server';
 
 // const securityHeaders = env.FLAGS_SECRET
 //   ? noseconeMiddleware(noseconeOptionsWithToolbar)
@@ -11,44 +10,15 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 const securityHeaders = noseconeMiddleware(noseconeOptions);
 
-// Helper function to check if route is public
-function isPublicRoute(pathname: string): boolean {
-  const publicRoutes = [
-    '/sign-in',
-    '/sign-up',
-    '/forgot-password',
-    '/api/auth',
-    '/api/trpc',
-    '/api/webhooks',
-  ];
-
-  return publicRoutes.some((route) => pathname.startsWith(route));
-}
-
-export default function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
+export default clerkMiddleware(() => {
   // Apply security headers
   const securityResponse = securityHeaders();
-
-  // Skip auth check for public routes
-  if (isPublicRoute(pathname)) {
-    return securityResponse || NextResponse.next();
-  }
-
-  // Check for session cookie using Better Auth's recommended approach
-  const sessionCookie = getSessionCookie(request);
-
-  // Redirect to sign-in if no session cookie found
-  if (!sessionCookie) {
-    const signInUrl = new URL('/sign-in', request.url);
-    // Add the current path as redirect_to query param
-    signInUrl.searchParams.set('redirect_to', pathname);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  return securityResponse || NextResponse.next();
-}
+  
+  // Let Clerk handle authentication automatically
+  // Clerk will redirect unauthenticated users to sign-in
+  
+  return securityResponse;
+});
 
 export const config = {
   matcher: [

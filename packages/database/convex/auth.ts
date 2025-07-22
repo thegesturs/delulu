@@ -1,76 +1,70 @@
-import {
-  type AuthFunctions,
-  BetterAuth,
-  type PublicAuthFunctions,
-} from '@convex-dev/better-auth';
-import { api, components, internal } from './_generated/api';
-import type { DataModel, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 
-// Typesafe way to pass Convex functions defined in this file
-const authFunctions: AuthFunctions = internal.auth;
-const publicAuthFunctions: PublicAuthFunctions = api.auth;
+// Example function for getting the current user with Clerk
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get user identity from Clerk JWT
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error('Not authenticated');
+    }
 
-// Initialize the component
-export const betterAuthComponent = new BetterAuth(components.betterAuth, {
-  authFunctions,
-  publicAuthFunctions,
-  verbose: true,
+    const email = identity.email;
+
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    // Find user in our database
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .first();
+
+    return user;
+  },
 });
 
-// These are required named exports
-export const {
-  createUser,
-  updateUser,
-  deleteUser,
-  createSession,
-  isAuthenticated,
-} = betterAuthComponent.createAuthFunctions<DataModel>({
-  // Must create a user and return the user id
-  onCreateUser: async (ctx, user) => {
-    // Example: copy the user's email to the application users table.
-    // We'll use onUpdateUser to keep it synced.
+// Function to ensure user exists in Convex database (called from client)
+export const ensureUser = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error('Not authenticated');
+    }
+
+    const email = identity.email;
+
+    if (!email) {
+      throw new Error('Email is required');
+    }
+
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', email))
+      .first();
+
+    if (existingUser) {
+      return existingUser._id;
+    }
+
+    // Create new user
     const userId = await ctx.db.insert('users', {
-      email: user.email,
-      name: user.name,
-      emailVerified: user.emailVerified,
+      email: email,
+      name: identity.name || '',
+      emailVerified: identity.emailVerified || false,
       usage: {
         socialAccounts: 0,
         generatedPosts: 0,
         drafts: 0,
         organization: 0,
       },
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      updatedAt: Date.now(),
     });
 
-    // This function must return the user id.
     return userId;
-  },
-
-  // Delete the user when they are deleted from Better Auth
-  onDeleteUser: async (ctx, userId) => {
-    // Use cascade delete to clean up all related data
-    await ctx.runMutation(api.cascade_deletes.deleteUserWithCascade, {
-      userId: userId as Id<'users'>,
-    });
-  },
-});
-
-// Example function for getting the current user
-// Feel free to edit, omit, etc.
-export const getCurrentUser = query({
-  args: {},
-  handler: async (ctx) => {
-    // Get user data from Better Auth - email, name, image, etc.
-    const userMetadata = await betterAuthComponent.getAuthUser(ctx);
-    console.log('userMetadata', userMetadata);
-
-    // Get user data from your application's database
-    // (skip this if you have no fields in your users table schema)
-    const user = await ctx.db.get(userMetadata.userId as Id<'users'>);
-    return {
-      ...user,
-    };
   },
 });
