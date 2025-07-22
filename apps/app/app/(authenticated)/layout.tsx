@@ -1,3 +1,4 @@
+import ConvexAuthProvider from '@/components/providers/auth-provider';
 import { StoreProvider } from '@/providers/store-provider';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { secure } from '@delulu/security';
@@ -16,14 +17,16 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
   }
 
   return (
-    // <NotificationsProvider userId={user?._id}>
-    <SidebarProvider>
-      <GlobalSidebar>
-        <StoreProvider>{children}</StoreProvider>
-      </GlobalSidebar>
-      <PostHogIdentifier />
-    </SidebarProvider>
-    // </NotificationsProvider>
+    <>
+      <ConvexAuthProvider>
+        <SidebarProvider>
+          <GlobalSidebar>
+            <StoreProvider>{children}</StoreProvider>
+          </GlobalSidebar>
+          <PostHogIdentifier />
+        </SidebarProvider>
+      </ConvexAuthProvider>
+    </>
   );
 };
 

@@ -1,31 +1,15 @@
-import { v } from 'convex/values';
+import type { UserJSON } from '@clerk/backend';
+import { type Validator, v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
 import {
-  type QueryCtx,
   type MutationCtx,
+  type QueryCtx,
   internalMutation,
   mutation,
   query,
 } from './_generated/server';
 import { userCreateSchema, userSchema, userUpdateSchema } from './schemas';
 import { getCurrentTimestamp, isValidEmail } from './utils';
-
-// Clerk UserJSON structure (minimal needed fields)
-const clerkUserDataValidator = v.object({
-  id: v.string(),
-  first_name: v.union(v.string(), v.null()),
-  last_name: v.union(v.string(), v.null()),
-  image_url: v.union(v.string(), v.null()),
-  email_addresses: v.array(v.object({
-    email_address: v.string(),
-    verification: v.union(
-      v.object({
-        status: v.string(),
-      }),
-      v.null()
-    ),
-  })),
-});
 
 // User queries
 export const getUserById = query({
@@ -41,6 +25,17 @@ export const getUserById = query({
   },
 });
 
+export const getUserByExternalId = query({
+  args: { externalId: v.string() },
+  returns: v.union(userSchema, v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_external_id', (q) => q.eq('externalId', args.externalId))
+      .unique();
+    return user;
+  },
+});
 export const getUserByEmail = query({
   args: { email: v.string() },
   returns: v.union(userSchema, v.null()),
@@ -276,7 +271,7 @@ export const current = query({
 
 // Internal mutation to upsert user from Clerk webhook
 export const upsertFromClerk = internalMutation({
-  args: { data: clerkUserDataValidator },
+  args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
   async handler(ctx, { data }) {
     const userAttributes = {
       name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'User',
@@ -331,9 +326,11 @@ export async function getCurrentUserOrThrow(ctx: QueryCtx) {
 // Helper to get current user from Clerk identity
 export async function getCurrentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
+  console.log('>>> Identity', identity);
   if (identity === null) {
     return null;
   }
+  console.log('>>> Subject', identity.subject);
   return await userByExternalId(ctx, identity.subject);
 }
 

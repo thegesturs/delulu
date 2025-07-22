@@ -1,6 +1,5 @@
 import { keys } from '@delulu/api/keys';
-import { createAuth, fetchQuery, getToken } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
+import { auth } from '@delulu/auth/server';
 import { ethers } from 'ethers';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -66,21 +65,8 @@ async function fetchWithTimeout(
 // Production-level Farcaster signer request with proper EIP-712 signature
 export async function POST(req: NextRequest) {
   try {
-    const authToken = await getToken(createAuth);
-    if (!authToken) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const user = await fetchQuery(
-      api.auth.getCurrentUser,
-      {},
-      { token: authToken }
-    );
-
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -240,20 +226,8 @@ export async function POST(req: NextRequest) {
 // GET - Check status of signer request
 export async function GET(req: NextRequest) {
   try {
-    const authToken = await getToken(createAuth);
-    if (!authToken) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    const user = await fetchQuery(
-      api.auth.getCurrentUser,
-      {},
-      { token: authToken }
-    );
-
-    if (!user) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -271,7 +245,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('🔍 Checking status for token:', token);
-    console.log('👤 User ID:', user._id);
+    console.log('👤 User ID:', userId);
 
     // // Find the pending request (commented out for testing)
     // const signerRequest = await database.farcasterSignerRequest.findFirst({
@@ -292,7 +266,7 @@ export async function GET(req: NextRequest) {
     const signerRequest = {
       id: 'mock_signer_request',
       token,
-      userId: user._id,
+      userId: userId,
       state: 'pending',
     };
     console.log('🎭 Mock signer request:', signerRequest);
@@ -330,7 +304,7 @@ export async function GET(req: NextRequest) {
 
     if (state === 'completed' && signerUser && userFid) {
       console.log('✅ Connection completed! Would create social provider:', {
-        userId: user._id,
+        userId: userId,
         profileId: userFid,
         displayName: signerUser.displayName,
         username: signerUser.username,

@@ -17,7 +17,7 @@ export const baseUserSchema = v.object({
   email: v.string(),
   name: v.string(),
   emailVerified: v.optional(v.boolean()),
-  externalId: v.string(), // Clerk user ID
+  externalId: v.optional(v.string()), // Clerk user ID (optional)
   usage: usageSchema,
   image: v.optional(v.string()),
   updatedAt: v.number(),
@@ -35,7 +35,7 @@ export const userCreateSchema = v.object({
   email: v.string(),
   name: v.string(),
   emailVerified: v.optional(v.boolean()),
-  externalId: v.string(),
+  externalId: v.optional(v.string()),
   usage: v.optional(usageSchema),
   image: v.optional(v.string()),
 });

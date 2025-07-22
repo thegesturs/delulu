@@ -1,23 +1,49 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import {
   noseconeMiddleware,
   noseconeOptions,
 } from '@delulu/security/middleware';
+import { NextResponse } from 'next/server';
 
-// const securityHeaders = env.FLAGS_SECRET
-//   ? noseconeMiddleware(noseconeOptionsWithToolbar)
-//   : noseconeMiddleware(noseconeOptions);
+const publicRoutes = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)',
+  '/verify-email(.*)',
+  '/api/trpc(.*)',
+  '/api/transcribe(.*)',
+]);
+
+const authRoutes = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/verify-email(.*)',
+]);
 
 const securityHeaders = noseconeMiddleware(noseconeOptions);
 
-export default clerkMiddleware(() => {
+export default clerkMiddleware(async (auth, req) => {
   // Apply security headers
+  const { userId, redirectToSignIn } = await auth();
+
   const securityResponse = securityHeaders();
-  
-  // Let Clerk handle authentication automatically
-  // Clerk will redirect unauthenticated users to sign-in
-  
-  return securityResponse;
+
+  // Allow access to public routes regardless of auth status
+  if (publicRoutes(req)) {
+    return NextResponse.next();
+  }
+
+  // If the user isn't signed in and the route is private, redirect to sign-in
+  if (!userId && !publicRoutes(req)) {
+    return redirectToSignIn({ returnBackUrl: req.url });
+  }
+  if (userId && authRoutes(req)) {
+    // Redirect logged-in users away from auth routes
+    const homeUrl = new URL('/', req.nextUrl.origin);
+    return NextResponse.redirect(homeUrl);
+  }
+
+  return NextResponse.next();
 });
 
 export const config = {

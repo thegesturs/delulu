@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.4",
+    "@clerk/themes": "^2.3.3",
     "@delulu/analytics": "workspace:*",
     "@delulu/api": "workspace:*",
     "@delulu/cloudflare-types": "workspace:*",

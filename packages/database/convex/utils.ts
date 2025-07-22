@@ -103,7 +103,7 @@ export async function encryptData(data: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  const key = await getKey(process.env.BETTER_AUTH_SECRET!, salt);
+  const key = await getKey(process.env.ENCRYPTION_SECRET!, salt);
 
   // Encrypt the data
   const encryptedData = await crypto.subtle.encrypt(
@@ -140,7 +140,7 @@ export async function decryptData(encryptedData: string): Promise<string> {
   const data = combined.slice(28);
 
   // Generate key using the extracted salt
-  const key = await getKey(process.env.BETTER_AUTH_SECRET!, salt);
+  const key = await getKey(process.env.ENCRYPTION_SECRET!, salt);
 
   const decryptedData = await crypto.subtle.decrypt(
     {

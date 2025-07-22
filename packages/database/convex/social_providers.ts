@@ -478,6 +478,7 @@ export const upsertSocialProvider = mutation({
       // Create new provider
       await ctx.db.insert('socialProviders', {
         ...args,
+        userId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         updatedAt: now,

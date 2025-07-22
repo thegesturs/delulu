@@ -1,7 +1,7 @@
-import { fetchQuery, getToken } from '@delulu/auth/server';
-import { createAuth } from '@delulu/auth/server';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { convex } from '@delulu/database/server';
+import { fetchQuery } from '@delulu/database/server';
 import { TRPCError, initTRPC } from '@trpc/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
@@ -121,21 +121,20 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const token = await getToken(createAuth);
-  if (!token) {
+  const { userId } = await auth();
+  if (!userId) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'No token provided',
     });
   }
-  console.log('>>> Token', token);
-  const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-  const userId = user?._id;
-  console.log('>>> UserId', userId);
+  const user = await fetchQuery(api.users.getUserByExternalId, {
+    externalId: userId,
+  });
   return next({
     ctx: {
       ...ctx,
-      userId,
+      userId: user?._id,
     },
   });
 });

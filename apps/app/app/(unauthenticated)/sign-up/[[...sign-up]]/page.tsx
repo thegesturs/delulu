@@ -1,14 +1,5 @@
-import { SignUp } from '@/components/auth/sign-up';
-import { createMetadata } from '@delulu/seo/metadata';
-import type { Metadata } from 'next';
+import { SignUp } from '@clerk/nextjs';
 
-const title = 'Create Account';
-const description = 'Create your account to get started.';
-
-export const metadata: Metadata = createMetadata({ title, description });
-
-const SignUpPage = () => {
+export default function Page() {
   return <SignUp />;
-};
-
-export default SignUpPage;
+}

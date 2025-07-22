@@ -1,7 +1,7 @@
 import { env } from '@/env';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import { convex } from '@delulu/database/server';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -74,8 +74,18 @@ function generateUniqueUsername(firstName: string, lastName: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+    const token = await getToken({ template: 'convex' });
+
+    if (!token) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
@@ -154,7 +164,7 @@ export async function GET(request: NextRequest) {
         ?.identifier;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(
+    const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
         socialType: 'LINKEDIN',
@@ -166,7 +176,8 @@ export async function GET(request: NextRequest) {
         fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
         profileImage: profileImage ?? '/images/user.png',
         isActive: true,
-      }
+      },
+      { token }
     );
 
     // Handle different response statuses

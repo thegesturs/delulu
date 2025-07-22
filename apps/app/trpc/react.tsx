@@ -57,24 +57,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             return headers;
           },
           async fetch(url, options) {
-            try {
-              const response = await fetch(url, {
-                ...options,
-                credentials: 'include',
-                cache: 'no-store',
-                // Add signal to handle timeouts
-                signal: AbortSignal.timeout(30000), // 30 second timeout
-              });
-
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
-
-              return response;
-            } catch (error) {
-              console.error('TRPC fetch error:', error);
-              throw error;
-            }
+            const response = await fetch(url, {
+              ...options,
+              cache: 'no-store',
+            });
+            return response;
           },
         }),
       ],

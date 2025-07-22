@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@delulu/auth/client';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   DropdownMenu,
@@ -25,8 +25,8 @@ export function OrganizationSwitcher() {
     return null;
   }
 
-  const workspaceName = user.name || 'Personal Workspace';
-  const workspaceImage = user.image;
+  const workspaceName = user.fullName || 'Personal Workspace';
+  const workspaceImage = user.imageUrl;
 
   return (
     <DropdownMenu>
