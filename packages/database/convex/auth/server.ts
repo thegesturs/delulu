@@ -1,4 +1,4 @@
-"use node";
+'use node';
 
 import { convexAdapter } from '@convex-dev/better-auth';
 import { convex } from '@convex-dev/better-auth/plugins';
@@ -43,6 +43,14 @@ export const createAuth = (ctx: ActionCtx) =>
         updateUserInfoOnLink: true,
       },
     },
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: true,
+        domain: '.delulu.social',
+      },
+    },
+    trustedOrigins: ['https://delulu.social', 'https://solulu.delulu.social'],
+
     // databaseHooks: {
     //   user: {
     //     create: {

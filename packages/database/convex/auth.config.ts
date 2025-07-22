@@ -8,5 +8,9 @@ export default {
       domain: `${process.env.NEXT_PUBLIC_APP_URL}`,
       applicationID: 'convex',
     },
+    {
+      domain: 'https://solulu.delulu.social',
+      applicationID: 'convex',
+    },
   ],
 };

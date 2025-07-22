@@ -8,39 +8,22 @@
     ".": {
       "import": "./index.ts",
       "types": "./index.ts"
-    },
-    "./encrypt": {
-      "import": "./utils/encrypt.ts",
-      "types": "./utils/encrypt.ts"
     }
   },
   "scripts": {
     "build": "drizzle-kit generate",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx seed.ts"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.7.7",
     "@convex-dev/resend": "^0.1.4",
     "@delulu/email": "workspace:*",
-    "@neondatabase/serverless": "^1.0.1",
     "@react-email/components": "0.0.36",
     "@t3-oss/env-nextjs": "^0.12.0",
     "better-auth": "^1.2.10",
     "convex": "^1.25.4",
-    "drizzle-kit": "0.31.2",
-    "drizzle-orm": "0.44.2",
-    "drizzle-zod": "^0.5.1",
     "react": "catalog:react19",
-    "server-only": "^0.0.1",
-    "undici": "^7.8.0",
-    "ws": "^8.18.1",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -50,7 +33,6 @@
     "@types/node": "22.14.1",
     "@types/react": "catalog:react19",
     "@types/ws": "^8.18.1",
-    "bufferutil": "^4.0.9",
     "nanoid": "^5.1.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

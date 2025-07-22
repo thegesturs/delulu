@@ -12,11 +12,11 @@ type RootLayoutProperties = {
 const RootLayout = ({ children }: RootLayoutProperties) => (
   <html lang="en" className={fonts} suppressHydrationWarning>
     <body>
-      <ConvexClientProvider>
-        <DesignSystemProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-        </DesignSystemProvider>
-      </ConvexClientProvider>
+      <TRPCReactProvider>
+        <ConvexClientProvider>
+          <DesignSystemProvider>{children}</DesignSystemProvider>
+        </ConvexClientProvider>
+      </TRPCReactProvider>
     </body>
   </html>
 );
