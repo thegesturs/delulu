@@ -20,13 +20,15 @@ const authRoutes = createRouteMatcher([
   '/verify-email(.*)',
 ]);
 
+// Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Apply security headers
-  const { userId, redirectToSignIn } = await auth();
+  // Get the security headers
+  await securityHeaders();
 
-  const securityResponse = securityHeaders();
+  // Get auth state
+  const { userId, redirectToSignIn } = await auth();
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {
@@ -37,12 +39,14 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId && !publicRoutes(req)) {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
+
+  // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
-    // Redirect logged-in users away from auth routes
     const homeUrl = new URL('/', req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
   }
 
+  // For all other routes, continue with security headers
   return NextResponse.next();
 });
 

@@ -24,6 +24,7 @@ export const noseconeOptions: NoseconeOptions = {
         "'self'",
         "'unsafe-inline'",
         'https://www.googletagmanager.com',
+        'https://*.clerk.accounts.dev',
       ],
       connectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.connectSrc,
@@ -31,10 +32,15 @@ export const noseconeOptions: NoseconeOptions = {
         'https://delulu-social.40dd16663d44dc635537be6d183af841.r2.cloudflarestorage.com',
         'https://*.convex.cloud',
         'wss://*.convex.cloud',
+        'https://*.clerk.accounts.dev',
+        'https://clerk.delulu.social',
+        'https://clerk.delulu.dev',
+        'https://clerk-telemetry.com',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,
         'blob:',
+        'https://*.clerk.accounts.dev',
       ],
       imgSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.imgSrc,
@@ -59,6 +65,9 @@ export const noseconeOptions: NoseconeOptions = {
         // Threads - specific domains only
         'https://scontent.threads.net',
         'https://static.threads.net',
+        // Clerk
+        'https://img.clerk.com',
+        'data:',
       ],
       mediaSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.mediaSrc,
@@ -67,6 +76,10 @@ export const noseconeOptions: NoseconeOptions = {
       ],
       objectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.objectSrc,
+      ],
+      frameSrc: [
+        ...(noseconeDefaults.contentSecurityPolicy.directives.frameSrc || []),
+        'https://*.clerk.accounts.dev',
       ],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production',
     },
