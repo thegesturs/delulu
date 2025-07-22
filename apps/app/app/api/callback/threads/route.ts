@@ -1,6 +1,6 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
-import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
+import { auth } from '@clerk/nextjs/server';
 import { convex } from '@delulu/database/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
@@ -26,8 +26,8 @@ interface ThreadsUser {
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken(createAuth);
-    if (!token) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -36,19 +36,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user?._id) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=user_not_found&code=AUTH_002&provider=threads',
-        },
-      });
-    }
-
-    const userId = user._id;
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -153,7 +140,6 @@ export async function GET(request: NextRequest) {
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
     const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      userId,
       socialType: 'THREADS',
       accessToken: longLivedTokenData.access_token,
       expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,

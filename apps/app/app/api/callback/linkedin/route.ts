@@ -1,8 +1,7 @@
 import { env } from '@/env';
-import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
+import { auth } from '@clerk/nextjs/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { convex } from '@delulu/database/server';
-import { nanoid } from 'nanoid';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -48,11 +47,7 @@ function sanitizeText(text: string): string {
 /**
  * Generates a unique username from first and last names with fallback strategies
  */
-async function generateUniqueUsername(
-  firstName: string,
-  lastName: string,
-  linkedinId: string
-): Promise<string> {
+function generateUniqueUsername(firstName: string, lastName: string): string {
   // Validate and sanitize inputs
   const sanitizedFirst = sanitizeText(firstName);
   const sanitizedLast = sanitizeText(lastName);
@@ -60,51 +55,27 @@ async function generateUniqueUsername(
   // Strategy 1: Use first.last format if both names are valid
   if (sanitizedFirst && sanitizedLast) {
     const baseUsername = `${sanitizedFirst}.${sanitizedLast}`;
-    const uniqueUsername = await ensureUniqueUsername(baseUsername);
-    if (uniqueUsername) return uniqueUsername;
+    return baseUsername;
   }
 
   // Strategy 2: Use just first name if available
   if (sanitizedFirst) {
     const baseUsername = sanitizedFirst;
-    const uniqueUsername = await ensureUniqueUsername(baseUsername);
-    if (uniqueUsername) return uniqueUsername;
+    return baseUsername;
   }
 
   // Strategy 3: Use just last name if available
   if (sanitizedLast) {
     const baseUsername = sanitizedLast;
-    const uniqueUsername = await ensureUniqueUsername(baseUsername);
-    if (uniqueUsername) return uniqueUsername;
+    return baseUsername;
   }
-
-  // Strategy 4: Fallback to linkedin ID based username
-  const fallbackUsername = `linkedin_${sanitizeText(linkedinId)}`;
-  const uniqueUsername = await ensureUniqueUsername(fallbackUsername);
-  if (uniqueUsername) return uniqueUsername;
-
-  // Strategy 5: Last resort - generate random username
-  return `user_${nanoid(8).toLowerCase()}`;
-}
-
-/**
- * Ensures username uniqueness by checking against existing usernames
- * For now, simplified to use random suffix - could be enhanced with Convex query later
- */
-async function ensureUniqueUsername(
-  baseUsername: string
-): Promise<string | null> {
-  if (!baseUsername || baseUsername.length < 2) return null;
-
-  // For now, use a random suffix to ensure uniqueness
-  // This could be enhanced later with a Convex query to check existing usernames
-  return `${baseUsername}_${nanoid(4).toLowerCase()}`;
+  return 'user';
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken(createAuth);
-    if (!token) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
@@ -113,19 +84,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user?._id) {
-      return NextResponse.redirect(
-        new URL(
-          '/socials?error=user_not_found&code=AUTH_002&provider=LINKEDIN',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const userId = user._id;
 
     if (!code) {
       return NextResponse.redirect(
@@ -183,10 +143,9 @@ export async function GET(request: NextRequest) {
     const userObject = (await userResponse.json()) as LinkedInUserResponse;
 
     // Generate a safe and unique username
-    const username = await generateUniqueUsername(
+    const username = generateUniqueUsername(
       userObject.localizedFirstName,
-      userObject.localizedLastName,
-      userObject.id
+      userObject.localizedLastName
     );
 
     // Get profile image URL from the complex response structure
@@ -198,7 +157,6 @@ export async function GET(request: NextRequest) {
     const status = await convex.mutation(
       api.social_providers.upsertSocialProvider,
       {
-        userId,
         socialType: 'LINKEDIN',
         accessToken: access_token,
         expiresIn: Date.now() + expires_in * 1000,

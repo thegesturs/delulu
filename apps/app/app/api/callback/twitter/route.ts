@@ -1,5 +1,5 @@
 import { env } from '@/env';
-import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
+import { auth } from '@clerk/nextjs/server';
 import { convex } from '@delulu/database/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { NextRequest } from 'next/server';
@@ -46,8 +46,8 @@ async function fetchWithTimeout(
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken(createAuth);
-    if (!token) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=TWITTER',
@@ -56,20 +56,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user?._id) {
-      return NextResponse.redirect(
-        new URL(
-          '/socials?error=user_not_found&code=AUTH_002&provider=TWITTER',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
-    const userId = user._id;
 
     if (!state || !code) {
       return NextResponse.redirect(
@@ -135,7 +124,6 @@ export async function GET(request: NextRequest) {
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
     const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      userId,
       socialType: 'TWITTER',
       accessToken: access_token,
       refreshToken: refresh_token,

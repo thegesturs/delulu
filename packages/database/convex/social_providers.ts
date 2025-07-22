@@ -1,14 +1,13 @@
 import { v } from 'convex/values';
 import { api, internal } from './_generated/api.js';
 import type { Doc } from './_generated/dataModel.js';
-import type { Id } from './_generated/dataModel.js';
 import { internalMutation, mutation, query } from './_generated/server.js';
-import { betterAuthComponent } from './auth';
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
   socialProviderUpdateSchema,
 } from './schemas/index';
+import { getCurrentUser } from './users';
 import { decryptData, encryptData, getCurrentTimestamp } from './utils';
 
 // Social Provider queries
@@ -24,28 +23,11 @@ export const getSocialProviderById = query({
   },
 });
 
-export const getUserSocialProviders = query({
-  args: { userId: v.id('users') },
-  returns: v.array(socialProviderSchema),
-  handler: async (ctx, args) => {
-    const providers = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-      .filter((q) => q.eq(q.field('isActive'), true))
-      .collect();
-
-    // Sort by creation date (newest first)
-    providers.sort((a, b) => b._creationTime - a._creationTime);
-
-    return providers;
-  },
-});
-
 export const getConnectedAccounts = query({
   args: {},
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
-    const user = await betterAuthComponent.getAuthUserId(ctx);
+    const user = await getCurrentUser(ctx);
     console.log('>>> User', user);
     if (!user) {
       return [];
@@ -53,7 +35,7 @@ export const getConnectedAccounts = query({
 
     const providers = await ctx.db
       .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user as Id<'users'>))
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
       .collect();
     console.log('>>> Providers', providers);
     // Sort by creation date (newest first)
@@ -460,9 +442,11 @@ export const upsertSocialProvider = mutation({
   ),
   handler: async (ctx, args) => {
     try {
-      const userId = (await betterAuthComponent.getAuthUserId(
-        ctx
-      )) as Id<'users'>;
+      const user = await getCurrentUser(ctx);
+      if (!user) {
+        throw new Error('User not found');
+      }
+      const userId = user._id;
       const now = getCurrentTimestamp();
       // Encrypt tokens once
       const encryptedAccessToken = await encryptData(args.accessToken);

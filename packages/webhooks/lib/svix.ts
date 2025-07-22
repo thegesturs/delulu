@@ -1,5 +1,5 @@
 import 'server-only';
-// import { auth } from '@delulu/auth/server';
+import { auth } from '@delulu/auth/server';
 import { Svix } from 'svix';
 import { keys } from '../keys';
 

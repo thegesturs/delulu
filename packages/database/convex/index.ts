@@ -50,7 +50,6 @@ export const queryPatterns = {
 
   // Social provider patterns
   getSocialProviderById: 'socialProviders.getSocialProviderById',
-  getUserSocialProviders: 'socialProviders.getUserSocialProviders',
   createSocialProvider: 'socialProviders.createSocialProvider',
   updateSocialProvider: 'socialProviders.updateSocialProvider',
   deleteSocialProvider: 'cascadeDeletes.deleteSocialProviderWithCascade',

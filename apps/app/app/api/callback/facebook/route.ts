@@ -1,7 +1,6 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
-import { fetchQuery, getToken, createAuth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
+import { auth } from '@clerk/nextjs/server';
 import { encryptData } from '@delulu/database/convex/utils';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
@@ -85,24 +84,13 @@ async function getAllPages(
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken(createAuth);
-    if (!token) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
             '/socials?error=auth_required&code=AUTH_001&provider=facebook',
-        },
-      });
-    }
-
-    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
-    if (!user?._id) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=user_not_found&code=AUTH_002&provider=facebook',
         },
       });
     }
@@ -222,7 +210,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Store pages data with a stable key based on user ID and code
-      const key = `fb-pages-${user._id}-${code}`;
+      const key = `fb-pages-${userId}-${code}`;
       const { env } = await getCloudflareContext({
         async: true,
       });
