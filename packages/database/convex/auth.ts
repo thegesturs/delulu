@@ -56,6 +56,8 @@ export const ensureUser = mutation({
       email: email,
       name: identity.name || '',
       emailVerified: identity.emailVerified || false,
+      externalId: identity.subject, // Clerk user ID
+      image: identity.pictureUrl || undefined,
       usage: {
         socialAccounts: 0,
         generatedPosts: 0,

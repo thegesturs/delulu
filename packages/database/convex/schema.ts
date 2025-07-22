@@ -8,7 +8,9 @@ import {
 
 export default defineSchema({
   // Users table
-  users: defineTable(baseUserSchema.fields).index('by_email', ['email']),
+  users: defineTable(baseUserSchema.fields)
+    .index('by_email', ['email'])
+    .index('by_external_id', ['externalId']),
 
   // Posts table with embedded relationships
   posts: defineTable(basePostSchema.fields)

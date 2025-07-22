@@ -29,6 +29,7 @@ import {
   postFiltersSchema,
   postUpdateSchema,
 } from './schemas';
+import { getCurrentUser } from './users';
 import { getCurrentTimestamp } from './utils';
 
 // Helper function to get a post by ID
@@ -113,7 +114,7 @@ export const createPost = mutation({
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
 
-    const user = await betterAuthComponent.getAuthUser(ctx);
+    const user = await getCurrentUser(ctx);
     if (!user) {
       throw new Error('User not found');
     }
@@ -124,7 +125,7 @@ export const createPost = mutation({
     }
 
     const newPostId = await ctx.db.insert('posts', {
-      userId: user.userId,
+      userId: user._id,
       organizationId: args.organizationId,
       status: args.status,
       scheduledAt: args.scheduledAt,
@@ -365,7 +366,7 @@ export const getPosts = query({
     continueCursor: v.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await betterAuthComponent.getAuthUser(ctx);
+    const user = await getCurrentUser(ctx);
 
     if (!user) {
       return {
@@ -375,7 +376,7 @@ export const getPosts = query({
       };
     }
 
-    const userId = user.userId;
+    const userId = user._id;
 
     console.log('>>> User', user);
 
@@ -535,14 +536,14 @@ export const deletePost = mutation({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const userId = await betterAuthComponent.getAuthUserId(ctx);
-    if (!userId) {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
       throw new Error('Unauthorized');
     }
 
     // Verify ownership
     const post = await findPostById(ctx, args.postId);
-    if (!post || post.userId !== (userId as Id<'users'>)) {
+    if (!post || post.userId !== user._id) {
       throw new Error('Post not found or access denied');
     }
 

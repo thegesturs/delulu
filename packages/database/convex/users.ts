@@ -1,8 +1,31 @@
 import { v } from 'convex/values';
-import type { Doc } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import {
+  type QueryCtx,
+  type MutationCtx,
+  internalMutation,
+  mutation,
+  query,
+} from './_generated/server';
 import { userCreateSchema, userSchema, userUpdateSchema } from './schemas';
 import { getCurrentTimestamp, isValidEmail } from './utils';
+
+// Clerk UserJSON structure (minimal needed fields)
+const clerkUserDataValidator = v.object({
+  id: v.string(),
+  first_name: v.union(v.string(), v.null()),
+  last_name: v.union(v.string(), v.null()),
+  image_url: v.union(v.string(), v.null()),
+  email_addresses: v.array(v.object({
+    email_address: v.string(),
+    verification: v.union(
+      v.object({
+        status: v.string(),
+      }),
+      v.null()
+    ),
+  })),
+});
 
 // User queries
 export const getUserById = query({
@@ -60,13 +83,13 @@ export const createUser = mutation({
       email: args.email,
       emailVerified: args.emailVerified ?? false,
       image: args.image,
+      externalId: args.externalId,
       usage: {
         socialAccounts: 4,
         generatedPosts: 50,
         drafts: 15,
         organization: 0,
       },
-      createdAt: now,
       updatedAt: now,
     });
 
@@ -238,3 +261,122 @@ export const updateUserUsage = mutation({
     return true;
   },
 });
+
+// ============================================================================
+// CLERK INTEGRATION FUNCTIONS
+// ============================================================================
+
+// Get current user from Clerk identity
+export const current = query({
+  args: {},
+  handler: async (ctx) => {
+    return await getCurrentUser(ctx);
+  },
+});
+
+// Internal mutation to upsert user from Clerk webhook
+export const upsertFromClerk = internalMutation({
+  args: { data: clerkUserDataValidator },
+  async handler(ctx, { data }) {
+    const userAttributes = {
+      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'User',
+      email: data.email_addresses?.[0]?.email_address || '',
+      externalId: data.id,
+      emailVerified:
+        data.email_addresses?.[0]?.verification?.status === 'verified' || false,
+      image: data.image_url || undefined,
+      usage: {
+        socialAccounts: 0,
+        generatedPosts: 0,
+        drafts: 0,
+        organization: 0,
+      },
+      updatedAt: getCurrentTimestamp(),
+    };
+
+    const user = await userByExternalId(ctx, data.id);
+    if (user === null) {
+      // Create new user
+      await ctx.db.insert('users', userAttributes);
+    } else {
+      // Update existing user
+      await ctx.db.patch(user._id, userAttributes);
+    }
+  },
+});
+
+// Internal mutation to delete user from Clerk webhook
+export const deleteFromClerk = internalMutation({
+  args: { clerkUserId: v.string() },
+  async handler(ctx, { clerkUserId }) {
+    const user = await userByExternalId(ctx, clerkUserId);
+
+    if (user !== null) {
+      // Use existing deleteUser logic for cascade delete
+      await deleteUserInternal(ctx, user._id);
+    } else {
+      // Log warning - user not found for deletion
+      throw new Error(`User not found for Clerk user ID: ${clerkUserId}`);
+    }
+  },
+});
+
+// Helper to get current user or throw
+export async function getCurrentUserOrThrow(ctx: QueryCtx) {
+  const userRecord = await getCurrentUser(ctx);
+  if (!userRecord) throw new Error("Can't get current user");
+  return userRecord;
+}
+
+// Helper to get current user from Clerk identity
+export async function getCurrentUser(ctx: QueryCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (identity === null) {
+    return null;
+  }
+  return await userByExternalId(ctx, identity.subject);
+}
+
+// Helper to find user by Clerk external ID
+async function userByExternalId(ctx: QueryCtx, externalId: string) {
+  return await ctx.db
+    .query('users')
+    .withIndex('by_external_id', (q) => q.eq('externalId', externalId))
+    .unique();
+}
+
+// Internal helper for cascading user deletion
+async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
+  // Delete user's posts
+  const posts = await ctx.db
+    .query('posts')
+    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .collect();
+
+  for (const post of posts) {
+    await ctx.db.delete(post._id);
+  }
+
+  // Delete user's social providers
+  const socialProviders = await ctx.db
+    .query('socialProviders')
+    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .collect();
+
+  for (const provider of socialProviders) {
+    await ctx.db.delete(provider._id);
+  }
+
+  // Delete user's media
+  const media = await ctx.db
+    .query('media')
+    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .collect();
+
+  for (const mediaItem of media) {
+    await ctx.db.delete(mediaItem._id);
+  }
+
+  // Finally, delete the user
+  await ctx.db.delete(userId);
+}
