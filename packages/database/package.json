@@ -11,7 +11,6 @@
     }
   },
   "scripts": {
-    "build": "drizzle-kit generate",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
