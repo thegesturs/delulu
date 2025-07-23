@@ -1,16 +1,13 @@
-'use client';
+import { getSocials } from '@/server/socials';
 
-import React from 'react';
-import { api as TrpcApi } from '@/trpc/react';
+export default async function CalendarPage() {
+  const test = await getSocials();
 
-export default function CalendarPage() {
-  const { data: hello } = TrpcApi.hello.useQuery();
-
-  console.log('hello', hello);
+  console.log('hello', test);
 
   return (
     <div>
       <h1>Calendar</h1>
     </div>
-  )
+  );
 }
