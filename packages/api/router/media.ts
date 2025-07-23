@@ -1,5 +1,6 @@
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { fetchMutation, fetchQuery } from '@delulu/database/server';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 
@@ -17,7 +18,7 @@ export const mediaRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { limit, cursor = 0, mediaType } = input;
 
-      const media = await ctx.db.query(api.media.getMediaByUserId, {
+      const media = await fetchQuery(api.media.getMediaByUserId, {
         userId: ctx.userId,
         limit: limit + 1, // Fetch one extra to determine if there are more
         offset: cursor,
@@ -51,7 +52,7 @@ export const mediaRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await ctx.db.query(api.media.getMediaById, {
+      const media = await fetchQuery(api.media.getMediaById, {
         id: input.id as Id<'media'>,
       });
 
@@ -66,7 +67,7 @@ export const mediaRouter = createTRPCRouter({
   getByBucketKey: protectedProcedure
     .input(z.object({ bucketKey: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await ctx.db.query(api.media.getMediaByBucketKey, {
+      const media = await fetchQuery(api.media.getMediaByBucketKey, {
         bucketKey: input.bucketKey,
       });
 
@@ -94,7 +95,7 @@ export const mediaRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await ctx.db.mutation(api.media.createMedia, {
+      return await fetchMutation(api.media.createMedia, {
         ...input,
         userId: ctx.userId,
       });
@@ -113,7 +114,7 @@ export const mediaRouter = createTRPCRouter({
       const { id, ...updates } = input;
 
       // Verify ownership
-      const existingMedia = await ctx.db.query(api.media.getMediaById, {
+      const existingMedia = await fetchQuery(api.media.getMediaById, {
         id: id as Id<'media'>,
       });
 
@@ -121,7 +122,7 @@ export const mediaRouter = createTRPCRouter({
         throw new Error('Media not found');
       }
 
-      return await ctx.db.mutation(api.media.updateMedia, {
+      return await fetchMutation(api.media.updateMedia, {
         id: id as Id<'media'>,
         ...updates,
       });
@@ -132,7 +133,7 @@ export const mediaRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Verify ownership
-      const existingMedia = await ctx.db.query(api.media.getMediaById, {
+      const existingMedia = await fetchQuery(api.media.getMediaById, {
         id: input.id as Id<'media'>,
       });
 
@@ -140,14 +141,14 @@ export const mediaRouter = createTRPCRouter({
         throw new Error('Media not found');
       }
 
-      return await ctx.db.mutation(api.media.deleteMedia, {
+      return await fetchMutation(api.media.deleteMedia, {
         id: input.id as Id<'media'>,
       });
     }),
 
   // Get media stats
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.db.query(api.media.getMediaStats, {
+    return await fetchQuery(api.media.getMediaStats, {
       userId: ctx.userId,
     });
   }),

@@ -1,7 +1,7 @@
 import { env } from '@/env';
 import { auth } from '@clerk/nextjs/server';
-import { convex } from '@delulu/database/server';
 import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -46,7 +46,7 @@ async function fetchWithTimeout(
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.redirect(
         new URL(
@@ -54,6 +54,17 @@ export async function GET(request: NextRequest) {
           env.NEXT_PUBLIC_APP_URL
         )
       );
+    }
+
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=twitter',
+        },
+      });
     }
 
     const { searchParams } = new URL(request.url);
@@ -123,17 +134,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      socialType: 'TWITTER',
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      expiresIn: Date.now() + expires_in * 1000,
-      profileId: userObject.id,
-      username: userObject.username,
-      fullName: userObject.name ?? '',
-      profileImage: userObject.profile_image_url ?? '',
-      isActive: true,
-    });
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'TWITTER',
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name ?? '',
+        profileImage: userObject.profile_image_url ?? '',
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

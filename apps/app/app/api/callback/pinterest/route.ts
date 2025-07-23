@@ -1,7 +1,7 @@
-import { keys } from '@delulu/api/keys';
 import { auth } from '@clerk/nextjs/server';
-import { convex } from '@delulu/database/server';
+import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -43,8 +43,19 @@ async function fetchWithTimeout(
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
+        },
+      });
+    }
+
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -139,17 +150,21 @@ export async function GET(request: NextRequest) {
     const userObject = (await userResponse.json()) as PinterestUserResponse;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      socialType: 'PINTEREST',
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresIn: Date.now() + 3600 * 1000,
-      profileId: userObject.username,
-      username: userObject.username,
-      fullName: userObject.username,
-      profileImage: userObject.profile_image,
-      isActive: true,
-    });
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'PINTEREST',
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 3600 * 1000,
+        profileId: userObject.username,
+        username: userObject.username,
+        fullName: userObject.username,
+        profileImage: userObject.profile_image,
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

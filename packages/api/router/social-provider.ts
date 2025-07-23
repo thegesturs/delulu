@@ -15,6 +15,8 @@ import { connectUrlRegistry } from '../services/connect-url.service';
 import { protectedProcedure } from '../trpc';
 
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { fetchMutation } from '@delulu/database/server';
+import { fetchQuery } from '@delulu/database/server';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -34,7 +36,7 @@ export const socialProviderRouter = {
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
       if (!input.id) {
-        const savePostId = await ctx.db.mutation(api.posts.createPost, {
+        const savePostId = await fetchMutation(api.posts.createPost, {
           userId: ctx.userId,
           content: input.content,
           status: 'SAVED',
@@ -55,7 +57,7 @@ export const socialProviderRouter = {
           });
         }
 
-        const post = await ctx.db.query(api.posts.getPostById, {
+        const post = await fetchQuery(api.posts.getPostById, {
           id: savePostId,
         });
         if (!post) {
@@ -64,7 +66,7 @@ export const socialProviderRouter = {
         await createPostInQueue(post);
       }
 
-      const post = await ctx.db.query(api.posts.getPostById, {
+      const post = await fetchQuery(api.posts.getPostById, {
         id: input.id as Id<'posts'>,
       });
       if (!post) {
@@ -83,7 +85,7 @@ export const socialProviderRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       // Get the post with its related data
-      const post = await ctx.db.query(api.posts.getPostById, {
+      const post = await fetchQuery(api.posts.getPostById, {
         id: input.postId as Id<'posts'>,
       });
       if (!post) {
@@ -158,7 +160,7 @@ export const socialProviderRouter = {
         });
       }
 
-      await ctx.db.mutation(api.social_providers.connectFacebookPage, {
+      await fetchMutation(api.social_providers.connectFacebookPage, {
         userId,
         pageId: input.pageId,
         pageName: input.pageName,

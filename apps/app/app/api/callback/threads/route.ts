@@ -1,8 +1,8 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
-import { convex } from '@delulu/database/server';
 import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -26,8 +26,19 @@ interface ThreadsUser {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=threads',
+        },
+      });
+    }
+
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -139,17 +150,21 @@ export async function GET(request: NextRequest) {
     const userObject = (await userResponse.json()) as ThreadsUser;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(api.social_providers.upsertSocialProvider, {
-      socialType: 'THREADS',
-      accessToken: longLivedTokenData.access_token,
-      expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
-      refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-      profileId: userObject.id,
-      username: userObject.username,
-      fullName: userObject.name,
-      profileImage: userObject.threads_profile_picture_url,
-      isActive: true,
-    });
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'THREADS',
+        accessToken: longLivedTokenData.access_token,
+        expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name,
+        profileImage: userObject.threads_profile_picture_url,
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

@@ -1,6 +1,5 @@
 import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import { convex } from '@delulu/database/server';
 import { fetchQuery } from '@delulu/database/server';
 import { TRPCError, initTRPC } from '@trpc/server';
 import superjson from 'superjson';
@@ -25,18 +24,9 @@ interface TRPCContext {
 }
 
 export const createTRPCContext = (opts: TRPCContext) => {
-  // const userAuth = await auth.api.getSession({
-  //   headers: opts.headers,
-  // });
-
   const source = opts.headers.get('x-trpc-source') ?? 'unknown';
-  // biome-ignore lint/suspicious/noConsoleLog: <explanation>
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  //   const cacheTagManager = createCacheTagManager(cacheTags, clerkId);
-
-  return {
-    db: convex,
-  };
+  console.log('source', source);
+  return {};
 };
 
 /**

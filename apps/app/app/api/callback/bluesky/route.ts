@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import { convex } from '@delulu/database/server';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -23,8 +23,19 @@ interface BlueskyProfile {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=bluesky',
+        },
+      });
+    }
+
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -120,7 +131,7 @@ export async function GET(request: NextRequest) {
     const profileData = (await profileResponse.json()) as BlueskyProfile;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await convex.mutation(
+    const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
         socialType: 'BLUESKY',
@@ -133,7 +144,8 @@ export async function GET(request: NextRequest) {
         fullName: profileData.displayName || tokenData.handle,
         profileImage: profileData.avatar,
         isActive: true,
-      }
+      },
+      { token }
     );
 
     // Handle different response statuses

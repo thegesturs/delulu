@@ -39,8 +39,6 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
-  console.log('getBaseUrl', getBaseUrl());
-
   const [trpcClient] = useState(() =>
     api.createClient({
       links: [
@@ -58,12 +56,10 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             return headers;
           },
           async fetch(url, options) {
-            console.log('fetch', url, options);
             const response = await fetch(url, {
               ...options,
               cache: 'no-store',
             });
-            console.log('response', response);
             return response;
           },
         }),
@@ -81,7 +77,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 }
 
 function getBaseUrl() {
-  if (typeof window !== 'undefined') return window.location.origin;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return `https://${process.env.NEXT_PUBLIC_APP_URL}`;
+  }
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
