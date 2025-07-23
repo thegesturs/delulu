@@ -1,6 +1,6 @@
 'use client';
 
-import { api as TrpcApi } from '@/trpc/react';
+import { useCreatePostFromPostId } from '@/hooks/use-social-providers';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -38,8 +38,18 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const router = useRouter();
 
   const softDeletePost = useMutation(api.posts.deletePost);
-  const { mutateAsync: createPostFromPostId, isPending: isPublishing } =
-    TrpcApi.socialProvider.createPostFromPostId.useMutation();
+  const createPostFromPostIdMutation = useCreatePostFromPostId({
+    onSuccess: () => {
+      toast.success('Your post is being published. It will be posted soon.');
+      setShowPreview(false);
+    },
+    onError: (error) => {
+      toast.error('Failed to publish post');
+      if (process.env.NODE_ENV === 'development') {
+        console.error(error);
+      }
+    },
+  });
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const statusColors = {
@@ -62,7 +72,9 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
       toast.success('Post deleted successfully');
     } catch (error) {
       toast.error('Failed to delete post');
-      console.error(error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(error);
+      }
     } finally {
       setIsDeleting(false);
     }
@@ -73,21 +85,15 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   };
 
   const handleScheduleChange = (id: string) => {
-    console.log('Change schedule for post:', id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Change schedule for post:', id);
+    }
   };
 
   const handlePublish = async (id: string) => {
-    try {
-      toast.loading('Publishing post...');
-      await createPostFromPostId({ postId: id });
-      toast.dismiss();
-      toast.success('Your post is being published. It will be posted soon.');
-      setShowPreview(false);
-    } catch (error) {
-      toast.error('Failed to publish post');
-      console.error(error);
-      toast.dismiss();
-    }
+    toast.loading('Publishing post...');
+    createPostFromPostIdMutation.mutate({ postId: id });
+    toast.dismiss();
   };
 
   const renderActionItems = () => {
@@ -102,9 +108,9 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
           <DropdownMenuItem
             key="publish"
             onClick={() => handlePublish(postId)}
-            disabled={isPublishing}
+            disabled={createPostFromPostIdMutation.isPending}
           >
-            {isPublishing ? 'Publishing...' : 'Publish now'}
+            {createPostFromPostIdMutation.isPending ? 'Publishing...' : 'Publish now'}
           </DropdownMenuItem>,
           <DropdownMenuItem
             key="schedule"

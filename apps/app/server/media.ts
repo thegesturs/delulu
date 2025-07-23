@@ -10,7 +10,8 @@ import type {
   MediaQueryResult,
   UpdateMediaInput,
 } from './types';
-import { validateRequired, withAuth } from './utils';
+import { validateRequired } from '@/lib/validation';
+import { withAuth } from '@/lib/server-auth';
 
 // Get user's media with pagination and filtering
 export const getUserMedia = withAuth(

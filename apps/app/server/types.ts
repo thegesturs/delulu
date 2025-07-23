@@ -1,6 +1,5 @@
-'use server';
-
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import type { SocialType } from '@delulu/database/convex/utils';
 
 // Server action response wrapper
 export type ServerActionResult<T> = {
@@ -77,12 +76,51 @@ export interface FacebookPageConnectionInput {
   code: string;
 }
 
+// Import the actual tRPC types for consistency
 export interface CreatePostInput {
-  content: string;
-  socialProviders: Array<{ socialId: string }>;
+  content: Array<{
+    id?: string;
+    order: number;
+    name: string;
+    media: Array<{
+      url?: string;
+      mediaType: 'IMAGE' | 'VIDEO';
+      bucketUrl?: string;
+      bucketKey?: string;
+      altText?: string;
+      thumbnailBucketUrl?: string;
+      thumbnailBucketKey?: string;
+    }>;
+    text: string;
+    tags?: string[];
+  }>;
+  socialProviders: Array<{
+    socialId: string;
+    name: string;
+    socialType: SocialType;
+  }>;
   alternativeContent: Array<{
-    socialProvider: { socialId: string };
-    content: string;
+    socialProvider: {
+      socialId: string;
+      name: string;
+      socialType: SocialType;
+    };
+    content: Array<{
+      id?: string;
+      order: number;
+      name: string;
+      media: Array<{
+        url?: string;
+        mediaType: 'IMAGE' | 'VIDEO';
+        bucketUrl?: string;
+        bucketKey?: string;
+        altText?: string;
+        thumbnailBucketUrl?: string;
+        thumbnailBucketKey?: string;
+      }>;
+      text: string;
+      tags?: string[];
+    }>;
   }>;
   id?: string;
 }
@@ -90,8 +128,6 @@ export interface CreatePostInput {
 export interface CreatePostFromIdInput {
   postId: string;
 }
-
-export type SocialType = 'FACEBOOK' | 'INSTAGRAM' | 'TWITTER' | 'LINKEDIN' | 'TIKTOK' | 'PINTEREST' | 'THREADS' | 'FARCASTER';
 
 // Return types for server actions
 export interface MediaStats {

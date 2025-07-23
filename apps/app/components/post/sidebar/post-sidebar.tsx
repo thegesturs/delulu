@@ -3,13 +3,13 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 
+import { useCreatePost } from '@/hooks/use-social-providers';
 import {
   useDateTime,
   usePost,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
-import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
@@ -32,16 +32,15 @@ export function PostSidebar() {
   const { postId } = useParams<{ postId: string | undefined }>();
   const router = useRouter();
 
-  const { mutateAsync: createPost, isPending: isCreatingPost } =
-    TrpcApi.socialProvider.createPost.useMutation({
-      onSuccess: () => {
-        toast.success('Post created successfully');
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to create post');
-      },
-    });
+  const publishPostMutation = useCreatePost({
+    onSuccess: () => {
+      toast.success('Post created successfully');
+      router.push('/posts');
+    },
+    onError: () => {
+      toast.error('Failed to create post');
+    },
+  });
 
   const updatePost = useMutation(api.posts.updatePost);
   const [isUpdatingPost, setIsUpdatingPost] = useState(false);
@@ -49,17 +48,12 @@ export function PostSidebar() {
   const createPostMutation = useMutation(api.posts.createPost);
   const [isSavingPost, setIsSavingPost] = useState(false);
 
-  const handlePostNow = async () => {
-    try {
-      await createPost({
-        content: post.content,
-        socialProviders: socialProviders,
-        alternativeContent: post.alternativeContent,
-      });
-    } catch (error) {
-      console.error('Error posting:', error);
-      // Handle error appropriately
-    }
+  const handlePostNow = () => {
+    publishPostMutation.mutate({
+      content: post.content,
+      socialProviders: socialProviders,
+      alternativeContent: post.alternativeContent,
+    });
   };
 
   const handleUpdateSavePost = async () => {
@@ -134,10 +128,12 @@ export function PostSidebar() {
         <Button
           className="flex-1"
           onClick={handlePostNow}
-          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+          disabled={
+            publishPostMutation.isPending || isUpdatingPost || isSavingPost
+          }
         >
           {date ? 'Schedule Post' : 'Post Now'}
-          {isCreatingPost ? (
+          {publishPostMutation.isPending ? (
             <Loader className="ml-2 size-4 animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-5" />
@@ -146,7 +142,9 @@ export function PostSidebar() {
         <Button
           className="flex-1"
           onClick={handleUpdateSavePost}
-          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+          disabled={
+            publishPostMutation.isPending || isUpdatingPost || isSavingPost
+          }
         >
           {postId ? 'Update Post' : 'Save Post'}
           {isUpdatingPost || isSavingPost ? (

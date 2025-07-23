@@ -48,8 +48,23 @@ export function ServerActionExample() {
 
   const handleCreatePost = () => {
     createPostMutation.mutate({
-      content: 'Hello from server actions!',
-      socialProviders: [{ socialId: 'example-social-id' }],
+      content: [
+        {
+          id: '1',
+          order: 1,
+          name: 'Hello from server actions!',
+          media: [],
+          text: 'Hello from server actions!',
+          tags: [],
+        },
+      ],
+      socialProviders: [
+        {
+          socialId: 'example-social-id',
+          name: 'example-social-id',
+          socialType: 'FACEBOOK',
+        },
+      ],
       alternativeContent: [],
     });
   };

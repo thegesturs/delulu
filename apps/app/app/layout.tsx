@@ -1,3 +1,4 @@
+import { ConvexClientProvider } from '@/components/providers/clerk-convex';
 import './styles.css';
 import { TRPCReactProvider } from '@/trpc/react';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -18,9 +19,11 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
           baseTheme: dark,
         }}
       >
-        <DesignSystemProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
-        </DesignSystemProvider>
+        <ConvexClientProvider>
+          <DesignSystemProvider>
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+          </DesignSystemProvider>
+        </ConvexClientProvider>
       </ClerkProvider>
     </body>
   </html>

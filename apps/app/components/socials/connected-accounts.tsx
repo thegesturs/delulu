@@ -1,6 +1,6 @@
 'use client';
 
-import { api as TrpcApi } from '@/trpc/react';
+import { useGetSocialProviderConnectUrl } from '@/hooks/use-social-providers';
 import type { SocialProvider, SocialType } from '@/types/convex';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
@@ -37,16 +37,17 @@ export default function ConnectedAccounts() {
   const isLoadingAccounts = accounts === undefined;
 
   const deleteSocial = useMutation(api.social_providers.deleteSocial);
-  const { mutateAsync: connectAccount } =
-    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
-      onSuccess: (data) => {
-        window.location.href = data;
-      },
-      onError: (error) => {
-        toast.error('Failed to get connect URL');
+  const connectAccountMutation = useGetSocialProviderConnectUrl({
+    onSuccess: (data) => {
+      window.location.href = data.connectUrl;
+    },
+    onError: (error) => {
+      toast.error('Failed to get connect URL');
+      if (process.env.NODE_ENV === 'development') {
         console.error(error);
-      },
-    });
+      }
+    },
+  });
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -95,14 +96,7 @@ export default function ConnectedAccounts() {
   const handleConnect = (platform: SocialType) => {
     // Removed Instagram and YouTube as they were not handled by connectAccount
     if (platform !== 'LENS' && platform !== 'DEFAULT') {
-      connectAccount({ provider: platform })
-        .then((url: string) => {
-          window.location.href = url;
-        })
-        .catch((error) => {
-          toast.error('Failed to get connect URL');
-          console.error(error);
-        });
+      connectAccountMutation.mutate(platform);
     }
   };
 
@@ -113,7 +107,9 @@ export default function ConnectedAccounts() {
       })
       .catch((error) => {
         toast.error('Failed to delete account');
-        console.error(error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error(error);
+        }
       });
   };
 

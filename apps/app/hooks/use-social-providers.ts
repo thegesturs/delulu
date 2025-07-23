@@ -10,8 +10,8 @@ import type {
   CreatePostFromIdInput,
   CreatePostInput,
   FacebookPageConnectionInput,
-  SocialType,
 } from '@/server/types';
+import type { SocialType } from '@delulu/database/convex';
 import { useServerActionMutation } from './use-server-actions';
 
 // Get social provider connect URL
@@ -19,6 +19,7 @@ export function useGetSocialProviderConnectUrl(options?: {
   onSuccess?: (data: { connectUrl: string }) => void;
   onError?: (error: string) => void;
 }) {
+  console.log('useGetSocialProviderConnectUrl');
   return useServerActionMutation<{ connectUrl: string }, SocialType>(
     getSocialProviderConnectUrl,
     options
@@ -58,11 +59,11 @@ export function useConnectFacebookPage(options?: {
   onSuccess?: (data: { status: string }) => void;
   onError?: (error: string) => void;
 }) {
-  return useServerActionMutation<{ status: string }, FacebookPageConnectionInput>(
-    connectFacebookPage,
-    {
-      ...options,
-      invalidateQueries: ['socialProviders'], // Invalidate social providers queries
-    }
-  );
+  return useServerActionMutation<
+    { status: string },
+    FacebookPageConnectionInput
+  >(connectFacebookPage, {
+    ...options,
+    invalidateQueries: ['socialProviders'], // Invalidate social providers queries
+  });
 }

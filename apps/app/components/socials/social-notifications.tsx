@@ -1,6 +1,6 @@
 'use client';
 
-import { api as TrpcApi } from '@/trpc/react';
+import { useGetSocialProviderConnectUrl, useHello } from '@/hooks';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -53,12 +53,13 @@ function SocialNotificationsContent() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { mutateAsync: connectAccount, isPending: isConnecting } =
-    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation();
+  const connectAccountMutation = useGetSocialProviderConnectUrl();
 
-  const { data: hello } = TrpcApi.hello.useQuery();
+  const helloMutation = useHello();
 
-  console.log('hello', hello);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('hello mutation available');
+  }
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -83,13 +84,22 @@ function SocialNotificationsContent() {
     if (providerToUse) {
       try {
         toast.loading('Connecting to social account...');
-        const url = await connectAccount({ provider: providerToUse });
-        window.location.href = url;
+        connectAccountMutation.mutate(providerToUse, {
+          onSuccess: (data) => {
+            window.location.href = data.connectUrl;
+            toast.dismiss();
+          },
+          onError: (error) => {
+            toast.dismiss();
+            toast.error('Failed to connect to social account');
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Failed to get connect URL:', error);
+            }
+          },
+        });
       } catch (error) {
-        toast.error('Failed to connect to social account');
-        console.error('Failed to get connect URL:', error);
-      } finally {
         toast.dismiss();
+        toast.error('Failed to connect to social account');
       }
     }
   };
