@@ -984,8 +984,8 @@ importers:
         specifier: ^0.56.0
         version: 0.56.0
       react-resizable-panels:
-        specifier: ^2.1.7
-        version: 2.1.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: ^3.0.3
+        version: 3.0.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       recharts:
         specifier: ^2.15.2
         version: 2.15.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -1185,7 +1185,7 @@ importers:
     dependencies:
       '@stripe/agent-toolkit':
         specifier: ^0.6.1
-        version: 0.6.1(@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+        version: 0.6.1(@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -9195,11 +9195,20 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  langsmith@0.3.34:
-    resolution: {integrity: sha512-rxYuuypqaSzIuNjZMTsCVAgG0cYdI516dwuKn58bu4YuBRlLaLeNlHewRyoqP9lrEAlpkekCV9fUwwZ7lO8f2g==}
+  langsmith@0.3.47:
+    resolution: {integrity: sha512-3UvTSV5+Fjig+87V8r6NZc+ep2DO1aQ8uQ3h8Wyt4U9Vc+A+EIgV+xtJFPjuGdPZR3mESzxbljJuID+hkzpXnw==}
     peerDependencies:
+      '@opentelemetry/api': '*'
+      '@opentelemetry/exporter-trace-otlp-proto': '*'
+      '@opentelemetry/sdk-trace-base': '*'
       openai: '*'
     peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@opentelemetry/exporter-trace-otlp-proto':
+        optional: true
+      '@opentelemetry/sdk-trace-base':
+        optional: true
       openai:
         optional: true
 
@@ -10656,8 +10665,8 @@ packages:
       '@types/react':
         optional: true
 
-  react-resizable-panels@2.1.9:
-    resolution: {integrity: sha512-z77+X08YDIrgAes4jl8xhnUu1LNIRp4+E7cv4xHmLOxxUPO/ML7PSrE813b90vj7xvQ1lcf7g2uA9GeMZonjhQ==}
+  react-resizable-panels@3.0.3:
+    resolution: {integrity: sha512-7HA8THVBHTzhDK4ON0tvlGXyMAJN1zBeRpuyyremSikgYh2ku6ltD7tsGQOcXx4NKPrZtYCm/5CBr+dkruTGQw==}
     peerDependencies:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
@@ -12449,6 +12458,9 @@ packages:
 
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
+
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zustand@5.0.6:
     resolution: {integrity: sha512-ihAqNeUVhe0MAD+X8M5UzqyZ9k3FFZLBTtqo6JLPwV53cbRB/mJwBI0PxcIgqhBBHlEs8G45OTDTMq3gNcLq3A==}
@@ -15594,21 +15606,24 @@ snapshots:
 
   '@knocklabs/types@0.1.5': {}
 
-  '@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
+  '@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.20
-      langsmith: 0.3.34(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+      langsmith: 0.3.47(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 10.0.0
-      zod: 3.25.67
-      zod-to-json-schema: 3.24.6(zod@3.25.67)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@opentelemetry/exporter-trace-otlp-proto'
+      - '@opentelemetry/sdk-trace-base'
       - openai
 
   '@liveblocks/client@2.24.3':
@@ -18585,9 +18600,9 @@ snapshots:
     dependencies:
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
 
-  '@stripe/agent-toolkit@0.6.1(@langchain/core@0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
+  '@stripe/agent-toolkit@0.6.1(@langchain/core@0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)))(@modelcontextprotocol/sdk@1.6.1)(ai@4.3.16(react@19.1.0)(zod@3.25.67))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))':
     dependencies:
-      '@langchain/core': 0.3.61(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
+      '@langchain/core': 0.3.61(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67))
       '@modelcontextprotocol/sdk': 1.6.1
       ai: 4.3.16(react@19.1.0)(zod@3.25.67)
       openai: 4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)
@@ -19345,6 +19360,14 @@ snapshots:
       '@vitest/utils': 3.2.4
       chai: 5.2.0
       tinyrainbow: 2.0.0
+
+  '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
 
   '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
     dependencies:
@@ -22404,7 +22427,7 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  langsmith@0.3.34(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)):
+  langsmith@0.3.47(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)):
     dependencies:
       '@types/uuid': 10.0.0
       chalk: 4.1.2
@@ -22414,6 +22437,8 @@ snapshots:
       semver: 7.7.2
       uuid: 10.0.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       openai: 4.104.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.67)
 
   leac@0.6.0: {}
@@ -24182,7 +24207,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.1
 
-  react-resizable-panels@2.1.9(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  react-resizable-panels@3.0.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -26087,7 +26112,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
+      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -26460,11 +26485,17 @@ snapshots:
     dependencies:
       zod: 3.25.67
 
+  zod-to-json-schema@3.24.6(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
+
   zod@3.22.3: {}
 
   zod@3.24.2: {}
 
   zod@3.25.67: {}
+
+  zod@3.25.76: {}
 
   zustand@5.0.6(@types/react@19.1.0)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0)):
     optionalDependencies:
