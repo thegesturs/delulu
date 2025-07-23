@@ -1,7 +1,7 @@
 import { fetchWithTimeout } from '@/lib/utils';
 import { keys } from '@delulu/api/keys';
-import { encryptData } from '@delulu/database/encrypt';
-import { auth } from '@delulu/auth/server';
+import { auth } from '@clerk/nextjs/server';
+import { encryptData } from '@delulu/database/convex/utils';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -84,9 +84,8 @@ async function getAllPages(
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -100,7 +99,6 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
-    const errorDescription = searchParams.get('error_description');
 
     // Handle user denying access
     if (error === 'access_denied' && errorReason === 'user_denied') {
@@ -212,7 +210,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Store pages data with a stable key based on user ID and code
-      const key = `fb-pages-${session.user.id}-${code}`;
+      const key = `fb-pages-${userId}-${code}`;
       const { env } = await getCloudflareContext({
         async: true,
       });
@@ -220,7 +218,7 @@ export async function GET(request: NextRequest) {
       // Encrypt the pages data before storing
       const encryptedData = await encryptData(JSON.stringify(allPages));
       await env.DELULU_FACEBOOK_PAGES.put(key, encryptedData, {
-        expirationTtl: 300, // 5 minutes in seconds
+        expirationTtl: 600, // 10 minutes in seconds
       });
 
       // Redirect to page selection UI with data key

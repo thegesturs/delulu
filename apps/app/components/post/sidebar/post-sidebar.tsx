@@ -3,17 +3,21 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 
+import { useCreatePost } from '@/hooks/use-social-providers';
 import {
   useDateTime,
   usePost,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
-import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { useMutation } from 'convex/react';
 import { Loader } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
@@ -25,64 +29,31 @@ export function PostSidebar() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
   const socialProviders = useSelectedSocialProviders();
-  const utils = api.useUtils();
   const { postId } = useParams<{ postId: string | undefined }>();
   const router = useRouter();
 
-  const { mutateAsync: createPost, isPending: isCreatingPost } =
-    api.socialProvider.createPost.useMutation({
-      onSuccess: () => {
-        toast.success('Post created successfully');
-        utils.post.getPosts.invalidate();
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to create post');
-      },
+  const publishPostMutation = useCreatePost({
+    onSuccess: () => {
+      toast.success('Post created successfully');
+      router.push('/posts');
+    },
+    onError: () => {
+      toast.error('Failed to create post');
+    },
+  });
+
+  const updatePost = useMutation(api.posts.updatePost);
+  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
+
+  const createPostMutation = useMutation(api.posts.createPost);
+  const [isSavingPost, setIsSavingPost] = useState(false);
+
+  const handlePostNow = () => {
+    publishPostMutation.mutate({
+      content: post.content,
+      socialProviders: socialProviders,
+      alternativeContent: post.alternativeContent,
     });
-
-  const { mutateAsync: updatePost, isPending: isUpdatingPost } =
-    api.post.updatePost.useMutation({
-      onSuccess: () => {
-        toast.success('Post updated successfully');
-        utils.post.getPosts.invalidate();
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to update post');
-      },
-    });
-
-  const { mutateAsync: savePost, isPending: isSavingPost } =
-    api.post.savePost.useMutation({
-      onSuccess: () => {
-        toast.success('Post saved successfully');
-        utils.post.getPosts.invalidate();
-        router.push('/posts');
-      },
-      onError: () => {
-        toast.error('Failed to save post');
-      },
-    });
-
-  const handlePostNow = async () => {
-    try {
-      // First upload all media files
-      const { mainContent, alternativeContent } = await uploadAllContentMedia(
-        post.content,
-        post.alternativeContent
-      );
-
-      // Then create the post with uploaded media URLs
-      await createPost({
-        content: mainContent,
-        socialProviders: socialProviders,
-        alternativeContent: alternativeContent,
-      });
-    } catch (error) {
-      console.error('Error posting:', error);
-      // Handle error appropriately
-    }
   };
 
   const handleUpdateSavePost = async () => {
@@ -94,23 +65,43 @@ export function PostSidebar() {
       );
 
       if (postId) {
+        setIsUpdatingPost(true);
         await updatePost({
-          postId: postId,
+          id: postId as Id<'posts'>,
           content: mainContent,
-          socialProviders: socialProviders,
-          alternativeContent: alternativeContent,
+          alternativeContent: alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+          socialProviderIds: socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
         });
+        toast.success('Post updated successfully');
+        router.push('/posts');
       } else {
-        await savePost({
-          id: postId,
-          socialProviders: socialProviders,
-          alternativeContent: alternativeContent,
+        setIsSavingPost(true);
+        await createPostMutation({
           content: mainContent,
+          alternativeContent: alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+          socialProviderIds: socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
+          status: 'SAVED',
         });
+        toast.success('Post saved successfully');
+        router.push('/posts');
       }
     } catch (error) {
-      console.error('Error saving:', error);
-      // Handle error appropriately
+      toast.error(postId ? 'Failed to update post' : 'Failed to save post');
+    } finally {
+      setIsUpdatingPost(false);
+      setIsSavingPost(false);
     }
   };
 
@@ -137,10 +128,12 @@ export function PostSidebar() {
         <Button
           className="flex-1"
           onClick={handlePostNow}
-          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+          disabled={
+            publishPostMutation.isPending || isUpdatingPost || isSavingPost
+          }
         >
           {date ? 'Schedule Post' : 'Post Now'}
-          {isCreatingPost ? (
+          {publishPostMutation.isPending ? (
             <Loader className="ml-2 size-4 animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-5" />
@@ -149,7 +142,9 @@ export function PostSidebar() {
         <Button
           className="flex-1"
           onClick={handleUpdateSavePost}
-          disabled={isCreatingPost || isUpdatingPost || isSavingPost}
+          disabled={
+            publishPostMutation.isPending || isUpdatingPost || isSavingPost
+          }
         >
           {postId ? 'Update Post' : 'Save Post'}
           {isUpdatingPost || isSavingPost ? (

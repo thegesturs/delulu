@@ -1,4 +1,6 @@
-import { mediaQueries } from '@delulu/database/schema';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { fetchMutation, fetchQuery } from '@delulu/database/server';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 
@@ -15,23 +17,29 @@ export const mediaRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { limit, cursor = 0, mediaType } = input;
-      
-      const media = await mediaQueries.getMediaByUserId(ctx.userId, {
+
+      const media = await fetchQuery(api.media.getMediaByUserId, {
+        userId: ctx.userId,
         limit: limit + 1, // Fetch one extra to determine if there are more
         offset: cursor,
         mediaType,
       });
-      
+
       // Filter by search if provided
       const filteredMedia = input.search
-        ? media.filter(item =>
-            item.originalFilename?.toLowerCase().includes(input.search!.toLowerCase()) ||
-            item.altText?.toLowerCase().includes(input.search!.toLowerCase())
+        ? media.filter(
+            (item) =>
+              item.originalFilename
+                ?.toLowerCase()
+                .includes(input.search!.toLowerCase()) ||
+              item.altText?.toLowerCase().includes(input.search!.toLowerCase())
           )
         : media;
 
       const hasMore = filteredMedia.length > limit;
-      const actualMedia = hasMore ? filteredMedia.slice(0, limit) : filteredMedia;
+      const actualMedia = hasMore
+        ? filteredMedia.slice(0, limit)
+        : filteredMedia;
 
       return {
         media: actualMedia,
@@ -44,12 +52,14 @@ export const mediaRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await mediaQueries.getMediaById(input.id);
-      
+      const media = await fetchQuery(api.media.getMediaById, {
+        id: input.id as Id<'media'>,
+      });
+
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return media;
     }),
 
@@ -57,12 +67,14 @@ export const mediaRouter = createTRPCRouter({
   getByBucketKey: protectedProcedure
     .input(z.object({ bucketKey: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await mediaQueries.getMediaByBucketKey(input.bucketKey);
-      
+      const media = await fetchQuery(api.media.getMediaByBucketKey, {
+        bucketKey: input.bucketKey,
+      });
+
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
+
       return media;
     }),
 
@@ -83,12 +95,10 @@ export const mediaRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const mediaData = {
+      return await fetchMutation(api.media.createMedia, {
         ...input,
         userId: ctx.userId,
-      };
-
-      return await mediaQueries.createMedia(mediaData);
+      });
     }),
 
   // Update media
@@ -102,14 +112,20 @@ export const mediaRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...updates } = input;
-      
+
       // Verify ownership
-      const existingMedia = await mediaQueries.getMediaById(id);
+      const existingMedia = await fetchQuery(api.media.getMediaById, {
+        id: id as Id<'media'>,
+      });
+
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
-      return await mediaQueries.updateMedia(id, updates);
+
+      return await fetchMutation(api.media.updateMedia, {
+        id: id as Id<'media'>,
+        ...updates,
+      });
     }),
 
   // Delete media
@@ -117,17 +133,23 @@ export const mediaRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Verify ownership
-      const existingMedia = await mediaQueries.getMediaById(input.id);
+      const existingMedia = await fetchQuery(api.media.getMediaById, {
+        id: input.id as Id<'media'>,
+      });
+
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
-      
-      return await mediaQueries.deleteMedia(input.id);
+
+      return await fetchMutation(api.media.deleteMedia, {
+        id: input.id as Id<'media'>,
+      });
     }),
 
   // Get media stats
-  getStats: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await mediaQueries.getMediaStats(ctx.userId);
-    }),
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    return await fetchQuery(api.media.getMediaStats, {
+      userId: ctx.userId,
+    });
+  }),
 });

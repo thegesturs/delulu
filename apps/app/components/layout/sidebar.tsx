@@ -1,5 +1,5 @@
 'use client';
-import { UserButton } from '@/components/auth/user-button';
+import { UserButton } from '@clerk/nextjs';
 import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
@@ -24,7 +24,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { OrganizationSwitcher } from './organization-switcher';
+// import { OrganizationSwitcher } from './organization-switcher';
 
 type GlobalSidebarProperties = {
   readonly children: ReactNode;
@@ -83,7 +83,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         collapsible="icon"
       >
         <SidebarHeader className="p-4">
-          <OrganizationSwitcher />
+          {/* <OrganizationSwitcher /> */}
           <Button
             asChild
             className="flex w-full items-center group-data-[state=collapsed]:hidden"

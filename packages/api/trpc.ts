@@ -1,13 +1,6 @@
-/**
- * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1)
- * 2. You want to create a new middleware or type of procedure (see Part 3)
- *
- * tl;dr - this is where all the tRPC server stuff is created and plugged in.
- * The pieces you will need to use are documented accordingly near the end
- */
 import { auth } from '@delulu/auth/server';
-import { database } from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import { fetchQuery } from '@delulu/database/server';
 import { TRPCError, initTRPC } from '@trpc/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
@@ -30,32 +23,10 @@ interface TRPCContext {
   headers: Headers;
 }
 
-export const createTRPCContext = async (opts: TRPCContext) => {
-  const userAuth = await auth.api.getSession({
-    headers: opts.headers,
-  });
-  const userId = userAuth?.session.userId;
-  // const organizationId = userAuth?.session.orgId ?? undefined;
-
-  // biome-ignore lint/suspicious/noConsoleLog: <explanation>
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> UserId', userId);
-
-  //   const cache = opts.env['memoize-cache'];
+export const createTRPCContext = (opts: TRPCContext) => {
   const source = opts.headers.get('x-trpc-source') ?? 'unknown';
-  // biome-ignore lint/suspicious/noConsoleLog: <explanation>
-  // biome-ignore lint/suspicious/noConsole: <explanation>
-  console.log('>>> tRPC Request from', source, 'by', userId);
-  //   const cacheTagManager = createCacheTagManager(cacheTags, clerkId);
-
-  return {
-    // env: opts.env,
-    db: database,
-    userId,
-    // organizationId,
-    // cache,
-    // cacheTagManager,
-  };
+  console.log('source', source);
+  return {};
 };
 
 /**
@@ -137,14 +108,28 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.userId) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'No token provided',
+    });
+  }
+  const user = await fetchQuery(api.users.getUserByExternalId, {
+    externalId: userId,
+  });
+  if (!user?._id) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'User not found',
+    });
   }
   return next({
     ctx: {
       ...ctx,
-      userId: ctx.userId,
+      userId: user?._id,
     },
   });
 });

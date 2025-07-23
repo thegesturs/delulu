@@ -1,6 +1,6 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { useConnectFacebookPage } from '@/hooks/use-social-providers';
 import {
   Avatar,
   AvatarFallback,
@@ -8,7 +8,6 @@ import {
 } from '@delulu/design-system/components/ui/avatar';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
-import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
+import type { FacebookPagePublic } from '@delulu/validators/facebook';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -49,17 +49,16 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
-  const { mutate: connectPage, isPending } =
-    api.socialProvider.connectFacebookPage.useMutation({
-      onSuccess: () => {
-        router.push('/socials?success=true&provider=facebook');
-      },
-      onError: (error) => {
-        router.push(
-          `/socials?error=${error.message}&code=FACEBOOK_006&provider=facebook`
-        );
-      },
-    });
+  const { mutate: connectPage, isPending } = useConnectFacebookPage({
+    onSuccess: () => {
+      router.push('/socials?success=true&provider=facebook');
+    },
+    onError: (error) => {
+      router.push(
+        `/socials?error=${error}&code=FACEBOOK_006&provider=facebook`
+      );
+    },
+  });
 
   const handleCancel = () => {
     setIsCancelling(true);

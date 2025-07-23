@@ -65,11 +65,7 @@ async function fetchWithTimeout(
 // Production-level Farcaster signer request with proper EIP-712 signature
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const userId = session?.user?.id;
-
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -230,11 +226,7 @@ export async function POST(req: NextRequest) {
 // GET - Check status of signer request
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const userId = session?.user?.id;
-
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -274,7 +266,7 @@ export async function GET(req: NextRequest) {
     const signerRequest = {
       id: 'mock_signer_request',
       token,
-      userId,
+      userId: userId,
       state: 'pending',
     };
     console.log('🎭 Mock signer request:', signerRequest);
@@ -312,7 +304,7 @@ export async function GET(req: NextRequest) {
 
     if (state === 'completed' && signerUser && userFid) {
       console.log('✅ Connection completed! Would create social provider:', {
-        userId,
+        userId: userId,
         profileId: userFid,
         displayName: signerUser.displayName,
         username: signerUser.username,

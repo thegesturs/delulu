@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Header } from '../../components/layout/header';
 
+export const dynamic = 'force-dynamic';
+
 const title = 'Delulu Inc';
 const description = 'My application.';
 

@@ -1,8 +1,9 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { useGetSocialProviderConnectUrl, useHello } from '@/hooks';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { SocialError } from '../error/social-error';
 
 const ERROR_MESSAGES = {
@@ -47,17 +48,18 @@ const NOTIFICATIONS = {
   },
 };
 
-export function SocialNotifications() {
+function SocialNotificationsContent() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { mutate: connectAccount } =
-    api.socialProvider.getSocialProviderConnectUrl.useMutation({
-      onSuccess: (url: string) => {
-        window.location.href = url;
-      },
-    });
+  const connectAccountMutation = useGetSocialProviderConnectUrl();
+
+  const helloMutation = useHello();
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('hello mutation available');
+  }
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -75,12 +77,30 @@ export function SocialNotifications() {
     return null;
   }
 
-  const handleRetry = (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
+  const handleRetry = async (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
     if (providerToUse) {
-      connectAccount({ provider: providerToUse });
+      try {
+        toast.loading('Connecting to social account...');
+        connectAccountMutation.mutate(providerToUse, {
+          onSuccess: (data) => {
+            window.location.href = data.connectUrl;
+            toast.dismiss();
+          },
+          onError: (error) => {
+            toast.dismiss();
+            toast.error('Failed to connect to social account');
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Failed to get connect URL:', error);
+            }
+          },
+        });
+      } catch (error) {
+        toast.dismiss();
+        toast.error('Failed to connect to social account');
+      }
     }
   };
 
@@ -128,4 +148,12 @@ export function SocialNotifications() {
   }
 
   return null;
+}
+
+export function SocialNotifications() {
+  return (
+    <Suspense>
+      <SocialNotificationsContent />
+    </Suspense>
+  );
 }

@@ -1,54 +1,54 @@
-import { getSessionCookie } from '@delulu/auth/middleware';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import {
   noseconeMiddleware,
   noseconeOptions,
 } from '@delulu/security/middleware';
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// const securityHeaders = env.FLAGS_SECRET
-//   ? noseconeMiddleware(noseconeOptionsWithToolbar)
-//   : noseconeMiddleware(noseconeOptions);
+const publicRoutes = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)',
+  '/verify-email(.*)',
+  '/api/trpc(.*)',
+  '/api/transcribe(.*)',
+]);
 
+const authRoutes = createRouteMatcher([
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/verify-email(.*)',
+]);
+
+// Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
 
-// Helper function to check if route is public
-function isPublicRoute(pathname: string): boolean {
-  const publicRoutes = [
-    '/sign-in',
-    '/sign-up',
-    '/forgot-password',
-    '/api/auth',
-    '/api/trpc',
-    '/api/webhooks',
-  ];
+export default clerkMiddleware(async (auth, req) => {
+  // Get the security headers
+  await securityHeaders();
 
-  return publicRoutes.some((route) => pathname.startsWith(route));
-}
+  // Get auth state
+  const { userId, redirectToSignIn } = await auth();
 
-export default function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Apply security headers
-  const securityResponse = securityHeaders();
-
-  // Skip auth check for public routes
-  if (isPublicRoute(pathname)) {
-    return securityResponse || NextResponse.next();
+  // Allow access to public routes regardless of auth status
+  if (publicRoutes(req)) {
+    return NextResponse.next();
   }
 
-  // Check for session cookie using Better Auth's recommended approach
-  const sessionCookie = getSessionCookie(request);
-
-  // Redirect to sign-in if no session cookie found
-  if (!sessionCookie) {
-    const signInUrl = new URL('/sign-in', request.url);
-    // Add the current path as redirect_to query param
-    signInUrl.searchParams.set('redirect_to', pathname);
-    return NextResponse.redirect(signInUrl);
+  // If the user isn't signed in and the route is private, redirect to sign-in
+  if (!userId && !publicRoutes(req)) {
+    return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  return securityResponse || NextResponse.next();
-}
+  // Redirect logged-in users away from auth routes
+  if (userId && authRoutes(req)) {
+    const homeUrl = new URL('/', req.nextUrl.origin);
+    return NextResponse.redirect(homeUrl);
+  }
+
+  // For all other routes, continue with security headers
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [

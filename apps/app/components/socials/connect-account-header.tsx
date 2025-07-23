@@ -1,6 +1,6 @@
 'use client';
 
-import type { SocialType } from '@delulu/database/schema';
+import type { SocialType } from '@delulu/database/convex/utils';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,

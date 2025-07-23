@@ -1,5 +1,6 @@
-import { auth } from '@delulu/auth/server';
-import { mediaQueries } from '@delulu/database/schema';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation, fetchQuery } from '@delulu/database/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -18,11 +19,26 @@ const CreateMediaSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const user = session?.session.userId;
-    if (!user) {
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = await getToken({ template: 'convex' });
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await fetchQuery(
+      api.users.getUserByExternalId,
+      {
+        externalId: userId,
+      },
+      { token }
+    );
+    if (!user?._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -31,11 +47,11 @@ export async function POST(req: NextRequest) {
 
     const mediaData = {
       ...parsed,
-      userId: user,
+      userId: user._id,
       // You might want to add organizationId logic here if needed
     };
 
-    const savedMedia = await mediaQueries.createMedia(mediaData);
+    const savedMedia = await fetchMutation(api.media.createMedia, mediaData);
 
     return NextResponse.json(savedMedia);
   } catch (error) {
@@ -57,11 +73,26 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: req.headers,
-    });
-    const user = session?.session.userId;
-    if (!user) {
+    const { userId, getToken } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = await getToken({ template: 'convex' });
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await fetchQuery(
+      api.users.getUserByExternalId,
+      {
+        externalId: userId,
+      },
+      { token }
+    );
+    if (!user?._id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -70,11 +101,16 @@ export async function GET(req: NextRequest) {
     const offset = Number.parseInt(searchParams.get('offset') || '0');
     const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
 
-    const media = await mediaQueries.getMediaByUserId(user, {
-      limit,
-      offset,
-      ...(mediaType && { mediaType }),
-    });
+    const media = await fetchQuery(
+      api.media.getMediaByUserId,
+      {
+        userId: user._id,
+        limit,
+        offset,
+        ...(mediaType && { mediaType }),
+      },
+      { token }
+    );
 
     return NextResponse.json(media);
   } catch (error) {

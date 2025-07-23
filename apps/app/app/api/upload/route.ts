@@ -1,14 +1,30 @@
 import { randomUUID } from 'node:crypto';
+import { auth } from '@clerk/nextjs/server';
 import { r2Provider } from '@delulu/api/providers/r2.provider';
-import { auth } from '@delulu/auth/server';
+import { api } from '@delulu/database/convex/_generated/api';
+import { fetchQuery } from '@delulu/database/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-  const userId = session?.session.userId;
+  const { userId, getToken } = await auth();
+
   if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const token = await getToken({ template: 'convex' });
+
+  if (!token) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const user = await fetchQuery(
+    api.users.getUserByExternalId,
+    { externalId: userId },
+    { token }
+  );
+
+  if (!user?._id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
@@ -43,11 +59,24 @@ export async function POST(request: NextRequest) {
 
 // Add a new route to get download URLs
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-  const userId = session?.session.userId;
+  const { userId, getToken } = await auth();
+
   if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const token = await getToken({ template: 'convex' });
+
+  if (!token) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  const user = await fetchQuery(
+    api.users.getUserByExternalId,
+    { externalId: userId },
+    { token }
+  );
+  if (!user?._id) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 

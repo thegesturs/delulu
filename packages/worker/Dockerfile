@@ -22,6 +22,8 @@ COPY packages/validators/package.json ./packages/validators/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/email/package.json ./packages/email/
+COPY packages/cloudflare-types/package.json ./packages/cloudflare-types/
+COPY packages/analytics/package.json ./packages/analytics/
 
 # Install dependencies
 RUN pnpm install
@@ -34,6 +36,8 @@ COPY packages/validators ./packages/validators
 COPY packages/typescript-config ./packages/typescript-config
 COPY packages/auth ./packages/auth
 COPY packages/email ./packages/email
+COPY packages/cloudflare-types ./packages/cloudflare-types
+COPY packages/analytics ./packages/analytics
 
 # Copy environment file
 COPY packages/worker/.env.local ./packages/worker/.env.local

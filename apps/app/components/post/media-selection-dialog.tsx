@@ -4,7 +4,7 @@ import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-import { api } from '@/trpc/react';
+// import { api } from '@/trpc/react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
+import { api } from '@delulu/database/convex/_generated/api';
 
 interface MediaItem {
   id: string;
@@ -159,34 +160,35 @@ export function MediaSelectionDialog({
 
   // Use tRPC query to fetch media (start with first page)
   const [currentPage, setCurrentPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const [allLoadedMedia, setAllLoadedMedia] = useState<any[]>([]);
 
-  const {
-    data: mediaData,
-    isLoading,
-    refetch,
-  } = api.media.getUserMedia.useQuery(
-    {
-      limit: 20,
-      cursor: currentPage * 20,
-      search: searchQuery || undefined,
-    },
-    {
-      enabled: isOpen,
-    }
-  );
+  // const {
+  //   data: mediaData,
+  //   isLoading,
+  //   refetch,
+  // } = api.media.getUserMedia.useQuery(
+  //   {
+  //     limit: 20,
+  //     cursor: currentPage * 20,
+  //     search: searchQuery || undefined,
+  //   },
+  //   {
+  //     enabled: isOpen,
+  //   }
+  // );
 
   // Accumulate media from all loaded pages
-  useEffect(() => {
-    if (mediaData?.media) {
-      if (currentPage === 0) {
-        setAllLoadedMedia(mediaData.media);
-      } else {
-        setAllLoadedMedia((prev) => [...prev, ...mediaData.media]);
-      }
-    }
-  }, [mediaData?.media, currentPage]);
+  // useEffect(() => {
+  //   if (mediaData?.media) {
+  //     if (currentPage === 0) {
+  //       setAllLoadedMedia(mediaData.media);
+  //     } else {
+  //       setAllLoadedMedia((prev) => [...prev, ...mediaData.media]);
+  //     }
+  //   }
+  // }, [mediaData?.media, currentPage]);
 
   // Get all accumulated media
   const allMedia = allLoadedMedia;
@@ -200,25 +202,25 @@ export function MediaSelectionDialog({
     }
   }, [isOpen]);
 
-  // Reset pagination and refetch when search changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isOpen) {
-        setCurrentPage(0);
-        setAllLoadedMedia([]);
-        refetch();
-      }
-    }, 300);
+  // // Reset pagination and refetch when search changes
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     if (isOpen) {
+  //       setCurrentPage(0);
+  //       setAllLoadedMedia([]);
+  //       refetch();
+  //     }
+  //   }, 300);
 
-    return () => clearTimeout(timer);
-  }, [isOpen, refetch]);
+  //   return () => clearTimeout(timer);
+  // }, [isOpen, refetch]);
 
-  // Load more function
-  const loadMore = () => {
-    if (mediaData?.hasMore && !isLoading) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
+  // // Load more function
+  // const loadMore = () => {
+  //   if (mediaData?.hasMore && !isLoading) {
+  //     setCurrentPage((prev) => prev + 1);
+  //   }
+  // };
 
   // Filter media based on platform constraints and availability
   const filteredMedia = allMedia.filter((media) => {
@@ -411,7 +413,7 @@ export function MediaSelectionDialog({
             )}
 
             {/* Load more button */}
-            {mediaData?.hasMore && (
+            {/* {mediaData?.hasMore && (
               <div className="mt-4 text-center">
                 <Button
                   variant="outline"
@@ -421,7 +423,7 @@ export function MediaSelectionDialog({
                   {isLoading ? 'Loading...' : 'Load More'}
                 </Button>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 

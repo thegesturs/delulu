@@ -1,28 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { expect, test, vi } from 'vitest';
-import { SignUp } from '../components/auth/sign-up';
+import { render, screen } from '@testing-library/react';
+import { expect, test } from 'vitest';
+import Page from '../app/(unauthenticated)/sign-up/[[...sign-up]]/page';
 
-// Mock Next.js router
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
-}));
-
-// Mock auth client
-vi.mock('@delulu/auth/client', () => ({
-  signIn: {
-    social: vi.fn(),
-  },
-  signUp: {
-    email: vi.fn(),
-  },
-}));
-
-test('Sign Up Page', async () => {
-  render(<SignUp />);
-  
-  await waitFor(() => {
-    expect(screen.getByText('Create your account')).toBeDefined();
-  });
+test('Sign Up Page', () => {
+  render(<Page />);
+  expect(
+    screen.getByRole('heading', {
+      level: 1,
+      name: 'Create an account',
+    })
+  ).toBeDefined();
 });

@@ -1,7 +1,9 @@
 'use client';
-
-import { api } from '@/trpc/react';
-import type { SocialProvider, SocialType } from '@delulu/database/schema';
+import { api as TrpcApi } from '@/trpc/react';
+import type { SocialProvider, SocialType } from '@/types/convex';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -12,16 +14,16 @@ import { ConnectedAccountsHeader } from './connect-account-header';
 
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
-function isExpiringSoon(expiresIn: Date): boolean {
-  const now = new Date();
-  const diffInDays = Math.floor(
-    (expiresIn.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  );
+function isExpiringSoon(expiresIn: number | undefined): boolean {
+  if (!expiresIn) return false;
+  const now = Date.now();
+  const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
   return diffInDays <= 7 && diffInDays > 0;
 }
 
-function isExpired(expiresIn: Date): boolean {
-  return new Date() > expiresIn;
+function isExpired(expiresIn: number | undefined): boolean {
+  if (!expiresIn) return false;
+  return Date.now() > expiresIn;
 }
 
 export default function ConnectedAccounts() {
@@ -29,24 +31,23 @@ export default function ConnectedAccounts() {
   const [filterPlatform, setFilterPlatform] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const utils = api.useUtils();
 
-  const { data: accounts, isLoading: isLoadingAccounts } =
-    api.socialProvider.getConnectedAccounts.useQuery();
+  const accounts = useQuery(api.social_providers.getConnectedAccounts);
+  const isLoadingAccounts = accounts === undefined;
 
-  const { mutate: connectAccount } =
-    api.socialProvider.getSocialProviderConnectUrl.useMutation({
-      onSuccess: (url: string) => {
+  const deleteSocial = useMutation(api.social_providers.deleteSocial);
+  const connectAccountMutation =
+    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
+      onSuccess: (url) => {
         window.location.href = url;
       },
+      onError: (error) => {
+        toast.error('Failed to get connect URL');
+        if (process.env.NODE_ENV === 'development') {
+          console.error(error);
+        }
+      },
     });
-
-  const { mutate: deleteSocial } = api.socialProvider.deleteSocial.useMutation({
-    onSuccess: () => {
-      toast.success('Account deleted successfully');
-      utils.socialProvider.getConnectedAccounts.invalidate();
-    },
-  });
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -59,12 +60,10 @@ export default function ConnectedAccounts() {
       const matchesPlatform =
         filterPlatform === 'all' || account.socialType === filterPlatform;
 
-      const isAccountExpired = account.refreshTokenExpiresIn
-        ? isExpired(account.refreshTokenExpiresIn)
-        : false;
-      const isAccountExpiringSoon = account.refreshTokenExpiresIn
-        ? isExpiringSoon(account.refreshTokenExpiresIn)
-        : false;
+      const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
+      const isAccountExpiringSoon = isExpiringSoon(
+        account.refreshTokenExpiresIn
+      );
 
       const matchesStatus =
         filterStatus === 'all' ||
@@ -83,23 +82,35 @@ export default function ConnectedAccounts() {
     }
 
     const active = accounts.filter(
-      (a: SocialProvider) =>
-        a.isActive && !isExpired(a.refreshTokenExpiresIn ?? new Date())
+      (a: SocialProvider) => a.isActive && !isExpired(a.refreshTokenExpiresIn)
     ).length;
     const expired = accounts.filter((a: SocialProvider) =>
-      isExpired(a.refreshTokenExpiresIn ?? new Date())
+      isExpired(a.refreshTokenExpiresIn)
     ).length;
     const expiring = accounts.filter((a: SocialProvider) =>
-      isExpiringSoon(a.refreshTokenExpiresIn ?? new Date())
+      isExpiringSoon(a.refreshTokenExpiresIn)
     ).length;
     return { active, expired, expiring, total: accounts.length };
   }, [accounts]);
 
   const handleConnect = (platform: SocialType) => {
     // Removed Instagram and YouTube as they were not handled by connectAccount
-    if (platform !== 'LENS') {
-      connectAccount({ provider: platform });
+    if (platform !== 'LENS' && platform !== 'DEFAULT') {
+      connectAccountMutation.mutate({ provider: platform });
     }
+  };
+
+  const handleDeleteSocial = (socialId: Id<'socialProviders'>) => {
+    deleteSocial({ socialId })
+      .then(() => {
+        toast.success('Account deleted successfully');
+      })
+      .catch((error) => {
+        toast.error('Failed to delete account');
+        if (process.env.NODE_ENV === 'development') {
+          console.error(error);
+        }
+      });
   };
 
   if (isLoadingAccounts) {
@@ -132,7 +143,7 @@ export default function ConnectedAccounts() {
           accounts={filteredAccounts}
           viewMode={viewMode}
           onConnect={handleConnect}
-          onDelete={(socialId: string) => deleteSocial({ socialId })}
+          onDelete={handleDeleteSocial}
         />
       </div>
     </div>

@@ -1,11 +1,11 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import { useAnalytics } from '@delulu/analytics/posthog/client';
-import { useUser } from '@delulu/auth/client';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
-export const PostHogIdentifier = () => {
+function PostHogIdentifierContent() {
   const { user } = useUser();
   const identified = useRef(false);
   const pathname = usePathname();
@@ -31,14 +31,24 @@ export const PostHogIdentifier = () => {
     }
 
     analytics.identify(user.id, {
-      email: user.email,
-      firstName: user.name,
+      email: user.primaryEmailAddress?.emailAddress,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
       createdAt: user.createdAt,
-      avatar: user.image,
+      avatar: user.imageUrl,
     });
 
     identified.current = true;
   }, [user, analytics]);
 
   return null;
+}
+
+export const PostHogIdentifier = () => {
+  return (
+    <Suspense>
+      <PostHogIdentifierContent />
+    </Suspense>
+  );
 };

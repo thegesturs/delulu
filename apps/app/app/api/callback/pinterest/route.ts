@@ -1,13 +1,7 @@
+import { auth } from '@clerk/nextjs/server';
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
+import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -49,9 +43,8 @@ async function fetchWithTimeout(
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-
-    if (!session?.user?.id) {
+    const { userId, getToken } = await auth();
+    if (!userId) {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -61,7 +54,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const userId = session.user.id;
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
+        },
+      });
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
@@ -147,35 +149,25 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as PinterestUserResponse;
 
-    // Check if this Pinterest account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, userObject.username),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'PINTEREST',
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 3600 * 1000,
+        profileId: userObject.username,
+        username: userObject.username,
+        fullName: userObject.username,
+        profileImage: userObject.profile_image,
+        isActive: true,
+      },
+      { token }
+    );
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          fullName: userObject.username,
-          username: userObject.username,
-          profileImage: userObject.profile_image,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return new NextResponse(null, {
         status: 302,
         headers: {
@@ -184,35 +176,6 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        userId,
-        socialType: 'PINTEREST',
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        profileId: userObject.username,
-        username: userObject.username,
-        fullName: userObject.username,
-        profileImage: userObject.profile_image,
-        expiresIn: new Date(Date.now() + 3600 * 1000),
-        isActive: true,
-        lastSyncedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        fullName: userObject.username,
-        username: userObject.username,
-        profileImage: userObject.profile_image,
-        updatedAt: new Date(),
-        isActive: true,
-        lastSyncedAt: new Date(),
-      }
-    );
 
     // Successful connection
     return new NextResponse(null, {

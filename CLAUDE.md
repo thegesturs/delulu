@@ -154,6 +154,66 @@ apps/
 - `biome.json` - Linting configuration
 - `tsconfig.json` - TypeScript configuration
 
+## Convex Migration Patterns
+
+### Mixed API Architecture
+The platform uses both tRPC and Convex for different operations:
+- **tRPC**: Immediate posting to social platforms (`TrpcApi.socialProvider.createPost`)
+- **Convex**: Data persistence and CRUD operations (`api.posts.createPost`, `api.posts.updatePost`)
+
+### Import Pattern for Mixed Usage
+```typescript
+import { api as TrpcApi } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { useMutation } from 'convex/react';
+```
+
+### Type Conversion Pattern
+Convert between string IDs and Convex typed IDs:
+```typescript
+// Convert socialProvider socialId to Convex ID
+socialProviderId: socialProvider.socialId as Id<'socialProviders'>
+
+// Convert post ID to Convex ID  
+id: postId as Id<'posts'>
+```
+
+### Convex Mutation Usage
+```typescript
+// Convex mutations use manual state management
+const updatePost = useMutation(api.posts.updatePost);
+const [isUpdatingPost, setIsUpdatingPost] = useState(false);
+
+// Handle mutations with try/catch
+try {
+  setIsUpdatingPost(true);
+  await updatePost({ id, content, socialProviderIds });
+  toast.success('Success');
+} catch (error) {
+  toast.error('Failed');
+} finally {
+  setIsUpdatingPost(false);
+}
+```
+
+### Data Transformation: Zustand → Convex
+```typescript
+// Map alternative content
+alternativeContent: alternativeContent.map(alt => ({
+  socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+  content: alt.content
+}))
+
+// Map social providers
+socialProviderIds: socialProviders.map(sp => sp.socialId as Id<'socialProviders'>)
+```
+
+### Required Convex Fields
+- **createPost**: `content`, `socialProviderIds`, `status` ('SAVED' for drafts)
+- **updatePost**: `id`, plus any fields to update
+- **Authentication**: Handled automatically by Convex betterAuth integration
+
 ## API Integrations
 
 The platform integrates with multiple social media APIs:

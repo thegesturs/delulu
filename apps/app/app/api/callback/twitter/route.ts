@@ -1,14 +1,7 @@
 import { env } from '@/env';
-import { auth } from '@delulu/auth/server';
-import {
-  and,
-  database,
-  eq,
-  ne,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
-import { nanoid } from 'nanoid';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@delulu/database/convex/_generated/api';
+import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -53,12 +46,8 @@ async function fetchWithTimeout(
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-
-    if (!session?.user?.id) {
+    const { userId, getToken } = await auth();
+    if (!userId) {
       return NextResponse.redirect(
         new URL(
           '/socials?error=auth_required&code=AUTH_001&provider=TWITTER',
@@ -67,7 +56,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=twitter',
+        },
+      });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
 
     if (!state || !code) {
       return NextResponse.redirect(
@@ -131,36 +133,25 @@ export async function GET(request: NextRequest) {
       throw new Error('twitter_user_fetch_failed');
     }
 
-    // Check if this Twitter account is already connected to a different user
-    const existingProvider = await database
-      .select()
-      .from(socialProviders)
-      .where(
-        and(
-          eq(socialProviders.profileId, userObject.id),
-          ne(socialProviders.userId, userId)
-        )
-      )
-      .limit(1);
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'TWITTER',
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name ?? '',
+        profileImage: userObject.profile_image_url ?? '',
+        isActive: true,
+      },
+      { token }
+    );
 
-    // If found, handle the transfer using encrypted update
-    if (existingProvider.length > 0) {
-      await socialQueries.updateSocialProviderWithEncryption(
-        existingProvider[0].id,
-        {
-          userId,
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: new Date(Date.now() + expires_in * 1000),
-          fullName: userObject.name ?? '',
-          username: userObject.username,
-          profileImage: userObject.profile_image_url ?? '',
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
-
+    // Handle different response statuses
+    if (status === 'account_transferred') {
       return NextResponse.redirect(
         new URL(
           '/socials?notification=account_transferred&platform=twitter',
@@ -168,33 +159,6 @@ export async function GET(request: NextRequest) {
         )
       );
     }
-
-    // Upsert the social provider using conflict resolution with encryption
-    await socialQueries.upsertSocialProviderWithEncryption(
-      {
-        userId,
-        socialType: 'TWITTER',
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        profileId: userObject.id,
-        username: userObject.username,
-        fullName: userObject.name ?? '',
-        profileImage: userObject.profile_image_url ?? '',
-        isActive: true,
-        lastSyncedAt: new Date(),
-      },
-      {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: new Date(Date.now() + expires_in * 1000),
-        fullName: userObject.name ?? '',
-        username: userObject.username,
-        profileImage: userObject.profile_image_url ?? '',
-        isActive: true,
-        lastSyncedAt: new Date(),
-      }
-    );
 
     return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
   } catch (error) {

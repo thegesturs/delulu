@@ -38,7 +38,7 @@ export {
   createTRPCContext,
   appRouter,
   createCaller,
-  fetchRequestHandler,
   superjson,
+  fetchRequestHandler,
 };
 export type { AppRouter, RouterInputs, RouterOutputs };

@@ -250,7 +250,7 @@ const OrbitingIcons = ({
               rotate: {
                 duration: speed,
                 repeat: Number.POSITIVE_INFINITY,
-                  },
+              },
             },
             counterRotation: {
               initial: { rotate: -angle },
@@ -263,7 +263,7 @@ const OrbitingIcons = ({
               transition: {
                 duration: speed,
                 repeat: Number.POSITIVE_INFINITY,
-                  },
+              },
             },
           },
         };

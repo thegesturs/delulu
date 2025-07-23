@@ -1,30 +1,22 @@
 import { createPostInQueue } from '@api/services/post.service';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
-  alternatePostContent,
-  database,
-  postQueries,
-  posts,
-  socialProviders,
-  socialQueries,
-} from '@delulu/database';
-import { and, eq, ne } from '@delulu/database';
-import { decryptData } from '@delulu/database/encrypt';
-import {
   FacebookPageConnectionSchema,
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
 } from '@delulu/validators/facebook';
 
-import {
-  type SavePostInputType,
-  SocialTypeSchema,
-  savePostInputSchema,
-} from '@delulu/validators/post';
+import { api } from '@delulu/database/convex/_generated/api';
+import { decryptData } from '@delulu/database/convex/utils';
+import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
-import { providerRegistry } from '../providers';
-import { protectedProcedure, publicProcedure } from '../trpc';
+import { connectUrlRegistry } from '../services/connect-url.service';
+import { protectedProcedure } from '../trpc';
+
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { fetchMutation } from '@delulu/database/server';
+import { fetchQuery } from '@delulu/database/server';
 
 export const socialProviderRouter = {
   getSocialProviderConnectUrl: protectedProcedure
@@ -34,59 +26,53 @@ export const socialProviderRouter = {
       })
     )
     .mutation(({ input }) => {
-      const link = providerRegistry[input.provider].connectUrl();
+      const link = connectUrlRegistry[input.provider].connectUrl();
 
       console.log('Link:', link);
 
       return link;
     }),
-
-  getConnectedAccounts: protectedProcedure.query(async ({ ctx }) => {
-    const userSocialProviders = await socialQueries.getUserSocialProviders(
-      ctx.userId
-    );
-    return userSocialProviders;
-  }),
-  deleteSocial: protectedProcedure
-    .input(z.object({ socialId: z.string() }))
-    .mutation(async ({ input }) => {
-      await socialQueries.deleteSocialProvider(input.socialId);
-      return {
-        success: true,
-      };
-    }),
   createPost: protectedProcedure
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
       if (!input.id) {
-        // Create the main post
-        const [post] = await database
-          .insert(posts)
-          .values({
-            content: input.content,
-            status: 'SAVED',
-            userId: ctx.userId,
-            // organizationId: ctx.organizationId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
+        const savePostId = await fetchMutation(api.posts.createPost, {
+          userId: ctx.userId,
+          content: input.content,
+          status: 'SAVED',
+          socialProviderIds: input.socialProviders.map(
+            (sp) => sp.socialId as Id<'socialProviders'>
+          ),
+          alternativeContent: input.alternativeContent.map((alt) => ({
+            socialProviderId: alt.socialProvider
+              .socialId as Id<'socialProviders'>,
+            content: alt.content,
+          })),
+        });
 
-        // Create alternate contents if any
-        if (input.alternativeContent?.length > 0) {
-          await database.insert(alternatePostContent).values(
-            input.alternativeContent.map((alt) => ({
-              postId: post.id,
-              socialProviderId: alt.socialProvider.socialId,
-              content: alt.content,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }))
-          );
+        if (!savePostId) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to save post',
+          });
         }
+
+        const post = await fetchQuery(api.posts.getPostById, {
+          id: savePostId,
+        });
+        if (!post) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+        }
+        await createPostInQueue(post);
       }
-      //TODO: Make this work using AWS SQS
-      // await createPostInQueue({ ...input, id: postId });
+
+      const post = await fetchQuery(api.posts.getPostById, {
+        id: input.id as Id<'posts'>,
+      });
+      if (!post) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+      }
+      await createPostInQueue(post);
       return {
         success: true,
       };
@@ -97,9 +83,11 @@ export const socialProviderRouter = {
         postId: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Get the post with its related data
-      const post = await postQueries.getPostById(input.postId);
+      const post = await fetchQuery(api.posts.getPostById, {
+        id: input.postId as Id<'posts'>,
+      });
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -109,43 +97,16 @@ export const socialProviderRouter = {
           message: 'Post not found',
         });
       }
-      const postData: SavePostInputType = {
-        id: post.id,
-        content: post.content,
-        socialProviders: post.postToSocialProviders.map((provider) => ({
-          socialId: provider.socialProvider.id,
-          name: provider.socialProvider.fullName,
-          socialType: provider.socialProvider.socialType,
-        })),
-        alternativeContent: post.alternateContents.map((alt) => ({
-          socialProvider: {
-            socialId: alt.socialProvider.id,
-            name: alt.socialProvider.fullName,
-            socialType: alt.socialProvider.socialType,
-          },
-          content: alt.content,
-        })),
-      };
 
-      //TODO: Make this work using AWS SQS
-      console.log('Post data:', 'stuff');
-      const stuff = await createPostInQueue(postData);
-      console.log('Test:', stuff);
+      const stuff = await createPostInQueue(post);
       return {
         success: true,
       };
     }),
-  connectFacebookPage: publicProcedure
+  connectFacebookPage: protectedProcedure
     .input(FacebookPageConnectionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.userId;
-      if (!userId) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'You must be logged in to connect a Facebook page',
-        });
-      }
-
       // Securely retrieve the page access token from KV storage
       let pageAccessToken: string;
       try {
@@ -199,64 +160,12 @@ export const socialProviderRouter = {
         });
       }
 
-      // Check if this Facebook page is already connected to a different user
-      const existingProvider = await database
-        .select()
-        .from(socialProviders)
-        .where(
-          and(
-            eq(socialProviders.profileId, input.pageId),
-            ne(socialProviders.userId, userId)
-          )
-        )
-        .limit(1);
-
-      // If found, handle the transfer using encrypted update
-      if (existingProvider.length > 0) {
-        await socialQueries.updateSocialProviderWithEncryption(
-          existingProvider[0].id,
-          {
-            userId,
-            accessToken: pageAccessToken,
-            fullName: input.pageName,
-            username: input.pageName,
-            profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-            refreshTokenExpiresIn: new Date(
-              Date.now() + 2 * 30 * 24 * 60 * 60 * 1000
-            ),
-            updatedAt: new Date(),
-            isActive: true,
-            lastSyncedAt: new Date(),
-          }
-        );
-
-        return { status: 'transferred' };
-      }
-
-      // Upsert the social provider using conflict resolution with encryption
-      await socialQueries.upsertSocialProviderWithEncryption(
-        {
-          userId,
-          socialType: 'FACEBOOK',
-          accessToken: pageAccessToken,
-          profileId: input.pageId,
-          username: input.pageName,
-          fullName: input.pageName,
-          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-          isActive: true,
-          lastSyncedAt: new Date(),
-          expiresIn: new Date(Date.now() + 2 * 30 * 24 * 60 * 60 * 1000),
-        },
-        {
-          accessToken: pageAccessToken,
-          fullName: input.pageName,
-          username: input.pageName,
-          profileImage: `https://graph.facebook.com/${input.pageId}/picture?type=large`,
-          updatedAt: new Date(),
-          isActive: true,
-          lastSyncedAt: new Date(),
-        }
-      );
+      await fetchMutation(api.social_providers.connectFacebookPage, {
+        userId,
+        pageId: input.pageId,
+        pageName: input.pageName,
+        accessToken: pageAccessToken,
+      });
 
       return { status: 'connected' };
     }),

@@ -1,6 +1,6 @@
 import { BlogLayout } from '@/components/blog/blog-layout';
-import CTA from '@/components/cta';
-import { components } from '@/components/mdx-components';
+import CTA from '@/components/home/cta';
+import { components } from '@/components/home/mdx-components';
 import { env } from '@/env';
 import { JsonLd, createBlogPostingSchema } from '@delulu/seo/json-ld';
 import { createMetadata } from '@delulu/seo/metadata';

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node'use strict';
 
 /**
  * Script to extract CloudflareEnv interface from generated .d.ts file
@@ -13,12 +13,14 @@ const TYPES_FILE = path.join(__dirname, '../types.ts');
 
 function extractEnvInterface() {
   if (!fs.existsSync(GENERATED_FILE)) {
-    console.error('Generated cloudflare-env.d.ts file not found. Run cf-typegen first.');
+    console.error(
+      'Generated cloudflare-env.d.ts file not found. Run cf-typegen first.'
+    );
     process.exit(1);
   }
 
   const content = fs.readFileSync(GENERATED_FILE, 'utf8');
-  
+
   // Extract the Env interface
   const envMatch = content.match(/interface Env \{([\s\S]*?)\}/);
   if (!envMatch) {
@@ -27,11 +29,11 @@ function extractEnvInterface() {
   }
 
   const envContent = envMatch[1];
-  
+
   // Parse the properties
   const properties = [];
   const lines = envContent.split('\n');
-  
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('/*')) {
@@ -56,7 +58,9 @@ ${properties.join('\n')}
 
   // Write the new types.ts file
   fs.writeFileSync(TYPES_FILE, newContent);
-  console.log('✅ Successfully updated types.ts with latest CloudflareEnv interface');
+  console.log(
+    '✅ Successfully updated types.ts with latest CloudflareEnv interface'
+  );
 }
 
 extractEnvInterface();
