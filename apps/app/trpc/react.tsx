@@ -39,15 +39,16 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+  console.log('getBaseUrl', getBaseUrl());
 
   const [trpcClient] = useState(() =>
     api.createClient({
       links: [
-        loggerLink({
-          enabled: (op) =>
-            process.env.NODE_ENV === 'development' ||
-            (op.direction === 'down' && op.result instanceof Error),
-        }),
+        // loggerLink({
+        //   enabled: (op) =>
+        //     process.env.NODE_ENV === 'development' ||
+        //     (op.direction === 'down' && op.result instanceof Error),
+        // }),
         httpBatchLink({
           transformer: superjson,
           url: getBaseUrl() + '/api/trpc',
@@ -57,10 +58,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             return headers;
           },
           async fetch(url, options) {
+            console.log('fetch', url, options);
             const response = await fetch(url, {
               ...options,
               cache: 'no-store',
             });
+            console.log('response', response);
             return response;
           },
         }),
