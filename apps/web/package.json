@@ -25,7 +25,7 @@
     "@delulu/rate-limit": "workspace:*",
     "@delulu/security": "workspace:*",
     "@delulu/seo": "workspace:*",
-    "@opennextjs/cloudflare": "^1.2.0",
+    "@opennextjs/cloudflare": "1.5.3",
     "@radix-ui/react-icons": "^1.3.2",
     "@react-three/fiber": "^9.1.2",
     "@sentry/nextjs": "^9.12.0",

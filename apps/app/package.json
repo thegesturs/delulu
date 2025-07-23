@@ -29,7 +29,7 @@
     "@delulu/security": "workspace:*",
     "@delulu/seo": "workspace:*",
     "@delulu/webhooks": "workspace:*",
-    "@opennextjs/cloudflare": "^1.0.4",
+    "@opennextjs/cloudflare": "1.5.3",
     "@sentry/nextjs": "^9.12.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "catalog:",

@@ -56,6 +56,10 @@ function SocialNotificationsContent() {
   const { mutateAsync: connectAccount, isPending: isConnecting } =
     TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation();
 
+  const { data: hello } = TrpcApi.hello.useQuery();
+
+  console.log('hello', hello);
+
   // Reset visibility when search params change
   useEffect(() => {
     setVisible(true);

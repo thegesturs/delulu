@@ -36,6 +36,9 @@ export const noseconeOptions: NoseconeOptions = {
         'https://clerk.delulu.social',
         'https://clerk.delulu.dev',
         'https://clerk-telemetry.com',
+        // Liveblocks WebSocket endpoints
+        'https://*.liveblocks.io',
+        'wss://*.liveblocks.io',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,

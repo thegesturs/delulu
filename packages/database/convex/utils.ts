@@ -1,5 +1,4 @@
 import { v } from 'convex/values';
-import {} from 'nanoid';
 
 // ID generation utilities
 export const UniqueIdsSchema = v.union(
