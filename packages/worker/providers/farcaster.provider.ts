@@ -1,6 +1,6 @@
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -43,8 +43,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<FarcasterProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new FarcasterError('Database query failed')
   ).andThen((profile) => {

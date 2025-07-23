@@ -1,14 +1,14 @@
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import type { Readable } from 'node:stream';
+import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
-import { keys } from '@delulu/api/keys';
 
 import type {
   PostContent,
@@ -34,8 +34,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<YouTubeProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new YouTubeError('Database query failed')
   ).andThen((profile) => {

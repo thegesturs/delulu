@@ -1,11 +1,11 @@
-import { providerRegistry } from './providers';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import type {
   SocialPublishInputType,
   SocialType,
 } from '@delulu/validators/post';
+import { providerRegistry } from './providers';
 
 async function processMessage(messageBody: string) {
   console.log('Message body', messageBody);

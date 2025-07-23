@@ -1,7 +1,7 @@
 import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { nanoid } from 'nanoid';
@@ -27,8 +27,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<TikTokProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new TikTokError('Database query failed')
   ).andThen((profile) => {

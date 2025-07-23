@@ -1,7 +1,7 @@
 import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
@@ -80,7 +80,7 @@ const uploadImageToLinkedIn = (
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'LinkedIn-Version': '202507', // Use current version
+            'LinkedIn-Version': '202507', // Current version in YYYYMM format
             'X-Restli-Protocol-Version': '2.0.0',
           },
         }
@@ -188,7 +188,7 @@ const uploadVideoToLinkedIn = (
               headers: {
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
-                'LinkedIn-Version': '2025-07',
+                'LinkedIn-Version': '202507',
                 'X-Restli-Protocol-Version': '2.0.0',
               },
             }
@@ -387,7 +387,7 @@ const createAndPublishPost = (
         Authorization: `Bearer ${profile.accessToken}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '2025-07',
+        'LinkedIn-Version': '202507',
       },
     }),
     (error: unknown) => {
