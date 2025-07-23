@@ -24,10 +24,9 @@ import type {
 import { executeWithAuth } from '@/lib/server-auth';
 
 // Get social provider connect URL
-export const getSocialProviderConnectUrl = withAuth(
+export async function getSocialProviderConnectUrl(provider: SocialType) {
   // biome-ignore lint/suspicious/useAwait: <explanation>
-  async (_userId: string, provider: SocialType) => {
-    console.log('getSocialProviderConnectUrl', provider);
+  return executeWithAuth(async (_userId: string, provider: SocialType) => {
     validateRequired(provider, 'Provider');
 
     if (provider === 'LENS' || provider === 'DEFAULT') {
@@ -38,15 +37,12 @@ export const getSocialProviderConnectUrl = withAuth(
     const link = registryEntry.connectUrl();
 
     return { connectUrl: link };
-  }
-);
+  }, provider);
+}
 
 // Create post
-export const createPost = withAuth(
-  async (
-    userId: string,
-    input: CreatePostInput
-  ): Promise<PostSuccessResponse> => {
+export async function createPost(input: CreatePostInput) {
+  return executeWithAuth(async (userId: string, input: CreatePostInput): Promise<PostSuccessResponse> => {
     // Validate input with Zod schema
     const validatedInput = savePostInputSchema.parse(input);
 
@@ -93,15 +89,12 @@ export const createPost = withAuth(
     }
 
     return { success: true };
-  }
-);
+  }, input);
+}
 
 // Create post from existing post ID
-export const createPostFromPostId = withAuth(
-  async (
-    _userId: string,
-    input: CreatePostFromIdInput
-  ): Promise<PostSuccessResponse> => {
+export async function createPostFromPostId(input: CreatePostFromIdInput) {
+  return executeWithAuth(async (_userId: string, input: CreatePostFromIdInput): Promise<PostSuccessResponse> => {
     validateRequired(input.postId, 'Post ID');
 
     // Get the post with its related data
@@ -120,15 +113,12 @@ export const createPostFromPostId = withAuth(
     await createPostInQueue(post);
 
     return { success: true };
-  }
-);
+  }, input);
+}
 
 // Connect Facebook page
-export const connectFacebookPage = withAuth(
-  async (
-    userId: string,
-    input: FacebookPageConnectionInput
-  ): Promise<FacebookConnectionResponse> => {
+export async function connectFacebookPage(input: FacebookPageConnectionInput) {
+  return executeWithAuth(async (userId: string, input: FacebookPageConnectionInput): Promise<FacebookConnectionResponse> => {
     // Validate input
     const validatedInput = FacebookPageConnectionSchema.parse(input);
 
@@ -186,5 +176,5 @@ export const connectFacebookPage = withAuth(
     });
 
     return { status: 'connected' };
-  }
-);
+  }, input);
+}

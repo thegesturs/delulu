@@ -1,4 +1,4 @@
-import { api } from '@/trpc/react';
+import { useCreateMedia } from './use-media';
 import { uploadSingleFile } from './use-upload-media';
 
 interface MediaUploadResult {
@@ -8,7 +8,7 @@ interface MediaUploadResult {
 }
 
 export function useMediaStorage() {
-  const createMediaMutation = api.media.create.useMutation();
+  const createMediaMutation = useCreateMedia();
 
   const uploadAndSaveMedia = async (file: File): Promise<MediaUploadResult> => {
     // First upload the file
@@ -34,8 +34,7 @@ export function useMediaStorage() {
         ...uploadResult,
         mediaId: savedMedia,
       };
-    } catch (error) {
-      console.warn('Failed to save media to database:', error);
+    } catch {
       // Return upload result even if database save fails
       return uploadResult;
     }

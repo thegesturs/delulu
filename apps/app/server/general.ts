@@ -1,14 +1,13 @@
 'use server';
 
-import { withAuth } from '@/lib/server-auth';
+import { executeWithAuth } from '@/lib/server-auth';
 
 // Simple hello endpoint
-export const hello = withAuth(
-  // biome-ignore lint/suspicious/useAwait: <explanation>
-  async (userId: string, text?: string) => {
+export async function hello(text?: string) {
+  return executeWithAuth(async (userId: string, text?: string) => {
     return {
       greeting: `Hello ${text ?? 'world'}`,
       userId: userId,
     };
-  }
-);
+  }, text);
+}
