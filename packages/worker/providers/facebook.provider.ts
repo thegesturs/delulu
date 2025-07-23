@@ -1,7 +1,7 @@
 import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/server';
+import { convex } from '@delulu/database/node';
 import type { MediaType } from '@delulu/validators/post';
 import { getValidMediaUrls } from '@delulu/validators/post';
 import axios from 'axios';
