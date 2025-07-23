@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
         headers: {
           Authorization: `Bearer ${access_token}`,
           'X-Restli-Protocol-Version': '2.0.0',
-          'LinkedIn-Version': '202304',
+          'LinkedIn-Version': '202507',
         },
       }
     );
