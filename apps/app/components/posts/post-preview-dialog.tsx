@@ -10,6 +10,7 @@ import {
 import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
 import {
   type SupportedSocialPlatform,
+  socialBackgroundColors,
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
 import { AlertCircle, Calendar, ExternalLink } from 'lucide-react';
@@ -108,10 +109,15 @@ export function PostPreviewDialog({
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
-                        <SocialIcon
-                          type={socialType as SupportedSocialPlatform}
-                          size="md"
-                        />
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                          socialBackgroundColors[socialType as SupportedSocialPlatform]
+                        } shadow-sm`}>
+                          <SocialIcon
+                            type={socialType as SupportedSocialPlatform}
+                            size="md"
+                            className="text-white"
+                          />
+                        </div>
                       </div>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
