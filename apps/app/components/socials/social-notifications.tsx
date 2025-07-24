@@ -1,6 +1,6 @@
 'use client';
 
-import { useGetSocialProviderConnectUrl, useHello } from '@/hooks';
+import { api } from '@/trpc/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -53,13 +53,8 @@ function SocialNotificationsContent() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const connectAccountMutation = useGetSocialProviderConnectUrl();
-
-  const helloMutation = useHello();
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log('hello mutation available');
-  }
+  const connectAccountMutation =
+    api.socialProvider.getSocialProviderConnectUrl.useMutation();
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -84,19 +79,22 @@ function SocialNotificationsContent() {
     if (providerToUse) {
       try {
         toast.loading('Connecting to social account...');
-        connectAccountMutation.mutate(providerToUse, {
-          onSuccess: (data) => {
-            window.location.href = data.connectUrl;
-            toast.dismiss();
-          },
-          onError: (error) => {
-            toast.dismiss();
-            toast.error('Failed to connect to social account');
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Failed to get connect URL:', error);
-            }
-          },
-        });
+        connectAccountMutation.mutate(
+          { provider: providerToUse },
+          {
+            onSuccess: (data) => {
+              window.location.href = data;
+              toast.dismiss();
+            },
+            onError: (error) => {
+              toast.dismiss();
+              toast.error('Failed to connect to social account');
+              if (process.env.NODE_ENV === 'development') {
+                console.error('Failed to get connect URL:', error);
+              }
+            },
+          }
+        );
       } catch (error) {
         toast.dismiss();
         toast.error('Failed to connect to social account');

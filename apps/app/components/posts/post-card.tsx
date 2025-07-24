@@ -1,6 +1,6 @@
 'use client';
 
-import { useCreatePostFromPostId } from '@/hooks/use-social-providers';
+import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -38,18 +38,19 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const router = useRouter();
 
   const softDeletePost = useMutation(api.posts.deletePost);
-  const createPostFromPostIdMutation = useCreatePostFromPostId({
-    onSuccess: () => {
-      toast.success('Your post is being published. It will be posted soon.');
-      setShowPreview(false);
-    },
-    onError: (error) => {
-      toast.error('Failed to publish post');
-      if (process.env.NODE_ENV === 'development') {
-        console.error(error);
-      }
-    },
-  });
+  const createPostFromPostIdMutation =
+    TrpcApi.socialProvider.createPostFromPostId.useMutation({
+      onSuccess: () => {
+        toast.success('Your post is being published. It will be posted soon.');
+        setShowPreview(false);
+      },
+      onError: (error) => {
+        toast.error('Failed to publish post');
+        if (process.env.NODE_ENV === 'development') {
+          console.error(error);
+        }
+      },
+    });
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const statusColors = {
@@ -110,7 +111,9 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
             onClick={() => handlePublish(postId)}
             disabled={createPostFromPostIdMutation.isPending}
           >
-            {createPostFromPostIdMutation.isPending ? 'Publishing...' : 'Publish now'}
+            {createPostFromPostIdMutation.isPending
+              ? 'Publishing...'
+              : 'Publish now'}
           </DropdownMenuItem>,
           <DropdownMenuItem
             key="schedule"
