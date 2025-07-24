@@ -6,7 +6,10 @@ import {
   type QueryCtx,
   mutation,
   query,
+  internalMutation,
+  internalAction,
 } from './_generated/server';
+import { internal, api } from './_generated/api';
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
@@ -28,6 +31,7 @@ import {
   postCreateSchema,
   postFiltersSchema,
   postUpdateSchema,
+  postUpsertSchema,
 } from './schemas';
 import { getCurrentUser } from './users';
 import { getCurrentTimestamp } from './utils';
@@ -124,10 +128,13 @@ export const createPost = mutation({
       throw new Error('Scheduled date must be in the future');
     }
 
+    // Determine status based on whether scheduling is requested
+    const postStatus = args.scheduledAt ? 'SCHEDULED' : (args.status || 'SAVED');
+
     const newPostId = await ctx.db.insert('posts', {
       userId: user._id,
       organizationId: args.organizationId,
-      status: args.status,
+      status: postStatus,
       scheduledAt: args.scheduledAt,
       reviewStatus: args.reviewStatus || 'PENDING',
       isDeleted: false,
@@ -144,6 +151,13 @@ export const createPost = mutation({
       retryCount: 0,
     });
 
+    // Schedule the post for publishing if scheduledAt is provided
+    if (args.scheduledAt) {
+      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
+        postId: newPostId,
+      });
+    }
+
     return newPostId;
   },
 });
@@ -155,20 +169,111 @@ export const updatePost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    await findPostById(ctx, args.id);
+    const currentPost = await findPostById(ctx, args.id);
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= getCurrentTimestamp()) {
       throw new Error('Scheduled date must be in the future');
     }
 
+    // Handle status changes for scheduling
+    let newStatus = args.status;
+    if (args.scheduledAt && !newStatus) {
+      // If scheduledAt is provided but no status, set to SCHEDULED
+      newStatus = 'SCHEDULED';
+    } else if (!args.scheduledAt && currentPost.status === 'SCHEDULED') {
+      // If removing scheduledAt from a scheduled post, set to SAVED
+      newStatus = 'SAVED';
+    }
+
     // Patch with args and include updatedAt
     await ctx.db.patch(args.id, {
       ...args,
+      ...(newStatus && { status: newStatus }),
       updatedAt: getCurrentTimestamp(),
     });
 
+    // Schedule the post for publishing if scheduledAt is provided
+    if (args.scheduledAt) {
+      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
+        postId: args.id,
+      });
+    }
+
     return true;
+  },
+});
+
+// Unified upsert mutation (create or update)
+export const upsertPost = mutation({
+  args: postUpsertSchema.fields,
+  returns: v.id('posts'),
+  handler: async (ctx, args) => {
+    const now = getCurrentTimestamp();
+    const user = await getCurrentUser(ctx);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Validate scheduled date if provided
+    if (args.scheduledAt && args.scheduledAt <= now) {
+      throw new Error('Scheduled date must be in the future');
+    }
+
+    // Determine status based on scheduling
+    const finalStatus = args.status || (args.scheduledAt ? 'SCHEDULED' : 'SAVED');
+
+    const { id, ...postData } = args;
+
+    let postId: Id<'posts'>;
+
+    if (id) {
+      // Update existing post
+      await findPostById(ctx, id); // Verify post exists
+
+      await ctx.db.patch(id, {
+        ...postData,
+        status: finalStatus,
+        searchableText: extractSearchableText(
+          postData.content,
+          postData.alternativeContent
+        ),
+        updatedAt: now,
+      });
+
+      postId = id;
+    } else {
+      // Create new post
+      postId = await ctx.db.insert('posts', {
+        userId: user._id,
+        organizationId: postData.organizationId,
+        status: finalStatus,
+        scheduledAt: postData.scheduledAt,
+        reviewStatus: postData.reviewStatus || 'PENDING',
+        isDeleted: false,
+        privacyStatus: postData.privacyStatus || 'UNLISTED',
+        content: postData.content,
+        alternativeContent: postData.alternativeContent,
+        socialProviderIds: postData.socialProviderIds,
+        searchableText: extractSearchableText(
+          postData.content,
+          postData.alternativeContent
+        ),
+        createdAt: now,
+        updatedAt: now,
+        retryCount: 0,
+      });
+    }
+
+    // Schedule the post for publishing if scheduledAt is provided
+    if (args.scheduledAt) {
+      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
+        postId,
+      });
+    }
+
+    return postId;
   },
 });
 
@@ -605,6 +710,113 @@ export const updatePostPublishStatus = mutation({
       ...(args.status === 'PUBLISHED'
         ? { publishedAt: now }
         : { lastFailedAt: now }),
+    });
+
+    return true;
+  },
+});
+
+// Internal action to publish a scheduled post
+export const publishScheduledPost = internalAction({
+  args: { postId: v.id('posts') },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    try {
+      // Get the post with populated data - using direct query since getPostById is a regular query
+      const post = await ctx.runQuery(api.posts.getPostById, {
+        id: args.postId,
+      });
+
+      if (!post) {
+        console.error(`Scheduled post ${args.postId} not found`);
+        return false;
+      }
+
+      // Verify it's still scheduled and ready to publish
+      if (post.status !== 'SCHEDULED') {
+        console.warn(`Post ${args.postId} is no longer scheduled (status: ${post.status})`);
+        return false;
+      }
+
+      // Make HTTP request to Lambda URL for publishing
+      const LAMBDA_URL = 'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
+      const POSTING_SECRET_KEY = process.env.POSTING_SECRET_KEY;
+
+      if (!POSTING_SECRET_KEY) {
+        throw new Error('POSTING_SECRET_KEY environment variable not set');
+      }
+
+      // Process each social provider
+      for (const provider of post.socialProviders) {
+        // Skip providers that are not implemented (like LENS)
+        if (provider.socialType === 'LENS') {
+          continue;
+        }
+
+        // Find alternative content for this provider if it exists
+        const alternativeContent = post.alternativeContent.find(
+          (alt) => alt.socialProvider._id === provider._id
+        );
+
+        // Use alternative content if available, otherwise use default content
+        const contentToPost = alternativeContent?.content ?? post.content;
+
+        // Make HTTP request to publish
+        const response = await fetch(LAMBDA_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': POSTING_SECRET_KEY,
+          },
+          body: JSON.stringify({
+            socialType: provider.socialType,
+            socialPublishInput: {
+              content: contentToPost,
+              postId: post._id,
+              socialProviderId: provider._id,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to queue post: ${response.status} ${response.statusText}`
+          );
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(`Failed to publish scheduled post ${args.postId}:`, error);
+      
+      // Update post status to FAILED with error message
+      await ctx.runMutation(internal.posts.updatePostStatus, {
+        postId: args.postId,
+        status: 'FAILED',
+        failureReason: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+
+      return false;
+    }
+  },
+});
+
+// Helper internal mutation to update post status
+export const updatePostStatus = internalMutation({
+  args: {
+    postId: v.id('posts'),
+    status: v.union(v.literal('PUBLISHED'), v.literal('FAILED'), v.literal('SCHEDULED')),
+    failureReason: v.optional(v.string()),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const now = getCurrentTimestamp();
+    
+    await ctx.db.patch(args.postId, {
+      status: args.status,
+      ...(args.failureReason && { postFailureReason: args.failureReason }),
+      ...(args.status === 'FAILED' && { lastFailedAt: now }),
+      updatedAt: now,
     });
 
     return true;

@@ -291,4 +291,59 @@ The platform integrates with multiple social media APIs:
 - **CDN** for global content delivery
 - **Monitoring** with Sentry and PostHog
 
+## UI Components & Design System
+
+### Social Media Icons
+The platform uses a comprehensive social icon system with platform-specific branding:
+
+#### Design System Configuration (`/packages/design-system/lib/social-config.ts`)
+- **`socialIcons`** - React icon components for each platform
+- **`socialColors`** - Text colors for icons (use with `text-` classes)
+- **`socialBackgroundColors`** - Background colors for containers (use with `bg-` classes)
+- **`socialDisplayNames`** - Human-readable platform names
+- **`socialDescriptions`** - Platform descriptions for UI
+
+#### Correct Usage Patterns
+```typescript
+// ✅ For backgrounds - use socialBackgroundColors
+import { socialBackgroundColors } from '@delulu/design-system/lib/social-config';
+className={`${socialBackgroundColors[platform]} shadow-sm`}
+
+// ✅ For icon colors - use text-white on colored backgrounds
+<SocialIcon type={platform} className="text-white" />
+
+// ❌ Don't use socialColors as background classes
+// socialColors contains 'text-sky-700', not 'bg-sky-700'
+```
+
+#### Components Using Social Icons
+- **`/apps/app/components/posts/post-card.tsx`** - Post previews with social provider indicators
+- **`/apps/app/components/posts/post-preview-dialog.tsx`** - Detailed post view with platform status
+- **`/apps/app/components/socials/account-card.tsx`** - Connected account cards
+- **`/apps/app/components/socials/connect-account-header.tsx`** - Platform connection dialog
+
+#### Consistent Styling Approach
+For minimal, clean social icons across the platform:
+- **Post cards**: Use `bg-muted/30` with `text-foreground` for subtle, unified look
+- **Social account management**: Use `socialBackgroundColors` with `text-white` for platform branding
+- **Container sizing**: Consistent `h-6 w-6` or `h-10 w-10` for different contexts
+
+### Post Management Components
+
+#### Post Data Structure
+Posts use Convex schema with these key fields:
+- **`socialProviders`** - Populated array of connected social accounts
+- **`platformPosts`** - Publishing status per platform with `failureReason` field
+- **`postFailureReason`** - General post-level failure information
+
+#### Failure Handling
+- **Platform-specific failures**: Show `platformPost.failureReason` with platform context
+- **General failures**: Display `post.postFailureReason` for overall issues
+- **Visual indicators**: Use `Badge` with `variant="destructive"` and `AlertCircle` icons
+
+#### Layout Consistency
+- **Grid view**: Use `auto-rows-fr` for equal height cards
+- **List view**: Consistent row heights with proper flex layouts
+- **Media handling**: Always show placeholder for posts without images
+
 This platform is designed for scalability, maintainability, and optimal user experience across both the dashboard application and marketing website.
