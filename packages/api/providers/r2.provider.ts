@@ -2,11 +2,7 @@ import type { R2Bucket } from '@delulu/cloudflare-types';
 import { ResultAsync, err, ok } from 'neverthrow';
 import { R2DownloadError, R2UploadError } from './r2-errors';
 
-// Types
-interface R2SignedUploadResponse {
-  uploadUrl: string;
-  key: string;
-}
+// Types for R2Provider
 
 export class R2Provider {
   private bucket: R2Bucket | null = null;
@@ -75,41 +71,7 @@ export class R2Provider {
     });
   }
 
-  getSignedUploadUrl(
-    key: string,
-    contentType: string
-  ): ResultAsync<R2SignedUploadResponse, R2UploadError> {
-    if (!key || key.trim() === '') {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError('Key is required for upload URL'))
-      );
-    }
-
-    if (!contentType || contentType.trim() === '') {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(
-          new R2UploadError('Content type is required for upload URL')
-        )
-      );
-    }
-
-    if (!this.bucket) {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError('R2 bucket not configured'))
-      );
-    }
-
-    // For Workers R2, we don't use signed URLs for uploads
-    // Instead, we'll return a placeholder URL and handle uploads directly
-    const uploadUrl = '/api/upload/direct';
-
-    return ResultAsync.fromSafePromise(
-      Promise.resolve({
-        uploadUrl,
-        key,
-      })
-    );
-  }
+  // Note: getSignedUploadUrl removed - we use direct uploads through the API instead
 }
 
 export const r2Provider = new R2Provider();

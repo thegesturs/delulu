@@ -6,7 +6,7 @@ interface UploadMediaResult {
 }
 
 export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
-  // Get the presigned URL
+  // Upload directly through the API (file is processed server-side)
   const formData = new FormData();
   formData.append('file', file);
 
@@ -16,29 +16,13 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to get upload URL');
+    throw new Error('Failed to upload file');
   }
 
-  const { uploadUrl, bucketKey } = (await response.json()) as {
-    uploadUrl: string;
+  const { bucketKey } = (await response.json()) as {
+    uploadUrl: string | null; // Ignored - always null for direct uploads
     bucketKey: string;
   };
-
-  console.log('uploadUrl', uploadUrl);
-
-  // Upload directly to R2 using the presigned URL
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type,
-    },
-  });
-
-  if (!uploadResponse.ok) {
-    const errorText = await uploadResponse.text();
-    throw new Error(`Failed to upload file: ${errorText}`);
-  }
 
   // Get download URL after successful upload
   const downloadUrl = await getDownloadUrl(bucketKey);
@@ -85,8 +69,6 @@ export async function uploadContentMedia(
       };
     })
   );
-
-  console.log('updatedContents', updatedContents);
 
   return updatedContents;
 }
