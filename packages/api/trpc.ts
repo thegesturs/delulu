@@ -110,16 +110,27 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const { userId } = await auth();
+  const { userId, getToken } = await auth();
   if (!userId) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
       message: 'No token provided',
     });
   }
-  const user = await fetchQuery(api.users.getUserByExternalId, {
-    externalId: userId,
-  });
+  const token = await getToken({ template: 'convex' });
+  if (!token) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'No token provided',
+    });
+  }
+  const user = await fetchQuery(
+    api.users.getUserByExternalId,
+    {
+      externalId: userId,
+    },
+    { token }
+  );
   if (!user?._id) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
@@ -131,6 +142,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       ...ctx,
       userId: user?._id,
       externalId: userId,
+      token,
     },
   });
 });

@@ -36,19 +36,25 @@ export const socialProviderRouter = {
     .input(savePostInputSchema)
     .mutation(async ({ input, ctx }) => {
       if (!input.id) {
-        const savePostId = await fetchMutation(api.posts.createPost, {
-          userId: ctx.userId,
-          content: input.content,
-          status: 'SAVED',
-          socialProviderIds: input.socialProviders.map(
-            (sp) => sp.socialId as Id<'socialProviders'>
-          ),
-          alternativeContent: input.alternativeContent.map((alt) => ({
-            socialProviderId: alt.socialProvider
-              .socialId as Id<'socialProviders'>,
-            content: alt.content,
-          })),
-        });
+        const savePostId = await fetchMutation(
+          api.posts.createPost,
+          {
+            userId: ctx.userId,
+            content: input.content,
+            status: 'SAVED',
+            socialProviderIds: input.socialProviders.map(
+              (sp) => sp.socialId as Id<'socialProviders'>
+            ),
+            alternativeContent: input.alternativeContent.map((alt) => ({
+              socialProviderId: alt.socialProvider
+                .socialId as Id<'socialProviders'>,
+              content: alt.content,
+            })),
+          },
+          {
+            token: ctx.token,
+          }
+        );
 
         if (!savePostId) {
           throw new TRPCError({
@@ -57,18 +63,30 @@ export const socialProviderRouter = {
           });
         }
 
-        const post = await fetchQuery(api.posts.getPostById, {
-          id: savePostId,
-        });
+        const post = await fetchQuery(
+          api.posts.getPostById,
+          {
+            id: savePostId,
+          },
+          {
+            token: ctx.token,
+          }
+        );
         if (!post) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
         }
         await createPostInQueue(post);
       }
 
-      const post = await fetchQuery(api.posts.getPostById, {
-        id: input.id as Id<'posts'>,
-      });
+      const post = await fetchQuery(
+        api.posts.getPostById,
+        {
+          id: input.id as Id<'posts'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -85,9 +103,15 @@ export const socialProviderRouter = {
     )
     .mutation(async ({ input, ctx }) => {
       // Get the post with its related data
-      const post = await fetchQuery(api.posts.getPostById, {
-        id: input.postId as Id<'posts'>,
-      });
+      const post = await fetchQuery(
+        api.posts.getPostById,
+        {
+          id: input.postId as Id<'posts'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
       if (!post) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
       }
@@ -162,12 +186,18 @@ export const socialProviderRouter = {
         });
       }
 
-      await fetchMutation(api.social_providers.connectFacebookPage, {
-        userId,
-        pageId: input.pageId,
-        pageName: input.pageName,
-        accessToken: pageAccessToken,
-      });
+      await fetchMutation(
+        api.social_providers.connectFacebookPage,
+        {
+          userId,
+          pageId: input.pageId,
+          pageName: input.pageName,
+          accessToken: pageAccessToken,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       return { status: 'connected' };
     }),
