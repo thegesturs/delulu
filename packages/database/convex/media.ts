@@ -9,6 +9,7 @@ import {
   mediaUpdateSchema,
   searchFiltersSchema,
 } from './schemas';
+import { getCurrentUser } from './users';
 import { getCurrentTimestamp, isValidUrl } from './utils';
 
 // Media queries
@@ -89,8 +90,14 @@ export const createMedia = mutation({
 
     const now = getCurrentTimestamp();
 
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const newMediaId = await ctx.db.insert('media', {
-      userId: args.userId,
+      userId: user._id,
       organizationId: args.organizationId,
       bucketKey: args.bucketKey,
       url: args.url,

@@ -94,10 +94,9 @@ export const mediaRouter = createTRPCRouter({
         thumbnailBucketKey: z.string().optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       return await fetchMutation(api.media.createMedia, {
         ...input,
-        userId: ctx.userId,
       });
     }),
 

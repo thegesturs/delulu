@@ -127,7 +127,6 @@ export const mediaTableSchema = v.object({
 
 // Media creation schema
 export const mediaCreateSchema = v.object({
-  userId: v.id('users'),
   organizationId: v.optional(v.string()),
   bucketKey: v.string(),
   url: v.string(),

@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
     const data = await r2Provider.getSignedUploadUrl(key, file.type);
 
     if (data.isErr()) {
-      return new NextResponse('Error generating upload URL', { status: 500 });
+      console.error('R2 upload URL generation error:', data.error);
+      return new NextResponse(
+        `Error generating upload URL: ${data.error.message}`,
+        { status: 500 }
+      );
     }
 
     const { uploadUrl, key: bucketKey } = data.value;
@@ -89,7 +93,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const downloadUrl = await r2Provider.getSignedDownloadUrl(key);
-    return NextResponse.json({ downloadUrl });
+
+    if (downloadUrl.isErr()) {
+      console.error('R2 download URL generation error:', downloadUrl.error);
+      return new NextResponse(
+        `Error generating download URL: ${downloadUrl.error.message}`,
+        { status: 500 }
+      );
+    }
+    return NextResponse.json({ downloadUrl: downloadUrl.value });
   } catch (error) {
     console.error('Error generating download URL:', error);
     return new NextResponse('Error generating download URL', { status: 500 });

@@ -3,13 +3,13 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 
-import { useCreatePost } from '@/hooks/use-social-providers';
 import {
   useDateTime,
   usePost,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
+import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
@@ -21,7 +21,6 @@ import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
-import { uploadAllContentMedia } from '../../../hooks/use-upload-media';
 import SocialSelector from './social-selector';
 
 export function PostSidebar() {
@@ -32,7 +31,7 @@ export function PostSidebar() {
   const { postId } = useParams<{ postId: string | undefined }>();
   const router = useRouter();
 
-  const publishPostMutation = useCreatePost({
+  const publishPostMutation = TrpcApi.socialProvider.createPost.useMutation({
     onSuccess: () => {
       toast.success('Post created successfully');
       router.push('/posts');
@@ -58,18 +57,12 @@ export function PostSidebar() {
 
   const handleUpdateSavePost = async () => {
     try {
-      // First upload all media files
-      const { mainContent, alternativeContent } = await uploadAllContentMedia(
-        post.content,
-        post.alternativeContent
-      );
-
       if (postId) {
         setIsUpdatingPost(true);
         await updatePost({
           id: postId as Id<'posts'>,
-          content: mainContent,
-          alternativeContent: alternativeContent.map((alt) => ({
+          content: post.content,
+          alternativeContent: post.alternativeContent.map((alt) => ({
             socialProviderId: alt.socialProvider
               .socialId as Id<'socialProviders'>,
             content: alt.content,
@@ -83,8 +76,8 @@ export function PostSidebar() {
       } else {
         setIsSavingPost(true);
         await createPostMutation({
-          content: mainContent,
-          alternativeContent: alternativeContent.map((alt) => ({
+          content: post.content,
+          alternativeContent: post.alternativeContent.map((alt) => ({
             socialProviderId: alt.socialProvider
               .socialId as Id<'socialProviders'>,
             content: alt.content,
