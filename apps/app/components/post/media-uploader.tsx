@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 
 import { useMediaStorage } from '@/hooks/use-media-storage';
+import { getMediaUrlFromObject } from '@/lib/media-url';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
@@ -65,6 +66,11 @@ export function MediaPreview({
   onRemove,
   getPreviewAspectRatio,
 }: MediaPreviewProps) {
+  // Use environment-aware URL for saved media, fallback to previewUrl for local uploads
+  const mediaUrl = media.bucketKey || media.url 
+    ? getMediaUrlFromObject(media) 
+    : media.previewUrl;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
@@ -78,14 +84,14 @@ export function MediaPreview({
     >
       {media.mediaType === 'IMAGE' ? (
         <img
-          src={media.previewUrl}
+          src={mediaUrl}
           alt="Preview"
           className="h-full w-full object-cover"
         />
       ) : (
         <div className="relative h-full w-full">
           <video
-            src={media.previewUrl}
+            src={mediaUrl}
             className="h-full w-full object-cover"
             muted
             controls
