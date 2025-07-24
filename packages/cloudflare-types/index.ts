@@ -7,6 +7,7 @@ import type { CloudflareEnv } from './types';
 
 // Export CloudflareEnv type
 export type { CloudflareEnv } from './types';
+export type { R2Bucket } from '@cloudflare/workers-types';
 
 /**
  * Get Cloudflare environment variables asynchronously

@@ -2,14 +2,20 @@
 // This file contains the CloudflareEnv interface for type-safe environment access
 // Auto-generated from wrangler types - DO NOT EDIT MANUALLY
 
-import type { Fetcher, KVNamespace } from '@cloudflare/workers-types';
+import type { KVNamespace, Fetcher, R2Bucket } from "@cloudflare/workers-types";
 
 export interface CloudflareEnv {
   DELULU_FACEBOOK_PAGES: KVNamespace;
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: string;
+  CLERK_SECRET_KEY: string;
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: string;
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: string;
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: string;
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: string;
   NEXTJS_ENV: string;
   RESEND_FROM: string;
   RESEND_TOKEN: string;
-  BETTER_AUTH_SECRET: string;
+  POSTING_SECRET_KEY: string;
   DATABASE_URL: string;
   NEXT_PUBLIC_APP_URL: string;
   NEXT_PUBLIC_WEB_URL: string;
@@ -49,6 +55,7 @@ export interface CloudflareEnv {
   R2_BUCKET_NAME: string;
   R2_ENDPOINT: string;
   FARCASTER_APP_FID: string;
+  DELULU_SOCIAL_BUCKET: R2Bucket;
   WORKER_SELF_REFERENCE: Fetcher /* delulu-social */;
   ASSETS: Fetcher;
 }

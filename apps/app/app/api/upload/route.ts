@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { auth } from '@clerk/nextjs/server';
-import { r2Provider } from '@delulu/api/providers/r2.provider';
+import { R2Provider } from '@delulu/api/providers/r2.provider';
 import { api } from '@delulu/database/convex/_generated/api';
 import { fetchQuery } from '@delulu/database/server';
+import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -35,29 +36,35 @@ export async function POST(request: NextRequest) {
       return new NextResponse('No file provided', { status: 400 });
     }
 
+    // Initialize R2Provider with the bucket from environment
+    const env = await getCloudflareEnv();
+    const r2Provider = new R2Provider(env.DELULU_SOCIAL_BUCKET);
+
     const fileExtension = file.name.split('.').pop() || '';
     const uniqueFileName = `${randomUUID()}.${fileExtension}`;
     const key = `${userId}/${uniqueFileName}`;
 
-    const data = await r2Provider.getSignedUploadUrl(key, file.type);
+    // Convert File to ArrayBuffer for R2
+    const arrayBuffer = await file.arrayBuffer();
 
-    if (data.isErr()) {
-      console.error('R2 upload URL generation error:', data.error);
+    // Upload directly to R2
+    const uploadResult = await r2Provider.uploadFile(key, arrayBuffer, file.type);
+
+    if (uploadResult.isErr()) {
       return new NextResponse(
-        `Error generating upload URL: ${data.error.message}`,
+        `Error uploading file: ${uploadResult.error.message}`,
         { status: 500 }
       );
     }
 
-    const { uploadUrl, key: bucketKey } = data.value;
-
+    const result = uploadResult.value;
     return NextResponse.json({
-      uploadUrl,
-      bucketKey,
+      success: result.success,
+      key: result.key,
+      downloadUrl: result.downloadUrl,
     });
-  } catch (error) {
-    console.error('Error generating upload URL:', error);
-    return new NextResponse('Error generating upload URL', { status: 500 });
+  } catch {
+    return new NextResponse('Error uploading file', { status: 500 });
   }
 }
 
@@ -92,18 +99,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const r2Provider = new R2Provider();
     const downloadUrl = await r2Provider.getSignedDownloadUrl(key);
 
     if (downloadUrl.isErr()) {
-      console.error('R2 download URL generation error:', downloadUrl.error);
       return new NextResponse(
         `Error generating download URL: ${downloadUrl.error.message}`,
         { status: 500 }
       );
     }
     return NextResponse.json({ downloadUrl: downloadUrl.value });
-  } catch (error) {
-    console.error('Error generating download URL:', error);
+  } catch {
     return new NextResponse('Error generating download URL', { status: 500 });
   }
 }
