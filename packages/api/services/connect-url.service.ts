@@ -5,7 +5,7 @@ import { auth } from 'twitter-api-sdk';
 class TwitterError extends Error {
   readonly code = 'TWITTER_ERROR';
   readonly provider = 'Twitter';
-  
+
   constructor(message: string) {
     super(message);
     this.name = 'TwitterError';
@@ -85,10 +85,7 @@ export const connectUrlRegistry = {
         response_type: 'code',
         scope: [
           'instagram_business_basic',
-          'instagram_business_manage_messages',
-          'instagram_business_manage_comments',
           'instagram_business_content_publish',
-          'instagram_business_manage_insights',
         ].join(','),
         state: nanoid(),
       });
@@ -124,14 +121,8 @@ export const connectUrlRegistry = {
           'public_profile',
           'pages_show_list',
           'pages_manage_posts',
-          'pages_read_engagement',
           'business_management',
-          'pages_manage_metadata',
           'publish_video',
-          'pages_read_user_content',
-          'pages_manage_instant_articles',
-          'pages_manage_engagement',
-          'pages_messaging',
         ].join(','),
         state: JSON.stringify({ state: nanoid(10) }),
       });

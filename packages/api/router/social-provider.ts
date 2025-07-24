@@ -99,6 +99,7 @@ export const socialProviderRouter = {
       }
 
       const stuff = await createPostInQueue(post);
+      console.log('stuff', stuff);
       return {
         success: true,
       };
@@ -107,11 +108,12 @@ export const socialProviderRouter = {
     .input(FacebookPageConnectionSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.userId;
+      const externalId = ctx.externalId;
       // Securely retrieve the page access token from KV storage
       let pageAccessToken: string;
       try {
         const env = await getCloudflareEnv();
-        const key = `fb-pages-${userId}-${input.code}`;
+        const key = `fb-pages-${externalId}-${input.code}`;
 
         // Type assertion for Cloudflare KV namespace
         const facebookPagesKV = env.DELULU_FACEBOOK_PAGES;

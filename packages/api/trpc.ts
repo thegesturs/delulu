@@ -130,6 +130,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
     ctx: {
       ...ctx,
       userId: user?._id,
+      externalId: userId,
     },
   });
 });
