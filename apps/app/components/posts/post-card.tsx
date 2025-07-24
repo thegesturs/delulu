@@ -1,5 +1,6 @@
 'use client';
 
+import { getMediaUrlFromObject } from '@/lib/media-url';
 import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
@@ -40,6 +41,8 @@ interface PostCardProps {
 export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
   const [openDeletePost, setOpenDeletePost] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoading, setImageLoading] = React.useState(true);
   const router = useRouter();
 
   const softDeletePost = useMutation(api.posts.deletePost);
@@ -276,20 +279,53 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
                 {firstMedia ? (
                   <>
+                    {imageLoading && firstMedia.mediaType === 'IMAGE' && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    )}
                     {firstMedia.mediaType === 'IMAGE' ? (
-                      <Image
-                        src={firstMedia.url || ''}
-                        alt={firstMedia.altText || 'Post media'}
-                        fill
-                        className="object-cover"
-                      />
+                      !imageError ? (
+                        <Image
+                          src={getMediaUrlFromObject(firstMedia)}
+                          alt={firstMedia.altText || 'Post media'}
+                          fill
+                          className={`object-cover transition-opacity duration-300 ${
+                            imageLoading ? 'opacity-0' : 'opacity-100'
+                          }`}
+                          onLoad={() => setImageLoading(false)}
+                          onError={() => {
+                            setImageError(true);
+                            setImageLoading(false);
+                            if (process.env.NODE_ENV === 'development') {
+                              console.error(
+                                `[DEBUG] Failed to load image: ${getMediaUrlFromObject(firstMedia)}`
+                              );
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <div className="text-center text-muted-foreground">
+                            <div className="mx-auto mb-2 h-8 w-8 rounded bg-muted-foreground/20" />
+                            <p className="text-xs">Image failed to load</p>
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <video
-                        src={firstMedia.url}
+                        src={getMediaUrlFromObject(firstMedia)}
                         className="h-full w-full object-cover"
                         muted
                         loop
                         playsInline
+                        onError={() => {
+                          if (process.env.NODE_ENV === 'development') {
+                            console.error(
+                              `[DEBUG] Failed to load video: ${getMediaUrlFromObject(firstMedia)}`
+                            );
+                          }
+                        }}
                       />
                     )}
                     {(firstContent?.media?.length || 0) > 1 && (

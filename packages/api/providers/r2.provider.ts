@@ -15,6 +15,43 @@ export class R2Provider {
     this.bucket = bucket;
   }
 
+  getFile(key: string): ResultAsync<
+    { content: ArrayBuffer; contentType: string; contentLength?: number },
+    R2DownloadError
+  > {
+    if (!key || key.trim() === '') {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2DownloadError('Key is required for file retrieval'))
+      );
+    }
+
+    if (!this.bucket) {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2DownloadError('R2 bucket not configured'))
+      );
+    }
+
+    return ResultAsync.fromPromise(
+      this.bucket.get(key),
+      (error) => new R2DownloadError(`Failed to retrieve file from R2: ${error}`)
+    ).andThen((object) => {
+      if (!object) {
+        return ResultAsync.fromSafePromise(
+          Promise.reject(new R2DownloadError('File not found'))
+        );
+      }
+
+      return ResultAsync.fromPromise(
+        object.arrayBuffer(),
+        (error) => new R2DownloadError(`Failed to read file content: ${error}`)
+      ).map((content) => ({
+        content,
+        contentType: object.httpMetadata?.contentType || 'application/octet-stream',
+        contentLength: object.size,
+      }));
+    });
+  }
+
   getSignedDownloadUrl(key: string): ResultAsync<string, R2DownloadError> {
     if (!key || key.trim() === '') {
       return ResultAsync.fromSafePromise(
@@ -28,9 +65,11 @@ export class R2Provider {
       );
     }
 
-    // For Cloudflare Workers R2, we use the custom domain directly
-    // Since the bucket has public access enabled, we can construct the URL directly
-    const downloadUrl = `https://media.delulu.social/${key}`;
+    // Environment-aware URL generation
+    const isProduction = process.env.NODE_ENV === 'production';
+    const downloadUrl = isProduction
+      ? `https://media.delulu.social/${key}`
+      : `/api/media/${key}`;
 
     return ResultAsync.fromSafePromise(Promise.resolve(downloadUrl));
   }

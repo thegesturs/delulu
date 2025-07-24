@@ -1,4 +1,5 @@
 'use client';
+import { getMediaUrlFromObject } from '@/lib/media-url';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@delulu/design-system/lib/social-config';
 import { AlertCircle, Calendar, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import React from 'react';
 import type { Post } from './types';
 
 interface PostPreviewDialogProps {
@@ -36,8 +38,19 @@ export function PostPreviewDialog({
   open,
   onOpenChange,
 }: PostPreviewDialogProps) {
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoading, setImageLoading] = React.useState(true);
+  
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
+
+  // Reset states when dialog opens/closes or post changes
+  React.useEffect(() => {
+    if (open) {
+      setImageError(false);
+      setImageLoading(true);
+    }
+  }, [open, post._id]);
 
   return (
     <Dialog {...{ open, onOpenChange }}>
@@ -60,21 +73,55 @@ export function PostPreviewDialog({
 
           {/* Media */}
           {firstMedia && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+              {imageLoading && firstMedia.mediaType === 'IMAGE' && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                </div>
+              )}
               {firstMedia.mediaType === 'IMAGE' ? (
-                <Image
-                  src={firstMedia.url || ''}
-                  alt={firstMedia.altText || 'Post media'}
-                  fill
-                  className="object-cover"
-                />
+                !imageError ? (
+                  <Image
+                    src={getMediaUrlFromObject(firstMedia)}
+                    alt={firstMedia.altText || 'Post media'}
+                    fill
+                    className={`object-cover transition-opacity duration-300 ${
+                      imageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageError(true);
+                      setImageLoading(false);
+                      if (process.env.NODE_ENV === 'development') {
+                        console.error(
+                          `[DEBUG] Failed to load image in preview: ${getMediaUrlFromObject(firstMedia)}`
+                        );
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted">
+                    <div className="text-center text-muted-foreground">
+                      <div className="mx-auto mb-2 h-12 w-12 rounded bg-muted-foreground/20" />
+                      <p className="text-sm">Image failed to load</p>
+                      <p className="text-xs opacity-70">Check console for details</p>
+                    </div>
+                  </div>
+                )
               ) : (
                 <video
-                  src={firstMedia.url}
+                  src={getMediaUrlFromObject(firstMedia)}
                   className="h-full w-full object-cover"
                   controls
                   playsInline
                   aria-label="Post video content"
+                  onError={() => {
+                    if (process.env.NODE_ENV === 'development') {
+                      console.error(
+                        `[DEBUG] Failed to load video in preview: ${getMediaUrlFromObject(firstMedia)}`
+                      );
+                    }
+                  }}
                 >
                   <track kind="captions" />
                 </video>

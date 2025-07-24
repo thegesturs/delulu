@@ -1,15 +1,15 @@
 import { type PaginationResult, paginationOptsValidator } from 'convex/server';
 import { v } from 'convex/values';
+import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import {
   type MutationCtx,
   type QueryCtx,
+  internalAction,
+  internalMutation,
   mutation,
   query,
-  internalMutation,
-  internalAction,
 } from './_generated/server';
-import { internal, api } from './_generated/api';
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
@@ -129,7 +129,7 @@ export const createPost = mutation({
     }
 
     // Determine status based on whether scheduling is requested
-    const postStatus = args.scheduledAt ? 'SCHEDULED' : (args.status || 'SAVED');
+    const postStatus = args.scheduledAt ? 'SCHEDULED' : args.status || 'SAVED';
 
     const newPostId = await ctx.db.insert('posts', {
       userId: user._id,
@@ -153,9 +153,13 @@ export const createPost = mutation({
 
     // Schedule the post for publishing if scheduledAt is provided
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
-        postId: newPostId,
-      });
+      await ctx.scheduler.runAt(
+        args.scheduledAt,
+        internal.posts.publishScheduledPost,
+        {
+          postId: newPostId,
+        }
+      );
     }
 
     return newPostId;
@@ -195,9 +199,13 @@ export const updatePost = mutation({
 
     // Schedule the post for publishing if scheduledAt is provided
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
-        postId: args.id,
-      });
+      await ctx.scheduler.runAt(
+        args.scheduledAt,
+        internal.posts.publishScheduledPost,
+        {
+          postId: args.id,
+        }
+      );
     }
 
     return true;
@@ -211,7 +219,7 @@ export const upsertPost = mutation({
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
     const user = await getCurrentUser(ctx);
-    
+
     if (!user) {
       throw new Error('User not found');
     }
@@ -222,7 +230,8 @@ export const upsertPost = mutation({
     }
 
     // Determine status based on scheduling
-    const finalStatus = args.status || (args.scheduledAt ? 'SCHEDULED' : 'SAVED');
+    const finalStatus =
+      args.status || (args.scheduledAt ? 'SCHEDULED' : 'SAVED');
 
     const { id, ...postData } = args;
 
@@ -266,12 +275,13 @@ export const upsertPost = mutation({
       });
     }
 
-    // Schedule the post for publishing if scheduledAt is provided
-    if (args.scheduledAt) {
-      await ctx.scheduler.runAt(args.scheduledAt, internal.posts.publishScheduledPost, {
+    await ctx.scheduler.runAt(
+      args.scheduledAt ?? Date.now() + 1000,
+      internal.posts.publishScheduledPost,
+      {
         postId,
-      });
-    }
+      }
+    );
 
     return postId;
   },
@@ -734,12 +744,15 @@ export const publishScheduledPost = internalAction({
 
       // Verify it's still scheduled and ready to publish
       if (post.status !== 'SCHEDULED') {
-        console.warn(`Post ${args.postId} is no longer scheduled (status: ${post.status})`);
+        console.warn(
+          `Post ${args.postId} is no longer scheduled (status: ${post.status})`
+        );
         return false;
       }
 
       // Make HTTP request to Lambda URL for publishing
-      const LAMBDA_URL = 'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
+      const LAMBDA_URL =
+        'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
       const POSTING_SECRET_KEY = process.env.POSTING_SECRET_KEY;
 
       if (!POSTING_SECRET_KEY) {
@@ -788,12 +801,13 @@ export const publishScheduledPost = internalAction({
       return true;
     } catch (error) {
       console.error(`Failed to publish scheduled post ${args.postId}:`, error);
-      
+
       // Update post status to FAILED with error message
       await ctx.runMutation(internal.posts.updatePostStatus, {
         postId: args.postId,
         status: 'FAILED',
-        failureReason: error instanceof Error ? error.message : 'Unknown error occurred',
+        failureReason:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       });
 
       return false;
@@ -805,13 +819,17 @@ export const publishScheduledPost = internalAction({
 export const updatePostStatus = internalMutation({
   args: {
     postId: v.id('posts'),
-    status: v.union(v.literal('PUBLISHED'), v.literal('FAILED'), v.literal('SCHEDULED')),
+    status: v.union(
+      v.literal('PUBLISHED'),
+      v.literal('FAILED'),
+      v.literal('SCHEDULED')
+    ),
     failureReason: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
-    
+
     await ctx.db.patch(args.postId, {
       status: args.status,
       ...(args.failureReason && { postFailureReason: args.failureReason }),

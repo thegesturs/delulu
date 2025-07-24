@@ -34,7 +34,7 @@ export function PostSidebar() {
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Handler 1: Post immediately (scheduledAt = now)
+  // Handler 1: Post immediately (no scheduledAt = immediate publishing via tRPC)
   const handlePostNow = async () => {
     try {
       setIsProcessing(true);
@@ -48,8 +48,8 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-        scheduledAt: Date.now(), // Immediate publishing
-        status: 'SCHEDULED', // Will be processed immediately
+        // No scheduledAt - immediate publishing via existing tRPC flow
+        status: 'SAVED', // Will be published immediately through different flow
       });
       toast.success('Post published successfully');
       router.push('/posts');
@@ -102,7 +102,6 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-        // No scheduledAt - this is always a draft
         status: 'SAVED',
       });
       toast.success(postId ? 'Post updated successfully' : 'Post saved successfully');

@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
     console.log(`[DEBUG] Upload successful for key: ${result.key}`);
 
     return NextResponse.json({
-      uploadUrl: null, // Frontend expects this field, but we use direct upload
       bucketKey: result.key,
     });
   } catch {
