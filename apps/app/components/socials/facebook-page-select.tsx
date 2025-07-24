@@ -1,6 +1,5 @@
 'use client';
-
-import { useConnectFacebookPage } from '@/hooks/use-social-providers';
+import { api } from '@/trpc/react';
 import {
   Avatar,
   AvatarFallback,
@@ -49,16 +48,17 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
-  const { mutate: connectPage, isPending } = useConnectFacebookPage({
-    onSuccess: () => {
-      router.push('/socials?success=true&provider=facebook');
-    },
-    onError: (error) => {
-      router.push(
-        `/socials?error=${error}&code=FACEBOOK_006&provider=facebook`
-      );
-    },
-  });
+  const { mutate: connectPage, isPending } =
+    api.socialProvider.connectFacebookPage.useMutation({
+      onSuccess: () => {
+        router.push('/socials?success=true&provider=facebook');
+      },
+      onError: (error) => {
+        router.push(
+          `/socials?error=${error}&code=FACEBOOK_006&provider=facebook`
+        );
+      },
+    });
 
   const handleCancel = () => {
     setIsCancelling(true);
