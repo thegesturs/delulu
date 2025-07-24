@@ -1,3 +1,4 @@
+import type { GetPostByIdSchema } from '@delulu/database/convex/schemas/posts_media';
 import type { FullPostType, SocialProviderType } from '@delulu/validators/post';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
@@ -19,6 +20,7 @@ interface PostActions {
   setTime: (time: string | null) => void;
   setPost: (post: FullPostType) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
+  loadPost: (postData: GetPostByIdSchema) => void;
   reset: () => void;
 }
 
@@ -56,6 +58,51 @@ export const useStore = create<PostState & PostActions>()(
         setPost: (post) => set({ post }),
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
+        loadPost: (postData) => {
+          // Map Convex post data to store format
+          const mappedPost: FullPostType = {
+            id: postData._id,
+            content: postData.content.map((content) => ({
+              ...content,
+              tags: content.tags || [],
+            })),
+            alternativeContent: postData.alternativeContent.map((alt) => ({
+              content: alt.content.map((content) => ({
+                ...content,
+                tags: content.tags || [],
+              })),
+              socialProvider: {
+                name: alt.socialProvider.fullName,
+                socialId: alt.socialProvider._id,
+                socialType: alt.socialProvider.socialType,
+              },
+            })),
+            scheduledTime: postData.scheduledAt
+              ? new Date(postData.scheduledAt)
+              : undefined,
+            orgId: postData.organizationId || '',
+          };
+
+          // Set scheduled date/time if exists
+          const scheduledDate = postData.scheduledAt
+            ? new Date(postData.scheduledAt)
+            : undefined;
+
+          set({
+            post: mappedPost,
+            selectedSocialProviders: postData.socialProviders.map(
+              (provider) => ({
+                name: provider.fullName,
+                socialId: provider._id,
+                socialType: provider.socialType,
+              })
+            ),
+            date: scheduledDate,
+            time: scheduledDate
+              ? `${scheduledDate.getHours().toString().padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}`
+              : '00:00',
+          });
+        },
         reset: () => set(initialState),
       }),
       {

@@ -1,16 +1,20 @@
 'use client';
 
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@delulu/design-system/components/ui/tabs';
+import { useQuery } from 'convex/react';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
   useAlternativeContent,
   useSelectedSocialProviders,
+  useStore,
 } from '@/store/post';
 import { cn } from '@delulu/design-system/lib/utils';
 import { SocialTypes } from '@delulu/validators/post';
@@ -20,10 +24,28 @@ import { AlternativeContentSelector } from './network-selector';
 import { PostSidebar } from './sidebar/post-sidebar';
 import { SocialIcon } from './sidebar/social-icon';
 
-export function PostCreator() {
+interface PostCreatorProps {
+  postId?: string;
+}
+
+export function PostCreator({ postId }: PostCreatorProps = {}) {
   const alternativeContent = useAlternativeContent();
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
+  const loadPost = useStore((state) => state.loadPost);
+
+  // Fetch post data if in edit mode
+  const postData = useQuery(
+    api.posts.getPostById,
+    postId ? { id: postId as Id<'posts'> } : 'skip'
+  );
+
+  // Load post data into store when fetched
+  useEffect(() => {
+    if (postData && postId) {
+      loadPost(postData);
+    }
+  }, [postData, postId, loadPost]);
 
   const handleTabChange = useCallback(
     (value: string) => {
@@ -46,10 +68,37 @@ export function PostCreator() {
     }
   }, [alternativeContent, activeModuleId]);
 
+  // Show loading state while fetching post data
+  if (postId && !postData) {
+    return (
+      <div className="flex h-full gap-4">
+        <div className="flex-1">
+          <Header pages={['Post']} page="Loading..." />
+          <div className="flex h-64 items-center justify-center">
+            <div className="text-muted-foreground">Loading post...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full gap-4">
       <div className="flex-1">
-        <Header pages={['Post']} page="Create Post" />
+        {/* Show warning if post is already published */}
+        {postData && postData.status === 'PUBLISHED' && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-800">
+            <h3 className="font-semibold">
+              Warning: This post has already been published
+            </h3>
+            <p className="text-sm">
+              This post has already been published to social media. Any changes
+              you make will only be saved as drafts and won't affect the
+              published content.
+            </p>
+          </div>
+        )}
+        <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
             <TabsTrigger value="global">Global</TabsTrigger>
