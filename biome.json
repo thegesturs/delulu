@@ -15,7 +15,8 @@
       "apps/app/wrangler.jsonc",
       "packages/database/prisma/types/zod/**",
       "packages/infrastructure/.sst/**",
-      "*.d.ts"
+      "*.d.ts",
+      "packages/database/convex/_generated/**"
     ]
   },
   "organizeImports": { "enabled": true },
