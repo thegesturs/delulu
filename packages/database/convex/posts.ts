@@ -30,8 +30,6 @@ function extractSearchableText(
   return [...mainText, ...altText].join(' ').trim();
 }
 import {
-  alternativeContentSchema,
-  contentSchema,
   getPostByIdSchema,
   postCreateSchema,
   postFiltersSchema,
@@ -364,196 +362,6 @@ export const hardDeletePost = mutation({
   },
 });
 
-export const updatePostContent = mutation({
-  args: {
-    id: v.id('posts'),
-    content: v.array(contentSchema),
-    alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.id);
-
-    await ctx.db.patch(oldPost._id, {
-      content: args.content,
-      alternativeContent: args.alternativeContent,
-      searchableText: extractSearchableText(
-        args.content,
-        args.alternativeContent
-      ),
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.id);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
-    }
-
-    return true;
-  },
-});
-
-export const addSocialProviderToPost = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.postId);
-
-    // Check if social provider is already associated
-    if (oldPost.socialProviderIds.includes(args.socialProviderId)) {
-      return true; // Already associated
-    }
-
-    await ctx.db.patch(oldPost._id, {
-      socialProviderIds: [...oldPost.socialProviderIds, args.socialProviderId],
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.postId);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
-    }
-
-    return true;
-  },
-});
-
-export const updateAlternativeContent = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-    content: v.array(contentSchema),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.postId);
-
-    const alternativeContent = oldPost.alternativeContent || [];
-
-    // Find existing alternative content for this social provider
-    const existingIndex = alternativeContent.findIndex(
-      (alt) => alt.socialProviderId === args.socialProviderId
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing alternative content
-      alternativeContent[existingIndex] = {
-        socialProviderId: args.socialProviderId,
-        content: args.content,
-      };
-    } else {
-      // Add new alternative content
-      alternativeContent.push({
-        socialProviderId: args.socialProviderId,
-        content: args.content,
-      });
-    }
-
-    await ctx.db.patch(oldPost._id, {
-      alternativeContent,
-      searchableText: extractSearchableText(
-        oldPost.content,
-        alternativeContent
-      ),
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.postId);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
-    }
-
-    return true;
-  },
-});
-
-// Platform Posts functions (embedded)
-export const addPlatformPost = mutation({
-  args: {
-    postId: v.id('posts'),
-    socialProviderId: v.id('socialProviders'),
-    platformPostId: v.optional(v.string()),
-    platformPostUrl: v.optional(v.string()),
-    postedAt: v.optional(v.number()),
-    failureReason: v.optional(v.string()),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.postId);
-
-    const now = getCurrentTimestamp();
-    const platformPosts = oldPost.platformPosts || [];
-
-    // Check if platform post already exists
-    const existingIndex = platformPosts.findIndex(
-      (p) => p.socialProviderId === args.socialProviderId
-    );
-
-    const platformPost = {
-      socialProviderId: args.socialProviderId,
-      platformPostId: args.platformPostId,
-      platformPostUrl: args.platformPostUrl,
-      postedAt: args.postedAt,
-      failureReason: args.failureReason,
-      createdAt:
-        existingIndex >= 0 ? platformPosts[existingIndex].createdAt : now,
-      updatedAt: now,
-    };
-
-    if (existingIndex >= 0) {
-      platformPosts[existingIndex] = platformPost;
-    } else {
-      platformPosts.push(platformPost);
-    }
-
-    await ctx.db.patch(oldPost._id, {
-      platformPosts,
-      updatedAt: now,
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.postId);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
-    }
-
-    return true;
-  },
-});
-
-export const getPlatformPostsByPostId = query({
-  args: { postId: v.id('posts') },
-  returns: v.array(
-    v.object({
-      socialProviderId: v.id('socialProviders'),
-      platformPostId: v.optional(v.string()),
-      platformPostUrl: v.optional(v.string()),
-      postedAt: v.optional(v.number()),
-      failureReason: v.optional(v.string()),
-      createdAt: v.number(),
-      updatedAt: v.number(),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const post = await findPostById(ctx, args.postId);
-    return post?.platformPosts || [];
-  },
-});
-
 // Get posts for current user with pagination (used by components)
 export const getPosts = query({
   args: {
@@ -823,6 +631,89 @@ export const updatePostPublishStatus = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
       await postsByUserTime.replace(ctx, oldPost, newPost);
       await postsByUserSchedule.replace(ctx, oldPost, newPost);
+
+      // If post was published successfully, update the user's streak
+      if (args.status === 'PUBLISHED' && post.userId) {
+        const user = await ctx.db.get(post.userId);
+        if (user) {
+          const defaultStreak = {
+            current: 1,
+            lastCountedDate: now,
+            longest: {
+              count: 1,
+              startDate: now,
+              endDate: now,
+            },
+            lastCheckedDate: now,
+            publishedToday: true,
+            lastMaintenanceRun: now,
+            maintenanceStatus: 'success' as const,
+          };
+
+          // If user has no streak data, initialize it
+          if (!user.stats?.streak) {
+            await ctx.db.patch(user._id, {
+              stats: {
+                ...user.stats,
+                streak: defaultStreak,
+              },
+            });
+            return true;
+          }
+
+          const today = new Date(now);
+          today.setHours(0, 0, 0, 0);
+          const todayTimestamp = today.getTime();
+
+          const lastCountedDate = new Date(user.stats.streak.lastCountedDate);
+          lastCountedDate.setHours(0, 0, 0, 0);
+          const lastCountedTimestamp = lastCountedDate.getTime();
+
+          // If this is the first post of a new day
+          if (todayTimestamp !== lastCountedTimestamp) {
+            // Create a new streak object
+            const newStreak = {
+              ...user.stats.streak,
+              current:
+                todayTimestamp - lastCountedTimestamp <= 24 * 60 * 60 * 1000
+                  ? user.stats.streak.current + 1 // Continue streak
+                  : 1, // Start new streak
+              lastCountedDate: todayTimestamp,
+              publishedToday: true,
+            };
+
+            // Update longest streak if current is longer
+            if (newStreak.current > newStreak.longest.count) {
+              newStreak.longest = {
+                count: newStreak.current,
+                startDate:
+                  todayTimestamp -
+                  (newStreak.current - 1) * 24 * 60 * 60 * 1000,
+                endDate: todayTimestamp,
+              };
+            }
+
+            // Update user stats with new streak data
+            await ctx.db.patch(user._id, {
+              stats: {
+                ...user.stats,
+                streak: newStreak,
+              },
+            });
+          } else if (!user.stats.streak.publishedToday) {
+            // If it's the first post today but on the same day
+            await ctx.db.patch(user._id, {
+              stats: {
+                ...user.stats,
+                streak: {
+                  ...user.stats.streak,
+                  publishedToday: true,
+                },
+              },
+            });
+          }
+        }
+      }
     }
 
     return true;

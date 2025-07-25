@@ -32,14 +32,11 @@ export type {
   UniqueIdsType,
 } from './utils';
 
-// Common query patterns for migration reference
 export const queryPatterns = {
   // User patterns
   getUserById: 'users.getUserById',
   getUserByEmail: 'users.getUserByEmail',
   createUser: 'users.createUser',
-  updateUser: 'users.updateUser',
-  deleteUser: 'users.deleteUser',
 
   // Post patterns
   getPostById: 'posts.getPostById',
@@ -49,7 +46,6 @@ export const queryPatterns = {
   deletePost: 'cascadeDeletes.deletePostWithCascade',
 
   // Social provider patterns
-  getSocialProviderById: 'socialProviders.getSocialProviderById',
   createSocialProvider: 'socialProviders.createSocialProvider',
   updateSocialProvider: 'socialProviders.updateSocialProvider',
   deleteSocialProvider: 'cascadeDeletes.deleteSocialProviderWithCascade',

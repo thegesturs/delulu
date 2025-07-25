@@ -50,6 +50,8 @@ export const getDashboardStats = query({
         successRate: 0,
         connectedAccounts: 0,
         expiredTokens: 0,
+        postingStreak: 0,
+        longestStreak: 0,
       };
     }
 
@@ -128,66 +130,9 @@ export const getDashboardStats = query({
       (sp) => sp.expiresIn && sp.expiresIn < now
     ).length;
 
-    // Calculate posting streak (consecutive days with published posts)
-    let postingStreak = 0;
-    const dayInMs = 24 * 60 * 60 * 1000;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Start from today and go backwards to find consecutive days with posts
-    let currentDay = today.getTime();
-    let hasPostToday = false;
-    
-    while (true) {
-      const dayStart = currentDay;
-      const dayEnd = currentDay + dayInMs - 1;
-      
-      // Check if there are any published posts on this day
-      const dayPostsCount = await postsByUserTime.count(ctx, {
-        bounds: {
-          prefix: [user._id],
-          lower: { key: [user._id, dayStart], inclusive: true },
-          upper: { key: [user._id, dayEnd], inclusive: true },
-        },
-      });
-      
-      // Filter to only published posts by checking status
-      const dayPublishedPosts = await ctx.db
-        .query('posts')
-        .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-        .filter((q) => 
-          q.and(
-            q.eq(q.field('status'), 'PUBLISHED'),
-            q.gte(q.field('_creationTime'), dayStart),
-            q.lte(q.field('_creationTime'), dayEnd)
-          )
-        )
-        .collect();
-      
-      if (dayPublishedPosts.length > 0) {
-        if (currentDay === today.getTime()) {
-          hasPostToday = true;
-        }
-        postingStreak++;
-        currentDay -= dayInMs; // Move to previous day
-      } else {
-        // If this is today and no post, don't break streak yet
-        if (currentDay === today.getTime()) {
-          hasPostToday = false;
-          currentDay -= dayInMs;
-          continue;
-        }
-        // If this is yesterday and we have no post today, break
-        if (!hasPostToday && currentDay === today.getTime() - dayInMs) {
-          break;
-        }
-        // If this is any other day, break the streak
-        break;
-      }
-      
-      // Limit to prevent infinite loops (max 365 days)
-      if (postingStreak >= 365) break;
-    }
+    // Get streak information from user stats
+    const postingStreak = user.stats?.streak?.current ?? 0;
+    const longestStreak = user.stats?.streak?.longest.count ?? 0;
 
     return {
       totalPosts,
@@ -202,6 +147,7 @@ export const getDashboardStats = query({
       connectedAccounts: socialProviders.length,
       expiredTokens,
       postingStreak,
+      longestStreak,
     };
   },
 });

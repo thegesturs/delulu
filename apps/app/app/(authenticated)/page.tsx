@@ -46,6 +46,9 @@ function DashboardClient() {
         />
       </div>
 
+      {/* Quick Actions - Important user actions */}
+      <QuickActions />
+
       {/* Main Stats - Core metrics */}
       <DashboardStatsClient
         stats={
@@ -62,23 +65,14 @@ function DashboardClient() {
             connectedAccounts: 0,
             expiredTokens: 0,
             postingStreak: 0,
+            longestStreak: 0,
           }
         }
         isLoading={isLoading}
       />
 
-      {/* Action and Content Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Quick Actions - Span 1 column */}
-        <div className="lg:col-span-1">
-          <QuickActions />
-        </div>
-
-        {/* Recent Posts - Span 2 columns */}
-        <div className="lg:col-span-2">
-          <RecentPostsSection posts={posts} isLoading={isLoading} />
-        </div>
-      </div>
+      {/* Recent Posts - Full width for better visibility */}
+      <RecentPostsSection posts={posts} isLoading={isLoading} />
 
       {/* Schedule Section - Full width for better visibility */}
       <UpcomingSchedule upcomingPosts={upcomingPosts ?? []} />
