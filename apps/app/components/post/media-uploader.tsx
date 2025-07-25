@@ -67,9 +67,10 @@ export function MediaPreview({
   getPreviewAspectRatio,
 }: MediaPreviewProps) {
   // Use environment-aware URL for saved media, fallback to previewUrl for local uploads
-  const mediaUrl = media.bucketKey || media.url 
-    ? getMediaUrlFromObject(media) 
-    : media.previewUrl;
+  const mediaUrl =
+    media.bucketKey || media.url
+      ? getMediaUrlFromObject(media)
+      : media.previewUrl;
 
   return (
     <motion.div

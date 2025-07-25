@@ -39,7 +39,7 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
 
     if (!response.ok) {
       throw new Error(
-      `Failed to queue post: ${response.status} ${response.statusText}`
+        `Failed to queue post: ${response.status} ${response.statusText}`
       );
     }
 

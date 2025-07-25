@@ -40,7 +40,7 @@ export function PostPreviewDialog({
 }: PostPreviewDialogProps) {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
-  
+
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
 
@@ -80,7 +80,17 @@ export function PostPreviewDialog({
                 </div>
               )}
               {firstMedia.mediaType === 'IMAGE' ? (
-                !imageError ? (
+                imageError ? (
+                  <div className="flex h-full w-full items-center justify-center bg-muted">
+                    <div className="text-center text-muted-foreground">
+                      <div className="mx-auto mb-2 h-12 w-12 rounded bg-muted-foreground/20" />
+                      <p className="text-sm">Image failed to load</p>
+                      <p className="text-xs opacity-70">
+                        Check console for details
+                      </p>
+                    </div>
+                  </div>
+                ) : (
                   <Image
                     src={getMediaUrlFromObject(firstMedia)}
                     alt={firstMedia.altText || 'Post media'}
@@ -99,14 +109,6 @@ export function PostPreviewDialog({
                       }
                     }}
                   />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-muted">
-                    <div className="text-center text-muted-foreground">
-                      <div className="mx-auto mb-2 h-12 w-12 rounded bg-muted-foreground/20" />
-                      <p className="text-sm">Image failed to load</p>
-                      <p className="text-xs opacity-70">Check console for details</p>
-                    </div>
-                  </div>
                 )
               ) : (
                 <video
@@ -156,9 +158,13 @@ export function PostPreviewDialog({
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                          socialBackgroundColors[socialType as SupportedSocialPlatform]
-                        } shadow-sm`}>
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                            socialBackgroundColors[
+                              socialType as SupportedSocialPlatform
+                            ]
+                          } shadow-sm`}
+                        >
                           <SocialIcon
                             type={socialType as SupportedSocialPlatform}
                             size="md"

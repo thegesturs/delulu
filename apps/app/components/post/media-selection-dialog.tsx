@@ -14,7 +14,6 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
-import { api } from '@delulu/database/convex/_generated/api';
 
 interface MediaItem {
   id: string;

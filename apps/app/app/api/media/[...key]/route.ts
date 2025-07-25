@@ -51,9 +51,11 @@ export async function GET(
       console.error(
         `[ERROR] Failed to retrieve file: ${fileResult.error.message}`
       );
-      
+
       // Return 404 for file not found, 500 for other errors
-      const statusCode = fileResult.error.message.includes('File not found') ? 404 : 500;
+      const statusCode = fileResult.error.message.includes('File not found')
+        ? 404
+        : 500;
       return new NextResponse(
         `Error retrieving file: ${fileResult.error.message}`,
         { status: statusCode }
@@ -61,7 +63,7 @@ export async function GET(
     }
 
     const file = fileResult.value;
-    
+
     console.log(
       `[DEBUG] File retrieved successfully: ${key} (${file.contentType}, ${file.contentLength} bytes)`
     );
@@ -72,7 +74,9 @@ export async function GET(
       headers: {
         'Content-Type': file.contentType,
         'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year
-        ...(file.contentLength && { 'Content-Length': file.contentLength.toString() }),
+        ...(file.contentLength && {
+          'Content-Length': file.contentLength.toString(),
+        }),
       },
     });
 

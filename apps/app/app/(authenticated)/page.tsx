@@ -2,6 +2,7 @@
 
 import { PostsView } from '@/components/posts/posts-view';
 import { api } from '@delulu/database/convex/_generated/api';
+import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Card,
@@ -10,19 +11,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
-import { Badge } from '@delulu/design-system/components/ui/badge';
 import { useQuery } from 'convex/react';
-import { 
-  Calendar, 
-  Plus, 
-  Users, 
-  TrendingUp,
-  TrendingDown,
+import {
   AlertTriangle,
+  Calendar,
   CheckCircle,
   Clock,
+  FileText,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  Users,
   XCircle,
-  FileText 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../../components/layout/header';
@@ -53,9 +53,13 @@ function DashboardClient() {
   };
 
   // Calculate trend for this week vs last week
-  const weeklyTrend = stats.lastWeekPosts > 0 
-    ? ((stats.thisWeekPosts - stats.lastWeekPosts) / stats.lastWeekPosts) * 100
-    : stats.thisWeekPosts > 0 ? 100 : 0;
+  const weeklyTrend =
+    stats.lastWeekPosts > 0
+      ? ((stats.thisWeekPosts - stats.lastWeekPosts) / stats.lastWeekPosts) *
+        100
+      : stats.thisWeekPosts > 0
+        ? 100
+        : 0;
 
   const isLoading = !dashboardStats;
 
@@ -79,12 +83,10 @@ function DashboardClient() {
             <div className="font-bold text-2xl">
               {isLoading ? '...' : stats.totalPosts}
             </div>
-            <p className="text-muted-foreground text-xs">
-              All your content
-            </p>
+            <p className="text-muted-foreground text-xs">All your content</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Published</CardTitle>
@@ -104,7 +106,9 @@ function DashboardClient() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="font-medium text-sm">Connected Accounts</CardTitle>
+            <CardTitle className="font-medium text-sm">
+              Connected Accounts
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -138,8 +142,14 @@ function DashboardClient() {
               {isLoading ? '...' : stats.thisWeekPosts}
             </div>
             <div className="flex items-center space-x-2 text-xs">
-              <span className={`${weeklyTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {isLoading ? '...' : weeklyTrend > 0 ? `+${weeklyTrend.toFixed(0)}%` : `${weeklyTrend.toFixed(0)}%`}
+              <span
+                className={`${weeklyTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {isLoading
+                  ? '...'
+                  : weeklyTrend > 0
+                    ? `+${weeklyTrend.toFixed(0)}%`
+                    : `${weeklyTrend.toFixed(0)}%`}
               </span>
               <span className="text-muted-foreground">vs last week</span>
             </div>
@@ -151,7 +161,9 @@ function DashboardClient() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="font-medium text-sm">Upcoming Posts</CardTitle>
+            <CardTitle className="font-medium text-sm">
+              Upcoming Posts
+            </CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -173,25 +185,23 @@ function DashboardClient() {
             <div className="font-bold text-2xl">
               {isLoading ? '...' : stats.scheduledCount}
             </div>
-            <p className="text-muted-foreground text-xs">
-              Ready to publish
-            </p>
+            <p className="text-muted-foreground text-xs">Ready to publish</p>
           </CardContent>
         </Card>
 
         {stats.failedCount > 0 && (
           <Card className="border-red-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="font-medium text-sm text-red-800">Failed Posts</CardTitle>
+              <CardTitle className="font-medium text-red-800 text-sm">
+                Failed Posts
+              </CardTitle>
               <XCircle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="font-bold text-2xl text-red-800">
                 {isLoading ? '...' : stats.failedCount}
               </div>
-              <p className="text-red-600 text-xs">
-                Need attention
-              </p>
+              <p className="text-red-600 text-xs">Need attention</p>
             </CardContent>
           </Card>
         )}
@@ -199,37 +209,43 @@ function DashboardClient() {
 
       {/* Failed Posts Alert */}
       {failedPosts && failedPosts.length > 0 && (
-        <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30">
+        <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30">
           <CardHeader>
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <CardTitle className="text-red-800 dark:text-red-200">Failed Posts Need Attention</CardTitle>
+              <CardTitle className="text-red-800 dark:text-red-200">
+                Failed Posts Need Attention
+              </CardTitle>
             </div>
             <CardDescription className="text-red-700 dark:text-red-300">
-              {failedPosts.length} post{failedPosts.length > 1 ? 's' : ''} failed to publish
+              {failedPosts.length} post{failedPosts.length > 1 ? 's' : ''}{' '}
+              failed to publish
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {failedPosts.slice(0, 3).map((post) => (
-                <div key={post._id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded border dark:border-gray-700">
+                <div
+                  key={post._id}
+                  className="flex items-center justify-between rounded border bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+                >
                   <div className="flex-1">
                     <p className="font-medium text-sm">
                       {post.content[0]?.text?.slice(0, 60)}...
                     </p>
-                    <p className="text-red-600 dark:text-red-400 text-xs mt-1">
+                    <p className="mt-1 text-red-600 text-xs dark:text-red-400">
                       {post.postFailureReason || 'Publishing failed'}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2 ml-4">
+                  <div className="ml-4 flex items-center space-x-2">
                     <Button
-                      size="sm" 
+                      size="sm"
                       variant="outline"
                       onClick={() => router.push(`/post/${post._id}/edit`)}
                     >
                       Edit
                     </Button>
-                    <Button 
+                    <Button
                       size="sm"
                       onClick={() => {
                         // TODO: Add retry functionality
@@ -242,9 +258,9 @@ function DashboardClient() {
                 </div>
               ))}
               {failedPosts.length > 3 && (
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-2"
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full"
                   onClick={() => router.push('/posts?status=FAILED')}
                 >
                   View all {failedPosts.length} failed posts
@@ -267,26 +283,38 @@ function DashboardClient() {
           <CardContent>
             <div className="space-y-3">
               {upcomingPosts.slice(0, 5).map((post) => (
-                <div key={post._id} className="flex items-center justify-between p-3 bg-muted/50 rounded">
+                <div
+                  key={post._id}
+                  className="flex items-center justify-between rounded bg-muted/50 p-3"
+                >
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
+                    <div className="mb-1 flex items-center space-x-2">
                       <p className="font-medium text-sm">
                         {post.content[0]?.text?.slice(0, 50)}
                       </p>
                       <div className="flex space-x-1">
-                        {post.socialProviders.slice(0, 3).map((provider) => (
-                          <Badge key={provider._id} variant="secondary" className="text-xs">
-                            {provider.socialType}
-                          </Badge>
-                        ))}
+                        {post.socialProviders.slice(0, 3).map(
+                          (provider) =>
+                            provider && (
+                              <Badge
+                                key={provider._id}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {provider.socialType}
+                              </Badge>
+                            )
+                        )}
                       </div>
                     </div>
                     <p className="text-muted-foreground text-xs">
-                      {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString() : 'No date set'}
+                      {post.scheduledAt
+                        ? new Date(post.scheduledAt).toLocaleString()
+                        : 'No date set'}
                     </p>
                   </div>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => router.push(`/post/${post._id}/edit`)}
                   >
@@ -295,9 +323,9 @@ function DashboardClient() {
                 </div>
               ))}
               {upcomingPosts.length > 5 && (
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-2"
+                <Button
+                  variant="outline"
+                  className="mt-2 w-full"
                   onClick={() => router.push('/calendar')}
                 >
                   View full schedule ({upcomingPosts.length} posts)
@@ -319,15 +347,13 @@ function DashboardClient() {
         <CardContent>
           {posts.length > 0 ? (
             <PostsView posts={posts} layout="grid" />
-          ) : !recentPosts ? (
+          ) : recentPosts ? (
             <div className="py-8 text-center">
-              <p className="text-muted-foreground">Loading recent posts...</p>
-            </div>
-          ) : (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">No posts yet. Create your first post to get started!</p>
-              <Button 
-                onClick={() => router.push('/post')} 
+              <p className="text-muted-foreground">
+                No posts yet. Create your first post to get started!
+              </p>
+              <Button
+                onClick={() => router.push('/post')}
                 className="mt-4"
                 variant="outline"
               >
@@ -335,29 +361,36 @@ function DashboardClient() {
                 Create Post
               </Button>
             </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">Loading recent posts...</p>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Platform Health Alert */}
       {stats.expiredTokens > 0 && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
           <CardHeader>
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              <CardTitle className="text-amber-800 dark:text-amber-200">Platform Connection Issues</CardTitle>
+              <CardTitle className="text-amber-800 dark:text-amber-200">
+                Platform Connection Issues
+              </CardTitle>
             </div>
             <CardDescription className="text-amber-700 dark:text-amber-300">
-              {stats.expiredTokens} social account{stats.expiredTokens > 1 ? 's need' : ' needs'} to be reconnected
+              {stats.expiredTokens} social account
+              {stats.expiredTokens > 1 ? 's need' : ' needs'} to be reconnected
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <p className="text-amber-700 dark:text-amber-300 text-sm">
-                Some of your social media accounts have expired authentication tokens.
-                Posts may fail to publish until these are reconnected.
+              <p className="text-amber-700 text-sm dark:text-amber-300">
+                Some of your social media accounts have expired authentication
+                tokens. Posts may fail to publish until these are reconnected.
               </p>
-              <Button 
+              <Button
                 onClick={() => router.push('/socials')}
                 size="sm"
                 className="ml-4"

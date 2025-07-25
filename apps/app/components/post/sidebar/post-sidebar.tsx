@@ -42,7 +42,8 @@ export function PostSidebar() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
@@ -70,7 +71,8 @@ export function PostSidebar() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
@@ -96,7 +98,8 @@ export function PostSidebar() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
@@ -104,7 +107,9 @@ export function PostSidebar() {
         ),
         status: 'SAVED',
       });
-      toast.success(postId ? 'Post updated successfully' : 'Post saved successfully');
+      toast.success(
+        postId ? 'Post updated successfully' : 'Post saved successfully'
+      );
       router.push('/posts');
     } catch (error) {
       toast.error(postId ? 'Failed to update post' : 'Failed to save post');

@@ -104,7 +104,9 @@ export function AccountCard({
           <div className="relative">
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                socialBackgroundColors[account.socialType as keyof typeof socialBackgroundColors]
+                socialBackgroundColors[
+                  account.socialType as keyof typeof socialBackgroundColors
+                ]
               } shadow-sm`}
             >
               <SocialIcon className="h-5 w-5 text-white" />

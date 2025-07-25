@@ -86,10 +86,16 @@ export function ConnectedAccountsHeader({
                   className="flex h-14 items-center justify-start space-x-4 px-4"
                   variant="outline"
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                    socialBackgroundColors[platform]
-                  } shadow-sm`}>
-                    <SocialIcon type={platform} size="md" className="text-white" />
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                      socialBackgroundColors[platform]
+                    } shadow-sm`}
+                  >
+                    <SocialIcon
+                      type={platform}
+                      size="md"
+                      className="text-white"
+                    />
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="font-medium">

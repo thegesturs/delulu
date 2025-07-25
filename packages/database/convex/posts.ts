@@ -10,7 +10,12 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { postsByUserStatus, postsByUserTime, postsByUserSchedule, postsByOrgStatus } from './stats';
+import {
+  postsByOrgStatus,
+  postsByUserSchedule,
+  postsByUserStatus,
+  postsByUserTime,
+} from './stats';
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
@@ -354,13 +359,13 @@ export const hardDeletePost = mutation({
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const post = await findPostById(ctx, args.id);
-    
+
     // Remove from aggregates before deleting
     await postsByStatus.delete(ctx, post);
     await postsBySchedule.delete(ctx, post);
     await postsByCreationDate.delete(ctx, post);
     await postsByPlatform.delete(ctx, post);
-    
+
     await ctx.db.delete(post._id);
     return true;
   },
@@ -464,7 +469,10 @@ export const updateAlternativeContent = mutation({
 
     await ctx.db.patch(oldPost._id, {
       alternativeContent,
-      searchableText: extractSearchableText(oldPost.content, alternativeContent),
+      searchableText: extractSearchableText(
+        oldPost.content,
+        alternativeContent
+      ),
       updatedAt: getCurrentTimestamp(),
     });
 

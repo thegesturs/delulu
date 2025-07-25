@@ -285,7 +285,14 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                       </div>
                     )}
                     {firstMedia.mediaType === 'IMAGE' ? (
-                      !imageError ? (
+                      imageError ? (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <div className="text-center text-muted-foreground">
+                            <div className="mx-auto mb-2 h-8 w-8 rounded bg-muted-foreground/20" />
+                            <p className="text-xs">Image failed to load</p>
+                          </div>
+                        </div>
+                      ) : (
                         <Image
                           src={getMediaUrlFromObject(firstMedia)}
                           alt={firstMedia.altText || 'Post media'}
@@ -304,13 +311,6 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                             }
                           }}
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted">
-                          <div className="text-center text-muted-foreground">
-                            <div className="mx-auto mb-2 h-8 w-8 rounded bg-muted-foreground/20" />
-                            <p className="text-xs">Image failed to load</p>
-                          </div>
-                        </div>
                       )
                     ) : (
                       <video

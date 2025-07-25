@@ -15,13 +15,17 @@ export class R2Provider {
     this.bucket = bucket;
   }
 
-  getFile(key: string): ResultAsync<
+  getFile(
+    key: string
+  ): ResultAsync<
     { content: ArrayBuffer; contentType: string; contentLength?: number },
     R2DownloadError
   > {
     if (!key || key.trim() === '') {
       return ResultAsync.fromSafePromise(
-        Promise.reject(new R2DownloadError('Key is required for file retrieval'))
+        Promise.reject(
+          new R2DownloadError('Key is required for file retrieval')
+        )
       );
     }
 
@@ -33,7 +37,8 @@ export class R2Provider {
 
     return ResultAsync.fromPromise(
       this.bucket.get(key),
-      (error) => new R2DownloadError(`Failed to retrieve file from R2: ${error}`)
+      (error) =>
+        new R2DownloadError(`Failed to retrieve file from R2: ${error}`)
     ).andThen((object) => {
       if (!object) {
         return ResultAsync.fromSafePromise(
@@ -46,7 +51,8 @@ export class R2Provider {
         (error) => new R2DownloadError(`Failed to read file content: ${error}`)
       ).map((content) => ({
         content,
-        contentType: object.httpMetadata?.contentType || 'application/octet-stream',
+        contentType:
+          object.httpMetadata?.contentType || 'application/octet-stream',
         contentLength: object.size,
       }));
     });

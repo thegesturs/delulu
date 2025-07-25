@@ -2,7 +2,7 @@
 export abstract class R2Error extends Error {
   abstract readonly code: string;
   readonly provider = 'R2';
-  
+
   constructor(message: string) {
     super(message);
     this.name = this.constructor.name;
