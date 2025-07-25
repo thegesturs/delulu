@@ -4,6 +4,31 @@ import { v } from 'convex/values';
 // USER SCHEMAS
 // ============================================================================
 
+// Streak tracking schema
+const streakSchema = v.object({
+  current: v.number(),
+  lastCountedDate: v.number(),
+  longest: v.object({
+    count: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
+  }),
+  lastCheckedDate: v.number(),
+  publishedToday: v.boolean(),
+  lastMaintenanceRun: v.number(),
+  maintenanceStatus: v.union(
+    v.literal('success'),
+    v.literal('pending'),
+    v.literal('failed')
+  ),
+});
+
+// Stats schema for user analytics and tracking
+const statsSchema = v.object({
+  streak: v.optional(streakSchema),
+  // Extensible for future stats
+});
+
 // Usage tracking schema for user limits and analytics
 const usageSchema = v.object({
   socialAccounts: v.number(),
@@ -19,6 +44,7 @@ export const baseUserSchema = v.object({
   emailVerified: v.optional(v.boolean()),
   externalId: v.optional(v.string()), // Clerk user ID (optional)
   usage: usageSchema,
+  stats: v.optional(statsSchema), // Make stats optional for backward compatibility
   image: v.optional(v.string()),
   updatedAt: v.number(),
 });
