@@ -7,6 +7,5 @@ app.use(resend);
 app.use(aggregate, { name: 'postsByUserStatus' });
 app.use(aggregate, { name: 'postsByUserTime' });
 app.use(aggregate, { name: 'postsByUserSchedule' });
-app.use(aggregate, { name: 'postsByOrgStatus' });
 
 export default app;

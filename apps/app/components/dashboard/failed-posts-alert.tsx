@@ -10,12 +10,7 @@ import {
 } from '@delulu/design-system/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-interface FailedPost {
-  _id: string;
-  content: Array<{ text?: string }>;
-  postFailureReason?: string;
-}
+import type { FailedPost } from '@/types/convex';
 
 interface FailedPostsAlertProps {
   failedPosts: FailedPost[];
@@ -29,7 +24,7 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
   }
 
   return (
-    <Card className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30">
+    <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30">
       <CardHeader>
         <div className="flex items-center space-x-2">
           <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -38,7 +33,8 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
           </CardTitle>
         </div>
         <CardDescription className="text-red-700 dark:text-red-300">
-          {failedPosts.length} post{failedPosts.length > 1 ? 's' : ''} failed to publish
+          {failedPosts.length} post{failedPosts.length > 1 ? 's' : ''} failed to
+          publish
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -46,17 +42,17 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
           {failedPosts.slice(0, 3).map((post) => (
             <div
               key={post._id}
-              className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded border dark:border-gray-700"
+              className="flex items-center justify-between rounded border bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
             >
               <div className="flex-1">
                 <p className="font-medium text-sm">
-                  {post.content[0]?.text?.slice(0, 60)}...
+                  {post.content?.[0]?.text?.slice(0, 60) || 'No content'}...
                 </p>
-                <p className="text-red-600 dark:text-red-400 text-xs mt-1">
+                <p className="mt-1 text-red-600 text-xs dark:text-red-400">
                   {post.postFailureReason || 'Publishing failed'}
                 </p>
               </div>
-              <div className="flex items-center space-x-2 ml-4">
+              <div className="ml-4 flex items-center space-x-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -79,7 +75,7 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
           {failedPosts.length > 3 && (
             <Button
               variant="outline"
-              className="w-full mt-2"
+              className="mt-2 w-full"
               onClick={() => router.push('/posts?status=FAILED')}
             >
               View all {failedPosts.length} failed posts

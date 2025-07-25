@@ -1,5 +1,6 @@
 'use client';
 
+import type { DashboardStats } from '@/types/convex';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import {
   Card,
@@ -8,42 +9,24 @@ import {
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
 import {
+  Calendar,
   CheckCircle,
   Clock,
-  Calendar,
   FileText,
-  TrendingDown,
-  TrendingUp,
+  Flame,
   Users,
   XCircle,
 } from 'lucide-react';
 
-interface DashboardStatsProps {
-  stats: {
-    totalPosts: number;
-    publishedCount: number;
-    scheduledCount: number;
-    failedCount: number;
-    savedCount: number;
-    upcomingPosts: number;
-    thisWeekPosts: number;
-    lastWeekPosts: number;
-    successRate: number;
-    connectedAccounts: number;
-    expiredTokens: number;
-  };
+interface DashboardStatsClientProps {
+  stats: DashboardStats;
   isLoading: boolean;
 }
 
-export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
-  // Calculate trend for this week vs last week
-  const weeklyTrend =
-    stats.lastWeekPosts > 0
-      ? ((stats.thisWeekPosts - stats.lastWeekPosts) / stats.lastWeekPosts) * 100
-      : stats.thisWeekPosts > 0
-        ? 100
-        : 0;
-
+export function DashboardStatsClient({
+  stats,
+  isLoading,
+}: DashboardStatsClientProps) {
   return (
     <>
       {/* Primary Stats */}
@@ -60,7 +43,7 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
             <p className="text-muted-foreground text-xs">All your content</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Published</CardTitle>
@@ -96,7 +79,9 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
                 </Badge>
               )}
               {stats.expiredTokens === 0 && !isLoading && (
-                <span className="text-green-600 dark:text-green-400">All active</span>
+                <span className="text-green-600 dark:text-green-400">
+                  All active
+                </span>
               )}
             </div>
           </CardContent>
@@ -104,28 +89,29 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="font-medium text-sm">This Week</CardTitle>
-            {weeklyTrend >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-            )}
+            <CardTitle className="font-medium text-sm">
+              Posting Streak
+            </CardTitle>
+            <Flame
+              className={`h-4 w-4 ${
+                stats.postingStreak && stats.postingStreak > 0
+                  ? 'text-orange-500 dark:text-orange-400'
+                  : 'text-muted-foreground'
+              }`}
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.thisWeekPosts}
+              {isLoading ? '...' : stats.postingStreak || 0}
             </div>
             <div className="flex items-center space-x-2 text-xs">
-              <span
-                className={`${weeklyTrend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-              >
-                {isLoading
-                  ? '...'
-                  : weeklyTrend > 0
-                    ? `+${weeklyTrend.toFixed(0)}%`
-                    : `${weeklyTrend.toFixed(0)}%`}
+              <span className="text-muted-foreground">
+                {stats.postingStreak === 0
+                  ? 'Start posting to build streak'
+                  : stats.postingStreak === 1
+                    ? 'day streak'
+                    : 'days streak'}
               </span>
-              <span className="text-muted-foreground">vs last week</span>
             </div>
           </CardContent>
         </Card>
@@ -175,7 +161,9 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
               <div className="font-bold text-2xl text-red-800 dark:text-red-200">
                 {isLoading ? '...' : stats.failedCount}
               </div>
-              <p className="text-red-600 text-xs dark:text-red-400">Need attention</p>
+              <p className="text-red-600 text-xs dark:text-red-400">
+                Need attention
+              </p>
             </CardContent>
           </Card>
         )}

@@ -25,3 +25,17 @@ export type MediaId = Id<'media'>;
 
 // Layout types for components
 export type PostLayout = 'grid' | 'list';
+
+// Stats types
+export type DashboardStats = NonNullable<
+  FunctionReturnType<typeof api.stats.getDashboardStats>
+>;
+
+// Enriched post types for stats queries that include populated socialProviders
+export type FailedPost = NonNullable<
+  FunctionReturnType<typeof api.stats.getFailedPosts>
+>[0];
+
+export type UpcomingPost = NonNullable<
+  FunctionReturnType<typeof api.stats.getUpcomingPosts>
+>[0];

@@ -1,6 +1,6 @@
 'use client';
 
-import { DashboardStats } from '@/components/dashboard/dashboard-stats';
+import { DashboardStatsClient } from '@/components/dashboard/dashboard-stats';
 import { FailedPostsAlert } from '@/components/dashboard/failed-posts-alert';
 import { PlatformHealthAlert } from '@/components/dashboard/platform-health-alert';
 import { QuickActions } from '@/components/dashboard/quick-actions';
@@ -38,14 +38,16 @@ function DashboardClient() {
         </Button>
       </Header>
 
-      {/* Failed Posts Alert */}
-      <FailedPostsAlert failedPosts={failedPosts || []} />
+      {/* Alerts Section - Critical information first */}
+      <div className="space-y-4">
+        <FailedPostsAlert failedPosts={failedPosts || []} />
+        <PlatformHealthAlert
+          expiredTokens={dashboardStats?.expiredTokens || 0}
+        />
+      </div>
 
-      {/* Platform Health Alert */}
-      <PlatformHealthAlert expiredTokens={dashboardStats?.expiredTokens || 0} />
-
-      {/* Dashboard Stats */}
-      <DashboardStats
+      {/* Main Stats - Core metrics */}
+      <DashboardStatsClient
         stats={
           dashboardStats ?? {
             totalPosts: 0,
@@ -59,21 +61,27 @@ function DashboardClient() {
             successRate: 0,
             connectedAccounts: 0,
             expiredTokens: 0,
+            postingStreak: 0,
           }
         }
         isLoading={isLoading}
       />
 
-      {/* Upcoming Schedule */}
-      <UpcomingSchedule upcomingPosts={upcomingPosts ?? []} />
+      {/* Action and Content Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Quick Actions - Span 1 column */}
+        <div className="lg:col-span-1">
+          <QuickActions />
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Quick Actions */}
-        <QuickActions />
-
-        {/* Recent Posts */}
-        <RecentPostsSection posts={posts} isLoading={isLoading} />
+        {/* Recent Posts - Span 2 columns */}
+        <div className="lg:col-span-2">
+          <RecentPostsSection posts={posts} isLoading={isLoading} />
+        </div>
       </div>
+
+      {/* Schedule Section - Full width for better visibility */}
+      <UpcomingSchedule upcomingPosts={upcomingPosts ?? []} />
     </div>
   );
 }

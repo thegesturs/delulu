@@ -11,7 +11,6 @@ import {
   query,
 } from './_generated/server';
 import {
-  postsByOrgStatus,
   postsByUserSchedule,
   postsByUserStatus,
   postsByUserTime,
@@ -163,7 +162,6 @@ export const createPost = mutation({
       await postsByUserStatus.insert(ctx, newPost);
       await postsByUserTime.insert(ctx, newPost);
       await postsByUserSchedule.insert(ctx, newPost);
-      await postsByOrgStatus.insert(ctx, newPost);
     }
 
     // Schedule the post for publishing if scheduledAt is provided
@@ -218,7 +216,6 @@ export const updatePost = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
       await postsByUserTime.replace(ctx, oldPost, newPost);
       await postsByUserSchedule.replace(ctx, oldPost, newPost);
-      await postsByOrgStatus.replace(ctx, oldPost, newPost);
     }
 
     // Schedule the post for publishing if scheduledAt is provided
@@ -278,10 +275,9 @@ export const upsertPost = mutation({
       // Update aggregates
       const newPost = await ctx.db.get(id);
       if (newPost) {
-        await postsByStatus.replace(ctx, oldPost, newPost);
-        await postsBySchedule.replace(ctx, oldPost, newPost);
-        await postsByCreationDate.replace(ctx, oldPost, newPost);
-        await postsByPlatform.replace(ctx, oldPost, newPost);
+        await postsByUserStatus.replace(ctx, oldPost, newPost);
+        await postsByUserTime.replace(ctx, oldPost, newPost);
+        await postsByUserSchedule.replace(ctx, oldPost, newPost);
       }
 
       postId = id;
@@ -310,10 +306,9 @@ export const upsertPost = mutation({
       // Update aggregates for new post
       const newPost = await ctx.db.get(postId);
       if (newPost) {
-        await postsByStatus.insert(ctx, newPost);
-        await postsBySchedule.insert(ctx, newPost);
-        await postsByCreationDate.insert(ctx, newPost);
-        await postsByPlatform.insert(ctx, newPost);
+        await postsByUserStatus.insert(ctx, newPost);
+        await postsByUserTime.insert(ctx, newPost);
+        await postsByUserSchedule.insert(ctx, newPost);
       }
     }
 
@@ -347,7 +342,6 @@ export const softDeletePost = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
       await postsByUserTime.replace(ctx, oldPost, newPost);
       await postsByUserSchedule.replace(ctx, oldPost, newPost);
-      await postsByOrgStatus.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -361,10 +355,9 @@ export const hardDeletePost = mutation({
     const post = await findPostById(ctx, args.id);
 
     // Remove from aggregates before deleting
-    await postsByStatus.delete(ctx, post);
-    await postsBySchedule.delete(ctx, post);
-    await postsByCreationDate.delete(ctx, post);
-    await postsByPlatform.delete(ctx, post);
+    await postsByUserStatus.delete(ctx, post);
+    await postsByUserTime.delete(ctx, post);
+    await postsByUserSchedule.delete(ctx, post);
 
     await ctx.db.delete(post._id);
     return true;
@@ -397,7 +390,6 @@ export const updatePostContent = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
       await postsByUserTime.replace(ctx, oldPost, newPost);
       await postsByUserSchedule.replace(ctx, oldPost, newPost);
-      await postsByOrgStatus.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -426,10 +418,9 @@ export const addSocialProviderToPost = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(args.postId);
     if (newPost) {
-      await postsByStatus.replace(ctx, oldPost, newPost);
-      await postsBySchedule.replace(ctx, oldPost, newPost);
-      await postsByCreationDate.replace(ctx, oldPost, newPost);
-      await postsByPlatform.replace(ctx, oldPost, newPost);
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await postsByUserTime.replace(ctx, oldPost, newPost);
+      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -479,10 +470,9 @@ export const updateAlternativeContent = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(args.postId);
     if (newPost) {
-      await postsByStatus.replace(ctx, oldPost, newPost);
-      await postsBySchedule.replace(ctx, oldPost, newPost);
-      await postsByCreationDate.replace(ctx, oldPost, newPost);
-      await postsByPlatform.replace(ctx, oldPost, newPost);
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await postsByUserTime.replace(ctx, oldPost, newPost);
+      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -536,10 +526,9 @@ export const addPlatformPost = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(args.postId);
     if (newPost) {
-      await postsByStatus.replace(ctx, oldPost, newPost);
-      await postsBySchedule.replace(ctx, oldPost, newPost);
-      await postsByCreationDate.replace(ctx, oldPost, newPost);
-      await postsByPlatform.replace(ctx, oldPost, newPost);
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await postsByUserTime.replace(ctx, oldPost, newPost);
+      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -769,10 +758,9 @@ export const deletePost = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(args.postId);
     if (newPost) {
-      await postsByStatus.replace(ctx, oldPost, newPost);
-      await postsBySchedule.replace(ctx, oldPost, newPost);
-      await postsByCreationDate.replace(ctx, oldPost, newPost);
-      await postsByPlatform.replace(ctx, oldPost, newPost);
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await postsByUserTime.replace(ctx, oldPost, newPost);
+      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return { success: true };
@@ -832,10 +820,9 @@ export const updatePostPublishStatus = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(post._id);
     if (newPost) {
-      await postsByStatus.replace(ctx, oldPost, newPost);
-      await postsBySchedule.replace(ctx, oldPost, newPost);
-      await postsByCreationDate.replace(ctx, oldPost, newPost);
-      await postsByPlatform.replace(ctx, oldPost, newPost);
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await postsByUserTime.replace(ctx, oldPost, newPost);
+      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return true;
