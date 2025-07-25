@@ -27,7 +27,7 @@ export function PostSidebar() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
   const socialProviders = useSelectedSocialProviders();
-  const { postId } = useParams<{ postId: string | undefined }>();
+  const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
   // Single unified mutation for all operations
@@ -52,7 +52,9 @@ export function PostSidebar() {
         // No scheduledAt - immediate publishing via existing tRPC flow
         status: 'SAVED', // Will be published immediately through different flow
       });
-      toast.success('Post published successfully');
+      toast.success(
+        'Post sent for processing, will be published shortly. You can close this window now.'
+      );
       router.push('/posts');
     } catch (error) {
       toast.error('Failed to publish post');

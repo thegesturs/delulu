@@ -102,9 +102,6 @@ export const connectUrlRegistry = {
         scope: [
           'threads_basic',
           'threads_content_publish',
-          'threads_read_replies',
-          'threads_manage_replies',
-          'threads_manage_insights',
         ].join(','),
       });
 

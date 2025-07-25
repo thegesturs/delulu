@@ -311,7 +311,7 @@ export const upsertPost = mutation({
     }
 
     await ctx.scheduler.runAt(
-      args.scheduledAt ?? Date.now() + 1000,
+      args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
       internal.posts.publishScheduledPost,
       {
         postId,
@@ -731,7 +731,7 @@ export const publishScheduledPost = internalAction({
       }
 
       // Verify it's still scheduled and ready to publish
-      if (post.status !== 'SCHEDULED') {
+      if (post.status !== 'SCHEDULED' && post.status !== 'SAVED') {
         console.warn(
           `Post ${args.postId} is no longer scheduled (status: ${post.status})`
         );
@@ -739,12 +739,13 @@ export const publishScheduledPost = internalAction({
       }
 
       // Make HTTP request to Lambda URL for publishing
-      const LAMBDA_URL =
-        'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
+      const LAMBDA_URL = process.env.POSTING_LAMBDA_URL;
       const POSTING_SECRET_KEY = process.env.POSTING_SECRET_KEY;
 
-      if (!POSTING_SECRET_KEY) {
-        throw new Error('POSTING_SECRET_KEY environment variable not set');
+      if (!LAMBDA_URL || !POSTING_SECRET_KEY) {
+        throw new Error(
+          'POSTING_SECRET_KEY or POSTING_LAMBDA_URL environment variable not set'
+        );
       }
 
       // Process each social provider
