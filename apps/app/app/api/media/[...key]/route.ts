@@ -7,16 +7,14 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { key: string[] } }
+  context: { params: Promise<{ key: string[] }> }
 ) {
   const { userId, getToken } = await auth();
-
   if (!userId) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   const token = await getToken({ template: 'convex' });
-
   if (!token) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
@@ -31,9 +29,15 @@ export async function GET(
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
+  // Await the params Promise
+  const params = await context.params;
+
+  if (!params.key || params.key.length === 0) {
+    return new NextResponse('No key provided', { status: 400 });
+  }
+
   // Reconstruct the key from the path segments
   const key = params.key.join('/');
-
   if (!key) {
     return new NextResponse('No key provided', { status: 400 });
   }
@@ -42,16 +46,13 @@ export async function GET(
     // Get Cloudflare environment and initialize R2Provider with bucket
     const env = await getCloudflareEnv();
     const r2Provider = new R2Provider(env.DELULU_SOCIAL_BUCKET);
-
     console.log(`[DEBUG] Serving media file for key: ${key}`);
 
     const fileResult = await r2Provider.getFile(key);
-
     if (fileResult.isErr()) {
       console.error(
         `[ERROR] Failed to retrieve file: ${fileResult.error.message}`
       );
-
       // Return 404 for file not found, 500 for other errors
       const statusCode = fileResult.error.message.includes('File not found')
         ? 404
@@ -63,7 +64,6 @@ export async function GET(
     }
 
     const file = fileResult.value;
-
     console.log(
       `[DEBUG] File retrieved successfully: ${key} (${file.contentType}, ${file.contentLength} bytes)`
     );
@@ -79,7 +79,6 @@ export async function GET(
         }),
       },
     });
-
     return response;
   } catch (error) {
     console.error(`[ERROR] Media serving route error: ${error}`);
