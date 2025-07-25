@@ -387,8 +387,6 @@ export const getPosts = query({
 
     const userId = user._id;
 
-    console.log('>>> User', user);
-
     let paginationResult: PaginationResult<Doc<'posts'>>;
 
     // Use search index when search term is provided
@@ -476,8 +474,6 @@ export const getPosts = query({
         .paginate(args.paginationOpts);
     }
 
-    console.log('>>> Pagination Result', paginationResult);
-
     // Enrich each post with social providers and alternative content
     const enrichedPosts = await Promise.all(
       paginationResult.page.map(async (post: Doc<'posts'>) => {
@@ -525,8 +521,6 @@ export const getPosts = query({
         };
       })
     );
-
-    console.log('>>> Enriched Posts', enrichedPosts);
 
     return {
       page: enrichedPosts,
@@ -784,6 +778,8 @@ export const publishScheduledPost = internalAction({
             },
           }),
         });
+
+        console.log('>>> Response', await response.json());
 
         if (!response.ok) {
           throw new Error(

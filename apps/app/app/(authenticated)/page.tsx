@@ -40,14 +40,14 @@ function DashboardClient() {
 
       {/* Alerts Section - Critical information first */}
       <div className="space-y-4">
-        <FailedPostsAlert failedPosts={failedPosts || []} />
+        {/* <FailedPostsAlert failedPosts={failedPosts || []} /> */}
         <PlatformHealthAlert
           expiredTokens={dashboardStats?.expiredTokens || 0}
         />
       </div>
 
       {/* Quick Actions - Important user actions */}
-      <QuickActions />
+      {/* <QuickActions /> */}
 
       {/* Main Stats - Core metrics */}
       <DashboardStatsClient
