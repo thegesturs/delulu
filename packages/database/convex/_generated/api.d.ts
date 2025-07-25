@@ -9,6 +9,7 @@
  */
 
 import type * as cascade_deletes from "../cascade_deletes.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
@@ -42,6 +43,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   cascade_deletes: typeof cascade_deletes;
+  crons: typeof crons;
   http: typeof http;
   index: typeof index;
   media: typeof media;
