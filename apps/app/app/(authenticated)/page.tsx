@@ -1,9 +1,7 @@
 'use client';
 
 import { DashboardStatsClient } from '@/components/dashboard/dashboard-stats';
-import { FailedPostsAlert } from '@/components/dashboard/failed-posts-alert';
 import { PlatformHealthAlert } from '@/components/dashboard/platform-health-alert';
-import { QuickActions } from '@/components/dashboard/quick-actions';
 import { RecentPostsSection } from '@/components/dashboard/recent-posts-section';
 import { UpcomingSchedule } from '@/components/dashboard/upcoming-schedule';
 import { api } from '@delulu/database/convex/_generated/api';
@@ -23,7 +21,7 @@ function DashboardClient() {
   const recentPosts = useQuery(api.posts.getPosts, {
     paginationOpts: { numItems: 6, cursor: null },
   });
-  const failedPosts = useQuery(api.stats.getFailedPosts);
+  // const failedPosts = useQuery(api.stats.getFailedPosts);
   const upcomingPosts = useQuery(api.stats.getUpcomingPosts, { days: 7 });
 
   const posts = recentPosts?.page || [];
