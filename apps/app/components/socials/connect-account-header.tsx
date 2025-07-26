@@ -25,14 +25,15 @@ interface ConnectedAccountsHeaderProps {
 }
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
-  'TWITTER',
+  // 'TWITTER',
   'LINKEDIN',
   'TIKTOK',
   'INSTAGRAM',
   'THREADS',
   'FACEBOOK',
-  'PINTEREST',
-  'FARCASTER',
+  // 'PINTEREST',
+  // 'FARCASTER',
+  'YOUTUBE',
 ];
 
 export function ConnectedAccountsHeader({
