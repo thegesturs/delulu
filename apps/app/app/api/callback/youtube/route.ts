@@ -150,15 +150,13 @@ export async function GET(request: NextRequest) {
 
     // Get YouTube channel information
     const channelResponse = await fetchWithTimeout(
-      'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true',
+      'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
       {
         headers: {
           Authorization: `Bearer ${tokenData.access_token}`,
         },
       }
     );
-
-    console.log('channelResponse', await channelResponse.json());
 
     if (!channelResponse.ok) {
       return NextResponse.redirect(
@@ -169,13 +167,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const channelData =
-      (await channelResponse.json()) as YouTubeChannelResponse;
+    const channelData = (await channelResponse.json()) as YouTubeChannelResponse;
 
+    // Check if user has a YouTube channel
     if (!channelData.items || channelData.items.length === 0) {
       return NextResponse.redirect(
         new URL(
-          '/socials?error=youtube_user_fetch_failed&code=YOUTUBE_006&provider=YOUTUBE',
+          '/socials?error=youtube_no_channel&code=YOUTUBE_006&provider=YOUTUBE',
           env.NEXT_PUBLIC_APP_URL
         )
       );

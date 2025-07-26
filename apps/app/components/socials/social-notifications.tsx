@@ -45,6 +45,11 @@ const ERROR_MESSAGES = {
     description:
       'We could not fetch your YouTube profile information. Please try again.',
   },
+  youtube_no_channel: {
+    title: 'No YouTube Channel Found',
+    description:
+      'You need to create a YouTube channel first. Please visit YouTube.com to create a channel, then try connecting again.',
+  },
   internal_error: {
     title: 'Internal Error',
     description: 'An unexpected error occurred. Please try again later.',
