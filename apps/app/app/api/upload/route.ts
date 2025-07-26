@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { auth } from '@clerk/nextjs/server';
 import { R2Provider } from '@delulu/api/providers/r2.provider';
+import { auth } from '@delulu/auth/server';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import { api } from '@delulu/database/convex/_generated/api';
 import { fetchQuery } from '@delulu/database/server';

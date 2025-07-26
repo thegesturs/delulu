@@ -1,6 +1,6 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';

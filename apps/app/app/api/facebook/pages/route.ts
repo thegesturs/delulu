@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@delulu/auth/server';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import { decryptData } from '@delulu/database/convex/utils';
 import {

@@ -1,5 +1,5 @@
 'use client';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton } from '@delulu/auth';
 import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {

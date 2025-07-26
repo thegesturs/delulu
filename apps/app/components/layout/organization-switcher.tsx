@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser } from '@delulu/auth';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   DropdownMenu,

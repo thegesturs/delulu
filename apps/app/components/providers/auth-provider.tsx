@@ -1,5 +1,5 @@
 'use client';
-import { SignInButton } from '@clerk/nextjs';
+import { SignInButton } from '@delulu/auth';
 import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
 import type React from 'react';
 import { FaSpinner } from 'react-icons/fa';

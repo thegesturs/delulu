@@ -1,7 +1,7 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useAnalytics } from '@delulu/analytics/posthog/client';
+import { useUser } from '@delulu/auth';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef } from 'react';
 

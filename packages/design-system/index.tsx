@@ -4,17 +4,33 @@ import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
 import { ThemeProvider } from './providers/theme';
 export { useTheme } from 'next-themes';
+import { AuthProvider } from '@delulu/auth/provider';
+
+type DesignSystemProviderProperties = ThemeProviderProps & {
+  privacyUrl?: string;
+  termsUrl?: string;
+  helpUrl?: string;
+};
 
 export const DesignSystemProvider = ({
   children,
+  privacyUrl,
+  termsUrl,
+  helpUrl,
   ...properties
-}: ThemeProviderProps) => {
+}: DesignSystemProviderProperties) => {
   return (
     <ThemeProvider {...properties}>
-      <AnalyticsProvider>
-        <TooltipProvider>{children}</TooltipProvider>
-        <Toaster />
-      </AnalyticsProvider>
+      <AuthProvider
+        privacyUrl={privacyUrl}
+        termsUrl={termsUrl}
+        helpUrl={helpUrl}
+      >
+        <AnalyticsProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+          <Toaster />
+        </AnalyticsProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };
