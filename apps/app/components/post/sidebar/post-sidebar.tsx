@@ -3,7 +3,6 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 
-import { useCreatePost } from '@/hooks/use-social-providers';
 import {
   useDateTime,
   usePost,
@@ -21,7 +20,6 @@ import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
-import { uploadAllContentMedia } from '../../../hooks/use-upload-media';
 import SocialSelector from './social-selector';
 
 export function PostSidebar() {
@@ -29,79 +27,96 @@ export function PostSidebar() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime); // Get the action
   const socialProviders = useSelectedSocialProviders();
-  const { postId } = useParams<{ postId: string | undefined }>();
+  const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
-  const publishPostMutation = useCreatePost({
-    onSuccess: () => {
-      toast.success('Post created successfully');
+  // Single unified mutation for all operations
+  const upsertPostMutation = useMutation(api.posts.upsertPost);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Handler 1: Post immediately (no scheduledAt = immediate publishing via tRPC)
+  const handlePostNow = async () => {
+    try {
+      setIsProcessing(true);
+      await upsertPostMutation({
+        ...(postId && { id: postId as Id<'posts'> }),
+        content: post.content,
+        alternativeContent: post.alternativeContent.map((alt) => ({
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
+          content: alt.content,
+        })),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
+        // No scheduledAt - immediate publishing via existing tRPC flow
+        status: 'SAVED', // Will be published immediately through different flow
+      });
+      toast.success(
+        'Post sent for processing, will be published shortly. You can close this window now.'
+      );
       router.push('/posts');
-    },
-    onError: () => {
-      toast.error('Failed to create post');
-    },
-  });
-
-  const updatePost = useMutation(api.posts.updatePost);
-  const [isUpdatingPost, setIsUpdatingPost] = useState(false);
-
-  const createPostMutation = useMutation(api.posts.createPost);
-  const [isSavingPost, setIsSavingPost] = useState(false);
-
-  const handlePostNow = () => {
-    publishPostMutation.mutate({
-      content: post.content,
-      socialProviders: socialProviders,
-      alternativeContent: post.alternativeContent,
-    });
+    } catch (error) {
+      toast.error('Failed to publish post');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleUpdateSavePost = async () => {
-    try {
-      // First upload all media files
-      const { mainContent, alternativeContent } = await uploadAllContentMedia(
-        post.content,
-        post.alternativeContent
-      );
+  // Handler 2: Schedule post for future (scheduledAt = selected date)
+  const handleSchedulePost = async () => {
+    if (!date) return;
 
-      if (postId) {
-        setIsUpdatingPost(true);
-        await updatePost({
-          id: postId as Id<'posts'>,
-          content: mainContent,
-          alternativeContent: alternativeContent.map((alt) => ({
-            socialProviderId: alt.socialProvider
-              .socialId as Id<'socialProviders'>,
-            content: alt.content,
-          })),
-          socialProviderIds: socialProviders.map(
-            (sp) => sp.socialId as Id<'socialProviders'>
-          ),
-        });
-        toast.success('Post updated successfully');
-        router.push('/posts');
-      } else {
-        setIsSavingPost(true);
-        await createPostMutation({
-          content: mainContent,
-          alternativeContent: alternativeContent.map((alt) => ({
-            socialProviderId: alt.socialProvider
-              .socialId as Id<'socialProviders'>,
-            content: alt.content,
-          })),
-          socialProviderIds: socialProviders.map(
-            (sp) => sp.socialId as Id<'socialProviders'>
-          ),
-          status: 'SAVED',
-        });
-        toast.success('Post saved successfully');
-        router.push('/posts');
-      }
+    try {
+      setIsProcessing(true);
+      await upsertPostMutation({
+        ...(postId && { id: postId as Id<'posts'> }),
+        content: post.content,
+        alternativeContent: post.alternativeContent.map((alt) => ({
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
+          content: alt.content,
+        })),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
+        scheduledAt: date.getTime(), // Future scheduling
+        status: 'SCHEDULED',
+      });
+      toast.success('Post scheduled successfully');
+      router.push('/posts');
+    } catch (error) {
+      toast.error('Failed to schedule post');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handler 3: Save as draft (no scheduling, regardless of date picker)
+  const handleSaveAsDraft = async () => {
+    try {
+      setIsProcessing(true);
+      await upsertPostMutation({
+        ...(postId && { id: postId as Id<'posts'> }),
+        content: post.content,
+        alternativeContent: post.alternativeContent.map((alt) => ({
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
+          content: alt.content,
+        })),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
+        status: 'SAVED',
+      });
+      toast.success(
+        postId ? 'Post updated successfully' : 'Post saved successfully'
+      );
+      router.push('/posts');
     } catch (error) {
       toast.error(postId ? 'Failed to update post' : 'Failed to save post');
     } finally {
-      setIsUpdatingPost(false);
-      setIsSavingPost(false);
+      setIsProcessing(false);
     }
   };
 
@@ -127,13 +142,11 @@ export function PostSidebar() {
       <CardContent className="flex flex-row gap-1">
         <Button
           className="flex-1"
-          onClick={handlePostNow}
-          disabled={
-            publishPostMutation.isPending || isUpdatingPost || isSavingPost
-          }
+          onClick={date ? handleSchedulePost : handlePostNow}
+          disabled={isProcessing}
         >
           {date ? 'Schedule Post' : 'Post Now'}
-          {publishPostMutation.isPending ? (
+          {isProcessing ? (
             <Loader className="ml-2 size-4 animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-5" />
@@ -141,13 +154,11 @@ export function PostSidebar() {
         </Button>
         <Button
           className="flex-1"
-          onClick={handleUpdateSavePost}
-          disabled={
-            publishPostMutation.isPending || isUpdatingPost || isSavingPost
-          }
+          onClick={handleSaveAsDraft}
+          disabled={isProcessing}
         >
           {postId ? 'Update Post' : 'Save Post'}
-          {isUpdatingPost || isSavingPost ? (
+          {isProcessing ? (
             <Loader className="ml-2 size-4 animate-spin" />
           ) : (
             <FaBookmark className="size-4" />

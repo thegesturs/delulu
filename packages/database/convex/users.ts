@@ -1,6 +1,6 @@
 import type { UserJSON } from '@clerk/backend';
 import { type Validator, v } from 'convex/values';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import {
   type MutationCtx,
   type QueryCtx,
@@ -8,7 +8,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import { userCreateSchema, userSchema, userUpdateSchema } from './schemas';
+import { userSchema } from './schemas';
 import { getCurrentTimestamp, isValidEmail } from './utils';
 
 // User queries
@@ -50,95 +50,6 @@ export const getUserByEmail = query({
       .unique();
 
     return user;
-  },
-});
-
-export const createUser = mutation({
-  args: userCreateSchema.fields,
-  returns: v.id('users'),
-  handler: async (ctx, args) => {
-    if (!isValidEmail(args.email)) {
-      throw new Error('Invalid email format');
-    }
-
-    // Check if user already exists
-    const existingUser = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', args.email))
-      .unique();
-
-    if (existingUser) {
-      throw new Error('User with this email already exists');
-    }
-
-    const now = getCurrentTimestamp();
-
-    const newUserId = await ctx.db.insert('users', {
-      name: args.name,
-      email: args.email,
-      emailVerified: args.emailVerified ?? false,
-      image: args.image,
-      externalId: args.externalId,
-      usage: {
-        socialAccounts: 4,
-        generatedPosts: 50,
-        drafts: 15,
-        organization: 0,
-      },
-      updatedAt: now,
-    });
-
-    return newUserId;
-  },
-});
-
-export const updateUser = mutation({
-  args: {
-    id: v.id('users'),
-    ...userUpdateSchema.fields,
-  },
-  returns: v.id('users'),
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
-      .unique();
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // If email is being updated, check for duplicates
-    if (args.email && args.email !== user.email) {
-      if (!isValidEmail(args.email) || !args.email) {
-        throw new Error('Invalid email format');
-      }
-
-      const existingUser = await ctx.db
-        .query('users')
-        .withIndex('by_email', (q) => q.eq('email', args.email!))
-        .unique();
-
-      if (existingUser) {
-        throw new Error('User with this email already exists');
-      }
-    }
-
-    const updateData: Partial<Doc<'users'>> = {
-      updatedAt: getCurrentTimestamp(),
-    };
-
-    if (args.name !== undefined) {
-      updateData.name = args.name;
-    }
-    if (args.email !== undefined) updateData.email = args.email;
-    if (args.emailVerified !== undefined)
-      updateData.emailVerified = args.emailVerified;
-    if (args.image !== undefined) updateData.image = args.image;
-
-    await ctx.db.patch(user._id, updateData);
-
-    return user._id;
   },
 });
 

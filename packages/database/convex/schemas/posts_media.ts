@@ -97,6 +97,24 @@ export const postUpdateSchema = v.object({
   retryCount: v.optional(v.number()),
 });
 
+// Post upsert schema (create or update)
+export const postUpsertSchema = v.object({
+  id: v.optional(v.id('posts')), // If provided, update; if not, create
+  userId: v.optional(v.id('users')),
+  organizationId: v.optional(v.string()),
+  status: v.optional(postStatusSchema),
+  scheduledAt: v.optional(v.number()),
+  reviewStatus: v.optional(postReviewStatusSchema),
+  privacyStatus: v.optional(privacyStatusSchema),
+  content: v.array(contentSchema),
+  alternativeContent: v.optional(v.array(alternativeContentSchema)),
+  socialProviderIds: v.array(v.id('socialProviders')),
+  postFailureReason: v.optional(v.string()),
+  publishedAt: v.optional(v.number()),
+  lastFailedAt: v.optional(v.number()),
+  retryCount: v.optional(v.number()),
+});
+
 // ============================================================================
 // MEDIA TABLE SCHEMAS (External Storage)
 // ============================================================================
@@ -127,7 +145,6 @@ export const mediaTableSchema = v.object({
 
 // Media creation schema
 export const mediaCreateSchema = v.object({
-  userId: v.id('users'),
   organizationId: v.optional(v.string()),
   bucketKey: v.string(),
   url: v.string(),

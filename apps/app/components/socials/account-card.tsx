@@ -24,7 +24,7 @@ import {
 } from '@delulu/design-system/components/ui/tooltip';
 import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
 import {
-  socialColors,
+  socialBackgroundColors,
   socialIcons,
 } from '@delulu/design-system/lib/social-config';
 import {
@@ -104,7 +104,9 @@ export function AccountCard({
           <div className="relative">
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                socialColors[account.socialType as keyof typeof socialColors]
+                socialBackgroundColors[
+                  account.socialType as keyof typeof socialBackgroundColors
+                ]
               } shadow-sm`}
             >
               <SocialIcon className="h-5 w-5 text-white" />

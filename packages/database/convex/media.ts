@@ -9,6 +9,7 @@ import {
   mediaUpdateSchema,
   searchFiltersSchema,
 } from './schemas';
+import { getCurrentUser } from './users';
 import { getCurrentTimestamp, isValidUrl } from './utils';
 
 // Media queries
@@ -89,8 +90,14 @@ export const createMedia = mutation({
 
     const now = getCurrentTimestamp();
 
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const newMediaId = await ctx.db.insert('media', {
-      userId: args.userId,
+      userId: user._id,
       organizationId: args.organizationId,
       bucketKey: args.bucketKey,
       url: args.url,
@@ -197,40 +204,6 @@ export const getMediaStats = query({
     };
 
     for (const media of userMedia) {
-      if (media.mediaType === 'IMAGE') {
-        stats.imageCount++;
-      } else if (media.mediaType === 'VIDEO') {
-        stats.videoCount++;
-      }
-
-      if (media.size) {
-        stats.totalSize += media.size;
-      }
-    }
-
-    return stats;
-  },
-});
-
-export const getOrganizationMediaStats = query({
-  args: { organizationId: v.string() },
-  returns: mediaStatsSchema,
-  handler: async (ctx, args) => {
-    const orgMedia = await ctx.db
-      .query('media')
-      .withIndex('by_organization_id', (q) =>
-        q.eq('organizationId', args.organizationId)
-      )
-      .collect();
-
-    const stats = {
-      totalCount: orgMedia.length,
-      imageCount: 0,
-      videoCount: 0,
-      totalSize: 0,
-    };
-
-    for (const media of orgMedia) {
       if (media.mediaType === 'IMAGE') {
         stats.imageCount++;
       } else if (media.mediaType === 'VIDEO') {
@@ -381,25 +354,5 @@ export const cleanupMediaForDeletedUser = internalMutation({
     }
 
     return userMedia.length;
-  },
-});
-
-// Internal function to clean up media for deleted organizations
-export const cleanupMediaForDeletedOrganization = internalMutation({
-  args: { organizationId: v.string() },
-  returns: v.number(),
-  handler: async (ctx, args) => {
-    const orgMedia = await ctx.db
-      .query('media')
-      .withIndex('by_organization_id', (q) =>
-        q.eq('organizationId', args.organizationId)
-      )
-      .collect();
-
-    for (const media of orgMedia) {
-      await ctx.db.delete(media._id);
-    }
-
-    return orgMedia.length;
   },
 });

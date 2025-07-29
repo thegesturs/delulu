@@ -470,7 +470,7 @@ const publishContent = (
     .map((postResponse) => ({
       platformPostId: postResponse.id,
       postId: content.postId,
-      platformId: profile.profileId,
+      platformId: profile.id,
       platformPostUrl: `https://www.linkedin.com/feed/update/${postResponse.id}`,
       postedAt: new Date(),
     }));

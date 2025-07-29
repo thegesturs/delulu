@@ -1,6 +1,7 @@
 'use client';
 
-import { useCreatePostFromPostId } from '@/hooks/use-social-providers';
+import { getMediaUrlFromObject } from '@/lib/media-url';
+import { api as TrpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -12,11 +13,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
+import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@delulu/design-system/components/ui/tooltip';
+import {
+  type SupportedSocialPlatform,
+  socialDisplayNames,
+} from '@delulu/design-system/lib/social-config';
 import { useMutation } from 'convex/react';
 import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
@@ -35,21 +41,24 @@ interface PostCardProps {
 export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const [showPreview, setShowPreview] = React.useState(false);
   const [openDeletePost, setOpenDeletePost] = React.useState(false);
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoading, setImageLoading] = React.useState(true);
   const router = useRouter();
 
   const softDeletePost = useMutation(api.posts.deletePost);
-  const createPostFromPostIdMutation = useCreatePostFromPostId({
-    onSuccess: () => {
-      toast.success('Your post is being published. It will be posted soon.');
-      setShowPreview(false);
-    },
-    onError: (error) => {
-      toast.error('Failed to publish post');
-      if (process.env.NODE_ENV === 'development') {
-        console.error(error);
-      }
-    },
-  });
+  const createPostFromPostIdMutation =
+    TrpcApi.socialProvider.createPostFromPostId.useMutation({
+      onSuccess: () => {
+        toast.success('Your post is being published. It will be posted soon.');
+        setShowPreview(false);
+      },
+      onError: (error) => {
+        toast.error('Failed to publish post');
+        if (process.env.NODE_ENV === 'development') {
+          console.error(error);
+        }
+      },
+    });
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const statusColors = {
@@ -92,7 +101,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
 
   const handlePublish = async (id: string) => {
     toast.loading('Publishing post...');
-    createPostFromPostIdMutation.mutate({ postId: id });
+    await createPostFromPostIdMutation.mutateAsync({ postId: id });
     toast.dismiss();
   };
 
@@ -110,7 +119,9 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
             onClick={() => handlePublish(postId)}
             disabled={createPostFromPostIdMutation.isPending}
           >
-            {createPostFromPostIdMutation.isPending ? 'Publishing...' : 'Publish now'}
+            {createPostFromPostIdMutation.isPending
+              ? 'Publishing...'
+              : 'Publish now'}
           </DropdownMenuItem>,
           <DropdownMenuItem
             key="schedule"
@@ -177,8 +188,8 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
 
   return (
     <>
-      <Card className="group relative">
-        <div className="p-4">
+      <Card className="group relative py-2 transition-shadow hover:shadow-md">
+        <div className="flex h-full flex-col px-4 py-2">
           {layout === 'list' ? (
             <div className="flex w-full items-center gap-x-4">
               {/* Status */}
@@ -203,19 +214,57 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
 
               {/* Social Icons - flex-shrink-0 */}
               <div className="flex flex-shrink-0 items-center gap-1.5">
-                {post.socialProviderIds.slice(0, 3).map((providerId, index) => (
-                  <div
-                    key={providerId}
-                    className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs"
-                    title={`Social account ${index + 1}`}
-                  >
-                    {index + 1}
-                  </div>
-                ))}
-                {post.socialProviderIds.length > 3 && (
-                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
-                    +{post.socialProviderIds.length - 3}
-                  </div>
+                {post.socialProviders?.slice(0, 3).map((provider) => {
+                  const socialType = provider.socialType;
+                  if (!Object.keys(socialDisplayNames).includes(socialType)) {
+                    return null;
+                  }
+                  return (
+                    <Tooltip key={provider._id}>
+                      <TooltipTrigger>
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30">
+                          <SocialIcon
+                            type={socialType as SupportedSocialPlatform}
+                            size="sm"
+                            className="text-foreground"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-center">
+                          <div className="font-medium">
+                            {
+                              socialDisplayNames[
+                                socialType as SupportedSocialPlatform
+                              ]
+                            }
+                          </div>
+                          {provider.username && (
+                            <div className="text-primary-foreground/70 text-xs">
+                              @{provider.username}
+                            </div>
+                          )}
+                          {!provider.isActive && (
+                            <div className="text-destructive text-xs">
+                              Not connected
+                            </div>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+                {(post.socialProviders?.length || 0) > 3 && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
+                        +{(post.socialProviders?.length || 0) - 3}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {(post.socialProviders?.length || 0) - 3} more platforms
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
 
@@ -225,36 +274,78 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex h-full flex-col gap-3">
               {/* Media Preview for Grid */}
-              {firstMedia && (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                  {firstMedia.mediaType === 'IMAGE' ? (
-                    <Image
-                      src={firstMedia.url || ''}
-                      alt={firstMedia.altText || 'Post media'}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <video
-                      src={firstMedia.url}
-                      className="h-full w-full object-cover"
-                      muted
-                      loop
-                      playsInline
-                    />
-                  )}
-                  {(firstContent?.media?.length || 0) > 1 && (
-                    <Badge
-                      variant="secondary"
-                      className="absolute right-2 bottom-2"
-                    >
-                      +{(firstContent?.media?.length || 0) - 1}
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                {firstMedia ? (
+                  <>
+                    {imageLoading && firstMedia.mediaType === 'IMAGE' && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      </div>
+                    )}
+                    {firstMedia.mediaType === 'IMAGE' ? (
+                      imageError ? (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                          <div className="text-center text-muted-foreground">
+                            <div className="mx-auto mb-2 h-8 w-8 rounded bg-muted-foreground/20" />
+                            <p className="text-xs">Image failed to load</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <Image
+                          src={getMediaUrlFromObject(firstMedia)}
+                          alt={firstMedia.altText || 'Post media'}
+                          fill
+                          className={`object-cover transition-opacity duration-300 ${
+                            imageLoading ? 'opacity-0' : 'opacity-100'
+                          }`}
+                          onLoad={() => setImageLoading(false)}
+                          onError={() => {
+                            setImageError(true);
+                            setImageLoading(false);
+                            if (process.env.NODE_ENV === 'development') {
+                              console.error(
+                                `[DEBUG] Failed to load image: ${getMediaUrlFromObject(firstMedia)}`
+                              );
+                            }
+                          }}
+                        />
+                      )
+                    ) : (
+                      <video
+                        src={getMediaUrlFromObject(firstMedia)}
+                        className="h-full w-full object-cover"
+                        muted
+                        loop
+                        playsInline
+                        onError={() => {
+                          if (process.env.NODE_ENV === 'development') {
+                            console.error(
+                              `[DEBUG] Failed to load video: ${getMediaUrlFromObject(firstMedia)}`
+                            );
+                          }
+                        }}
+                      />
+                    )}
+                    {(firstContent?.media?.length || 0) > 1 && (
+                      <Badge
+                        variant="secondary"
+                        className="absolute right-2 bottom-2"
+                      >
+                        +{(firstContent?.media?.length || 0) - 1}
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <div className="h-12 w-12 rounded-lg bg-muted-foreground/10" />
+                      <span className="text-xs">No media</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Status and Actions */}
               <div className="flex items-center justify-between">
@@ -263,44 +354,74 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               </div>
 
               {/* Content */}
-              <div className="min-w-0">
-                <p className="line-clamp-3 text-sm">
-                  {firstContent?.text ?? '...'}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-3 text-sm leading-relaxed">
+                  {firstContent?.text || 'No content'}
                 </p>
               </div>
 
               {/* Schedule Info & Social Providers */}
-              <div className="flex items-center justify-between text-muted-foreground text-xs">
-                {post.scheduledAt && (
+              <div className="mt-auto flex items-center justify-between text-muted-foreground text-xs">
+                {post.scheduledAt ? (
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {new Date(post.scheduledAt).toLocaleDateString()}
+                    <span>
+                      {new Date(post.scheduledAt).toLocaleDateString()}
+                    </span>
                   </div>
+                ) : (
+                  <div />
                 )}
                 <div className="flex items-center gap-1.5">
-                  {post.socialProviderIds
-                    .slice(0, 3)
-                    .map((providerId, index) => (
-                      <Tooltip key={providerId}>
+                  {post.socialProviders?.slice(0, 3).map((provider) => {
+                    const socialType = provider.socialType;
+                    if (!Object.keys(socialDisplayNames).includes(socialType)) {
+                      return null;
+                    }
+                    return (
+                      <Tooltip key={provider._id}>
                         <TooltipTrigger>
-                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
-                            {index + 1}
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30">
+                            <SocialIcon
+                              type={socialType as SupportedSocialPlatform}
+                              size="sm"
+                              className="text-foreground"
+                            />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          Social account {index + 1}
+                          <div className="text-center">
+                            <div className="font-medium">
+                              {
+                                socialDisplayNames[
+                                  socialType as SupportedSocialPlatform
+                                ]
+                              }
+                            </div>
+                            {provider.username && (
+                              <div className="text-foreground/70 text-xs">
+                                @{provider.username}
+                              </div>
+                            )}
+                            {!provider.isActive && (
+                              <div className="text-destructive text-xs">
+                                Not connected
+                              </div>
+                            )}
+                          </div>
                         </TooltipContent>
                       </Tooltip>
-                    ))}
-                  {post.socialProviderIds.length > 3 && (
+                    );
+                  })}
+                  {(post.socialProviders?.length || 0) > 3 && (
                     <Tooltip>
                       <TooltipTrigger>
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-xs">
-                          +{post.socialProviderIds.length - 3}
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
+                          +{(post.socialProviders?.length || 0) - 3}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {post.socialProviderIds.length - 3} more accounts
+                        {(post.socialProviders?.length || 0) - 3} more platforms
                       </TooltipContent>
                     </Tooltip>
                   )}

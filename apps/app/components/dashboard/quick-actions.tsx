@@ -1,0 +1,69 @@
+'use client';
+
+import { Button } from '@delulu/design-system/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
+import {
+  Plus,
+  Upload,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+export function QuickActions() {
+  const router = useRouter();
+
+  const primaryActions = [
+    {
+      title: 'Create Post',
+      description: 'Write and schedule new content',
+      icon: Plus,
+      action: () => router.push('/post'),
+      variant: 'default' as const,
+      className: 'bg-primary text-primary-foreground hover:bg-primary/90',
+    },
+    {
+      title: 'Upload Media',
+      description: 'Add images and videos to library',
+      icon: Upload,
+      action: () => router.push('/media'),
+      variant: 'outline' as const,
+    },
+  ];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {primaryActions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <Card
+            key={action.title}
+            className="cursor-pointer hover:shadow-md transition-shadow group"
+            onClick={action.action}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Icon className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{action.title}</h3>
+                  <p className="text-muted-foreground text-sm">
+                    {action.description}
+                  </p>
+                </div>
+                <Button variant={action.variant} size="sm">
+                  Get Started
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}

@@ -63,8 +63,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<BlueskyProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new BlueskyError('Database query failed')
   ).andThen((profile) => {

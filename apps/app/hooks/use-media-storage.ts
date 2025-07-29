@@ -1,4 +1,5 @@
-import { useCreateMedia } from './use-media';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { uploadSingleFile } from './use-upload-media';
 
 interface MediaUploadResult {
@@ -8,7 +9,7 @@ interface MediaUploadResult {
 }
 
 export function useMediaStorage() {
-  const createMediaMutation = useCreateMedia();
+  const createMedia = useMutation(api.media.createMedia);
 
   const uploadAndSaveMedia = async (file: File): Promise<MediaUploadResult> => {
     // First upload the file
@@ -27,8 +28,9 @@ export function useMediaStorage() {
         size: file.size,
         extension,
       };
+      console.log('mediaData', mediaData);
 
-      const savedMedia = await createMediaMutation.mutateAsync(mediaData);
+      const savedMedia = await createMedia(mediaData);
 
       return {
         ...uploadResult,
@@ -42,6 +44,6 @@ export function useMediaStorage() {
 
   return {
     uploadAndSaveMedia,
-    isLoading: createMediaMutation.isPending,
+    isLoading: false, // Convex mutation doesn't expose loading state in the same way
   };
 }

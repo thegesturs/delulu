@@ -83,8 +83,8 @@ const getProfile = (
   socialProviderId: string
 ): ResultAsync<BaseProviderProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
-    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, { 
-      id: socialProviderId as Id<'socialProviders'> 
+    convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
+      id: socialProviderId as Id<'socialProviders'>,
     }),
     () => new FacebookError('Database query failed')
   ).andThen((profile) => {
@@ -490,14 +490,8 @@ export const facebookProvider: SocialProvider = {
         'public_profile',
         'pages_show_list',
         'pages_manage_posts',
-        'pages_read_engagement',
         'business_management',
-        'pages_manage_metadata',
         'publish_video',
-        'pages_read_user_content',
-        'pages_manage_instant_articles',
-        'pages_manage_engagement',
-        'pages_messaging',
       ].join(','),
       state: JSON.stringify({ state: nanoid(10) }),
     });

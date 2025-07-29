@@ -1,35 +1,60 @@
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { ResultAsync } from 'neverthrow';
-import { keys } from '../keys';
-import { R2UploadError, R2DownloadError, R2ConfigError } from './r2-errors';
+import type { R2Bucket } from '@delulu/cloudflare-types';
+import { ResultAsync, err, ok } from 'neverthrow';
+import { R2DownloadError, R2UploadError } from './r2-errors';
 
-// Types
-interface R2SignedUploadResponse {
-  uploadUrl: string;
-  key: string;
-}
+// Types for R2Provider
 
 export class R2Provider {
-  private s3Client: S3Client;
-  private bucketName: string;
-  private accountId: string;
+  private bucket: R2Bucket | null = null;
 
-  constructor() {
-    this.accountId = keys().R2_ACCOUNT_ID;
-    this.bucketName = keys().R2_BUCKET_NAME;
+  constructor(bucket?: R2Bucket) {
+    this.bucket = bucket || null;
+  }
 
-    this.s3Client = new S3Client({
-      region: 'auto',
-      endpoint: `https://${this.accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: keys().R2_ACCESS_KEY_ID,
-        secretAccessKey: keys().R2_SECRET_ACCESS_KEY,
-      },
+  setBucket(bucket: R2Bucket) {
+    this.bucket = bucket;
+  }
+
+  getFile(
+    key: string
+  ): ResultAsync<
+    { content: ArrayBuffer; contentType: string; contentLength?: number },
+    R2DownloadError
+  > {
+    if (!key || key.trim() === '') {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(
+          new R2DownloadError('Key is required for file retrieval')
+        )
+      );
+    }
+
+    if (!this.bucket) {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2DownloadError('R2 bucket not configured'))
+      );
+    }
+
+    return ResultAsync.fromPromise(
+      this.bucket.get(key),
+      (error) =>
+        new R2DownloadError(`Failed to retrieve file from R2: ${error}`)
+    ).andThen((object) => {
+      if (!object) {
+        return ResultAsync.fromSafePromise(
+          Promise.reject(new R2DownloadError('File not found'))
+        );
+      }
+
+      return ResultAsync.fromPromise(
+        object.arrayBuffer(),
+        (error) => new R2DownloadError(`Failed to read file content: ${error}`)
+      ).map((content) => ({
+        content,
+        contentType:
+          object.httpMetadata?.contentType || 'application/octet-stream',
+        contentLength: object.size,
+      }));
     });
   }
 
@@ -40,55 +65,58 @@ export class R2Provider {
       );
     }
 
-    const command = new GetObjectCommand({
-      Bucket: this.bucketName,
-      Key: key,
-    });
+    if (!this.bucket) {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2DownloadError('R2 bucket not configured'))
+      );
+    }
 
-    return ResultAsync.fromPromise(
-      getSignedUrl(this.s3Client, command, { expiresIn: 3600 }),
-      (error) => new R2DownloadError(`Failed to generate download URL: ${error}`)
-    ).map((url) =>
-      url.replace(
-        `https://delulu-social.${this.accountId}.r2.cloudflarestorage.com`,
-        'https://media.delulu.social'
-      )
-    );
+    // Environment-aware URL generation
+    const isProduction = process.env.NODE_ENV === 'production';
+    const downloadUrl = isProduction
+      ? `https://media.delulu.social/${key}`
+      : `/api/media/${key}`;
+
+    return ResultAsync.fromSafePromise(Promise.resolve(downloadUrl));
   }
 
-  getSignedUploadUrl(
+  uploadFile(
     key: string,
+    file: ArrayBuffer,
     contentType: string
-  ): ResultAsync<R2SignedUploadResponse, R2UploadError> {
-    if (!key || key.trim() === '') {
+  ): ResultAsync<
+    { success: boolean; key: string; downloadUrl: string },
+    R2UploadError
+  > {
+    if (!this.bucket) {
       return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError('Key is required for upload URL'))
+        Promise.reject(new R2UploadError('R2 bucket not configured'))
       );
     }
-
-    if (!contentType || contentType.trim() === '') {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError('Content type is required for upload URL'))
-      );
-    }
-
-    const command = new PutObjectCommand({
-      Bucket: this.bucketName,
-      Key: key,
-      ContentType: contentType,
-    });
 
     return ResultAsync.fromPromise(
-      getSignedUrl(this.s3Client, command, {
-        expiresIn: 3600,
-        signableHeaders: new Set(['content-type']),
+      this.bucket.put(key, file, {
+        httpMetadata: {
+          contentType: contentType,
+        },
       }),
-      (error) => new R2UploadError(`Failed to generate upload URL: ${error}`)
-    ).map((uploadUrl) => ({
-      uploadUrl,
-      key,
-    }));
+      (error) => new R2UploadError(`Failed to upload file to R2: ${error}`)
+    ).andThen((result) => {
+      if (!result) {
+        return err(
+          new R2UploadError('Upload completed but no result returned')
+        );
+      }
+
+      return ok({
+        success: true,
+        key: key,
+        downloadUrl: `https://media.delulu.social/${key}`,
+      });
+    });
   }
+
+  // Note: getSignedUploadUrl removed - we use direct uploads through the API instead
 }
 
 export const r2Provider = new R2Provider();

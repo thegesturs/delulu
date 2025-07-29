@@ -18,12 +18,18 @@ export const mediaRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { limit, cursor = 0, mediaType } = input;
 
-      const media = await fetchQuery(api.media.getMediaByUserId, {
-        userId: ctx.userId,
-        limit: limit + 1, // Fetch one extra to determine if there are more
-        offset: cursor,
-        mediaType,
-      });
+      const media = await fetchQuery(
+        api.media.getMediaByUserId,
+        {
+          userId: ctx.userId,
+          limit: limit + 1, // Fetch one extra to determine if there are more
+          offset: cursor,
+          mediaType,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       // Filter by search if provided
       const filteredMedia = input.search
@@ -52,9 +58,15 @@ export const mediaRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await fetchQuery(api.media.getMediaById, {
-        id: input.id as Id<'media'>,
-      });
+      const media = await fetchQuery(
+        api.media.getMediaById,
+        {
+          id: input.id as Id<'media'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
@@ -67,9 +79,15 @@ export const mediaRouter = createTRPCRouter({
   getByBucketKey: protectedProcedure
     .input(z.object({ bucketKey: z.string() }))
     .query(async ({ ctx, input }) => {
-      const media = await fetchQuery(api.media.getMediaByBucketKey, {
-        bucketKey: input.bucketKey,
-      });
+      const media = await fetchQuery(
+        api.media.getMediaByBucketKey,
+        {
+          bucketKey: input.bucketKey,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       if (!media || media.userId !== ctx.userId) {
         throw new Error('Media not found');
@@ -94,10 +112,9 @@ export const mediaRouter = createTRPCRouter({
         thumbnailBucketKey: z.string().optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       return await fetchMutation(api.media.createMedia, {
         ...input,
-        userId: ctx.userId,
       });
     }),
 
@@ -114,18 +131,30 @@ export const mediaRouter = createTRPCRouter({
       const { id, ...updates } = input;
 
       // Verify ownership
-      const existingMedia = await fetchQuery(api.media.getMediaById, {
-        id: id as Id<'media'>,
-      });
+      const existingMedia = await fetchQuery(
+        api.media.getMediaById,
+        {
+          id: id as Id<'media'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
 
-      return await fetchMutation(api.media.updateMedia, {
-        id: id as Id<'media'>,
-        ...updates,
-      });
+      return await fetchMutation(
+        api.media.updateMedia,
+        {
+          id: id as Id<'media'>,
+          ...updates,
+        },
+        {
+          token: ctx.token,
+        }
+      );
     }),
 
   // Delete media
@@ -133,23 +162,41 @@ export const mediaRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       // Verify ownership
-      const existingMedia = await fetchQuery(api.media.getMediaById, {
-        id: input.id as Id<'media'>,
-      });
+      const existingMedia = await fetchQuery(
+        api.media.getMediaById,
+        {
+          id: input.id as Id<'media'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
 
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
         throw new Error('Media not found');
       }
 
-      return await fetchMutation(api.media.deleteMedia, {
-        id: input.id as Id<'media'>,
-      });
+      return await fetchMutation(
+        api.media.deleteMedia,
+        {
+          id: input.id as Id<'media'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
     }),
 
   // Get media stats
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    return await fetchQuery(api.media.getMediaStats, {
-      userId: ctx.userId,
-    });
+    return await fetchQuery(
+      api.media.getMediaStats,
+      {
+        userId: ctx.userId,
+      },
+      {
+        token: ctx.token,
+      }
+    );
   }),
 });

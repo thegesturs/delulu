@@ -1,10 +1,4 @@
-import { getSocials } from '@/server/socials';
-
-export default async function CalendarPage() {
-  const test = await getSocials();
-
-  console.log('hello', test);
-
+export default function CalendarPage() {
   return (
     <div>
       <h1>Calendar</h1>

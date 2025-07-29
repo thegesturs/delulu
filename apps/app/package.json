@@ -64,6 +64,7 @@
   "devDependencies": {
     "@delulu/testing": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
+    "@delulu/cloudflare-types": "workspace:*",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "22.14.1",
