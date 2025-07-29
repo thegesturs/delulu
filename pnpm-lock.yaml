@@ -94,12 +94,6 @@ importers:
 
   apps/app:
     dependencies:
-      '@clerk/nextjs':
-        specifier: ^6.25.4
-        version: 6.25.4(next@15.3.0(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@clerk/themes':
-        specifier: ^2.3.3
-        version: 2.3.3
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
@@ -710,6 +704,9 @@ importers:
       '@delulu/validators':
         specifier: workspace:*
         version: link:../validators
+      '@delulu/worker':
+        specifier: workspace:*
+        version: link:../worker
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@22.15.34)(typescript@5.8.3)
@@ -725,6 +722,28 @@ importers:
       '@clerk/nextjs':
         specifier: ^6.25.4
         version: 6.25.4(next@15.3.0(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@clerk/themes':
+        specifier: ^2.2.46
+        version: 2.3.3
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react:
+        specifier: catalog:react19
+        version: 19.1.0
+      server-only:
+        specifier: ^0.0.1
+        version: 0.0.1
+    devDependencies:
+      '@clerk/types':
+        specifier: ^4.59.1
+        version: 4.68.0
+      '@delulu/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/react':
+        specifier: catalog:react19
+        version: 19.1.0
 
   packages/cloudflare-types:
     dependencies:

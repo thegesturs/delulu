@@ -53,13 +53,13 @@ export const socialColors = {
 } as const;
 
 export const socialBackgroundColors = {
-  TWITTER: 'bg-black dark:bg-white',
+  TWITTER: 'bg-black',
   LINKEDIN: 'bg-sky-700',
   INSTAGRAM: 'bg-gradient-to-r from-[#E4405F] to-[#FCAF45]',
   YOUTUBE: 'bg-red-600',
-  TIKTOK: 'bg-black dark:bg-white',
+  TIKTOK: 'bg-black',
   FACEBOOK: 'bg-blue-600',
-  THREADS: 'bg-black dark:bg-white',
+  THREADS: 'bg-black',
   FARCASTER: 'bg-purple-600',
   PINTEREST: 'bg-red-600',
   BLUESKY: 'bg-sky-500',
@@ -89,6 +89,7 @@ export const socialDescriptions = {
   FARCASTER: 'Connect your Farcaster account',
   PINTEREST: 'Connect your Pinterest account',
   BLUESKY: 'Connect your Bluesky account',
+
 } as const;
 
 export const sizeClasses = {

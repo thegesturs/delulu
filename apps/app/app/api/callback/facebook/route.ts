@@ -1,6 +1,6 @@
 import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@clerk/nextjs/server';
 import { keys } from '@delulu/api/keys';
+import { auth } from '@delulu/auth/server';
 import { encryptData } from '@delulu/database/convex/utils';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';

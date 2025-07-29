@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@delulu/auth/server';
 import {
   noseconeMiddleware,
   noseconeOptions,

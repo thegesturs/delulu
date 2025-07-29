@@ -30,6 +30,26 @@ const ERROR_MESSAGES = {
     description:
       'We could not fetch your Twitter profile information. Please try again.',
   },
+  youtube_auth_failed: {
+    title: 'YouTube Authentication Failed',
+    description:
+      'We encountered an error while connecting to YouTube. Please try again.',
+  },
+  youtube_insufficient_permissions: {
+    title: 'Insufficient YouTube Permissions',
+    description:
+      'You must grant all requested permissions to connect your YouTube account. Please try again and make sure to select all permissions.',
+  },
+  youtube_user_fetch_failed: {
+    title: 'Failed to Fetch YouTube Profile',
+    description:
+      'We could not fetch your YouTube profile information. Please try again.',
+  },
+  youtube_no_channel: {
+    title: 'No YouTube Channel Found',
+    description:
+      'You need to create a YouTube channel first. Please visit YouTube.com to create a channel, then try connecting again.',
+  },
   internal_error: {
     title: 'Internal Error',
     description: 'An unexpected error occurred. Please try again later.',
@@ -61,18 +81,25 @@ function SocialNotificationsContent() {
     setVisible(true);
   }, [searchParams]);
 
+  console.log('searchParams', searchParams);
+
   const error = searchParams.get('error');
   const notification = searchParams.get('notification');
   const provider = searchParams.get('provider') as
     | 'TWITTER'
     | 'LINKEDIN'
+    | 'YOUTUBE'
     | null;
+
+  console.log('error', error);
+  console.log('notification', notification);
+  console.log('provider', provider);
 
   if (!visible) {
     return null;
   }
 
-  const handleRetry = async (socialProvider?: 'TWITTER' | 'LINKEDIN') => {
+  const handleRetry = async (socialProvider?: 'TWITTER' | 'LINKEDIN' | 'YOUTUBE') => {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
@@ -149,6 +176,7 @@ function SocialNotificationsContent() {
 }
 
 export function SocialNotifications() {
+  console.log('SocialNotifications');
   return (
     <Suspense>
       <SocialNotificationsContent />

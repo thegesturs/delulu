@@ -8,8 +8,8 @@ interface SocialErrorProps {
   message: string;
   variant?: 'error' | 'warning';
   showRetry?: boolean;
-  provider?: 'TWITTER' | 'LINKEDIN';
-  onRetry?: (provider?: 'TWITTER' | 'LINKEDIN') => void;
+  provider?: 'TWITTER' | 'LINKEDIN' | 'YOUTUBE';
+  onRetry?: (provider?: 'TWITTER' | 'LINKEDIN' | 'YOUTUBE') => void;
   onDismiss?: () => void;
 }
 

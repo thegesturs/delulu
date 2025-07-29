@@ -7,7 +7,7 @@ import type {
 } from '@delulu/validators/post';
 import { providerRegistry } from './providers';
 
-async function processMessage(messageBody: string) {
+export async function processMessage(messageBody: string) {
   console.log('Message body', messageBody);
   const { socialPublishInput, socialType } = JSON.parse(messageBody) as {
     socialPublishInput: SocialPublishInputType;
@@ -46,7 +46,8 @@ async function processMessage(messageBody: string) {
     status: 'PUBLISHED',
     platformPostData: {
       platformPostId: result.value.platformPostId,
-      socialProviderId: socialPublishInput.socialProviderId as Id<'socialProviders'>,
+      socialProviderId:
+        socialPublishInput.socialProviderId as Id<'socialProviders'>,
       platformPostUrl: result.value.platformPostUrl,
       postedAt: Date.now(),
       postId: socialPublishInput.postId as Id<'posts'>,
@@ -54,23 +55,3 @@ async function processMessage(messageBody: string) {
   });
   return result;
 }
-
-// Get message from ECS environment variable
-const messageBody = process.env.MESSAGE_BODY;
-
-console.log('Message body', messageBody);
-
-if (!messageBody) {
-  throw new Error('No MESSAGE_BODY environment variable provided');
-}
-
-// Process the message and exit
-processMessage(messageBody)
-  .then(() => {
-    console.log('Message processed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Failed to process message:', error);
-    process.exit(1);
-  });

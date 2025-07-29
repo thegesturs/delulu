@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
 import { fetchMutation, fetchQuery } from '@delulu/database/server';
 import { type NextRequest, NextResponse } from 'next/server';
