@@ -1,5 +1,6 @@
 'use client';
 
+import type { UpcomingPost } from '@/types/convex';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
 import { useRouter } from 'next/navigation';
-import type { UpcomingPost } from '@/types/convex';
 
 interface UpcomingScheduleProps {
   upcomingPosts: UpcomingPost[];

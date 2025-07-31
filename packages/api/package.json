@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "@delulu/database": "workspace:*",
-    "@delulu/worker": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
     "ts-node-dev": "^2.0.0",

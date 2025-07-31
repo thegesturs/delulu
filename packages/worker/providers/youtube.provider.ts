@@ -1,7 +1,6 @@
 import type { IncomingMessage } from 'node:http';
 import https from 'node:https';
 import type { Readable } from 'node:stream';
-import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
@@ -9,6 +8,7 @@ import { getValidMediaUrls } from '@delulu/validators/post';
 import { google } from 'googleapis';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { keys } from '../key';
 
 import type {
   PostContent,

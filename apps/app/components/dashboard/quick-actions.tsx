@@ -1,17 +1,8 @@
 'use client';
 
 import { Button } from '@delulu/design-system/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import {
-  Plus,
-  Upload,
-} from 'lucide-react';
+import { Card, CardContent } from '@delulu/design-system/components/ui/card';
+import { Plus, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function QuickActions() {
@@ -42,12 +33,12 @@ export function QuickActions() {
         return (
           <Card
             key={action.title}
-            className="cursor-pointer hover:shadow-md transition-shadow group"
+            className="group cursor-pointer transition-shadow hover:shadow-md"
             onClick={action.action}
           >
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <div className="rounded-lg bg-primary/10 p-3 transition-colors group-hover:bg-primary/20">
                   <Icon className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">

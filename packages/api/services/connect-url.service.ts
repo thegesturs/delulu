@@ -99,10 +99,7 @@ export const connectUrlRegistry = {
         client_id: keys().THREADS_CLIENT_ID,
         redirect_uri: keys().THREADS_CALLBACK_URL,
         response_type: 'code',
-        scope: [
-          'threads_basic',
-          'threads_content_publish',
-        ].join(','),
+        scope: ['threads_basic', 'threads_content_publish'].join(','),
       });
 
       return `https://threads.net/oauth/authorize?${params.toString()}`;

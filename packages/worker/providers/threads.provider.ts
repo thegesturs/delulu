@@ -1,4 +1,3 @@
-import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
@@ -13,6 +12,7 @@ import {
   ok,
   okAsync,
 } from 'neverthrow';
+import { keys } from '../key';
 
 import type {
   BaseProviderProfile,

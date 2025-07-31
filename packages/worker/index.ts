@@ -46,7 +46,8 @@ async function processMessage(messageBody: string) {
     status: 'PUBLISHED',
     platformPostData: {
       platformPostId: result.value.platformPostId,
-      socialProviderId: socialPublishInput.socialProviderId as Id<'socialProviders'>,
+      socialProviderId:
+        socialPublishInput.socialProviderId as Id<'socialProviders'>,
       platformPostUrl: result.value.platformPostUrl,
       postedAt: Date.now(),
       postId: socialPublishInput.postId as Id<'posts'>,

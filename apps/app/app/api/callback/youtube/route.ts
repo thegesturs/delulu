@@ -167,7 +167,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const channelData = (await channelResponse.json()) as YouTubeChannelResponse;
+    const channelData =
+      (await channelResponse.json()) as YouTubeChannelResponse;
 
     // Check if user has a YouTube channel
     if (!channelData.items || channelData.items.length === 0) {

@@ -1,4 +1,3 @@
-import { keys } from '@delulu/api/keys';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
@@ -10,6 +9,7 @@ import {
 import axios from 'axios';
 import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
 import { Client, auth } from 'twitter-api-sdk';
+import { keys } from '../key';
 import type { PostContent, PostPublishResult } from './common-types';
 import {
   APIError,

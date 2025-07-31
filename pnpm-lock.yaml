@@ -704,9 +704,6 @@ importers:
       '@delulu/validators':
         specifier: workspace:*
         version: link:../validators
-      '@delulu/worker':
-        specifier: workspace:*
-        version: link:../worker
       ts-node-dev:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@22.15.34)(typescript@5.8.3)

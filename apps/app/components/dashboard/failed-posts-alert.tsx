@@ -1,5 +1,6 @@
 'use client';
 
+import type { FailedPost } from '@/types/convex';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Card,
@@ -10,7 +11,6 @@ import {
 } from '@delulu/design-system/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { FailedPost } from '@/types/convex';
 
 interface FailedPostsAlertProps {
   failedPosts: FailedPost[];

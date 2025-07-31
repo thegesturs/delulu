@@ -99,7 +99,9 @@ function SocialNotificationsContent() {
     return null;
   }
 
-  const handleRetry = async (socialProvider?: 'TWITTER' | 'LINKEDIN' | 'YOUTUBE') => {
+  const handleRetry = async (
+    socialProvider?: 'TWITTER' | 'LINKEDIN' | 'YOUTUBE'
+  ) => {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
