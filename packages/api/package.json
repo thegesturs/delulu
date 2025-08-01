@@ -28,7 +28,7 @@
     "neverthrow": "^8.2.0",
     "node": "^20.19.4",
     "openai": "^4.67.3",
-    "superjson": "2.2.1",
+    "superjson": "2.2.2",
     "twitter-api-sdk": "^1.2.1",
     "zod": "catalog:"
   },
