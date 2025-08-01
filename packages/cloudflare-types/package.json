@@ -18,7 +18,7 @@
     "cf-typegen": "cd ../../apps/app && pnpm cf-typegen && cp cloudflare-env.d.ts ../../packages/cloudflare-types/ && node ../../packages/cloudflare-types/scripts/extract-types.cjs"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.4.0"
+    "@opennextjs/cloudflare": "^1.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250710.0",
