@@ -1132,8 +1132,8 @@ importers:
   packages/notifications:
     dependencies:
       '@knocklabs/node':
-        specifier: ^0.6.19
-        version: 0.6.19
+        specifier: ^1.11.2
+        version: 1.11.2
       '@knocklabs/react':
         specifier: ^0.7.25
         version: 0.7.25(@types/react-dom@19.1.0(@types/react@19.1.0))(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -3869,9 +3869,8 @@ packages:
   '@knocklabs/client@0.15.1':
     resolution: {integrity: sha512-LzT7XioZmC0cgvp1MzE5NFeGIgF7oKYKyC28CbASx6AwjogF1PCU1ta8JAufH/MdslEndtjk7VauODixrNsC8g==}
 
-  '@knocklabs/node@0.6.19':
-    resolution: {integrity: sha512-hmu0g7BJiHz20ApkRnesM0SeOugvYhwHilwDMDk1TmpdQ2Z7jmWrYRsmR7L78EZ5zvEBR6bExICqmW9bz4oXQw==}
-    engines: {node: '>=17.5.0'}
+  '@knocklabs/node@1.11.2':
+    resolution: {integrity: sha512-0/xTvyJ6n6nzb3ygNQ5DXVwQkJcPrty4qLqE5GaxbYhpkEgl66CAvd6oNTtMnhKbhgh7UqO6n3bq1hzb05tZ6g==}
 
   '@knocklabs/react-core@0.7.3':
     resolution: {integrity: sha512-vCIZmwQWC4b8wfvPNRFhkQZb3vX6ihpb15Vu0qiT6ZeEAMk5YyDGktMKbcbqiLYsUGjXzgTrU9lrrzmQPwehuw==}
@@ -9380,11 +9379,11 @@ packages:
   jose@4.15.9:
     resolution: {integrity: sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==}
 
-  jose@5.10.0:
-    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
-
   jose@5.2.3:
     resolution: {integrity: sha512-KUXdbctm1uHVL8BYhnyHkgp3zDX5KW8ZhAKVFEfUbU2P8Alpzjb+48hHvjOdQIyPshoblhzsuqOwEEAbtHVirA==}
+
+  jose@6.0.12:
+    resolution: {integrity: sha512-T8xypXs8CpmiIi78k0E+Lk7T2zlK4zDyg+o1CZ4AkOHgDg98ogdP2BeZ61lTFKFyoEwJ9RgAgN+SdM3iPgNonQ==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -16452,9 +16451,9 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@knocklabs/node@0.6.19':
+  '@knocklabs/node@1.11.2':
     dependencies:
-      jose: 5.10.0
+      jose: 6.0.12
 
   '@knocklabs/react-core@0.7.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
@@ -23278,9 +23277,9 @@ snapshots:
 
   jose@4.15.9: {}
 
-  jose@5.10.0: {}
-
   jose@5.2.3: {}
+
+  jose@6.0.12: {}
 
   joycon@3.1.1: {}
 
