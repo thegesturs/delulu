@@ -28,7 +28,7 @@
     "@delulu/seo": "workspace:*",
     "@delulu/webhooks": "workspace:*",
     "@opennextjs/cloudflare": "1.6.0",
-    "@sentry/nextjs": "^9.12.0",
+    "@sentry/nextjs": "^10.0.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "catalog:",
     "@trpc/client": "catalog:",
