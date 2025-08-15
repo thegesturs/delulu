@@ -4,28 +4,9 @@ import { v } from 'convex/values';
 // USER SCHEMAS
 // ============================================================================
 
-// Streak tracking schema
-const streakSchema = v.object({
-  current: v.number(),
-  lastCountedDate: v.number(),
-  longest: v.object({
-    count: v.number(),
-    startDate: v.number(),
-    endDate: v.number(),
-  }),
-  lastCheckedDate: v.number(),
-  publishedToday: v.boolean(),
-  lastMaintenanceRun: v.number(),
-  maintenanceStatus: v.union(
-    v.literal('success'),
-    v.literal('pending'),
-    v.literal('failed')
-  ),
-});
-
 // Stats schema for user analytics and tracking
 const statsSchema = v.object({
-  streak: v.optional(streakSchema),
+  publishDates: v.optional(v.array(v.number())), // Array of publish dates for streak calculation
   // Extensible for future stats
 });
 
