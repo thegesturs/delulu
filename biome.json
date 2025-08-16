@@ -26,7 +26,8 @@
       "recommended": true,
       "style": {
         "useTemplate": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noInferrableTypes": "off"
       },
       "a11y": {
         "noAriaUnsupportedElements": "warn",
