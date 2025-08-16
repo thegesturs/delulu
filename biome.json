@@ -53,7 +53,10 @@
         "noDangerouslySetInnerHtmlWithChildren": "error",
         "noDangerouslySetInnerHtml": "warn"
       },
-      "suspicious": { "noCommentText": "error", "noDuplicateJsxProps": "error" }
+      "suspicious": {
+        "noCommentText": "error",
+        "noDuplicateJsxProps": "error"
+      }
     }
   }
 }

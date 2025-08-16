@@ -105,6 +105,12 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     toast.dismiss();
   };
 
+  const handleRetry = async (id: string) => {
+    toast.loading('Retrying post...');
+    await createPostFromPostIdMutation.mutateAsync({ postId: id });
+    toast.dismiss();
+  };
+
   const renderActionItems = () => {
     const items = [];
 
@@ -141,6 +147,16 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
             onClick={() => handleScheduleChange(postId)}
           >
             Reschedule
+          </DropdownMenuItem>
+        );
+        break;
+      case 'FAILED':
+        items.push(
+          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
+            Edit
+          </DropdownMenuItem>,
+          <DropdownMenuItem key="retry" onClick={() => handleRetry(postId)}>
+            Retry
           </DropdownMenuItem>
         );
         break;

@@ -32,9 +32,6 @@ interface InstagramMediaContainer {
 interface InstagramContainerStatus {
   id: string;
   status_code: 'IN_PROGRESS' | 'FINISHED' | 'ERROR';
-  error?: {
-    message: string;
-  };
 }
 
 interface InstagramMediaPublishResponse {
@@ -83,6 +80,8 @@ const createSingleMediaContainer = (
     );
   }
 
+  console.log(`[Instagram] Creating ${media.mediaType.toLowerCase()} container${media.mediaType === 'VIDEO' ? ' (Instagram will fetch video from URL)' : ''}`);
+
   const endpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
 
   const params = new URLSearchParams({
@@ -102,7 +101,10 @@ const createSingleMediaContainer = (
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
     (error: unknown) => createAPIError('Instagram', error)
-  ).map((response) => response.data);
+  ).map((response) => {
+    console.log(`[Instagram] Container created successfully: ${response.data.id}`);
+    return response.data;
+  });
 };
 
 // Create carousel container for multiple images
@@ -149,12 +151,15 @@ const createCarouselContainer = (
   });
 };
 
+
 // Publish media container
 const publishMediaContainer = (
   containerId: string,
   profileId: string,
   accessToken: string
 ): ResultAsync<InstagramMediaPublishResponse, SocialProviderError> => {
+  console.log(`[Instagram] Publishing container: ${containerId}`);
+  
   const endpoint = `https://graph.instagram.com/v23.0/${profileId}/media_publish`;
   const params = new URLSearchParams({
     creation_id: containerId,
@@ -163,8 +168,14 @@ const publishMediaContainer = (
 
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    (error: unknown) => createAPIError('Instagram', error)
-  ).map((response) => response.data);
+    (error: unknown) => {
+      console.log(`[Instagram] Publishing failed for container: ${containerId}`);
+      return createAPIError('Instagram', error);
+    }
+  ).map((response) => {
+    console.log(`[Instagram] Published successfully with media ID: ${response.data.id}`);
+    return response.data;
+  });
 };
 
 // Check container status
@@ -172,6 +183,8 @@ const checkContainerStatus = (
   containerId: string,
   accessToken: string
 ): ResultAsync<InstagramContainerStatus, SocialProviderError> => {
+  console.log(`[Instagram] Checking container status for: ${containerId}`);
+  
   return ResultAsync.fromPromise(
     axios.get(`https://graph.instagram.com/v23.0/${containerId}`, {
       params: {
@@ -179,38 +192,69 @@ const checkContainerStatus = (
         access_token: accessToken,
       },
     }),
-    (error: unknown) => createAPIError('Instagram', error)
-  ).map((response) => response.data);
+    (error: unknown) => {
+      console.log(`[Instagram] ❌ Container status check failed for ${containerId}:`, error);
+      return createAPIError('Instagram', error);
+    }
+  ).map((response) => {
+    console.log(`[Instagram] Raw status response for ${containerId}:`, JSON.stringify(response.data, null, 2));
+    return response.data;
+  });
 };
 
 // Wait for container processing to complete
 const waitForContainerProcessing = (
   containerId: string,
   accessToken: string,
-  maxAttempts = 30,
+  maxAttempts = 60, // Increased from 30 to 60 (10 minutes total)
   interval = 10000
 ): ResultAsync<void, SocialProviderError> => {
+  const startTime = Date.now();
+  console.log(`[Instagram] Starting to monitor container processing: ${containerId} (max ${maxAttempts} attempts, ${(maxAttempts * interval) / 1000 / 60} minutes)`);
+  
   const poll = async (attempts: number): Promise<void> => {
+    console.log(`[Instagram] 🔄 Polling attempt ${attempts + 1}/${maxAttempts} for container: ${containerId}`);
+    
     if (attempts >= maxAttempts) {
+      const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
+      console.log(`[Instagram] Container processing timeout after ${maxAttempts} attempts (${elapsedMinutes.toFixed(1)} minutes): ${containerId}`);
       throw new MediaProcessingTimeoutError('Instagram');
     }
 
-    const statusResult = await checkContainerStatus(containerId, accessToken);
-    if (statusResult.isErr()) {
-      throw statusResult.error;
+    let statusResult: ResultAsync<InstagramContainerStatus, SocialProviderError>;
+    try {
+      statusResult = await checkContainerStatus(containerId, accessToken);
+      if (statusResult.isErr()) {
+        console.log(`[Instagram] ❌ Status check error for ${containerId}:`, statusResult.error);
+        throw statusResult;
+      }
+      
+      console.log(`[Instagram] ✅ Status check success for ${containerId}`);
+    } catch (error) {
+      console.log(`[Instagram] ❌ Unexpected error in status check for ${containerId}:`, error);
+      throw error;
     }
 
     const status = statusResult.value;
+    const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
+    
+    // Log warning if processing is taking longer than expected
+    if (attempts > 10 && status.status_code === 'IN_PROGRESS') {
+      console.log(`[Instagram] ⚠️  Container still processing aftoConsoleLoger ${elapsedMinutes.toFixed(1)} minutes (attempt ${attempts + 1}): ${containerId}`);
+    } else {
+      console.log(`[Instagram] Container status (attempt ${attempts + 1}): ${status.status_code} for ${containerId}`);
+    }
 
     if (status.status_code === 'FINISHED') {
+      const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
+      console.log(`[Instagram] Container processing completed after ${elapsedMinutes.toFixed(1)} minutes: ${containerId}`);
       return;
     }
 
     if (status.status_code === 'ERROR') {
-      throw new MediaProcessingError(
-        'Instagram',
-        status.error?.message || 'Container processing failed'
-      );
+      const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
+      console.log(`[Instagram] Container processing error after ${elapsedMinutes.toFixed(1)} minutes for ${containerId}`);
+      throw new MediaProcessingError('Instagram', `Container processing failed (failed after ${elapsedMinutes.toFixed(1)} minutes)`);
     }
 
     if (status.status_code === 'IN_PROGRESS') {
@@ -220,6 +264,8 @@ const waitForContainerProcessing = (
   };
 
   return ResultAsync.fromPromise(poll(0), (error: unknown) => {
+    console.log(`[Instagram] ❌ Processing wait failed for ${containerId}:`, error);
+    
     if (
       error instanceof MediaProcessingTimeoutError ||
       error instanceof MediaProcessingError
@@ -232,6 +278,9 @@ const waitForContainerProcessing = (
       'Instagram',
       `Container processing failed: ${errorMessage}`
     );
+  }).map((result) => {
+    console.log(`[Instagram] ✅ Processing wait completed successfully for ${containerId}`);
+    return result;
   });
 };
 
@@ -307,7 +356,7 @@ const publishContent = (
   >;
 
   if (videoMedia.length === 1) {
-    // Single video (Reels)
+    // Single video (Reels) - Instagram will fetch video from URL
     containerPromise = createSingleMediaContainer(
       { url: videoMedia[0].url!, mediaType: 'VIDEO' },
       profile,
@@ -332,29 +381,38 @@ const publishContent = (
 
   return containerPromise
     .andThen((container) => {
+      console.log(`[Instagram] 📋 Container ready, starting processing wait: ${container.id}`);
       // Wait for container processing to complete before publishing
       return waitForContainerProcessing(container.id, profile.accessToken).map(
-        () => container
+        () => {
+          console.log(`[Instagram] ✅ Processing wait completed, container ready for publishing: ${container.id}`);
+          return container;
+        }
       );
     })
-    .andThen((container) =>
-      publishMediaContainer(
+    .andThen((container) => {
+      console.log(`[Instagram] 🚀 Starting media container publish: ${container.id}`);
+      return publishMediaContainer(
         container.id,
         profile.profileId,
         profile.accessToken
-      )
-    )
-    .andThen((publishResponse) =>
-      getMediaDetails(publishResponse.id, profile.accessToken).map(
-        (mediaDetails) => ({
-          platformPostId: publishResponse.id,
-          postId: content.postId,
-          platformId: profile.id,
-          platformPostUrl: mediaDetails.permalink,
-          postedAt: new Date(),
-        })
-      )
-    );
+      );
+    })
+    .andThen((publishResponse) => {
+      console.log(`[Instagram] 📊 Getting media details for published content: ${publishResponse.id}`);
+      return getMediaDetails(publishResponse.id, profile.accessToken).map(
+        (mediaDetails) => {
+          console.log(`[Instagram] Post published successfully: ${mediaDetails.permalink}`);
+          return {
+            platformPostId: publishResponse.id,
+            postId: content.postId,
+            platformId: profile.id,
+            platformPostUrl: mediaDetails.permalink,
+            postedAt: new Date(),
+          };
+        }
+      );
+    });
 };
 
 // Provider implementation
