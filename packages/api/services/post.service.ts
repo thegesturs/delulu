@@ -1,6 +1,7 @@
+import { keys } from '@api/keys';
 import type { GetPostByIdSchema } from '@delulu/database/convex/schemas';
 import { SocialTypes } from '@delulu/validators/post';
-import { processMessage } from '@delulu/worker/client';
+// import { processMessage } from '@delulu/worker/client';
 
 const LAMBDA_URL =
   'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
@@ -21,41 +22,41 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
     const contentToPost = alternativeContent?.content ?? post.content;
 
     // Fire and forget - just queue it
-    // const response = await fetch(LAMBDA_URL, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'x-api-key': keys().POSTING_SECRET_KEY,
-    //   },
-    //   body: JSON.stringify({
-    //     socialType: provider.socialType,
-    //     socialPublishInput: {
-    //       content: contentToPost,
-    //       postId: post._id,
-    //       socialProviderId: provider._id,
-    //     },
-    //   }),
-    // });
-
-    const result = await processMessage(
-      JSON.stringify({
+    const response = await fetch(LAMBDA_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': keys().POSTING_SECRET_KEY,
+      },
+      body: JSON.stringify({
         socialType: provider.socialType,
         socialPublishInput: {
           content: contentToPost,
           postId: post._id,
           socialProviderId: provider._id,
         },
-      })
-    );
+      }),
+    });
 
-    console.log('Result', result);
+    // const result = await processMessage(
+    //   JSON.stringify({
+    //     socialType: provider.socialType,
+    //     socialPublishInput: {
+    //       content: contentToPost,
+    //       postId: post._id,
+    //       socialProviderId: provider._id,
+    //     },
+    //   })
+    // );
 
-    // if (!response.ok) {
-    //   throw new Error(
-    //     `Failed to queue post: ${response.status} ${response.statusText}`
-    //   );
-    // }
+    // console.log('Result', res);
 
-    // console.log('Response', response);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to queue post: ${response.status} ${response.statusText}`
+      );
+    }
+
+    console.log('Response', response);
   }
 };

@@ -55,9 +55,8 @@ export const noseconeOptions: NoseconeOptions = {
         'https://media.licdn.com',
         // GitHub
         'https://avatars.githubusercontent.com',
-        // Instagram CDN - specific subdomain patterns
-        'https://scontent.cdninstagram.com',
-        'https://scontent-*.cdninstagram.com',
+        // Instagram CDN - all subdomains
+        'https://*.cdninstagram.com',
         // Facebook Graph API - restricted to specific endpoints
         'https://graph.facebook.com',
         // Facebook CDN - specific domains only
