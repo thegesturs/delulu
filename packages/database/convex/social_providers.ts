@@ -5,6 +5,7 @@ import { internalMutation, mutation, query } from './_generated/server.js';
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
+  socialProviderUpdateSchema,
 } from './schemas/index';
 import { getCurrentUser } from './users';
 import { decryptData, encryptData, getCurrentTimestamp } from './utils';
@@ -331,5 +332,23 @@ export const upsertSocialProvider = mutation({
       console.error('Failed to encrypt tokens during upsert:', error);
       throw new Error('Token encryption failed');
     }
+  },
+});
+
+export const updateSocialProvider = mutation({
+  args: v.object({
+    id: v.id('socialProviders'),
+    ...socialProviderUpdateSchema.fields,
+  }),
+  handler: async (ctx, args) => {
+    const provider = await ctx.db.get(args.id);
+    if (!provider) {
+      throw new Error('Social provider not found');
+    }
+    await ctx.db.patch(provider._id, {
+      ...args,
+      updatedAt: getCurrentTimestamp(),
+    });
+    return true;
   },
 });
