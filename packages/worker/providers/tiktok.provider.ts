@@ -57,7 +57,7 @@ const uploadVideo = (
     },
     post_info: {
       title: title.slice(0, 150) || 'TikTok Video',
-      privacy_level: 'SELF_ONLY', // Can be changed to PUBLIC_TO_EVERYONE
+      privacy_level: 'PUBLIC_TO_EVERYONE', //TODO: in future have advanced stuff in frontend, to select how users wants to post
       disable_duet: false,
       disable_comment: false,
       disable_stitch: false,

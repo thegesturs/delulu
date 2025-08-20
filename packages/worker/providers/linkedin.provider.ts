@@ -576,23 +576,4 @@ export const linkedinProvider: SocialProvider = {
     );
     return result;
   },
-
-  connectUrl: () => {
-    const scopes = [
-      'r_member_postAnalytics',
-      'r_organization_followers',
-      'r_organization_social',
-      'rw_organization_admin',
-      'r_organization_social_feed',
-      'w_member_social',
-      'r_member_profileAnalytics',
-      'w_organization_social',
-      'r_basicprofile',
-      'w_organization_social_feed',
-      'w_member_social_feed',
-    ].join('%20');
-
-    const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
-    return url;
-  },
 };
