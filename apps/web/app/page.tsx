@@ -9,6 +9,7 @@ import Features3 from '@/components/home/features3';
 import { Hero } from '@/components/home/hero';
 import { LogoCloud } from '@/components/home/logos-cloud';
 import Pricing from '@/components/home/pricing';
+import FlowField from '@/components/home/ascii/flow';
 
 export const generateMetadata = (): Metadata => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
@@ -47,6 +48,9 @@ const Home = () => {
   return (
     <>
       {/* <LiquidDots /> */}
+      <div style={{ height: '100vh', background: 'white' }}>
+        <FlowField />
+      </div>
       <Hero />
       <LogoCloud />
       <Features />

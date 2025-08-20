@@ -11,6 +11,7 @@ import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
 import { DesktopMockup } from './desktop-mockup';
+import { AsciiBackground } from './ascii';
 
 export function Hero() {
   // const { t } = useTranslation();
@@ -23,8 +24,14 @@ export function Hero() {
   return (
     <div
       ref={parentRef}
-      className="relative mx-auto my-2 flex max-w-7xl flex-col items-center justify-center overflow-hidden rounded-b-3xl bg-gradient-to-t from-primary/90 via-primary/40 to-background px-4 pt-32 md:my-20 md:px-8"
+      className="relative mx-auto my-2 flex max-w-7xl flex-col items-center justify-center overflow-hidden rounded-b-3xl px-4 pt-32 md:my-20 md:px-8"
     >
+      <AsciiBackground
+        intensity="medium"
+        speed="slow"
+        opacity={0.8}
+        className="z-0"
+      />
       <div className="relative z-20 mx-auto mb-4 max-w-6xl text-balance text-center font-semibold text-4xl tracking-tight md:text-7xl">
         <motion.h2
           initial={{ opacity: 0 }}
@@ -76,101 +83,101 @@ export function Hero() {
             />
           </DesktopMockup>
         </motion.div>
-        <BackgroundShape />
+        {/* <BackgroundShape /> */}
       </div>
     </div>
   );
 }
 
-function BackgroundShape({
-  mobileBreakpoint = '(max-width: 768px)',
-  sizes = {
-    mobile: {
-      outer: 800,
-      middle: 600,
-      inner: 400,
-    },
-    desktop: {
-      outer: 1400,
-      middle: 1100,
-      inner: 800,
-    },
-  },
-  animations = {
-    middle: {
-      scale: [1, 1.02, 1],
-      y: [0, -5, 0],
-      duration: 2,
-    },
-    inner: {
-      scale: [1, 1.03, 1],
-      y: [0, -7, 0],
-      duration: 2.5,
-    },
-  },
-  gradientColors = {
-    start: 'var(--background)',
-    mid1: 'var(--background)',
-    mid2: 'var(--background)',
-    end: 'transparent',
-  },
-}) {
-  const isMobile = useMediaQuery(mobileBreakpoint);
-  const { outer, middle, inner } = isMobile ? sizes.mobile : sizes.desktop;
+// function BackgroundShape({
+//   mobileBreakpoint = '(max-width: 768px)',
+//   sizes = {
+//     mobile: {
+//       outer: 800,
+//       middle: 600,
+//       inner: 400,
+//     },
+//     desktop: {
+//       outer: 1400,
+//       middle: 1100,
+//       inner: 800,
+//     },
+//   },
+//   animations = {
+//     middle: {
+//       scale: [1, 1.02, 1],
+//       y: [0, -5, 0],
+//       duration: 2,
+//     },
+//     inner: {
+//       scale: [1, 1.03, 1],
+//       y: [0, -7, 0],
+//       duration: 2.5,
+//     },
+//   },
+//   gradientColors = {
+//     start: 'var(--background)',
+//     mid1: 'var(--background)',
+//     mid2: 'var(--background)',
+//     end: 'transparent',
+//   },
+// }) {
+//   const isMobile = useMediaQuery(mobileBreakpoint);
+//   const { outer, middle, inner } = isMobile ? sizes.mobile : sizes.desktop;
 
-  return (
-    <div className="absolute inset-0 z-0 flex items-center justify-center">
-      <div
-        className="absolute z-0 rounded-full border border-foreground/10"
-        style={{
-          width: outer,
-          height: outer,
-        }}
-      />
-      <motion.div
-        className="absolute z-0 rounded-full border border-foreground/10"
-        style={{
-          width: middle,
-          height: middle,
-          clipPath: 'circle(50% at 50% 50%)',
-          background: `
-            radial-gradient(
-              circle at center,
-              ${gradientColors.start} 0%,
-              ${gradientColors.mid1} 10%, 
-              ${gradientColors.mid2} 20%,
-              ${gradientColors.end} 20%
-            )
-          `,
-        }}
-        animate={{
-          scale: animations.middle.scale,
-          y: animations.middle.y,
-        }}
-        transition={{
-          duration: animations.middle.duration,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: 'easeInOut',
-          times: [0, 0.5, 1],
-        }}
-      />
-      <motion.div
-        className="absolute z-2 rounded-full border border-foreground/10 bg-background/10"
-        style={{
-          width: inner,
-          height: inner,
-        }}
-        animate={{
-          scale: animations.inner.scale,
-          y: animations.inner.y,
-        }}
-        transition={{
-          duration: animations.inner.duration,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: 'easeInOut',
-          times: [0, 0.5, 1],
-        }}
-      />
-    </div>
-  );
-}
+//   return (
+//     <div className="absolute inset-0 z-0 flex items-center justify-center">
+//       <div
+//         className="absolute z-0 rounded-full border border-foreground/10"
+//         style={{
+//           width: outer,
+//           height: outer,
+//         }}
+//       />
+//       <motion.div
+//         className="absolute z-0 rounded-full border border-foreground/10"
+//         style={{
+//           width: middle,
+//           height: middle,
+//           clipPath: 'circle(50% at 50% 50%)',
+//           background: `
+//             radial-gradient(
+//               circle at center,
+//               ${gradientColors.start} 0%,
+//               ${gradientColors.mid1} 10%, 
+//               ${gradientColors.mid2} 20%,
+//               ${gradientColors.end} 20%
+//             )
+//           `,
+//         }}
+//         animate={{
+//           scale: animations.middle.scale,
+//           y: animations.middle.y,
+//         }}
+//         transition={{
+//           duration: animations.middle.duration,
+//           repeat: Number.POSITIVE_INFINITY,
+//           ease: 'easeInOut',
+//           times: [0, 0.5, 1],
+//         }}
+//       />
+//       <motion.div
+//         className="absolute z-2 rounded-full border border-foreground/10 bg-background/10"
+//         style={{
+//           width: inner,
+//           height: inner,
+//         }}
+//         animate={{
+//           scale: animations.inner.scale,
+//           y: animations.inner.y,
+//         }}
+//         transition={{
+//           duration: animations.inner.duration,
+//           repeat: Number.POSITIVE_INFINITY,
+//           ease: 'easeInOut',
+//           times: [0, 0.5, 1],
+//         }}
+//       />
+//     </div>
+//   );
+// }
