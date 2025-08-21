@@ -2,7 +2,6 @@
 // import { useTranslation } from '@/lib/useTranslation';
 import { useTheme } from '@delulu/design-system';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { useMediaQuery } from '@delulu/design-system/hooks/use-media-query';
 import { cn } from '@delulu/design-system/lib/utils';
 import { motion } from 'motion/react';
 import Image from 'next/image';
@@ -11,7 +10,7 @@ import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
 import { DesktopMockup } from './desktop-mockup';
-import { AsciiBackground } from './ascii';
+import Dither from './shader-background';
 
 export function Hero() {
   // const { t } = useTranslation();
@@ -24,22 +23,27 @@ export function Hero() {
   return (
     <div
       ref={parentRef}
-      className="relative mx-auto my-2 flex max-w-7xl flex-col items-center justify-center overflow-hidden rounded-b-3xl px-4 pt-32 md:my-20 md:px-8"
+      className="relative mx-auto my-2 flex max-w-7xl flex-col items-center justify-center overflow-hidden rounded-b-3xl px-4 pt-40 md:px-8"
     >
-      <AsciiBackground
-        intensity="medium"
-        speed="slow"
-        opacity={0.8}
-        className="z-0"
-      />
+      <div className='absolute inset-0'>
+        <Dither
+          waveColor={[0.6, 0.6, 1,]}
+          disableAnimation={false}
+          enableMouseInteraction={false}
+          mouseRadius={0.3}
+          colorNum={6}
+          waveAmplitude={0.27}
+          waveFrequency={3}
+          waveSpeed={0.06}
+        />
+      </div>
       <div className="relative z-20 mx-auto mb-4 max-w-6xl text-balance text-center font-semibold text-4xl tracking-tight md:text-7xl">
         <motion.h2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className={cn(
-            'inline-block bg-gradient-to-b from-foreground/90 to-foreground',
-            'bg-clip-text text-transparent'
+            'text-white'
           )}
         >
           <Balancer>Delulu Social</Balancer>
@@ -49,7 +53,7 @@ export function Hero() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: 0.5 }}
-        className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-muted-foreground sm:text-base"
+        className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-muted sm:text-base"
       >
         Manage all your social media platforms in one place. Create, schedule,
         and publish content across Instagram, Facebook, Twitter, LinkedIn,
@@ -144,7 +148,7 @@ export function Hero() {
 //             radial-gradient(
 //               circle at center,
 //               ${gradientColors.start} 0%,
-//               ${gradientColors.mid1} 10%, 
+//               ${gradientColors.mid1} 10%,
 //               ${gradientColors.mid2} 20%,
 //               ${gradientColors.end} 20%
 //             )
