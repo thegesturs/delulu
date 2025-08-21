@@ -4,74 +4,19 @@ import Link from 'next/link';
 
 export const LogoIcon = ({ className }: { className?: string }) => (
   <svg
-    width="28"
-    height="29"
-    viewBox="0 0 28 29"
+    width="227"
+    height="261"
+    viewBox="0 0 227 261"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
   >
-    <g filter="url(#filter0_di_966_1877)">
-      <path
-        d="M4.53553 16.0355C2.58291 14.0829 2.58291 10.9171 4.53553 8.96447L10.1924 3.30761C12.145 1.35499 15.3108 1.35499 17.2635 3.30761L22.9203 8.96447C24.8729 10.9171 24.8729 14.0829 22.9203 16.0355L17.2635 21.6924C15.3108 23.645 12.145 23.645 10.1924 21.6924L4.53553 16.0355Z"
-        fill="#FB4C01"
-      />
-    </g>
-    <defs>
-      <filter
-        id="filter0_di_966_1877"
-        x="0.0712891"
-        y="0.843262"
-        width="27.3135"
-        height="27.3135"
-        filterUnits="userSpaceOnUse"
-        colorInterpolationFilters="sRGB"
-      >
-        <feFlood floodOpacity="0" result="BackgroundImageFix" />
-        <feColorMatrix
-          in="SourceAlpha"
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          result="hardAlpha"
-        />
-        <feOffset dy="2" />
-        <feGaussianBlur stdDeviation="1.5" />
-        <feComposite in2="hardAlpha" operator="out" />
-        <feColorMatrix
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.12 0"
-        />
-        <feBlend
-          mode="normal"
-          in2="BackgroundImageFix"
-          result="effect1_dropShadow_966_1877"
-        />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="effect1_dropShadow_966_1877"
-          result="shape"
-        />
-        <feColorMatrix
-          in="SourceAlpha"
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-          result="hardAlpha"
-        />
-        <feOffset dy="2" />
-        <feGaussianBlur stdDeviation="2" />
-        <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
-        <feColorMatrix
-          type="matrix"
-          values="0 0 0 0 1 0 0 0 0 0.664321 0 0 0 0 0.520459 0 0 0 1 0"
-        />
-        <feBlend
-          mode="normal"
-          in2="shape"
-          result="effect2_innerShadow_966_1877"
-        />
-      </filter>
-    </defs>
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      fill="currentColor"
+      d="M73.9491 2.85403C70.6351 0.310031 102.319 -0.717962 118 1.42404C148.932 5.65011 176.901 10.4076 202.811 28.369C221.302 41.1822 226.366 66.7097 226.444 87.5C226.527 109.533 222.484 132.314 214.949 153C200.84 191.731 178.883 227.431 143.23 249.288C138.837 251.982 124.035 258.344 118.931 259.732C117.304 260.174 116.418 260.415 116.148 260.11C115.826 259.746 116.382 258.605 117.6 256.101C123.785 243.386 125.708 237.738 128.53 224C133.907 197.822 121.728 186.374 105.064 201.941C94.5848 211.722 84.8848 219.589 72.8521 226.814C51.0383 239.912 29.6319 237.212 7.25009 229.931C-0.835913 227.301 -1.37691 226.676 3.08609 225.12C20.1071 219.186 46.1771 186.441 44.6081 172.965C43.7091 165.248 38.5301 163.983 26.2051 168.47C3.81309 176.622 -3.89391 158.87 13.0001 138.054C32.7562 113.716 62.7723 98.2116 80.1471 71.947C95.2917 49.0446 97.594 20.9976 73.9491 2.85403ZM120.474 50.052C108.916 72.86 132.246 102.518 152.095 90.25C156.776 87.357 163.609 79.703 161.991 79.164C151.685 75.7187 140.135 62.1023 132.801 54.687C123.098 44.874 123.098 44.874 120.474 50.052ZM203 63.664C198.969 70.077 193.721 74.716 186.257 78.465C180.187 81.513 180.535 85.231 187.499 91.75C193.488 97.357 207.5 89.5 210 81C211 76.5 211.747 57.5983 207.007 58.048C206.728 58.074 204.925 60.602 203 63.664ZM127.954 116.75C125.914 129.28 140.379 140.485 151 143.626C167.773 148.585 184.832 141.643 196.159 125.25C199.637 120.217 199.304 119.917 194.812 124.037C178.831 138.694 164 136 155 134C146 132 128.093 115.896 127.954 116.75Z"
+    />
   </svg>
 );
 
@@ -84,11 +29,9 @@ export const Logo = ({ className }: { className?: string }) => {
         className
       )}
     >
-      <LogoIcon />
+      <LogoIcon className="size-6" />
 
-      <span className="font-medium text-foreground/90 text-lg">
-        Delulu Social
-      </span>
+      <span className="font-medium text-foreground/90 text-lg">Delulu</span>
     </Link>
   );
 };

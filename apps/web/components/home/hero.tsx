@@ -1,8 +1,6 @@
 'use client';
-// import { useTranslation } from '@/lib/useTranslation';
 import { useTheme } from '@delulu/design-system';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { cn } from '@delulu/design-system/lib/utils';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,85 +8,89 @@ import type React from 'react';
 import { useRef } from 'react';
 import Balancer from 'react-wrap-balancer';
 import { DesktopMockup } from './desktop-mockup';
-import Dither from './shader-background';
+import { GradientBars } from './gradient-bars';
 
 export function Hero() {
-  // const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(
     null
   ) as React.RefObject<HTMLDivElement>;
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const image = isDark ? '/images/app-dark.png' : '/images/app-light.png';
+
   return (
     <div
       ref={parentRef}
-      className="relative mx-auto my-2 flex max-w-7xl flex-col items-center justify-center overflow-hidden rounded-b-3xl px-4 pt-40 md:px-8"
+      className="relative mx-auto flex max-w-7xl flex-col items-center justify-center overflow-hidden px-4 pt-40 md:px-8"
     >
-      <div className='absolute inset-0'>
-        <Dither
-          waveColor={[0.6, 0.6, 1,]}
-          disableAnimation={false}
-          enableMouseInteraction={false}
-          mouseRadius={0.3}
-          colorNum={6}
-          waveAmplitude={0.27}
-          waveFrequency={3}
-          waveSpeed={0.06}
+      {/* Shader Background */}
+      <div className="absolute inset-0">
+        <GradientBars
+          bars={20}
+          colors={[theme === 'dark' ? '#818cf8' : '#4338ca', 'transparent']}
         />
       </div>
-      <div className="relative z-20 mx-auto mb-4 max-w-6xl text-balance text-center font-semibold text-4xl tracking-tight md:text-7xl">
-        <motion.h2
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className={cn(
-            'text-white'
-          )}
-        >
-          <Balancer>Delulu Social</Balancer>
-        </motion.h2>
-      </div>
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: 0.5 }}
-        className="relative z-20 mx-auto mt-4 max-w-2xl px-4 text-center text-base/6 text-muted sm:text-base"
-      >
-        Manage all your social media platforms in one place. Create, schedule,
-        and publish content across Instagram, Facebook, Twitter, LinkedIn,
-        TikTok, Pinterest, and more.
-      </motion.p>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: 0.7 }}
-        className="z-10 mt-6 mb-8 flex w-full flex-col items-center justify-center gap-4 px-4 sm:mt-8 sm:mb-10 sm:flex-row sm:px-8 md:mb-20"
-      >
-        <Button asChild>
-          <Link href="/login">Get Started</Link>
-        </Button>
-      </motion.div>
 
-      <div className="relative min-h-[21rem] w-full pt-[2rem]">
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="absolute top-0 right-0 left-0 z-10"
+      {/* Content */}
+      <div className="relative z-20 mx-auto max-w-4xl text-center">
+        {/* Main Heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
         >
-          <DesktopMockup>
-            <Image
-              src={image}
-              alt="Delulu Social"
-              width={1000}
-              height={1000}
-              className="h-full w-full object-contain object-top"
-            />
-          </DesktopMockup>
+          <Balancer>Manage all your social platforms in one place</Balancer>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl"
+        >
+          <Balancer>
+            Create, schedule, and publish content across Instagram, Facebook,
+            Twitter, LinkedIn, TikTok, Pinterest, and more with just a few
+            clicks.
+          </Balancer>
+        </motion.p>
+
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
+        >
+          <Button asChild size="lg">
+            <Link href="/login">Get Started Free</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="#features">See How It Works</Link>
+          </Button>
         </motion.div>
-        {/* <BackgroundShape /> */}
       </div>
+
+      {/* App Preview */}
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="relative z-10 mb-[-100px] w-full max-w-5xl"
+      >
+        <DesktopMockup>
+          <Image
+            src={image}
+            alt="Delulu Social Dashboard"
+            width={1200}
+            height={800}
+            className="h-full w-full object-contain object-top"
+            priority
+          />
+        </DesktopMockup>
+      </motion.div>
     </div>
   );
 }
