@@ -5,60 +5,54 @@ import { useState } from 'react';
 
 const faqs = [
   {
-    question: 'What social platforms do you support?',
+    question: 'Do I need to connect all my accounts?',
     answer:
-      'We currently support scheduling (and instant posting) to LinkedIn, YouTube, and TikTok. Instagram, Threads, and Twitter integration are coming soon! For feature requests or questions, feel free to reach out to us at swaraj@gesturs.com.',
+      'No. But if you enjoy manually uploading to six different apps every morning, go for it. We support Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads. Connect what you want, ignore what you don\'t.',
   },
   {
-    question: 'How many social accounts can I connect?',
+    question: 'Is my data safe?',
     answer:
-      'Free: Up to 2 platforms\n\nStarter ($12/mo): Up to 5 connected social accounts\n\nCreator ($19.99/mo): Up to 15 connected social accounts\n\nPro ($29.99/mo): Unlimited connected accounts\n\nEach "social account" counts as one connected profile (e.g., one LinkedIn page = one account).',
+      'Bro, yes. We don\'t want your embarrassing drafts either. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.',
   },
   {
-    question: 'Can I connect multiple accounts on the same platform?',
+    question: 'What if I\'m just one random creator?',
     answer:
-      'Yes. For example:\n\nOn Starter, you could connect 3 TikTok accounts and 2 LinkedIn accounts (total = 5).\n\nOn Creator, you could connect 8 LinkedIn accounts, 4 TikTok accounts, and 3 YouTube channels (total = 15).',
+      'Perfect. You\'ll save even more time than the "big agencies." One person juggling 5 platforms? That\'s exactly who we built this for. Less tab-switching, more creating.',
   },
   {
-    question: 'How many posts can I schedule each month?',
+    question: 'Do you post automatically or just remind me?',
     answer:
-      'Free: Up to 15 scheduled posts per month\n\nPaid plans (Starter, Creator, Pro): Unlimited posts\n\nImportantly, we count posts based on unique content, not platforms:\n• If you create 1 post and share it to 5 platforms, that counts as 1 post\n• If you create 4 different posts and share each to 5 platforms (20 total shares), that counts as 4 posts\n\nThis makes our counting system much more generous than other tools!',
+      'Automatic. Reminders are for your mom. Schedule once, and we\'ll post at the perfect time while you sleep, work, or touch grass. No babysitting required.',
   },
   {
-    question: 'What types of content can I post?',
+    question: 'Is there a free plan?',
     answer:
-      "You can create and schedule:\n\n• Videos (MP4, MOV, etc.)\n• Images (JPG, PNG, GIF)\n• Text-only posts (e.g., LinkedIn article-style)\n• Carousel posts (multiple images)\n\nEach platform's formatting rules are handled automatically—you don't need to manually resize or reformat.",
+      'Yep. Try it. Hate it. Leave. Or stay forever. No hard feelings. Free gets you 2 platforms and 15 posts/month. Paid plans unlock unlimited everything.',
   },
   {
-    question:
-      'Will my posts get less organic reach when published through Delulu?',
+    question: 'How many posts can I schedule?',
     answer:
-      "No. We use each platform's official API to publish—your content is treated exactly like any native post. There's no penalty for using a scheduling tool.",
+      'Free: 15 posts/month (which is honestly plenty for testing)\n\nPaid plans: Unlimited\n\nWe count by unique content, not platforms. 1 post shared to 5 platforms = 1 post in our system. Much more generous than other tools.',
   },
   {
-    question: 'How secure is my account? Do I need to share passwords?',
+    question: 'What content types do you support?',
     answer:
-      "We never store your passwords directly.\n\nWe use each platform's official OAuth (secure authentication flow).\n\nYou log in on the platform's own page, then grant Delulu permission.\n\nYou can revoke access at any time—no data or credentials are ever stored in plain text.",
+      'Videos, images, carousels, text posts, GIFs... basically everything except your existential crisis tweets (though we won\'t judge). Platform formatting happens automatically.',
   },
   {
-    question: 'What if I need help?',
+    question: 'Will this hurt my organic reach?',
     answer:
-      'Our team actively monitors feedback channels and responds within 6–12 hours. Email us at swaraj@gesturs.com and we will get back to you quickly.',
+      'Nope. We use official APIs, so platforms treat your content exactly like native posts. No algorithmic penalties for being smart about your time.',
   },
   {
-    question: 'What features are included in each plan?',
+    question: 'Can I cancel anytime?',
     answer:
-      'Free: Up to 2 platforms, 15 scheduled posts/month\n\nStarter ($12/mo): 5 social accounts, unlimited posts, multiple accounts per platform, carousel posts\n\nCreator ($19.99/mo): 15 social accounts, all Starter features plus content studio access\n\nPro ($29.99/mo): Unlimited accounts, all Creator features',
+      'Obviously. No contracts, no guilt trips, no "please don\'t leave us" emails. Cancel in one click, and we\'ll even help you export your data if you want.',
   },
   {
-    question: 'Can I cancel or downgrade at any time?',
+    question: 'What if something breaks?',
     answer:
-      "Absolutely. There's no lock-in:\n\n• Cancel or downgrade any time from your account settings\n• Your subscription runs through the end of your current billing cycle\n• No early-cancellation fees",
-  },
-  {
-    question: 'I have another question—how can I reach you?',
-    answer:
-      'Feel free to email us anytime at swaraj@gesturs.com. We aim to respond within 6–12 hours on weekdays.',
+      'Email us at swaraj@gesturs.com and we\'ll fix it. Usually within 6-12 hours, sometimes faster if it\'s really broken. We actually respond to support emails.',
   },
 ];
 
@@ -71,11 +65,10 @@ export function FAQ() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h2 className="mb-4 font-semibold text-4xl">
-            Frequently <span className="text-primary">Asked</span> Questions
+            Objection-Busting <span className="text-primary">FAQ</span> (reverse psychology)
           </h2>
           <p className="mx-auto max-w-3xl text-muted-foreground">
-            Get answers to common questions about Gesturs' social media
-            scheduling platform.
+            Look, we know you have questions. Here are the answers before you even ask them.
           </p>
         </div>
 

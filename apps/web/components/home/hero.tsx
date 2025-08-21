@@ -40,7 +40,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
         >
-          <Balancer>Posting everywhere sucks. We fixed it.”</Balancer>
+          <Balancer>Posting everywhere sucks. We fixed it.</Balancer>
         </motion.h1>
 
         {/* Subtitle */}
@@ -63,15 +63,28 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <Button asChild size="lg">
-            <Link href="/login">Fine, save me the headache</Link>
+            <Link href="/login">👉 Fine, save me the headache</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="#features">Naah, bro show me more</Link>
           </Button>
         </motion.div>
+
+        {/* Tiny Reassurance */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mx-auto mb-16 max-w-md text-sm text-zinc-500"
+        >
+          <Balancer>
+            Chill. We don't spam. We don't sell your data. We don't even want
+            your phone number — ew.
+          </Balancer>
+        </motion.p>
       </div>
 
       {/* App Preview */}
@@ -90,6 +103,17 @@ export function Hero() {
             className="h-full w-full object-contain object-top"
             priority
           />
+          {/* Sarcastic Text Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="rounded-lg bg-black/80 px-6 py-3 text-center text-white backdrop-blur-sm"
+            >
+              <p className="font-medium text-lg">Look, mom, one click.</p>
+            </motion.div>
+          </div>
         </DesktopMockup>
       </motion.div>
     </div>
