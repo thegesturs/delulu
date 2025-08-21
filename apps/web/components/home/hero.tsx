@@ -40,7 +40,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
         >
-          <Balancer>Manage all your social platforms in one place</Balancer>
+          <Balancer>Posting everywhere sucks. We fixed it.”</Balancer>
         </motion.h1>
 
         {/* Subtitle */}
@@ -51,9 +51,10 @@ export function Hero() {
           className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl"
         >
           <Balancer>
-            Create, schedule, and publish content across Instagram, Facebook,
-            Twitter, LinkedIn, TikTok, Pinterest, and more with just a few
-            clicks.
+            You know the drill: copy → paste → resize → upload → repeat.
+            Instagram wants vertical. LinkedIn wants text-heavy. YouTube wants
+            captions. TikTok wants vibes. And suddenly, your “quick post” just
+            ate your entire afternoon. Delulu Social kills that nightmare.
           </Balancer>
         </motion.p>
 
@@ -65,10 +66,10 @@ export function Hero() {
           className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <Button asChild size="lg">
-            <Link href="/login">Get Started Free</Link>
+            <Link href="/login">Fine, save me the headache</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href="#features">See How It Works</Link>
+            <Link href="#features">Naah, bro show me more</Link>
           </Button>
         </motion.div>
       </div>
