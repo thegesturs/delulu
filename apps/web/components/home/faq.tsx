@@ -7,22 +7,22 @@ const faqs = [
   {
     question: 'Do I need to connect all my accounts?',
     answer:
-      'No. But if you enjoy manually uploading to six different apps every morning, go for it. We support Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads. Connect what you want, ignore what you don\'t.',
+      "No. But if you enjoy manually uploading to six different apps every morning, go for it. We support Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads. Connect what you want, ignore what you don't.",
   },
   {
     question: 'Is my data safe?',
     answer:
-      'Bro, yes. We don\'t want your embarrassing drafts either. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.',
+      "Bro, yes. We don't want your embarrassing drafts either. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.",
   },
   {
-    question: 'What if I\'m just one random creator?',
+    question: "What if I'm just one random creator?",
     answer:
       'Perfect. You\'ll save even more time than the "big agencies." One person juggling 5 platforms? That\'s exactly who we built this for. Less tab-switching, more creating.',
   },
   {
     question: 'Do you post automatically or just remind me?',
     answer:
-      'Automatic. Reminders are for your mom. Schedule once, and we\'ll post at the perfect time while you sleep, work, or touch grass. No babysitting required.',
+      "Automatic. Reminders are for your mom. Schedule once, and we'll post at the perfect time while you sleep, work, or touch grass. No babysitting required.",
   },
   {
     question: 'Is there a free plan?',
@@ -37,7 +37,7 @@ const faqs = [
   {
     question: 'What content types do you support?',
     answer:
-      'Videos, images, carousels, text posts, GIFs... basically everything except your existential crisis tweets (though we won\'t judge). Platform formatting happens automatically.',
+      "Videos, images, carousels, text posts, GIFs... basically everything except your existential crisis tweets (though we won't judge). Platform formatting happens automatically.",
   },
   {
     question: 'Will this hurt my organic reach?',
@@ -52,7 +52,7 @@ const faqs = [
   {
     question: 'What if something breaks?',
     answer:
-      'Email us at swaraj@gesturs.com and we\'ll fix it. Usually within 6-12 hours, sometimes faster if it\'s really broken. We actually respond to support emails.',
+      "Email us at swaraj@gesturs.com and we'll fix it. Usually within 6-12 hours, sometimes faster if it's really broken. We actually respond to support emails.",
   },
 ];
 
@@ -65,10 +65,12 @@ export function FAQ() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h2 className="mb-4 font-semibold text-4xl">
-            Objection-Busting <span className="text-primary">FAQ</span> (reverse psychology)
+            Objection-Busting <span className="text-primary">FAQ</span> (reverse
+            psychology)
           </h2>
           <p className="mx-auto max-w-3xl text-muted-foreground">
-            Look, we know you have questions. Here are the answers before you even ask them.
+            Look, we know you have questions. Here are the answers before you
+            even ask them.
           </p>
         </div>
 

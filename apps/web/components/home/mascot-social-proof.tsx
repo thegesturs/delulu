@@ -2,29 +2,31 @@
 
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import type React from 'react';
 import Balancer from 'react-wrap-balancer';
 
 export function MascotSocialProof() {
   const testimonials = [
     {
-      quote: "I literally cut my posting time from 2 hours a day to 15 minutes. More time to actually, idk, live?",
-      author: "Sarah M.",
-      role: "Content Creator",
+      quote:
+        'I literally cut my posting time from 2 hours a day to 15 minutes. More time to actually, idk, live?',
+      author: 'Sarah M.',
+      role: 'Content Creator',
       rating: 5,
       mascot: '/images/delulu/happy.png',
     },
     {
-      quote: "Delulu Social is my unpaid intern. But like… one that doesn't ghost me.",
-      author: "Jay K.",
-      role: "Small Business Owner", 
+      quote:
+        "Delulu Social is my unpaid intern. But like… one that doesn't ghost me.",
+      author: 'Jay K.',
+      role: 'Small Business Owner',
       rating: 5,
       mascot: '/images/delulu/shill.png',
     },
     {
-      quote: "Our team doubled output without adding new hires. My boss thinks I'm a wizard. I'm not correcting him.",
-      author: "Anil P.",
-      role: "Marketing Manager",
+      quote:
+        "Our team doubled output without adding new hires. My boss thinks I'm a wizard. I'm not correcting him.",
+      author: 'Anil P.',
+      role: 'Marketing Manager',
       rating: 5,
       mascot: '/images/delulu/win.png',
     },
@@ -32,7 +34,9 @@ export function MascotSocialProof() {
 
   const renderStars = (rating: number) => {
     return Array.from({ length: rating }, (_, i) => (
-      <span key={i} className="text-yellow-400">⭐</span>
+      <span key={i} className="text-yellow-400">
+        ⭐
+      </span>
     ));
   };
 
@@ -41,31 +45,29 @@ export function MascotSocialProof() {
       <div className="relative mx-5 border-border border-x md:mx-10">
         {/* Left diagonal pattern */}
         <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
-        
+
         {/* Right diagonal pattern */}
         <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
-        
+
         {/* Content */}
         <div className="h-full w-full border-border border-b p-10 md:p-14">
           {/* Section Header */}
-          <div className="mx-auto max-w-2xl text-center mb-16">
+          <div className="mx-auto mb-16 max-w-2xl text-center">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+              className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl"
             >
-              <Balancer>
-                Don't Take Our Word For It
-              </Balancer>
+              <Balancer>Don't Take Our Word For It</Balancer>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
-              className="mt-6 text-lg leading-8 text-muted-foreground"
+              className="mt-6 text-lg text-muted-foreground leading-8"
             >
               <Balancer>
                 Here's what people who actually use this thing are saying:
@@ -82,25 +84,23 @@ export function MascotSocialProof() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="flex flex-col items-center text-center p-8 rounded-xl border border-border bg-card/50 transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+                className="flex flex-col items-center rounded-xl border border-border bg-card/50 p-8 text-center transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
               >
                 {/* Rating Stars */}
-                <div className="flex gap-1 mb-6">
+                <div className="mb-6 flex gap-1">
                   {renderStars(testimonial.rating)}
                 </div>
 
                 {/* Quote */}
-                <blockquote className="text-base font-medium text-foreground mb-6 leading-7">
-                  <Balancer>
-                    "{testimonial.quote}"
-                  </Balancer>
+                <blockquote className="mb-6 font-medium text-base text-foreground leading-7">
+                  <Balancer>"{testimonial.quote}"</Balancer>
                 </blockquote>
 
                 {/* Mascot */}
                 <div className="relative mb-6 flex h-16 w-16 items-center justify-center">
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     <Image
                       src={testimonial.mascot}
@@ -117,7 +117,7 @@ export function MascotSocialProof() {
                   <div className="font-semibold text-foreground">
                     {testimonial.author}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-muted-foreground text-sm">
                     {testimonial.role}
                   </div>
                 </div>
@@ -133,15 +133,16 @@ export function MascotSocialProof() {
             viewport={{ once: true }}
             className="mx-auto mt-16 max-w-2xl text-center"
           >
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="mb-6 text-lg text-muted-foreground">
               <Balancer>
-                Join 10,000+ creators who stopped fighting with upload buttons and started actually creating.
+                Join 10,000+ creators who stopped fighting with upload buttons
+                and started actually creating.
               </Balancer>
             </p>
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground text-sm shadow-sm transition-colors hover:bg-primary/90"
             >
               👉 Alright, I'm convinced
             </motion.div>

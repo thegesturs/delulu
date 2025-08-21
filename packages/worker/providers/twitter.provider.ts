@@ -130,7 +130,7 @@ const refreshAccessToken = (
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
           expiresIn: Date.now() + data.expires_in * 1000,
-        }), 
+        }),
         () => new TwitterError('Failed to update token in database')
       ).map(() => updatedProfile);
     });

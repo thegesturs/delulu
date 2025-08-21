@@ -288,4 +288,3 @@ async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
   // Finally, delete the user
   await ctx.db.delete(userId);
 }
-

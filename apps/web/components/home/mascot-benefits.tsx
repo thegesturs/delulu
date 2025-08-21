@@ -2,7 +2,6 @@
 
 import { motion } from 'motion/react';
 import Image from 'next/image';
-import type React from 'react';
 import Balancer from 'react-wrap-balancer';
 
 export function MascotBenefits() {
@@ -11,28 +10,32 @@ export function MascotBenefits() {
       image: '/images/delulu/calendar.png',
       title: 'Time thief, arrested.',
       subtitle: 'Write once. Post everywhere. Done.',
-      description: 'No more tab-hopping Olympics. Create your content once, and we\'ll format it perfectly for every platform. Your sanity will thank you.',
+      description:
+        "No more tab-hopping Olympics. Create your content once, and we'll format it perfectly for every platform. Your sanity will thank you.",
       badge: 'Benefit 1',
     },
     {
-      image: '/images/delulu/happy.png', 
+      image: '/images/delulu/happy.png',
       title: 'Consistency without crying.',
-      subtitle: 'Schedule ahead. Pretend you\'re organized.',
-      description: 'Queue up a week\'s worth of posts in 15 minutes. Your audience thinks you\'re a posting machine. Win-win.',
+      subtitle: "Schedule ahead. Pretend you're organized.",
+      description:
+        "Queue up a week's worth of posts in 15 minutes. Your audience thinks you're a posting machine. Win-win.",
       badge: 'Benefit 2',
     },
     {
       image: '/images/delulu/shill.png',
       title: 'More sleep. Less doomscroll guilt.',
       subtitle: 'Auto-posting while you actually live your life.',
-      description: 'Because posting at midnight just to hit "optimal time" is so 2022. Set it, forget it, touch grass.',
+      description:
+        'Because posting at midnight just to hit "optimal time" is so 2022. Set it, forget it, touch grass.',
       badge: 'Benefit 3',
     },
     {
       image: '/images/delulu/win.png',
       title: 'All your chaos, one dashboard.',
       subtitle: 'Instagram, TikTok, LinkedIn, YouTube, Threads...',
-      description: 'All tucked in like messy little kids in one bed. One login, one interface, zero headaches.',
+      description:
+        'All tucked in like messy little kids in one bed. One login, one interface, zero headaches.',
       badge: 'Benefit 4',
     },
   ];
@@ -42,34 +45,33 @@ export function MascotBenefits() {
       <div className="relative mx-5 border-border border-x md:mx-10">
         {/* Left diagonal pattern */}
         <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
-        
+
         {/* Right diagonal pattern */}
         <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
-        
+
         {/* Content */}
         <div className="h-full w-full border-border border-b p-10 md:p-14">
           {/* Section Header */}
-          <div className="mx-auto max-w-2xl text-center mb-20">
+          <div className="mx-auto mb-20 max-w-2xl text-center">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+              className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl"
             >
-              <Balancer>
-                How We Fixed Your Posting Nightmare
-              </Balancer>
+              <Balancer>How We Fixed Your Posting Nightmare</Balancer>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
-              className="mt-6 text-lg leading-8 text-muted-foreground"
+              className="mt-6 text-lg text-muted-foreground leading-8"
             >
               <Balancer>
-                Let's be real. You didn't become a creator/entrepreneur/marketer just to babysit a calendar and fight with upload buttons.
+                Let's be real. You didn't become a creator/entrepreneur/marketer
+                just to babysit a calendar and fight with upload buttons.
               </Balancer>
             </motion.p>
           </div>
@@ -86,10 +88,10 @@ export function MascotBenefits() {
                 className="group relative rounded-xl border border-border bg-card/50 p-8 transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
               >
                 {/* Mascot Image */}
-                <div className="relative mb-6 flex h-24 w-24 items-center justify-center mx-auto lg:mx-0">
+                <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center lg:mx-0">
                   <motion.div
                     whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     <Image
                       src={benefit.image}
@@ -104,20 +106,20 @@ export function MascotBenefits() {
                 {/* Content */}
                 <div className="text-center lg:text-left">
                   <div className="mb-3">
-                    <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-xs">
                       {benefit.badge}
                     </span>
                   </div>
-                  
-                  <h3 className="text-xl font-bold text-foreground mb-2">
+
+                  <h3 className="mb-2 font-bold text-foreground text-xl">
                     <Balancer>{benefit.title}</Balancer>
                   </h3>
-                  
-                  <p className="text-base font-medium text-primary mb-3">
+
+                  <p className="mb-3 font-medium text-base text-primary">
                     <Balancer>{benefit.subtitle}</Balancer>
                   </p>
-                  
-                  <p className="text-sm text-muted-foreground leading-6">
+
+                  <p className="text-muted-foreground text-sm leading-6">
                     <Balancer>{benefit.description}</Balancer>
                   </p>
                 </div>
@@ -133,9 +135,10 @@ export function MascotBenefits() {
             viewport={{ once: true }}
             className="mx-auto mt-20 max-w-3xl text-center"
           >
-            <blockquote className="text-xl font-medium text-foreground">
+            <blockquote className="font-medium text-foreground text-xl">
               <Balancer>
-                "You could keep wasting hours posting the old way... or just let us do it for you."
+                "You could keep wasting hours posting the old way... or just let
+                us do it for you."
               </Balancer>
             </blockquote>
           </motion.div>

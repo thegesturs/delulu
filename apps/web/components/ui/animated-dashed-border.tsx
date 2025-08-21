@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@delulu/design-system/lib/utils';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface AnimatedDashedBorderProps {
   children: ReactNode;
@@ -25,13 +25,15 @@ export const AnimatedDashedBorder = ({
   return (
     <div
       className={cn('relative', className)}
-      style={{
-        '--dash-length': `${dashLength}px`,
-        '--gap-length': `${gapLength}px`,
-        '--total-length': `${totalLength}px`,
-        '--animation-speed': `${speed}s`,
-        '--border-color': color,
-      } as React.CSSProperties & Record<string, string>}
+      style={
+        {
+          '--dash-length': `${dashLength}px`,
+          '--gap-length': `${gapLength}px`,
+          '--total-length': `${totalLength}px`,
+          '--animation-speed': `${speed}s`,
+          '--border-color': color,
+        } as React.CSSProperties & Record<string, string>
+      }
     >
       {children}
       <div
