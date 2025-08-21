@@ -38,99 +38,108 @@ export function MascotBenefits() {
   ];
 
   return (
-    <section className="relative bg-muted/30 py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mx-auto max-w-2xl text-center mb-20">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
-          >
-            <Balancer>
-              How We Fixed Your Posting Nightmare
-            </Balancer>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="mt-6 text-lg leading-8 text-muted-foreground"
-          >
-            <Balancer>
-              Let's be real. You didn't become a creator/entrepreneur/marketer just to babysit a calendar and fight with upload buttons.
-            </Balancer>
-          </motion.p>
-        </div>
-
-        {/* Benefits Grid */}
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-12 lg:mx-0 lg:max-w-none lg:grid-cols-2">
-          {benefits.map((benefit, index) => (
-            <motion.div
-              key={benefit.title}
-              initial={{ opacity: 0, y: 30 }}
+    <section className="relative flex w-full flex-col items-center justify-center border-border border-y px-5 md:px-10">
+      <div className="relative mx-5 border-border border-x md:mx-10">
+        {/* Left diagonal pattern */}
+        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        
+        {/* Right diagonal pattern */}
+        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        
+        {/* Content */}
+        <div className="h-full w-full border-border border-b p-10 md:p-14">
+          {/* Section Header */}
+          <div className="mx-auto max-w-2xl text-center mb-20">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="group relative rounded-2xl border border-border/50 bg-card/50 p-8 transition-all duration-300 hover:border-border/80 hover:bg-card/80"
+              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
             >
-              {/* Mascot Image */}
-              <div className="relative mb-6 flex h-32 w-32 items-center justify-center mx-auto lg:mx-0">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  <Image
-                    src={benefit.image}
-                    alt={benefit.title}
-                    width={128}
-                    height={128}
-                    className="h-full w-full object-contain invert dark:invert-0"
-                  />
-                </motion.div>
-              </div>
+              <Balancer>
+                How We Fixed Your Posting Nightmare
+              </Balancer>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="mt-6 text-lg leading-8 text-muted-foreground"
+            >
+              <Balancer>
+                Let's be real. You didn't become a creator/entrepreneur/marketer just to babysit a calendar and fight with upload buttons.
+              </Balancer>
+            </motion.p>
+          </div>
 
-              {/* Content */}
-              <div className="text-center lg:text-left">
-                <div className="mb-3">
-                  <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    {benefit.badge}
-                  </span>
+          {/* Benefits Grid */}
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-12 lg:mx-0 lg:max-w-none lg:grid-cols-2">
+            {benefits.map((benefit, index) => (
+              <motion.div
+                key={benefit.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group relative rounded-xl border border-border bg-card/50 p-8 transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+              >
+                {/* Mascot Image */}
+                <div className="relative mb-6 flex h-24 w-24 items-center justify-center mx-auto lg:mx-0">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Image
+                      src={benefit.image}
+                      alt={benefit.title}
+                      width={96}
+                      height={96}
+                      className="h-full w-full object-contain dark:invert"
+                    />
+                  </motion.div>
                 </div>
-                
-                <h3 className="text-xl font-bold text-foreground mb-2">
-                  <Balancer>{benefit.title}</Balancer>
-                </h3>
-                
-                <p className="text-base font-medium text-primary mb-3">
-                  <Balancer>{benefit.subtitle}</Balancer>
-                </p>
-                
-                <p className="text-sm text-muted-foreground leading-6">
-                  <Balancer>{benefit.description}</Balancer>
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Bottom Quote */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          viewport={{ once: true }}
-          className="mx-auto mt-20 max-w-3xl text-center"
-        >
-          <blockquote className="text-xl font-medium text-foreground">
-            <Balancer>
-              "You could keep wasting hours posting the old way... or just let us do it for you."
-            </Balancer>
-          </blockquote>
-        </motion.div>
+                {/* Content */}
+                <div className="text-center lg:text-left">
+                  <div className="mb-3">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      {benefit.badge}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-foreground mb-2">
+                    <Balancer>{benefit.title}</Balancer>
+                  </h3>
+                  
+                  <p className="text-base font-medium text-primary mb-3">
+                    <Balancer>{benefit.subtitle}</Balancer>
+                  </p>
+                  
+                  <p className="text-sm text-muted-foreground leading-6">
+                    <Balancer>{benefit.description}</Balancer>
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Bottom Quote */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            viewport={{ once: true }}
+            className="mx-auto mt-20 max-w-3xl text-center"
+          >
+            <blockquote className="text-xl font-medium text-foreground">
+              <Balancer>
+                "You could keep wasting hours posting the old way... or just let us do it for you."
+              </Balancer>
+            </blockquote>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

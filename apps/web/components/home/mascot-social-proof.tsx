@@ -37,107 +37,116 @@ export function MascotSocialProof() {
   };
 
   return (
-    <section className="relative bg-background py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
-          >
-            <Balancer>
-              Social Proof (make it playful)
-            </Balancer>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="mt-6 text-lg leading-8 text-muted-foreground"
-          >
-            <Balancer>
-              Don't take our word for it. Here's what people who actually use this thing are saying:
-            </Balancer>
-          </motion.p>
-        </div>
-
-        {/* Testimonials Grid */}
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-8 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-          {testimonials.map((testimonial, index) => (
-            <motion.div
-              key={testimonial.author}
-              initial={{ opacity: 0, y: 30 }}
+    <section className="relative flex w-full flex-col items-center justify-center border-border border-y px-5 md:px-10">
+      <div className="relative mx-5 border-border border-x md:mx-10">
+        {/* Left diagonal pattern */}
+        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        
+        {/* Right diagonal pattern */}
+        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        
+        {/* Content */}
+        <div className="h-full w-full border-border border-b p-10 md:p-14">
+          {/* Section Header */}
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="flex flex-col items-center text-center p-8 rounded-2xl bg-muted/30 border border-border/50"
+              className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
             >
-              {/* Rating Stars */}
-              <div className="flex gap-1 mb-6">
-                {renderStars(testimonial.rating)}
-              </div>
+              <Balancer>
+                Don't Take Our Word For It
+              </Balancer>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="mt-6 text-lg leading-8 text-muted-foreground"
+            >
+              <Balancer>
+                Here's what people who actually use this thing are saying:
+              </Balancer>
+            </motion.p>
+          </div>
 
-              {/* Quote */}
-              <blockquote className="text-lg font-medium text-foreground mb-6 leading-7">
-                <Balancer>
-                  "{testimonial.quote}"
-                </Balancer>
-              </blockquote>
-
-              {/* Mascot */}
-              <div className="relative mb-6 flex h-20 w-20 items-center justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  <Image
-                    src={testimonial.mascot}
-                    alt="Happy customer mascot"
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-contain"
-                  />
-                </motion.div>
-              </div>
-
-              {/* Author Info */}
-              <div>
-                <div className="font-semibold text-foreground">
-                  {testimonial.author}
+          {/* Testimonials Grid */}
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-8 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.author}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="flex flex-col items-center text-center p-8 rounded-xl border border-border bg-card/50 transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+              >
+                {/* Rating Stars */}
+                <div className="flex gap-1 mb-6">
+                  {renderStars(testimonial.rating)}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {testimonial.role}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          viewport={{ once: true }}
-          className="mx-auto mt-16 max-w-2xl text-center"
-        >
-          <p className="text-lg text-muted-foreground mb-6">
-            <Balancer>
-              Join 10,000+ creators who stopped fighting with upload buttons and started actually creating.
-            </Balancer>
-          </p>
+                {/* Quote */}
+                <blockquote className="text-base font-medium text-foreground mb-6 leading-7">
+                  <Balancer>
+                    "{testimonial.quote}"
+                  </Balancer>
+                </blockquote>
+
+                {/* Mascot */}
+                <div className="relative mb-6 flex h-16 w-16 items-center justify-center">
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Image
+                      src={testimonial.mascot}
+                      alt="Happy customer mascot"
+                      width={64}
+                      height={64}
+                      className="h-full w-full object-contain dark:invert"
+                    />
+                  </motion.div>
+                </div>
+
+                {/* Author Info */}
+                <div>
+                  <div className="font-semibold text-foreground">
+                    {testimonial.author}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {testimonial.role}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Bottom CTA */}
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="mx-auto mt-16 max-w-2xl text-center"
           >
-            👉 Alright, I'm convinced
+            <p className="text-lg text-muted-foreground mb-6">
+              <Balancer>
+                Join 10,000+ creators who stopped fighting with upload buttons and started actually creating.
+              </Balancer>
+            </p>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+            >
+              👉 Alright, I'm convinced
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
