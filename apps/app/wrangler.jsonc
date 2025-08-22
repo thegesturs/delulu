@@ -72,7 +72,8 @@
   "r2_buckets": [
     {
       "binding": "DELULU_SOCIAL_BUCKET",
-      "bucket_name": "delulu-social"
+      "bucket_name": "delulu-social",
+      "preview_bucket_name": "delulu-social-dev"
     }
   ],
   // KV namespace for storing Facebook pages data temporarily

@@ -17,7 +17,7 @@ export function DesktopMockup({ children, className }: DesktopMockupProps) {
         <div className="h-3 w-3 rounded-full bg-yellow-400" />
         <div className="h-3 w-3 rounded-full bg-green-500" />
         <div className="ml-auto flex h-6 flex-grow items-center rounded-md bg-accent px-3 text-secondary-foreground text-sm">
-          delulu.social/post
+          solulu.delulu.social/post
         </div>
       </div>
       {/* Screen content */}

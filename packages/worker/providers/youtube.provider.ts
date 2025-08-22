@@ -13,10 +13,17 @@ import { keys } from '../key';
 import type {
   PostContent,
   PostPublishResult,
-  BaseProviderProfile as YouTubeProfile,
   YouTubeVideoMetadata,
   YouTubeVideoUploadResponse,
 } from './common-types';
+
+interface YouTubeProfile {
+  id: string;
+  profileId?: string;
+  accessToken: string;
+  refreshToken: string;
+  username: string;
+}
 import {
   InvalidMediaError,
   ProfileNotFoundError,
@@ -39,23 +46,56 @@ const getProfile = (
     }),
     () => new YouTubeError('Database query failed')
   ).andThen((profile) => {
-    if (!profile?.accessToken) {
+    if (!profile?.accessToken || !profile?.refreshToken) {
       return err(new ProfileNotFoundError('YouTube'));
     }
     return ok({
       id: profile._id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
+      refreshToken: profile.refreshToken,
       username: profile.username ?? '',
     });
   });
 
-// Get video stream from URL
-const getVideoStream = (
+// Get fresh access token using refresh token
+const getFreshAccessToken = (
+  refreshToken: string
+): ResultAsync<string, SocialProviderError> => {
+  console.log('[YouTube] Getting fresh access token');
+
+  return ResultAsync.fromPromise(
+    (async () => {
+      const oauth2Client = new google.auth.OAuth2(
+        keys().GOOGLE_CLIENT_ID,
+        keys().GOOGLE_CLIENT_SECRET,
+        keys().YOUTUBE_CALLBACK_URL
+      );
+
+      oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+      const response = await oauth2Client.getAccessToken();
+      return response.token;
+    })(),
+    (error) => {
+      console.log('[YouTube] Failed to get fresh access token:', error);
+      return new YouTubeError('Failed to get fresh access token');
+    }
+  ).andThen((accessToken) => {
+    if (!accessToken) {
+      return err(new YouTubeError('No access token received'));
+    }
+    console.log('[YouTube] Fresh access token obtained successfully');
+    return ok(accessToken);
+  });
+};
+
+// Get video stream and metadata from URL
+const getVideoStreamWithMimeType = (
   url: string
-): ResultAsync<Readable, SocialProviderError> =>
+): ResultAsync<{ stream: Readable; mimeType: string }, SocialProviderError> =>
   ResultAsync.fromPromise(
-    new Promise<Readable>((resolve, reject) => {
+    new Promise<{ stream: Readable; mimeType: string }>((resolve, reject) => {
       https
         .get(url, (response: IncomingMessage) => {
           if (response.statusCode !== 200) {
@@ -80,7 +120,16 @@ const getVideoStream = (
             return;
           }
 
-          resolve(response);
+          // Get MIME type from Content-Type header
+          const contentType = response.headers['content-type'] || 'video/mp4';
+          console.log(
+            `[YouTube] Video Content-Type: ${contentType}, Size: ${contentLength} bytes`
+          );
+
+          resolve({
+            stream: response,
+            mimeType: contentType,
+          });
         })
         .on('error', reject);
     }),
@@ -94,6 +143,7 @@ const getVideoStream = (
 const uploadVideoToYouTube = (
   accessToken: string,
   videoStream: Readable,
+  mimeType: string,
   metadata: YouTubeVideoMetadata
 ): ResultAsync<YouTubeVideoUploadResponse, SocialProviderError> => {
   const auth = new google.auth.OAuth2();
@@ -116,13 +166,11 @@ const uploadVideoToYouTube = (
       },
       media: {
         body: videoStream,
-        mimeType: 'video/mp4',
+        mimeType: mimeType,
       },
     }),
     (error): SocialProviderError => {
-      if (error instanceof Error && error.message.includes('401')) {
-        return new YouTubeError('Invalid YouTube access token');
-      }
+      console.log('[YouTube] Upload failed:', error);
       return createAPIError('YouTube', error);
     }
   ).andThen((response) => {
@@ -180,29 +228,41 @@ const publishContent = (
     );
   }
 
-  return getVideoStream(videoMedia.url)
-    .andThen((videoStream) => {
-      // Prepare metadata for YouTube Shorts
-      const metadata: YouTubeVideoMetadata = {
-        snippet: {
-          title: firstContent.text.slice(0, 100) || 'YouTube Short',
-          description: firstContent.text || '',
-          tags: firstContent.tags || [],
-          categoryId: '24', // Entertainment
-          defaultLanguage: 'en',
-        },
-        status: {
-          privacyStatus: 'public',
-        },
-      };
+  // Get fresh access token first
+  return getFreshAccessToken(profile.refreshToken)
+    .andThen((freshAccessToken) =>
+      getVideoStreamWithMimeType(videoMedia.url).andThen(
+        ({ stream, mimeType }) => {
+          console.log(`[YouTube] Processing video with MIME type: ${mimeType}`);
 
-      // Add #Shorts to description to help YouTube identify it as a Short
-      if (!metadata.snippet.description.includes('#Shorts')) {
-        metadata.snippet.description += '\n\n#Shorts';
-      }
+          // Prepare metadata for YouTube Shorts
+          const metadata: YouTubeVideoMetadata = {
+            snippet: {
+              title: firstContent.text.slice(0, 100) || 'YouTube Short',
+              description: firstContent.text || '',
+              tags: firstContent.tags || [],
+              categoryId: '24', // Entertainment
+              defaultLanguage: 'en',
+            },
+            status: {
+              privacyStatus: 'public',
+            },
+          };
 
-      return uploadVideoToYouTube(profile.accessToken, videoStream, metadata);
-    })
+          // Add #Shorts to description to help YouTube identify it as a Short
+          if (!metadata.snippet.description.includes('#Shorts')) {
+            metadata.snippet.description += '\n\n#Shorts';
+          }
+
+          return uploadVideoToYouTube(
+            freshAccessToken,
+            stream,
+            mimeType,
+            metadata
+          );
+        }
+      )
+    )
     .map((uploadResponse) => {
       const shortsUrl = `https://www.youtube.com/shorts/${uploadResponse.id}`;
 

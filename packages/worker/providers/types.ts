@@ -10,5 +10,5 @@ export type SocialProvider = {
     content: SocialPublishInputType;
     socialProviderId: string;
   }) => Promise<Result<PostReturnType, SocialProviderError>>;
-  connectUrl: () => string;
+  connectUrl?: () => string;
 };

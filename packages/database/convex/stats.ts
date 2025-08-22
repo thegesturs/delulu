@@ -1,9 +1,194 @@
 import { TableAggregate } from '@convex-dev/aggregate';
 import { v } from 'convex/values';
 import { components } from './_generated/api';
-import type { DataModel, Id } from './_generated/dataModel';
-import { query } from './_generated/server';
+import type { DataModel, Doc, Id } from './_generated/dataModel';
+import { internalMutation, mutation, query } from './_generated/server';
 import { getCurrentUser } from './users';
+import { getCurrentTimestamp } from './utils';
+
+// ============================================================================
+// STREAK CALCULATION FUNCTIONS
+// ============================================================================
+
+// Helper function to calculate streak from publish dates array
+export function calculateStreak(publishDates: number[] = []): {
+  current: number;
+  longest: number;
+} {
+  if (publishDates.length === 0) {
+    return { current: 0, longest: 0 };
+  }
+
+  // Convert timestamps to date strings (YYYY-MM-DD) for day-based comparison
+  const uniqueDates = Array.from(
+    new Set(
+      publishDates.map((timestamp) => {
+        const date = new Date(timestamp);
+        return date.toISOString().split('T')[0]; // Get YYYY-MM-DD
+      })
+    )
+  ).sort(); // Sort chronologically
+
+  if (uniqueDates.length === 0) {
+    return { current: 0, longest: 0 };
+  }
+
+  let currentStreak = 1;
+  let longestStreak = 1;
+  let tempStreak = 1;
+
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+
+  // Calculate longest streak by checking consecutive dates
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const currentDate = new Date(uniqueDates[i]);
+    const prevDate = new Date(uniqueDates[i - 1]);
+    const dayDiff = Math.floor(
+      (currentDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000)
+    );
+
+    if (dayDiff === 1) {
+      // Consecutive day
+      tempStreak++;
+    } else {
+      // Streak broken
+      longestStreak = Math.max(longestStreak, tempStreak);
+      tempStreak = 1;
+    }
+  }
+  longestStreak = Math.max(longestStreak, tempStreak);
+
+  // Calculate current streak (from most recent date backwards)
+  const latestDate = uniqueDates[uniqueDates.length - 1];
+
+  // Current streak only counts if they posted today or yesterday
+  if (latestDate === today || latestDate === yesterday) {
+    currentStreak = 1;
+
+    // Count backwards from latest date
+    for (let i = uniqueDates.length - 2; i >= 0; i--) {
+      const currentDate = new Date(uniqueDates[i + 1]);
+      const prevDate = new Date(uniqueDates[i]);
+      const dayDiff = Math.floor(
+        (currentDate.getTime() - prevDate.getTime()) / (24 * 60 * 60 * 1000)
+      );
+
+      if (dayDiff === 1) {
+        currentStreak++;
+      } else {
+        break; // Streak broken
+      }
+    }
+  } else {
+    currentStreak = 0; // No recent activity
+  }
+
+  return { current: currentStreak, longest: longestStreak };
+}
+
+// Mutation to add a publish date to user's streak array
+export const addPublishDate = mutation({
+  args: {
+    userId: v.id('users'),
+    publishDate: v.optional(v.number()), // Optional, defaults to now
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const publishDate = args.publishDate || Date.now();
+    const dateStr = new Date(publishDate).toISOString().split('T')[0];
+
+    // Get existing publish dates or initialize empty array
+    const existingDates = user.stats?.publishDates || [];
+
+    // Check if this date already exists (convert to date strings for comparison)
+    const existingDateStrs = existingDates.map(
+      (timestamp) => new Date(timestamp).toISOString().split('T')[0]
+    );
+
+    if (!existingDateStrs.includes(dateStr)) {
+      // Add the new date
+      const updatedDates = [...existingDates, publishDate];
+
+      await ctx.db.patch(args.userId, {
+        stats: {
+          ...user.stats,
+          publishDates: updatedDates,
+        },
+        updatedAt: getCurrentTimestamp(),
+      });
+    }
+  },
+});
+
+// Internal mutation to add a publish date to user's streak array
+export const addPublishDateInternal = internalMutation({
+  args: {
+    userId: v.id('users'),
+    publishDate: v.optional(v.number()), // Optional, defaults to now
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const publishDate = args.publishDate || Date.now();
+    const dateStr = new Date(publishDate).toISOString().split('T')[0];
+
+    // Get existing publish dates or initialize empty array
+    const existingDates = user.stats?.publishDates || [];
+
+    // Check if this date already exists (convert to date strings for comparison)
+    const existingDateStrs = existingDates.map(
+      (timestamp) => new Date(timestamp).toISOString().split('T')[0]
+    );
+
+    if (!existingDateStrs.includes(dateStr)) {
+      // Add the new date
+      const updatedDates = [...existingDates, publishDate];
+
+      await ctx.db.patch(args.userId, {
+        stats: {
+          ...user.stats,
+          publishDates: updatedDates,
+        },
+        updatedAt: getCurrentTimestamp(),
+      });
+    }
+  },
+});
+
+// Query to get user's streak stats
+export const getUserStreakStats = query({
+  args: { userId: v.optional(v.id('users')) },
+  handler: async (ctx, args) => {
+    let user: Doc<'users'> | null = null;
+
+    if (args.userId) {
+      user = await ctx.db.get(args.userId);
+    } else {
+      user = await getCurrentUser(ctx);
+    }
+
+    if (!user) {
+      return { current: 0, longest: 0 };
+    }
+
+    const publishDates = user.stats?.publishDates || [];
+    return calculateStreak(publishDates);
+  },
+});
+
+// ============================================================================
+// AGGREGATES
+// ============================================================================
 
 // Aggregate for posts by user and status - enables user-specific status filtering
 export const postsByUserStatus = new TableAggregate<{
@@ -14,25 +199,7 @@ export const postsByUserStatus = new TableAggregate<{
   sortKey: (doc) => [doc.userId ?? null, doc.status],
 });
 
-// Aggregate for posts by user and creation time - enables time-based trends
-export const postsByUserTime = new TableAggregate<{
-  Key: [Id<'users'> | null, number]; // [userId, createdAt]
-  DataModel: DataModel;
-  TableName: 'posts';
-}>(components.postsByUserTime, {
-  sortKey: (doc) => [doc.userId ?? null, doc.createdAt],
-});
-
-// Aggregate for posts by user and scheduled time - enables upcoming posts
-export const postsByUserSchedule = new TableAggregate<{
-  Key: [Id<'users'> | null, number]; // [userId, scheduledAt]
-  DataModel: DataModel;
-  TableName: 'posts';
-}>(components.postsByUserSchedule, {
-  sortKey: (doc) => [doc.userId ?? null, doc.scheduledAt || 0],
-});
-
-// Query to get comprehensive dashboard stats using compound key aggregates
+// Query to get comprehensive dashboard stats
 export const getDashboardStats = query({
   args: {},
   handler: async (ctx) => {
@@ -55,14 +222,14 @@ export const getDashboardStats = query({
       };
     }
 
-    // Get total posts for user using prefix
+    // Get total posts for user using aggregator
     const totalPosts = await postsByUserStatus.count(ctx, {
       bounds: {
         prefix: [user._id],
       },
     });
 
-    // Get counts by specific status using full key
+    // Get counts by specific status using aggregator
     const publishedCount = await postsByUserStatus.count(ctx, {
       bounds: { prefix: [user._id, 'PUBLISHED'] },
     });
@@ -85,31 +252,47 @@ export const getDashboardStats = query({
     const thisWeekStart = now - 7 * 24 * 60 * 60 * 1000;
     const lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000;
 
-    // Get upcoming scheduled posts using time bounds with user prefix
-    const upcomingPosts = await postsByUserSchedule.count(ctx, {
-      bounds: {
-        prefix: [user._id],
-        lower: { key: [user._id, now], inclusive: true },
-        upper: { key: [user._id, nextWeek], inclusive: true },
-      },
-    });
+    // Get upcoming scheduled posts using direct query (more accurate than aggregator)
+    const upcomingScheduledPosts = await ctx.db
+      .query('posts')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('status'), 'SCHEDULED'),
+          q.eq(q.field('isDeleted'), false),
+          q.gte(q.field('scheduledAt'), now),
+          q.lte(q.field('scheduledAt'), nextWeek)
+        )
+      )
+      .collect();
+    const upcomingPosts = upcomingScheduledPosts.length;
 
-    // Get weekly trends using creation time bounds with user prefix
-    const thisWeekPosts = await postsByUserTime.count(ctx, {
-      bounds: {
-        prefix: [user._id],
-        lower: { key: [user._id, thisWeekStart], inclusive: true },
-        upper: { key: [user._id, now], inclusive: true },
-      },
-    });
+    // Get weekly trends using direct queries
+    const thisWeekPostsResult = await ctx.db
+      .query('posts')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('isDeleted'), false),
+          q.gte(q.field('createdAt'), thisWeekStart),
+          q.lte(q.field('createdAt'), now)
+        )
+      )
+      .collect();
+    const thisWeekPosts = thisWeekPostsResult.length;
 
-    const lastWeekPosts = await postsByUserTime.count(ctx, {
-      bounds: {
-        prefix: [user._id],
-        lower: { key: [user._id, lastWeekStart], inclusive: true },
-        upper: { key: [user._id, thisWeekStart], inclusive: false },
-      },
-    });
+    const lastWeekPostsResult = await ctx.db
+      .query('posts')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('isDeleted'), false),
+          q.gte(q.field('createdAt'), lastWeekStart),
+          q.lt(q.field('createdAt'), thisWeekStart)
+        )
+      )
+      .collect();
+    const lastWeekPosts = lastWeekPostsResult.length;
 
     // Calculate success rate
     const totalAttempted = publishedCount + failedCount;
@@ -118,7 +301,7 @@ export const getDashboardStats = query({
         ? Math.round((publishedCount / totalAttempted) * 100)
         : 0;
 
-    // Get connected accounts count (keep simple query for social providers)
+    // Get connected accounts count
     const socialProviders = await ctx.db
       .query('socialProviders')
       .withIndex('by_user_id', (q) => q.eq('userId', user._id))
@@ -127,12 +310,12 @@ export const getDashboardStats = query({
 
     // Count expired tokens
     const expiredTokens = socialProviders.filter(
-      (sp) => sp.expiresIn && sp.expiresIn < now
+      (sp) => sp.refreshTokenExpiresIn && sp.refreshTokenExpiresIn < now
     ).length;
 
-    // Get streak information from user stats
-    const postingStreak = user.stats?.streak?.current ?? 0;
-    const longestStreak = user.stats?.streak?.longest.count ?? 0;
+    // Get streak information using new streak system
+    const publishDates = user.stats?.publishDates || [];
+    const streakStats = calculateStreak(publishDates);
 
     return {
       totalPosts,
@@ -146,8 +329,8 @@ export const getDashboardStats = query({
       successRate,
       connectedAccounts: socialProviders.length,
       expiredTokens,
-      postingStreak,
-      longestStreak,
+      postingStreak: streakStats.current,
+      longestStreak: streakStats.longest,
     };
   },
 });

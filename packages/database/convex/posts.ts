@@ -10,11 +10,7 @@ import {
   mutation,
   query,
 } from './_generated/server';
-import {
-  postsByUserSchedule,
-  postsByUserStatus,
-  postsByUserTime,
-} from './stats';
+import { postsByUserStatus } from './stats';
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
@@ -158,8 +154,6 @@ export const createPost = mutation({
     const newPost = await ctx.db.get(newPostId);
     if (newPost) {
       await postsByUserStatus.insert(ctx, newPost);
-      await postsByUserTime.insert(ctx, newPost);
-      await postsByUserSchedule.insert(ctx, newPost);
     }
 
     // Schedule the post for publishing if scheduledAt is provided
@@ -212,8 +206,6 @@ export const updatePost = mutation({
     const newPost = await ctx.db.get(args.id);
     if (newPost) {
       await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     // Schedule the post for publishing if scheduledAt is provided
@@ -274,8 +266,6 @@ export const upsertPost = mutation({
       const newPost = await ctx.db.get(id);
       if (newPost) {
         await postsByUserStatus.replace(ctx, oldPost, newPost);
-        await postsByUserTime.replace(ctx, oldPost, newPost);
-        await postsByUserSchedule.replace(ctx, oldPost, newPost);
       }
 
       postId = id;
@@ -305,8 +295,6 @@ export const upsertPost = mutation({
       const newPost = await ctx.db.get(postId);
       if (newPost) {
         await postsByUserStatus.insert(ctx, newPost);
-        await postsByUserTime.insert(ctx, newPost);
-        await postsByUserSchedule.insert(ctx, newPost);
       }
     }
 
@@ -338,8 +326,6 @@ export const softDeletePost = mutation({
     const newPost = await ctx.db.get(args.id);
     if (newPost) {
       await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return true;
@@ -354,8 +340,6 @@ export const hardDeletePost = mutation({
 
     // Remove from aggregates before deleting
     await postsByUserStatus.delete(ctx, post);
-    await postsByUserTime.delete(ctx, post);
-    await postsByUserSchedule.delete(ctx, post);
 
     await ctx.db.delete(post._id);
     return true;
@@ -561,8 +545,6 @@ export const deletePost = mutation({
     const newPost = await ctx.db.get(args.postId);
     if (newPost) {
       await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
     }
 
     return { success: true };
@@ -623,90 +605,13 @@ export const updatePostPublishStatus = mutation({
     const newPost = await ctx.db.get(post._id);
     if (newPost) {
       await postsByUserStatus.replace(ctx, oldPost, newPost);
-      await postsByUserTime.replace(ctx, oldPost, newPost);
-      await postsByUserSchedule.replace(ctx, oldPost, newPost);
 
       // If post was published successfully, update the user's streak
       if (args.status === 'PUBLISHED' && post.userId) {
-        const user = await ctx.db.get(post.userId);
-        if (user) {
-          const defaultStreak = {
-            current: 1,
-            lastCountedDate: now,
-            longest: {
-              count: 1,
-              startDate: now,
-              endDate: now,
-            },
-            lastCheckedDate: now,
-            publishedToday: true,
-            lastMaintenanceRun: now,
-            maintenanceStatus: 'success' as const,
-          };
-
-          // If user has no streak data, initialize it
-          if (!user.stats?.streak) {
-            await ctx.db.patch(user._id, {
-              stats: {
-                ...user.stats,
-                streak: defaultStreak,
-              },
-            });
-            return true;
-          }
-
-          const today = new Date(now);
-          today.setHours(0, 0, 0, 0);
-          const todayTimestamp = today.getTime();
-
-          const lastCountedDate = new Date(user.stats.streak.lastCountedDate);
-          lastCountedDate.setHours(0, 0, 0, 0);
-          const lastCountedTimestamp = lastCountedDate.getTime();
-
-          // If this is the first post of a new day
-          if (todayTimestamp !== lastCountedTimestamp) {
-            // Create a new streak object
-            const newStreak = {
-              ...user.stats.streak,
-              current:
-                todayTimestamp - lastCountedTimestamp <= 24 * 60 * 60 * 1000
-                  ? user.stats.streak.current + 1 // Continue streak
-                  : 1, // Start new streak
-              lastCountedDate: todayTimestamp,
-              publishedToday: true,
-            };
-
-            // Update longest streak if current is longer
-            if (newStreak.current > newStreak.longest.count) {
-              newStreak.longest = {
-                count: newStreak.current,
-                startDate:
-                  todayTimestamp -
-                  (newStreak.current - 1) * 24 * 60 * 60 * 1000,
-                endDate: todayTimestamp,
-              };
-            }
-
-            // Update user stats with new streak data
-            await ctx.db.patch(user._id, {
-              stats: {
-                ...user.stats,
-                streak: newStreak,
-              },
-            });
-          } else if (!user.stats.streak.publishedToday) {
-            // If it's the first post today but on the same day
-            await ctx.db.patch(user._id, {
-              stats: {
-                ...user.stats,
-                streak: {
-                  ...user.stats.streak,
-                  publishedToday: true,
-                },
-              },
-            });
-          }
-        }
+        await ctx.runMutation(internal.stats.addPublishDateInternal, {
+          userId: post.userId,
+          publishDate: now,
+        });
       }
     }
 

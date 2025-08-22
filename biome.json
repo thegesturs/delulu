@@ -26,7 +26,8 @@
       "recommended": true,
       "style": {
         "useTemplate": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noInferrableTypes": "off"
       },
       "a11y": {
         "noAriaUnsupportedElements": "warn",
@@ -52,7 +53,10 @@
         "noDangerouslySetInnerHtmlWithChildren": "error",
         "noDangerouslySetInnerHtml": "warn"
       },
-      "suspicious": { "noCommentText": "error", "noDuplicateJsxProps": "error" }
+      "suspicious": {
+        "noCommentText": "error",
+        "noDuplicateJsxProps": "error"
+      }
     }
   }
 }
