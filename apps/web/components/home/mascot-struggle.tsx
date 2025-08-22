@@ -1,4 +1,5 @@
 'use client';
+import LineSvg from '@/components/ui/line-svg';
 import {
   Card,
   CardContent,
@@ -53,34 +54,50 @@ export function MascotStruggle() {
               </Balancer>
             </p>
           </div>
-          {/* Struggle Cards */}
-          <div className="mx-auto grid grid-cols-1 gap-2 lg:max-w-none lg:grid-cols-3">
-            {struggles.map((struggle, index) => (
-              <Card key={struggle.title}>
-                {/* Mascot Image */}
-                <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center">
-                  <Image
-                    key={struggle.title}
-                    src={struggle.image}
-                    alt={struggle.title}
-                    width={300}
-                    height={300}
-                    className="h-full w-full object-contain dark:invert"
-                  />
-                </CardHeader>
 
-                {/* Content */}
-                <CardContent>
-                  <h3 className="mb-4 font-semibold text-foreground text-lg">
-                    <Balancer>{struggle.title}</Balancer>
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    <Balancer>{struggle.description}</Balancer>
-                  </p>
-                </CardContent>
-              </Card>
+          {/* Line above cards */}
+          <LineSvg className="mb-2 h-px w-full" />
+
+          {/* Struggle Cards */}
+          <div className="relative mx-auto grid grid-cols-1 gap-2 px-2 lg:max-w-none lg:grid-cols-3">
+            {struggles.map((struggle, index) => (
+              <>
+                <Card key={struggle.title}>
+                  {/* Mascot Image */}
+                  <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center">
+                    <Image
+                      key={struggle.title}
+                      src={struggle.image}
+                      alt={struggle.title}
+                      width={300}
+                      height={300}
+                      className="h-full w-full object-contain dark:invert"
+                    />
+                  </CardHeader>
+
+                  {/* Content */}
+                  <CardContent>
+                    <h3 className="mb-4 font-semibold text-foreground text-lg">
+                      <Balancer>{struggle.title}</Balancer>
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-6">
+                      <Balancer>{struggle.description}</Balancer>
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Vertical line between cards (not after the last one) */}
+                {index < struggles.length - 1 && (
+                  <LineSvg
+                    className={`absolute top-0 hidden h-full w-px lg:block ${index === 0 ? 'left-1/3' : 'left-2/3'}`}
+                  />
+                )}
+              </>
             ))}
           </div>
+
+          {/* Line below cards */}
+          <LineSvg className="mt-2 h-px w-full" />
 
           {/* Bottom CTA */}
           <div className="mx-auto mt-16 max-w-2xl text-center">
