@@ -12,7 +12,41 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Balancer from 'react-wrap-balancer';
 
+// Example: You can export this data to use elsewhere
+export const ctaBenefitsData = [
+  {
+    id: 'time-value',
+    image: '/images/delulu/coin-flip.png',
+    alt: 'Delulu flipping a coin',
+    title: 'Your Time > $1',
+    description:
+      "If Delulu doesn't save you at least 5 hours this month, I'll toss your dollar back. Congrats, you just bought a latte with zero effort.",
+    imageWidth: 'w-24 md:w-28',
+  },
+  {
+    id: 'user-control',
+    image: '/images/delulu/control.png',
+    alt: 'Delulu with checklist',
+    title: 'You Call the Shots',
+    description:
+      'The first 100 aren\'t "beta testers." You\'re literally steering what gets built. Delulu listens. Delulu ships.',
+    imageWidth: 'w-40',
+  },
+  {
+    id: 'one-click',
+    image: '/images/delulu/coffee.png',
+    alt: 'Happy delulu with coffee',
+    title: 'Zero Chaos, One Click',
+    description:
+      'Scheduling everywhere with one click = no more tab-hopping, no more missed posts, no more forehead dents from facepalming at your laptop.',
+    imageWidth: 'w-24 md:w-28',
+  },
+];
+
 const CTA = () => {
+  // Using the exported data - you can now use this anywhere
+  const benefits = ctaBenefitsData;
+
   return (
     <section className="relative flex w-full flex-col items-center justify-center border-t">
       <div className="relative mx-14 border-border border-x border-dashed ">
@@ -56,76 +90,30 @@ const CTA = () => {
 
           {/* Benefits Grid */}
           <div className="relative mx-auto grid gap-2 px-2 md:grid-cols-3">
-            <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
-                <Image
-                  src="/images/delulu/coin-flip.png"
-                  alt="Delulu flipping a coin"
-                  width={120}
-                  height={120}
-                  className="h-auto w-24 md:w-28 dark:invert"
-                />
-              </CardHeader>
-              <CardContent className="text-center">
-                <h3 className="mb-3 font-semibold text-base text-foreground">
-                  <Balancer>Your Time {'>'} $1</Balancer>
-                </h3>
-                <p className="text-muted-foreground text-sm leading-6">
-                  <Balancer>
-                    If Delulu doesn't save you at least 5 hours this month, I'll
-                    toss your dollar back. Congrats, you just bought a latte
-                    with zero effort.
-                  </Balancer>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
-                <Image
-                  src="/images/delulu/control.png"
-                  alt="Delulu with checklist"
-                  width={120}
-                  height={120}
-                  className="h-auto w-40 dark:invert"
-                />
-              </CardHeader>
-              <CardContent className="text-center">
-                <h3 className="mb-3 font-semibold text-base text-foreground">
-                  <Balancer>You Call the Shots</Balancer>
-                </h3>
-                <p className="text-muted-foreground text-sm leading-6">
-                  <Balancer>
-                    The first 100 aren't "beta testers." You're literally
-                    steering what gets built. Delulu listens. Delulu ships.
-                  </Balancer>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
-                <Image
-                  src="/images/delulu/coffee.png"
-                  alt="Happy delulu with coffee"
-                  width={120}
-                  height={120}
-                  className="h-auto w-24 md:w-28 dark:invert"
-                />
-              </CardHeader>
-              <CardContent className="text-center">
-                <h3 className="mb-3 font-semibold text-base text-foreground">
-                  <Balancer>Zero Chaos, One Click</Balancer>
-                </h3>
-                <p className="text-muted-foreground text-sm leading-6">
-                  <Balancer>
-                    Scheduling everywhere with one click = no more tab-hopping,
-                    no more missed posts, no more forehead dents from
-                    facepalming at your laptop.
-                  </Balancer>
-                </p>
-              </CardContent>
-            </Card>
+            {benefits.map((benefit, index) => (
+              <Card
+                key={benefit.id}
+                className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+              >
+                <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
+                  <Image
+                    src={benefit.image}
+                    alt={benefit.alt}
+                    width={120}
+                    height={120}
+                    className={`h-auto ${benefit.imageWidth} dark:invert`}
+                  />
+                </CardHeader>
+                <CardContent className="text-center">
+                  <h3 className="mb-3 font-semibold text-base text-foreground">
+                    <Balancer>{benefit.title}</Balancer>
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-6">
+                    <Balancer>{benefit.description}</Balancer>
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Line below cards */}
