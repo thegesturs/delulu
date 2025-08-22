@@ -1,5 +1,6 @@
 'use client';
 import LineSvg from '@/components/ui/line-svg';
+import VerticalLineSvg from '@/components/ui/vertical-line-svg';
 import {
   Card,
   CardContent,
@@ -86,11 +87,17 @@ export function MascotStruggle() {
                   </CardContent>
                 </Card>
 
-                {/* Vertical line between cards (not after the last one) */}
+                {/* Responsive separators between cards */}
                 {index < struggles.length - 1 && (
-                  <LineSvg
-                    className={`absolute top-0 hidden h-full w-px lg:block ${index === 0 ? 'left-1/3' : 'left-2/3'}`}
-                  />
+                  <>
+                    {/* Mobile: horizontal line between cards */}
+                    <LineSvg className="my-4 h-px w-full lg:hidden" />
+
+                    {/* Desktop: vertical line between cards - extended to connect */}
+                    <VerticalLineSvg
+                      className={`-top-2 absolute hidden h-[calc(100%+1rem)] w-px lg:block ${index === 0 ? 'left-1/3' : 'left-2/3'}`}
+                    />
+                  </>
                 )}
               </>
             ))}
