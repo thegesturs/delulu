@@ -8,7 +8,6 @@ import {
   CardContent,
   CardHeader,
 } from '@delulu/design-system/components/ui/card';
-import { Calendar, Message, Settings } from '@delulu/design-system/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import Balancer from 'react-wrap-balancer';
@@ -30,15 +29,15 @@ const CTA = () => {
             <h1 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
                 <span className="text-primary">$1</span> to join. You + 99
-                others get to boss Ghost around.
+                others get to boss Delulu around.
               </Balancer>
             </h1>
 
-            {/* Ghost Mascot Section */}
+            {/* Delulu Mascot Section */}
             {/* <div className="mt-8 flex flex-col items-center gap-4">
               <Image
                 src="/images/delulu/coin-flip.png"
-                alt="Ghost flipping a coin - dollar back guarantee"
+                alt="Delulu flipping a coin - dollar back guarantee"
                 width={120}
                 height={120}
                 className="h-auto w-20 md:w-24 dark:invert"
@@ -58,10 +57,14 @@ const CTA = () => {
           {/* Benefits Grid */}
           <div className="relative mx-auto grid gap-2 px-2 md:grid-cols-3">
             <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-4 flex size-20 items-center justify-center">
-                <div className="h-10 w-10">
-                  <Calendar />
-                </div>
+              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
+                <Image
+                  src="/images/delulu/coin-flip.png"
+                  alt="Delulu flipping a coin"
+                  width={120}
+                  height={120}
+                  className="h-auto w-24 md:w-28 dark:invert"
+                />
               </CardHeader>
               <CardContent className="text-center">
                 <h3 className="mb-3 font-semibold text-base text-foreground">
@@ -78,10 +81,14 @@ const CTA = () => {
             </Card>
 
             <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-4 flex size-20 items-center justify-center">
-                <div className="h-10 w-10">
-                  <Message />
-                </div>
+              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
+                <Image
+                  src="/images/delulu/control.png"
+                  alt="Delulu with checklist"
+                  width={120}
+                  height={120}
+                  className="h-auto w-24 md:w-28 dark:invert"
+                />
               </CardHeader>
               <CardContent className="text-center">
                 <h3 className="mb-3 font-semibold text-base text-foreground">
@@ -90,17 +97,21 @@ const CTA = () => {
                 <p className="text-muted-foreground text-sm leading-6">
                   <Balancer>
                     The first 100 aren't "beta testers." You're literally
-                    steering what gets built. Ghost listens. Ghost ships.
+                    steering what gets built. Delulu listens. Delulu ships.
                   </Balancer>
                 </p>
               </CardContent>
             </Card>
 
             <Card className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg">
-              <CardHeader className="relative mx-auto mb-4 flex size-20 items-center justify-center">
-                <div className="h-10 w-10">
-                  <Settings />
-                </div>
+              <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
+                <Image
+                  src="/images/delulu/coffee.png"
+                  alt="Happy delulu with coffee"
+                  width={120}
+                  height={120}
+                  className="h-auto w-24 md:w-28 dark:invert"
+                />
               </CardHeader>
               <CardContent className="text-center">
                 <h3 className="mb-3 font-semibold text-base text-foreground">
@@ -131,7 +142,7 @@ const CTA = () => {
                 <span className="font-bold font-mono text-primary">
                   FIRST100
                 </span>{' '}
-                · One-time deal · Ghost won't let you in later
+                · One-time deal · Delulu won't let you in later
               </p>
             </div>
           </div>
