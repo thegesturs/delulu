@@ -1,7 +1,9 @@
-'use client';
-
 import LineSvg from '@/components/ui/line-svg';
-import { motion } from 'motion/react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from '@delulu/design-system/components/ui/card';
 import Image from 'next/image';
 import Balancer from 'react-wrap-balancer';
 
@@ -13,7 +15,7 @@ export function MascotBenefits() {
       subtitle: 'Write once. Post everywhere. Done.',
       description:
         "No more tab-hopping Olympics. Create your content once, and we'll format it perfectly for every platform. Your sanity will thank you.",
-      badge: 'Benefit 1',
+      badge: 'Efficiency Era',
     },
     {
       image: '/images/delulu/happy.png',
@@ -21,7 +23,7 @@ export function MascotBenefits() {
       subtitle: "Schedule ahead. Pretend you're organized.",
       description:
         "Queue up a week's worth of posts in 15 minutes. Your audience thinks you're a posting machine. Win-win.",
-      badge: 'Benefit 2',
+      badge: 'Main Character',
     },
     {
       image: '/images/delulu/shill.png',
@@ -29,7 +31,7 @@ export function MascotBenefits() {
       subtitle: 'Auto-posting while you actually live your life.',
       description:
         'Because posting at midnight just to hit "optimal time" is so 2022. Set it, forget it, touch grass.',
-      badge: 'Benefit 3',
+      badge: 'Self Care Win',
     },
     {
       image: '/images/delulu/win.png',
@@ -37,7 +39,7 @@ export function MascotBenefits() {
       subtitle: 'Instagram, TikTok, LinkedIn, YouTube, Threads...',
       description:
         'All tucked in like messy little kids in one bed. One login, one interface, zero headaches.',
-      badge: 'Benefit 4',
+      badge: 'CEO Mode',
     },
   ];
 
@@ -54,27 +56,15 @@ export function MascotBenefits() {
         <div className="h-full w-full border-border border-b py-10">
           {/* Section Header */}
           <div className="mx-auto mb-20 max-w-2xl text-center">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl"
-            >
+            <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>How We Fixed Your Posting Nightmare</Balancer>
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="mt-6 text-lg text-muted-foreground leading-8"
-            >
+            </h2>
+            <p className="mt-6 text-lg text-muted-foreground leading-8">
               <Balancer>
                 Let's be real. You didn't become a creator/entrepreneur/marketer
                 just to babysit a calendar and fight with upload buttons.
               </Balancer>
-            </motion.p>
+            </p>
           </div>
 
           {/* Line above cards */}
@@ -84,36 +74,23 @@ export function MascotBenefits() {
           <div className="relative mx-auto grid max-w-2xl grid-cols-1 gap-2 px-2 lg:mx-0 lg:max-w-none lg:grid-cols-2">
             {benefits.map((benefit, index) => (
               <>
-                <motion.div
+                <Card
                   key={benefit.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="group relative rounded-xl border border-border bg-card/50 p-8 transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+                  className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
                 >
                   {/* Mascot Image */}
-                  <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center lg:mx-0">
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 20,
-                      }}
-                    >
-                      <Image
-                        src={benefit.image}
-                        alt={benefit.title}
-                        width={96}
-                        height={96}
-                        className="h-full w-full object-contain dark:invert"
-                      />
-                    </motion.div>
-                  </div>
+                  <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center lg:mx-0">
+                    <Image
+                      src={benefit.image}
+                      alt={benefit.title}
+                      width={128}
+                      height={128}
+                      className="h-full w-full object-contain dark:invert"
+                    />
+                  </CardHeader>
 
                   {/* Content */}
-                  <div className="text-center lg:text-left">
+                  <CardContent className="text-center lg:text-left">
                     <div className="mb-3">
                       <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-xs">
                         {benefit.badge}
@@ -131,8 +108,8 @@ export function MascotBenefits() {
                     <p className="text-muted-foreground text-sm leading-6">
                       <Balancer>{benefit.description}</Balancer>
                     </p>
-                  </div>
-                </motion.div>
+                  </CardContent>
+                </Card>
 
                 {/* Responsive separators between cards */}
                 {index < benefits.length - 1 && (
@@ -162,20 +139,14 @@ export function MascotBenefits() {
           <LineSvg className="mt-2 h-px w-full" />
 
           {/* Bottom Quote */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            viewport={{ once: true }}
-            className="mx-auto mt-20 max-w-3xl text-center"
-          >
+          <div className="mx-auto mt-20 max-w-3xl text-center">
             <blockquote className="font-medium text-foreground text-xl">
               <Balancer>
                 "You could keep wasting hours posting the old way... or just let
                 us do it for you."
               </Balancer>
             </blockquote>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
