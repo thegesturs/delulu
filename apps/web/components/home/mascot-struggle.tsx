@@ -6,6 +6,7 @@ import {
   CardHeader,
 } from '@delulu/design-system/components/ui/card';
 import Image from 'next/image';
+import React from 'react';
 import Balancer from 'react-wrap-balancer';
 
 export function MascotStruggle() {
@@ -61,7 +62,7 @@ export function MascotStruggle() {
           {/* Struggle Cards */}
           <div className="relative mx-auto grid grid-cols-1 gap-2 px-2 lg:max-w-none lg:grid-cols-3">
             {struggles.map((struggle, index) => (
-              <>
+              <React.Fragment key={struggle.title}>
                 <Card key={struggle.title}>
                   {/* Mascot Image */}
                   <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center">
@@ -99,7 +100,7 @@ export function MascotStruggle() {
                     />
                   </>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
 

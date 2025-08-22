@@ -87,7 +87,7 @@ const CTA = () => {
                   alt="Delulu with checklist"
                   width={120}
                   height={120}
-                  className="h-auto w-24 md:w-28 dark:invert"
+                  className="h-auto w-40 dark:invert"
                 />
               </CardHeader>
               <CardContent className="text-center">
