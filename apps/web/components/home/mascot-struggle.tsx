@@ -31,8 +31,8 @@ export function MascotStruggle() {
   ];
 
   return (
-    <section className="relative flex w-full flex-col items-center justify-center border-border border-y">
-      <div className="relative mx-14 border-border border-x">
+    <section className="relative flex w-full flex-col items-center justify-center">
+      <div className="relative mx-14 border-border border-x border-dashed">
         {/* Left diagonal pattern */}
         <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
 

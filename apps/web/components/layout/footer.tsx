@@ -1,3 +1,4 @@
+import { Card } from '@delulu/design-system/components/ui/card';
 import Link from 'next/link';
 import { FaLinkedin, FaTwitter } from 'react-icons/fa';
 import { Logo } from '../logo';
@@ -28,8 +29,8 @@ export function Footer() {
   ];
 
   return (
-    <footer className="m-10 mx-auto w-full max-w-7xl rounded-xl bg-gray-50">
-      <div className="mx-auto max-w-7xl px-8 py-20">
+    <footer className="mx-auto w-full max-w-7xl border-x border-t px-2 py-2">
+      <Card className="mx-auto max-w-7xl px-8 py-20">
         <div className="flex flex-col justify-between gap-12 md:flex-row">
           <div className="flex flex-col items-start">
             <Logo />
@@ -125,7 +126,7 @@ export function Footer() {
             </Link> */}
           </div>
         </div>
-      </div>
+      </Card>
     </footer>
   );
 }

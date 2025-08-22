@@ -48,7 +48,7 @@ const Home = () => {
       <Hero />
       <MascotStruggle />
       <MascotBenefits />
-      <MascotSocialProof />
+      {/* <MascotSocialProof /> */}
       <Pricing />
       <FAQ />
       <CTA />

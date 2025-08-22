@@ -65,12 +65,10 @@ export function FAQ() {
         {/* Header */}
         <div className="mb-12 text-center">
           <h2 className="mb-4 font-semibold text-4xl">
-            Objection-Busting <span className="text-primary">FAQ</span> (reverse
-            psychology)
+            Let's be real. You have <span className="text-primary">questions</span>.
           </h2>
           <p className="mx-auto max-w-3xl text-muted-foreground">
-            Look, we know you have questions. Here are the answers before you
-            even ask them.
+            Here are the answers before you stress about them:
           </p>
         </div>
 
