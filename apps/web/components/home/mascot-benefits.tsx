@@ -5,6 +5,7 @@ import {
   CardHeader,
 } from '@delulu/design-system/components/ui/card';
 import Image from 'next/image';
+import React from 'react';
 import Balancer from 'react-wrap-balancer';
 
 export function MascotBenefits() {
@@ -73,7 +74,7 @@ export function MascotBenefits() {
           {/* Benefits Grid */}
           <div className="relative mx-auto grid max-w-2xl grid-cols-1 gap-2 px-2 lg:mx-0 lg:max-w-none lg:grid-cols-2">
             {benefits.map((benefit, index) => (
-              <>
+              <React.Fragment key={benefit.title}>
                 <Card
                   key={benefit.title}
                   className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
@@ -131,7 +132,7 @@ export function MascotBenefits() {
                 {index === 1 && (
                   <LineSvg className="absolute top-1/2 left-0 hidden h-px w-full lg:block" />
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
 
