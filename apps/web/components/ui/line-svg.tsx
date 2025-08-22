@@ -1,6 +1,14 @@
 import React from "react";
 
-export default function LineSvg({ className }: { className: string }) {
+interface LineSvgProps {
+  className: string;
+  direction?: 'horizontal' | 'vertical';
+}
+
+export default function LineSvg({ className, direction = 'horizontal' }: LineSvgProps) {
+  const isVertical = direction === 'vertical';
+  const patternId = isVertical ? ':vertical:' : ':horizontal:';
+  
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -8,13 +16,18 @@ export default function LineSvg({ className }: { className: string }) {
       fill="none"
     >
       <defs>
-        <pattern id=":S1:" patternUnits="userSpaceOnUse" width="16" height="1">
+        <pattern 
+          id={patternId} 
+          patternUnits="userSpaceOnUse" 
+          width={isVertical ? "1" : "16"} 
+          height={isVertical ? "16" : "1"}
+        >
           <line
             className="stroke-zinc-950 dark:stroke-white"
-            x1="0"
-            x2="16"
-            y1="0.5"
-            y2="0.5"
+            x1={isVertical ? "0.5" : "0"}
+            x2={isVertical ? "0.5" : "16"}
+            y1={isVertical ? "0" : "0.5"}
+            y2={isVertical ? "16" : "0.5"}
             strokeDasharray="2 2"
             strokeWidth="1.5"
             strokeOpacity="0.1"
@@ -22,7 +35,7 @@ export default function LineSvg({ className }: { className: string }) {
           ></line>
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#:S1:)"></rect>
+      <rect width="100%" height="100%" fill={`url(#${patternId})`}></rect>
     </svg>
   );
 }
