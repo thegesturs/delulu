@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import CTA from '@/components/home/cta';
 import { FAQ } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
-import { LogoCloud } from '@/components/home/logos-cloud';
 import { MascotBenefits } from '@/components/home/mascot-benefits';
 import { MascotSocialProof } from '@/components/home/mascot-social-proof';
 import { MascotStruggle } from '@/components/home/mascot-struggle';
@@ -45,16 +44,15 @@ export const generateMetadata = (): Metadata => {
 
 const Home = () => {
   return (
-    <>
+    <main className="mx-auto max-w-7xl border-x">
       <Hero />
-      <LogoCloud />
       <MascotStruggle />
       <MascotBenefits />
       <MascotSocialProof />
       <Pricing />
       <FAQ />
       <CTA />
-    </>
+    </main>
   );
 };
 
