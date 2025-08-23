@@ -3,6 +3,7 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
+import Link from 'next/link';
 import { useState } from 'react';
 
 interface PricingTier {
@@ -85,8 +86,9 @@ const PricingCard = ({
         <Button
           variant={isHighlighted ? 'default' : 'outline'}
           className="w-full px-6 py-4 font-medium text-md"
+          asChild
         >
-          {cta}
+          <Link href="https://solulu.delulu.social/sign-in">{cta}</Link>
         </Button>
 
         <ul className="space-y-4">

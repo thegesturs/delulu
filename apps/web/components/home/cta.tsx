@@ -123,7 +123,7 @@ const CTA = () => {
           <div className="mx-auto mt-16 max-w-2xl text-center">
             <div className="flex flex-col items-center gap-4">
               <Button size="lg" className="h-14 px-8 text-lg" asChild>
-                <Link href="/signup">👉 I'll Risk My $1</Link>
+                <Link href="https://solulu.delulu.social/sign-in">👉 I'll Risk My $1</Link>
               </Button>
               <p className="text-muted-foreground text-sm">
                 Code:{' '}

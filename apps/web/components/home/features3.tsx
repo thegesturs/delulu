@@ -608,7 +608,7 @@ const Features3 = () => {
         </div>
         <div className="mt-8 text-center">
           <Link
-            href="/demo"
+            href="https://solulu.delulu.social/sign-in"
             className="inline-flex items-center font-medium text-primary hover:text-primary/90"
           >
             Try Scheduling Now →

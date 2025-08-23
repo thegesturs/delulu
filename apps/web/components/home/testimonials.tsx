@@ -3,6 +3,7 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
 import { motion } from 'motion/react';
 import Image from 'next/image';
+import Link from 'next/link';
 import React from 'react';
 import { FaCheck } from 'react-icons/fa';
 
@@ -50,8 +51,8 @@ export function Testimonials() {
               ))}
             </div>
 
-            <Button className="rounded-full bg-neutral-900 px-6 py-2.5 text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-all duration-200 hover:bg-neutral-800">
-              Get Started
+            <Button className="rounded-full bg-neutral-900 px-6 py-2.5 text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-all duration-200 hover:bg-neutral-800" asChild>
+              <Link href="https://solulu.delulu.social/sign-in">Get Started</Link>
             </Button>
           </div>
 

@@ -66,7 +66,9 @@ export function Hero() {
           className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <Button asChild size="lg">
-            <Link href="/login">👉 Fine, save me the headache</Link>
+            <Link href="https://solulu.delulu.social/sign-in">
+              👉 Fine, save me the headache
+            </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="#features">Naah, bro show me more</Link>

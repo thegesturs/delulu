@@ -120,7 +120,9 @@ const DesktopNav = ({ navItems }: { navItems: NavbarProps['navItems'] }) => {
 
         <div className="flex items-center gap-2">
           <Button asChild className="h-fit py-2">
-            <Link href="/sign-in">Get Freaking Started</Link>
+            <Link href="https://solulu.delulu.social/sign-in">
+              Get Freaking Started
+            </Link>
           </Button>
           <ThemeToggle />
         </div>
