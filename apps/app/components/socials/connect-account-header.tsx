@@ -18,11 +18,9 @@ import {
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
-
-interface ConnectedAccountsHeaderProps {
-  onConnect: (platform: SocialType) => void;
-}
+import Link from 'next/link';
+import { api } from '@/trpc/react';
+import type { JSX } from 'react';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
@@ -36,20 +34,99 @@ const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   'YOUTUBE',
 ];
 
-export function ConnectedAccountsHeader({
-  onConnect,
-}: ConnectedAccountsHeaderProps) {
-  const [showFarcasterConnect, setShowFarcasterConnect] = useState(false);
+function ConnectPlatformButton({ platform }: { platform: SupportedSocialPlatform }) {
+  const { data: connectUrl, isLoading } = api.socialProvider.getSocialProviderConnectUrl.useQuery({
+    provider: platform,
+  });
 
-  const handleFarcasterConnect = () => {
-    setShowFarcasterConnect(true);
-  };
+  if (platform === 'FARCASTER') {
+    return (
+      <Button
+        className="flex h-14 items-center justify-start space-x-4 px-4"
+        variant="outline"
+        disabled
+      >
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+            socialBackgroundColors[platform]
+          } shadow-sm`}
+        >
+          <SocialIcon
+            type={platform}
+            size="md"
+            className="text-white"
+          />
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="font-medium">
+            {socialDisplayNames[platform]}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {socialDescriptions[platform]}
+          </span>
+        </div>
+      </Button>
+    );
+  }
 
-  // const handleFarcasterSuccess = () => {
-  //   // Refresh the page or refetch connected accounts
-  //   window.location.reload();
-  // };
+  if (isLoading || !connectUrl) {
+    return (
+      <Button
+        className="flex h-14 items-center justify-start space-x-4 px-4"
+        variant="outline"
+        disabled
+      >
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+            socialBackgroundColors[platform]
+          } shadow-sm`}
+        >
+          <SocialIcon
+            type={platform}
+            size="md"
+            className="text-white"
+          />
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="font-medium">
+            {socialDisplayNames[platform]}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {socialDescriptions[platform]}
+          </span>
+        </div>
+      </Button>
+    );
+  }
 
+  return (
+    <Button asChild className="flex h-14 items-center justify-start space-x-4 px-4" variant="outline">
+      <Link href={connectUrl}>
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+            socialBackgroundColors[platform]
+          } shadow-sm`}
+        >
+          <SocialIcon
+            type={platform}
+            size="md"
+            className="text-white"
+          />
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="font-medium">
+            {socialDisplayNames[platform]}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {socialDescriptions[platform]}
+          </span>
+        </div>
+      </Link>
+    </Button>
+  );
+}
+
+export function ConnectedAccountsHeader(): JSX.Element {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -77,47 +154,12 @@ export function ConnectedAccountsHeader({
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 py-4">
               {SOCIAL_PLATFORMS.map((platform) => (
-                <Button
-                  key={platform}
-                  onClick={() =>
-                    platform === 'FARCASTER'
-                      ? handleFarcasterConnect()
-                      : onConnect(platform)
-                  }
-                  className="flex h-14 items-center justify-start space-x-4 px-4"
-                  variant="outline"
-                >
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                      socialBackgroundColors[platform]
-                    } shadow-sm`}
-                  >
-                    <SocialIcon
-                      type={platform}
-                      size="md"
-                      className="text-white"
-                    />
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">
-                      {socialDisplayNames[platform]}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {socialDescriptions[platform]}
-                    </span>
-                  </div>
-                </Button>
+                <ConnectPlatformButton key={platform} platform={platform} />
               ))}
             </div>
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* <FarcasterConnect
-        isOpen={showFarcasterConnect}
-        onClose={() => setShowFarcasterConnect(false)}
-        onSuccess={handleFarcasterSuccess}
-      /> */}
     </div>
   );
 }

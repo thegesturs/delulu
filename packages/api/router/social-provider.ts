@@ -25,11 +25,8 @@ export const socialProviderRouter = {
         provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
       })
     )
-    .mutation(({ input }) => {
+    .query(({ input }) => {
       const link = connectUrlRegistry[input.provider].connectUrl();
-
-      console.log('Link:', link);
-
       return link;
     }),
   createPost: protectedProcedure
