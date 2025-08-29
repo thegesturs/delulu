@@ -18,11 +18,50 @@ import {
   ProfileNotFoundError,
   type SocialProviderError,
   TikTokError,
+  TokenRefreshError,
   createAPIError,
 } from './errors';
 import type { SocialProvider } from './types';
 
-// Profile management
+
+// Get fresh access token using refresh token (following YouTube pattern)
+const getFreshAccessToken = (
+  refreshToken: string
+): ResultAsync<string, SocialProviderError> => {
+  console.log('[TikTok] Getting fresh access token');
+
+  const refreshData = new URLSearchParams({
+    client_key: keys().TIKTOK_CLIENT_ID,
+    client_secret: keys().TIKTOK_CLIENT_SECRET,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  });
+
+  return ResultAsync.fromPromise(
+    axios.post(
+      'https://open.tiktokapis.com/v2/oauth/token/',
+      refreshData,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    ),
+    (error) => {
+      console.error('[TikTok] Failed to get fresh access token:', error);
+      return new TokenRefreshError('TikTok', 'Failed to get fresh access token');
+    }
+  ).andThen((response) => {
+    const accessToken = response.data.access_token;
+    if (!accessToken) {
+      return err(new TokenRefreshError('TikTok', 'No access token received'));
+    }
+    console.log('[TikTok] Fresh access token obtained successfully');
+    return ok(accessToken);
+  });
+};
+
+// Profile management (following YouTube pattern)
 const getProfile = (
   socialProviderId: string
 ): ResultAsync<TikTokProfile, SocialProviderError> =>
@@ -32,7 +71,7 @@ const getProfile = (
     }),
     () => new TikTokError('Database query failed')
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.refreshToken) {
+    if (!profile?.accessToken || !profile?.refreshToken) {
       return err(new ProfileNotFoundError('TikTok'));
     }
     return ok({
@@ -44,11 +83,11 @@ const getProfile = (
     });
   });
 
-// Upload single video to TikTok (no carousel support)
+// Upload single video to TikTok (no carousel support)  
 const uploadVideo = (
+  accessToken: string,
   videoUrl: string,
-  title: string,
-  accessToken: string
+  title: string
 ): ResultAsync<TikTokVideoUploadResponse, SocialProviderError> => {
   const uploadData = {
     source_info: {
@@ -76,8 +115,24 @@ const uploadVideo = (
         },
       }
     ),
-    (error) => createAPIError('TikTok', error)
-  ).map((response) => response.data);
+    (error) => {
+      console.log('[TikTok] Upload failed:', error);
+      return createAPIError('TikTok', error);
+    }
+  ).andThen((response) => {
+    const data = response.data;
+    if (!data.data?.publish_id) {
+      return err(
+        new TikTokError('Failed to get publish ID from TikTok response')
+      );
+    }
+
+    return ok({
+      data: {
+        publish_id: data.data.publish_id,
+      },
+    });
+  });
 };
 
 // Main publish function - only supports single video
@@ -91,6 +146,7 @@ const publishContent = (
     return errAsync(new InvalidMediaError('TikTok', 'No content to publish'));
   }
 
+  // TikTok requires video content
   const validMedia = getValidMediaUrls(firstContent.media);
   const videoMedia = validMedia.find(
     (media) => media.mediaType === 'VIDEO' && media.url
@@ -102,24 +158,22 @@ const publishContent = (
     );
   }
 
-  // TikTok only supports one video per post, ignore any additional media
-  if (validMedia.length > 1) {
-    console.warn(
-      'TikTok: Multiple media files provided, only the first video will be used'
-    );
-  }
-
-  return uploadVideo(
-    videoMedia.url,
-    firstContent.text,
-    profile.accessToken
-  ).map((uploadResponse) => ({
-    platformPostId: uploadResponse.data.publish_id,
-    postId: content.postId,
-    platformId: profile.id,
-    platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
-    postedAt: new Date(),
-  }));
+  // Get fresh access token first (following YouTube pattern)
+  return getFreshAccessToken(profile.refreshToken)
+    .andThen((freshAccessToken) =>
+      uploadVideo(
+        freshAccessToken,
+        videoMedia.url!,
+        firstContent.text || ''
+      )
+    )
+    .map((uploadResponse) => ({
+      platformPostId: uploadResponse.data.publish_id,
+      postId: content.postId,
+      platformId: profile.id,
+      platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
+      postedAt: new Date(),
+    }));
 };
 
 // Provider implementation
@@ -132,6 +186,8 @@ export const tiktokProvider: SocialProvider = {
   },
 
   connectUrl: () => {
+    console.log('[TikTok] Generating connect URL');
+    
     const params = new URLSearchParams({
       response_type: 'code',
       client_key: keys().TIKTOK_CLIENT_ID,
@@ -140,6 +196,14 @@ export const tiktokProvider: SocialProvider = {
       state: nanoid(10),
     });
 
-    return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+    const connectUrl = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+    
+    console.log('[TikTok] Connect URL generated:', {
+      url: connectUrl,
+      clientId: keys().TIKTOK_CLIENT_ID ? 'present' : 'missing',
+      redirectUri: keys().TIKTOK_CALLBACK_URL,
+    });
+
+    return connectUrl;
   },
 };
