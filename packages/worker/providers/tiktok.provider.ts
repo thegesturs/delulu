@@ -23,12 +23,14 @@ import {
 } from './errors';
 import type { SocialProvider } from './types';
 
-
 // Get fresh access token using refresh token (following YouTube pattern)
 const getFreshAccessToken = (
   refreshToken: string
 ): ResultAsync<string, SocialProviderError> => {
-  console.log('[TikTok] Getting fresh access token');
+  console.log('[TikTok] Getting fresh access token using client:', {
+    clientId: keys().TIKTOK_CLIENT_ID,
+    hasClientSecret: !!keys().TIKTOK_CLIENT_SECRET,
+  });
 
   const refreshData = new URLSearchParams({
     client_key: keys().TIKTOK_CLIENT_ID,
@@ -38,18 +40,17 @@ const getFreshAccessToken = (
   });
 
   return ResultAsync.fromPromise(
-    axios.post(
-      'https://open.tiktokapis.com/v2/oauth/token/',
-      refreshData,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    ),
+    axios.post('https://open.tiktokapis.com/v2/oauth/token/', refreshData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }),
     (error) => {
       console.error('[TikTok] Failed to get fresh access token:', error);
-      return new TokenRefreshError('TikTok', 'Failed to get fresh access token');
+      return new TokenRefreshError(
+        'TikTok',
+        'Failed to get fresh access token'
+      );
     }
   ).andThen((response) => {
     const accessToken = response.data.access_token;
@@ -83,7 +84,7 @@ const getProfile = (
     });
   });
 
-// Upload single video to TikTok (no carousel support)  
+// Upload single video to TikTok (no carousel support)
 const uploadVideo = (
   accessToken: string,
   videoUrl: string,
@@ -96,7 +97,7 @@ const uploadVideo = (
     },
     post_info: {
       title: title.slice(0, 150) || 'TikTok Video',
-      privacy_level: 'PUBLIC_TO_EVERYONE', //TODO: in future have advanced stuff in frontend, to select how users wants to post
+      privacy_level: 'SELF_ONLY',
       disable_duet: false,
       disable_comment: false,
       disable_stitch: false,
@@ -116,7 +117,15 @@ const uploadVideo = (
       }
     ),
     (error) => {
-      console.log('[TikTok] Upload failed:', error);
+      const axiosError = error as {
+        response?: { data?: unknown; status?: number };
+      };
+      console.log('[TikTok] Upload failed:', {
+        status: axiosError?.response?.status,
+        data: JSON.stringify(axiosError?.response?.data, null, 2),
+        message: (error as Error).message,
+        requestData: uploadData,
+      });
       return createAPIError('TikTok', error);
     }
   ).andThen((response) => {
@@ -161,11 +170,7 @@ const publishContent = (
   // Get fresh access token first (following YouTube pattern)
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) =>
-      uploadVideo(
-        freshAccessToken,
-        videoMedia.url!,
-        firstContent.text || ''
-      )
+      uploadVideo(freshAccessToken, videoMedia.url!, firstContent.text || '')
     )
     .map((uploadResponse) => ({
       platformPostId: uploadResponse.data.publish_id,
@@ -187,7 +192,7 @@ export const tiktokProvider: SocialProvider = {
 
   connectUrl: () => {
     console.log('[TikTok] Generating connect URL');
-    
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_key: keys().TIKTOK_CLIENT_ID,
@@ -197,7 +202,7 @@ export const tiktokProvider: SocialProvider = {
     });
 
     const connectUrl = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
-    
+
     console.log('[TikTok] Connect URL generated:', {
       url: connectUrl,
       clientId: keys().TIKTOK_CLIENT_ID ? 'present' : 'missing',
