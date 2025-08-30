@@ -6,7 +6,10 @@
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "dev": "dotenv -e .env.local -- tsx index.ts"
+    "dev": "dotenv -e .env.local -- tsx index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@delulu/api": "workspace:*",
@@ -15,11 +18,15 @@
     "@delulu/validators": "workspace:*",
     "@types/node": "22.14.1",
     "axios": "^1.9.0",
+    "dotenv": "^17.2.1",
     "dotenv-cli": "^7.4.1",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
     "neverthrow": "^8.2.0",
     "twitter-api-sdk": "^1.2.1",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.6"
   }
 }
