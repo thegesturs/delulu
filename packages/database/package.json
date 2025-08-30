@@ -8,6 +8,18 @@
     ".": {
       "import": "./index.ts",
       "types": "./index.ts"
+    },
+    "./convex/_generated/api": {
+      "import": "./convex/_generated/api.js",
+      "types": "./convex/_generated/api.d.ts"
+    },
+    "./convex/_generated/dataModel": {
+      "import": "./convex/_generated/dataModel.js",
+      "types": "./convex/_generated/dataModel.d.ts"
+    },
+    "./node": {
+      "import": "./node.ts",
+      "types": "./node.ts"
     }
   },
   "scripts": {

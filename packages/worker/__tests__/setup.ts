@@ -1,16 +1,7 @@
-import { vi } from 'vitest';
+import { config } from 'dotenv';
 
-// Mock fetch globally to prevent actual API calls
-global.fetch = vi.fn();
+// Load environment variables from .env.local
+config({ path: '.env.local' });
 
-// Mock console methods to reduce test noise
-global.console = {
-  ...console,
-  log: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+// No mocking - allow real API calls and console output
+// Tests will use real database data and make real HTTP requests

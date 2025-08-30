@@ -21,6 +21,7 @@ export async function processMessage(messageBody: string) {
   }
 
   const providerImpl = providerRegistry[socialType];
+  console.log(providerImpl, 'impl');
   const result = await providerImpl.publish({
     content: socialPublishInput,
     socialProviderId: socialPublishInput.socialProviderId,
