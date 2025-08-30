@@ -235,6 +235,17 @@ export class TikTokError extends SocialProviderError {
   }
 }
 
+export class TokenRefreshError extends SocialProviderError {
+  readonly code = 'TOKEN_REFRESH_FAILED';
+  readonly provider: string;
+
+  constructor(provider: string, message?: string) {
+    super(message || `Failed to refresh access token for ${provider}`);
+    this.name = 'TokenRefreshError';
+    this.provider = provider;
+  }
+}
+
 export class PinterestError extends SocialProviderError {
   readonly code = 'PINTEREST_ERROR';
   readonly provider = 'Pinterest';
