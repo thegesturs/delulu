@@ -34,7 +34,7 @@
     "@types/node": "^22.14.1",
     "tsup": "^8.4.0",
     "turbo": "^2.5.0",
-    "typescript": "^5.8.3",
+    "typescript": "^5.9.2",
     "ultracite": "^4.2.1",
     "vitest": "^3.1.1"
   },
