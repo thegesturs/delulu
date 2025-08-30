@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { SOCIAL_PROVIDER_DATA, TEST_CONTENT, MOCK_POST_ID } from './test-data';
-import { processMessage } from '../client';
+import { processMessageTestOnly } from '../test-client';
 
 const facebookProvider = SOCIAL_PROVIDER_DATA.find(p => p.socialType === 'FACEBOOK')!;
 
 describe('Facebook Provider Tests', () => {
   it('should execute real Facebook provider with single image', async () => {
-    const result = await processMessage(
+    const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,
         socialPublishInput: {
@@ -22,7 +22,7 @@ describe('Facebook Provider Tests', () => {
   });
 
   it('should call processMessage for carousel', async () => {
-    const result = await processMessage(
+    const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,
         socialPublishInput: {
@@ -38,7 +38,7 @@ describe('Facebook Provider Tests', () => {
   });
 
   it('should call processMessage for video', async () => {
-    const result = await processMessage(
+    const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,
         socialPublishInput: {
