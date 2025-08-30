@@ -3,7 +3,6 @@
 import { api } from '@/trpc/react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { SocialError } from '../error/social-error';
 
 const ERROR_MESSAGES = {
@@ -73,15 +72,10 @@ function SocialNotificationsContent() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
 
-  const connectAccountMutation =
-    api.socialProvider.getSocialProviderConnectUrl.useMutation();
-
   // Reset visibility when search params change
   useEffect(() => {
     setVisible(true);
   }, [searchParams]);
-
-  console.log('searchParams', searchParams);
 
   const error = searchParams.get('error');
   const notification = searchParams.get('notification');
@@ -91,9 +85,11 @@ function SocialNotificationsContent() {
     | 'YOUTUBE'
     | null;
 
-  console.log('error', error);
-  console.log('notification', notification);
-  console.log('provider', provider);
+  // Fetch the connect URL if we have a provider and might need to retry
+  const { data: connectUrl } = api.socialProvider.getSocialProviderConnectUrl.useQuery(
+    { provider: provider! },
+    { enabled: !!provider && !!error }
+  );
 
   if (!visible) {
     return null;
@@ -105,29 +101,8 @@ function SocialNotificationsContent() {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
-    if (providerToUse) {
-      try {
-        toast.loading('Connecting to social account...');
-        connectAccountMutation.mutate(
-          { provider: providerToUse },
-          {
-            onSuccess: (data) => {
-              window.location.href = data;
-              toast.dismiss();
-            },
-            onError: (error) => {
-              toast.dismiss();
-              toast.error('Failed to connect to social account');
-              if (process.env.NODE_ENV === 'development') {
-                console.error('Failed to get connect URL:', error);
-              }
-            },
-          }
-        );
-      } catch (error) {
-        toast.dismiss();
-        toast.error('Failed to connect to social account');
-      }
+    if (providerToUse && connectUrl) {
+      window.location.href = connectUrl;
     }
   };
 
@@ -178,7 +153,6 @@ function SocialNotificationsContent() {
 }
 
 export function SocialNotifications() {
-  console.log('SocialNotifications');
   return (
     <Suspense>
       <SocialNotificationsContent />

@@ -1,6 +1,7 @@
 'use client';
 
-import type { SocialProvider, SocialType } from '@/types/convex';
+import type { SocialProvider } from '@/types/convex';
+import { api } from '@/trpc/react';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import {
   Avatar,
@@ -35,6 +36,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import DeleteAlertDialog from '../alerts/delete-post';
 
@@ -78,15 +80,39 @@ function isExpired(expiresIn: number | undefined): boolean {
   return Date.now() > expiresIn;
 }
 
+function ReconnectMenuItem({ socialType }: { socialType: string }) {
+  const { data: connectUrl } = api.socialProvider.getSocialProviderConnectUrl.useQuery({
+    provider: socialType as any,
+  }, {
+    enabled: socialType !== 'LENS' && socialType !== 'DEFAULT',
+  });
+
+  if (!connectUrl || socialType === 'LENS' || socialType === 'DEFAULT') {
+    return (
+      <DropdownMenuItem disabled className="cursor-not-allowed">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Reconnect
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuItem asChild className="cursor-pointer">
+      <Link href={connectUrl}>
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Reconnect
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
 interface AccountCardProps {
   account: SocialProvider;
-  onConnect: (platform: SocialType) => void;
   onDelete: (socialId: Id<'socialProviders'>) => void;
 }
 
 export function AccountCard({
   account,
-  onConnect,
   onDelete,
 }: AccountCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -203,13 +229,7 @@ export function AccountCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => onConnect(account.socialType)}
-                  className="cursor-pointer"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Reconnect
-                </DropdownMenuItem>
+                <ReconnectMenuItem socialType={account.socialType} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => setDeleteDialogOpen(true)}
