@@ -28,5 +28,12 @@ export async function processMessageTestOnly(messageBody: string) {
 
   console.log('Provider result:', result?.isOk() ? 'SUCCESS' : result?.isErr() ? 'ERROR' : 'UNDEFINED');
   
+  // Log test result with URL if successful
+  if (result?.isOk()) {
+    const contentType = socialPublishInput.content?.[0]?.media?.length > 1 ? 'carousel' : 
+                       socialPublishInput.content?.[0]?.media?.[0]?.mediaType === 'VIDEO' ? 'video' : 'single image';
+    console.log(`✅ ${contentType}, ${result.value.platformPostUrl}`);
+  }
+  
   return result;
 }
