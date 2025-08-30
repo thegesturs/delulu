@@ -1,6 +1,5 @@
 'use client';
-import { api as TrpcApi } from '@/trpc/react';
-import type { SocialProvider, SocialType } from '@/types/convex';
+import type { SocialProvider } from '@/types/convex';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { useMutation, useQuery } from 'convex/react';
@@ -36,18 +35,6 @@ export default function ConnectedAccounts() {
   const isLoadingAccounts = accounts === undefined;
 
   const deleteSocial = useMutation(api.social_providers.deleteSocial);
-  const connectAccountMutation =
-    TrpcApi.socialProvider.getSocialProviderConnectUrl.useMutation({
-      onSuccess: (url) => {
-        window.location.href = url;
-      },
-      onError: (error) => {
-        toast.error('Failed to get connect URL');
-        if (process.env.NODE_ENV === 'development') {
-          console.error(error);
-        }
-      },
-    });
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) return [];
@@ -93,12 +80,6 @@ export default function ConnectedAccounts() {
     return { active, expired, expiring, total: accounts.length };
   }, [accounts]);
 
-  const handleConnect = (platform: SocialType) => {
-    // Removed Instagram and YouTube as they were not handled by connectAccount
-    if (platform !== 'LENS' && platform !== 'DEFAULT') {
-      connectAccountMutation.mutate({ provider: platform });
-    }
-  };
 
   const handleDeleteSocial = (socialId: Id<'socialProviders'>) => {
     deleteSocial({ socialId })
@@ -127,7 +108,7 @@ export default function ConnectedAccounts() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl space-y-6 p-6">
-        <ConnectedAccountsHeader onConnect={handleConnect} />
+        <ConnectedAccountsHeader />
         <AccountStats stats={stats} />
         <AccountFilters
           searchQuery={searchQuery}
@@ -142,7 +123,6 @@ export default function ConnectedAccounts() {
         <AccountList
           accounts={filteredAccounts}
           viewMode={viewMode}
-          onConnect={handleConnect}
           onDelete={handleDeleteSocial}
         />
       </div>
