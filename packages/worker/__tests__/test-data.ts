@@ -10,60 +10,63 @@ export const SOCIAL_PROVIDER_DATA = [
 
 export const LAMBDA_URL = "https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/";
 
-// Test content data
+// Test content data with real Delulu Social media URLs
 export const TEST_CONTENT = {
   singleImage: [
     {
-      order: 1,
-      name: "Single Image Post",
+      order: 0,
+      name: "DEFAULT",
       media: [
         {
-          url: "https://example.com/test-image.jpg",
+          bucketKey: "user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
           mediaType: "IMAGE" as const,
         }
       ],
-      text: "Test single image post"
+      text: "some posting stuff\n\nnice post and stuff",
+      tags: []
     }
   ],
   
   carousel: [
     {
-      order: 1,
-      name: "Carousel Post",
+      order: 0,
+      name: "DEFAULT", 
       media: [
         {
-          url: "https://example.com/test-image-1.jpg",
+          bucketKey: "user_30F1kYDnbGXB26mXlyhYQv7XgBn/03eb6890-68c0-466a-86dc-71ffc1f91297.png",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/03eb6890-68c0-466a-86dc-71ffc1f91297.png",
           mediaType: "IMAGE" as const,
         },
         {
-          url: "https://example.com/test-image-2.jpg",
-          mediaType: "IMAGE" as const,
-        },
-        {
-          url: "https://example.com/test-image-3.jpg",
+          bucketKey: "user_30F1kYDnbGXB26mXlyhYQv7XgBn/83ae11b0-f201-47a3-8a58-fc5f7e70f3a6.png",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/83ae11b0-f201-47a3-8a58-fc5f7e70f3a6.png",
           mediaType: "IMAGE" as const,
         }
       ],
-      text: "Test carousel post with multiple images"
+      text: "some posting stuff\n\nnice post and stuff",
+      tags: []
     }
   ],
   
   video: [
     {
-      order: 1,
-      name: "Video Post",
+      order: 0,
+      name: "DEFAULT",
       media: [
         {
-          url: "https://example.com/test-video.mp4",
+          bucketKey: "user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
           mediaType: "VIDEO" as const,
         }
       ],
-      text: "Test video post"
+      text: "some posting stuff\n\nnice post and stuff",
+      tags: []
     }
   ]
 };
 
-export const MOCK_POST_ID = "test_post_12345";
+export const MOCK_POST_ID = "js7example_post_id_for_testing";
 
 // Mock successful response
 export const MOCK_SUCCESS_RESPONSE = {
