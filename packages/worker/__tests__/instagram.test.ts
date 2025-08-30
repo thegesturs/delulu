@@ -22,7 +22,7 @@ describe('Instagram Provider Tests', () => {
     );
 
     // Just verify it didn't crash - result can be undefined if provider fails
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 
   it('should call processMessage for carousel', async () => {
@@ -38,7 +38,7 @@ describe('Instagram Provider Tests', () => {
     );
 
     // Just verify it didn't crash - result can be undefined if provider fails
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 
   it('should call processMessage for reel', async () => {
@@ -54,6 +54,6 @@ describe('Instagram Provider Tests', () => {
     );
 
     // Just verify it didn't crash - result can be undefined if provider fails
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 });

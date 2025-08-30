@@ -18,7 +18,7 @@ describe('Facebook Provider Tests', () => {
     );
 
     // Real provider execution - result can be success or undefined on failure
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 
   it('should call processMessage for carousel', async () => {
@@ -34,7 +34,7 @@ describe('Facebook Provider Tests', () => {
     );
 
     // Real provider execution - result can be success or undefined on failure
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 
   it('should call processMessage for video', async () => {
@@ -50,6 +50,6 @@ describe('Facebook Provider Tests', () => {
     );
 
     // Real provider execution - result can be success or undefined on failure
-    expect(result === undefined || result?.isOk?.() === true || result?.isErr?.() === true).toBe(true);
+    expect(result?.isOk?.() === true).toBe(true);
   });
 });
