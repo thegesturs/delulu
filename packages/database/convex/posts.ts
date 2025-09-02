@@ -681,6 +681,9 @@ export const publishScheduledPost = internalAction({
               content: contentToPost,
               postId: post._id,
               socialProviderId: provider._id,
+              ...(provider.socialType === 'TIKTOK' && post.tiktokSettings && {
+                tiktokSettings: post.tiktokSettings
+              }),
             },
           }),
         });
