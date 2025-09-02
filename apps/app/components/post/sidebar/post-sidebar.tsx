@@ -54,22 +54,11 @@ export function PostSidebar() {
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Handler 1: Post immediately (no scheduledAt = immediate publishing via tRPC)
   const handlePostNow = async () => {
     // Validate TikTok settings if TikTok is selected
-    if (hasTikTokSelected) {
-      if (!tiktokSettings?.privacy) {
-        toast.error('Please select a privacy level for TikTok');
-        return;
-      }
-      if (
-        tiktokSettings?.commercialContent &&
-        !tiktokSettings?.yourBrand &&
-        !tiktokSettings?.brandedContent
-      ) {
-        toast.error('Please select at least one commercial content option');
-        return;
-      }
+    if (hasTikTokSelected && !tiktokSettings?.privacy) {
+      toast.error('Please select a privacy level for TikTok');
+      return;
     }
 
     try {
@@ -85,13 +74,11 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
+
         // Include TikTok settings if TikTok is selected
         ...(hasTikTokSelected &&
           tiktokSettings && {
-            tiktokSettings: {
-              ...tiktokSettings,
-              privacy: tiktokSettings.privacy,
-            },
+            tiktokSettings,
           }),
         // No scheduledAt - immediate publishing via existing tRPC flow
         status: 'SAVED', // Will be published immediately through different flow
@@ -117,14 +104,7 @@ export function PostSidebar() {
         toast.error('Please select a privacy level for TikTok');
         return;
       }
-      if (
-        tiktokSettings?.commercialContent &&
-        !tiktokSettings?.yourBrand &&
-        !tiktokSettings?.brandedContent
-      ) {
-        toast.error('Please select at least one commercial content option');
-        return;
-      }
+      // No additional validation needed for promotionContent as it defaults to NONE
     }
 
     try {

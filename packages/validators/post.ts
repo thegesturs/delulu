@@ -229,40 +229,41 @@ const tikTokPrivacyValues = [
   tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
 ] as const;
 
-// TikTok Settings Schema (without title - title comes from content)
+export const promotionContentTypes = {
+  NONE: 'NONE',
+  SELF: 'SELF',
+  PAID: 'PAID',
+} as const;
+
+export type PromotionContentType =
+  (typeof promotionContentTypes)[keyof typeof promotionContentTypes];
+
+// Extract values as readonly tuple for Zod enum
+const promotionContentValues = [
+  promotionContentTypes.NONE,
+  promotionContentTypes.SELF,
+  promotionContentTypes.PAID,
+] as const;
+
+// TikTok Settings Schema - simplified with single promotion field
 export const tikTokSettingsSchema = z
   .object({
     privacy: z.enum(tikTokPrivacyValues),
-    allowComments: z.boolean().default(false),
+    allowComments: z.boolean().default(true),
     allowDuet: z.boolean().default(false),
     allowStitch: z.boolean().default(false),
-    commercialContent: z.boolean().default(false),
-    yourBrand: z.boolean().optional(),
-    brandedContent: z.boolean().optional(),
+    promotionContent: z.enum(promotionContentValues).default('NONE'),
   })
   .refine(
     (data) => {
-      // If commercial content is enabled, at least one option must be selected
-      if (data.commercialContent) {
-        return data.yourBrand || data.brandedContent;
-      }
-      return true;
-    },
-    {
-      message:
-        'When commercial content is enabled, you must select at least one option',
-    }
-  )
-  .refine(
-    (data) => {
-      // Branded content cannot have privacy level "SELF_ONLY"
-      if (data.brandedContent && data.privacy === 'SELF_ONLY') {
+      // Paid partnerships cannot have privacy level "SELF_ONLY"
+      if (data.promotionContent === 'PAID' && data.privacy === 'SELF_ONLY') {
         return false;
       }
       return true;
     },
     {
-      message: "Branded content cannot have privacy level set to 'Only me'",
+      message: "Paid partnerships cannot have privacy level set to 'Only me'",
     }
   );
 

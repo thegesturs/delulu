@@ -99,12 +99,16 @@ export const tikTokPrivacySchema = v.union(
   v.literal('PUBLIC_TO_EVERYONE')
 );
 
+export const promotionContentSchema = v.union(
+  v.literal('NONE'),
+  v.literal('SELF'),
+  v.literal('PAID')
+);
+
 export const tikTokSettingsSchema = v.object({
   privacy: tikTokPrivacySchema,
   allowComments: v.boolean(),
   allowDuet: v.boolean(),
   allowStitch: v.boolean(),
-  commercialContent: v.boolean(),
-  yourBrand: v.optional(v.boolean()),
-  brandedContent: v.optional(v.boolean()),
+  promotionContent: promotionContentSchema,
 });

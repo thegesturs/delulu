@@ -75,12 +75,10 @@ export const useStore = create<PostState & PostActions>()(
               ? { ...state.tiktokSettings, ...settings }
               : {
                   privacy: 'PUBLIC_TO_EVERYONE',
-                  allowComments: false,
+                  allowComments: true,
                   allowDuet: false,
                   allowStitch: false,
-                  commercialContent: false,
-                  yourBrand: false,
-                  brandedContent: false,
+                  promotionContent: 'NONE',
                   ...settings,
                 },
           })),

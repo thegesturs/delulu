@@ -1,7 +1,7 @@
 'use client';
 
-import type { SocialProvider } from '@/types/convex';
 import { api } from '@/trpc/react';
+import type { SocialProvider } from '@/types/convex';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import {
   Avatar,
@@ -81,11 +81,15 @@ function isExpired(expiresIn: number | undefined): boolean {
 }
 
 function ReconnectMenuItem({ socialType }: { socialType: string }) {
-  const { data: connectUrl } = api.socialProvider.getSocialProviderConnectUrl.useQuery({
-    provider: socialType as any,
-  }, {
-    enabled: socialType !== 'LENS' && socialType !== 'DEFAULT',
-  });
+  const { data: connectUrl } =
+    api.socialProvider.getSocialProviderConnectUrl.useQuery(
+      {
+        provider: socialType as any,
+      },
+      {
+        enabled: socialType !== 'LENS' && socialType !== 'DEFAULT',
+      }
+    );
 
   if (!connectUrl || socialType === 'LENS' || socialType === 'DEFAULT') {
     return (
@@ -111,10 +115,7 @@ interface AccountCardProps {
   onDelete: (socialId: Id<'socialProviders'>) => void;
 }
 
-export function AccountCard({
-  account,
-  onDelete,
-}: AccountCardProps) {
+export function AccountCard({ account, onDelete }: AccountCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const SocialIcon =

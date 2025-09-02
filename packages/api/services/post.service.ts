@@ -34,9 +34,10 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
           content: contentToPost,
           postId: post._id,
           socialProviderId: provider._id,
-          ...(provider.socialType === 'TIKTOK' && post.tiktokSettings && {
-            tiktokSettings: post.tiktokSettings
-          }),
+          ...(provider.socialType === 'TIKTOK' &&
+            post.tiktokSettings && {
+              tiktokSettings: post.tiktokSettings,
+            }),
         },
       }),
     });
@@ -54,7 +55,7 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
 
     // console.log('Result', res);
 
-if (!response.ok) {
+    if (!response.ok) {
       throw new Error(
         `Failed to queue post: ${response.status} ${response.statusText}`
       );

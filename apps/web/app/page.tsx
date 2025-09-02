@@ -5,7 +5,6 @@ import CTA from '@/components/home/cta';
 import { FAQ } from '@/components/home/faq';
 import { Hero } from '@/components/home/hero';
 import { MascotBenefits } from '@/components/home/mascot-benefits';
-import { MascotSocialProof } from '@/components/home/mascot-social-proof';
 import { MascotStruggle } from '@/components/home/mascot-struggle';
 import Pricing from '@/components/home/pricing';
 

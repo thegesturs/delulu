@@ -39,11 +39,7 @@ export function AccountList({
       }
     >
       {accounts.map((account) => (
-        <AccountCard
-          key={account._id}
-          account={account}
-          onDelete={onDelete}
-        />
+        <AccountCard key={account._id} account={account} onDelete={onDelete} />
       ))}
     </div>
   );
