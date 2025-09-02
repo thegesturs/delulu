@@ -69,19 +69,32 @@ export const useStore = create<PostState & PostActions>()(
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
         setTikTokSettings: (settings) =>
-          set((state) => ({
-            ...state,
-            tiktokSettings: state.tiktokSettings
-              ? { ...state.tiktokSettings, ...settings }
-              : {
-                  privacy: 'PUBLIC_TO_EVERYONE',
-                  allowComments: true,
-                  allowDuet: false,
-                  allowStitch: false,
-                  promotionContent: 'NONE',
-                  ...settings,
-                },
-          })),
+          set((state) => {
+            // Initialize with defaults if not set
+            const currentSettings = state.tiktokSettings || {
+              privacy: 'PUBLIC_TO_EVERYONE',
+              allowComments: true,
+              allowDuet: false,
+              allowStitch: false,
+              promotionContent: 'NONE',
+            };
+            
+            // Merge new settings
+            const newSettings = { ...currentSettings, ...settings };
+            
+            // Enforce business rule: paid partnerships can't be private
+            if (
+              newSettings.promotionContent === 'PAID' &&
+              newSettings.privacy === 'SELF_ONLY'
+            ) {
+              newSettings.privacy = 'PUBLIC_TO_EVERYONE';
+            }
+            
+            return {
+              ...state,
+              tiktokSettings: newSettings,
+            };
+          }),
         loadPost: (postData) => {
           // Map Convex post data to store format
           const mappedPost: FullPostType = {

@@ -18,6 +18,7 @@ import {
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { promotionContentTypes } from '@delulu/validators/post';
 import { useMutation } from 'convex/react';
 import { Loader } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -54,10 +55,36 @@ export function PostSidebar() {
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handlePostNow = async () => {
-    // Validate TikTok settings if TikTok is selected
-    if (hasTikTokSelected && !tiktokSettings?.privacy) {
+  const validateTikTokSettings = () => {
+    if (!hasTikTokSelected) return true;
+
+    // Check if settings exist
+    if (!tiktokSettings) {
+      toast.error('TikTok settings are not initialized');
+      return false;
+    }
+
+    // Validate privacy is set
+    if (!tiktokSettings.privacy) {
       toast.error('Please select a privacy level for TikTok');
+      return false;
+    }
+
+    // Validate paid partnerships can't be private
+    if (
+      tiktokSettings.promotionContent === promotionContentTypes.PAID &&
+      tiktokSettings.privacy === 'SELF_ONLY'
+    ) {
+      toast.error('Paid partnerships cannot have privacy set to "Only me"');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handlePostNow = async () => {
+    // Validate TikTok settings
+    if (!validateTikTokSettings()) {
       return;
     }
 
@@ -98,13 +125,9 @@ export function PostSidebar() {
   const handleSchedulePost = async () => {
     if (!date) return;
 
-    // Validate TikTok settings if TikTok is selected
-    if (hasTikTokSelected) {
-      if (!tiktokSettings?.privacy) {
-        toast.error('Please select a privacy level for TikTok');
-        return;
-      }
-      // No additional validation needed for promotionContent as it defaults to NONE
+    // Validate TikTok settings
+    if (!validateTikTokSettings()) {
+      return;
     }
 
     try {

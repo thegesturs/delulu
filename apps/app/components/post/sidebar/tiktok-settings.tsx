@@ -27,8 +27,9 @@ interface TikTokSettingsProps {
 export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
   const { tiktokSettings, setTikTokSettings } = useStore();
 
-  // Initialize with defaults if not set
+  // Combined effect for initialization and validation
   useEffect(() => {
+    // Initialize with defaults if not set
     if (!tiktokSettings) {
       setTikTokSettings({
         privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
@@ -37,21 +38,20 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
         allowStitch: hasVideo,
         promotionContent: promotionContentTypes.NONE,
       });
+      return; // Exit early after initialization
     }
-  }, [tiktokSettings, hasVideo, setTikTokSettings]);
 
-  // Reset privacy if paid partnership conflicts
-  useEffect(() => {
+    // Validate and fix paid partnership privacy conflict
     if (
-      tiktokSettings?.promotionContent === promotionContentTypes.PAID &&
-      tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
+      tiktokSettings.promotionContent === promotionContentTypes.PAID &&
+      tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
     ) {
       setTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
     }
   }, [
-    tiktokSettings?.promotionContent,
-    tiktokSettings?.privacy,
-    setTikTokSettings,
+    tiktokSettings,
+    hasVideo,
+    // Only depend on the entire object, not individual properties to avoid loops
   ]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
