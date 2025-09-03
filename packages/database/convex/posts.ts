@@ -272,16 +272,12 @@ export const upsertPost = mutation({
     } else {
       // Create new post
       postId = await ctx.db.insert('posts', {
+        ...postData,
         userId: user._id,
-        organizationId: postData.organizationId,
         status: finalStatus,
-        scheduledAt: postData.scheduledAt,
         reviewStatus: postData.reviewStatus || 'PENDING',
         isDeleted: false,
         privacyStatus: postData.privacyStatus || 'UNLISTED',
-        content: postData.content,
-        alternativeContent: postData.alternativeContent,
-        socialProviderIds: postData.socialProviderIds,
         searchableText: extractSearchableText(
           postData.content,
           postData.alternativeContent
@@ -298,13 +294,15 @@ export const upsertPost = mutation({
       }
     }
 
-    await ctx.scheduler.runAt(
-      args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
-      internal.posts.publishScheduledPost,
-      {
-        postId,
-      }
-    );
+    if (finalStatus === 'PROCESSING' || finalStatus === 'SCHEDULED') {
+      await ctx.scheduler.runAt(
+        args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
+        internal.posts.publishScheduledPost,
+        {
+          postId,
+        }
+      );
+    }
 
     return postId;
   },
@@ -681,10 +679,10 @@ export const publishScheduledPost = internalAction({
               content: contentToPost,
               postId: post._id,
               socialProviderId: provider._id,
-              ...(provider.socialType === 'TIKTOK' &&
-                post.tiktokSettings && {
-                  tiktokSettings: post.tiktokSettings,
-                }),
+              // Always include TikTok settings for TikTok providers (from database)
+              ...(provider.socialType === 'TIKTOK' && {
+                tiktokSettings: post.tiktokSettings,
+              }),
             },
           }),
         });

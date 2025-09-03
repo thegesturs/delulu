@@ -34,10 +34,10 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
           content: contentToPost,
           postId: post._id,
           socialProviderId: provider._id,
-          ...(provider.socialType === 'TIKTOK' &&
-            post.tiktokSettings && {
-              tiktokSettings: post.tiktokSettings,
-            }),
+          // Always include TikTok settings for TikTok providers (from database)
+          ...(provider.socialType === 'TIKTOK' && {
+            tiktokSettings: post.tiktokSettings,
+          }),
         },
       }),
     });

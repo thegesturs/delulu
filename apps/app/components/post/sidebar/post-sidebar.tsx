@@ -90,6 +90,7 @@ export function PostSidebar() {
 
     try {
       setIsProcessing(true);
+
       await upsertPostMutation({
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
@@ -101,14 +102,10 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-
         // Include TikTok settings if TikTok is selected
-        ...(hasTikTokSelected &&
-          tiktokSettings && {
-            tiktokSettings,
-          }),
+        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
         // No scheduledAt - immediate publishing via existing tRPC flow
-        status: 'SAVED', // Will be published immediately through different flow
+        status: 'PROCESSING',
       });
       toast.success(
         'Post sent for processing, will be published shortly. You can close this window now.'
@@ -132,6 +129,7 @@ export function PostSidebar() {
 
     try {
       setIsProcessing(true);
+
       await upsertPostMutation({
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
@@ -144,13 +142,7 @@ export function PostSidebar() {
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
         // Include TikTok settings if TikTok is selected
-        ...(hasTikTokSelected &&
-          tiktokSettings && {
-            tiktokSettings: {
-              ...tiktokSettings,
-              privacy: tiktokSettings.privacy,
-            },
-          }),
+        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
         scheduledAt: date.getTime(), // Future scheduling
         status: 'SCHEDULED',
       });
@@ -167,6 +159,9 @@ export function PostSidebar() {
   const handleSaveAsDraft = async () => {
     try {
       setIsProcessing(true);
+
+      console.log(tiktokSettings, hasTikTokSelected, 'tiktok');
+
       await upsertPostMutation({
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
@@ -179,13 +174,7 @@ export function PostSidebar() {
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
         // Include TikTok settings if TikTok is selected (save even in drafts)
-        ...(hasTikTokSelected &&
-          tiktokSettings && {
-            tiktokSettings: {
-              ...tiktokSettings,
-              privacy: tiktokSettings.privacy,
-            },
-          }),
+        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
         status: 'SAVED',
       });
       toast.success(

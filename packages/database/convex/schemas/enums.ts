@@ -24,7 +24,8 @@ export const postStatusSchema = v.union(
   v.literal('PUBLISHED'),
   v.literal('SCHEDULED'),
   v.literal('DELETED'),
-  v.literal('FAILED')
+  v.literal('FAILED'),
+  v.literal('PROCESSING')
 );
 
 export const POST_STATUS = {
@@ -33,6 +34,7 @@ export const POST_STATUS = {
   SCHEDULED: 'SCHEDULED',
   DELETED: 'DELETED',
   FAILED: 'FAILED',
+  PROCESSING: 'PROCESSING',
 } as const;
 
 export type PostStatus = (typeof POST_STATUS)[keyof typeof POST_STATUS];

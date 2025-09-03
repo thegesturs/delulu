@@ -53,11 +53,11 @@ export function DashboardStatsClient({
             <div className="font-bold text-2xl">
               {isLoading ? '...' : stats.publishedCount}
             </div>
-            <div className="flex items-center space-x-2 text-xs">
+            {/* <div className="flex items-center space-x-2 text-xs">
               <span className="text-muted-foreground">
                 {isLoading ? '...' : stats.successRate}% success rate
               </span>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
