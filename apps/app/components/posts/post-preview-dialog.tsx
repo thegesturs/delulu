@@ -17,21 +17,13 @@ import {
 import { AlertCircle, Calendar, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
-import type { Post } from './types';
+import { type Post, statusColors } from './types';
 
 interface PostPreviewDialogProps {
   post: Post;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const statusColors = {
-  SAVED: 'orange',
-  SCHEDULED: 'amber',
-  PUBLISHED: 'green',
-  DELETED: 'red',
-  FAILED: 'destructive',
-} as const;
 
 export function PostPreviewDialog({
   post,
