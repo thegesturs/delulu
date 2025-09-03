@@ -11,7 +11,7 @@ describe('TikTok Provider Tests', () => {
     // Clear any state if needed
   });
 
-  it('should call processMessage for video', async () => {
+  it('should call processMessage for video with TikTok settings', async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: tiktokProvider.socialType,
@@ -19,6 +19,13 @@ describe('TikTok Provider Tests', () => {
           content: TEST_CONTENT.video,
           postId: MOCK_POST_ID,
           socialProviderId: tiktokProvider.id,
+          tiktokSettings: {
+            privacy: 'SELF_ONLY',
+            allowComments: true,
+            allowDuet: true,
+            allowStitch: true,
+            promotionContent: 'NONE',
+          },
         },
       })
     );
