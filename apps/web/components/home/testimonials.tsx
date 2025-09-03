@@ -51,8 +51,13 @@ export function Testimonials() {
               ))}
             </div>
 
-            <Button className="rounded-full bg-neutral-900 px-6 py-2.5 text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-all duration-200 hover:bg-neutral-800" asChild>
-              <Link href="https://solulu.delulu.social/sign-in">Get Started</Link>
+            <Button
+              className="rounded-full bg-neutral-900 px-6 py-2.5 text-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-all duration-200 hover:bg-neutral-800"
+              asChild
+            >
+              <Link href="https://solulu.delulu.social/sign-in">
+                Get Started
+              </Link>
             </Button>
           </div>
 

@@ -80,7 +80,6 @@ export default function ConnectedAccounts() {
     return { active, expired, expiring, total: accounts.length };
   }, [accounts]);
 
-
   const handleDeleteSocial = (socialId: Id<'socialProviders'>) => {
     deleteSocial({ socialId })
       .then(() => {

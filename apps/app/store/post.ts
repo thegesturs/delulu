@@ -1,5 +1,9 @@
 import type { GetPostByIdSchema } from '@delulu/database/convex/schemas/posts_media';
-import type { FullPostType, SocialProviderType } from '@delulu/validators/post';
+import type {
+  FullPostType,
+  SocialProviderType,
+  TikTokSettings,
+} from '@delulu/validators/post';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
@@ -11,6 +15,8 @@ interface PostState {
   post: FullPostType;
   selectedSocialProviders: SocialProviderType[];
   shouldReset: boolean;
+  // TikTok specific settings
+  tiktokSettings: TikTokSettings | null;
 }
 
 // Define the store's actions
@@ -20,6 +26,7 @@ interface PostActions {
   setTime: (time: string | null) => void;
   setPost: (post: FullPostType) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
+  setTikTokSettings: (settings: Partial<TikTokSettings>) => void;
   loadPost: (postData: GetPostByIdSchema) => void;
   reset: () => void;
 }
@@ -32,6 +39,7 @@ const initialState: PostState = {
     id: '',
     content: [
       {
+        title: '',
         text: '',
         media: [],
         name: 'DEFAULT',
@@ -44,6 +52,8 @@ const initialState: PostState = {
     orgId: '',
   },
   selectedSocialProviders: [],
+  // TikTok specific settings defaults
+  tiktokSettings: null,
 };
 
 // Create the store with SSR support and persistence
@@ -58,6 +68,33 @@ export const useStore = create<PostState & PostActions>()(
         setPost: (post) => set({ post }),
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
+        setTikTokSettings: (settings) =>
+          set((state) => {
+            // Initialize with defaults if not set
+            const currentSettings = state.tiktokSettings || {
+              privacy: 'PUBLIC_TO_EVERYONE',
+              allowComments: true,
+              allowDuet: false,
+              allowStitch: false,
+              promotionContent: 'NONE',
+            };
+            
+            // Merge new settings
+            const newSettings = { ...currentSettings, ...settings };
+            
+            // Enforce business rule: paid partnerships can't be private
+            if (
+              newSettings.promotionContent === 'PAID' &&
+              newSettings.privacy === 'SELF_ONLY'
+            ) {
+              newSettings.privacy = 'PUBLIC_TO_EVERYONE';
+            }
+            
+            return {
+              ...state,
+              tiktokSettings: newSettings,
+            };
+          }),
         loadPost: (postData) => {
           // Map Convex post data to store format
           const mappedPost: FullPostType = {

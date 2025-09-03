@@ -86,10 +86,11 @@ function SocialNotificationsContent() {
     | null;
 
   // Fetch the connect URL if we have a provider and might need to retry
-  const { data: connectUrl } = api.socialProvider.getSocialProviderConnectUrl.useQuery(
-    { provider: provider! },
-    { enabled: !!provider && !!error }
-  );
+  const { data: connectUrl } =
+    api.socialProvider.getSocialProviderConnectUrl.useQuery(
+      { provider: provider! },
+      { enabled: !!provider && !!error }
+    );
 
   if (!visible) {
     return null;

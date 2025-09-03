@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { SOCIAL_PROVIDER_DATA, TEST_CONTENT, MOCK_POST_ID } from './test-data';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { processMessageTestOnly } from '../test-client';
+import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from './test-data';
 
-const instagramProvider = SOCIAL_PROVIDER_DATA.find(p => p.socialType === 'INSTAGRAM')!;
+const instagramProvider = SOCIAL_PROVIDER_DATA.find(
+  (p) => p.socialType === 'INSTAGRAM'
+)!;
 
 describe('Instagram Provider Tests', () => {
   beforeEach(() => {

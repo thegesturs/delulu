@@ -18,6 +18,7 @@ export interface TwitterProfile extends BaseProviderProfile {
 
 // Content types
 export interface PostContent {
+  title?: string;
   text: string;
   media: MediaType[];
   order: number;

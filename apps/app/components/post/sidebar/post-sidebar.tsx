@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@delulu/design-system/components/ui/accordion';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 
@@ -12,6 +18,7 @@ import {
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { promotionContentTypes } from '@delulu/validators/post';
 import { useMutation } from 'convex/react';
 import { Loader } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -21,6 +28,7 @@ import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import SocialSelector from './social-selector';
+import { TikTokSettings } from './tiktok-settings';
 
 export function PostSidebar() {
   const { date } = useDateTime(); // We only need date, as it will contain time
@@ -30,12 +38,56 @@ export function PostSidebar() {
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
+  // Get TikTok settings from store
+  const tiktokSettings = useStore((state) => state.tiktokSettings);
+
+  // Check if TikTok is selected
+  const hasTikTokSelected = socialProviders.some(
+    (provider) => provider.socialType === 'TIKTOK'
+  );
+
+  // Check if we have video content
+  const hasVideo = post.content.some((content) =>
+    content.media?.some((media) => media.mediaType === 'VIDEO')
+  );
+
   // Single unified mutation for all operations
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Handler 1: Post immediately (no scheduledAt = immediate publishing via tRPC)
+  const validateTikTokSettings = () => {
+    if (!hasTikTokSelected) return true;
+
+    // Check if settings exist
+    if (!tiktokSettings) {
+      toast.error('TikTok settings are not initialized');
+      return false;
+    }
+
+    // Validate privacy is set
+    if (!tiktokSettings.privacy) {
+      toast.error('Please select a privacy level for TikTok');
+      return false;
+    }
+
+    // Validate paid partnerships can't be private
+    if (
+      tiktokSettings.promotionContent === promotionContentTypes.PAID &&
+      tiktokSettings.privacy === 'SELF_ONLY'
+    ) {
+      toast.error('Paid partnerships cannot have privacy set to "Only me"');
+      return false;
+    }
+
+    return true;
+  };
+
   const handlePostNow = async () => {
+    // Validate TikTok settings
+    if (!validateTikTokSettings()) {
+      return;
+    }
+
     try {
       setIsProcessing(true);
       await upsertPostMutation({
@@ -49,6 +101,12 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
+
+        // Include TikTok settings if TikTok is selected
+        ...(hasTikTokSelected &&
+          tiktokSettings && {
+            tiktokSettings,
+          }),
         // No scheduledAt - immediate publishing via existing tRPC flow
         status: 'SAVED', // Will be published immediately through different flow
       });
@@ -67,6 +125,11 @@ export function PostSidebar() {
   const handleSchedulePost = async () => {
     if (!date) return;
 
+    // Validate TikTok settings
+    if (!validateTikTokSettings()) {
+      return;
+    }
+
     try {
       setIsProcessing(true);
       await upsertPostMutation({
@@ -80,6 +143,14 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
+        // Include TikTok settings if TikTok is selected
+        ...(hasTikTokSelected &&
+          tiktokSettings && {
+            tiktokSettings: {
+              ...tiktokSettings,
+              privacy: tiktokSettings.privacy,
+            },
+          }),
         scheduledAt: date.getTime(), // Future scheduling
         status: 'SCHEDULED',
       });
@@ -107,6 +178,14 @@ export function PostSidebar() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
+        // Include TikTok settings if TikTok is selected (save even in drafts)
+        ...(hasTikTokSelected &&
+          tiktokSettings && {
+            tiktokSettings: {
+              ...tiktokSettings,
+              privacy: tiktokSettings.privacy,
+            },
+          }),
         status: 'SAVED',
       });
       toast.success(
@@ -168,6 +247,22 @@ export function PostSidebar() {
       <CardContent>
         <SocialSelector />
       </CardContent>
+
+      {/* Advanced Settings Accordion */}
+      {hasTikTokSelected && (
+        <CardContent className="border-t">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="advanced-settings" className="border-none">
+              <AccordionTrigger className="hover:no-underline">
+                <span className="font-medium text-sm">Advanced Settings</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <TikTokSettings hasVideo={hasVideo} />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      )}
     </Card>
   );
 }

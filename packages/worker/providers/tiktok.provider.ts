@@ -1,7 +1,11 @@
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
+import {
+  type TikTokSettings,
+  getValidMediaUrls,
+  promotionContentTypes,
+} from '@delulu/validators/post';
 import axios from 'axios';
 import { nanoid } from 'nanoid';
 import { ResultAsync, err, errAsync, ok } from 'neverthrow';
@@ -84,25 +88,46 @@ const getProfile = (
     });
   });
 
-// Upload single video to TikTok (no carousel support)
+// Upload single video to TikTok with user settings
 const uploadVideo = (
   accessToken: string,
   videoUrl: string,
-  title: string
+  caption: string,
+  settings?: TikTokSettings
 ): ResultAsync<TikTokVideoUploadResponse, SocialProviderError> => {
+  // Build post_info with user settings or defaults
+  // biome-ignore lint/suspicious/noExplicitAny: <Dont want to declare the type>
+  const postInfo: any = {
+    title: caption.slice(0, 150) || 'TikTok Video',
+    privacy_level: settings?.privacy || 'PUBLIC_TO_EVERYONE',
+    disable_duet: settings?.allowDuet === false,
+    disable_comment: settings?.allowComments === false,
+    disable_stitch: settings?.allowStitch === false,
+    video_cover_timestamp_ms: 1000, // Sets thumbnail at 1 second into video
+  };
+
+  // Add commercial content disclosure based on promotionContent type
+  if (
+    settings?.promotionContent &&
+    settings.promotionContent !== promotionContentTypes.NONE
+  ) {
+    postInfo.brand_content_toggle = true;
+
+    if (settings.promotionContent === promotionContentTypes.SELF) {
+      postInfo.brand_organic_toggle = true;
+      postInfo.branded_content_toggle = false;
+    } else if (settings.promotionContent === promotionContentTypes.PAID) {
+      postInfo.brand_organic_toggle = false;
+      postInfo.branded_content_toggle = true;
+    }
+  }
+
   const uploadData = {
     source_info: {
       source: 'PULL_FROM_URL',
       video_url: videoUrl,
     },
-    post_info: {
-      title: title.slice(0, 150) || 'TikTok Video',
-      privacy_level: 'SELF_ONLY',
-      disable_duet: false,
-      disable_comment: false,
-      disable_stitch: false,
-      video_cover_timestamp_ms: 1000,
-    },
+    post_info: postInfo,
   };
 
   return ResultAsync.fromPromise(
@@ -144,9 +169,13 @@ const uploadVideo = (
   });
 };
 
-// Main publish function - only supports single video
+// Main publish function with settings support
 const publishContent = (
-  content: { content: PostContent[]; postId: string },
+  content: {
+    content: PostContent[];
+    postId: string;
+    tiktokSettings?: TikTokSettings;
+  },
   profile: TikTokProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
@@ -167,10 +196,18 @@ const publishContent = (
     );
   }
 
+  // Use text content as TikTok caption (what users see on the video)
+  const caption = firstContent.text || 'TikTok Video';
+
   // Get fresh access token first (following YouTube pattern)
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) =>
-      uploadVideo(freshAccessToken, videoMedia.url!, firstContent.text || '')
+      uploadVideo(
+        freshAccessToken,
+        videoMedia.url!,
+        caption,
+        content.tiktokSettings
+      )
     )
     .map((uploadResponse) => ({
       platformPostId: uploadResponse.data.publish_id,
@@ -181,7 +218,7 @@ const publishContent = (
     }));
 };
 
-// Provider implementation
+// Provider implementation with settings support
 export const tiktokProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
     const result = await getProfile(socialProviderId).andThen((profile) =>

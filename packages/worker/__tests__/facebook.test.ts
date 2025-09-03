@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { SOCIAL_PROVIDER_DATA, TEST_CONTENT, MOCK_POST_ID } from './test-data';
+import { describe, expect, it } from 'vitest';
 import { processMessageTestOnly } from '../test-client';
+import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from './test-data';
 
-const facebookProvider = SOCIAL_PROVIDER_DATA.find(p => p.socialType === 'FACEBOOK')!;
+const facebookProvider = SOCIAL_PROVIDER_DATA.find(
+  (p) => p.socialType === 'FACEBOOK'
+)!;
 
 describe('Facebook Provider Tests', () => {
   it('should execute real Facebook provider with single image', async () => {

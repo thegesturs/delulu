@@ -98,6 +98,7 @@ export const contentSchema = z.object({
   id: z.string().optional(),
   order: z.number(),
   name: z.string(),
+  title: z.string().optional(),
   media: z.array(mediaSchema),
   text: z.string(),
   tags: z.array(z.string()).optional().default([]),
@@ -211,3 +212,59 @@ export const postReturnSchema = z.object({
 });
 
 export type PostReturnType = z.infer<typeof postReturnSchema>;
+
+export const tikTokPrivacyLevels = {
+  SELF_ONLY: 'SELF_ONLY',
+  MUTUAL_FOLLOW_FRIENDS: 'MUTUAL_FOLLOW_FRIENDS',
+  PUBLIC_TO_EVERYONE: 'PUBLIC_TO_EVERYONE',
+} as const;
+
+export type TiktokPrivacyLevels =
+  (typeof tikTokPrivacyLevels)[keyof typeof tikTokPrivacyLevels];
+
+// Extract values as readonly tuple for Zod enum
+const tikTokPrivacyValues = [
+  tikTokPrivacyLevels.SELF_ONLY,
+  tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
+  tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
+] as const;
+
+export const promotionContentTypes = {
+  NONE: 'NONE',
+  SELF: 'SELF',
+  PAID: 'PAID',
+} as const;
+
+export type PromotionContentType =
+  (typeof promotionContentTypes)[keyof typeof promotionContentTypes];
+
+// Extract values as readonly tuple for Zod enum
+const promotionContentValues = [
+  promotionContentTypes.NONE,
+  promotionContentTypes.SELF,
+  promotionContentTypes.PAID,
+] as const;
+
+// TikTok Settings Schema - simplified with single promotion field
+export const tikTokSettingsSchema = z
+  .object({
+    privacy: z.enum(tikTokPrivacyValues),
+    allowComments: z.boolean().default(true),
+    allowDuet: z.boolean().default(false),
+    allowStitch: z.boolean().default(false),
+    promotionContent: z.enum(promotionContentValues).default('NONE'),
+  })
+  .refine(
+    (data) => {
+      // Paid partnerships cannot have privacy level "SELF_ONLY"
+      if (data.promotionContent === 'PAID' && data.privacy === 'SELF_ONLY') {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Paid partnerships cannot have privacy level set to 'Only me'",
+    }
+  );
+
+export type TikTokSettings = z.infer<typeof tikTokSettingsSchema>;

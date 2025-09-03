@@ -1,6 +1,5 @@
 'use client';
-
-import type { SocialType } from '@delulu/database/convex/utils';
+import { api } from '@/trpc/react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -19,7 +18,6 @@ import {
 } from '@delulu/design-system/lib/social-config';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { api } from '@/trpc/react';
 import type { JSX } from 'react';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
@@ -34,10 +32,13 @@ const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   'YOUTUBE',
 ];
 
-function ConnectPlatformButton({ platform }: { platform: SupportedSocialPlatform }) {
-  const { data: connectUrl, isLoading } = api.socialProvider.getSocialProviderConnectUrl.useQuery({
-    provider: platform,
-  });
+function ConnectPlatformButton({
+  platform,
+}: { platform: SupportedSocialPlatform }) {
+  const { data: connectUrl, isLoading } =
+    api.socialProvider.getSocialProviderConnectUrl.useQuery({
+      provider: platform,
+    });
 
   if (platform === 'FARCASTER') {
     return (
@@ -51,16 +52,10 @@ function ConnectPlatformButton({ platform }: { platform: SupportedSocialPlatform
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon
-            type={platform}
-            size="md"
-            className="text-white"
-          />
+          <SocialIcon type={platform} size="md" className="text-white" />
         </div>
         <div className="flex flex-col items-start">
-          <span className="font-medium">
-            {socialDisplayNames[platform]}
-          </span>
+          <span className="font-medium">{socialDisplayNames[platform]}</span>
           <span className="text-muted-foreground text-sm">
             {socialDescriptions[platform]}
           </span>
@@ -81,16 +76,10 @@ function ConnectPlatformButton({ platform }: { platform: SupportedSocialPlatform
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon
-            type={platform}
-            size="md"
-            className="text-white"
-          />
+          <SocialIcon type={platform} size="md" className="text-white" />
         </div>
         <div className="flex flex-col items-start">
-          <span className="font-medium">
-            {socialDisplayNames[platform]}
-          </span>
+          <span className="font-medium">{socialDisplayNames[platform]}</span>
           <span className="text-muted-foreground text-sm">
             {socialDescriptions[platform]}
           </span>
@@ -100,23 +89,21 @@ function ConnectPlatformButton({ platform }: { platform: SupportedSocialPlatform
   }
 
   return (
-    <Button asChild className="flex h-14 items-center justify-start space-x-4 px-4" variant="outline">
+    <Button
+      asChild
+      className="flex h-14 items-center justify-start space-x-4 px-4"
+      variant="outline"
+    >
       <Link href={connectUrl}>
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon
-            type={platform}
-            size="md"
-            className="text-white"
-          />
+          <SocialIcon type={platform} size="md" className="text-white" />
         </div>
         <div className="flex flex-col items-start">
-          <span className="font-medium">
-            {socialDisplayNames[platform]}
-          </span>
+          <span className="font-medium">{socialDisplayNames[platform]}</span>
           <span className="text-muted-foreground text-sm">
             {socialDescriptions[platform]}
           </span>

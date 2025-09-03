@@ -73,6 +73,7 @@ export const contentSchema = v.object({
   id: v.optional(v.string()),
   order: v.number(),
   name: v.string(),
+  title: v.optional(v.string()),
   media: v.array(mediaSchema),
   text: v.string(),
   tags: v.optional(v.array(v.string())),
@@ -86,4 +87,28 @@ export const contentSchema = v.object({
 export const alternativeContentSchema = v.object({
   socialProviderId: v.id('socialProviders'),
   content: v.array(contentSchema),
+});
+
+// ============================================================================
+// TIKTOK SETTINGS SCHEMA
+// ============================================================================
+
+export const tikTokPrivacySchema = v.union(
+  v.literal('SELF_ONLY'),
+  v.literal('MUTUAL_FOLLOW_FRIENDS'),
+  v.literal('PUBLIC_TO_EVERYONE')
+);
+
+export const promotionContentSchema = v.union(
+  v.literal('NONE'),
+  v.literal('SELF'),
+  v.literal('PAID')
+);
+
+export const tikTokSettingsSchema = v.object({
+  privacy: tikTokPrivacySchema,
+  allowComments: v.boolean(),
+  allowDuet: v.boolean(),
+  allowStitch: v.boolean(),
+  promotionContent: promotionContentSchema,
 });
