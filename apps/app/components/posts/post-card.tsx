@@ -67,6 +67,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
     PUBLISHED: 'green',
     DELETED: 'red',
     FAILED: 'destructive',
+    PROCESSING: 'purple',
   } as const;
 
   const postId = post._id;
