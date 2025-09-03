@@ -634,7 +634,7 @@ export const publishScheduledPost = internalAction({
       }
 
       // Verify it's still scheduled and ready to publish
-      if (post.status !== 'SCHEDULED' && post.status !== 'SAVED') {
+      if (post.status !== 'SCHEDULED' && post.status !== 'PROCESSING') {
         console.warn(
           `Post ${args.postId} is no longer scheduled (status: ${post.status})`
         );
