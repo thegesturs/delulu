@@ -1,4 +1,4 @@
-#!/usr/bin/env node'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';
+#!/usr/bin/env node'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';
 
 /**
  * Script to extract CloudflareEnv interface from generated .d.ts file

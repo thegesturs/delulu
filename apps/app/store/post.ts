@@ -78,10 +78,10 @@ export const useStore = create<PostState & PostActions>()(
               allowStitch: false,
               promotionContent: 'NONE',
             };
-            
+
             // Merge new settings
             const newSettings = { ...currentSettings, ...settings };
-            
+
             // Enforce business rule: paid partnerships can't be private
             if (
               newSettings.promotionContent === 'PAID' &&
@@ -89,7 +89,7 @@ export const useStore = create<PostState & PostActions>()(
             ) {
               newSettings.privacy = 'PUBLIC_TO_EVERYONE';
             }
-            
+
             return {
               ...state,
               tiktokSettings: newSettings,
