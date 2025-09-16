@@ -4,7 +4,8 @@ import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-// import { api } from '@/trpc/react';
+import { api } from '@delulu/database/convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -157,69 +158,50 @@ export function MediaSelectionDialog({
   const canSelectImages = remainingImages > 0;
   const canSelectVideos = remainingVideos > 0;
 
-  // Use tRPC query to fetch media (start with first page)
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const [allLoadedMedia, setAllLoadedMedia] = useState<any[]>([]);
+  // Use Convex to fetch media - now with auto user fetching
+  const hasSearch = searchQuery && searchQuery.trim().length > 0;
 
-  // const {
-  //   data: mediaData,
-  //   isLoading,
-  //   refetch,
-  // } = api.media.getUserMedia.useQuery(
-  //   {
-  //     limit: 20,
-  //     cursor: currentPage * 20,
-  //     search: searchQuery || undefined,
-  //   },
-  //   {
-  //     enabled: isOpen,
-  //   }
-  // );
+  // Use getMedia for browsing, searchMedia for searching
+  const browseData = useQuery(
+    api.media.getMedia,
+    !isOpen || hasSearch ? "skip" : { limit: 20, offset: 0 }
+  );
 
-  // Accumulate media from all loaded pages
-  // useEffect(() => {
-  //   if (mediaData?.media) {
-  //     if (currentPage === 0) {
-  //       setAllLoadedMedia(mediaData.media);
-  //     } else {
-  //       setAllLoadedMedia((prev) => [...prev, ...mediaData.media]);
-  //     }
-  //   }
-  // }, [mediaData?.media, currentPage]);
+  const searchData = useQuery(
+    api.media.searchMedia,
+    !isOpen || !hasSearch ? "skip" : {
+      searchTerm: searchQuery.trim(),
+      limit: 50,
+      offset: 0,
+    }
+  );
 
-  // Get all accumulated media
-  const allMedia = allLoadedMedia;
+  const mediaData = hasSearch ? searchData : browseData;
 
-  // Reset selection and pagination when dialog opens
+  const isLoading = mediaData === undefined;
+
+  // Transform Convex data to match MediaItem interface
+  const allMedia: MediaItem[] = (mediaData || []).map((item) => ({
+    id: item._id as string,
+    url: item.url,
+    bucketKey: item.bucketKey,
+    mediaType: item.mediaType,
+    originalFilename: item.originalFilename,
+    size: item.size,
+    extension: item.extension,
+    altText: item.altText,
+    createdAt: new Date(item.createdAt).toISOString(),
+  }));
+
+  // Reset selection when dialog opens
   useEffect(() => {
     if (isOpen) {
       setSelectedMedia([]);
-      setCurrentPage(0);
-      setAllLoadedMedia([]);
     }
   }, [isOpen]);
 
-  // // Reset pagination and refetch when search changes
-  // useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     if (isOpen) {
-  //       setCurrentPage(0);
-  //       setAllLoadedMedia([]);
-  //       refetch();
-  //     }
-  //   }, 300);
-
-  //   return () => clearTimeout(timer);
-  // }, [isOpen, refetch]);
-
-  // // Load more function
-  // const loadMore = () => {
-  //   if (mediaData?.hasMore && !isLoading) {
-  //     setCurrentPage((prev) => prev + 1);
-  //   }
-  // };
+  // For now, no load more functionality (can be added later with pagination)
+  const hasMore = false;
 
   // Filter media based on platform constraints and availability
   const filteredMedia = allMedia.filter((media) => {
@@ -411,18 +393,17 @@ export function MediaSelectionDialog({
               />
             )}
 
-            {/* Load more button */}
-            {/* {mediaData?.hasMore && (
+            {/* Load more button - disabled for now */}
+            {hasMore && (
               <div className="mt-4 text-center">
                 <Button
                   variant="outline"
-                  onClick={loadMore}
-                  disabled={isLoading}
+                  disabled={true}
                 >
-                  {isLoading ? 'Loading...' : 'Load More'}
+                  Load More
                 </Button>
               </div>
-            )} */}
+            )}
           </div>
         </div>
 

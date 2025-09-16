@@ -17,6 +17,8 @@ interface PostState {
   shouldReset: boolean;
   // TikTok specific settings
   tiktokSettings: TikTokSettings | null;
+  // Media upload state
+  isMediaUploading: boolean;
 }
 
 // Define the store's actions
@@ -27,6 +29,7 @@ interface PostActions {
   setPost: (post: FullPostType) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
   setTikTokSettings: (settings: Partial<TikTokSettings>) => void;
+  setIsMediaUploading: (isUploading: boolean) => void;
   loadPost: (postData: GetPostByIdSchema) => void;
   reset: () => void;
 }
@@ -54,6 +57,8 @@ const initialState: PostState = {
   selectedSocialProviders: [],
   // TikTok specific settings defaults
   tiktokSettings: null,
+  // Media upload state defaults
+  isMediaUploading: false,
 };
 
 // Create the store with SSR support and persistence
@@ -95,6 +100,7 @@ export const useStore = create<PostState & PostActions>()(
               tiktokSettings: newSettings,
             };
           }),
+        setIsMediaUploading: (isUploading) => set({ isMediaUploading: isUploading }),
         loadPost: (postData) => {
           // Map Convex post data to store format
           const mappedPost: FullPostType = {
@@ -161,6 +167,8 @@ const selectedProvidersSelector = (state: PostState & PostActions) =>
   state.selectedSocialProviders;
 const alternativeContentSelector = (state: PostState & PostActions) =>
   state.post.alternativeContent;
+const mediaUploadingSelector = (state: PostState & PostActions) =>
+  state.isMediaUploading;
 
 export const usePost = () => useStore(postSelector);
 export const useAlternativeContent = () =>
@@ -168,6 +176,7 @@ export const useAlternativeContent = () =>
 export const useDateTime = () => useStore(useShallow(dateTimeSelector));
 export const useSelectedSocialProviders = () =>
   useStore(useShallow(selectedProvidersSelector));
+export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
 
 // Action creators with proper typing
 export const postActions = {

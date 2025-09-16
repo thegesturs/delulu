@@ -12,6 +12,7 @@ type AnimatedTabsContextValue = {
   setListEl: (el: HTMLDivElement | null) => void
   getListEl: () => HTMLDivElement | null
   activeValue: string | undefined
+  elementsVersion: number
 }
 
 const AnimatedTabsContext = React.createContext<AnimatedTabsContextValue | null>(
@@ -26,7 +27,7 @@ function useAnimatedTabsContext(): AnimatedTabsContextValue {
   return ctx
 }
 
-const underlineTransition = { type: 'tween', ease: 'easeOut', duration: 0.15 }
+const underlineTransition = { duration: 0.15 }
 
 export function AnimatedTabs(
   props: React.ComponentProps<typeof TabsPrimitive.Root>,
@@ -42,36 +43,46 @@ export function AnimatedTabs(
     if (value !== undefined) setInternalValue(value)
   }, [value])
 
-  const [valueToEl, setValueToEl] = React.useState<
-    Map<string, HTMLButtonElement>
-  >(new Map())
+  const triggerMapRef = React.useRef<Map<string, HTMLButtonElement>>(new Map())
   const listRef = React.useRef<HTMLDivElement | null>(null)
+  const [elementsVersion, setElementsVersion] = React.useState(0)
+
+  const registerTrigger = React.useCallback(
+    (val: string, el: HTMLButtonElement | null) => {
+      if (el) triggerMapRef.current.set(val, el)
+      else triggerMapRef.current.delete(val)
+      setElementsVersion((v) => v + 1)
+    },
+    [],
+  )
+
+  const unregisterTrigger = React.useCallback((val: string) => {
+    triggerMapRef.current.delete(val)
+    setElementsVersion((v) => v + 1)
+  }, [])
+
+  const getTriggerEl = React.useCallback(
+    (val: string) => triggerMapRef.current.get(val) ?? null,
+    [],
+  )
+
+  const setListEl = React.useCallback((el: HTMLDivElement | null) => {
+    listRef.current = el
+  }, [])
+
+  const getListEl = React.useCallback(() => listRef.current, [])
 
   const ctxValue = React.useMemo<AnimatedTabsContextValue>(
     () => ({
-      registerTrigger: (val, el) => {
-        setValueToEl((prev) => {
-          const next = new Map(prev)
-          if (el) next.set(val, el)
-          else next.delete(val)
-          return next
-        })
-      },
-      unregisterTrigger: (val) => {
-        setValueToEl((prev) => {
-          const next = new Map(prev)
-          next.delete(val)
-          return next
-        })
-      },
-      getTriggerEl: (val) => valueToEl.get(val) ?? null,
-      setListEl: (el) => {
-        listRef.current = el
-      },
-      getListEl: () => listRef.current,
+      registerTrigger,
+      unregisterTrigger,
+      getTriggerEl,
+      setListEl,
+      getListEl,
       activeValue: value ?? internalValue,
+      elementsVersion,
     }),
-    [valueToEl, value, internalValue],
+    [registerTrigger, unregisterTrigger, getTriggerEl, setListEl, getListEl, value, internalValue, elementsVersion],
   )
 
   return (
@@ -97,7 +108,7 @@ export function AnimatedTabsList(
   props: React.ComponentProps<typeof TabsPrimitive.List>,
 ) {
   const { className, children, ...rest } = props
-  const { activeValue, getTriggerEl, setListEl, getListEl } =
+  const { activeValue, getTriggerEl, setListEl, getListEl, elementsVersion } =
     useAnimatedTabsContext()
 
   const [indicator, setIndicator] = React.useState<{ x: number; w: number } | null>(
@@ -112,7 +123,7 @@ export function AnimatedTabsList(
     const listRect = listEl.getBoundingClientRect()
     const elRect = activeEl.getBoundingClientRect()
     setIndicator({ x: elRect.left - listRect.left, w: elRect.width })
-  }, [activeValue, getListEl, getTriggerEl])
+  }, [activeValue, getListEl, getTriggerEl, elementsVersion])
 
   React.useEffect(() => {
     updateIndicator()

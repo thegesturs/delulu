@@ -332,10 +332,11 @@ export function MediaUploader({
   socialId,
   orderId,
 }: MediaUploaderProps) {
-  const { post, setPost } = useStore(
+  const { post, setPost, setIsMediaUploading } = useStore(
     useShallow((state) => ({
       post: state.post,
       setPost: state.setPost,
+      setIsMediaUploading: state.setIsMediaUploading,
     }))
   );
 
@@ -525,6 +526,11 @@ export function MediaUploader({
       isUserAction.current = true;
       setMediaFiles(updatedMediaFiles);
 
+      // Set upload state to true when starting uploads
+      if (newMediaFiles.length > 0) {
+        setIsMediaUploading(true);
+      }
+
       // Upload files immediately
       try {
         const uploadPromises = newMediaFiles.map(async (mediaFile) => {
@@ -578,9 +584,12 @@ export function MediaUploader({
         await Promise.all(uploadPromises);
       } catch (error) {
         console.error('Upload process failed:', error);
+      } finally {
+        // Clear upload state when all uploads are done
+        setIsMediaUploading(false);
       }
     },
-    [mediaFiles, socialType, maxImages, maxVideos]
+    [mediaFiles, socialType, maxImages, maxVideos, uploadAndSaveMedia, setIsMediaUploading]
   );
 
   const handleDrop = useCallback(

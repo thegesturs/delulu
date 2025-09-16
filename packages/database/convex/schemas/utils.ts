@@ -29,7 +29,6 @@ export const mediaFiltersSchema = v.object({
 
 // Search filters
 export const searchFiltersSchema = v.object({
-  userId: v.optional(v.id('users')),
   organizationId: v.optional(v.id('organizations')),
   searchTerm: v.string(),
   mediaType: v.optional(mediaTypeSchema),

@@ -2,6 +2,7 @@
 
 import {
   useDateTime,
+  useIsMediaUploading,
   usePost,
   useSelectedSocialProviders,
   useStore,
@@ -33,6 +34,7 @@ export function BasicSettings() {
   const post = usePost();
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const socialProviders = useSelectedSocialProviders();
+  const isMediaUploading = useIsMediaUploading();
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
@@ -212,11 +214,11 @@ export function BasicSettings() {
         <Button
           className="flex-1 justify-center gap-2"
           onClick={date ? handleSchedulePost : handlePostNow}
-          disabled={isProcessing}
-          aria-busy={isProcessing}
+          disabled={isProcessing || isMediaUploading}
+          aria-busy={isProcessing || isMediaUploading}
         >
           {date ? 'Schedule Post' : 'Post Now'}
-          {isProcessing ? (
+          {isProcessing || isMediaUploading ? (
             <Loader className="size-4 animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
@@ -226,11 +228,11 @@ export function BasicSettings() {
           className="flex-1 justify-center gap-2"
           variant="secondary"
           onClick={handleSaveAsDraft}
-          disabled={isProcessing}
-          aria-busy={isProcessing}
+          disabled={isProcessing || isMediaUploading}
+          aria-busy={isProcessing || isMediaUploading}
         >
           {postId ? 'Update Post' : 'Save Post'}
-          {isProcessing ? (
+          {isProcessing || isMediaUploading ? (
             <Loader className="size-4 animate-spin" />
           ) : (
             <FaBookmark className="size-4" />

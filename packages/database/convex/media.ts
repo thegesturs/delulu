@@ -26,16 +26,21 @@ export const getMediaById = query({
   },
 });
 
-export const getMediaByUserId = query({
+export const getMedia = query({
   args: {
-    userId: v.id('users'),
     ...mediaFiltersSchema.fields,
   },
   returns: v.array(mediaTableSchema),
   handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const allMedia = await ctx.db
       .query('media')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
       .collect();
 
     // Filter by media type if specified
@@ -225,13 +230,18 @@ export const searchMedia = query({
   handler: async (ctx, args) => {
     let mediaItems: Doc<'media'>[];
 
-    const userId = args.userId;
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const organizationId = args.organizationId;
 
-    if (userId) {
+    if (user._id) {
       mediaItems = await ctx.db
         .query('media')
-        .withIndex('by_user_id', (q) => q.eq('userId', userId))
+        .withIndex('by_user_id', (q) => q.eq('userId', user._id))
         .collect();
     } else if (organizationId) {
       mediaItems = await ctx.db
@@ -274,46 +284,6 @@ export const searchMedia = query({
     const limit = args.limit || 50;
 
     return filteredMedia.slice(offset, offset + limit);
-  },
-});
-
-export const getRecentMedia = query({
-  args: {
-    userId: v.optional(v.id('users')),
-    organizationId: v.optional(v.id('organizations')),
-    limit: v.optional(v.number()),
-  },
-  returns: v.array(mediaTableSchema),
-  handler: async (ctx, args) => {
-    let mediaItems: Doc<'media'>[];
-
-    const userId = args.userId;
-    const organizationId = args.organizationId;
-
-    if (userId) {
-      mediaItems = await ctx.db
-        .query('media')
-        .withIndex('by_user_id', (q) => q.eq('userId', userId))
-        .collect();
-    } else if (organizationId) {
-      mediaItems = await ctx.db
-        .query('media')
-        .withIndex('by_organization_id', (q) =>
-          q.eq('organizationId', organizationId)
-        )
-        .collect();
-    } else {
-      // Get all media if no user or organization specified
-      mediaItems = await ctx.db.query('media').collect();
-    }
-
-    // Sort by creation date (newest first)
-    mediaItems.sort((a, b) => b.createdAt - a.createdAt);
-
-    // Apply limit
-    const limit = args.limit || 20;
-
-    return mediaItems.slice(0, limit);
   },
 });
 
