@@ -19,9 +19,8 @@ export const mediaRouter = createTRPCRouter({
       const { limit, cursor = 0, mediaType } = input;
 
       const media = await fetchQuery(
-        api.media.getMediaByUserId,
+        api.media.getMedia,
         {
-          userId: ctx.userId,
           limit: limit + 1, // Fetch one extra to determine if there are more
           offset: cursor,
           mediaType,

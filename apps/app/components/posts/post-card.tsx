@@ -31,7 +31,7 @@ import React from 'react';
 import { toast } from 'sonner';
 import DeletePostAlert from '../alerts/delete-post';
 import { PostPreviewDialog } from './post-preview-dialog';
-import { statusColors, type Post, type PostLayout } from './types';
+import { type Post, type PostLayout, statusColors } from './types';
 
 interface PostCardProps {
   post: Post;
@@ -60,8 +60,6 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
       },
     });
   const [isDeleting, setIsDeleting] = React.useState(false);
-
-
 
   const postId = post._id;
   const postStatus = post.status;
