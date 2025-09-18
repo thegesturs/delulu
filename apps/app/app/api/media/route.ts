@@ -102,9 +102,8 @@ export async function GET(req: NextRequest) {
     const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
 
     const media = await fetchQuery(
-      api.media.getMediaByUserId,
+      api.media.getMedia,
       {
-        userId: user._id,
         limit,
         offset,
         ...(mediaType && { mediaType }),
