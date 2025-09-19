@@ -198,4 +198,132 @@ export const socialProviderRouter = {
 
       return { status: 'connected' };
     }),
+  getTikTokCreatorInfo: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Get the TikTok social provider with access token
+      const socialProvider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        {
+          id: input.socialProviderId as Id<'socialProviders'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
+
+      if (!socialProvider?.accessToken) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'TikTok account not found or access token missing',
+        });
+      }
+
+      try {
+        const params = new URLSearchParams({
+          fields: 'open_id,union_id,avatar_url,avatar_url_100,avatar_url_200,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count'
+        });
+
+        const response = await fetch(
+          `https://open.tiktokapis.com/v2/user/info/?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${socialProvider.accessToken}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `TikTok API error: ${response.status}`,
+          });
+        }
+
+        const data = await response.json();
+
+        if (!data.data?.display_name) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to get creator info from TikTok response',
+          });
+        }
+
+        return {
+          display_name: data.data.display_name,
+          bio_description: data.data.bio_description || '',
+          avatar_url: data.data.avatar_url,
+          follower_count: data.data.follower_count,
+          following_count: data.data.following_count,
+          likes_count: data.data.likes_count,
+          video_count: data.data.video_count,
+          is_verified: data.data.is_verified,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch TikTok creator info',
+        });
+      }
+    }),
+  validateTikTokVideo: protectedProcedure
+    .input(
+      z.object({
+        videoUrl: z.string().url(),
+        // Additional validation can be added here for duration, file size, etc.
+      })
+    )
+    .query(async ({ input }) => {
+      // For now, this is a placeholder that validates the URL format
+      // In a full implementation, you might want to:
+      // 1. Fetch video metadata to check duration (15 seconds to 10 minutes)
+      // 2. Validate file size, format, etc.
+      // 3. Use a video processing library to analyze the video
+
+      try {
+        // Validate URL format
+        new URL(input.videoUrl);
+
+        // Basic validation - video should be accessible
+        const response = await fetch(input.videoUrl, { method: 'HEAD' });
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Video URL is not accessible',
+          });
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.startsWith('video/')) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'URL does not point to a video file',
+          });
+        }
+
+        // For now, return success - can be enhanced with actual video analysis
+        return {
+          valid: true,
+          message: 'Video URL is valid and accessible',
+          contentType,
+          contentLength: response.headers.get('content-length'),
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Invalid video URL format',
+        });
+      }
+    }),
 } satisfies TRPCRouterRecord;

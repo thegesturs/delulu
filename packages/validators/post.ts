@@ -233,6 +233,7 @@ export const promotionContentTypes = {
   NONE: 'NONE',
   SELF: 'SELF',
   PAID: 'PAID',
+  BOTH: 'BOTH',
 } as const;
 
 export type PromotionContentType =
@@ -243,6 +244,7 @@ const promotionContentValues = [
   promotionContentTypes.NONE,
   promotionContentTypes.SELF,
   promotionContentTypes.PAID,
+  promotionContentTypes.BOTH,
 ] as const;
 
 // TikTok Settings Schema - simplified with single promotion field
@@ -250,14 +252,14 @@ export const tikTokSettingsSchema = z
   .object({
     privacy: z.enum(tikTokPrivacyValues),
     allowComments: z.boolean().default(true),
-    allowDuet: z.boolean().default(false),
-    allowStitch: z.boolean().default(false),
+    allowDuet: z.boolean().default(true),
+    allowStitch: z.boolean().default(true),
     promotionContent: z.enum(promotionContentValues).default('NONE'),
   })
   .refine(
     (data) => {
-      // Paid partnerships cannot have privacy level "SELF_ONLY"
-      if (data.promotionContent === 'PAID' && data.privacy === 'SELF_ONLY') {
+      // Paid partnerships and BOTH cannot have privacy level "SELF_ONLY"
+      if ((data.promotionContent === 'PAID' || data.promotionContent === 'BOTH') && data.privacy === 'SELF_ONLY') {
         return false;
       }
       return true;

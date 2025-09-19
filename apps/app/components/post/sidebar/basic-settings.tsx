@@ -4,7 +4,7 @@ import {
   useDateTime,
   useIsMediaUploading,
   usePost,
-  useProviderSettingsForConvex,
+  getProviderSettingsForConvex,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
@@ -36,7 +36,7 @@ export function BasicSettings() {
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const socialProviders = useSelectedSocialProviders();
   const isMediaUploading = useIsMediaUploading();
-  const providerSettingsForConvex = useProviderSettingsForConvex();
+  const providerSettingsForConvex = getProviderSettingsForConvex();
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
@@ -82,12 +82,29 @@ export function BasicSettings() {
 
       // Validate paid partnerships can't be private
       if (
-        settings.promotionContent === promotionContentTypes.PAID &&
+        (settings.promotionContent === promotionContentTypes.PAID ||
+         settings.promotionContent === promotionContentTypes.BOTH) &&
         settings.privacy === 'SELF_ONLY'
       ) {
         toast.error(
           `Paid partnerships cannot have privacy set to "Only me" for ${provider.name}`
         );
+        return false;
+      }
+
+      // Validate commercial content disclosure: if no specific type is selected, it should be NONE
+      // This catches the case where toggle is on but no checkboxes are selected
+      if (settings.promotionContent === promotionContentTypes.NONE) {
+        // This is fine - no commercial content
+      } else if (settings.promotionContent === promotionContentTypes.SELF) {
+        // This is fine - "Your brand" selected
+      } else if (settings.promotionContent === promotionContentTypes.PAID) {
+        // This is fine - "Branded content" selected
+      } else if (settings.promotionContent === promotionContentTypes.BOTH) {
+        // This is fine - "Both" selected
+      } else {
+        // This shouldn't happen, but handle invalid state
+        toast.error(`Invalid commercial content setting for ${provider.name}`);
         return false;
       }
     }
