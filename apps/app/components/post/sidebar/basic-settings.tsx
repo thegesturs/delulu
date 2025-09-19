@@ -4,6 +4,7 @@ import {
   useDateTime,
   useIsMediaUploading,
   usePost,
+  useProviderSettingsForConvex,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
@@ -27,7 +28,7 @@ import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import SocialSelector from './social-selector';
-import { TikTokSettings } from './tiktok-settings';
+import { TikTokSettingsDisplay } from './tiktok-settings';
 
 export function BasicSettings() {
   const { date } = useDateTime();
@@ -35,14 +36,12 @@ export function BasicSettings() {
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const socialProviders = useSelectedSocialProviders();
   const isMediaUploading = useIsMediaUploading();
+  const providerSettingsForConvex = useProviderSettingsForConvex();
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
-  // Get TikTok settings from store
-  const tiktokSettings = useStore((state) => state.tiktokSettings);
-
-  // Check if TikTok is selected
-  const hasTikTokSelected = socialProviders.some(
+  // Get all selected TikTok providers
+  const tiktokProviders = socialProviders.filter(
     (provider) => provider.socialType === 'TIKTOK'
   );
 
@@ -56,29 +55,41 @@ export function BasicSettings() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const validateTikTokSettings = () => {
-    if (!hasTikTokSelected) {
+    if (tiktokProviders.length === 0) {
       return true;
     }
 
-    // Check if settings exist
-    if (!tiktokSettings) {
-      toast.error('TikTok settings are not initialized');
-      return false;
-    }
+    const { getProviderSettings } = useStore.getState();
 
-    // Validate privacy is set
-    if (!tiktokSettings.privacy) {
-      toast.error('Please select a privacy level for TikTok');
-      return false;
-    }
+    // Check settings for each TikTok provider
+    for (const provider of tiktokProviders) {
+      const providerSetting = getProviderSettings(provider.socialId);
+      const settings =
+        providerSetting?.type === 'TIKTOK'
+          ? providerSetting.settings
+          : undefined;
 
-    // Validate paid partnerships can't be private
-    if (
-      tiktokSettings.promotionContent === promotionContentTypes.PAID &&
-      tiktokSettings.privacy === 'SELF_ONLY'
-    ) {
-      toast.error('Paid partnerships cannot have privacy set to "Only me"');
-      return false;
+      if (!settings) {
+        toast.error(`TikTok settings not configured for ${provider.name}`);
+        return false;
+      }
+
+      // Validate privacy is set
+      if (!settings.privacy) {
+        toast.error(`Please select a privacy level for ${provider.name}`);
+        return false;
+      }
+
+      // Validate paid partnerships can't be private
+      if (
+        settings.promotionContent === promotionContentTypes.PAID &&
+        settings.privacy === 'SELF_ONLY'
+      ) {
+        toast.error(
+          `Paid partnerships cannot have privacy set to "Only me" for ${provider.name}`
+        );
+        return false;
+      }
     }
 
     return true;
@@ -104,8 +115,8 @@ export function BasicSettings() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-        // Include TikTok settings if TikTok is selected
-        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
+        // Include provider-specific settings
+        providerSettings: providerSettingsForConvex,
         // No scheduledAt - immediate publishing via existing tRPC flow
         status: 'PROCESSING',
       });
@@ -145,8 +156,8 @@ export function BasicSettings() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-        // Include TikTok settings if TikTok is selected
-        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
+        // Include provider-specific settings
+        providerSettings: providerSettingsForConvex,
         scheduledAt: date.getTime(), // Future scheduling
         status: 'SCHEDULED',
       });
@@ -175,8 +186,8 @@ export function BasicSettings() {
         socialProviderIds: socialProviders.map(
           (sp) => sp.socialId as Id<'socialProviders'>
         ),
-        // Include TikTok settings if TikTok is selected (save even in drafts)
-        ...(hasTikTokSelected && tiktokSettings && { tiktokSettings }),
+        // Include provider-specific settings (save even in drafts)
+        providerSettings: providerSettingsForConvex,
         status: 'SAVED',
       });
       toast.success(
@@ -244,16 +255,30 @@ export function BasicSettings() {
         <SocialSelector />
       </CardContent>
 
-      {/* Advanced Settings Accordion */}
-      {hasTikTokSelected && (
+      {/* Advanced Settings Accordion for each TikTok provider */}
+      {tiktokProviders.length > 0 && (
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="advanced-settings" className="border-none">
               <AccordionTrigger className="hover:no-underline">
-                <span className="font-medium text-sm">Advanced Settings</span>
+                <span className="font-medium text-sm">
+                  TikTok Advanced Settings
+                </span>
               </AccordionTrigger>
               <AccordionContent>
-                <TikTokSettings hasVideo={hasVideo} />
+                {tiktokProviders.map((provider) => (
+                  <div key={provider.socialId} className="space-y-4">
+                    {tiktokProviders.length > 1 && (
+                      <div className="font-medium text-muted-foreground text-sm">
+                        {provider.name}
+                      </div>
+                    )}
+                    <TikTokSettingsDisplay
+                      hasVideo={hasVideo}
+                      providerId={provider.socialId}
+                    />
+                  </div>
+                ))}
               </AccordionContent>
             </AccordionItem>
           </Accordion>

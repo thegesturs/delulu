@@ -14,6 +14,7 @@ import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
 import {
   type PromotionContentType,
+  type TikTokSettings,
   type TiktokPrivacyLevels,
   promotionContentTypes,
   tikTokPrivacyLevels,
@@ -22,50 +23,91 @@ import { useEffect } from 'react';
 
 interface TikTokSettingsProps {
   hasVideo: boolean;
+  providerId: string;
 }
 
-export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
-  const { tiktokSettings, setTikTokSettings } = useStore();
+export function TikTokSettingsDisplay({ hasVideo, providerId }: TikTokSettingsProps) {
+  const { setProviderSettings, getProviderSettings } = useStore();
+  const providerSetting = getProviderSettings(providerId);
+  const tiktokSettings = providerSetting?.type === 'TIKTOK' ? providerSetting.settings : undefined;
 
-  // Combined effect for initialization and validation
-  useEffect(() => {
-    // Initialize with defaults if not set
-    if (!tiktokSettings) {
-      setTikTokSettings({
-        privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-        allowComments: true,
-        allowDuet: hasVideo,
-        allowStitch: hasVideo,
-        promotionContent: promotionContentTypes.NONE,
-      });
-      return; // Exit early after initialization
+  const updateTikTokSettings = (updates: Partial<TikTokSettings>) => {
+    const currentSettings = tiktokSettings || {
+      privacy: '' as TiktokPrivacyLevels, // No default - user must select
+      allowComments: false, // Unchecked by default
+      allowDuet: false, // Unchecked by default
+      allowStitch: false, // Unchecked by default
+      promotionContent: promotionContentTypes.NONE,
+    };
+
+    const newSettings = { ...currentSettings, ...updates };
+
+    // Enforce business rule: paid partnerships can't be private
+    if (
+      newSettings.promotionContent === promotionContentTypes.PAID &&
+      newSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
+    ) {
+      newSettings.privacy = tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
     }
+
+    setProviderSettings(providerId, {
+      socialProviderId: providerId,
+      type: 'TIKTOK',
+      settings: newSettings,
+    });
+  };
+
+  // Effect for validation only - no initialization with defaults
+  useEffect(() => {
+    if (!tiktokSettings) return;
 
     // Validate and fix paid partnership privacy conflict
     if (
       tiktokSettings.promotionContent === promotionContentTypes.PAID &&
       tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
     ) {
-      setTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
+      updateTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
     }
-  }, [
-    tiktokSettings,
-    hasVideo,
-    // Only depend on the entire object, not individual properties to avoid loops
-  ]);
+  }, [tiktokSettings?.promotionContent, tiktokSettings?.privacy]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
-    setTikTokSettings({ privacy: value });
+    updateTikTokSettings({ privacy: value });
   };
 
   const handlePromotionChange = (value: PromotionContentType) => {
-    setTikTokSettings({ promotionContent: value });
+    updateTikTokSettings({ promotionContent: value });
   };
 
-  const consentText =
-    tiktokSettings?.promotionContent === promotionContentTypes.PAID
-      ? "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation"
-      : "By posting, you agree to TikTok's Music Usage Confirmation";
+  const renderConsentText = () => {
+    const hasPaidPromotion = tiktokSettings?.promotionContent === promotionContentTypes.PAID;
+
+    return (
+      <p className="text-muted-foreground text-xs">
+        By posting, you agree to TikTok's{' '}
+        {hasPaidPromotion && (
+          <>
+            <a
+              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              Branded Content Policy
+            </a>
+            {' and '}
+          </>
+        )}
+        <a
+          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-foreground"
+        >
+          Music Usage Confirmation
+        </a>
+      </p>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -75,13 +117,11 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
       <div className="flex justify-between space-y-2">
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
-          value={
-            tiktokSettings?.privacy || tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
-          }
+          value={tiktokSettings?.privacy || ''}
           onValueChange={handlePrivacyChange}
         >
           <SelectTrigger id="tiktok-privacy">
-            <SelectValue placeholder="Everyone (default)" />
+            <SelectValue placeholder="Select privacy level" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={tikTokPrivacyLevels.PUBLIC_TO_EVERYONE}>
@@ -115,9 +155,9 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
           <div className="flex items-center space-x-2">
             <Switch
               id="allow-comments"
-              checked={tiktokSettings?.allowComments ?? true}
+              checked={tiktokSettings?.allowComments ?? false}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowComments: !!checked })
+                updateTikTokSettings({ allowComments: !!checked })
               }
             />
             <Label
@@ -131,10 +171,10 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
           <div className="flex items-center space-x-2">
             <Switch
               id="allow-duet"
-              checked={tiktokSettings?.allowDuet ?? hasVideo}
+              checked={tiktokSettings?.allowDuet ?? false}
               disabled={!hasVideo}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowDuet: !!checked })
+                updateTikTokSettings({ allowDuet: !!checked })
               }
             />
             <Label
@@ -156,10 +196,10 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
           <div className="flex items-center space-x-2">
             <Switch
               id="allow-stitch"
-              checked={tiktokSettings?.allowStitch ?? hasVideo}
+              checked={tiktokSettings?.allowStitch ?? false}
               disabled={!hasVideo}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowStitch: !!checked })
+                updateTikTokSettings({ allowStitch: !!checked })
               }
             />
             <Label
@@ -260,7 +300,7 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
 
       {/* Consent Declaration */}
       <div className="rounded-md bg-muted/50 p-3">
-        <p className="text-muted-foreground text-xs">{consentText}</p>
+        {renderConsentText()}
       </div>
     </div>
   );
