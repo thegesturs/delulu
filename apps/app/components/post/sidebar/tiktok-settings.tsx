@@ -200,7 +200,8 @@ export function TikTokSettingsDisplay({
 
   const renderConsentText = () => {
     const hasPaidPromotion =
-      tiktokSettings?.promotionContent === promotionContentTypes.PAID;
+      tiktokSettings?.promotionContent === promotionContentTypes.PAID ||
+      tiktokSettings?.promotionContent === promotionContentTypes.BOTH;
 
     return (
       <p className="text-muted-foreground text-xs">
@@ -268,25 +269,31 @@ export function TikTokSettingsDisplay({
             <SelectValue placeholder="Select privacy level" />
           </SelectTrigger>
           <SelectContent>
-            {(creatorInfo.data?.privacy_level_options || [
-              tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-              tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
-              tikTokPrivacyLevels.SELF_ONLY,
-            ]).map((option: string) => (
+            {(
+              creatorInfo.data?.privacy_level_options || [
+                tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
+                tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
+                tikTokPrivacyLevels.SELF_ONLY,
+              ]
+            ).map((option: string) => (
               <SelectItem
                 key={option}
                 value={option}
                 disabled={
                   option === tikTokPrivacyLevels.SELF_ONLY &&
-                  tiktokSettings?.promotionContent === promotionContentTypes.PAID
+                  tiktokSettings?.promotionContent ===
+                    promotionContentTypes.PAID
                 }
               >
-                {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE && 'Everyone'}
-                {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS && 'Friends'}
+                {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
+                  'Everyone'}
+                {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
+                  'Friends'}
                 {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
                 {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
                 {option === tikTokPrivacyLevels.SELF_ONLY &&
-                  tiktokSettings?.promotionContent === promotionContentTypes.PAID && (
+                  tiktokSettings?.promotionContent ===
+                    promotionContentTypes.PAID && (
                     <span className="ml-2 text-muted-foreground text-xs">
                       (Not available for paid partnerships)
                     </span>

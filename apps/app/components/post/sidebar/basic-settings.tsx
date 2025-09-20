@@ -273,7 +273,7 @@ export function BasicSettings() {
       </CardContent>
 
       {/* Advanced Settings Accordion for each TikTok provider */}
-      {tiktokProviders.length > 0 && (
+      {/* {tiktokProviders.length > 0 && (
         <CardContent>
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="advanced-settings" className="border-none">
@@ -300,7 +300,7 @@ export function BasicSettings() {
             </AccordionItem>
           </Accordion>
         </CardContent>
-      )}
+      )} */}
     </>
   );
 }
