@@ -14,14 +14,18 @@ import { ConnectedAccountsHeader } from './connect-account-header';
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
 function isExpiringSoon(expiresIn: number | undefined): boolean {
-  if (!expiresIn) return false;
+  if (!expiresIn) {
+    return false;
+  }
   const now = Date.now();
   const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
   return diffInDays <= 7 && diffInDays > 0;
 }
 
 function isExpired(expiresIn: number | undefined): boolean {
-  if (!expiresIn) return false;
+  if (!expiresIn) {
+    return false;
+  }
   return Date.now() > expiresIn;
 }
 
@@ -37,7 +41,9 @@ export default function ConnectedAccounts() {
   const deleteSocial = useMutation(api.social_providers.deleteSocial);
 
   const filteredAccounts = useMemo(() => {
-    if (!accounts) return [];
+    if (!accounts) {
+      return [];
+    }
 
     return accounts.filter((account: SocialProvider) => {
       const matchesSearch =

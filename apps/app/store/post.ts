@@ -1,6 +1,8 @@
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import type { GetPostByIdSchema } from '@delulu/database/convex/schemas/posts_media';
 import type {
   FullPostType,
+  ProviderSetting,
   SocialProviderType,
   TikTokSettings,
 } from '@delulu/validators/post';
@@ -15,8 +17,10 @@ interface PostState {
   post: FullPostType;
   selectedSocialProviders: SocialProviderType[];
   shouldReset: boolean;
-  // TikTok specific settings
+  // TikTok specific settings - @deprecated use providerSettings
   tiktokSettings: TikTokSettings | null;
+  // Provider-specific settings map (socialProviderId -> settings)
+  providerSettings: Map<string, ProviderSetting>;
   // Media upload state
   isMediaUploading: boolean;
 }
@@ -28,7 +32,9 @@ interface PostActions {
   setTime: (time: string | null) => void;
   setPost: (post: FullPostType) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
-  setTikTokSettings: (settings: Partial<TikTokSettings>) => void;
+  setTikTokSettings: (settings: Partial<TikTokSettings>) => void; // @deprecated
+  setProviderSettings: (providerId: string, setting: ProviderSetting) => void;
+  getProviderSettings: (providerId: string) => ProviderSetting | undefined;
   setIsMediaUploading: (isUploading: boolean) => void;
   loadPost: (postData: GetPostByIdSchema) => void;
   reset: () => void;
@@ -55,8 +61,10 @@ const initialState: PostState = {
     orgId: '',
   },
   selectedSocialProviders: [],
-  // TikTok specific settings defaults
+  // TikTok specific settings defaults - @deprecated
   tiktokSettings: null,
+  // Provider-specific settings
+  providerSettings: new Map<string, ProviderSetting>(),
   // Media upload state defaults
   isMediaUploading: false,
 };
@@ -65,7 +73,7 @@ const initialState: PostState = {
 export const useStore = create<PostState & PostActions>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         ...initialState,
         setShouldReset: (shouldReset) => set({ shouldReset }),
         setDateAlongWithTime: (date) => set({ date }),
@@ -100,7 +108,46 @@ export const useStore = create<PostState & PostActions>()(
               tiktokSettings: newSettings,
             };
           }),
-        setIsMediaUploading: (isUploading) => set({ isMediaUploading: isUploading }),
+        setProviderSettings: (providerId, setting) =>
+          set((state) => {
+            // Always create a new Map to ensure consistency
+            const currentSettings = state.providerSettings;
+            const newProviderSettings = new Map();
+
+            // Copy existing settings
+            if (currentSettings instanceof Map) {
+              // It's already a Map
+              for (const [key, value] of currentSettings.entries()) {
+                newProviderSettings.set(key, value);
+              }
+            } else {
+              // It's a plain object (after hydration)
+              for (const [key, value] of Object.entries(
+                currentSettings as Record<string, ProviderSetting>
+              )) {
+                newProviderSettings.set(key, value);
+              }
+            }
+
+            // Set the new setting
+            newProviderSettings.set(providerId, setting);
+            return { providerSettings: newProviderSettings };
+          }),
+        getProviderSettings: (providerId) => {
+          const state = get();
+          const providerSettings = state.providerSettings;
+
+          // Handle both Map and plain object (after hydration from localStorage)
+          if (providerSettings instanceof Map) {
+            return providerSettings.get(providerId);
+          }
+          // After hydration, it becomes a plain object
+          return (providerSettings as Record<string, ProviderSetting>)[
+            providerId
+          ];
+        },
+        setIsMediaUploading: (isUploading) =>
+          set({ isMediaUploading: isUploading }),
         loadPost: (postData) => {
           // Map Convex post data to store format
           const mappedPost: FullPostType = {
@@ -131,6 +178,24 @@ export const useStore = create<PostState & PostActions>()(
             ? new Date(postData.scheduledAt)
             : undefined;
 
+          // Load provider settings if they exist
+          const providerSettings = new Map<string, ProviderSetting>();
+          if (postData.providerSettings) {
+            postData.providerSettings.forEach((setting) => {
+              // Only add valid provider settings
+              if (
+                setting.type &&
+                setting.socialProviderId &&
+                setting.settings
+              ) {
+                providerSettings.set(
+                  setting.socialProviderId,
+                  setting as ProviderSetting
+                );
+              }
+            });
+          }
+
           set({
             post: mappedPost,
             selectedSocialProviders: postData.socialProviders.map(
@@ -144,6 +209,7 @@ export const useStore = create<PostState & PostActions>()(
             time: scheduledDate
               ? `${scheduledDate.getHours().toString().padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}`
               : '00:00',
+            providerSettings,
           });
         },
         reset: () => set(initialState),
@@ -177,6 +243,27 @@ export const useDateTime = () => useStore(useShallow(dateTimeSelector));
 export const useSelectedSocialProviders = () =>
   useStore(useShallow(selectedProvidersSelector));
 export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
+// Stable function that gets state directly without React hooks
+export const getProviderSettingsForConvex = () => {
+  const state = useStore.getState();
+
+  // Handle both Map and plain object (after hydration from localStorage)
+  const providerSettings = state.providerSettings;
+  let values: ProviderSetting[];
+
+  if (providerSettings instanceof Map) {
+    values = Array.from(providerSettings.values());
+  } else {
+    // After hydration, it becomes a plain object
+    values = Object.values(providerSettings as Record<string, ProviderSetting>);
+  }
+
+  return values.map((setting) => ({
+    type: setting.type,
+    socialProviderId: setting.socialProviderId as Id<'socialProviders'>,
+    settings: setting.settings,
+  }));
+};
 
 // Action creators with proper typing
 export const postActions = {

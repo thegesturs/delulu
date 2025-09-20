@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
-    const errorDescription = searchParams.get('error_description');
+    const _errorDescription = searchParams.get('error_description');
 
     if (error === 'access_denied' && errorReason === 'user_denied') {
       return new NextResponse(null, {

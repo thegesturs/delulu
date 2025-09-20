@@ -69,14 +69,17 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   center = ['x', 'y'],
 }) => {
   const uniforms = useMemo(() => {
-    let colorsArray = Array(6).fill(colors[0]);
+    let colorsArray = new Array(6).fill(colors[0]);
     if (colors.length === 2) {
-      colorsArray = [...Array(3).fill(colors[0]), ...Array(3).fill(colors[1])];
+      colorsArray = [
+        ...new Array(3).fill(colors[0]),
+        ...new Array(3).fill(colors[1]),
+      ];
     } else if (colors.length === 3) {
       colorsArray = [
-        ...Array(2).fill(colors[0]),
-        ...Array(2).fill(colors[1]),
-        ...Array(2).fill(colors[2]),
+        ...new Array(2).fill(colors[0]),
+        ...new Array(2).fill(colors[1]),
+        ...new Array(2).fill(colors[2]),
       ];
     }
 
@@ -161,9 +164,13 @@ const ShaderMaterial = ({
   let lastFrameTime = 0;
 
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current) {
+      return;
+    }
     const timestamp = clock.getElapsedTime();
-    if (timestamp - lastFrameTime < 1 / maxFps) return;
+    if (timestamp - lastFrameTime < 1 / maxFps) {
+      return;
+    }
     lastFrameTime = timestamp;
 
     const material = ref.current.material as THREE.ShaderMaterial;

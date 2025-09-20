@@ -1,3 +1,4 @@
+import { keys } from '@api/keys';
 import { createPostInQueue } from '@api/services/post.service';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
@@ -119,8 +120,7 @@ export const socialProviderRouter = {
         });
       }
 
-      const stuff = await createPostInQueue(post);
-      console.log('stuff', stuff);
+      await createPostInQueue(post);
       return {
         success: true,
       };
@@ -197,5 +197,164 @@ export const socialProviderRouter = {
       );
 
       return { status: 'connected' };
+    }),
+  getTikTokCreatorInfo: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Get the TikTok social provider with access token
+      let socialProvider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        {
+          id: input.socialProviderId as Id<'socialProviders'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
+
+      if (!socialProvider?.accessToken) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'TikTok account not found or access token missing',
+        });
+      }
+
+      // Check if access token expires within the next 2 hours (proactive refresh)
+      const currentTime = Date.now();
+      const twoHoursFromNow = currentTime + 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+      const tokenExpired =
+        socialProvider.expiresIn && socialProvider.expiresIn < twoHoursFromNow;
+
+      if (tokenExpired && socialProvider.refreshToken) {
+        try {
+          // Refresh the access token
+          const refreshResponse = await fetch(
+            'https://open.tiktokapis.com/v2/oauth/token/',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Cache-Control': 'no-cache',
+              },
+              body: new URLSearchParams({
+                client_key: keys().TIKTOK_CLIENT_ID,
+                client_secret: keys().TIKTOK_CLIENT_SECRET,
+                grant_type: 'refresh_token',
+                refresh_token: socialProvider.refreshToken,
+              }),
+            }
+          );
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            const { access_token, refresh_token, expires_in } = refreshData;
+
+            // Update the database with new tokens
+            await fetchMutation(
+              api.social_providers.updateSocialProvider,
+              {
+                id: input.socialProviderId as Id<'socialProviders'>,
+                accessToken: access_token,
+                refreshToken: refresh_token,
+                expiresIn: Date.now() + expires_in * 1000,
+              },
+              {
+                token: ctx.token,
+              }
+            );
+
+            // Update our local reference to use the new token
+            socialProvider = {
+              ...socialProvider,
+              accessToken: access_token,
+              refreshToken: refresh_token,
+              expiresIn: Date.now() + expires_in * 1000,
+            };
+          }
+        } catch (_refreshError) {
+          // Continue with old token - might still work or will fail gracefully
+        }
+      }
+
+      try {
+        const response = await fetch(
+          'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${socialProvider.accessToken}`,
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `TikTok API error: ${response.status}`,
+          });
+        }
+
+        const data = await response.json();
+
+        console.log({ data });
+
+        // Check for specific error codes that require user action
+        if (data.error?.code && data.error.code !== 'ok') {
+          if (data.error.code === 'spam_risk_too_many_posts') {
+            throw new TRPCError({
+              code: 'TOO_MANY_REQUESTS',
+              message: 'Daily post limit reached. Please try again tomorrow.',
+            });
+          }
+          if (data.error.code === 'spam_risk_user_banned_from_posting') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Your TikTok account is banned from posting.',
+            });
+          }
+          if (data.error.code === 'reached_active_user_cap') {
+            throw new TRPCError({
+              code: 'TOO_MANY_REQUESTS',
+              message: 'Daily quota limit reached. Please try again later.',
+            });
+          }
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: data.error.message || 'Failed to get creator info',
+          });
+        }
+
+        if (!data.data?.creator_username) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to get creator info from TikTok response',
+          });
+        }
+
+        return {
+          creator_username: data.data.creator_username,
+          creator_nickname: data.data.creator_nickname,
+          creator_avatar_url: data.data.creator_avatar_url,
+          privacy_level_options: data.data.privacy_level_options || [],
+          comment_disabled: data.data.comment_disabled || false,
+          duet_disabled: data.data.duet_disabled || false,
+          stitch_disabled: data.data.stitch_disabled || false,
+          max_video_post_duration_sec:
+            data.data.max_video_post_duration_sec || 60,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch TikTok creator info',
+        });
+      }
     }),
 } satisfies TRPCRouterRecord;

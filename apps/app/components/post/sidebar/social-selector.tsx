@@ -17,16 +17,20 @@ import {
   AlertDialogTitle,
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
 import type { SocialType } from '@delulu/validators/post';
 import { useQuery } from 'convex/react';
+import { Settings } from 'lucide-react';
 import {
   AnimatePresence,
   LayoutGroup,
   MotionConfig,
   motion,
 } from 'motion/react';
+import type React from 'react';
 import { useState } from 'react';
 import { IoCheckmarkCircle } from 'react-icons/io5';
+import { PlatformSettingsDialog } from './platform-settings-dialog';
 import { SocialIcon } from './social-icon';
 
 interface SocialSelectorItemProps {
@@ -67,6 +71,11 @@ export default function SocialSelector() {
   );
 }
 
+// Helper function to determine which platforms have settings
+function hasSettings(platform: SocialType): boolean {
+  return platform === 'TIKTOK';
+}
+
 function SocialSelectorItem({
   socialProvider,
   name,
@@ -75,6 +84,7 @@ function SocialSelectorItem({
   const selectedSocialProviders = useSelectedSocialProviders();
   const post = useStore((state) => state.post);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const isSelected = selectedSocialProviders?.some(
     (account) => account.socialId === socialId
@@ -98,6 +108,11 @@ function SocialSelectorItem({
         socialType: socialProvider,
       });
     }
+  };
+
+  const handleSettingsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation(); // Prevent badge click
+    setShowSettingsDialog(true);
   };
 
   return (
@@ -143,19 +158,39 @@ function SocialSelectorItem({
               <motion.span layout className="flex-1 text-left">
                 {name}
               </motion.span>
-              {isSelected && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="ml-1"
-                >
-                  <IoCheckmarkCircle className="h-4 w-4" />
-                </motion.span>
-              )}
+              <div className="flex items-center gap-1">
+                {isSelected && hasSettings(socialProvider) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSettingsClick}
+                    className="h-6 w-6 hover:bg-white/20"
+                  >
+                    <Settings className="h-3 w-3" />
+                  </Button>
+                )}
+                {isSelected && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="ml-1"
+                  >
+                    <IoCheckmarkCircle className="h-4 w-4" />
+                  </motion.span>
+                )}
+              </div>
             </motion.div>
           </Badge>
         </motion.div>
       </motion.div>
+
+      <PlatformSettingsDialog
+        platform={socialProvider}
+        socialId={socialId}
+        platformName={name}
+        isOpen={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
+      />
     </>
   );
 }

@@ -15,7 +15,6 @@ export const getConnectedAccounts = query({
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    console.log('>>> User', user);
     if (!user) {
       return [];
     }
@@ -24,7 +23,6 @@ export const getConnectedAccounts = query({
       .query('socialProviders')
       .withIndex('by_user_id', (q) => q.eq('userId', user._id))
       .collect();
-    console.log('>>> Providers', providers);
     // Sort by creation date (newest first)
     providers.sort((a, b) => b._creationTime - a._creationTime);
 
@@ -173,8 +171,8 @@ export const getSocialProviderWithDecryptedTokens = query({
         accessToken: decryptedAccessToken,
         refreshToken: decryptedRefreshToken,
       };
-    } catch (error) {
-      console.error('Failed to decrypt tokens for provider:', args.id, error);
+    } catch (_error) {
+      // Failed to decrypt tokens for provider
       return null;
     }
   },
@@ -328,8 +326,7 @@ export const upsertSocialProvider = mutation({
       });
 
       return 'created';
-    } catch (error) {
-      console.error('Failed to encrypt tokens during upsert:', error);
+    } catch (_error) {
       throw new Error('Token encryption failed');
     }
   },
@@ -345,8 +342,21 @@ export const updateSocialProvider = mutation({
     if (!provider) {
       throw new Error('Social provider not found');
     }
+    const { id, ...restData } = args;
+
+    // Build update data with encrypted tokens if provided
+    const updateData = { ...restData };
+
+    // Encrypt tokens if they're being updated
+    if (updateData.accessToken) {
+      updateData.accessToken = await encryptData(updateData.accessToken);
+    }
+    if (updateData.refreshToken) {
+      updateData.refreshToken = await encryptData(updateData.refreshToken);
+    }
+
     await ctx.db.patch(provider._id, {
-      ...args,
+      ...updateData,
       updatedAt: getCurrentTimestamp(),
     });
     return true;

@@ -44,10 +44,10 @@ export function MascotSocialProof() {
     <section className="relative flex w-full flex-col items-center justify-center border-border border-y px-5 md:px-10">
       <div className="relative mx-5 border-border border-x md:mx-10">
         {/* Left diagonal pattern */}
-        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
 
         {/* Right diagonal pattern */}
-        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14"></div>
+        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
 
         {/* Content */}
         <div className="h-full w-full border-border border-b p-10 md:p-14">

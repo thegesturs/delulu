@@ -1,0 +1,59 @@
+'use client';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@delulu/design-system/components/ui/dialog';
+import type { SocialType } from '@delulu/validators/post';
+import { TikTokSettingsDisplay } from './tiktok-settings';
+
+import { usePost } from '@/store/post';
+
+interface PlatformSettingsDialogProps {
+  platform: SocialType;
+  socialId: string;
+  platformName: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function PlatformSettingsDialog({
+  platform,
+  socialId,
+  platformName,
+  isOpen,
+  onClose,
+}: PlatformSettingsDialogProps) {
+  const post = usePost();
+  // Check if we have video content
+  const hasVideo = post.content.some((content) =>
+    content.media?.some((media) => media.mediaType === 'VIDEO')
+  );
+  const renderSettings = () => {
+    switch (platform) {
+      case 'TIKTOK':
+        return (
+          <TikTokSettingsDisplay providerId={socialId} hasVideo={hasVideo} />
+        );
+      default:
+        return (
+          <div className="py-8 text-center text-muted-foreground text-sm">
+            No settings available for {platformName}
+          </div>
+        );
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{platformName} Settings</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">{renderSettings()}</div>
+      </DialogContent>
+    </Dialog>
+  );
+}

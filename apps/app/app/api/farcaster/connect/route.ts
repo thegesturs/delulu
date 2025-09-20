@@ -56,14 +56,14 @@ async function fetchWithTimeout(
     });
     clearTimeout(id);
     return response;
-  } catch (error) {
+  } catch (_error) {
     clearTimeout(id);
     throw new Error('Request timed out');
   }
 }
 
 // Production-level Farcaster signer request with proper EIP-712 signature
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {

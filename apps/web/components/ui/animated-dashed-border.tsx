@@ -46,8 +46,8 @@ export const AnimatedDashedBorder = ({
             transparent var(--dash-length),
             transparent var(--total-length)
           )`,
-          backgroundSize: `var(--total-length) 1px`,
-          animation: `moveDashes var(--animation-speed) linear infinite`,
+          backgroundSize: 'var(--total-length) 1px',
+          animation: 'moveDashes var(--animation-speed) linear infinite',
         }}
       />
       <style jsx>{`

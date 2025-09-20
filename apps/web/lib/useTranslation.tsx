@@ -9,7 +9,7 @@ export const useTranslation = () => {
   const t = (key: string, values?: Record<string, any>) => {
     try {
       return intl.formatMessage({ id: key }, values);
-    } catch (error) {
+    } catch (_error) {
       console.warn(`Translation missing for key: ${key}`);
       return key;
     }

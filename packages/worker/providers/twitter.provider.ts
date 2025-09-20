@@ -99,7 +99,7 @@ const refreshAccessToken = (
         refresh_token: profile.refreshToken,
       }),
     }),
-    (error) => new NetworkError('Twitter', 'token refresh')
+    (_error) => new NetworkError('Twitter', 'token refresh')
   )
     .andThen((response) => {
       if (!response.ok) {
@@ -113,7 +113,7 @@ const refreshAccessToken = (
           refresh_token: string;
           expires_in: number;
         }>,
-        (error) => new TwitterError('Failed to parse token response')
+        (_error) => new TwitterError('Failed to parse token response')
       );
     })
     .andThen((data) => {
@@ -216,7 +216,7 @@ const uploadMediaToTwitter = (
         },
         body: JSON.stringify(payload),
       }),
-      (error) => new NetworkError('Twitter', 'media upload initialization')
+      (_error) => new NetworkError('Twitter', 'media upload initialization')
     )
       .andThen((response) => {
         if (!response.ok) {
@@ -230,7 +230,7 @@ const uploadMediaToTwitter = (
         }
         return ResultAsync.fromPromise(
           response.json() as Promise<{ data: { id: string } }>,
-          (error) =>
+          (_error) =>
             new TwitterError('Failed to parse upload initialization response')
         );
       })
@@ -272,7 +272,7 @@ const uploadMediaToTwitter = (
           },
           body: formData,
         }),
-        (error) => new NetworkError('Twitter', 'chunk upload')
+        (_error) => new NetworkError('Twitter', 'chunk upload')
       ).andThen((response) => {
         if (!response.ok) {
           return errAsync(
@@ -318,7 +318,7 @@ const uploadMediaToTwitter = (
         },
         body: formData,
       }),
-      (error) => new NetworkError('Twitter', 'media finalization')
+      (_error) => new NetworkError('Twitter', 'media finalization')
     )
       .andThen((response) => {
         if (!response.ok) {
@@ -334,7 +334,7 @@ const uploadMediaToTwitter = (
           response.json() as Promise<{
             data: { processing_info?: { state: string } };
           }>,
-          (error) => new TwitterError('Failed to parse finalization response')
+          (_error) => new TwitterError('Failed to parse finalization response')
         );
       })
       .map((data) => ({
@@ -362,7 +362,7 @@ const uploadMediaToTwitter = (
             Authorization: `Bearer ${accessToken}`,
           },
         }),
-        (error) => new NetworkError('Twitter', 'status check')
+        (_error) => new NetworkError('Twitter', 'status check')
       )
         .andThen((response) => {
           if (!response.ok) {
@@ -379,7 +379,7 @@ const uploadMediaToTwitter = (
                 };
               };
             }>,
-            (error) => new TwitterError('Failed to parse status response')
+            (_error) => new TwitterError('Failed to parse status response')
           );
         })
         .map((data) => {

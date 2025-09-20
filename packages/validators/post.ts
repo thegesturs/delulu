@@ -233,6 +233,7 @@ export const promotionContentTypes = {
   NONE: 'NONE',
   SELF: 'SELF',
   PAID: 'PAID',
+  BOTH: 'BOTH',
 } as const;
 
 export type PromotionContentType =
@@ -243,6 +244,7 @@ const promotionContentValues = [
   promotionContentTypes.NONE,
   promotionContentTypes.SELF,
   promotionContentTypes.PAID,
+  promotionContentTypes.BOTH,
 ] as const;
 
 // TikTok Settings Schema - simplified with single promotion field
@@ -250,14 +252,18 @@ export const tikTokSettingsSchema = z
   .object({
     privacy: z.enum(tikTokPrivacyValues),
     allowComments: z.boolean().default(true),
-    allowDuet: z.boolean().default(false),
-    allowStitch: z.boolean().default(false),
+    allowDuet: z.boolean().default(true),
+    allowStitch: z.boolean().default(true),
     promotionContent: z.enum(promotionContentValues).default('NONE'),
   })
   .refine(
     (data) => {
-      // Paid partnerships cannot have privacy level "SELF_ONLY"
-      if (data.promotionContent === 'PAID' && data.privacy === 'SELF_ONLY') {
+      // Paid partnerships and BOTH cannot have privacy level "SELF_ONLY"
+      if (
+        (data.promotionContent === 'PAID' ||
+          data.promotionContent === 'BOTH') &&
+        data.privacy === 'SELF_ONLY'
+      ) {
         return false;
       }
       return true;
@@ -268,3 +274,125 @@ export const tikTokSettingsSchema = z
   );
 
 export type TikTokSettings = z.infer<typeof tikTokSettingsSchema>;
+
+// Provider-specific settings types
+export type YouTubeSettings = {
+  privacy: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+  madeForKids: boolean;
+  ageRestriction?: boolean;
+};
+
+export type InstagramSettings = {
+  shareToFeed: boolean;
+  shareToStory: boolean;
+  shareToReels: boolean;
+};
+
+export type FacebookSettings = {
+  privacy: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
+};
+
+export type TwitterSettings = {
+  replyRestriction: 'everyone' | 'following' | 'mentioned';
+};
+
+export type LinkedInSettings = {
+  visibility: 'PUBLIC' | 'CONNECTIONS';
+};
+
+export type ThreadsSettings = {
+  replyControl: 'everyone' | 'following' | 'mentioned';
+};
+
+export type PinterestSettings = {
+  boardId?: string;
+};
+
+export type FarcasterSettings = {
+  channelId?: string;
+};
+
+export type BlueskySettings = {
+  replyDisabled?: boolean;
+};
+
+// Simple discriminated union for provider settings
+export type ProviderSetting =
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.TIKTOK;
+      settings: TikTokSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.YOUTUBE;
+      settings: YouTubeSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.INSTAGRAM;
+      settings: InstagramSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.FACEBOOK;
+      settings: FacebookSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.TWITTER;
+      settings: TwitterSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.LINKEDIN;
+      settings: LinkedInSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.THREADS;
+      settings: ThreadsSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.PINTEREST;
+      settings: PinterestSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.FARCASTER;
+      settings: FarcasterSettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.BLUESKY;
+      settings: BlueskySettings;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.DEFAULT;
+      settings: Record<string, never>;
+    }
+  | {
+      socialProviderId: string;
+      type: typeof SocialTypes.LENS;
+      settings: Record<string, never>;
+    };
+
+// Zod schema for provider settings (for validation)
+export const providerSettingSchema = z.discriminatedUnion('type', [
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.TIKTOK),
+    settings: tikTokSettingsSchema,
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.YOUTUBE),
+    settings: z.object({
+      privacy: z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']),
+      madeForKids: z.boolean(),
+      ageRestriction: z.boolean().optional(),
+    }),
+  }),
+]);

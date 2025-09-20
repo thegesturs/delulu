@@ -1,7 +1,7 @@
 'use client';
 
 import { useStore } from '@/store/post';
-import { Badge } from '@delulu/design-system/components/ui/badge';
+import { api } from '@/trpc/react';
 import { Label } from '@delulu/design-system/components/ui/label';
 import {
   Select,
@@ -14,96 +14,302 @@ import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
 import {
   type PromotionContentType,
+  type TikTokSettings,
   type TiktokPrivacyLevels,
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface TikTokSettingsProps {
   hasVideo: boolean;
+  providerId: string;
 }
 
-export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
-  const { tiktokSettings, setTikTokSettings } = useStore();
+export function TikTokSettingsDisplay({
+  hasVideo,
+  providerId,
+}: TikTokSettingsProps) {
+  const { setProviderSettings, getProviderSettings } = useStore();
+  const providerSetting = getProviderSettings(providerId);
+  const tiktokSettings =
+    providerSetting?.type === 'TIKTOK' ? providerSetting.settings : undefined;
 
-  // Combined effect for initialization and validation
+  // Add state to track if toggle has been turned on (independent of checkboxes)
+  const [commercialToggleOn, setCommercialToggleOn] = useState(false);
+
+  // Initialize toggle state based on current settings
   useEffect(() => {
-    // Initialize with defaults if not set
-    if (!tiktokSettings) {
-      setTikTokSettings({
-        privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-        allowComments: true,
-        allowDuet: hasVideo,
-        allowStitch: hasVideo,
+    const hasCommercialContent =
+      tiktokSettings?.promotionContent !== promotionContentTypes.NONE;
+    setCommercialToggleOn(hasCommercialContent);
+  }, [tiktokSettings?.promotionContent]);
+
+  // Helper functions to convert between UI state and enum
+  const getCommercialContentState = (
+    promotionContent: PromotionContentType
+  ) => {
+    switch (promotionContent) {
+      case promotionContentTypes.NONE:
+        return {
+          hasCommercialContent: commercialToggleOn, // Use toggle state, not promotion content
+          yourBrand: false,
+          brandedContent: false,
+        };
+      case promotionContentTypes.SELF:
+        return {
+          hasCommercialContent: true,
+          yourBrand: true,
+          brandedContent: false,
+        };
+      case promotionContentTypes.PAID:
+        return {
+          hasCommercialContent: true,
+          yourBrand: false,
+          brandedContent: true,
+        };
+      case promotionContentTypes.BOTH:
+        return {
+          hasCommercialContent: true,
+          yourBrand: true,
+          brandedContent: true,
+        };
+      default:
+        return {
+          hasCommercialContent: commercialToggleOn,
+          yourBrand: false,
+          brandedContent: false,
+        };
+    }
+  };
+
+  const getPromotionContentFromState = (
+    hasCommercialContent: boolean,
+    yourBrand: boolean,
+    brandedContent: boolean
+  ): PromotionContentType => {
+    if (!hasCommercialContent) {
+      return promotionContentTypes.NONE;
+    }
+
+    // If both are selected, return BOTH
+    if (yourBrand && brandedContent) {
+      return promotionContentTypes.BOTH;
+    }
+    if (brandedContent) {
+      return promotionContentTypes.PAID;
+    }
+    if (yourBrand) {
+      return promotionContentTypes.SELF;
+    }
+
+    // This shouldn't happen if validation works, but fallback to NONE
+    return promotionContentTypes.NONE;
+  };
+
+  // Get current UI state
+  const commercialContentState = getCommercialContentState(
+    tiktokSettings?.promotionContent || promotionContentTypes.NONE
+  );
+
+  // Fetch creator info for this provider to show user context
+  const creatorInfo = api.socialProvider.getTikTokCreatorInfo.useQuery(
+    { socialProviderId: providerId },
+    {
+      enabled: !!providerId,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: false,
+    }
+  );
+
+  const updateTikTokSettings = useCallback(
+    (updates: Partial<TikTokSettings>) => {
+      const currentSettings = tiktokSettings || {
+        privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE, // Default to public
+        allowComments: true, // Enabled by default, user can disable
+        allowDuet: true, // Enabled by default, user can disable
+        allowStitch: true, // Enabled by default, user can disable
         promotionContent: promotionContentTypes.NONE,
+      };
+
+      const newSettings = { ...currentSettings, ...updates };
+
+      // Enforce business rule: paid partnerships can't be private
+      if (
+        newSettings.promotionContent === promotionContentTypes.PAID &&
+        newSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
+      ) {
+        newSettings.privacy = tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
+      }
+
+      setProviderSettings(providerId, {
+        socialProviderId: providerId,
+        type: 'TIKTOK',
+        settings: newSettings,
       });
-      return; // Exit early after initialization
+    },
+    [providerId, setProviderSettings, tiktokSettings]
+  );
+
+  // Effect for validation only - no initialization with defaults
+  useEffect(() => {
+    if (!tiktokSettings) {
+      return;
     }
 
     // Validate and fix paid partnership privacy conflict
     if (
-      tiktokSettings.promotionContent === promotionContentTypes.PAID &&
+      (tiktokSettings.promotionContent === promotionContentTypes.PAID ||
+        tiktokSettings.promotionContent === promotionContentTypes.BOTH) &&
       tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
     ) {
-      setTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
+      updateTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
     }
-  }, [
-    tiktokSettings,
-    hasVideo,
-    // Only depend on the entire object, not individual properties to avoid loops
-  ]);
+  }, [tiktokSettings, updateTikTokSettings]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
-    setTikTokSettings({ privacy: value });
+    updateTikTokSettings({ privacy: value });
   };
 
-  const handlePromotionChange = (value: PromotionContentType) => {
-    setTikTokSettings({ promotionContent: value });
+  // New handlers for toggle + switches UI
+  const handleCommercialContentToggle = (checked: boolean) => {
+    setCommercialToggleOn(checked);
+
+    if (checked) {
+      // Auto-enable "Your brand" when toggle is turned ON for better UX
+      updateTikTokSettings({ promotionContent: promotionContentTypes.SELF });
+    } else {
+      // Turn off commercial content
+      updateTikTokSettings({ promotionContent: promotionContentTypes.NONE });
+    }
   };
 
-  const consentText =
-    tiktokSettings?.promotionContent === promotionContentTypes.PAID
-      ? "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation"
-      : "By posting, you agree to TikTok's Music Usage Confirmation";
+  const handleYourBrandChange = (checked: boolean) => {
+    const { hasCommercialContent, brandedContent } = commercialContentState;
+    if (hasCommercialContent) {
+      const newPromotionContent = getPromotionContentFromState(
+        true,
+        checked,
+        brandedContent
+      );
+      updateTikTokSettings({ promotionContent: newPromotionContent });
+    }
+  };
+
+  const handleBrandedContentChange = (checked: boolean) => {
+    const { hasCommercialContent, yourBrand } = commercialContentState;
+    if (hasCommercialContent) {
+      const newPromotionContent = getPromotionContentFromState(
+        true,
+        yourBrand,
+        checked
+      );
+      updateTikTokSettings({ promotionContent: newPromotionContent });
+    }
+  };
+
+  const renderConsentText = () => {
+    const hasPaidPromotion =
+      tiktokSettings?.promotionContent === promotionContentTypes.PAID ||
+      tiktokSettings?.promotionContent === promotionContentTypes.BOTH;
+
+    return (
+      <p className="text-muted-foreground text-xs">
+        By posting, you agree to TikTok's{' '}
+        {hasPaidPromotion && (
+          <>
+            <a
+              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground"
+            >
+              Branded Content Policy
+            </a>
+            {' and '}
+          </>
+        )}
+        <a
+          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-foreground"
+        >
+          Music Usage Confirmation
+        </a>
+      </p>
+    );
+  };
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold">TikTok Settings</h3>
+      <div className="space-y-2">
+        <h3 className="font-semibold">TikTok Settings</h3>
+        {creatorInfo.data && (
+          <div className="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
+            {creatorInfo.data.creator_avatar_url && (
+              <img
+                src={creatorInfo.data.creator_avatar_url}
+                alt={creatorInfo.data.creator_nickname}
+                className="h-8 w-8 rounded-full"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate font-medium text-sm">
+                  {creatorInfo.data.creator_nickname}
+                </p>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                @{creatorInfo.data.creator_username}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Privacy Level */}
       <div className="flex justify-between space-y-2">
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
-          value={
-            tiktokSettings?.privacy || tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
-          }
+          value={tiktokSettings?.privacy || tikTokPrivacyLevels.PUBLIC_TO_EVERYONE}
           onValueChange={handlePrivacyChange}
         >
           <SelectTrigger id="tiktok-privacy">
-            <SelectValue placeholder="Everyone (default)" />
+            <SelectValue placeholder="Select privacy level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={tikTokPrivacyLevels.PUBLIC_TO_EVERYONE}>
-              Everyone
-            </SelectItem>
-            <SelectItem value={tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS}>
-              Friends
-            </SelectItem>
-            <SelectItem
-              value={tikTokPrivacyLevels.SELF_ONLY}
-              disabled={
-                tiktokSettings?.promotionContent === promotionContentTypes.PAID
-              }
-            >
-              Only me
-              {tiktokSettings?.promotionContent ===
-                promotionContentTypes.PAID && (
-                <span className="ml-2 text-muted-foreground text-xs">
-                  (Not available for paid partnerships)
-                </span>
-              )}
-            </SelectItem>
+            {(
+              creatorInfo.data?.privacy_level_options || [
+                tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
+                tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
+                tikTokPrivacyLevels.SELF_ONLY,
+              ]
+            ).map((option: string) => (
+              <SelectItem
+                key={option}
+                value={option}
+                disabled={
+                  option === tikTokPrivacyLevels.SELF_ONLY &&
+                  tiktokSettings?.promotionContent ===
+                    promotionContentTypes.PAID
+                }
+              >
+                {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
+                  'Everyone'}
+                {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
+                  'Friends'}
+                {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
+                {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
+                {option === tikTokPrivacyLevels.SELF_ONLY &&
+                  tiktokSettings?.promotionContent ===
+                    promotionContentTypes.PAID && (
+                    <span className="ml-2 text-muted-foreground text-xs">
+                      (Not available for paid partnerships)
+                    </span>
+                  )}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -114,37 +320,38 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-comments"
-              checked={tiktokSettings?.allowComments ?? true}
+              id="disable-comments"
+              checked={!(tiktokSettings?.allowComments ?? true)}
+              disabled={creatorInfo.data?.comment_disabled}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowComments: !!checked })
+                updateTikTokSettings({ allowComments: !checked })
               }
             />
             <Label
-              htmlFor="allow-comments"
+              htmlFor="disable-comments"
               className="cursor-pointer font-normal text-sm"
             >
-              Allow Comments
+              Disable Comments
             </Label>
           </div>
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-duet"
-              checked={tiktokSettings?.allowDuet ?? hasVideo}
-              disabled={!hasVideo}
+              id="disable-duet"
+              checked={!(tiktokSettings?.allowDuet ?? true)}
+              disabled={!hasVideo || creatorInfo.data?.duet_disabled}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowDuet: !!checked })
+                updateTikTokSettings({ allowDuet: !checked })
               }
             />
             <Label
-              htmlFor="allow-duet"
+              htmlFor="disable-duet"
               className={cn(
                 'cursor-pointer font-normal text-sm',
                 !hasVideo && 'cursor-not-allowed opacity-50'
               )}
             >
-              Allow Duet
+              Disable Duet
               {!hasVideo && (
                 <span className="ml-2 text-muted-foreground text-xs">
                   (Video only)
@@ -155,21 +362,21 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-stitch"
-              checked={tiktokSettings?.allowStitch ?? hasVideo}
-              disabled={!hasVideo}
+              id="disable-stitch"
+              checked={!(tiktokSettings?.allowStitch ?? true)}
+              disabled={!hasVideo || creatorInfo.data?.stitch_disabled}
               onCheckedChange={(checked) =>
-                setTikTokSettings({ allowStitch: !!checked })
+                updateTikTokSettings({ allowStitch: !checked })
               }
             />
             <Label
-              htmlFor="allow-stitch"
+              htmlFor="disable-stitch"
               className={cn(
                 'cursor-pointer font-normal text-sm',
                 !hasVideo && 'cursor-not-allowed opacity-50'
               )}
             >
-              Allow Stitch
+              Disable Stitch
               {!hasVideo && (
                 <span className="ml-2 text-muted-foreground text-xs">
                   (Video only)
@@ -185,83 +392,94 @@ export function TikTokSettings({ hasVideo }: TikTokSettingsProps) {
         <div>
           <Label>Commercial Content Disclosure</Label>
           <p className="mt-1 text-muted-foreground text-xs">
-            Are you promoting a brand, product, or service?
+            Indicate whether this content promotes yourself, a brand, product or
+            service
           </p>
         </div>
 
-        <Select
-          value={tiktokSettings?.promotionContent || promotionContentTypes.NONE}
-          onValueChange={handlePromotionChange}
-        >
-          <SelectTrigger className="h-auto min-h-fit py-2 text-left">
-            <SelectValue
-              placeholder="No promotion"
-              className="min-h-fit py-2"
-            />
-          </SelectTrigger>
-          <SelectContent className="w-[400px]">
-            <SelectItem value={promotionContentTypes.NONE}>
-              <div className="flex w-full items-center justify-between">
-                <div>
-                  <div className="font-medium">No Promotion</div>
-                  <div className="text-muted-foreground text-xs">
-                    Regular personal or entertainment content
-                  </div>
-                </div>
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  Default
-                </Badge>
-              </div>
-            </SelectItem>
-            <SelectItem value={promotionContentTypes.SELF}>
-              <div className="flex w-full items-center justify-between">
-                <div>
-                  <div className="font-medium">My Business/Brand</div>
-                  <div className="text-muted-foreground text-xs">
-                    Promoting your own products or services
-                  </div>
-                </div>
-                <Badge variant="outline" className="ml-2 text-xs">
-                  Promotional
-                </Badge>
-              </div>
-            </SelectItem>
-            <SelectItem value={promotionContentTypes.PAID}>
-              <div className="flex w-full items-start justify-between">
-                <div className="flex-1 pr-2">
-                  <div className="font-medium">Paid Partnership</div>
-                  <div className="text-muted-foreground text-xs">
-                    Sponsored by another brand
-                  </div>
-                  <div className="text-muted-foreground text-xs">
-                    (shows "Paid partnership" label)
-                  </div>
-                </div>
-                <Badge
-                  variant="destructive"
-                  className="ml-2 flex-shrink-0 text-xs"
-                >
-                  Sponsored
-                </Badge>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Main Toggle */}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="commercial-content-toggle"
+            checked={commercialContentState.hasCommercialContent}
+            onCheckedChange={handleCommercialContentToggle}
+          />
+          <Label
+            htmlFor="commercial-content-toggle"
+            className="cursor-pointer font-normal text-sm"
+          >
+            Content Disclosure Setting
+          </Label>
+        </div>
 
-        {tiktokSettings?.promotionContent === promotionContentTypes.PAID && (
-          <div className="rounded-md bg-muted p-3">
-            <p className="text-muted-foreground text-xs">
-              ⚠️ Your video will display a "Paid partnership" label to all
-              viewers as required by TikTok's policies
-            </p>
+        {/* Switches when toggle is enabled */}
+        {commercialContentState.hasCommercialContent && (
+          <div className="ml-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="your-brand"
+                  className="cursor-pointer font-normal text-sm"
+                >
+                  Your brand
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  You are promoting yourself or your own business
+                </p>
+                {commercialContentState.yourBrand && (
+                  <p className="text-blue-600 text-xs">
+                    Your photo/video will be labeled as "Promotional content"
+                  </p>
+                )}
+              </div>
+              <Switch
+                id="your-brand"
+                checked={commercialContentState.yourBrand}
+                onCheckedChange={handleYourBrandChange}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="branded-content"
+                  className="cursor-pointer font-normal text-sm"
+                >
+                  Branded content
+                </Label>
+                <p className="text-muted-foreground text-xs">
+                  You are promoting another brand or a third party
+                </p>
+                {commercialContentState.brandedContent && (
+                  <p className="text-blue-600 text-xs">
+                    Your photo/video will be labeled as "Paid partnership"
+                  </p>
+                )}
+              </div>
+              <Switch
+                id="branded-content"
+                checked={commercialContentState.brandedContent}
+                onCheckedChange={handleBrandedContentChange}
+              />
+            </div>
+
+            {/* Validation message */}
+            {commercialContentState.hasCommercialContent &&
+              !commercialContentState.yourBrand &&
+              !commercialContentState.brandedContent && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-amber-800 text-xs">
+                    ⚠️ You need to indicate if your content promotes yourself, a
+                    third party, or both.
+                  </p>
+                </div>
+              )}
           </div>
         )}
       </div>
 
       {/* Consent Declaration */}
-      <div className="rounded-md bg-muted/50 p-3">
-        <p className="text-muted-foreground text-xs">{consentText}</p>
-      </div>
+      <div className="rounded-md bg-muted/50 p-3">{renderConsentText()}</div>
     </div>
   );
 }

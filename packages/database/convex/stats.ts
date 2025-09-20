@@ -62,7 +62,7 @@ export function calculateStreak(publishDates: number[] = []): {
   longestStreak = Math.max(longestStreak, tempStreak);
 
   // Calculate current streak (from most recent date backwards)
-  const latestDate = uniqueDates[uniqueDates.length - 1];
+  const latestDate = uniqueDates.at(-1);
 
   // Current streak only counts if they posted today or yesterday
   if (latestDate === today || latestDate === yesterday) {
@@ -340,7 +340,9 @@ export const getUpcomingPosts = query({
   args: { days: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user) {
+      return [];
+    }
 
     const now = Date.now();
     const daysAhead = args.days || 7;
@@ -385,7 +387,9 @@ export const getFailedPosts = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user) {
+      return [];
+    }
 
     const failedPosts = await ctx.db
       .query('posts')
@@ -421,7 +425,9 @@ export const getPlatformStats = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
-    if (!user) return [];
+    if (!user) {
+      return [];
+    }
 
     const socialProviders = await ctx.db
       .query('socialProviders')

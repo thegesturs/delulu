@@ -11,14 +11,20 @@ export function DottedNoise({ className }: DottedNoiseProps) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     const context = canvas.getContext('2d');
-    if (!context) return;
+    if (!context) {
+      return;
+    }
 
     // Set canvas size to match display size
     const updateCanvasSize = () => {
-      if (!canvas || !context) return;
+      if (!canvas || !context) {
+        return;
+      }
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
@@ -93,7 +99,9 @@ export function DottedNoise({ className }: DottedNoiseProps) {
 
     // Animation loop
     function animate() {
-      if (!canvas || !context) return;
+      if (!canvas || !context) {
+        return;
+      }
 
       const width = canvas.width / window.devicePixelRatio;
       const height = canvas.height / window.devicePixelRatio;

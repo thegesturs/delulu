@@ -29,7 +29,9 @@ interface LinkedInUserResponse {
  * Sanitizes and creates a safe username from first and last names
  */
 function sanitizeText(text: string): string {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
 
   return (
     text

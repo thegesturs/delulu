@@ -35,7 +35,7 @@ async function fetchWithTimeout(
     });
     clearTimeout(id);
     return response;
-  } catch (error) {
+  } catch (_error) {
     clearTimeout(id);
     throw new Error('Request timed out');
   }
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const error = searchParams.get('error');
-    const state = searchParams.get('state');
+    const _state = searchParams.get('state');
 
     // Handle user denying access
     if (error === 'access_denied') {

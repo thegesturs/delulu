@@ -10,7 +10,9 @@ interface SocialIconProps {
 
 export function SocialIcon({ type, className, size = 'xs' }: SocialIconProps) {
   // Skip unsupported platforms
-  if (!type) return null;
+  if (!type) {
+    return null;
+  }
 
   return (
     <BaseSocialIcon

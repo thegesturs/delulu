@@ -88,6 +88,88 @@ const getProfile = (
     });
   });
 
+// Creator info and video validation are now handled in frontend via tRPC endpoints
+
+// Check the status of a TikTok video upload
+const checkPostStatus = (
+  accessToken: string,
+  publishId: string
+): ResultAsync<
+  { status: string; fail_reason?: string },
+  SocialProviderError
+> => {
+  return ResultAsync.fromPromise(
+    axios.post(
+      'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+      {
+        publish_id: publishId,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      }
+    ),
+    (error) => {
+      console.error('[TikTok] Failed to check post status:', error);
+      return createAPIError('TikTok', error);
+    }
+  ).andThen((response) => {
+    const data = response.data;
+    if (!data.data) {
+      return err(
+        new TikTokError('Failed to get post status from TikTok response')
+      );
+    }
+
+    return ok({
+      status: data.data.status,
+      fail_reason: data.data.fail_reason,
+    });
+  });
+};
+
+// Poll post status until completion or failure (following YouTube pattern)
+const waitForPostCompletion = (
+  accessToken: string,
+  publishId: string,
+  maxAttempts = 30,
+  interval = 10000
+): ResultAsync<void, SocialProviderError> => {
+  const poll = async (attempts: number): Promise<void> => {
+    if (attempts >= maxAttempts) {
+      throw new TikTokError(
+        'Post processing timeout - exceeded maximum attempts'
+      );
+    }
+
+    const statusResult = await checkPostStatus(accessToken, publishId);
+    if (statusResult.isErr()) {
+      throw statusResult.error;
+    }
+
+    const { status, fail_reason } = statusResult.value;
+
+    if (status === 'Published') {
+      return; // Success
+    }
+
+    if (status === 'Failed') {
+      throw new TikTokError(`Post failed: ${fail_reason || 'Unknown error'}`);
+    }
+
+    // Status is still 'Processing', continue polling
+    await new Promise((resolve) => setTimeout(resolve, interval));
+    return poll(attempts + 1);
+  };
+
+  return ResultAsync.fromPromise(
+    poll(0),
+    (error) => error as SocialProviderError
+  );
+};
+
 // Upload single video to TikTok with user settings
 const uploadVideo = (
   accessToken: string,
@@ -118,6 +200,9 @@ const uploadVideo = (
       postInfo.branded_content_toggle = false;
     } else if (settings.promotionContent === promotionContentTypes.PAID) {
       postInfo.brand_organic_toggle = false;
+      postInfo.branded_content_toggle = true;
+    } else if (settings.promotionContent === promotionContentTypes.BOTH) {
+      postInfo.brand_organic_toggle = true;
       postInfo.branded_content_toggle = true;
     }
   }
@@ -199,7 +284,7 @@ const publishContent = (
   // Use text content as TikTok caption (what users see on the video)
   const caption = firstContent.text || 'TikTok Video';
 
-  // Get fresh access token first (following YouTube pattern)
+  // Get fresh access token and upload (validation is done in frontend)
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) =>
       uploadVideo(
@@ -207,6 +292,12 @@ const publishContent = (
         videoMedia.url!,
         caption,
         content.tiktokSettings
+      ).andThen((uploadResponse) =>
+        // Poll for completion as required by TikTok guidelines
+        waitForPostCompletion(
+          freshAccessToken,
+          uploadResponse.data.publish_id
+        ).map(() => uploadResponse)
       )
     )
     .map((uploadResponse) => ({

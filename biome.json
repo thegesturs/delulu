@@ -55,7 +55,9 @@
       },
       "suspicious": {
         "noCommentText": "error",
-        "noDuplicateJsxProps": "error"
+        "noDuplicateJsxProps": "error",
+        "noConsoleLog": "off",
+        "noConsole": "off"
       }
     }
   }

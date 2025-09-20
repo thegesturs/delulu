@@ -23,7 +23,6 @@ export const OPTIONS = () => {
 
 const handler = async (req: NextRequest) => {
   //   const env = getRequestContext().env as unknown as CloudflareEnv;
-  console.log('>>> req', req);
   const response = await fetchRequestHandler({
     endpoint: '/api/trpc',
     router: appRouter,

@@ -29,10 +29,10 @@ export default function LineSvg({
             strokeWidth="1.5"
             strokeOpacity="0.1"
             strokeLinejoin="round"
-          ></line>
+          />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill={`url(#${patternId})`}></rect>
+      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
     </svg>
   );
 }
