@@ -9,6 +9,8 @@ import {
 import type { SocialType } from '@delulu/validators/post';
 import { TikTokSettingsDisplay } from './tiktok-settings';
 
+import { usePost } from '@/store/post';
+
 interface PlatformSettingsDialogProps {
   platform: SocialType;
   socialId: string;
@@ -24,10 +26,17 @@ export function PlatformSettingsDialog({
   isOpen,
   onClose,
 }: PlatformSettingsDialogProps) {
+  const post = usePost();
+  // Check if we have video content
+  const hasVideo = post.content.some((content) =>
+    content.media?.some((media) => media.mediaType === 'VIDEO')
+  );
   const renderSettings = () => {
     switch (platform) {
       case 'TIKTOK':
-        return <TikTokSettingsDisplay providerId={socialId} />;
+        return (
+          <TikTokSettingsDisplay providerId={socialId} hasVideo={hasVideo} />
+        );
       default:
         return (
           <div className="py-8 text-center text-muted-foreground text-sm">

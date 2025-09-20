@@ -272,7 +272,7 @@ export function TikTokSettingsDisplay({
       <div className="flex justify-between space-y-2">
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
-          value={tiktokSettings?.privacy || ''}
+          value={tiktokSettings?.privacy || tikTokPrivacyLevels.PUBLIC_TO_EVERYONE}
           onValueChange={handlePrivacyChange}
         >
           <SelectTrigger id="tiktok-privacy">
