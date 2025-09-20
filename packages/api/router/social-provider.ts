@@ -250,7 +250,7 @@ export const socialProviderRouter = {
           );
 
           if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json() as {
+            const refreshData = (await refreshResponse.json()) as {
               access_token: string;
               refresh_token: string;
               expires_in: number;
@@ -303,7 +303,7 @@ export const socialProviderRouter = {
           });
         }
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
           error?: {
             code: string;
             message?: string;
@@ -320,7 +320,7 @@ export const socialProviderRouter = {
           };
         };
 
-        console.log({ data });
+        console.log(data.data?.privacy_level_options);
 
         // Check for specific error codes that require user action
         if (data.error?.code && data.error.code !== 'ok') {

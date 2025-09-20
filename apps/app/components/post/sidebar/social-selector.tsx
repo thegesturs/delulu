@@ -5,6 +5,7 @@ import {
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
+import { api as trpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import {
   AlertDialog,
@@ -86,6 +87,9 @@ function SocialSelectorItem({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
+  // Prefetch TikTok creator info
+  const utils = trpcApi.useUtils();
+
   const isSelected = selectedSocialProviders?.some(
     (account) => account.socialId === socialId
   );
@@ -102,6 +106,13 @@ function SocialSelectorItem({
         postActions.removeSocialProvider(socialId);
       }
     } else {
+      // Prefetch TikTok creator info when selected
+      if (socialProvider === 'TIKTOK') {
+        utils.socialProvider.getTikTokCreatorInfo.prefetch({
+          socialProviderId: socialId,
+        });
+      }
+
       postActions.addSocialProvider({
         socialId,
         name,
