@@ -164,7 +164,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         });
       }
     },
-    [content.length, isGlobal, post, setPost, socialId]
+    [content, isGlobal, post, setPost, socialId]
   );
 
   return (
