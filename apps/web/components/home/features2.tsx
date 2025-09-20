@@ -550,20 +550,25 @@ const DashboardCard = () => {
   ];
 
   const getStatusColor = (status: string) => {
-    if (status === 'Scheduled')
+    if (status === 'Scheduled') {
       return 'bg-green-500/20 text-green-700 dark:text-green-400';
-    if (status === 'Needs Approval')
+    }
+    if (status === 'Needs Approval') {
       return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
+    }
     return 'bg-muted-foreground/10 text-muted-foreground'; // Draft or other
   };
 
   const getTypeIcon = (type: string) => {
-    if (type === 'Video')
+    if (type === 'Video') {
       return <FaYoutube className="mr-2 h-4 w-4 text-red-500" />;
-    if (type === 'Image')
+    }
+    if (type === 'Image') {
       return <FaImage className="mr-2 h-4 w-4 text-blue-500" />;
-    if (type === 'Blog')
+    }
+    if (type === 'Blog') {
       return <FaFileAlt className="mr-2 h-4 w-4 text-purple-500" />;
+    }
     return <FaRegFileAlt className="mr-2 h-4 w-4 text-gray-500" />; // Replaced FaFileLines
   };
 

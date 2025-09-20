@@ -94,7 +94,9 @@ function compileShader(
   source: string
 ): WebGLShader | null {
   const shader = gl.createShader(type);
-  if (!shader) return null;
+  if (!shader) {
+    return null;
+  }
 
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
@@ -110,12 +112,16 @@ function compileShader(
 
 function setupWebGLProgram(gl: WebGLRenderingContext): WebGLContext | null {
   const program = gl.createProgram();
-  if (!program) return null;
+  if (!program) {
+    return null;
+  }
 
   const vShader = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
   const fShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
 
-  if (!vShader || !fShader) return null;
+  if (!vShader || !fShader) {
+    return null;
+  }
 
   gl.attachShader(program, vShader);
   gl.attachShader(program, fShader);
@@ -186,7 +192,9 @@ export default function LiquidDots() {
     const canvas = canvasRef.current;
     const context = contextRef.current;
 
-    if (!isAnimatingRef.current || !context || !canvas) return;
+    if (!isAnimatingRef.current || !context || !canvas) {
+      return;
+    }
 
     timeRef.current += 0.001;
     renderWebGLFrame(context, canvas, timeRef.current);
@@ -195,15 +203,21 @@ export default function LiquidDots() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      return;
+    }
 
     // Initialize WebGL
     const gl = canvas.getContext('webgl', { antialias: true });
-    if (!gl) return;
+    if (!gl) {
+      return;
+    }
 
     // Create program and initialize buffers
     const context = setupWebGLProgram(gl);
-    if (!context) return;
+    if (!context) {
+      return;
+    }
 
     contextRef.current = context;
     setupBuffers(gl);

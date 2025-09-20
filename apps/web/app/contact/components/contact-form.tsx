@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { contact } from '../actions/contact';
 
 export const ContactForm = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

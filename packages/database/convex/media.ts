@@ -155,17 +155,30 @@ export const updateMedia = mutation({
       updatedAt: getCurrentTimestamp(),
     };
 
-    if (args.url !== undefined) updateData.url = args.url;
-    if (args.originalFilename !== undefined)
+    if (args.url !== undefined) {
+      updateData.url = args.url;
+    }
+    if (args.originalFilename !== undefined) {
       updateData.originalFilename = args.originalFilename;
-    if (args.size !== undefined) updateData.size = args.size;
-    if (args.extension !== undefined) updateData.extension = args.extension;
-    if (args.altText !== undefined) updateData.altText = args.altText;
-    if (args.bucketUrl !== undefined) updateData.bucketUrl = args.bucketUrl;
-    if (args.thumbnailBucketUrl !== undefined)
+    }
+    if (args.size !== undefined) {
+      updateData.size = args.size;
+    }
+    if (args.extension !== undefined) {
+      updateData.extension = args.extension;
+    }
+    if (args.altText !== undefined) {
+      updateData.altText = args.altText;
+    }
+    if (args.bucketUrl !== undefined) {
+      updateData.bucketUrl = args.bucketUrl;
+    }
+    if (args.thumbnailBucketUrl !== undefined) {
       updateData.thumbnailBucketUrl = args.thumbnailBucketUrl;
-    if (args.thumbnailBucketKey !== undefined)
+    }
+    if (args.thumbnailBucketKey !== undefined) {
       updateData.thumbnailBucketKey = args.thumbnailBucketKey;
+    }
 
     await ctx.db.patch(media._id, updateData);
 

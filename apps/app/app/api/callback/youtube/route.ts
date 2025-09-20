@@ -15,16 +15,6 @@ interface GoogleTokenResponse {
   token_type: string;
 }
 
-interface GoogleUserResponse {
-  id: string;
-  name: string;
-  given_name: string;
-  family_name: string;
-  picture: string;
-  email: string;
-  verified_email: boolean;
-}
-
 interface YouTubeChannelResponse {
   items: Array<{
     id: string;

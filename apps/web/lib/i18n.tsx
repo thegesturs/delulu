@@ -39,6 +39,7 @@ export const useLocale = () => {
 interface LocaleProviderProps {
   children: ReactNode;
   locale: Locale;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   messages: Record<string, any>;
   onLocaleChange?: (locale: Locale) => void;
 }
@@ -70,11 +71,12 @@ export const LocaleProvider = ({
 // Utility function to load messages
 export const loadMessages = async (
   locale: Locale
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 ): Promise<Record<string, any>> => {
   try {
     const messages = await import(`../locales/${locale}.json`);
     return messages.default || messages;
-  } catch (error) {
+  } catch (_error) {
     console.warn(
       `Failed to load messages for locale: ${locale}, falling back to English`
     );
@@ -85,7 +87,9 @@ export const loadMessages = async (
 
 // Get browser locale or default to English
 export const getBrowserLocale = (): Locale => {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
 
   const browserLocale = navigator.language.split('-')[0] as Locale;
   return Object.keys(LOCALES).includes(browserLocale) ? browserLocale : 'en';
@@ -93,7 +97,9 @@ export const getBrowserLocale = (): Locale => {
 
 // Get locale from URL or browser
 export const getInitialLocale = (): Locale => {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
 
   // Check URL params first
   const urlParams = new URLSearchParams(window.location.search);

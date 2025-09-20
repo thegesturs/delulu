@@ -38,10 +38,6 @@ export function BasicSettings() {
     (provider) => provider.socialType === 'TIKTOK'
   );
 
-  // Check if we have video content
-  const hasVideo = post.content.some((content) =>
-    content.media?.some((media) => media.mediaType === 'VIDEO')
-  );
 
   // Single unified mutation for all operations
   const upsertPostMutation = useMutation(api.posts.upsertPost);

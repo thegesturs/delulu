@@ -132,7 +132,9 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   const removeTweet = useCallback(
     (order: number) => {
-      if (content.length <= 1) return; // Don't remove the last tweet
+      if (content.length <= 1) {
+        return; // Don't remove the last tweet
+      }
 
       // Reorder remaining tweets to ensure sequential order
       const updatedContent = content

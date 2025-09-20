@@ -248,11 +248,15 @@ function DitheredWaves({
       u.time.value = clock.getElapsedTime();
     }
 
-    if (u.waveSpeed.value !== waveSpeed) u.waveSpeed.value = waveSpeed;
-    if (u.waveFrequency.value !== waveFrequency)
+    if (u.waveSpeed.value !== waveSpeed) {
+      u.waveSpeed.value = waveSpeed;
+    }
+    if (u.waveFrequency.value !== waveFrequency) {
       u.waveFrequency.value = waveFrequency;
-    if (u.waveAmplitude.value !== waveAmplitude)
+    }
+    if (u.waveAmplitude.value !== waveAmplitude) {
       u.waveAmplitude.value = waveAmplitude;
+    }
 
     if (!prevColor.current.every((v, i) => v === waveColor[i])) {
       u.waveColor.value.set(...waveColor);
@@ -268,7 +272,9 @@ function DitheredWaves({
   });
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
-    if (!enableMouseInteraction) return;
+    if (!enableMouseInteraction) {
+      return;
+    }
     const rect = gl.domElement.getBoundingClientRect();
     const dpr = gl.getPixelRatio();
     mouseRef.current.set(

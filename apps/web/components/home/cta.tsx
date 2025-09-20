@@ -90,7 +90,7 @@ const CTA = () => {
 
           {/* Benefits Grid */}
           <div className="relative mx-auto grid gap-2 px-2 md:grid-cols-3">
-            {benefits.map((benefit, index) => (
+            {benefits.map((benefit, _index) => (
               <Card
                 key={benefit.id}
                 className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"

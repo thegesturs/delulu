@@ -6,7 +6,7 @@ import { fetchQuery } from '@delulu/database/server';
 import { type NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: { params: Promise<{ key: string[] }> }
 ) {
   const { userId, getToken } = await auth();

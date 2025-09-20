@@ -171,7 +171,7 @@ export const getSocialProviderWithDecryptedTokens = query({
         accessToken: decryptedAccessToken,
         refreshToken: decryptedRefreshToken,
       };
-    } catch (error) {
+    } catch (_error) {
       // Failed to decrypt tokens for provider
       return null;
     }
@@ -326,7 +326,7 @@ export const upsertSocialProvider = mutation({
       });
 
       return 'created';
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Token encryption failed');
     }
   },

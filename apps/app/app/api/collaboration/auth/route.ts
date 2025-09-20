@@ -1,4 +1,4 @@
-const COLORS = [
+const _COLORS = [
   'var(--color-red-500)',
   'var(--color-orange-500)',
   'var(--color-amber-500)',

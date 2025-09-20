@@ -566,7 +566,9 @@ export function MediaUploader({
       // Upload files immediately
       try {
         const uploadPromises = newMediaFiles.map(async (mediaFile) => {
-          if (!mediaFile.file) return mediaFile;
+          if (!mediaFile.file) {
+            return mediaFile;
+          }
 
           try {
             const uploadResult = await uploadAndSaveMedia(mediaFile.file);

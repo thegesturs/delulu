@@ -88,12 +88,20 @@ export function TikTokSettingsDisplay({
     yourBrand: boolean,
     brandedContent: boolean
   ): PromotionContentType => {
-    if (!hasCommercialContent) return promotionContentTypes.NONE;
+    if (!hasCommercialContent) {
+      return promotionContentTypes.NONE;
+    }
 
     // If both are selected, return BOTH
-    if (yourBrand && brandedContent) return promotionContentTypes.BOTH;
-    if (brandedContent) return promotionContentTypes.PAID;
-    if (yourBrand) return promotionContentTypes.SELF;
+    if (yourBrand && brandedContent) {
+      return promotionContentTypes.BOTH;
+    }
+    if (brandedContent) {
+      return promotionContentTypes.PAID;
+    }
+    if (yourBrand) {
+      return promotionContentTypes.SELF;
+    }
 
     // This shouldn't happen if validation works, but fallback to NONE
     return promotionContentTypes.NONE;
@@ -145,7 +153,9 @@ export function TikTokSettingsDisplay({
 
   // Effect for validation only - no initialization with defaults
   useEffect(() => {
-    if (!tiktokSettings) return;
+    if (!tiktokSettings) {
+      return;
+    }
 
     // Validate and fix paid partnership privacy conflict
     if (
