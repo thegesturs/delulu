@@ -23,8 +23,26 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 // import { OrganizationSwitcher } from './organization-switcher';
+
+// Custom hook to detect screens below lg breakpoint (1024px)
+const useIsSmallScreen = () => {
+  const [isSmallScreen, setIsSmallScreen] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    const LG_BREAKPOINT = 1300;
+    const mql = window.matchMedia(`(max-width: ${LG_BREAKPOINT - 1}px)`);
+    const onChange = () => {
+      setIsSmallScreen(window.innerWidth < LG_BREAKPOINT);
+    };
+    mql.addEventListener('change', onChange);
+    setIsSmallScreen(window.innerWidth < LG_BREAKPOINT);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return !!isSmallScreen;
+};
 
 type GlobalSidebarProperties = {
   readonly children: ReactNode;
@@ -74,6 +92,14 @@ const navigationItems = [
 export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
   const pathname = usePathname();
+  const isSmallScreen = useIsSmallScreen();
+
+  // Auto-collapse sidebar when screen size goes below lg breakpoint (1024px)
+  useEffect(() => {
+    if (isSmallScreen && sidebar?.open) {
+      sidebar?.setOpen(false);
+    }
+  }, [isSmallScreen, sidebar]);
 
   return (
     <>
