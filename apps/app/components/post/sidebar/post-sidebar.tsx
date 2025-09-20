@@ -1,13 +1,13 @@
 'use client';
 
 import { useSelectedSocialProviders } from '@/store/post';
-import { Card } from '@delulu/design-system/components/ui/card';
 import {
   AnimatedTabs as Tabs,
+  AnimatedTabsContent as TabsContent,
   AnimatedTabsList as TabsList,
   AnimatedTabsTrigger as TabsTrigger,
-  AnimatedTabsContent as TabsContent,
 } from '@delulu/design-system/components/ui/animated-tabs';
+import { Card } from '@delulu/design-system/components/ui/card';
 import { BasicSettings } from './basic-settings';
 import { TikTokPreview } from './tiktok-preview';
 

@@ -5,7 +5,6 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 import { api } from '@delulu/database/convex/_generated/api';
-import { useQuery } from 'convex/react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -15,6 +14,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
+import { useQuery } from 'convex/react';
 
 interface MediaItem {
   id: string;
@@ -164,16 +164,18 @@ export function MediaSelectionDialog({
   // Use getMedia for browsing, searchMedia for searching
   const browseData = useQuery(
     api.media.getMedia,
-    !isOpen || hasSearch ? "skip" : { limit: 20, offset: 0 }
+    !isOpen || hasSearch ? 'skip' : { limit: 20, offset: 0 }
   );
 
   const searchData = useQuery(
     api.media.searchMedia,
-    !isOpen || !hasSearch ? "skip" : {
-      searchTerm: searchQuery.trim(),
-      limit: 50,
-      offset: 0,
-    }
+    !isOpen || !hasSearch
+      ? 'skip'
+      : {
+          searchTerm: searchQuery.trim(),
+          limit: 50,
+          offset: 0,
+        }
   );
 
   const mediaData = hasSearch ? searchData : browseData;
@@ -396,10 +398,7 @@ export function MediaSelectionDialog({
             {/* Load more button - disabled for now */}
             {hasMore && (
               <div className="mt-4 text-center">
-                <Button
-                  variant="outline"
-                  disabled={true}
-                >
+                <Button variant="outline" disabled={true}>
                   Load More
                 </Button>
               </div>

@@ -463,7 +463,9 @@ export function MediaUploader({
               try {
                 const validation = await validateTikTokVideo(file);
                 if (!validation.isValid) {
-                  toast.error(`Video validation failed: ${validation.errors.join(', ')}`);
+                  toast.error(
+                    `Video validation failed: ${validation.errors.join(', ')}`
+                  );
                   continue;
                 }
                 // Show success message with video details
@@ -474,7 +476,9 @@ export function MediaUploader({
                   );
                 }
               } catch (error) {
-                toast.error(`Video validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                toast.error(
+                  `Video validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+                );
                 continue;
               }
             }
@@ -484,7 +488,10 @@ export function MediaUploader({
           }
         }
 
-        filesToProcess = validatedFiles.slice(0, maxImages + maxVideos - (currentImages + currentVideos));
+        filesToProcess = validatedFiles.slice(
+          0,
+          maxImages + maxVideos - (currentImages + currentVideos)
+        );
       } else if (socialType === 'INSTAGRAM') {
         const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
         if (hasVideo) {
@@ -610,7 +617,14 @@ export function MediaUploader({
         setIsMediaUploading(false);
       }
     },
-    [mediaFiles, socialType, maxImages, maxVideos, uploadAndSaveMedia, setIsMediaUploading]
+    [
+      mediaFiles,
+      socialType,
+      maxImages,
+      maxVideos,
+      uploadAndSaveMedia,
+      setIsMediaUploading,
+    ]
   );
 
   const handleDrop = useCallback(

@@ -41,13 +41,9 @@ export function PlatformSettingsDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {platformName} Settings
-          </DialogTitle>
+          <DialogTitle>{platformName} Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          {renderSettings()}
-        </div>
+        <div className="space-y-4">{renderSettings()}</div>
       </DialogContent>
     </Dialog>
   );

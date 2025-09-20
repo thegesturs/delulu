@@ -259,7 +259,11 @@ export const tikTokSettingsSchema = z
   .refine(
     (data) => {
       // Paid partnerships and BOTH cannot have privacy level "SELF_ONLY"
-      if ((data.promotionContent === 'PAID' || data.promotionContent === 'BOTH') && data.privacy === 'SELF_ONLY') {
+      if (
+        (data.promotionContent === 'PAID' ||
+          data.promotionContent === 'BOTH') &&
+        data.privacy === 'SELF_ONLY'
+      ) {
         return false;
       }
       return true;

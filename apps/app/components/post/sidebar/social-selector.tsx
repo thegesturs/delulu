@@ -1,6 +1,5 @@
 'use client';
 
-import type React from 'react';
 import {
   postActions,
   useSelectedSocialProviders,
@@ -18,20 +17,21 @@ import {
   AlertDialogTitle,
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
 import type { SocialType } from '@delulu/validators/post';
 import { useQuery } from 'convex/react';
+import { Settings } from 'lucide-react';
 import {
   AnimatePresence,
   LayoutGroup,
   MotionConfig,
   motion,
 } from 'motion/react';
+import type React from 'react';
 import { useState } from 'react';
 import { IoCheckmarkCircle } from 'react-icons/io5';
-import { Settings } from 'lucide-react';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { SocialIcon } from './social-icon';
 import { PlatformSettingsDialog } from './platform-settings-dialog';
+import { SocialIcon } from './social-icon';
 
 interface SocialSelectorItemProps {
   socialProvider: SocialType;

@@ -94,12 +94,15 @@ const getProfile = (
 const checkPostStatus = (
   accessToken: string,
   publishId: string
-): ResultAsync<{ status: string; fail_reason?: string }, SocialProviderError> => {
+): ResultAsync<
+  { status: string; fail_reason?: string },
+  SocialProviderError
+> => {
   return ResultAsync.fromPromise(
     axios.post(
       'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
       {
-        publish_id: publishId
+        publish_id: publishId,
       },
       {
         headers: {
@@ -115,12 +118,14 @@ const checkPostStatus = (
   ).andThen((response) => {
     const data = response.data;
     if (!data.data) {
-      return err(new TikTokError('Failed to get post status from TikTok response'));
+      return err(
+        new TikTokError('Failed to get post status from TikTok response')
+      );
     }
 
     return ok({
       status: data.data.status,
-      fail_reason: data.data.fail_reason
+      fail_reason: data.data.fail_reason,
     });
   });
 };
@@ -134,7 +139,9 @@ const waitForPostCompletion = (
 ): ResultAsync<void, SocialProviderError> => {
   const poll = async (attempts: number): Promise<void> => {
     if (attempts >= maxAttempts) {
-      throw new TikTokError('Post processing timeout - exceeded maximum attempts');
+      throw new TikTokError(
+        'Post processing timeout - exceeded maximum attempts'
+      );
     }
 
     const statusResult = await checkPostStatus(accessToken, publishId);
@@ -153,11 +160,14 @@ const waitForPostCompletion = (
     }
 
     // Status is still 'Processing', continue polling
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
     return poll(attempts + 1);
   };
 
-  return ResultAsync.fromPromise(poll(0), (error) => error as SocialProviderError);
+  return ResultAsync.fromPromise(
+    poll(0),
+    (error) => error as SocialProviderError
+  );
 };
 
 // Upload single video to TikTok with user settings
@@ -282,12 +292,13 @@ const publishContent = (
         videoMedia.url!,
         caption,
         content.tiktokSettings
+      ).andThen((uploadResponse) =>
+        // Poll for completion as required by TikTok guidelines
+        waitForPostCompletion(
+          freshAccessToken,
+          uploadResponse.data.publish_id
+        ).map(() => uploadResponse)
       )
-        .andThen((uploadResponse) =>
-          // Poll for completion as required by TikTok guidelines
-          waitForPostCompletion(freshAccessToken, uploadResponse.data.publish_id)
-            .map(() => uploadResponse)
-        )
     )
     .map((uploadResponse) => ({
       platformPostId: uploadResponse.data.publish_id,

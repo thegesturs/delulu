@@ -1,21 +1,15 @@
 'use client';
 
 import {
+  getProviderSettingsForConvex,
   useDateTime,
   useIsMediaUploading,
   usePost,
-  getProviderSettingsForConvex,
   useSelectedSocialProviders,
   useStore,
 } from '@/store/post';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@delulu/design-system/components/ui/accordion';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { CardContent } from '@delulu/design-system/components/ui/card';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
@@ -28,7 +22,6 @@ import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import SocialSelector from './social-selector';
-import { TikTokSettingsDisplay } from './tiktok-settings';
 
 export function BasicSettings() {
   const { date } = useDateTime();
@@ -83,7 +76,7 @@ export function BasicSettings() {
       // Validate paid partnerships can't be private
       if (
         (settings.promotionContent === promotionContentTypes.PAID ||
-         settings.promotionContent === promotionContentTypes.BOTH) &&
+          settings.promotionContent === promotionContentTypes.BOTH) &&
         settings.privacy === 'SELF_ONLY'
       ) {
         toast.error(
