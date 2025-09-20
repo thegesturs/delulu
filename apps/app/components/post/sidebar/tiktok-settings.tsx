@@ -151,9 +151,15 @@ export function TikTokSettingsDisplay({
     [providerId, setProviderSettings, tiktokSettings]
   );
 
-  // Effect for validation only - no initialization with defaults
+  // Effect for validation and ensuring privacy is never empty
   useEffect(() => {
     if (!tiktokSettings) {
+      return;
+    }
+
+    // Ensure privacy is never empty - set to default if missing
+    if (!tiktokSettings.privacy) {
+      updateTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
       return;
     }
 
@@ -165,7 +171,7 @@ export function TikTokSettingsDisplay({
     ) {
       updateTikTokSettings({ privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE });
     }
-  }, [tiktokSettings, updateTikTokSettings]);
+  }, [tiktokSettings]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
     updateTikTokSettings({ privacy: value });
