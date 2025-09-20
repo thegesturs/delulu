@@ -217,6 +217,7 @@ export const tikTokPrivacyLevels = {
   SELF_ONLY: 'SELF_ONLY',
   MUTUAL_FOLLOW_FRIENDS: 'MUTUAL_FOLLOW_FRIENDS',
   PUBLIC_TO_EVERYONE: 'PUBLIC_TO_EVERYONE',
+  FOLLOWER_OF_CREATOR: 'FOLLOWER_OF_CREATOR',
 } as const;
 
 export type TiktokPrivacyLevels =
@@ -227,6 +228,7 @@ const tikTokPrivacyValues = [
   tikTokPrivacyLevels.SELF_ONLY,
   tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
   tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
+  tikTokPrivacyLevels.FOLLOWER_OF_CREATOR
 ] as const;
 
 export const promotionContentTypes = {

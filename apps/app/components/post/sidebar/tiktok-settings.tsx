@@ -19,6 +19,7 @@ import {
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface TikTokSettingsProps {
@@ -129,7 +130,7 @@ export function TikTokSettingsDisplay({
     (updates: Partial<TikTokSettings>) => {
       // Get the default privacy based on available options
       const defaultPrivacy =
-        creatorInfo.data?.privacy_level_options?.[0] ||
+        (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
         tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
 
       const currentSettings = tiktokSettings || {
@@ -155,7 +156,8 @@ export function TikTokSettingsDisplay({
       ) {
         // Set to the most public option available
         newSettings.privacy =
-          creatorInfo.data?.privacy_level_options?.[0] ||
+          (creatorInfo.data
+            ?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
           tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
       }
 
@@ -173,7 +175,7 @@ export function TikTokSettingsDisplay({
     if (!isInitialized.current && !tiktokSettings && creatorInfo.data) {
       isInitialized.current = true;
       const defaultPrivacy =
-        creatorInfo.data.privacy_level_options?.[0] ||
+        (creatorInfo.data.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
         tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
       updateTikTokSettings({
         privacy: defaultPrivacy,
@@ -194,16 +196,11 @@ export function TikTokSettingsDisplay({
       tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
     ) {
       const defaultPrivacy =
-        creatorInfo.data?.privacy_level_options?.[0] ||
+        (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
         tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
       updateTikTokSettings({ privacy: defaultPrivacy });
     }
-  }, [
-    tiktokSettings?.promotionContent,
-    tiktokSettings?.privacy,
-    creatorInfo.data,
-    updateTikTokSettings,
-  ]);
+  }, [tiktokSettings, creatorInfo.data, updateTikTokSettings]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
     updateTikTokSettings({ privacy: value });
@@ -302,9 +299,11 @@ export function TikTokSettingsDisplay({
         {creatorInfo.data && (
           <div className="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
             {creatorInfo.data.creator_avatar_url && (
-              <img
+              <Image
                 src={creatorInfo.data.creator_avatar_url}
-                alt={creatorInfo.data.creator_nickname}
+                alt={creatorInfo.data.creator_nickname ?? 'creator avatar'}
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full"
               />
             )}
