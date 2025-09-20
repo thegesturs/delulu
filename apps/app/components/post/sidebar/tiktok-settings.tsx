@@ -117,10 +117,10 @@ export function TikTokSettingsDisplay({
   const updateTikTokSettings = useCallback(
     (updates: Partial<TikTokSettings>) => {
       const currentSettings = tiktokSettings || {
-        privacy: '' as TiktokPrivacyLevels, // No default - user must select
-        allowComments: true, // Enabled by default for better UX
-        allowDuet: true, // Enabled by default for better UX
-        allowStitch: true, // Enabled by default for better UX
+        privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE, // Default to public
+        allowComments: false, // TikTok requires manual enabling
+        allowDuet: false, // TikTok requires manual enabling
+        allowStitch: false, // TikTok requires manual enabling
         promotionContent: promotionContentTypes.NONE,
       };
 

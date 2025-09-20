@@ -301,8 +301,6 @@ export const socialProviderRouter = {
 
         const data = await response.json();
 
-        console.log(data, 'data');
-
         // Check for specific error codes that require user action
         if (data.error?.code && data.error.code !== 'ok') {
           if (data.error.code === 'spam_risk_too_many_posts') {
