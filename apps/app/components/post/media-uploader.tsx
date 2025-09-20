@@ -11,9 +11,11 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
+import { toast } from 'sonner';
 
 import { useMediaStorage } from '@/hooks/use-media-storage';
 import { getMediaUrlFromObject } from '@/lib/media-url';
+import { validateTikTokVideo } from '@/lib/video-validation';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
@@ -447,19 +449,42 @@ export function MediaUploader({
       if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
         const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
         const hasImage = mediaFiles.some((f) => f.mediaType === 'IMAGE');
-        filesToProcess = filesToProcess
-          .filter((file) => {
-            const isVideo = file.type.startsWith('video/');
-            const isImage = file.type.startsWith('image/');
-            if (isVideo && !hasVideo && currentVideos < maxVideos) {
-              return true;
+
+        // Filter and validate files for TikTok/YouTube
+        const validatedFiles = [];
+
+        for (const file of filesToProcess) {
+          const isVideo = file.type.startsWith('video/');
+          const isImage = file.type.startsWith('image/');
+
+          if (isVideo && !hasVideo && currentVideos < maxVideos) {
+            if (socialType === 'TIKTOK') {
+              // Validate TikTok video requirements
+              try {
+                const validation = await validateTikTokVideo(file);
+                if (!validation.isValid) {
+                  toast.error(`Video validation failed: ${validation.errors.join(', ')}`);
+                  continue;
+                }
+                // Show success message with video details
+                if (validation.metadata) {
+                  const { duration, width, height } = validation.metadata;
+                  toast.success(
+                    `Video validated: ${Math.floor(duration)}s, ${width}x${height}`
+                  );
+                }
+              } catch (error) {
+                toast.error(`Video validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                continue;
+              }
             }
-            if (isImage && !hasImage && currentImages < maxImages) {
-              return true;
-            }
-            return false;
-          })
-          .slice(0, maxImages + maxVideos - (currentImages + currentVideos));
+            validatedFiles.push(file);
+          } else if (isImage && !hasImage && currentImages < maxImages) {
+            validatedFiles.push(file);
+          }
+        }
+
+        filesToProcess = validatedFiles.slice(0, maxImages + maxVideos - (currentImages + currentVideos));
       } else if (socialType === 'INSTAGRAM') {
         const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
         if (hasVideo) {
@@ -564,12 +589,8 @@ export function MediaUploader({
               isUploading: false,
               file: undefined,
             };
-          } catch (error) {
-            console.error(
-              'Upload failed for file:',
-              mediaFile.file?.name,
-              error
-            );
+          } catch (_error) {
+            // Upload failed - error will be handled by removal from list
 
             // Remove failed upload from list
             setMediaFiles((prev) => {
@@ -582,8 +603,8 @@ export function MediaUploader({
         });
 
         await Promise.all(uploadPromises);
-      } catch (error) {
-        console.error('Upload process failed:', error);
+      } catch (_error) {
+        // Upload process failed - individual errors already handled
       } finally {
         // Clear upload state when all uploads are done
         setIsMediaUploading(false);

@@ -1,3 +1,4 @@
+import { keys } from '@api/keys';
 import { createPostInQueue } from '@api/services/post.service';
 import { getCloudflareEnv } from '@delulu/cloudflare-types';
 import {
@@ -119,8 +120,7 @@ export const socialProviderRouter = {
         });
       }
 
-      const stuff = await createPostInQueue(post);
-      console.log('stuff', stuff);
+      await createPostInQueue(post);
       return {
         success: true,
       };
@@ -206,7 +206,7 @@ export const socialProviderRouter = {
     )
     .query(async ({ input, ctx }) => {
       // Get the TikTok social provider with access token
-      const socialProvider = await fetchQuery(
+      let socialProvider = await fetchQuery(
         api.social_providers.getSocialProviderWithDecryptedTokens,
         {
           id: input.socialProviderId as Id<'socialProviders'>,
@@ -223,16 +223,71 @@ export const socialProviderRouter = {
         });
       }
 
-      try {
-        const params = new URLSearchParams({
-          fields: 'open_id,union_id,avatar_url,avatar_url_100,avatar_url_200,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count'
-        });
+      // Check if access token expires within the next 2 hours (proactive refresh)
+      const currentTime = Date.now();
+      const twoHoursFromNow = currentTime + 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+      const tokenExpired =
+        socialProvider.expiresIn && socialProvider.expiresIn < twoHoursFromNow;
 
+      if (tokenExpired && socialProvider.refreshToken) {
+        try {
+          // Refresh the access token
+          const refreshResponse = await fetch(
+            'https://open.tiktokapis.com/v2/oauth/token/',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Cache-Control': 'no-cache',
+              },
+              body: new URLSearchParams({
+                client_key: keys().TIKTOK_CLIENT_ID,
+                client_secret: keys().TIKTOK_CLIENT_SECRET,
+                grant_type: 'refresh_token',
+                refresh_token: socialProvider.refreshToken,
+              }),
+            }
+          );
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            const { access_token, refresh_token, expires_in } = refreshData;
+
+            // Update the database with new tokens
+            await fetchMutation(
+              api.social_providers.updateSocialProvider,
+              {
+                id: input.socialProviderId as Id<'socialProviders'>,
+                accessToken: access_token,
+                refreshToken: refresh_token,
+                expiresIn: Date.now() + expires_in * 1000,
+              },
+              {
+                token: ctx.token,
+              }
+            );
+
+            // Update our local reference to use the new token
+            socialProvider = {
+              ...socialProvider,
+              accessToken: access_token,
+              refreshToken: refresh_token,
+              expiresIn: Date.now() + expires_in * 1000,
+            };
+          }
+        } catch (_refreshError) {
+          // Continue with old token - might still work or will fail gracefully
+        }
+      }
+
+      try {
         const response = await fetch(
-          `https://open.tiktokapis.com/v2/user/info/?${params.toString()}`,
+          'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
           {
+            method: 'POST',
             headers: {
               Authorization: `Bearer ${socialProvider.accessToken}`,
+              'Content-Type': 'application/json; charset=UTF-8',
             },
           }
         );
@@ -246,7 +301,35 @@ export const socialProviderRouter = {
 
         const data = await response.json();
 
-        if (!data.data?.display_name) {
+        console.log(data, 'data');
+
+        // Check for specific error codes that require user action
+        if (data.error?.code && data.error.code !== 'ok') {
+          if (data.error.code === 'spam_risk_too_many_posts') {
+            throw new TRPCError({
+              code: 'TOO_MANY_REQUESTS',
+              message: 'Daily post limit reached. Please try again tomorrow.',
+            });
+          }
+          if (data.error.code === 'spam_risk_user_banned_from_posting') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Your TikTok account is banned from posting.',
+            });
+          }
+          if (data.error.code === 'reached_active_user_cap') {
+            throw new TRPCError({
+              code: 'TOO_MANY_REQUESTS',
+              message: 'Daily quota limit reached. Please try again later.',
+            });
+          }
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: data.error.message || 'Failed to get creator info',
+          });
+        }
+
+        if (!data.data?.creator_username) {
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: 'Failed to get creator info from TikTok response',
@@ -254,14 +337,15 @@ export const socialProviderRouter = {
         }
 
         return {
-          display_name: data.data.display_name,
-          bio_description: data.data.bio_description || '',
-          avatar_url: data.data.avatar_url,
-          follower_count: data.data.follower_count,
-          following_count: data.data.following_count,
-          likes_count: data.data.likes_count,
-          video_count: data.data.video_count,
-          is_verified: data.data.is_verified,
+          creator_username: data.data.creator_username,
+          creator_nickname: data.data.creator_nickname,
+          creator_avatar_url: data.data.creator_avatar_url,
+          privacy_level_options: data.data.privacy_level_options || [],
+          comment_disabled: data.data.comment_disabled || false,
+          duet_disabled: data.data.duet_disabled || false,
+          stitch_disabled: data.data.stitch_disabled || false,
+          max_video_post_duration_sec:
+            data.data.max_video_post_duration_sec || 60,
         };
       } catch (error) {
         if (error instanceof TRPCError) {
@@ -270,59 +354,6 @@ export const socialProviderRouter = {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to fetch TikTok creator info',
-        });
-      }
-    }),
-  validateTikTokVideo: protectedProcedure
-    .input(
-      z.object({
-        videoUrl: z.string().url(),
-        // Additional validation can be added here for duration, file size, etc.
-      })
-    )
-    .query(async ({ input }) => {
-      // For now, this is a placeholder that validates the URL format
-      // In a full implementation, you might want to:
-      // 1. Fetch video metadata to check duration (15 seconds to 10 minutes)
-      // 2. Validate file size, format, etc.
-      // 3. Use a video processing library to analyze the video
-
-      try {
-        // Validate URL format
-        new URL(input.videoUrl);
-
-        // Basic validation - video should be accessible
-        const response = await fetch(input.videoUrl, { method: 'HEAD' });
-
-        if (!response.ok) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Video URL is not accessible',
-          });
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.startsWith('video/')) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'URL does not point to a video file',
-          });
-        }
-
-        // For now, return success - can be enhanced with actual video analysis
-        return {
-          valid: true,
-          message: 'Video URL is valid and accessible',
-          contentType,
-          contentLength: response.headers.get('content-length'),
-        };
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Invalid video URL format',
         });
       }
     }),
