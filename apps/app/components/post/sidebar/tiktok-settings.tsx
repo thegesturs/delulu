@@ -118,9 +118,9 @@ export function TikTokSettingsDisplay({
     (updates: Partial<TikTokSettings>) => {
       const currentSettings = tiktokSettings || {
         privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE, // Default to public
-        allowComments: false, // TikTok requires manual enabling
-        allowDuet: false, // TikTok requires manual enabling
-        allowStitch: false, // TikTok requires manual enabling
+        allowComments: true, // Enabled by default, user can disable
+        allowDuet: true, // Enabled by default, user can disable
+        allowStitch: true, // Enabled by default, user can disable
         promotionContent: promotionContentTypes.NONE,
       };
 
@@ -303,38 +303,38 @@ export function TikTokSettingsDisplay({
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-comments"
-              checked={tiktokSettings?.allowComments ?? false}
+              id="disable-comments"
+              checked={!(tiktokSettings?.allowComments ?? true)}
               disabled={creatorInfo.data?.comment_disabled}
               onCheckedChange={(checked) =>
-                updateTikTokSettings({ allowComments: !!checked })
+                updateTikTokSettings({ allowComments: !checked })
               }
             />
             <Label
-              htmlFor="allow-comments"
+              htmlFor="disable-comments"
               className="cursor-pointer font-normal text-sm"
             >
-              Allow Comments
+              Disable Comments
             </Label>
           </div>
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-duet"
-              checked={tiktokSettings?.allowDuet ?? false}
+              id="disable-duet"
+              checked={!(tiktokSettings?.allowDuet ?? true)}
               disabled={!hasVideo || creatorInfo.data?.duet_disabled}
               onCheckedChange={(checked) =>
-                updateTikTokSettings({ allowDuet: !!checked })
+                updateTikTokSettings({ allowDuet: !checked })
               }
             />
             <Label
-              htmlFor="allow-duet"
+              htmlFor="disable-duet"
               className={cn(
                 'cursor-pointer font-normal text-sm',
                 !hasVideo && 'cursor-not-allowed opacity-50'
               )}
             >
-              Allow Duet
+              Disable Duet
               {!hasVideo && (
                 <span className="ml-2 text-muted-foreground text-xs">
                   (Video only)
@@ -345,21 +345,21 @@ export function TikTokSettingsDisplay({
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="allow-stitch"
-              checked={tiktokSettings?.allowStitch ?? false}
+              id="disable-stitch"
+              checked={!(tiktokSettings?.allowStitch ?? true)}
               disabled={!hasVideo || creatorInfo.data?.stitch_disabled}
               onCheckedChange={(checked) =>
-                updateTikTokSettings({ allowStitch: !!checked })
+                updateTikTokSettings({ allowStitch: !checked })
               }
             />
             <Label
-              htmlFor="allow-stitch"
+              htmlFor="disable-stitch"
               className={cn(
                 'cursor-pointer font-normal text-sm',
                 !hasVideo && 'cursor-not-allowed opacity-50'
               )}
             >
-              Allow Stitch
+              Disable Stitch
               {!hasVideo && (
                 <span className="ml-2 text-muted-foreground text-xs">
                   (Video only)
