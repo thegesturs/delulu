@@ -12,6 +12,7 @@ import {
 } from '@delulu/design-system/components/ui/select';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import {
   type PromotionContentType,
   type TikTokSettings,
@@ -19,7 +20,6 @@ import {
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -321,8 +321,8 @@ export function TikTokSettingsDisplay({
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
           value={
-            tiktokSettings?.privacy ||
             creatorInfo.data?.privacy_level_options?.[0] ||
+            tiktokSettings?.privacy ||
             tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
           }
           onValueChange={handlePrivacyChange}
