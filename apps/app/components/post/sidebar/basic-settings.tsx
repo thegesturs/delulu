@@ -13,7 +13,6 @@ import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { CardContent } from '@delulu/design-system/components/ui/card';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
-import { promotionContentTypes } from '@delulu/validators/post';
 import { useMutation } from 'convex/react';
 import { Loader } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -33,80 +32,11 @@ export function BasicSettings() {
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
 
-  // Get all selected TikTok providers
-  const tiktokProviders = socialProviders.filter(
-    (provider) => provider.socialType === 'TIKTOK'
-  );
-
-
   // Single unified mutation for all operations
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const validateTikTokSettings = () => {
-    if (tiktokProviders.length === 0) {
-      return true;
-    }
-
-    const { getProviderSettings } = useStore.getState();
-
-    // Check settings for each TikTok provider
-    for (const provider of tiktokProviders) {
-      const providerSetting = getProviderSettings(provider.socialId);
-      const settings =
-        providerSetting?.type === 'TIKTOK'
-          ? providerSetting.settings
-          : undefined;
-
-      if (!settings) {
-        toast.error(`TikTok settings not configured for ${provider.name}`);
-        return false;
-      }
-
-      // Validate privacy is set
-      if (!settings.privacy) {
-        toast.error(`Please select a privacy level for ${provider.name}`);
-        return false;
-      }
-
-      // Validate paid partnerships can't be private
-      if (
-        (settings.promotionContent === promotionContentTypes.PAID ||
-          settings.promotionContent === promotionContentTypes.BOTH) &&
-        settings.privacy === 'SELF_ONLY'
-      ) {
-        toast.error(
-          `Paid partnerships cannot have privacy set to "Only me" for ${provider.name}`
-        );
-        return false;
-      }
-
-      // Validate commercial content disclosure: if no specific type is selected, it should be NONE
-      // This catches the case where toggle is on but no checkboxes are selected
-      if (settings.promotionContent === promotionContentTypes.NONE) {
-        // This is fine - no commercial content
-      } else if (settings.promotionContent === promotionContentTypes.SELF) {
-        // This is fine - "Your brand" selected
-      } else if (settings.promotionContent === promotionContentTypes.PAID) {
-        // This is fine - "Branded content" selected
-      } else if (settings.promotionContent === promotionContentTypes.BOTH) {
-        // This is fine - "Both" selected
-      } else {
-        // This shouldn't happen, but handle invalid state
-        toast.error(`Invalid commercial content setting for ${provider.name}`);
-        return false;
-      }
-    }
-
-    return true;
-  };
-
   const handlePostNow = async () => {
-    // Validate TikTok settings
-    if (!validateTikTokSettings()) {
-      return;
-    }
-
     try {
       setIsProcessing(true);
 
@@ -140,11 +70,6 @@ export function BasicSettings() {
   // Handler 2: Schedule post for future (scheduledAt = selected date)
   const handleSchedulePost = async () => {
     if (!date) {
-      return;
-    }
-
-    // Validate TikTok settings
-    if (!validateTikTokSettings()) {
       return;
     }
 
@@ -235,7 +160,7 @@ export function BasicSettings() {
           aria-busy={isProcessing || isMediaUploading}
         >
           {date ? 'Schedule Post' : 'Post Now'}
-          {isProcessing || isMediaUploading ? (
+          {isProcessing ? (
             <Loader className="size-4 animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
@@ -249,7 +174,7 @@ export function BasicSettings() {
           aria-busy={isProcessing || isMediaUploading}
         >
           {postId ? 'Update Post' : 'Save Post'}
-          {isProcessing || isMediaUploading ? (
+          {isProcessing ? (
             <Loader className="size-4 animate-spin" />
           ) : (
             <FaBookmark className="size-4" />

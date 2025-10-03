@@ -6,6 +6,8 @@ import type {
   SocialProviderType,
   TikTokSettings,
 } from '@delulu/validators/post';
+import { promotionContentTypes } from '@delulu/validators/post';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
@@ -84,23 +86,18 @@ export const useStore = create<PostState & PostActions>()(
         setTikTokSettings: (settings) =>
           set((state) => {
             // Initialize with defaults if not set
-            const currentSettings = state.tiktokSettings || {
-              privacy: 'PUBLIC_TO_EVERYONE',
-              allowComments: true,
-              allowDuet: false,
-              allowStitch: false,
-              promotionContent: 'NONE',
-            };
+            const currentSettings = state.tiktokSettings || DEFAULT_TIKTOK_SETTINGS;
 
             // Merge new settings
             const newSettings = { ...currentSettings, ...settings };
 
             // Enforce business rule: paid partnerships can't be private
             if (
-              newSettings.promotionContent === 'PAID' &&
+              (newSettings.promotionContent === promotionContentTypes.PAID ||
+                newSettings.promotionContent === promotionContentTypes.BOTH) &&
               newSettings.privacy === 'SELF_ONLY'
             ) {
-              newSettings.privacy = 'PUBLIC_TO_EVERYONE';
+              newSettings.privacy = DEFAULT_TIKTOK_SETTINGS.privacy;
             }
 
             return {

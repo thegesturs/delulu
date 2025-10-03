@@ -19,6 +19,7 @@ import {
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -131,14 +132,11 @@ export function TikTokSettingsDisplay({
       // Get the default privacy based on available options
       const defaultPrivacy =
         (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-        tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
+        DEFAULT_TIKTOK_SETTINGS.privacy;
 
       const currentSettings = tiktokSettings || {
-        privacy: defaultPrivacy, // Default to first available option
-        allowComments: true, // Enabled by default, user can disable
-        allowDuet: true, // Enabled by default, user can disable
-        allowStitch: true, // Enabled by default, user can disable
-        promotionContent: promotionContentTypes.NONE,
+        ...DEFAULT_TIKTOK_SETTINGS,
+        privacy: defaultPrivacy, // Override privacy with API-provided default
       };
 
       const newSettings = { ...currentSettings, ...updates };
@@ -176,13 +174,10 @@ export function TikTokSettingsDisplay({
       isInitialized.current = true;
       const defaultPrivacy =
         (creatorInfo.data.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-        tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
+        DEFAULT_TIKTOK_SETTINGS.privacy;
       updateTikTokSettings({
+        ...DEFAULT_TIKTOK_SETTINGS,
         privacy: defaultPrivacy,
-        allowComments: true,
-        allowDuet: true,
-        allowStitch: true,
-        promotionContent: promotionContentTypes.NONE,
       });
     }
   }, [creatorInfo.data, tiktokSettings, updateTikTokSettings]); // Include all dependencies

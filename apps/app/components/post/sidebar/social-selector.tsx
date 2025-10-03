@@ -31,6 +31,7 @@ import {
 import type React from 'react';
 import { useState } from 'react';
 import { IoCheckmarkCircle } from 'react-icons/io5';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import { PlatformSettingsDialog } from './platform-settings-dialog';
 import { SocialIcon } from './social-icon';
 
@@ -84,6 +85,8 @@ function SocialSelectorItem({
 }: SocialSelectorItemProps) {
   const selectedSocialProviders = useSelectedSocialProviders();
   const post = useStore((state) => state.post);
+  const setProviderSettings = useStore((state) => state.setProviderSettings);
+  const getProviderSettings = useStore((state) => state.getProviderSettings);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
@@ -118,6 +121,20 @@ function SocialSelectorItem({
         name,
         socialType: socialProvider,
       });
+
+      // Auto-initialize default settings for platforms that require them
+      if (socialProvider === 'TIKTOK') {
+        // Only set defaults if no settings exist for this provider
+        const existingSettings = getProviderSettings(socialId);
+        if (!existingSettings) {
+          setProviderSettings(socialId, {
+            socialProviderId: socialId,
+            type: 'TIKTOK',
+            settings: DEFAULT_TIKTOK_SETTINGS,
+          });
+        }
+      }
+      // Add more platforms here as needed
     }
   };
 
