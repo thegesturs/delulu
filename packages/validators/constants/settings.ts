@@ -14,9 +14,12 @@ import { promotionContentTypes, tikTokPrivacyLevels } from '../post';
 
 /**
  * Default settings for TikTok platform
- * - Public visibility
+ * - Public visibility (note: actual privacy will be set based on creator's available options)
  * - All interactions enabled (comments, duet, stitch)
  * - No commercial content disclosure
+ *
+ * IMPORTANT: The privacy field should be overridden with the first available option
+ * from the TikTok creator API's privacy_level_options when initializing settings.
  */
 export const DEFAULT_TIKTOK_SETTINGS: TikTokSettings = {
   privacy: tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,

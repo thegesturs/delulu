@@ -182,6 +182,25 @@ export function TikTokSettingsDisplay({
     }
   }, [creatorInfo.data, tiktokSettings, updateTikTokSettings]); // Include all dependencies
 
+  // Validate that stored privacy is available in API options
+  useEffect(() => {
+    if (
+      tiktokSettings?.privacy &&
+      creatorInfo.data?.privacy_level_options &&
+      creatorInfo.data.privacy_level_options.length > 0
+    ) {
+      const storedPrivacy = tiktokSettings.privacy;
+      const availableOptions = creatorInfo.data.privacy_level_options;
+
+      // Check if stored privacy is in available options
+      if (!availableOptions.includes(storedPrivacy)) {
+        // Stored privacy not available, update to first available option
+        const newPrivacy = availableOptions[0] as TiktokPrivacyLevels;
+        updateTikTokSettings({ privacy: newPrivacy });
+      }
+    }
+  }, [tiktokSettings?.privacy, creatorInfo.data?.privacy_level_options, updateTikTokSettings]);
+
   // Validate paid partnership privacy conflict
   useEffect(() => {
     if (
@@ -321,8 +340,8 @@ export function TikTokSettingsDisplay({
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
           value={
-            creatorInfo.data?.privacy_level_options?.[0] ||
             tiktokSettings?.privacy ||
+            creatorInfo.data?.privacy_level_options?.[0] ||
             tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
           }
           onValueChange={handlePrivacyChange}
