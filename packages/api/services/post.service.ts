@@ -21,6 +21,11 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
     // Use alternative content if available, otherwise use default content
     const contentToPost = alternativeContent?.content ?? post.content;
 
+    // Find provider-specific settings for this provider
+    const providerSettings = post.providerSettings?.find(
+      (setting) => setting.socialProviderId === provider._id
+    );
+
     // Fire and forget - just queue it
     const response = await fetch(LAMBDA_URL, {
       method: 'POST',
@@ -34,10 +39,8 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
           content: contentToPost,
           postId: post._id,
           socialProviderId: provider._id,
-          // Always include TikTok settings for TikTok providers (from database)
-          ...(provider.socialType === 'TIKTOK' && {
-            tiktokSettings: post.tiktokSettings,
-          }),
+          // Include provider-specific settings if available
+          ...(providerSettings && { providerSettings }),
         },
       }),
     });

@@ -3,6 +3,7 @@ import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
 import {
   type TikTokSettings,
+  type ProviderSetting,
   getValidMediaUrls,
   promotionContentTypes,
 } from '@delulu/validators/post';
@@ -259,7 +260,7 @@ const publishContent = (
   content: {
     content: PostContent[];
     postId: string;
-    tiktokSettings?: TikTokSettings;
+    providerSettings?: ProviderSetting;
   },
   profile: TikTokProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
@@ -284,6 +285,12 @@ const publishContent = (
   // Use text content as TikTok caption (what users see on the video)
   const caption = firstContent.text || 'TikTok Video';
 
+  // Extract TikTok settings from provider settings
+  const tiktokSettings =
+    content.providerSettings?.type === 'TIKTOK'
+      ? content.providerSettings.settings
+      : undefined;
+
   // Get fresh access token and upload (validation is done in frontend)
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) =>
@@ -291,7 +298,7 @@ const publishContent = (
         freshAccessToken,
         videoMedia.url!,
         caption,
-        content.tiktokSettings
+        tiktokSettings
       ).andThen((uploadResponse) =>
         // Poll for completion as required by TikTok guidelines
         waitForPostCompletion(

@@ -126,10 +126,13 @@ export const postSchema = z.object({
 
 export type FullPostType = z.infer<typeof postSchema>;
 
+// Note: providerSettingSchema is defined later after tikTokSettingsSchema
+// This is a forward reference that will be resolved at runtime
 export const SocialPublishInputSchema = z.object({
   postId: z.string(),
   socialProviderId: z.string(),
   content: z.array(contentSchema),
+  providerSettings: z.lazy(() => providerSettingSchema).optional(),
 });
 
 export type SocialPublishInputType = z.infer<typeof SocialPublishInputSchema>;
@@ -277,6 +280,92 @@ export const tikTokSettingsSchema = z
 
 export type TikTokSettings = z.infer<typeof tikTokSettingsSchema>;
 
+// Zod schema for provider settings (must be before SocialPublishInputSchema)
+export const providerSettingSchema = z.discriminatedUnion('type', [
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.TIKTOK),
+    settings: tikTokSettingsSchema,
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.YOUTUBE),
+    settings: z.object({
+      privacy: z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']),
+      madeForKids: z.boolean(),
+      ageRestriction: z.boolean().optional(),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.INSTAGRAM),
+    settings: z.object({
+      shareToFeed: z.boolean(),
+      shareToStory: z.boolean(),
+      shareToReels: z.boolean(),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.FACEBOOK),
+    settings: z.object({
+      privacy: z.enum(['PUBLIC', 'FRIENDS', 'ONLY_ME']),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.TWITTER),
+    settings: z.object({
+      replyRestriction: z.enum(['everyone', 'following', 'mentioned']),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.LINKEDIN),
+    settings: z.object({
+      visibility: z.enum(['PUBLIC', 'CONNECTIONS']),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.THREADS),
+    settings: z.object({
+      replyControl: z.enum(['everyone', 'following', 'mentioned']),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.PINTEREST),
+    settings: z.object({
+      boardId: z.string().optional(),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.FARCASTER),
+    settings: z.object({
+      channelId: z.string().optional(),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.BLUESKY),
+    settings: z.object({
+      replyDisabled: z.boolean().optional(),
+    }),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.DEFAULT),
+    settings: z.object({}).strict(),
+  }),
+  z.object({
+    socialProviderId: z.string(),
+    type: z.literal(SocialTypes.LENS),
+    settings: z.object({}).strict(),
+  }),
+]);
+
 // Provider-specific settings types
 export type YouTubeSettings = {
   privacy: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
@@ -380,21 +469,3 @@ export type ProviderSetting =
       type: typeof SocialTypes.LENS;
       settings: Record<string, never>;
     };
-
-// Zod schema for provider settings (for validation)
-export const providerSettingSchema = z.discriminatedUnion('type', [
-  z.object({
-    socialProviderId: z.string(),
-    type: z.literal(SocialTypes.TIKTOK),
-    settings: tikTokSettingsSchema,
-  }),
-  z.object({
-    socialProviderId: z.string(),
-    type: z.literal(SocialTypes.YOUTUBE),
-    settings: z.object({
-      privacy: z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']),
-      madeForKids: z.boolean(),
-      ageRestriction: z.boolean().optional(),
-    }),
-  }),
-]);
