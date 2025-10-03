@@ -1,11 +1,11 @@
-// Social provider IDs and types mapping
+// Social provider IDs and types mapping (updated with real IDs from database)
 export const SOCIAL_PROVIDER_DATA = [
+  { id: 'js794zzmcym2e09cnxfc4yx5057qy2nj', socialType: 'TIKTOK' },
+  { id: 'js734bks5yxa8s93yn908x2tqd7pwrv5', socialType: 'YOUTUBE' },
   { id: 'js72nvt36ep43bpq7qssjy879d7p6atg', socialType: 'THREADS' },
   { id: 'js7ew09rx9brckw85pvk56vsy57p6xn3', socialType: 'INSTAGRAM' },
   { id: 'js7bx2a2ca4rmwjryjxfzg8v597p64bx', socialType: 'FACEBOOK' },
   { id: 'js762hety6cpas0qx7gtxy38ds7nvg3r', socialType: 'LINKEDIN' },
-  { id: 'js7480hp0kspzet4mee0ejrbtd7nsqxq', socialType: 'TIKTOK' },
-  { id: 'js7ct5zvmexj9kxdn0ndh8v97s7mejt7', socialType: 'YOUTUBE' },
 ];
 
 export const LAMBDA_URL =
