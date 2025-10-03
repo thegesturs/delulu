@@ -99,6 +99,7 @@ const checkPostStatus = (
   { status: string; fail_reason?: string },
   SocialProviderError
 > => {
+  console.log('[TikTok] Checking post status for:', publishId);
   return ResultAsync.fromPromise(
     axios.post(
       'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
@@ -119,10 +120,16 @@ const checkPostStatus = (
   ).andThen((response) => {
     const data = response.data;
     if (!data.data) {
+      console.error('[TikTok] Invalid status response:', data);
       return err(
         new TikTokError('Failed to get post status from TikTok response')
       );
     }
+
+    console.log('[TikTok] Status check result:', {
+      status: data.data.status,
+      fail_reason: data.data.fail_reason,
+    });
 
     return ok({
       status: data.data.status,
@@ -139,7 +146,10 @@ const waitForPostCompletion = (
   interval = 10000
 ): ResultAsync<void, SocialProviderError> => {
   const poll = async (attempts: number): Promise<void> => {
+    console.log(`[TikTok] Polling attempt ${attempts + 1}/${maxAttempts}`);
+
     if (attempts >= maxAttempts) {
+      console.error('[TikTok] Polling timeout - exceeded maximum attempts');
       throw new TikTokError(
         'Post processing timeout - exceeded maximum attempts'
       );
@@ -147,20 +157,25 @@ const waitForPostCompletion = (
 
     const statusResult = await checkPostStatus(accessToken, publishId);
     if (statusResult.isErr()) {
+      console.error('[TikTok] Status check failed:', statusResult.error);
       throw statusResult.error;
     }
 
     const { status, fail_reason } = statusResult.value;
 
-    if (status === 'Published') {
+    // TikTok API returns 'PUBLISH_COMPLETE' when successful
+    if (status === 'PUBLISH_COMPLETE') {
+      console.log('[TikTok] Video successfully published!');
       return; // Success
     }
 
-    if (status === 'Failed') {
+    if (status === 'FAILED') {
+      console.error('[TikTok] Video publishing failed:', fail_reason);
       throw new TikTokError(`Post failed: ${fail_reason || 'Unknown error'}`);
     }
 
     // Status is still 'Processing', continue polling
+    console.log(`[TikTok] Status: ${status}, waiting ${interval}ms before next check...`);
     await new Promise((resolve) => setTimeout(resolve, interval));
     return poll(attempts + 1);
   };
@@ -216,6 +231,11 @@ const uploadVideo = (
     post_info: postInfo,
   };
 
+  console.log('[TikTok] Uploading video with data:', {
+    videoUrl,
+    postInfo,
+  });
+
   return ResultAsync.fromPromise(
     axios.post(
       'https://open.tiktokapis.com/v2/post/publish/video/init/',
@@ -231,7 +251,7 @@ const uploadVideo = (
       const axiosError = error as {
         response?: { data?: unknown; status?: number };
       };
-      console.log('[TikTok] Upload failed:', {
+      console.error('[TikTok] Upload failed:', {
         status: axiosError?.response?.status,
         data: JSON.stringify(axiosError?.response?.data, null, 2),
         message: (error as Error).message,
@@ -241,12 +261,16 @@ const uploadVideo = (
     }
   ).andThen((response) => {
     const data = response.data;
+    console.log('[TikTok] Upload response:', data);
+
     if (!data.data?.publish_id) {
+      console.error('[TikTok] No publish_id in response:', data);
       return err(
         new TikTokError('Failed to get publish ID from TikTok response')
       );
     }
 
+    console.log('[TikTok] Upload successful, publish_id:', data.data.publish_id);
     return ok({
       data: {
         publish_id: data.data.publish_id,
@@ -291,29 +315,45 @@ const publishContent = (
       ? content.providerSettings.settings
       : undefined;
 
+  console.log('[TikTok] Starting publish flow:', {
+    videoUrl: videoMedia.url,
+    caption: caption.substring(0, 50),
+    hasSettings: !!tiktokSettings,
+    settings: tiktokSettings,
+  });
+
   // Get fresh access token and upload (validation is done in frontend)
   return getFreshAccessToken(profile.refreshToken)
-    .andThen((freshAccessToken) =>
-      uploadVideo(
+    .andThen((freshAccessToken) => {
+      console.log('[TikTok] About to upload video');
+      return uploadVideo(
         freshAccessToken,
         videoMedia.url!,
         caption,
         tiktokSettings
-      ).andThen((uploadResponse) =>
+      ).andThen((uploadResponse) => {
+        console.log('[TikTok] Video uploaded, publish_id:', uploadResponse.data.publish_id);
+        console.log('[TikTok] Starting polling for completion...');
         // Poll for completion as required by TikTok guidelines
-        waitForPostCompletion(
+        return waitForPostCompletion(
           freshAccessToken,
           uploadResponse.data.publish_id
-        ).map(() => uploadResponse)
-      )
-    )
-    .map((uploadResponse) => ({
-      platformPostId: uploadResponse.data.publish_id,
-      postId: content.postId,
-      platformId: profile.id,
-      platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
-      postedAt: new Date(),
-    }));
+        ).map(() => {
+          console.log('[TikTok] Polling completed successfully');
+          return uploadResponse;
+        });
+      });
+    })
+    .map((uploadResponse) => {
+      console.log('[TikTok] Creating final result');
+      return {
+        platformPostId: uploadResponse.data.publish_id,
+        postId: content.postId,
+        platformId: profile.id,
+        platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
+        postedAt: new Date(),
+      };
+    });
 };
 
 // Provider implementation with settings support

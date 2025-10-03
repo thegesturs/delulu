@@ -19,12 +19,16 @@ describe('TikTok Provider Tests', () => {
           content: TEST_CONTENT.video,
           postId: MOCK_POST_ID,
           socialProviderId: tiktokProvider.id,
-          tiktokSettings: {
-            privacy: 'SELF_ONLY',
-            allowComments: true,
-            allowDuet: true,
-            allowStitch: true,
-            promotionContent: 'NONE',
+          providerSettings: {
+            socialProviderId: tiktokProvider.id,
+            type: 'TIKTOK',
+            settings: {
+              privacy: 'SELF_ONLY',
+              allowComments: true,
+              allowDuet: true,
+              allowStitch: true,
+              promotionContent: 'NONE',
+            },
           },
         },
       })
