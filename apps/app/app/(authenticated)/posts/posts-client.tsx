@@ -264,7 +264,7 @@ export default function PostsClient() {
         </div>
       </div>
 
-      <div className="container space-y-4 py-4">
+      <div className="container space-y-4 p-4">
         <div className="flex items-center justify-between gap-4">
           <Input
             placeholder="Search posts..."
