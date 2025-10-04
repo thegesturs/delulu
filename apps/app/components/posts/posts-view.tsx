@@ -13,8 +13,8 @@ export function PostsView({ posts, layout = 'grid' }: PostsViewProps) {
       <div
         className={
           layout === 'grid'
-            ? 'grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            : 'flex flex-col gap-3'
+            ? 'grid auto-rows-fr grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            : 'flex flex-col'
         }
       >
         {posts.map((post) => (

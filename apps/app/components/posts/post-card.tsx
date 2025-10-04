@@ -23,6 +23,7 @@ import {
   type SupportedSocialPlatform,
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
+import { cn } from '@delulu/design-system/lib/utils';
 import { useMutation } from 'convex/react';
 import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
@@ -177,14 +178,19 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
   const firstMedia = firstContent?.media?.[0];
 
   const ActionButtons = () => (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon" onClick={() => setShowPreview(true)}>
-        <Eye className="h-4 w-4" />
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => setShowPreview(true)}
+      >
+        <Eye className="h-3.5 w-3.5" />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreHorizontal className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -196,13 +202,21 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
 
   return (
     <>
-      <Card className="group relative py-2 transition-shadow hover:shadow-md">
-        <div className="flex h-full flex-col px-4 py-2">
+      <Card
+        className={cn(
+          'py-1 hover:bg-muted/30',
+          layout === 'list' &&
+            'rounded-none border-b border-none first:rounded-t-lg last:rounded-b-lg last:border-b-0'
+        )}
+      >
+        <div className="flex h-full flex-col px-3 py-1.5">
           {layout === 'list' ? (
             <div className="flex w-full items-center gap-x-4">
               {/* Status */}
               <div className="flex-shrink-0">
-                <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
+                <Badge variant={statusColors[postStatus]} className="text-xs">
+                  {postStatus}
+                </Badge>
               </div>
 
               {/* Content (Text) */}
@@ -221,7 +235,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               )}
 
               {/* Social Icons - flex-shrink-0 */}
-              <div className="flex flex-shrink-0 items-center gap-1.5">
+              <div className="flex flex-shrink-0 items-center gap-1">
                 {post.socialProviders?.slice(0, 3).map((provider) => {
                   const socialType = provider.socialType;
                   if (!Object.keys(socialDisplayNames).includes(socialType)) {
@@ -230,11 +244,11 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                   return (
                     <Tooltip key={provider._id}>
                       <TooltipTrigger>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted/30">
                           <SocialIcon
                             type={socialType as SupportedSocialPlatform}
                             size="sm"
-                            className="text-foreground"
+                            className="h-3 w-3 text-foreground"
                           />
                         </div>
                       </TooltipTrigger>
@@ -265,7 +279,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
                 {(post.socialProviders?.length || 0) > 3 && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
                         +{(post.socialProviders?.length || 0) - 3}
                       </div>
                     </TooltipTrigger>
@@ -277,7 +291,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               </div>
 
               {/* Actions - flex-shrink-0 */}
-              <div className="flex flex-shrink-0 items-center gap-2">
+              <div className="flex flex-shrink-0 items-center">
                 <ActionButtons />
               </div>
             </div>
