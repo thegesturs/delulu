@@ -666,6 +666,11 @@ export const publishScheduledPost = internalAction({
         // Use alternative content if available, otherwise use default content
         const contentToPost = alternativeContent?.content ?? post.content;
 
+        // Find provider-specific settings for this provider
+        const providerSettings = post.providerSettings?.find(
+          (setting) => setting.socialProviderId === provider._id
+        );
+
         // Make HTTP request to publish
         const response = await fetch(LAMBDA_URL, {
           method: 'POST',
@@ -679,10 +684,8 @@ export const publishScheduledPost = internalAction({
               content: contentToPost,
               postId: post._id,
               socialProviderId: provider._id,
-              // Always include TikTok settings for TikTok providers (from database)
-              ...(provider.socialType === 'TIKTOK' && {
-                tiktokSettings: post.tiktokSettings,
-              }),
+              // Include provider-specific settings if available
+              ...(providerSettings && { providerSettings }),
             },
           }),
         });

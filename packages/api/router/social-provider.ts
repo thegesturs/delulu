@@ -48,6 +48,13 @@ export const socialProviderRouter = {
                 .socialId as Id<'socialProviders'>,
               content: alt.content,
             })),
+            ...(input.providerSettings && {
+              providerSettings: input.providerSettings.map((ps) => ({
+                socialProviderId: ps.socialProviderId as Id<'socialProviders'>,
+                type: ps.type,
+                settings: ps.settings,
+              })),
+            }),
           },
           {
             token: ctx.token,

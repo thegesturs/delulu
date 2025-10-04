@@ -7,6 +7,13 @@ const LAMBDA_URL =
   'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
 
 export const createPostInQueue = async (post: GetPostByIdSchema) => {
+  console.log('[PostService] createPostInQueue called with post:', {
+    postId: post._id,
+    hasProviderSettings: !!post.providerSettings,
+    providerSettingsLength: post.providerSettings?.length,
+    providerSettings: post.providerSettings,
+  });
+
   for (const provider of post.socialProviders) {
     // Skip providers that are not implemented
     if (provider.socialType === SocialTypes.LENS) {
@@ -21,10 +28,16 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
     // Use alternative content if available, otherwise use default content
     const contentToPost = alternativeContent?.content ?? post.content;
 
+    // Debug: Check if providerSettings exists
+    console.log('[PostService] Post providerSettings:', post.providerSettings);
+    console.log('[PostService] Provider ID:', provider._id);
+
     // Find provider-specific settings for this provider
     const providerSettings = post.providerSettings?.find(
       (setting) => setting.socialProviderId === provider._id
     );
+
+    console.log('[PostService] Found settings for provider:', providerSettings);
 
     // Fire and forget - just queue it
     const response = await fetch(LAMBDA_URL, {
