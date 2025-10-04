@@ -153,7 +153,7 @@ export default function PostsClient() {
               </Toggle>
             </div>
           </div>
-          <PostLoading />
+          <PostLoading layout={layout} />
         </div>
       </div>
     );
@@ -192,16 +192,15 @@ export default function PostsClient() {
   }
 
   return (
-    <div>
-      {/* Tabs at the very top */}
+    <div className="flex h-full flex-col">
       <div className="border-b">
-        <div className="container flex items-center justify-between pt-3">
+        <div className="flex items-center justify-between">
           <AnimatedTabs
             value={statusFilter}
             onValueChange={(value) =>
               setStatusFilter(value as PostStatusFilterType)
             }
-            className="flex-1"
+            className="flex-1 pt-3"
           >
             <AnimatedTabsList>
               <AnimatedTabsTrigger
@@ -255,16 +254,21 @@ export default function PostsClient() {
             </AnimatedTabsList>
           </AnimatedTabs>
 
-          <Button size={'sm'} asChild>
+          <Button
+            size={'sm'}
+            asChild
+            className="mx-2 ml-auto"
+            variant={'secondary'}
+          >
             <Link href={'/posts/create'}>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1 h-4 w-4" />
               Add Post
             </Link>
           </Button>
         </div>
       </div>
 
-      <div className="container space-y-4 p-4">
+      <div className="flex-1 space-y-4 overflow-auto p-4">
         <div className="flex items-center justify-between gap-4">
           <Input
             placeholder="Search posts..."
@@ -305,7 +309,7 @@ export default function PostsClient() {
             {/* Loading indicator */}
             {status === 'LoadingMore' && (
               <div className="py-4">
-                <PostLoading />
+                <PostLoading layout={layout} />
               </div>
             )}
             {/* Intersection observer target */}
