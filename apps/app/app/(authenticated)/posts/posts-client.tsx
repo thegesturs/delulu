@@ -91,28 +91,28 @@ export default function PostsClient() {
               <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
                 <TabsTrigger
                   value="SAVED"
-                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
                 >
                   <FileText className="h-4 w-4" />
                   <span>Draft</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="SCHEDULED"
-                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
                 >
                   <Calendar className="h-4 w-4" />
                   <span>Scheduled</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="PUBLISHED"
-                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>Published</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="FAILED"
-                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
                 >
                   <XCircle className="h-4 w-4" />
                   <span>Failed</span>
@@ -168,7 +168,7 @@ export default function PostsClient() {
               <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
                 <TabsTrigger
                   value="SAVED"
-                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
                 >
                   <FileText className="h-4 w-4" />
                   <span>Draft</span>
@@ -206,7 +206,7 @@ export default function PostsClient() {
             <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
               <TabsTrigger
                 value="SAVED"
-                className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
               >
                 <FileText className="h-4 w-4" />
                 <span>Draft</span>
@@ -218,7 +218,7 @@ export default function PostsClient() {
               </TabsTrigger>
               <TabsTrigger
                 value="SCHEDULED"
-                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
               >
                 <Calendar className="h-4 w-4" />
                 <span>Scheduled</span>
@@ -230,7 +230,7 @@ export default function PostsClient() {
               </TabsTrigger>
               <TabsTrigger
                 value="PUBLISHED"
-                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>Published</span>
@@ -242,7 +242,7 @@ export default function PostsClient() {
               </TabsTrigger>
               <TabsTrigger
                 value="FAILED"
-                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
               >
                 <XCircle className="h-4 w-4" />
                 <span>Failed</span>
