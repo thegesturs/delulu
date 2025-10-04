@@ -140,7 +140,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   asChild
                   size="lg"
                   className={cn(
-                    'group ease relative mb-1 select-none rounded-md px-3 py-2.5 transition-colors duration-100 hover:bg-accent hover:text-primary-foreground ',
+                    'group/menu ease relative mb-1 select-none rounded-md px-3 py-2.5 transition-colors duration-100 hover:bg-accent hover:text-primary-foreground ',
                     pathname === item.url &&
                       "bg-[#F9F9FA] shadow-[0px_11px_4px_rgba(7,7,8,0.01),0px_6px_4px_rgba(7,7,8,0.02),0px_3px_3px_rgba(7,7,8,0.04),0px_1px_1px_rgba(7,7,8,0.05)] before:absolute before:inset-0 before:rounded-md before:border before:border-white/5 before:content-[''] after:absolute after:inset-0 after:rounded-md after:bg-[radial-gradient(at_top,rgba(255,255,255,0.05)_5%,rgba(255,255,255,0)_100%)] after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.06)] after:content-[''] dark:bg-[#2A2A2A] dark:shadow-md dark:after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.3)]",
                     'group-data-[state=collapsed]:justify-center'
@@ -164,13 +164,13 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                         'h-5 w-5',
                         pathname === item.url
                           ? 'text-foreground'
-                          : 'text-muted-foreground group-hover:text-foreground'
+                          : 'text-muted-foreground group-hover/menu:text-foreground'
                       )}
                     />
                     <span
                       className={cn(
                         'ml-3 font-medium text-muted-foreground text-sm',
-                        'group-data-[state=collapsed]:hidden',
+                        'group-hover/menu:text-foreground group-data-[state=collapsed]:hidden',
                         pathname === item.url && 'text-foreground'
                       )}
                     >
