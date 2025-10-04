@@ -17,24 +17,24 @@ import { usePaginatedQuery } from 'convex/react';
 import {
   Calendar,
   CheckCircle,
-  Eye,
   FileText,
   LayoutGrid,
   List,
   Plus,
-  Sparkles,
+  XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import React, { useEffect } from 'react';
 import PostLoading from './post-loading';
 
-type PostStatusFilterType = 'all' | PostStatus;
+type PostStatusFilterType = PostStatus;
 const ITEMS_PER_PAGE = 10;
 
 export default function PostsClient() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] =
-    React.useState<PostStatusFilterType>('all');
+    React.useState<PostStatusFilterType>('SAVED');
   const [layout, setLayout] = React.useState<PostLayout>('list');
 
   // Debounce search term to avoid too many queries
@@ -49,7 +49,7 @@ export default function PostsClient() {
   const { results, status, loadMore } = usePaginatedQuery(
     api.posts.getPosts,
     {
-      status: statusFilter !== 'all' ? statusFilter : undefined,
+      status: statusFilter,
       searchTerm: debouncedSearchTerm.trim() || undefined,
     },
     { initialNumItems: ITEMS_PER_PAGE }
@@ -84,77 +84,62 @@ export default function PostsClient() {
 
   if (!results && isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="border-b px-8">
-          <div className="flex items-center justify-between">
+      <div>
+        <div className="border-b">
+          <div className="container flex items-center justify-between py-3">
             <Tabs value={statusFilter} className="flex-1">
-              <TabsList className="h-auto gap-6 border-0 bg-transparent p-0">
-                <TabsTrigger
-                  value="all"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Suggested
-                </TabsTrigger>
+              <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
                 <TabsTrigger
                   value="SAVED"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                   <FileText className="h-4 w-4" />
-                  Draft
-                </TabsTrigger>
-                <TabsTrigger
-                  value="PROCESSING"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  <Eye className="h-4 w-4" />
-                  Review
+                  <span>Draft</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="SCHEDULED"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                   <Calendar className="h-4 w-4" />
-                  Scheduled
+                  <span>Scheduled</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="PUBLISHED"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  Published
+                  <span>Published</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="FAILED"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
-                  <CheckCircle className="h-4 w-4" />
-                  Failed
+                  <XCircle className="h-4 w-4" />
+                  <span>Failed</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button className="ml-4">
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Post
             </Button>
           </div>
         </div>
 
-        <div className="space-y-4 px-8">
+        <div className="container space-y-4 py-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Input
-                placeholder="Search posts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
-            <div className="flex items-center gap-1 rounded-lg border">
+            <Input
+              placeholder="Search posts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-sm"
+            />
+            <div className="flex items-center gap-1 rounded-lg border p-1">
               <Toggle
                 pressed={layout === 'grid'}
                 onPressedChange={() => setLayout('grid')}
                 aria-label="Grid view"
+                size="sm"
               >
                 <LayoutGrid className="h-4 w-4" />
               </Toggle>
@@ -162,6 +147,7 @@ export default function PostsClient() {
                 pressed={layout === 'list'}
                 onPressedChange={() => setLayout('list')}
                 aria-label="List view"
+                size="sm"
               >
                 <List className="h-4 w-4" />
               </Toggle>
@@ -175,27 +161,27 @@ export default function PostsClient() {
 
   if (hasError) {
     return (
-      <div className="space-y-4">
-        <div className="border-b px-8">
-          <div className="flex items-center justify-between">
+      <div>
+        <div className="border-b">
+          <div className="container flex items-center justify-between py-3">
             <Tabs value={statusFilter} className="flex-1">
-              <TabsList className="h-auto gap-6 border-0 bg-transparent p-0">
+              <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
                 <TabsTrigger
-                  value="all"
-                  className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  value="SAVED"
+                  className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Suggested
+                  <FileText className="h-4 w-4" />
+                  <span>Draft</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button className="ml-4">
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Post
             </Button>
           </div>
         </div>
-        <div className="px-8">
+        <div className="container py-4">
           <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
             <h3 className="font-semibold">Error loading posts</h3>
             <p>Failed to load posts. Please try again later.</p>
@@ -206,10 +192,10 @@ export default function PostsClient() {
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Tabs at the very top */}
-      <div className="border-b px-8">
-        <div className="flex items-center justify-between">
+      <div className="border-b">
+        <div className="container flex items-center justify-between pt-3">
           <Tabs
             value={statusFilter}
             onValueChange={(value) =>
@@ -217,75 +203,51 @@ export default function PostsClient() {
             }
             className="flex-1"
           >
-            <TabsList className="h-auto gap-6 border-0 bg-transparent p-0">
-              <TabsTrigger
-                value="all"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <Sparkles className="h-4 w-4" />
-                Suggested
-                {posts.length > 0 && statusFilter === 'all' && (
-                  <Badge variant="secondary" className="ml-1">
-                    {posts.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
+            <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
               <TabsTrigger
                 value="SAVED"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
               >
                 <FileText className="h-4 w-4" />
-                Draft
+                <span>Draft</span>
                 {posts.length > 0 && statusFilter === 'SAVED' && (
-                  <Badge variant="secondary" className="ml-1">
-                    {posts.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="PROCESSING"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <Eye className="h-4 w-4" />
-                Review
-                {posts.length > 0 && statusFilter === 'PROCESSING' && (
-                  <Badge variant="secondary" className="ml-1">
+                  <Badge variant="secondary" className="ml-1.5">
                     {posts.length}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger
                 value="SCHEDULED"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 <Calendar className="h-4 w-4" />
-                Scheduled
+                <span>Scheduled</span>
                 {posts.length > 0 && statusFilter === 'SCHEDULED' && (
-                  <Badge variant="secondary" className="ml-1">
+                  <Badge variant="secondary" className="ml-1.5">
                     {posts.length}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger
                 value="PUBLISHED"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
                 <CheckCircle className="h-4 w-4" />
-                Published
+                <span>Published</span>
                 {posts.length > 0 && statusFilter === 'PUBLISHED' && (
-                  <Badge variant="secondary" className="ml-1">
+                  <Badge variant="secondary" className="ml-1.5">
                     {posts.length}
                   </Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger
                 value="FAILED"
-                className="gap-2 rounded-none border-transparent border-b-2 bg-transparent px-0 pb-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="relative gap-1.5 rounded-none border-transparent border-b-2 bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
               >
-                <CheckCircle className="h-4 w-4" />
-                Failed
+                <XCircle className="h-4 w-4" />
+                <span>Failed</span>
                 {posts.length > 0 && statusFilter === 'FAILED' && (
-                  <Badge variant="secondary" className="ml-1">
+                  <Badge variant="secondary" className="ml-1.5">
                     {posts.length}
                   </Badge>
                 )}
@@ -293,33 +255,29 @@ export default function PostsClient() {
             </TabsList>
           </Tabs>
 
-          <Button
-            onClick={() => {
-              /* TODO: Navigate to create post page */
-            }}
-            className="ml-4"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Post
+          <Button size={'sm'} asChild>
+            <Link href={'/posts/create'}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Post
+            </Link>
           </Button>
         </div>
       </div>
 
-      <div className="space-y-4 px-8">
+      <div className="container space-y-4 py-4">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Input
-              placeholder="Search posts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
-          <div className="flex items-center gap-1 rounded-lg border">
+          <Input
+            placeholder="Search posts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+          <div className="flex items-center gap-1 rounded-lg border p-1">
             <Toggle
               pressed={layout === 'grid'}
               onPressedChange={() => setLayout('grid')}
               aria-label="Grid view"
+              size="sm"
             >
               <LayoutGrid className="h-4 w-4" />
             </Toggle>
@@ -327,6 +285,7 @@ export default function PostsClient() {
               pressed={layout === 'list'}
               onPressedChange={() => setLayout('list')}
               aria-label="List view"
+              size="sm"
             >
               <List className="h-4 w-4" />
             </Toggle>
@@ -334,9 +293,9 @@ export default function PostsClient() {
         </div>
 
         {posts.length === 0 && !isLoading && (
-          <div className="py-8 text-center">
-            <p className="text-lg text-muted-foreground">
-              No posts found. Try adjusting your filters or creating a new post.
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">
+              No posts found. Try creating a new post.
             </p>
           </div>
         )}
