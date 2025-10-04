@@ -4,14 +4,14 @@ import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { PostStatus } from '@delulu/database/convex/schemas';
+import {
+  AnimatedTabs,
+  AnimatedTabsList,
+  AnimatedTabsTrigger,
+} from '@delulu/design-system/components/ui/animated-tabs';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@delulu/design-system/components/ui/tabs';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
 import { usePaginatedQuery } from 'convex/react';
 import {
@@ -87,38 +87,38 @@ export default function PostsClient() {
       <div>
         <div className="border-b">
           <div className="container flex items-center justify-between py-3">
-            <Tabs value={statusFilter} className="flex-1">
-              <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
-                <TabsTrigger
+            <AnimatedTabs value={statusFilter} className="flex-1">
+              <AnimatedTabsList>
+                <AnimatedTabsTrigger
                   value="SAVED"
-                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
                   <FileText className="h-4 w-4" />
                   <span>Draft</span>
-                </TabsTrigger>
-                <TabsTrigger
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
                   value="SCHEDULED"
-                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
                   <Calendar className="h-4 w-4" />
                   <span>Scheduled</span>
-                </TabsTrigger>
-                <TabsTrigger
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
                   value="PUBLISHED"
-                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>Published</span>
-                </TabsTrigger>
-                <TabsTrigger
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
                   value="FAILED"
-                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
                   <XCircle className="h-4 w-4" />
                   <span>Failed</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+                </AnimatedTabsTrigger>
+              </AnimatedTabsList>
+            </AnimatedTabs>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Post
@@ -164,17 +164,17 @@ export default function PostsClient() {
       <div>
         <div className="border-b">
           <div className="container flex items-center justify-between py-3">
-            <Tabs value={statusFilter} className="flex-1">
-              <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
-                <TabsTrigger
+            <AnimatedTabs value={statusFilter} className="flex-1">
+              <AnimatedTabsList>
+                <AnimatedTabsTrigger
                   value="SAVED"
-                  className="relative gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
                   <FileText className="h-4 w-4" />
                   <span>Draft</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+                </AnimatedTabsTrigger>
+              </AnimatedTabsList>
+            </AnimatedTabs>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add Post
@@ -196,17 +196,17 @@ export default function PostsClient() {
       {/* Tabs at the very top */}
       <div className="border-b">
         <div className="container flex items-center justify-between pt-3">
-          <Tabs
+          <AnimatedTabs
             value={statusFilter}
             onValueChange={(value) =>
               setStatusFilter(value as PostStatusFilterType)
             }
             className="flex-1"
           >
-            <TabsList className="h-auto gap-1 border-0 bg-transparent p-0">
-              <TabsTrigger
+            <AnimatedTabsList>
+              <AnimatedTabsTrigger
                 value="SAVED"
-                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
               >
                 <FileText className="h-4 w-4" />
                 <span>Draft</span>
@@ -215,10 +215,10 @@ export default function PostsClient() {
                     {posts.length}
                   </Badge>
                 )}
-              </TabsTrigger>
-              <TabsTrigger
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
                 value="SCHEDULED"
-                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
               >
                 <Calendar className="h-4 w-4" />
                 <span>Scheduled</span>
@@ -227,10 +227,10 @@ export default function PostsClient() {
                     {posts.length}
                   </Badge>
                 )}
-              </TabsTrigger>
-              <TabsTrigger
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
                 value="PUBLISHED"
-                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>Published</span>
@@ -239,10 +239,10 @@ export default function PostsClient() {
                     {posts.length}
                   </Badge>
                 )}
-              </TabsTrigger>
-              <TabsTrigger
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
                 value="FAILED"
-                className="relative min-w-fit gap-1.5 rounded-none border-transparent bg-transparent px-4 pt-0 pb-3 transition-colors hover:text-foreground data-[state=active]:border-0 data-[state=active]:border-b-2 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
               >
                 <XCircle className="h-4 w-4" />
                 <span>Failed</span>
@@ -251,9 +251,9 @@ export default function PostsClient() {
                     {posts.length}
                   </Badge>
                 )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+              </AnimatedTabsTrigger>
+            </AnimatedTabsList>
+          </AnimatedTabs>
 
           <Button size={'sm'} asChild>
             <Link href={'/posts/create'}>
