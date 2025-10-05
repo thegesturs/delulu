@@ -13,7 +13,7 @@ import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
-import { usePaginatedQuery } from 'convex/react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
 import {
   Calendar,
   CheckCircle,
@@ -54,6 +54,9 @@ export default function PostsClient() {
     },
     { initialNumItems: ITEMS_PER_PAGE }
   );
+
+  // Fetch dashboard stats for accurate badge counts
+  const dashboardStats = useQuery(api.stats.getDashboardStats);
 
   const isLoading = status === 'LoadingMore' || !results;
   const hasError = status === 'LoadingFirstPage' && results === undefined;
@@ -209,9 +212,9 @@ export default function PostsClient() {
               >
                 <FileText className="h-4 w-4" />
                 <span>Draft</span>
-                {posts.length > 0 && statusFilter === 'SAVED' && (
+                {dashboardStats && dashboardStats.savedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
-                    {posts.length}
+                    {dashboardStats.savedCount}
                   </Badge>
                 )}
               </AnimatedTabsTrigger>
@@ -221,9 +224,9 @@ export default function PostsClient() {
               >
                 <Calendar className="h-4 w-4" />
                 <span>Scheduled</span>
-                {posts.length > 0 && statusFilter === 'SCHEDULED' && (
+                {dashboardStats && dashboardStats.scheduledCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
-                    {posts.length}
+                    {dashboardStats.scheduledCount}
                   </Badge>
                 )}
               </AnimatedTabsTrigger>
@@ -233,9 +236,9 @@ export default function PostsClient() {
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>Published</span>
-                {posts.length > 0 && statusFilter === 'PUBLISHED' && (
+                {dashboardStats && dashboardStats.publishedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
-                    {posts.length}
+                    {dashboardStats.publishedCount}
                   </Badge>
                 )}
               </AnimatedTabsTrigger>
@@ -245,9 +248,9 @@ export default function PostsClient() {
               >
                 <XCircle className="h-4 w-4" />
                 <span>Failed</span>
-                {posts.length > 0 && statusFilter === 'FAILED' && (
+                {dashboardStats && dashboardStats.failedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
-                    {posts.length}
+                    {dashboardStats.failedCount}
                   </Badge>
                 )}
               </AnimatedTabsTrigger>
