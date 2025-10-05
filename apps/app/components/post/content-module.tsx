@@ -45,11 +45,6 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   const isGlobal = socialType === SocialTypes.DEFAULT;
   const isTwitter = socialType === SocialTypes.TWITTER;
-  const isVideoOnlyPlatform =
-    socialType === SocialTypes.TIKTOK ||
-    socialType === SocialTypes.YOUTUBE ||
-    socialType === SocialTypes.INSTAGRAM ||
-    socialType === SocialTypes.THREADS;
 
   const content = isGlobal
     ? post.content
@@ -268,21 +263,35 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   );
 
   // Check if we should use video-only layout
-  const hasVideoOnly =
-    isVideoOnlyPlatform &&
-    content.length > 0 &&
-    content[0].media.length > 0 &&
-    content[0].media[0].mediaType === 'VIDEO';
+  // TikTok/YouTube: Always show video layout (even without video to guide user)
+  // Instagram: Only show when video exists
+  const shouldShowVideoLayout = (() => {
+    if (socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE) {
+      return true;
+    }
+    if (socialType === SocialTypes.INSTAGRAM) {
+      return (
+        content.length > 0 &&
+        content[0].media.length > 0 &&
+        content[0].media[0].mediaType === 'VIDEO'
+      );
+    }
+    return false;
+  })();
 
-  if (hasVideoOnly) {
-    const videoMedia = content[0].media[0];
-    // Type assertion since we've already checked mediaType === 'VIDEO'
+  if (shouldShowVideoLayout) {
+    // Get video media if it exists, or undefined if not uploaded yet
+    const videoMedia =
+      content.length > 0 && content[0].media.length > 0 && content[0].media[0].mediaType === 'VIDEO'
+        ? content[0].media[0]
+        : undefined;
+
     return (
       <VideoContentLayout
         socialType={socialType}
-        videoMedia={videoMedia as { mediaType: 'VIDEO'; url?: string; bucketUrl?: string; bucketKey?: string; altText?: string; thumbnailBucketUrl?: string; thumbnailBucketKey?: string; }}
-        text={content[0].text}
-        title={content[0].title}
+        videoMedia={videoMedia as { mediaType: 'VIDEO'; url?: string; bucketUrl?: string; bucketKey?: string; altText?: string; thumbnailBucketUrl?: string; thumbnailBucketKey?: string; } | undefined}
+        text={content[0]?.text || ''}
+        title={content[0]?.title}
         onTextChange={(text) => handleTextChange(text, 0)}
         onTitleChange={
           socialType === SocialTypes.YOUTUBE

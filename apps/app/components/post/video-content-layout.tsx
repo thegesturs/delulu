@@ -25,7 +25,7 @@ interface VideoMedia {
 
 interface VideoContentLayoutProps {
   socialType: SocialType;
-  videoMedia: VideoMedia;
+  videoMedia?: VideoMedia; // Optional for TikTok/YouTube when no video uploaded yet
   text: string;
   title?: string;
   onTextChange: (text: string) => void;
@@ -136,15 +136,17 @@ export function VideoContentLayout({
     ? config.titleMaxLength - title.length
     : 0;
 
-  const videoUrl = getMediaUrlFromObject(videoMedia);
-  const hasThumbnail =
-    videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey;
-  const thumbnailUrl = hasThumbnail
-    ? getMediaUrlFromObject({
-        url: videoMedia.thumbnailBucketUrl,
-        bucketKey: videoMedia.thumbnailBucketKey,
-      })
-    : null;
+  const videoUrl = videoMedia ? getMediaUrlFromObject(videoMedia) : '';
+  const hasThumbnail = videoMedia
+    ? videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey
+    : false;
+  const thumbnailUrl =
+    hasThumbnail && videoMedia
+      ? getMediaUrlFromObject({
+          url: videoMedia.thumbnailBucketUrl,
+          bucketKey: videoMedia.thumbnailBucketKey,
+        })
+      : null;
 
   const videoAspectClass = config.isVertical ? 'aspect-[9/16]' : 'aspect-video';
 
@@ -163,26 +165,29 @@ export function VideoContentLayout({
                     Set
                   </Badge>
                 )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRemoveVideo}
-                  className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {videoUrl && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRemoveVideo}
+                    className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             </div>
             <button
               type="button"
-              onClick={() => setIsThumbnailDialogOpen(true)}
+              onClick={() => videoUrl && setIsThumbnailDialogOpen(true)}
+              disabled={!videoUrl}
               className={cn(
-                'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all hover:border-primary',
+                'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all',
                 videoAspectClass,
-                hasThumbnail
-                  ? 'border-border bg-black'
-                  : 'border-muted-foreground/25 bg-muted'
+                videoUrl
+                  ? 'border-border bg-black hover:border-primary'
+                  : 'cursor-not-allowed border-muted-foreground/25 bg-muted'
               )}
             >
               {hasThumbnail ? (
@@ -205,17 +210,40 @@ export function VideoContentLayout({
                     </div>
                   </div>
                 </>
+              ) : videoUrl ? (
+                <>
+                  {/* Show video when no thumbnail is set */}
+                  <video
+                    src={videoUrl}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                  >
+                    <track kind="captions" />
+                  </video>
+                  {/* Overlay with instruction */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="font-medium text-sm">
+                          Select Thumbnail
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <>
-                  {/* Placeholder when no thumbnail */}
+                  {/* Placeholder when no video uploaded */}
                   <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
                     <ImageIcon className="h-12 w-12 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-foreground text-sm">
-                        No Thumbnail Selected
+                        No Video Uploaded
                       </p>
                       <p className="text-muted-foreground text-xs">
-                        Click to select from video frames
+                        Upload a video first
                       </p>
                     </div>
                   </div>
@@ -228,6 +256,7 @@ export function VideoContentLayout({
               type="button"
               variant="outline"
               onClick={() => setIsThumbnailDialogOpen(true)}
+              disabled={!videoUrl}
               className="w-full"
             >
               <ImageIcon className="mr-2 h-4 w-4" />
@@ -316,17 +345,19 @@ export function VideoContentLayout({
       </div>
 
       {/* Thumbnail Selector Dialog */}
-      <VideoThumbnailSelector
-        videoUrl={videoUrl}
-        currentThumbnail={{
-          url: videoMedia.thumbnailBucketUrl,
-          bucketKey: videoMedia.thumbnailBucketKey,
-        }}
-        onThumbnailUpdate={onThumbnailUpdate}
-        isOpen={isThumbnailDialogOpen}
-        onClose={() => setIsThumbnailDialogOpen(false)}
-        isVertical={config.isVertical}
-      />
+      {videoUrl && (
+        <VideoThumbnailSelector
+          videoUrl={videoUrl}
+          currentThumbnail={{
+            url: videoMedia?.thumbnailBucketUrl,
+            bucketKey: videoMedia?.thumbnailBucketKey,
+          }}
+          onThumbnailUpdate={onThumbnailUpdate}
+          isOpen={isThumbnailDialogOpen}
+          onClose={() => setIsThumbnailDialogOpen(false)}
+          isVertical={config.isVertical}
+        />
+      )}
     </Card>
   );
 }
