@@ -48,6 +48,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const isVideoOnlyPlatform =
     socialType === SocialTypes.TIKTOK ||
     socialType === SocialTypes.YOUTUBE ||
+    socialType === SocialTypes.INSTAGRAM ||
     socialType === SocialTypes.THREADS;
 
   const content = isGlobal
@@ -245,50 +246,49 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
 
   if (hasVideoOnly) {
     const videoMedia = content[0].media[0];
-    if (videoMedia.mediaType === 'VIDEO') {
-      return (
-        <VideoContentLayout
-          socialType={socialType}
-          videoMedia={videoMedia}
-          text={content[0].text}
-          title={content[0].title}
-          onTextChange={(text) => handleTextChange(text, 0)}
-          onTitleChange={
-            socialType === SocialTypes.YOUTUBE
-              ? (title) => {
-                  if (isGlobal) {
-                    setPost({
-                      ...post,
-                      content: post.content.map((item) =>
-                        item.order === 0 ? { ...item, title } : item
-                      ),
-                    });
-                  } else {
-                    setPost({
-                      ...post,
-                      alternativeContent: post.alternativeContent.map((item) =>
-                        item.socialProvider.socialId === socialId
-                          ? {
-                              ...item,
-                              content: item.content.map((contentItem) =>
-                                contentItem.order === 0
-                                  ? { ...contentItem, title }
-                                  : contentItem
-                              ),
-                            }
-                          : item
-                      ),
-                    });
-                  }
+    // Type assertion since we've already checked mediaType === 'VIDEO'
+    return (
+      <VideoContentLayout
+        socialType={socialType}
+        videoMedia={videoMedia as { mediaType: 'VIDEO'; url?: string; bucketUrl?: string; bucketKey?: string; altText?: string; thumbnailBucketUrl?: string; thumbnailBucketKey?: string; }}
+        text={content[0].text}
+        title={content[0].title}
+        onTextChange={(text) => handleTextChange(text, 0)}
+        onTitleChange={
+          socialType === SocialTypes.YOUTUBE
+            ? (title) => {
+                if (isGlobal) {
+                  setPost({
+                    ...post,
+                    content: post.content.map((item) =>
+                      item.order === 0 ? { ...item, title } : item
+                    ),
+                  });
+                } else {
+                  setPost({
+                    ...post,
+                    alternativeContent: post.alternativeContent.map((item) =>
+                      item.socialProvider.socialId === socialId
+                        ? {
+                            ...item,
+                            content: item.content.map((contentItem) =>
+                              contentItem.order === 0
+                                ? { ...contentItem, title }
+                                : contentItem
+                            ),
+                          }
+                        : item
+                    ),
+                  });
                 }
-              : undefined
-          }
-          onThumbnailUpdate={(thumbnail) =>
-            handleThumbnailUpdate(0, thumbnail)
-          }
-        />
-      );
-    }
+              }
+            : undefined
+        }
+        onThumbnailUpdate={(thumbnail) =>
+          handleThumbnailUpdate(0, thumbnail)
+        }
+      />
+    );
   }
 
   return (
