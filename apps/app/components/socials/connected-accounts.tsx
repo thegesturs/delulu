@@ -2,7 +2,8 @@
 import type { SocialProvider } from '@/types/convex';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
+import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -111,8 +112,8 @@ export default function ConnectedAccounts() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="h-screen bg-background">
+      <div className="mx-auto flex max-w-6xl flex-col space-y-6 p-6">
         <ConnectedAccountsHeader />
         <AccountStats stats={stats} />
         <AccountFilters

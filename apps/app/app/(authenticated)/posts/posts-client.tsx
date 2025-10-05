@@ -13,7 +13,8 @@ import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
-import { usePaginatedQuery, useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
+import { usePaginatedQuery } from 'convex/react';
 import {
   Calendar,
   CheckCircle,

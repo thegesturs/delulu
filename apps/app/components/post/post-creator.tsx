@@ -8,7 +8,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@delulu/design-system/components/ui/tabs';
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getSingleProviderInDefault } from '@/lib/platform-rules';

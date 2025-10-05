@@ -5,7 +5,7 @@ import { PlatformHealthAlert } from '@/components/dashboard/platform-health-aler
 import { UpcomingSchedule } from '@/components/dashboard/upcoming-schedule';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../../components/layout/header';

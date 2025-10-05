@@ -2,7 +2,7 @@
 
 import { usePost, useSelectedSocialProviders } from '@/store/post';
 import { api } from '@delulu/database/convex/_generated/api';
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 import {
   Bookmark,
   Heart,

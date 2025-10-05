@@ -2,6 +2,7 @@
 
 import type { SocialProvider } from '@/types/convex';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { cn } from '@delulu/design-system/lib/utils';
 import { Search } from 'lucide-react';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
 
@@ -32,11 +33,12 @@ export function AccountList({
 
   return (
     <div
-      className={
-        viewMode === 'grid'
-          ? 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'
-          : 'space-y-3'
-      }
+      className={cn(
+        viewMode === 'grid' &&
+          'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
+        viewMode === 'list' && 'space-y-3',
+        'max-h-[calc(100vh-370px)] space-y-2 overflow-auto py-2'
+      )}
     >
       {accounts.map((account) => (
         <AccountCard key={account._id} account={account} onDelete={onDelete} />
