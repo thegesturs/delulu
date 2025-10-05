@@ -110,20 +110,21 @@ export const PLATFORM_MEDIA_RULES: Record<SocialType, PlatformMediaRules> = {
 // CHARACTER LIMITS
 // ============================================================================
 
-export const PLATFORM_CHARACTER_LIMITS: Record<SocialType, number | undefined> = {
-  [SocialTypes.TWITTER]: 280,
-  [SocialTypes.THREADS]: 500,
-  [SocialTypes.INSTAGRAM]: 2200,
-  [SocialTypes.TIKTOK]: 2200,
-  [SocialTypes.YOUTUBE]: 5000,
-  [SocialTypes.LINKEDIN]: 3000,
-  [SocialTypes.FACEBOOK]: 63206,
-  [SocialTypes.PINTEREST]: 500,
-  [SocialTypes.FARCASTER]: 320,
-  [SocialTypes.BLUESKY]: 300,
-  [SocialTypes.LENS]: 500,
-  [SocialTypes.DEFAULT]: undefined,
-};
+export const PLATFORM_CHARACTER_LIMITS: Record<SocialType, number | undefined> =
+  {
+    [SocialTypes.TWITTER]: 280,
+    [SocialTypes.THREADS]: 500,
+    [SocialTypes.INSTAGRAM]: 2200,
+    [SocialTypes.TIKTOK]: 2200,
+    [SocialTypes.YOUTUBE]: 5000,
+    [SocialTypes.LINKEDIN]: 3000,
+    [SocialTypes.FACEBOOK]: 63206,
+    [SocialTypes.PINTEREST]: 500,
+    [SocialTypes.FARCASTER]: 320,
+    [SocialTypes.BLUESKY]: 300,
+    [SocialTypes.LENS]: 500,
+    [SocialTypes.DEFAULT]: undefined,
+  };
 
 // ============================================================================
 // IMAGE COUNT LIMITS
@@ -214,10 +215,10 @@ export function shouldDefaultUseVideoLayout(
     return false;
   }
 
-  const videoPlatforms: SocialType[] = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE];
+  const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
 
   return platformsInDefault.every((platform) =>
-    videoPlatforms.includes(platform)
+    (videoPlatforms as readonly SocialType[]).includes(platform)
   );
 }
 
@@ -298,12 +299,12 @@ export function getDefaultPlaceholder(
 export function doesDefaultRequireVideo(
   platformsInDefault: SocialType[]
 ): boolean {
-  const videoRequiredPlatforms: SocialType[] = [
+  const videoRequiredPlatforms = [
     SocialTypes.TIKTOK,
     SocialTypes.YOUTUBE,
-  ];
+  ] as const;
   return platformsInDefault.some((platform) =>
-    videoRequiredPlatforms.includes(platform)
+    (videoRequiredPlatforms as readonly SocialType[]).includes(platform)
   );
 }
 
