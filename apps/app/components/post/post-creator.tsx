@@ -11,6 +11,7 @@ import {
 import { useQuery } from 'convex/react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { getSingleProviderInDefault } from '@/lib/platform-rules';
 import {
   useAlternativeContent,
   useSelectedSocialProviders,
@@ -33,6 +34,13 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
   const loadPost = useStore((state) => state.loadPost);
+  const post = useStore((state) => state.post);
+
+  // Get single provider in default for smart labeling
+  const singleProviderInDefault = getSingleProviderInDefault(
+    socialProviders,
+    alternativeContent
+  );
 
   // Fetch post data if in edit mode
   const postData = useQuery(
@@ -101,7 +109,19 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
-            <TabsTrigger value="global">Global</TabsTrigger>
+            <TabsTrigger value="global" className={cn(singleProviderInDefault && 'min-w-fit gap-2 text-xs')}>
+              {singleProviderInDefault ? (
+                <>
+                  <SocialIcon
+                    type={singleProviderInDefault.socialType}
+                    className="size-4"
+                  />
+                  {singleProviderInDefault.name}
+                </>
+              ) : (
+                'Global'
+              )}
+            </TabsTrigger>
             {alternativeContent.map((content) => (
               <TabsTrigger
                 key={content.socialProvider.socialId}

@@ -2,7 +2,6 @@
 
 import { DashboardStatsClient } from '@/components/dashboard/dashboard-stats';
 import { PlatformHealthAlert } from '@/components/dashboard/platform-health-alert';
-import { RecentPostsSection } from '@/components/dashboard/recent-posts-section';
 import { UpcomingSchedule } from '@/components/dashboard/upcoming-schedule';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -24,11 +23,10 @@ function DashboardClient() {
   // const failedPosts = useQuery(api.stats.getFailedPosts);
   const upcomingPosts = useQuery(api.stats.getUpcomingPosts, { days: 7 });
 
-  const posts = recentPosts?.page || [];
   const isLoading = !dashboardStats || !recentPosts;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-2 overflow-auto p-8">
       <Header pages={['Dashboard']} page="Overview">
         <Button onClick={() => router.push('/post')}>
           <Plus className="mr-2 h-4 w-4" />
@@ -37,7 +35,7 @@ function DashboardClient() {
       </Header>
 
       {/* Alerts Section - Critical information first */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {/* <FailedPostsAlert failedPosts={failedPosts || []} /> */}
         <PlatformHealthAlert
           expiredTokens={dashboardStats?.expiredTokens || 0}
@@ -70,7 +68,7 @@ function DashboardClient() {
       />
 
       {/* Recent Posts - Full width for better visibility */}
-      <RecentPostsSection posts={posts} isLoading={isLoading} />
+      {/* <RecentPostsSection posts={posts} isLoading={isLoading} /> */}
 
       {/* Schedule Section - Full width for better visibility */}
       <UpcomingSchedule upcomingPosts={upcomingPosts ?? []} />
@@ -80,7 +78,7 @@ function DashboardClient() {
 
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-auto bg-background">
       <DashboardClient />
     </div>
   );

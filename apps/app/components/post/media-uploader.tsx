@@ -15,7 +15,10 @@ import { toast } from 'sonner';
 
 import { useMediaStorage } from '@/hooks/use-media-storage';
 import { getMediaUrlFromObject } from '@/lib/media-url';
-import { validateTikTokVideo } from '@/lib/video-validation';
+import {
+  getMediaRequirementMessage,
+  validateTikTokVideo,
+} from '@/lib/platform-rules';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';
@@ -156,15 +159,28 @@ function getPlatformConfig(
   let uploadInstruction = 'Drag and drop your media here, or';
   let countInstruction = '';
   let aspectRatioInstruction = '';
-  let platformHint = 'Twitter/LinkedIn: Up to 4 images OR 1 video.';
 
-  if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
+  // Get platform requirement message from validation utility
+  const platformHint = getMediaRequirementMessage(socialType);
+
+  if (socialType === 'TIKTOK') {
     maxImages = 1;
     maxVideos = 1;
     acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
-    uploadInstruction = 'Upload 1 video (16:9) and 1 optional thumbnail';
-    aspectRatioInstruction = 'Video: 16:9, Thumbnail: Image';
-    platformHint = 'TikTok/YouTube: 1 video (16:9) & 1 thumbnail.';
+    uploadInstruction = 'Upload 1 vertical video (9:16) and 1 optional thumbnail';
+    aspectRatioInstruction = 'Video: 9:16 vertical, Thumbnail: Square';
+    if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
+      acceptedFileTypes = 'image/jpeg,image/png';
+    } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
+      acceptedFileTypes = 'video/mp4,video/quicktime';
+    }
+    countInstruction = `${currentImageCount}/${maxImages} thumbnail, ${currentVideoCount}/${maxVideos} video.`;
+  } else if (socialType === 'YOUTUBE') {
+    maxImages = 1;
+    maxVideos = 1;
+    acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
+    uploadInstruction = 'Upload 1 vertical video (9:16) for YouTube Shorts';
+    aspectRatioInstruction = 'Video: 9:16 vertical, max 60 seconds';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       acceptedFileTypes = 'image/jpeg,image/png';
     } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
@@ -172,21 +188,21 @@ function getPlatformConfig(
     }
     countInstruction = `${currentImageCount}/${maxImages} thumbnail, ${currentVideoCount}/${maxVideos} video.`;
   } else if (socialType === 'INSTAGRAM') {
-    platformHint = 'Instagram: Up to 10 images OR 1 video.';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       maxImages = 0;
       acceptedFileTypes = 'video/*';
-      countInstruction = '1/1 video. No images allowed with video.';
+      countInstruction = '1/1 Reel video (9:16 vertical). No images with video.';
+      aspectRatioInstruction = 'Video: 9:16 vertical, max 90 seconds';
     } else if (
       mediaFiles.length > 0 &&
       mediaFiles.every((f) => f.mediaType === 'IMAGE')
     ) {
       maxVideos = 0;
       acceptedFileTypes = 'image/*';
-      countInstruction = `${currentImageCount}/${maxImages} images. Max 1 video (no images).`;
+      countInstruction = `${currentImageCount}/${maxImages} images. Max 1 Reel (no images).`;
     } else if (mediaFiles.length === 0) {
       acceptedFileTypes = 'image/*,video/*';
-      countInstruction = `Up to ${maxImages} images OR 1 video.`;
+      countInstruction = `Up to ${maxImages} images OR 1 Reel (9:16 vertical).`;
     }
   } else {
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
@@ -221,6 +237,7 @@ interface UploadZoneProps {
   platformHint: string;
   multiple: boolean;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  socialType: SocialType;
 }
 
 function UploadZone({
@@ -236,7 +253,13 @@ function UploadZone({
   platformHint,
   multiple,
   onFileInput,
+  socialType,
 }: UploadZoneProps) {
+  // Determine if this platform requires media
+  const requiresVideo =
+    socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE;
+  const requiresEither = socialType === SocialTypes.INSTAGRAM;
+
   return (
     <motion.div
       className={cn(
@@ -282,6 +305,15 @@ function UploadZone({
           <p className="mt-1 text-muted-foreground text-xs">
             {aspectRatioInstruction}
           </p>
+        )}
+        {(requiresVideo || requiresEither) && (
+          <div className="mt-3 rounded-md bg-muted px-3 py-2">
+            <p className="text-foreground text-xs">
+              {requiresVideo && '⚠️ '}
+              {requiresEither && 'ℹ️ '}
+              {platformHint}
+            </p>
+          </div>
         )}
       </div>
     </motion.div>
@@ -701,28 +733,36 @@ export function MediaUploader({
   );
 
   const getAddButtonAspectRatio = () => {
-    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
+    if (
+      socialType === 'TIKTOK' ||
+      socialType === 'YOUTUBE' ||
+      socialType === 'INSTAGRAM'
+    ) {
       const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
       const hasImage = mediaFiles.some((f) => f.mediaType === 'IMAGE');
       if (!hasVideo && !hasImage) {
-        return 'aspect-video sm:aspect-square';
+        return 'aspect-[9/16]';
       }
       if (!hasVideo) {
-        return 'aspect-video';
+        return 'aspect-[9/16]'; // Vertical for video platforms
       }
       if (!hasImage) {
-        return 'aspect-square';
+        return 'aspect-square'; // Square for thumbnail
       }
     }
     return 'aspect-square';
   };
 
   const getPreviewAspectRatio = (mediaType: 'IMAGE' | 'VIDEO') => {
-    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
+    if (
+      socialType === 'TIKTOK' ||
+      socialType === 'YOUTUBE' ||
+      socialType === 'INSTAGRAM'
+    ) {
       if (mediaType === 'VIDEO') {
-        return 'aspect-video';
+        return 'aspect-[9/16]'; // Vertical video
       }
-      return 'aspect-square';
+      return 'aspect-square'; // Square thumbnail
     }
     return 'aspect-square';
   };
@@ -774,6 +814,7 @@ export function MediaUploader({
               )
             }
             onFileInput={handleFileInput}
+            socialType={socialType}
           />
 
           <div className="flex items-center space-x-2">

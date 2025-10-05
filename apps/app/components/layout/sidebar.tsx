@@ -13,22 +13,24 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
-import { cn } from '@delulu/design-system/lib/utils';
 import {
-  BookOpenIcon,
-  CalendarIcon,
-  LayoutDashboardIcon,
-  LineChartIcon,
-  PencilIcon,
-} from 'lucide-react';
+  Calendar,
+  Draft,
+  Home,
+  Network,
+  Pencil,
+} from '@delulu/design-system/icons';
+import { cn } from '@delulu/design-system/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 // import { OrganizationSwitcher } from './organization-switcher';
 
 // Custom hook to detect screens below lg breakpoint (1024px)
 const useIsSmallScreen = () => {
-  const [isSmallScreen, setIsSmallScreen] = useState<boolean | undefined>(undefined);
+  const [isSmallScreen, setIsSmallScreen] = useState<boolean | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     const LG_BREAKPOINT = 1300;
@@ -52,22 +54,22 @@ const navigationItems = [
   {
     title: 'Dashboard',
     url: '/',
-    icon: LayoutDashboardIcon,
+    icon: Home,
   },
   {
     title: 'Posts',
     url: '/posts',
-    icon: BookOpenIcon,
+    icon: Draft,
   },
   {
     title: 'Calendar',
     url: '/calendar',
-    icon: CalendarIcon,
+    icon: Calendar,
   },
   {
     title: 'Connected Accounts',
     url: '/socials',
-    icon: LineChartIcon,
+    icon: Network,
   },
 ];
 
@@ -115,7 +117,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             className="flex w-full items-center group-data-[state=collapsed]:hidden"
           >
             <Link href="/post">
-              <PencilIcon className="mr-2 h-4 w-4" />
+              <span className="mr-2 flex h-4 w-4 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
+                <Pencil />
+              </span>
               Create Post
             </Link>
           </Button>
@@ -125,7 +129,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             className="w-full group-data-[state=expanded]:hidden"
           >
             <Link href="/post">
-              <PencilIcon className="h-5 w-5" />
+              <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                <Pencil />
+              </span>
             </Link>
           </Button>
         </SidebarHeader>
@@ -138,9 +144,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   asChild
                   size="lg"
                   className={cn(
-                    'group rounded-md px-3 transition-all hover:bg-accent hover:shadow-bevel-accent group-data-[state=collapsed]:hover:shadow-none',
+                    'group/menu ease relative mb-1 select-none rounded-md px-3 py-2.5 transition-colors duration-100 hover:bg-accent hover:text-primary-foreground ',
                     pathname === item.url &&
-                      'bg-accent text-accent-foreground shadow-bevel-secondary group-data-[state=collapsed]:shadow-none',
+                      "bg-[#F9F9FA] shadow-[0px_11px_4px_rgba(7,7,8,0.01),0px_6px_4px_rgba(7,7,8,0.02),0px_3px_3px_rgba(7,7,8,0.04),0px_1px_1px_rgba(7,7,8,0.05)] before:absolute before:inset-0 before:rounded-md before:border before:border-white/5 before:content-[''] after:absolute after:inset-0 after:rounded-md after:bg-[radial-gradient(at_top,rgba(255,255,255,0.05)_5%,rgba(255,255,255,0)_100%)] after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.06)] after:content-[''] dark:bg-[#2A2A2A] dark:shadow-md dark:after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.3)]",
                     'group-data-[state=collapsed]:justify-center'
                   )}
                   tooltip={{
@@ -153,23 +159,18 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   <Link
                     href={item.url}
                     className={cn(
-                      'py-3',
-                      'flex group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0'
+                      'relative z-10 flex py-3',
+                      'group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0'
                     )}
                   >
-                    <item.icon
-                      className={cn(
-                        'h-5 w-5',
-                        pathname === item.url
-                          ? 'text-primary'
-                          : 'text-foreground'
-                      )}
-                    />
+                    <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                      <item.icon />
+                    </span>
                     <span
                       className={cn(
-                        'ml-3 text-base',
-                        pathname === item.url && 'font-medium',
-                        'group-data-[state=collapsed]:hidden'
+                        'ml-3 font-medium text-muted-foreground text-sm',
+                        'group-hover/menu:text-foreground group-data-[state=collapsed]:hidden',
+                        pathname === item.url && 'text-foreground'
                       )}
                     >
                       {item.title}
@@ -185,7 +186,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                   asChild
                   size="lg"
                   className={cn(
-                    'group rounded-lg px-3 transition-all hover:bg-accent hover:shadow-bevel-accent',
+                    'group rounded-md-lg px-3 transition-all hover:bg-accent hover:shadow-bevel-accent',
                     pathname === item.url &&
                       'bg-accent text-accent-foreground shadow-bevel-secondary',
                     'group-data-[state=collapsed]:justify-center'
@@ -263,7 +264,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="dark:border">{children}</SidebarInset>
+      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden dark:border">
+        {children}
+      </SidebarInset>
     </>
   );
 };

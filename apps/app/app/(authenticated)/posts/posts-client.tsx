@@ -1,34 +1,41 @@
 'use client';
 
-import { Header } from '@/components/layout/header';
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@delulu/database/convex/_generated/api';
-import { POST_STATUS, type PostStatus } from '@delulu/database/convex/schemas';
+import type { PostStatus } from '@delulu/database/convex/schemas';
+import {
+  AnimatedTabs,
+  AnimatedTabsList,
+  AnimatedTabsTrigger,
+} from '@delulu/design-system/components/ui/animated-tabs';
+import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@delulu/design-system/components/ui/select';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
-import { usePaginatedQuery } from 'convex/react';
-import { LayoutGrid, List, Plus } from 'lucide-react';
+import { usePaginatedQuery, useQuery } from 'convex/react';
+import {
+  Calendar,
+  CheckCircle,
+  FileText,
+  LayoutGrid,
+  List,
+  Plus,
+  XCircle,
+} from 'lucide-react';
+import Link from 'next/link';
 import React, { useEffect } from 'react';
 import PostLoading from './post-loading';
 
-type PostStatusFilterType = 'all' | PostStatus;
+type PostStatusFilterType = PostStatus;
 const ITEMS_PER_PAGE = 10;
 
 export default function PostsClient() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] =
-    React.useState<PostStatusFilterType>('all');
-  const [layout, setLayout] = React.useState<PostLayout>('grid');
+    React.useState<PostStatusFilterType>('SAVED');
+  const [layout, setLayout] = React.useState<PostLayout>('list');
 
   // Debounce search term to avoid too many queries
   React.useEffect(() => {
@@ -42,11 +49,14 @@ export default function PostsClient() {
   const { results, status, loadMore } = usePaginatedQuery(
     api.posts.getPosts,
     {
-      status: statusFilter !== 'all' ? statusFilter : undefined,
+      status: statusFilter,
       searchTerm: debouncedSearchTerm.trim() || undefined,
     },
     { initialNumItems: ITEMS_PER_PAGE }
   );
+
+  // Fetch dashboard stats for accurate badge counts
+  const dashboardStats = useQuery(api.stats.getDashboardStats);
 
   const isLoading = status === 'LoadingMore' || !results;
   const hasError = status === 'LoadingFirstPage' && results === undefined;
@@ -77,50 +87,204 @@ export default function PostsClient() {
 
   if (!results && isLoading) {
     return (
-      <div className="space-y-4 p-8">
-        <Header pages={['Posts']} page="Posts">
-          <Button
-            onClick={() => {
-              /* TODO: Navigate to create post page */
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Post
-          </Button>
-        </Header>
+      <div>
+        <div className="border-b">
+          <div className="container flex items-center justify-between py-3">
+            <AnimatedTabs value={statusFilter} className="flex-1">
+              <AnimatedTabsList>
+                <AnimatedTabsTrigger
+                  value="SAVED"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Draft</span>
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
+                  value="SCHEDULED"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>Scheduled</span>
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
+                  value="PUBLISHED"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Published</span>
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger
+                  value="FAILED"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                >
+                  <XCircle className="h-4 w-4" />
+                  <span>Failed</span>
+                </AnimatedTabsTrigger>
+              </AnimatedTabsList>
+            </AnimatedTabs>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Post
+            </Button>
+          </div>
+        </div>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="container space-y-4 py-4">
+          <div className="flex items-center justify-between gap-4">
             <Input
               placeholder="Search posts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
             />
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as PostStatusFilterType)
-              }
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Posts</SelectItem>
-                {Object.values(POST_STATUS).map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status.charAt(0) + status.slice(1).toLowerCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-1 rounded-lg border p-1">
+              <Toggle
+                pressed={layout === 'grid'}
+                onPressedChange={() => setLayout('grid')}
+                aria-label="Grid view"
+                size="sm"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Toggle>
+              <Toggle
+                pressed={layout === 'list'}
+                onPressedChange={() => setLayout('list')}
+                aria-label="List view"
+                size="sm"
+              >
+                <List className="h-4 w-4" />
+              </Toggle>
+            </div>
           </div>
-          <div className="flex items-center gap-1 rounded-lg border">
+          <PostLoading layout={layout} />
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div>
+        <div className="border-b">
+          <div className="container flex items-center justify-between py-3">
+            <AnimatedTabs value={statusFilter} className="flex-1">
+              <AnimatedTabsList>
+                <AnimatedTabsTrigger
+                  value="SAVED"
+                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Draft</span>
+                </AnimatedTabsTrigger>
+              </AnimatedTabsList>
+            </AnimatedTabs>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Post
+            </Button>
+          </div>
+        </div>
+        <div className="container py-4">
+          <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
+            <h3 className="font-semibold">Error loading posts</h3>
+            <p>Failed to load posts. Please try again later.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-b">
+        <div className="flex items-center justify-between">
+          <AnimatedTabs
+            value={statusFilter}
+            onValueChange={(value) =>
+              setStatusFilter(value as PostStatusFilterType)
+            }
+            className="flex-1 pt-3"
+          >
+            <AnimatedTabsList>
+              <AnimatedTabsTrigger
+                value="SAVED"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Draft</span>
+                {dashboardStats && dashboardStats.savedCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5">
+                    {dashboardStats.savedCount}
+                  </Badge>
+                )}
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
+                value="SCHEDULED"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Scheduled</span>
+                {dashboardStats && dashboardStats.scheduledCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5">
+                    {dashboardStats.scheduledCount}
+                  </Badge>
+                )}
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
+                value="PUBLISHED"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>Published</span>
+                {dashboardStats && dashboardStats.publishedCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5">
+                    {dashboardStats.publishedCount}
+                  </Badge>
+                )}
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
+                value="FAILED"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+              >
+                <XCircle className="h-4 w-4" />
+                <span>Failed</span>
+                {dashboardStats && dashboardStats.failedCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5">
+                    {dashboardStats.failedCount}
+                  </Badge>
+                )}
+              </AnimatedTabsTrigger>
+            </AnimatedTabsList>
+          </AnimatedTabs>
+
+          <Button
+            size={'sm'}
+            asChild
+            className="mx-2 ml-auto"
+            variant={'secondary'}
+          >
+            <Link href={'/posts/create'}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add Post
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-auto p-4">
+        <div className="flex items-center justify-between gap-4">
+          <Input
+            placeholder="Search posts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+          <div className="flex items-center gap-1 rounded-lg border p-1">
             <Toggle
               pressed={layout === 'grid'}
               onPressedChange={() => setLayout('grid')}
               aria-label="Grid view"
+              size="sm"
             >
               <LayoutGrid className="h-4 w-4" />
             </Toggle>
@@ -128,121 +292,40 @@ export default function PostsClient() {
               pressed={layout === 'list'}
               onPressedChange={() => setLayout('list')}
               aria-label="List view"
+              size="sm"
             >
               <List className="h-4 w-4" />
             </Toggle>
           </div>
         </div>
-        <PostLoading />
+
+        {posts.length === 0 && !isLoading && (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">
+              No posts found. Try creating a new post.
+            </p>
+          </div>
+        )}
+        {posts.length > 0 && (
+          <>
+            <PostsView posts={posts} layout={layout} />
+            {/* Loading indicator */}
+            {status === 'LoadingMore' && (
+              <div className="py-4">
+                <PostLoading layout={layout} />
+              </div>
+            )}
+            {/* Intersection observer target */}
+            {hasMore && (
+              <div
+                ref={observerTarget}
+                className="h-4 w-full"
+                aria-hidden="true"
+              />
+            )}
+          </>
+        )}
       </div>
-    );
-  }
-
-  if (hasError) {
-    return (
-      <div className="space-y-4 p-8">
-        <Header pages={['Posts']} page="Posts">
-          <Button
-            onClick={() => {
-              /* TODO: Navigate to create post page */
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Post
-          </Button>
-        </Header>
-        <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
-          <h3 className="font-semibold">Error loading posts</h3>
-          <p>Failed to load posts. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4 p-8">
-      <Header pages={['Posts']} page="Posts">
-        <Button
-          onClick={() => {
-            /* TODO: Navigate to create post page */
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create Post
-        </Button>
-      </Header>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Input
-            placeholder="Search posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-          <Select
-            value={statusFilter}
-            onValueChange={(value) =>
-              setStatusFilter(value as PostStatusFilterType)
-            }
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Posts</SelectItem>
-              {Object.values(POST_STATUS).map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg border">
-          <Toggle
-            pressed={layout === 'grid'}
-            onPressedChange={() => setLayout('grid')}
-            aria-label="Grid view"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Toggle>
-          <Toggle
-            pressed={layout === 'list'}
-            onPressedChange={() => setLayout('list')}
-            aria-label="List view"
-          >
-            <List className="h-4 w-4" />
-          </Toggle>
-        </div>
-      </div>
-
-      {posts.length === 0 && !isLoading && (
-        <div className="py-8 text-center">
-          <p className="text-lg text-muted-foreground">
-            No posts found. Try adjusting your filters or creating a new post.
-          </p>
-        </div>
-      )}
-      {posts.length > 0 && (
-        <>
-          <PostsView posts={posts} layout={layout} />
-          {/* Loading indicator */}
-          {status === 'LoadingMore' && (
-            <div className="py-4">
-              <PostLoading />
-            </div>
-          )}
-          {/* Intersection observer target */}
-          {hasMore && (
-            <div
-              ref={observerTarget}
-              className="h-4 w-full"
-              aria-hidden="true"
-            />
-          )}
-        </>
-      )}
     </div>
   );
 }
