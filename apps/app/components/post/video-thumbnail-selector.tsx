@@ -38,6 +38,7 @@ interface VideoThumbnailSelectorProps {
   }) => void;
   isOpen: boolean;
   onClose: () => void;
+  isVertical?: boolean; // Whether video is vertical (9:16) or horizontal (16:9)
 }
 
 export function VideoThumbnailSelector({
@@ -47,6 +48,7 @@ export function VideoThumbnailSelector({
   onThumbnailUpdate,
   isOpen,
   onClose,
+  isVertical = true, // Default to vertical for shorts/reels/tiktok
 }: VideoThumbnailSelectorProps) {
   const [selectedFrame, setSelectedFrame] = useState<VideoFrameResult | null>(
     null
@@ -179,6 +181,7 @@ export function VideoThumbnailSelector({
 
   const displayThumbnail = customThumbnail || selectedFrame?.dataUrl;
   const hasThumbnail = currentThumbnail?.url || currentThumbnail?.bucketKey;
+  const videoAspectClass = isVertical ? 'aspect-[9/16]' : 'aspect-video';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -191,9 +194,13 @@ export function VideoThumbnailSelector({
         </DialogHeader>
 
         <div className="space-y-4">
-
           {/* Video Player */}
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+          <div
+            className={cn(
+              'relative mx-auto max-w-md overflow-hidden rounded-lg bg-black',
+              videoAspectClass
+            )}
+          >
             <video
               ref={videoRef}
               src={getMediaUrlFromObject({
@@ -231,7 +238,7 @@ export function VideoThumbnailSelector({
                 <p className="text-muted-foreground text-xs">
                   Or select from generated previews:
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                   {thumbnailPreviews.map((preview, index) => (
                     <button
                       key={index}
@@ -241,7 +248,8 @@ export function VideoThumbnailSelector({
                         setCustomThumbnail(null);
                       }}
                       className={cn(
-                        'group relative aspect-video overflow-hidden rounded-lg border-2 transition-all',
+                        'group relative overflow-hidden rounded-lg border-2 transition-all',
+                        isVertical ? 'aspect-[9/16]' : 'aspect-video',
                         selectedFrame === preview && !customThumbnail
                           ? 'border-primary'
                           : 'border-border hover:border-input'
@@ -295,7 +303,12 @@ export function VideoThumbnailSelector({
               <p className="text-muted-foreground text-xs">
                 Selected thumbnail:
               </p>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
+              <div
+                className={cn(
+                  'relative mx-auto max-w-md overflow-hidden rounded-lg border border-border',
+                  videoAspectClass
+                )}
+              >
                 <img
                   src={displayThumbnail}
                   alt="Selected thumbnail"
@@ -330,7 +343,12 @@ export function VideoThumbnailSelector({
               <p className="text-muted-foreground text-xs">
                 Current thumbnail:
               </p>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
+              <div
+                className={cn(
+                  'relative mx-auto max-w-md overflow-hidden rounded-lg border border-border',
+                  videoAspectClass
+                )}
+              >
                 <img
                   src={getMediaUrlFromObject({
                     url: currentThumbnail?.url,

@@ -47,7 +47,8 @@ function getPlatformConfig(socialType: SocialType) {
         maxLength: 2200,
         showTitle: false,
         showCharCount: true,
-        requirements: 'Max 2,200 characters, vertical video recommended',
+        requirements: 'Max 2,200 characters, vertical 9:16 video',
+        isVertical: true,
       };
     case SocialTypes.YOUTUBE:
       return {
@@ -55,10 +56,11 @@ function getPlatformConfig(socialType: SocialType) {
         captionPlaceholder: 'Describe your video...',
         maxLength: 5000,
         showTitle: true,
-        titlePlaceholder: 'Video title (max 100 characters)',
+        titlePlaceholder: 'YouTube Shorts title (max 100 characters)',
         titleMaxLength: 100,
         showCharCount: true,
-        requirements: 'Title required, max 5,000 character description',
+        requirements: 'YouTube Shorts: 9:16 vertical video, max 60 seconds',
+        isVertical: true,
       };
     case SocialTypes.THREADS:
       return {
@@ -68,15 +70,17 @@ function getPlatformConfig(socialType: SocialType) {
         showTitle: false,
         showCharCount: true,
         requirements: 'Max 500 characters',
+        isVertical: false,
       };
     case SocialTypes.INSTAGRAM:
       return {
         captionLabel: 'Caption',
-        captionPlaceholder: 'Write a caption...',
+        captionPlaceholder: 'Write a caption for your Reel...',
         maxLength: 2200,
         showTitle: false,
         showCharCount: true,
-        requirements: 'Max 2,200 characters, square or vertical recommended',
+        requirements: 'Instagram Reels: 9:16 vertical video, max 90 seconds',
+        isVertical: true,
       };
     default:
       return {
@@ -86,6 +90,7 @@ function getPlatformConfig(socialType: SocialType) {
         showTitle: false,
         showCharCount: false,
         requirements: '',
+        isVertical: false,
       };
   }
 }
@@ -133,6 +138,8 @@ export function VideoContentLayout({
   const hasThumbnail =
     videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey;
 
+  const videoAspectClass = config.isVertical ? 'aspect-[9/16]' : 'aspect-video';
+
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
       <div className="grid gap-6 lg:grid-cols-2">
@@ -148,7 +155,12 @@ export function VideoContentLayout({
                 </Badge>
               )}
             </div>
-            <div className="group relative aspect-video overflow-hidden rounded-lg bg-black">
+            <div
+              className={cn(
+                'group relative mx-auto max-w-sm overflow-hidden rounded-lg bg-black',
+                videoAspectClass
+              )}
+            >
               <video
                 src={videoUrl}
                 className="h-full w-full object-contain"
@@ -277,6 +289,7 @@ export function VideoContentLayout({
         onThumbnailUpdate={onThumbnailUpdate}
         isOpen={isThumbnailDialogOpen}
         onClose={() => setIsThumbnailDialogOpen(false)}
+        isVertical={config.isVertical}
       />
     </Card>
   );
