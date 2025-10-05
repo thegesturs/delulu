@@ -14,7 +14,7 @@ import {
   getPlatformsInDefault,
   shouldDefaultUseVideoLayout,
   shouldShowYouTubeTitle,
-} from '@/lib/default-platform-rules';
+} from '@/lib/platform-rules';
 import { useSelectedSocialProviders, useStore } from '@/store/post';
 import { cn } from '@delulu/design-system/lib/utils';
 import { useShallow } from 'zustand/shallow';

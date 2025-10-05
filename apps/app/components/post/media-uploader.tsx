@@ -15,8 +15,10 @@ import { toast } from 'sonner';
 
 import { useMediaStorage } from '@/hooks/use-media-storage';
 import { getMediaUrlFromObject } from '@/lib/media-url';
-import { getMediaRequirementMessage } from '@/lib/platform-validation';
-import { validateTikTokVideo } from '@/lib/video-validation';
+import {
+  getMediaRequirementMessage,
+  validateTikTokVideo,
+} from '@/lib/platform-rules';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { cn } from '@delulu/design-system/lib/utils';

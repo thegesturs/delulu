@@ -7,31 +7,40 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@delulu/design-system/components/ui/tooltip';
 import type { SocialType } from '@delulu/validators/post';
 
-import { useStore } from '@/store/post';
+import { getPlatformsInDefault } from '@/lib/platform-rules';
+import { useSelectedSocialProviders, useStore } from '@/store/post';
 import { ArrowDown } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 import { SocialIcon } from './sidebar/social-icon';
 
 export function AlternativeContentSelector() {
-  const { post, socialProviders, setPost } = useStore(
+  const { post, setPost } = useStore(
     useShallow((state) => ({
       post: state.post,
-      socialProviders: state.selectedSocialProviders,
       setPost: state.setPost,
     }))
   );
+  const socialProviders = useSelectedSocialProviders();
 
-  // Calculate providers without alternative content
-  // const availableProviders = useMemo(() => {
-  //   return socialProviders.filter(
-  //     (provider) =>
-  //       !post.alternativeContent.some(
-  //         (content) => content.socialProvider.socialId === provider.socialId
-  //       )
-  //   );
-  // }, [socialProviders, post.alternativeContent]);
+  // Get platforms currently in default
+  const platformsInDefault = getPlatformsInDefault(
+    socialProviders,
+    post.alternativeContent
+  );
+
+  // Check if a provider is the last one in default
+  const isLastInDefault = (providerId: string) => {
+    return (
+      platformsInDefault.length === 1 &&
+      socialProviders.find((p) => p.socialId === providerId) !== undefined &&
+      !post.alternativeContent.some(
+        (content) => content.socialProvider.socialId === providerId
+      )
+    );
+  };
 
   const handleProviderToggle = (provider: {
     socialId: string;
@@ -41,6 +50,11 @@ export function AlternativeContentSelector() {
     const isSelected = post.alternativeContent.some(
       (content) => content.socialProvider.socialId === provider.socialId
     );
+
+    // Prevent toggling if this is the last platform in default
+    if (isLastInDefault(provider.socialId)) {
+      return;
+    }
 
     if (isSelected) {
       // Remove provider
@@ -91,12 +105,15 @@ export function AlternativeContentSelector() {
           const isSelected = post.alternativeContent.some(
             (content) => content.socialProvider.socialId === provider.socialId
           );
+          const isDisabled = isLastInDefault(provider.socialId);
 
-          return (
+          const menuItem = (
             <DropdownMenuCheckboxItem
               key={provider.socialId}
               checked={isSelected}
+              disabled={isDisabled}
               onCheckedChange={() => handleProviderToggle(provider)}
+              className={isDisabled ? 'cursor-not-allowed opacity-50' : ''}
             >
               <div className="flex items-center gap-2">
                 <SocialIcon type={provider.socialType} size="sm" />
@@ -104,6 +121,23 @@ export function AlternativeContentSelector() {
               </div>
             </DropdownMenuCheckboxItem>
           );
+
+          if (isDisabled) {
+            return (
+              <TooltipProvider key={provider.socialId}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {menuItem}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Cannot create alternative content - this is the only platform in default
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            );
+          }
+
+          return menuItem;
         })}
       </DropdownMenuContent>
     </DropdownMenu>
