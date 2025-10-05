@@ -401,7 +401,7 @@ export interface PlatformVideoRules {
   minDuration: number; // seconds
   maxDuration: number; // seconds
   maxFileSize: number; // bytes
-  allowedFormats: string[];
+  allowedFormats: readonly string[];
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;
@@ -413,7 +413,7 @@ export const PLATFORM_VIDEO_RULES = {
     minDuration: 15,
     maxDuration: 600, // 10 minutes
     maxFileSize: 500 * 1024 * 1024, // 500MB
-    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'],
+    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'] as const,
     minWidth: 480,
     minHeight: 640,
   },
@@ -421,15 +421,15 @@ export const PLATFORM_VIDEO_RULES = {
     minDuration: 3,
     maxDuration: 90,
     maxFileSize: 100 * 1024 * 1024, // 100MB
-    allowedFormats: ['video/mp4', 'video/quicktime'],
+    allowedFormats: ['video/mp4', 'video/quicktime'] as const,
   },
   YOUTUBE: {
     minDuration: 1,
     maxDuration: 43200, // 12 hours
     maxFileSize: 2 * 1024 * 1024 * 1024, // 2GB
-    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'],
+    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'] as const,
   },
-} as const;
+};
 
 /**
  * Validates a video file against platform-specific rules
