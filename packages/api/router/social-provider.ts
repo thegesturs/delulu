@@ -30,76 +30,76 @@ export const socialProviderRouter = {
       const link = connectUrlRegistry[input.provider].connectUrl();
       return link;
     }),
-  createPost: protectedProcedure
-    .input(savePostInputSchema)
-    .mutation(async ({ input, ctx }) => {
-      if (!input.id) {
-        const savePostId = await fetchMutation(
-          api.posts.createPost,
-          {
-            userId: ctx.userId,
-            content: input.content,
-            status: 'SAVED',
-            socialProviderIds: input.socialProviders.map(
-              (sp) => sp.socialId as Id<'socialProviders'>
-            ),
-            alternativeContent: input.alternativeContent.map((alt) => ({
-              socialProviderId: alt.socialProvider
-                .socialId as Id<'socialProviders'>,
-              content: alt.content,
-            })),
-            ...(input.providerSettings && {
-              providerSettings: input.providerSettings.map((ps) => ({
-                socialProviderId: ps.socialProviderId as Id<'socialProviders'>,
-                type: ps.type,
-                settings: ps.settings,
-              })),
-            }),
-          },
-          {
-            token: ctx.token,
-          }
-        );
+  // createPost: protectedProcedure
+  //   .input(savePostInputSchema)
+  //   .mutation(async ({ input, ctx }) => {
+  //     if (!input.id) {
+  //       const savePostId = await fetchMutation(
+  //         api.posts.createPost,
+  //         {
+  //           userId: ctx.userId,
+  //           content: input.content,
+  //           status: 'SAVED',
+  //           socialProviderIds: input.socialProviders.map(
+  //             (sp) => sp.socialId as Id<'socialProviders'>
+  //           ),
+  //           alternativeContent: input.alternativeContent.map((alt) => ({
+  //             socialProviderId: alt.socialProvider
+  //               .socialId as Id<'socialProviders'>,
+  //             content: alt.content,
+  //           })),
+  //           ...(input.providerSettings && {
+  //             providerSettings: input.providerSettings.map((ps) => ({
+  //               socialProviderId: ps.socialProviderId as Id<'socialProviders'>,
+  //               type: ps.type,
+  //               settings: ps.settings,
+  //             })),
+  //           }),
+  //         },
+  //         {
+  //           token: ctx.token,
+  //         }
+  //       );
 
-        if (!savePostId) {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to save post',
-          });
-        }
+  //       if (!savePostId) {
+  //         throw new TRPCError({
+  //           code: 'INTERNAL_SERVER_ERROR',
+  //           message: 'Failed to save post',
+  //         });
+  //       }
 
-        const post = await fetchQuery(
-          api.posts.getPostById,
-          {
-            id: savePostId,
-          },
-          {
-            token: ctx.token,
-          }
-        );
-        if (!post) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
-        }
-        await createPostInQueue(post);
-      }
+  //       const post = await fetchQuery(
+  //         api.posts.getPostById,
+  //         {
+  //           id: savePostId,
+  //         },
+  //         {
+  //           token: ctx.token,
+  //         }
+  //       );
+  //       if (!post) {
+  //         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+  //       }
+  //       await createPostInQueue(post);
+  //     }
 
-      const post = await fetchQuery(
-        api.posts.getPostById,
-        {
-          id: input.id as Id<'posts'>,
-        },
-        {
-          token: ctx.token,
-        }
-      );
-      if (!post) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
-      }
-      await createPostInQueue(post);
-      return {
-        success: true,
-      };
-    }),
+  //     const post = await fetchQuery(
+  //       api.posts.getPostById,
+  //       {
+  //         id: input.id as Id<'posts'>,
+  //       },
+  //       {
+  //         token: ctx.token,
+  //       }
+  //     );
+  //     if (!post) {
+  //       throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+  //     }
+  //     await createPostInQueue(post);
+  //     return {
+  //       success: true,
+  //     };
+  //   }),
   createPostFromPostId: protectedProcedure
     .input(
       z.object({
