@@ -106,8 +106,31 @@ export async function generateThumbnailPreviews(
     const videoUrl =
       typeof videoFile === 'string' ? videoFile : URL.createObjectURL(videoFile);
 
+    // Set timeout for the entire operation
+    const timeoutId = setTimeout(() => {
+      if (typeof videoFile !== 'string') {
+        URL.revokeObjectURL(videoUrl);
+      }
+      reject(new Error('Thumbnail generation timeout'));
+    }, 30000); // 30 second timeout
+
     video.addEventListener('loadedmetadata', async () => {
       const duration = video.duration;
+
+      // Check if duration is valid
+      if (
+        !duration ||
+        duration === Number.POSITIVE_INFINITY ||
+        Number.isNaN(duration)
+      ) {
+        clearTimeout(timeoutId);
+        if (typeof videoFile !== 'string') {
+          URL.revokeObjectURL(videoUrl);
+        }
+        reject(new Error('Invalid video duration'));
+        return;
+      }
+
       const frames: VideoFrameResult[] = [];
 
       // Generate timestamps evenly distributed across the video
@@ -123,12 +146,14 @@ export async function generateThumbnailPreviews(
           frames.push(frame);
         }
 
+        clearTimeout(timeoutId);
         if (typeof videoFile !== 'string') {
           URL.revokeObjectURL(videoUrl);
         }
 
         resolve(frames);
       } catch (error) {
+        clearTimeout(timeoutId);
         if (typeof videoFile !== 'string') {
           URL.revokeObjectURL(videoUrl);
         }
@@ -136,13 +161,16 @@ export async function generateThumbnailPreviews(
       }
     });
 
-    video.addEventListener('error', () => {
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeoutId);
       if (typeof videoFile !== 'string') {
         URL.revokeObjectURL(videoUrl);
       }
-      reject(new Error('Failed to load video for thumbnails'));
+      reject(new Error(`Failed to load video for thumbnails: ${e.type}`));
     });
 
+    // Important: Set CORS mode for external videos
+    video.crossOrigin = 'anonymous';
     video.src = videoUrl;
     video.load();
   });

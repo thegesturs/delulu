@@ -66,11 +66,12 @@ export function VideoThumbnailSelector({
   // Get the video source (prefer videoFile for local files)
   const videoSource = videoFile || videoUrl;
 
-  // Generate thumbnail previews on mount
+  // Generate thumbnail previews when dialog opens
   useEffect(() => {
-    const generatePreviews = async () => {
-      if (!videoSource) return;
+    // Only generate if dialog is open and we don't have previews yet
+    if (!isOpen || !videoSource || thumbnailPreviews.length > 0) return;
 
+    const generatePreviews = async () => {
       setIsGenerating(true);
       try {
         const previews = await generateThumbnailPreviews(videoSource, 6);
@@ -82,14 +83,22 @@ export function VideoThumbnailSelector({
         }
       } catch (error) {
         console.error('Failed to generate thumbnail previews:', error);
-        toast.error('Failed to generate thumbnail previews');
+        // Only show error if dialog is still open
+        if (isOpen) {
+          toast.error('Failed to generate thumbnail previews');
+        }
       } finally {
         setIsGenerating(false);
       }
     };
 
-    generatePreviews();
-  }, [videoSource, currentThumbnail]);
+    // Add a small delay to ensure video element is ready
+    const timeoutId = setTimeout(() => {
+      generatePreviews();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, videoSource, currentThumbnail, thumbnailPreviews.length]);
 
   // Extract frame at current video time
   const handleExtractCurrentFrame = useCallback(async () => {
