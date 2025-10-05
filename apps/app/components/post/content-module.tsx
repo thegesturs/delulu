@@ -327,6 +327,8 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
           handleThumbnailUpdate(0, thumbnail)
         }
         onRemoveVideo={() => handleRemoveVideo(0)}
+        socialId={socialId}
+        orderId={0}
       />
     );
   }

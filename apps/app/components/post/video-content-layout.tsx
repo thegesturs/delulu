@@ -12,6 +12,7 @@ import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
 import { Edit3, ImageIcon, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { MediaUploader } from './media-uploader';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';
 
 interface VideoMedia {
@@ -37,6 +38,8 @@ interface VideoContentLayoutProps {
     thumbnailBucketKey?: string;
   }) => void;
   onRemoveVideo: () => void;
+  socialId: string;
+  orderId?: number;
 }
 
 function getPlatformConfig(socialType: SocialType) {
@@ -105,6 +108,8 @@ export function VideoContentLayout({
   onTitleChange,
   onThumbnailUpdate,
   onRemoveVideo,
+  socialId,
+  orderId = 0,
 }: VideoContentLayoutProps) {
   const config = getPlatformConfig(socialType);
   const [isThumbnailDialogOpen, setIsThumbnailDialogOpen] = useState(false);
@@ -153,19 +158,19 @@ export function VideoContentLayout({
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
       <div className="grid gap-6 lg:grid-cols-[minmax(200px,320px)_1fr]">
-        {/* Left Column - Thumbnail Preview */}
+        {/* Left Column - Video Upload or Thumbnail Preview */}
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Thumbnail Preview</Label>
-              <div className="flex items-center gap-2">
-                {hasThumbnail && (
-                  <Badge variant="secondary" className="gap-1">
-                    <ImageIcon className="h-3 w-3" />
-                    Set
-                  </Badge>
-                )}
-                {videoUrl && (
+          {videoUrl ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Thumbnail Preview</Label>
+                <div className="flex items-center gap-2">
+                  {hasThumbnail && (
+                    <Badge variant="secondary" className="gap-1">
+                      <ImageIcon className="h-3 w-3" />
+                      Set
+                    </Badge>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
@@ -175,94 +180,85 @@ export function VideoContentLayout({
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
-                )}
+                </div>
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => videoUrl && setIsThumbnailDialogOpen(true)}
-              disabled={!videoUrl}
-              className={cn(
-                'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all',
-                videoAspectClass,
-                videoUrl
-                  ? 'border-border bg-black hover:border-primary'
-                  : 'cursor-not-allowed border-muted-foreground/25 bg-muted'
-              )}
-            >
-              {hasThumbnail ? (
-                <>
-                  {/* Show thumbnail */}
-                  <img
-                    src={thumbnailUrl!}
-                    alt="Video thumbnail"
-                    className="h-full w-full object-cover"
-                  />
-                  {/* Edit overlay on hover */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                    <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
-                      <div className="flex items-center gap-2">
-                        <Edit3 className="h-4 w-4" />
-                        <span className="font-medium text-sm">
-                          Change Thumbnail
-                        </span>
+              <button
+                type="button"
+                onClick={() => setIsThumbnailDialogOpen(true)}
+                className={cn(
+                  'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all hover:border-primary',
+                  videoAspectClass,
+                  'border-border bg-black'
+                )}
+              >
+                {hasThumbnail ? (
+                  <>
+                    {/* Show thumbnail */}
+                    <img
+                      src={thumbnailUrl!}
+                      alt="Video thumbnail"
+                      className="h-full w-full object-cover"
+                    />
+                    {/* Edit overlay on hover */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <Edit3 className="h-4 w-4" />
+                          <span className="font-medium text-sm">
+                            Change Thumbnail
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              ) : videoUrl ? (
-                <>
-                  {/* Show video when no thumbnail is set */}
-                  <video
-                    src={videoUrl}
-                    className="h-full w-full object-cover"
-                    muted
-                    playsInline
-                  >
-                    <track kind="captions" />
-                  </video>
-                  {/* Overlay with instruction */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
-                    <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="font-medium text-sm">
-                          Select Thumbnail
-                        </span>
+                  </>
+                ) : (
+                  <>
+                    {/* Show video when no thumbnail is set */}
+                    <video
+                      src={videoUrl}
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                    >
+                      <track kind="captions" />
+                    </video>
+                    {/* Overlay with instruction */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          <span className="font-medium text-sm">
+                            Select Thumbnail
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Placeholder when no video uploaded */}
-                  <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium text-foreground text-sm">
-                        No Video Uploaded
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        Upload a video first
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-            </button>
+                  </>
+                )}
+              </button>
 
-            {/* Thumbnail button below preview */}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsThumbnailDialogOpen(true)}
-              disabled={!videoUrl}
-              className="w-full"
-            >
-              <ImageIcon className="mr-2 h-4 w-4" />
-              {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
-            </Button>
-          </div>
+              {/* Thumbnail button below preview */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsThumbnailDialogOpen(true)}
+                className="w-full"
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Show MediaUploader when no video */}
+              <Label className="text-sm">Upload Video</Label>
+              <MediaUploader
+                socialType={socialType}
+                socialId={socialId}
+                orderId={orderId}
+              />
+            </>
+          )}
         </div>
 
         {/* Right Column - Text Content */}
