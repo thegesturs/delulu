@@ -1,18 +1,18 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { getMediaUrlFromObject } from '@/lib/media-url';
+import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
-import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
-import { ImageIcon, Edit3 } from 'lucide-react';
+import { Edit3, ImageIcon } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';
-import { getMediaUrlFromObject } from '@/lib/media-url';
 
 interface VideoMedia {
   mediaType: 'VIDEO';
@@ -185,7 +185,7 @@ export function VideoContentLayout({
                     <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                       <div className="flex items-center gap-2">
                         <Edit3 className="h-4 w-4" />
-                        <span className="text-sm font-medium">
+                        <span className="font-medium text-sm">
                           Change Thumbnail
                         </span>
                       </div>
@@ -252,7 +252,7 @@ export function VideoContentLayout({
                 {config.titleMaxLength && (
                   <div
                     className={cn(
-                      'absolute top-1/2 right-3 -translate-y-1/2 text-xs',
+                      '-translate-y-1/2 absolute top-1/2 right-3 text-xs',
                       titleCharsRemaining < 0
                         ? 'text-destructive'
                         : 'text-muted-foreground'
