@@ -137,57 +137,80 @@ export function VideoContentLayout({
   const videoUrl = getMediaUrlFromObject(videoMedia);
   const hasThumbnail =
     videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey;
+  const thumbnailUrl = hasThumbnail
+    ? getMediaUrlFromObject({
+        url: videoMedia.thumbnailBucketUrl,
+        bucketKey: videoMedia.thumbnailBucketKey,
+      })
+    : null;
 
   const videoAspectClass = config.isVertical ? 'aspect-[9/16]' : 'aspect-video';
 
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column - Video & Thumbnail */}
+        {/* Left Column - Thumbnail Preview */}
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Video Preview</Label>
+              <Label className="text-sm">Thumbnail Preview</Label>
               {hasThumbnail && (
                 <Badge variant="secondary" className="gap-1">
                   <ImageIcon className="h-3 w-3" />
-                  Thumbnail set
+                  Set
                 </Badge>
               )}
             </div>
-            <div
+            <button
+              type="button"
+              onClick={() => setIsThumbnailDialogOpen(true)}
               className={cn(
-                'group relative mx-auto max-w-sm overflow-hidden rounded-lg bg-black',
-                videoAspectClass
+                'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all hover:border-primary',
+                videoAspectClass,
+                hasThumbnail
+                  ? 'border-border bg-black'
+                  : 'border-muted-foreground/25 bg-muted'
               )}
             >
-              <video
-                src={videoUrl}
-                className="h-full w-full object-contain"
-                controls
-                playsInline
-              >
-                <track kind="captions" />
-              </video>
-
-              {/* Thumbnail overlay button */}
-              <button
-                type="button"
-                onClick={() => setIsThumbnailDialogOpen(true)}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100"
-              >
-                <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <Edit3 className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
-                    </span>
+              {hasThumbnail ? (
+                <>
+                  {/* Show thumbnail */}
+                  <img
+                    src={thumbnailUrl!}
+                    alt="Video thumbnail"
+                    className="h-full w-full object-cover"
+                  />
+                  {/* Edit overlay on hover */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          Change Thumbnail
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </button>
-            </div>
+                </>
+              ) : (
+                <>
+                  {/* Placeholder when no thumbnail */}
+                  <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-foreground text-sm">
+                        No Thumbnail Selected
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        Click to select from video frames
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </button>
 
-            {/* Thumbnail button below video */}
+            {/* Thumbnail button below preview */}
             <Button
               type="button"
               variant="outline"
