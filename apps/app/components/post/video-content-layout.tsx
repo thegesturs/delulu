@@ -1,13 +1,16 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Card } from '@delulu/design-system/components/ui/card';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
+import { Button } from '@delulu/design-system/components/ui/button';
+import { Badge } from '@delulu/design-system/components/ui/badge';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
+import { ImageIcon, Edit3 } from 'lucide-react';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';
 import { getMediaUrlFromObject } from '@/lib/media-url';
 
@@ -97,6 +100,7 @@ export function VideoContentLayout({
   onThumbnailUpdate,
 }: VideoContentLayoutProps) {
   const config = getPlatformConfig(socialType);
+  const [isThumbnailDialogOpen, setIsThumbnailDialogOpen] = useState(false);
 
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -126,6 +130,8 @@ export function VideoContentLayout({
     : 0;
 
   const videoUrl = getMediaUrlFromObject(videoMedia);
+  const hasThumbnail =
+    videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey;
 
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
@@ -133,8 +139,16 @@ export function VideoContentLayout({
         {/* Left Column - Video & Thumbnail */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-sm">Video Preview</Label>
-            <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Video Preview</Label>
+              {hasThumbnail && (
+                <Badge variant="secondary" className="gap-1">
+                  <ImageIcon className="h-3 w-3" />
+                  Thumbnail set
+                </Badge>
+              )}
+            </div>
+            <div className="group relative aspect-video overflow-hidden rounded-lg bg-black">
               <video
                 src={videoUrl}
                 className="h-full w-full object-contain"
@@ -143,18 +157,35 @@ export function VideoContentLayout({
               >
                 <track kind="captions" />
               </video>
-            </div>
-          </div>
 
-          {/* Thumbnail Selector */}
-          <VideoThumbnailSelector
-            videoUrl={videoUrl}
-            currentThumbnail={{
-              url: videoMedia.thumbnailBucketUrl,
-              bucketKey: videoMedia.thumbnailBucketKey,
-            }}
-            onThumbnailUpdate={onThumbnailUpdate}
-          />
+              {/* Thumbnail overlay button */}
+              <button
+                type="button"
+                onClick={() => setIsThumbnailDialogOpen(true)}
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100"
+              >
+                <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <Edit3 className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Thumbnail button below video */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsThumbnailDialogOpen(true)}
+              className="w-full"
+            >
+              <ImageIcon className="mr-2 h-4 w-4" />
+              {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
+            </Button>
+          </div>
         </div>
 
         {/* Right Column - Text Content */}
@@ -235,6 +266,18 @@ export function VideoContentLayout({
           )}
         </div>
       </div>
+
+      {/* Thumbnail Selector Dialog */}
+      <VideoThumbnailSelector
+        videoUrl={videoUrl}
+        currentThumbnail={{
+          url: videoMedia.thumbnailBucketUrl,
+          bucketKey: videoMedia.thumbnailBucketKey,
+        }}
+        onThumbnailUpdate={onThumbnailUpdate}
+        isOpen={isThumbnailDialogOpen}
+        onClose={() => setIsThumbnailDialogOpen(false)}
+      />
     </Card>
   );
 }

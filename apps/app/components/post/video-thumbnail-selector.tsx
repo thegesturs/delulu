@@ -4,7 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageIcon, Loader2, Upload, VideoIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Card } from '@delulu/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@delulu/design-system/components/ui/dialog';
 import { cn } from '@delulu/design-system/lib/utils';
 import {
   extractVideoFrame,
@@ -30,7 +36,8 @@ interface VideoThumbnailSelectorProps {
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
   }) => void;
-  className?: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function VideoThumbnailSelector({
@@ -38,7 +45,8 @@ export function VideoThumbnailSelector({
   videoFile,
   currentThumbnail,
   onThumbnailUpdate,
-  className,
+  isOpen,
+  onClose,
 }: VideoThumbnailSelectorProps) {
   const [selectedFrame, setSelectedFrame] = useState<VideoFrameResult | null>(
     null
@@ -154,179 +162,189 @@ export function VideoThumbnailSelector({
       });
 
       toast.success('Thumbnail uploaded successfully');
+      onClose(); // Close dialog after successful upload
     } catch (error) {
       console.error('Failed to upload thumbnail:', error);
       toast.error('Failed to upload thumbnail');
     } finally {
       setIsUploading(false);
     }
-  }, [customThumbnail, selectedFrame, uploadAndSaveMedia, onThumbnailUpdate]);
+  }, [
+    customThumbnail,
+    selectedFrame,
+    uploadAndSaveMedia,
+    onThumbnailUpdate,
+    onClose,
+  ]);
 
   const displayThumbnail = customThumbnail || selectedFrame?.dataUrl;
   const hasThumbnail = currentThumbnail?.url || currentThumbnail?.bucketKey;
 
   return (
-    <Card className={cn('p-4', className)}>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <VideoIcon className="h-4 w-4 text-muted-foreground" />
-            <h3 className="font-medium text-sm">Video Thumbnail</h3>
-          </div>
-          {hasThumbnail && (
-            <div className="flex items-center gap-1 text-muted-foreground text-xs">
-              <ImageIcon className="h-3 w-3" />
-              <span>Current</span>
-            </div>
-          )}
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Select Video Thumbnail</DialogTitle>
+          <DialogDescription>
+            Choose a frame from your video or upload a custom thumbnail
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Video Player */}
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
-          <video
-            ref={videoRef}
-            src={getMediaUrlFromObject({ url: videoUrl, bucketKey: undefined })}
-            className="h-full w-full object-contain"
-            controls
-            playsInline
-          >
-            <track kind="captions" />
-          </video>
-        </div>
+        <div className="space-y-4">
 
-        {/* Extract Frame Button */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleExtractCurrentFrame}
-          className="w-full"
-          disabled={!videoSource}
-        >
-          <VideoIcon className="mr-2 h-4 w-4" />
-          Capture Current Frame as Thumbnail
-        </Button>
-
-        {/* Thumbnail Previews Grid */}
-        {isGenerating ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          thumbnailPreviews.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-xs">
-                Or select from generated previews:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {thumbnailPreviews.map((preview, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => {
-                      setSelectedFrame(preview);
-                      setCustomThumbnail(null);
-                    }}
-                    className={cn(
-                      'group relative aspect-video overflow-hidden rounded-lg border-2 transition-all',
-                      selectedFrame === preview && !customThumbnail
-                        ? 'border-primary'
-                        : 'border-border hover:border-input'
-                    )}
-                  >
-                    <img
-                      src={preview.dataUrl}
-                      alt={`Frame at ${formatTimestamp(preview.timestamp)}`}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute right-1 bottom-1 rounded bg-black/70 px-1 py-0.5 text-white text-xs">
-                      {formatTimestamp(preview.timestamp)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        )}
-
-        {/* Custom Thumbnail Upload */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 border-border border-t" />
-            <span className="px-2 text-muted-foreground text-xs">OR</span>
-            <div className="flex-1 border-border border-t" />
+          {/* Video Player */}
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+            <video
+              ref={videoRef}
+              src={getMediaUrlFromObject({
+                url: videoUrl,
+                bucketKey: undefined,
+              })}
+              className="h-full w-full object-contain"
+              controls
+              playsInline
+            >
+              <track kind="captions" />
+            </video>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleCustomThumbnail}
-            className="hidden"
-          />
-
+          {/* Extract Frame Button */}
           <Button
             type="button"
             variant="outline"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleExtractCurrentFrame}
             className="w-full"
+            disabled={!videoSource}
           >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Custom Thumbnail
+            <VideoIcon className="mr-2 h-4 w-4" />
+            Capture Current Frame as Thumbnail
           </Button>
-        </div>
 
-        {/* Selected Thumbnail Preview */}
-        {displayThumbnail && (
-          <div className="space-y-2">
-            <p className="text-muted-foreground text-xs">Selected thumbnail:</p>
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
-              <img
-                src={displayThumbnail}
-                alt="Selected thumbnail"
-                className="h-full w-full object-cover"
-              />
+          {/* Thumbnail Previews Grid */}
+          {isGenerating ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : (
+            thumbnailPreviews.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-xs">
+                  Or select from generated previews:
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {thumbnailPreviews.map((preview, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setSelectedFrame(preview);
+                        setCustomThumbnail(null);
+                      }}
+                      className={cn(
+                        'group relative aspect-video overflow-hidden rounded-lg border-2 transition-all',
+                        selectedFrame === preview && !customThumbnail
+                          ? 'border-primary'
+                          : 'border-border hover:border-input'
+                      )}
+                    >
+                      <img
+                        src={preview.dataUrl}
+                        alt={`Frame at ${formatTimestamp(preview.timestamp)}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute right-1 bottom-1 rounded bg-black/70 px-1 py-0.5 text-white text-xs">
+                        {formatTimestamp(preview.timestamp)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Custom Thumbnail Upload */}
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <div className="flex-1 border-border border-t" />
+              <span className="px-2 text-muted-foreground text-xs">OR</span>
+              <div className="flex-1 border-border border-t" />
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCustomThumbnail}
+              className="hidden"
+            />
 
             <Button
               type="button"
-              onClick={handleUploadThumbnail}
-              disabled={isUploading}
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
               className="w-full"
             >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Save Thumbnail
-                </>
-              )}
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Custom Thumbnail
             </Button>
           </div>
-        )}
 
-        {/* Current Thumbnail Display */}
-        {hasThumbnail && !displayThumbnail && (
-          <div className="space-y-2">
-            <p className="text-muted-foreground text-xs">Current thumbnail:</p>
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
-              <img
-                src={getMediaUrlFromObject({
-                  url: currentThumbnail?.url,
-                  bucketKey: currentThumbnail?.bucketKey,
-                  bucketUrl: currentThumbnail?.bucketUrl,
-                })}
-                alt="Current thumbnail"
-                className="h-full w-full object-cover"
-              />
+          {/* Selected Thumbnail Preview */}
+          {displayThumbnail && (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-xs">
+                Selected thumbnail:
+              </p>
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
+                <img
+                  src={displayThumbnail}
+                  alt="Selected thumbnail"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleUploadThumbnail}
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Save Thumbnail
+                  </>
+                )}
+              </Button>
             </div>
-          </div>
-        )}
-      </div>
-    </Card>
+          )}
+
+          {/* Current Thumbnail Display */}
+          {hasThumbnail && !displayThumbnail && (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-xs">
+                Current thumbnail:
+              </p>
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
+                <img
+                  src={getMediaUrlFromObject({
+                    url: currentThumbnail?.url,
+                    bucketKey: currentThumbnail?.bucketKey,
+                    bucketUrl: currentThumbnail?.bucketUrl,
+                  })}
+                  alt="Current thumbnail"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

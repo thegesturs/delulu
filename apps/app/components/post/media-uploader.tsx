@@ -23,7 +23,6 @@ import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
 import { useShallow } from 'zustand/shallow';
 import { MediaSelectionDialog } from './media-selection-dialog';
-import { VideoThumbnailSelector } from './video-thumbnail-selector';
 
 interface MediaFile {
   id: string;
@@ -668,32 +667,6 @@ export function MediaUploader({
     setMediaFiles([]);
   }, [mediaFiles]);
 
-  const handleVideoThumbnailUpdate = useCallback(
-    (
-      videoId: string,
-      thumbnail: {
-        bucketKey: string;
-        url: string;
-        thumbnailBucketUrl?: string;
-        thumbnailBucketKey?: string;
-      }
-    ) => {
-      isUserAction.current = true;
-      setMediaFiles((prev) =>
-        prev.map((item) =>
-          item.id === videoId
-            ? {
-                ...item,
-                thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
-                thumbnailBucketKey: thumbnail.thumbnailBucketKey,
-              }
-            : item
-        )
-      );
-    },
-    []
-  );
-
   const handleSelectExistingMedia = useCallback(
     (
       selectedMedia: Array<{
@@ -870,39 +843,6 @@ export function MediaUploader({
             platformHint={platformHint}
           />
         )}
-      </AnimatePresence>
-
-      {/* Video Thumbnail Selector - Show for TikTok/YouTube when video is uploaded */}
-      <AnimatePresence>
-        {mediaFiles.length > 0 &&
-          (socialType === SocialTypes.TIKTOK ||
-            socialType === SocialTypes.YOUTUBE) &&
-          mediaFiles.some((f) => f.mediaType === 'VIDEO') && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {mediaFiles
-                .filter((f) => f.mediaType === 'VIDEO')
-                .map((videoFile) => (
-                  <VideoThumbnailSelector
-                    key={videoFile.id}
-                    videoUrl={videoFile.url || videoFile.previewUrl}
-                    videoFile={videoFile.file}
-                    currentThumbnail={{
-                      url: videoFile.thumbnailBucketUrl,
-                      bucketKey: videoFile.thumbnailBucketKey,
-                    }}
-                    onThumbnailUpdate={(thumbnail) =>
-                      handleVideoThumbnailUpdate(videoFile.id, thumbnail)
-                    }
-                    className="mt-4"
-                  />
-                ))}
-            </motion.div>
-          )}
       </AnimatePresence>
 
       <MediaSelectionDialog
