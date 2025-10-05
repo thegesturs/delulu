@@ -10,7 +10,7 @@ import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
-import { Edit3, ImageIcon } from 'lucide-react';
+import { Edit3, ImageIcon, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';
 
@@ -36,6 +36,7 @@ interface VideoContentLayoutProps {
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
   }) => void;
+  onRemoveVideo: () => void;
 }
 
 function getPlatformConfig(socialType: SocialType) {
@@ -103,6 +104,7 @@ export function VideoContentLayout({
   onTextChange,
   onTitleChange,
   onThumbnailUpdate,
+  onRemoveVideo,
 }: VideoContentLayoutProps) {
   const config = getPlatformConfig(socialType);
   const [isThumbnailDialogOpen, setIsThumbnailDialogOpen] = useState(false);
@@ -148,18 +150,29 @@ export function VideoContentLayout({
 
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(200px,320px)_1fr]">
         {/* Left Column - Thumbnail Preview */}
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Thumbnail Preview</Label>
-              {hasThumbnail && (
-                <Badge variant="secondary" className="gap-1">
-                  <ImageIcon className="h-3 w-3" />
-                  Set
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {hasThumbnail && (
+                  <Badge variant="secondary" className="gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    Set
+                  </Badge>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRemoveVideo}
+                  className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
             <button
               type="button"

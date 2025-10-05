@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 import { useMediaStorage } from '@/hooks/use-media-storage';
 import { getMediaUrlFromObject } from '@/lib/media-url';
+import { getMediaRequirementMessage } from '@/lib/platform-validation';
 import { validateTikTokVideo } from '@/lib/video-validation';
 import { useStore } from '@/store/post';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -156,7 +157,9 @@ function getPlatformConfig(
   let uploadInstruction = 'Drag and drop your media here, or';
   let countInstruction = '';
   let aspectRatioInstruction = '';
-  let platformHint = 'Twitter/LinkedIn: Up to 4 images OR 1 video.';
+
+  // Get platform requirement message from validation utility
+  const platformHint = getMediaRequirementMessage(socialType);
 
   if (socialType === 'TIKTOK') {
     maxImages = 1;
@@ -164,7 +167,6 @@ function getPlatformConfig(
     acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
     uploadInstruction = 'Upload 1 vertical video (9:16) and 1 optional thumbnail';
     aspectRatioInstruction = 'Video: 9:16 vertical, Thumbnail: Square';
-    platformHint = 'TikTok: 1 vertical video (9:16) & 1 square thumbnail.';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       acceptedFileTypes = 'image/jpeg,image/png';
     } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
@@ -177,7 +179,6 @@ function getPlatformConfig(
     acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
     uploadInstruction = 'Upload 1 vertical video (9:16) for YouTube Shorts';
     aspectRatioInstruction = 'Video: 9:16 vertical, max 60 seconds';
-    platformHint = 'YouTube Shorts: 1 vertical video (9:16) & 1 thumbnail.';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       acceptedFileTypes = 'image/jpeg,image/png';
     } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
@@ -185,7 +186,6 @@ function getPlatformConfig(
     }
     countInstruction = `${currentImageCount}/${maxImages} thumbnail, ${currentVideoCount}/${maxVideos} video.`;
   } else if (socialType === 'INSTAGRAM') {
-    platformHint = 'Instagram Reels: 1 vertical video (9:16) OR up to 10 images.';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       maxImages = 0;
       acceptedFileTypes = 'video/*';
@@ -235,6 +235,7 @@ interface UploadZoneProps {
   platformHint: string;
   multiple: boolean;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  socialType: SocialType;
 }
 
 function UploadZone({
@@ -250,7 +251,13 @@ function UploadZone({
   platformHint,
   multiple,
   onFileInput,
+  socialType,
 }: UploadZoneProps) {
+  // Determine if this platform requires media
+  const requiresVideo =
+    socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE;
+  const requiresEither = socialType === SocialTypes.INSTAGRAM;
+
   return (
     <motion.div
       className={cn(
@@ -296,6 +303,15 @@ function UploadZone({
           <p className="mt-1 text-muted-foreground text-xs">
             {aspectRatioInstruction}
           </p>
+        )}
+        {(requiresVideo || requiresEither) && (
+          <div className="mt-3 rounded-md bg-muted px-3 py-2">
+            <p className="text-foreground text-xs">
+              {requiresVideo && '⚠️ '}
+              {requiresEither && 'ℹ️ '}
+              {platformHint}
+            </p>
+          </div>
         )}
       </div>
     </motion.div>
@@ -796,6 +812,7 @@ export function MediaUploader({
               )
             }
             onFileInput={handleFileInput}
+            socialType={socialType}
           />
 
           <div className="flex items-center space-x-2">

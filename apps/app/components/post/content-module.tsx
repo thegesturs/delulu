@@ -237,6 +237,36 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     [isGlobal, post, setPost, socialId]
   );
 
+  const handleRemoveVideo = useCallback(
+    (order: number) => {
+      if (isGlobal) {
+        setPost({
+          ...post,
+          content: post.content.map((item) =>
+            item.order === order ? { ...item, media: [] } : item
+          ),
+        });
+      } else {
+        setPost({
+          ...post,
+          alternativeContent: post.alternativeContent.map((item) =>
+            item.socialProvider.socialId === socialId
+              ? {
+                  ...item,
+                  content: item.content.map((contentItem) =>
+                    contentItem.order === order
+                      ? { ...contentItem, media: [] }
+                      : contentItem
+                  ),
+                }
+              : item
+          ),
+        });
+      }
+    },
+    [isGlobal, post, setPost, socialId]
+  );
+
   // Check if we should use video-only layout
   const hasVideoOnly =
     isVideoOnlyPlatform &&
@@ -287,6 +317,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         onThumbnailUpdate={(thumbnail) =>
           handleThumbnailUpdate(0, thumbnail)
         }
+        onRemoveVideo={() => handleRemoveVideo(0)}
       />
     );
   }
