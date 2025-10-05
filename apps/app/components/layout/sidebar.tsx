@@ -13,14 +13,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
-import { cn } from '@delulu/design-system/lib/utils';
 import {
-  BookOpenIcon,
-  CalendarIcon,
-  LayoutDashboardIcon,
-  LineChartIcon,
-  PencilIcon,
-} from 'lucide-react';
+  Calendar,
+  Draft,
+  Home,
+  Network,
+  Pencil,
+} from '@delulu/design-system/icons';
+import { cn } from '@delulu/design-system/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -54,22 +54,22 @@ const navigationItems = [
   {
     title: 'Dashboard',
     url: '/',
-    icon: LayoutDashboardIcon,
+    icon: Home,
   },
   {
     title: 'Posts',
     url: '/posts',
-    icon: BookOpenIcon,
+    icon: Draft,
   },
   {
     title: 'Calendar',
     url: '/calendar',
-    icon: CalendarIcon,
+    icon: Calendar,
   },
   {
     title: 'Connected Accounts',
     url: '/socials',
-    icon: LineChartIcon,
+    icon: Network,
   },
 ];
 
@@ -117,7 +117,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             className="flex w-full items-center group-data-[state=collapsed]:hidden"
           >
             <Link href="/post">
-              <PencilIcon className="mr-2 h-4 w-4" />
+              <span className="mr-2 flex h-4 w-4 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
+                <Pencil />
+              </span>
               Create Post
             </Link>
           </Button>
@@ -127,7 +129,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             className="w-full group-data-[state=expanded]:hidden"
           >
             <Link href="/post">
-              <PencilIcon className="h-5 w-5" />
+              <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                <Pencil />
+              </span>
             </Link>
           </Button>
         </SidebarHeader>
@@ -159,14 +163,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                       'group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0'
                     )}
                   >
-                    <item.icon
-                      className={cn(
-                        'h-5 w-5',
-                        pathname === item.url
-                          ? 'text-foreground'
-                          : 'text-muted-foreground group-hover/menu:text-foreground'
-                      )}
-                    />
+                    <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                      <item.icon />
+                    </span>
                     <span
                       className={cn(
                         'ml-3 font-medium text-muted-foreground text-sm',
