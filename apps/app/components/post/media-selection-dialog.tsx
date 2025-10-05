@@ -14,7 +14,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 
 interface MediaItem {
   id: string;

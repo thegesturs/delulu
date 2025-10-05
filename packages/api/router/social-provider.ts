@@ -9,7 +9,7 @@ import {
 
 import { api } from '@delulu/database/convex/_generated/api';
 import { decryptData } from '@delulu/database/convex/utils';
-import { SocialTypeSchema, savePostInputSchema } from '@delulu/validators/post';
+import { SocialTypeSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { connectUrlRegistry } from '../services/connect-url.service';

@@ -20,7 +20,7 @@ import {
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import type { SocialType } from '@delulu/validators/post';
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 import { Settings } from 'lucide-react';
 import {
   AnimatePresence,
