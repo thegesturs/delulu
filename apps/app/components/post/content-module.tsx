@@ -8,7 +8,14 @@ import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { type SocialType, SocialTypes } from '@delulu/validators/post';
 import { Minus, Plus } from 'lucide-react';
 
-import { useStore } from '@/store/post';
+import {
+  getDefaultCharacterLimit,
+  getDefaultPlaceholder,
+  getPlatformsInDefault,
+  shouldDefaultUseVideoLayout,
+  shouldShowYouTubeTitle,
+} from '@/lib/default-platform-rules';
+import { useSelectedSocialProviders, useStore } from '@/store/post';
 import { cn } from '@delulu/design-system/lib/utils';
 import { useShallow } from 'zustand/shallow';
 import { MediaUploader } from './media-uploader';
@@ -19,21 +26,7 @@ interface ContentModuleProps {
   socialType: SocialType;
 }
 
-function getPlaceholder(socialType: SocialType) {
-  if (socialType === SocialTypes.TWITTER) {
-    return "What's on your mind?";
-  }
-  if (socialType === SocialTypes.INSTAGRAM) {
-    return 'Type your caption here';
-  }
-  if (socialType === SocialTypes.TIKTOK) {
-    return 'Type your caption here';
-  }
-  if (socialType === SocialTypes.YOUTUBE) {
-    return 'Type your caption here';
-  }
-  return "What's on your mind?";
-}
+// This function is no longer used, replaced by dynamic placeholder from default-platform-rules
 
 export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const { post, setPost } = useStore(
@@ -42,9 +35,20 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
       setPost: state.setPost,
     }))
   );
+  const selectedSocialProviders = useSelectedSocialProviders();
 
   const isGlobal = socialType === SocialTypes.DEFAULT;
   const isTwitter = socialType === SocialTypes.TWITTER;
+
+  // Determine which platforms are in default (for intelligent defaults)
+  const platformsInDefault = isGlobal
+    ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
+    : [];
+
+  // Determine effective social type for default tab
+  const effectiveSocialType = isGlobal && platformsInDefault.length > 0
+    ? platformsInDefault[0] // Use first platform as representative
+    : socialType;
 
   const content = isGlobal
     ? post.content
@@ -263,12 +267,18 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   );
 
   // Check if we should use video-only layout
-  // TikTok/YouTube: Always show video layout (even without video to guide user)
-  // Instagram: Only show when video exists
   const shouldShowVideoLayout = (() => {
+    // For DEFAULT tab, check if all platforms in default are video platforms
+    if (isGlobal) {
+      return shouldDefaultUseVideoLayout(platformsInDefault);
+    }
+
+    // TikTok/YouTube: Always show video layout (even without video to guide user)
     if (socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE) {
       return true;
     }
+
+    // Instagram: Only show when video exists
     if (socialType === SocialTypes.INSTAGRAM) {
       return (
         content.length > 0 &&
@@ -276,6 +286,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         content[0].media[0].mediaType === 'VIDEO'
       );
     }
+
     return false;
   })();
 
@@ -286,15 +297,20 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         ? content[0].media[0]
         : undefined;
 
+    // Check if we should show YouTube title field
+    const showYouTubeTitle = isGlobal
+      ? shouldShowYouTubeTitle(platformsInDefault)
+      : socialType === SocialTypes.YOUTUBE;
+
     return (
       <VideoContentLayout
-        socialType={socialType}
+        socialType={effectiveSocialType}
         videoMedia={videoMedia as { mediaType: 'VIDEO'; url?: string; bucketUrl?: string; bucketKey?: string; altText?: string; thumbnailBucketUrl?: string; thumbnailBucketKey?: string; } | undefined}
         text={content[0]?.text || ''}
         title={content[0]?.title}
         onTextChange={(text) => handleTextChange(text, 0)}
         onTitleChange={
-          socialType === SocialTypes.YOUTUBE
+          showYouTubeTitle
             ? (title) => {
                 if (isGlobal) {
                   setPost({
@@ -329,6 +345,8 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         onRemoveVideo={() => handleRemoveVideo(0)}
         socialId={socialId}
         orderId={0}
+        showYouTubeTitle={showYouTubeTitle}
+        platformsInDefault={platformsInDefault}
       />
     );
   }
@@ -342,19 +360,35 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
               <Textarea
                 value={item.text}
                 onChange={(e) => handleTextChange(e.target.value, item.order)}
-                placeholder={getPlaceholder(socialType)}
+                placeholder={
+                  isGlobal
+                    ? getDefaultPlaceholder(platformsInDefault)
+                    : socialType === SocialTypes.TWITTER
+                      ? "What's happening?"
+                      : "Type your caption here"
+                }
                 className="min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
               />
-              {isTwitter && (
+              {(isTwitter || (isGlobal && getDefaultCharacterLimit(platformsInDefault))) && (
                 <div
                   className={cn(
                     'absolute top-2 right-2 text-sm',
-                    280 - item.text.length < 0
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
+                    (() => {
+                      const limit = isGlobal
+                        ? getDefaultCharacterLimit(platformsInDefault) || 0
+                        : 280;
+                      return limit - item.text.length < 0
+                        ? 'text-destructive'
+                        : 'text-muted-foreground';
+                    })()
                   )}
                 >
-                  {280 - item.text.length}
+                  {(() => {
+                    const limit = isGlobal
+                      ? getDefaultCharacterLimit(platformsInDefault) || 0
+                      : 280;
+                    return limit - item.text.length;
+                  })()}
                 </div>
               )}
               {isTwitter && (
