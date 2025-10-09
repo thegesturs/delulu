@@ -9,6 +9,7 @@ import {
 
 import { api } from '@delulu/database/convex/_generated/api';
 import { decryptData } from '@delulu/database/convex/utils';
+import { log } from '@delulu/observability/log';
 import { SocialTypeSchema } from '@delulu/validators/post';
 import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
@@ -304,6 +305,12 @@ export const socialProviderRouter = {
         );
 
         if (!response.ok) {
+          const errorBody = await response.text().catch(() => undefined);
+          log.error('TikTok creator_info/query failed', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody,
+          });
           throw new TRPCError({
             code: 'INTERNAL_SERVER_ERROR',
             message: `TikTok API error: ${response.status}`,

@@ -2,6 +2,10 @@
 
 import { useStore } from '@/store/post';
 import { api } from '@/trpc/react';
+import {
+  Alert,
+  AlertDescription,
+} from '@delulu/design-system/components/ui/alert';
 import { Label } from '@delulu/design-system/components/ui/label';
 import {
   Select,
@@ -11,7 +15,13 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import { Switch } from '@delulu/design-system/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@delulu/design-system/components/ui/tooltip';
 import { cn } from '@delulu/design-system/lib/utils';
+import { Info } from 'lucide-react';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import {
   type PromotionContentType,
@@ -199,7 +209,11 @@ export function TikTokSettingsDisplay({
         updateTikTokSettings({ privacy: newPrivacy });
       }
     }
-  }, [tiktokSettings?.privacy, creatorInfo.data?.privacy_level_options, updateTikTokSettings]);
+  }, [
+    tiktokSettings?.privacy,
+    creatorInfo.data?.privacy_level_options,
+    updateTikTokSettings,
+  ]);
 
   // Validate paid partnership privacy conflict
   useEffect(() => {
@@ -224,13 +238,12 @@ export function TikTokSettingsDisplay({
   const handleCommercialContentToggle = (checked: boolean) => {
     setCommercialToggleOn(checked);
 
-    if (checked) {
-      // Auto-enable "Your brand" when toggle is turned ON for better UX
-      updateTikTokSettings({ promotionContent: promotionContentTypes.SELF });
-    } else {
-      // Turn off commercial content
+    if (!checked) {
+      // Turn off commercial content - set to NONE
       updateTikTokSettings({ promotionContent: promotionContentTypes.NONE });
     }
+    // When turned on, leave both checkboxes unchecked (NONE state)
+    // User must manually select at least one option
   };
 
   const handleYourBrandChange = (checked: boolean) => {
@@ -253,19 +266,43 @@ export function TikTokSettingsDisplay({
         yourBrand,
         checked
       );
-      updateTikTokSettings({ promotionContent: newPromotionContent });
+
+      // If enabling branded content and current privacy is "Only me", auto-switch to public
+      if (
+        checked &&
+        tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
+      ) {
+        const defaultPrivacy =
+          (creatorInfo.data
+            ?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
+          tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
+        updateTikTokSettings({
+          promotionContent: newPromotionContent,
+          privacy: defaultPrivacy,
+        });
+      } else {
+        updateTikTokSettings({ promotionContent: newPromotionContent });
+      }
     }
   };
 
   const renderConsentText = () => {
-    const hasPaidPromotion =
+    const brandedContentIncluded =
       tiktokSettings?.promotionContent === promotionContentTypes.PAID ||
       tiktokSettings?.promotionContent === promotionContentTypes.BOTH;
+
+    // Don't show consent text if no commercial content is selected
+    if (
+      !tiktokSettings?.promotionContent ||
+      tiktokSettings.promotionContent === promotionContentTypes.NONE
+    ) {
+      return null;
+    }
 
     return (
       <p className="text-muted-foreground text-xs">
         By posting, you agree to TikTok's{' '}
-        {hasPaidPromotion && (
+        {brandedContentIncluded && (
           <>
             <a
               href="https://www.tiktok.com/legal/page/global/bc-policy/en"
@@ -286,6 +323,7 @@ export function TikTokSettingsDisplay({
         >
           Music Usage Confirmation
         </a>
+        .
       </p>
     );
   };
@@ -359,33 +397,43 @@ export function TikTokSettingsDisplay({
                   tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
                   tikTokPrivacyLevels.SELF_ONLY,
                 ]
-            ).map((option: string) => (
-              <SelectItem
-                key={option}
-                value={option}
-                disabled={
-                  option === tikTokPrivacyLevels.SELF_ONLY &&
+            ).map((option: string) => {
+              const isSelfOnlyDisabled =
+                option === tikTokPrivacyLevels.SELF_ONLY &&
+                (tiktokSettings?.promotionContent ===
+                  promotionContentTypes.PAID ||
                   tiktokSettings?.promotionContent ===
-                    promotionContentTypes.PAID
-                }
-              >
-                {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
-                  'Everyone'}
-                {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
-                  'Friends'}
-                {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
-                {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
-                {option === tikTokPrivacyLevels.SELF_ONLY &&
-                  (tiktokSettings?.promotionContent ===
-                    promotionContentTypes.PAID ||
-                    tiktokSettings?.promotionContent ===
-                      promotionContentTypes.BOTH) && (
-                    <span className="ml-2 text-muted-foreground text-xs">
-                      (Not available for paid partnerships)
-                    </span>
-                  )}
-              </SelectItem>
-            ))}
+                    promotionContentTypes.BOTH);
+
+              const selectItem = (
+                <SelectItem
+                  key={option}
+                  value={option}
+                  disabled={isSelfOnlyDisabled}
+                >
+                  {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
+                    'Everyone'}
+                  {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
+                    'Friends'}
+                  {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
+                  {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
+                </SelectItem>
+              );
+
+              // Wrap "Only me" option with tooltip when disabled
+              if (isSelfOnlyDisabled) {
+                return (
+                  <Tooltip key={option}>
+                    <TooltipTrigger asChild>{selectItem}</TooltipTrigger>
+                    <TooltipContent>
+                      Branded content visibility cannot be set to private
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return selectItem;
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -488,6 +536,22 @@ export function TikTokSettingsDisplay({
           </Label>
         </div>
 
+        {/* Label notification banner - shows when any option is selected */}
+        {commercialContentState.hasCommercialContent &&
+          (commercialContentState.yourBrand ||
+            commercialContentState.brandedContent) && (
+            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+              <Info className="text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-800 dark:text-blue-300">
+                Your video will be labeled "
+                {commercialContentState.brandedContent
+                  ? 'Paid partnership'
+                  : 'Promotional content'}
+                ". This cannot be changed once your video is posted.
+              </AlertDescription>
+            </Alert>
+          )}
+
         {/* Switches when toggle is enabled */}
         {commercialContentState.hasCommercialContent && (
           <div className="ml-6 space-y-4">
@@ -502,11 +566,6 @@ export function TikTokSettingsDisplay({
                 <p className="text-muted-foreground text-xs">
                   You are promoting yourself or your own business
                 </p>
-                {commercialContentState.yourBrand && (
-                  <p className="text-blue-600 text-xs">
-                    Your photo/video will be labeled as "Promotional content"
-                  </p>
-                )}
               </div>
               <Switch
                 id="your-brand"
@@ -526,11 +585,6 @@ export function TikTokSettingsDisplay({
                 <p className="text-muted-foreground text-xs">
                   You are promoting another brand or a third party
                 </p>
-                {commercialContentState.brandedContent && (
-                  <p className="text-blue-600 text-xs">
-                    Your photo/video will be labeled as "Paid partnership"
-                  </p>
-                )}
               </div>
               <Switch
                 id="branded-content"
@@ -554,8 +608,13 @@ export function TikTokSettingsDisplay({
         )}
       </div>
 
-      {/* Consent Declaration */}
-      <div className="rounded-md bg-muted/50 p-3">{renderConsentText()}</div>
+      {/* Consent Declaration - only show when commercial content is selected */}
+      {tiktokSettings?.promotionContent &&
+        tiktokSettings.promotionContent !== promotionContentTypes.NONE && (
+          <div className="rounded-md bg-muted/50 p-3">
+            {renderConsentText()}
+          </div>
+        )}
     </div>
   );
 }
