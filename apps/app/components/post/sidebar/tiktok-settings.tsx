@@ -15,13 +15,7 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import { Switch } from '@delulu/design-system/components/ui/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
 import { cn } from '@delulu/design-system/lib/utils';
-import { Info } from 'lucide-react';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import {
   type PromotionContentType,
@@ -30,8 +24,10 @@ import {
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
+import { Info } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface TikTokSettingsProps {
   hasVideo: boolean;
@@ -167,6 +163,10 @@ export function TikTokSettingsDisplay({
           (creatorInfo.data
             ?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
           tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
+        // Notify user about the automatic correction
+        toast.info(
+          'Privacy changed to Public - Branded content cannot be set to private'
+        );
       }
 
       setProviderSettings(providerId, {
@@ -227,6 +227,10 @@ export function TikTokSettingsDisplay({
         (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
         tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
       updateTikTokSettings({ privacy: defaultPrivacy });
+      // Notify user about the automatic correction
+      toast.info(
+        'Privacy changed to Public - Branded content cannot be set to private'
+      );
     }
   }, [tiktokSettings, creatorInfo.data, updateTikTokSettings]);
 
@@ -280,6 +284,10 @@ export function TikTokSettingsDisplay({
           promotionContent: newPromotionContent,
           privacy: defaultPrivacy,
         });
+        // Notify user about the privacy change
+        toast.info(
+          'Privacy changed to Public - Branded content cannot be set to private'
+        );
       } else {
         updateTikTokSettings({ promotionContent: newPromotionContent });
       }
@@ -405,34 +413,30 @@ export function TikTokSettingsDisplay({
                   tiktokSettings?.promotionContent ===
                     promotionContentTypes.BOTH);
 
-              const selectItem = (
+              return (
                 <SelectItem
                   key={option}
                   value={option}
                   disabled={isSelfOnlyDisabled}
+                  className={cn(isSelfOnlyDisabled && 'opacity-50')}
                 >
-                  {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
-                    'Everyone'}
-                  {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
-                    'Friends'}
-                  {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
-                  {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
+                  <div className="flex w-full items-center justify-between">
+                    <span>
+                      {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
+                        'Everyone'}
+                      {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
+                        'Friends'}
+                      {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
+                      {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
+                    </span>
+                    {isSelfOnlyDisabled && (
+                      <span className="ml-2 text-muted-foreground text-xs">
+                        (Not available for branded content)
+                      </span>
+                    )}
+                  </div>
                 </SelectItem>
               );
-
-              // Wrap "Only me" option with tooltip when disabled
-              if (isSelfOnlyDisabled) {
-                return (
-                  <Tooltip key={option}>
-                    <TooltipTrigger asChild>{selectItem}</TooltipTrigger>
-                    <TooltipContent>
-                      Branded content visibility cannot be set to private
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-
-              return selectItem;
             })}
           </SelectContent>
         </Select>
