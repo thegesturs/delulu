@@ -236,7 +236,9 @@ export const updatePostScheduledTime = mutation({
     // Validate scheduled date must be in the future (minimum 30 minutes from now)
     const minimumTime = getCurrentTimestamp() + 30 * 60 * 1000; // 30 minutes in ms
     if (args.scheduledAt < minimumTime) {
-      throw new Error('Scheduled date must be at least 30 minutes in the future');
+      throw new Error(
+        'Scheduled date must be at least 30 minutes in the future'
+      );
     }
 
     // Update the post with new scheduled time
@@ -803,7 +805,10 @@ export const getScheduledPostsByDateRange = query({
     const query = ctx.db
       .query('posts')
       .withIndex('by_user_status', (q) =>
-        q.eq('userId', user._id).eq('status', 'SCHEDULED').eq('isDeleted', false)
+        q
+          .eq('userId', user._id)
+          .eq('status', 'SCHEDULED')
+          .eq('isDeleted', false)
       );
 
     // Filter by date range and organization
@@ -815,7 +820,10 @@ export const getScheduledPostsByDateRange = query({
         );
 
         if (args.organizationId) {
-          filter = q.and(filter, q.eq(q.field('organizationId'), args.organizationId));
+          filter = q.and(
+            filter,
+            q.eq(q.field('organizationId'), args.organizationId)
+          );
         }
 
         return filter;

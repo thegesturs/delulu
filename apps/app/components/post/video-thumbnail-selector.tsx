@@ -69,7 +69,9 @@ export function VideoThumbnailSelector({
   // Generate thumbnail previews when dialog opens
   useEffect(() => {
     // Only generate if dialog is open and we don't have previews yet
-    if (!isOpen || !videoSource || thumbnailPreviews.length > 0) return;
+    if (!isOpen || !videoSource || thumbnailPreviews.length > 0) {
+      return;
+    }
 
     const generatePreviews = async () => {
       setIsGenerating(true);
@@ -102,7 +104,9 @@ export function VideoThumbnailSelector({
 
   // Extract frame at current video time
   const handleExtractCurrentFrame = useCallback(async () => {
-    if (!videoRef.current || !videoSource) return;
+    if (!videoRef.current || !videoSource) {
+      return;
+    }
 
     try {
       const currentTime = videoRef.current.currentTime;
@@ -120,7 +124,9 @@ export function VideoThumbnailSelector({
   const handleCustomThumbnail = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return;
+      if (!file) {
+        return;
+      }
 
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');

@@ -37,7 +37,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
   const loadPost = useStore((state) => state.loadPost);
-  const post = useStore((state) => state.post);
+  const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
 
@@ -132,7 +132,12 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
-            <TabsTrigger value="global" className={cn(singleProviderInDefault && 'min-w-fit gap-2 text-xs')}>
+            <TabsTrigger
+              value="global"
+              className={cn(
+                singleProviderInDefault && 'min-w-fit gap-2 text-xs'
+              )}
+            >
               {singleProviderInDefault ? (
                 <>
                   <SocialIcon

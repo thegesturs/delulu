@@ -46,9 +46,10 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     : [];
 
   // Determine effective social type for default tab
-  const effectiveSocialType = isGlobal && platformsInDefault.length > 0
-    ? platformsInDefault[0] // Use first platform as representative
-    : socialType;
+  const effectiveSocialType =
+    isGlobal && platformsInDefault.length > 0
+      ? platformsInDefault[0] // Use first platform as representative
+      : socialType;
 
   const content = isGlobal
     ? post.content
@@ -274,7 +275,10 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     }
 
     // TikTok/YouTube: Always show video layout (even without video to guide user)
-    if (socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE) {
+    if (
+      socialType === SocialTypes.TIKTOK ||
+      socialType === SocialTypes.YOUTUBE
+    ) {
       return true;
     }
 
@@ -293,7 +297,9 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   if (shouldShowVideoLayout) {
     // Get video media if it exists, or undefined if not uploaded yet
     const videoMedia =
-      content.length > 0 && content[0].media.length > 0 && content[0].media[0].mediaType === 'VIDEO'
+      content.length > 0 &&
+      content[0].media.length > 0 &&
+      content[0].media[0].mediaType === 'VIDEO'
         ? content[0].media[0]
         : undefined;
 
@@ -305,7 +311,19 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     return (
       <VideoContentLayout
         socialType={effectiveSocialType}
-        videoMedia={videoMedia as { mediaType: 'VIDEO'; url?: string; bucketUrl?: string; bucketKey?: string; altText?: string; thumbnailBucketUrl?: string; thumbnailBucketKey?: string; } | undefined}
+        videoMedia={
+          videoMedia as
+            | {
+                mediaType: 'VIDEO';
+                url?: string;
+                bucketUrl?: string;
+                bucketKey?: string;
+                altText?: string;
+                thumbnailBucketUrl?: string;
+                thumbnailBucketKey?: string;
+              }
+            | undefined
+        }
         text={content[0]?.text || ''}
         title={content[0]?.title}
         onTextChange={(text) => handleTextChange(text, 0)}
@@ -339,9 +357,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
               }
             : undefined
         }
-        onThumbnailUpdate={(thumbnail) =>
-          handleThumbnailUpdate(0, thumbnail)
-        }
+        onThumbnailUpdate={(thumbnail) => handleThumbnailUpdate(0, thumbnail)}
         onRemoveVideo={() => handleRemoveVideo(0)}
         socialId={socialId}
         orderId={0}
@@ -365,11 +381,12 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     ? getDefaultPlaceholder(platformsInDefault)
                     : socialType === SocialTypes.TWITTER
                       ? "What's happening?"
-                      : "Type your caption here"
+                      : 'Type your caption here'
                 }
                 className="min-h-[200px] resize-none border-none shadow-none focus-visible:ring-0"
               />
-              {(isTwitter || (isGlobal && getDefaultCharacterLimit(platformsInDefault))) && (
+              {(isTwitter ||
+                (isGlobal && getDefaultCharacterLimit(platformsInDefault))) && (
                 <div
                   className={cn(
                     'absolute top-2 right-2 text-sm',

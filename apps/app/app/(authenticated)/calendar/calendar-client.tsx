@@ -95,7 +95,9 @@ export function CalendarClient() {
   );
 
   // Mutations
-  const updatePostScheduledTime = useMutation(api.posts.updatePostScheduledTime);
+  const updatePostScheduledTime = useMutation(
+    api.posts.updatePostScheduledTime
+  );
   const softDeletePost = useMutation(api.posts.softDeletePost);
 
   // Transform posts to calendar events
@@ -115,7 +117,8 @@ export function CalendarClient() {
       } catch (error) {
         console.error('Failed to reschedule post:', error);
         toast.error('Failed to reschedule post', {
-          description: error instanceof Error ? error.message : 'Please try again',
+          description:
+            error instanceof Error ? error.message : 'Please try again',
         });
       }
     },
@@ -155,13 +158,10 @@ export function CalendarClient() {
   );
 
   // Handle event click - open post preview dialog
-  const handleEventSelect = useCallback(
-    (event: CalendarEvent) => {
-      setSelectedPostId(event.id);
-      setIsPreviewOpen(true);
-    },
-    []
-  );
+  const handleEventSelect = useCallback((event: CalendarEvent) => {
+    setSelectedPostId(event.id);
+    setIsPreviewOpen(true);
+  }, []);
 
   if (scheduledPosts === undefined) {
     return (

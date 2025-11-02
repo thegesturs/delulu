@@ -71,7 +71,7 @@ export const LocaleProvider = ({
 // Utility function to load messages
 export const loadMessages = async (
   locale: Locale
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 ): Promise<Record<string, any>> => {
   try {
     const messages = await import(`../locales/${locale}.json`);

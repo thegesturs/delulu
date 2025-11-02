@@ -47,7 +47,9 @@ export function AgendaView({
         days.map((day) => {
           const dayEvents = getAgendaEventsForDay(events, day);
 
-          if (dayEvents.length === 0) return null;
+          if (dayEvents.length === 0) {
+            return null;
+          }
 
           return (
             <div
@@ -75,8 +77,8 @@ export function AgendaView({
         })
       ) : (
         <div className="flex min-h-[70svh] flex-col items-center justify-center py-16 text-center">
-          <CalendarDays size={32} className='mb-2 text-muted-foreground/50' />
-          <h3 className='font-medium text-lg'>No events found</h3>
+          <CalendarDays size={32} className="mb-2 text-muted-foreground/50" />
+          <h3 className="font-medium text-lg">No events found</h3>
           <p className="text-muted-foreground">
             There are no events scheduled for this time period.
           </p>

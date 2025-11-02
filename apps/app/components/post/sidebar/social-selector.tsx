@@ -19,6 +19,7 @@ import {
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import type { SocialType } from '@delulu/validators/post';
 import { useQuery } from 'convex-helpers/react/cache';
 import { Settings } from 'lucide-react';
@@ -31,7 +32,6 @@ import {
 import type React from 'react';
 import { useState } from 'react';
 import { IoCheckmarkCircle } from 'react-icons/io5';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import { PlatformSettingsDialog } from './platform-settings-dialog';
 import { SocialIcon } from './social-icon';
 

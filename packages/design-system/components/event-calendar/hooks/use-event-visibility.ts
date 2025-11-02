@@ -28,7 +28,9 @@ export function useEventVisibility({
 
   // Use layout effect for synchronous measurement before paint
   useLayoutEffect(() => {
-    if (!contentRef.current) return;
+    if (!contentRef.current) {
+      return;
+    }
 
     // Function to update the content height
     const updateHeight = () => {
@@ -62,7 +64,9 @@ export function useEventVisibility({
   // Function to calculate visible events for a cell
   const getVisibleEventCount = useMemo(() => {
     return (totalEvents: number): number => {
-      if (!contentHeight) return totalEvents;
+      if (!contentHeight) {
+        return totalEvents;
+      }
 
       // Calculate how many events can fit in the container
       const maxEvents = Math.floor(contentHeight / (eventHeight + eventGap));

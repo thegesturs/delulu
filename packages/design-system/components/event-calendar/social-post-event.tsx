@@ -8,6 +8,7 @@ import type { SupportedSocialPlatform } from '@delulu/design-system/lib/social-c
 import { cn } from '@delulu/design-system/lib/utils';
 import { format } from 'date-fns';
 import { Clock } from 'lucide-react';
+import type React from 'react';
 
 export interface SocialPostEventData {
   id: string;
@@ -48,7 +49,7 @@ export function SocialPostEvent({
   return (
     // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
     // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-<div
+    <div
       onClick={handleClick}
       className={cn(
         'group relative flex flex-col gap-2 rounded-sm border bg-card p-3 transition-all duration-200',
@@ -77,7 +78,7 @@ export function SocialPostEvent({
               <PrimaryIcon className="h-4 w-4 text-white" />
             </div>
             {additionalPlatformCount > 0 && (
-              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-muted border border-border text-[9px] font-semibold">
+              <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full border border-border bg-muted font-semibold text-[9px]">
                 +{additionalPlatformCount}
               </div>
             )}
@@ -85,7 +86,7 @@ export function SocialPostEvent({
         )}
 
         {/* Title */}
-        <span className="font-medium text-xs leading-tight line-clamp-2 flex-1">
+        <span className="line-clamp-2 flex-1 font-medium text-xs leading-tight">
           {event.title}
         </span>
       </div>
@@ -93,6 +94,7 @@ export function SocialPostEvent({
       {/* Media Thumbnail */}
       {event.mediaThumbnail && (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
+          {/* biome-ignore lint/nursery/noImgElement: Media thumbnail preview in calendar */}
           <img
             src={event.mediaThumbnail}
             alt="Post media"

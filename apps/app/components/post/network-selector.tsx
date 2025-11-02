@@ -7,7 +7,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@delulu/design-system/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@delulu/design-system/components/ui/tooltip';
 import type { SocialType } from '@delulu/validators/post';
 
 import { getPlatformsInDefault } from '@/lib/platform-rules';
@@ -126,11 +131,10 @@ export function AlternativeContentSelector() {
             return (
               <TooltipProvider key={provider.socialId}>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    {menuItem}
-                  </TooltipTrigger>
+                  <TooltipTrigger asChild>{menuItem}</TooltipTrigger>
                   <TooltipContent>
-                    Cannot create alternative content - this is the only platform in default
+                    Cannot create alternative content - this is the only
+                    platform in default
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

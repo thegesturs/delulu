@@ -234,15 +234,16 @@ export function EventCalendar({
   const viewTitle = useMemo(() => {
     if (view === 'month') {
       return format(currentDate, 'MMMM yyyy');
-    } else if (view === 'week') {
+    }
+    if (view === 'week') {
       const start = startOfWeek(currentDate, { weekStartsOn: 0 });
       const end = endOfWeek(currentDate, { weekStartsOn: 0 });
       if (isSameMonth(start, end)) {
         return format(start, 'MMMM yyyy');
-      } else {
-        return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy')}`;
       }
-    } else if (view === 'day') {
+      return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy')}`;
+    }
+    if (view === 'day') {
       return (
         <>
           <span className="min-[480px]:hidden" aria-hidden="true">
@@ -256,19 +257,18 @@ export function EventCalendar({
           </span>
         </>
       );
-    } else if (view === 'agenda') {
+    }
+    if (view === 'agenda') {
       // Show the month range for agenda view
       const start = currentDate;
       const end = addDays(currentDate, AgendaDaysToShow - 1);
 
       if (isSameMonth(start, end)) {
         return format(start, 'MMMM yyyy');
-      } else {
-        return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy')}`;
       }
-    } else {
-      return format(currentDate, 'MMMM yyyy');
+      return `${format(start, 'MMM')} - ${format(end, 'MMM yyyy')}`;
     }
+    return format(currentDate, 'MMMM yyyy');
   }, [currentDate, view]);
 
   return (
