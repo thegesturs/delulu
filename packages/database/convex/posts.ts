@@ -741,3 +741,88 @@ export const updatePostStatus = internalMutation({
     return true;
   },
 });
+
+// Get scheduled posts within a date range (optimized for calendar view)
+export const getScheduledPostsByDateRange = query({
+  args: {
+    startDate: v.number(), // Unix timestamp
+    endDate: v.number(), // Unix timestamp
+    organizationId: v.optional(v.string()),
+  },
+  returns: v.array(getPostByIdSchema),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      return [];
+    }
+
+    // Query posts by user and filter by scheduled date range
+    const query = ctx.db
+      .query('posts')
+      .withIndex('by_user_status', (q) =>
+        q.eq('userId', user._id).eq('status', 'SCHEDULED').eq('isDeleted', false)
+      );
+
+    // Filter by date range and organization
+    const posts = await query
+      .filter((q) => {
+        let filter = q.and(
+          q.gte(q.field('scheduledAt'), args.startDate),
+          q.lte(q.field('scheduledAt'), args.endDate)
+        );
+
+        if (args.organizationId) {
+          filter = q.and(filter, q.eq(q.field('organizationId'), args.organizationId));
+        }
+
+        return filter;
+      })
+      .collect();
+
+    // Populate social providers for each post
+    const postsWithProviders = await Promise.all(
+      posts.map(async (post) => {
+        // Get social providers
+        const socialProviders = await Promise.all(
+          post.socialProviderIds.map(async (id) => {
+            const provider = await ctx.db.get(id);
+            return provider;
+          })
+        );
+
+        const validSocialProviders = socialProviders.filter(
+          (p): p is NonNullable<typeof p> => p !== null
+        );
+
+        // Get alternative content with providers
+        const alternativeContent = post.alternativeContent || [];
+        const alternativeContentWithProviders = await Promise.all(
+          alternativeContent.map(async (alt) => {
+            const provider = await ctx.db.get(alt.socialProviderId);
+            if (!provider) {
+              return null;
+            }
+            return {
+              content: alt.content,
+              socialProviderId: alt.socialProviderId,
+              socialProvider: provider,
+            };
+          })
+        );
+
+        const validAlternativeContent = alternativeContentWithProviders.filter(
+          (a): a is NonNullable<typeof a> => a !== null
+        );
+
+        return {
+          ...post,
+          socialProviders: validSocialProviders,
+          alternativeContent: validAlternativeContent,
+        };
+      })
+    );
+
+    return postsWithProviders;
+  },
+});
