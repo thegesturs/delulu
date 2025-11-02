@@ -98,6 +98,7 @@ export function EventsPopup({
       <div className="sticky top-0 flex items-center justify-between border-b bg-background p-3">
         <h3 className="font-medium">{format(date, 'd MMMM yyyy')}</h3>
         <button
+          type="submit"
           onClick={onClose}
           className="rounded-full p-1 hover:bg-muted"
           aria-label="Close"
@@ -117,8 +118,10 @@ export function EventsPopup({
             const isLastDay = isSameDay(date, eventEnd);
 
             return (
+              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
               <div
                 key={event.id}
+                onKeyDown={(e) => e.stopPropagation()}
                 className="cursor-pointer"
                 onClick={() => handleEventClick(event)}
               >

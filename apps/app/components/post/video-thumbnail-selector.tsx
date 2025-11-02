@@ -19,6 +19,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { cn } from '@delulu/design-system/lib/utils';
 import { ImageIcon, Loader2, Upload, VideoIcon } from 'lucide-react';
+import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 

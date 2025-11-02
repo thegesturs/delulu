@@ -263,8 +263,10 @@ export function DayView({
             const isSocial = isSocialEvent(positionedEvent.event);
 
             return (
+              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
               <div
                 key={positionedEvent.event.id}
+                onKeyDown={(e) => e.stopPropagation()}
                 className="absolute z-10 px-0.5"
                 style={{
                   top: `${positionedEvent.top}px`,

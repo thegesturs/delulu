@@ -8,61 +8,13 @@ import {
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { EventCalendar } from '@delulu/design-system/components/event-calendar';
-import type {
-  CalendarEvent,
-  CalendarView,
-} from '@delulu/design-system/components/event-calendar';
+import type { CalendarEvent } from '@delulu/design-system/components/event-calendar';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { useMutation, useQuery } from 'convex/react';
-import {
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
 import { CalendarPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-
-/**
- * Calculate date range for fetching posts based on calendar view
- */
-function getDateRange(
-  date: Date,
-  view: CalendarView
-): { start: Date; end: Date } {
-  switch (view) {
-    case 'month': {
-      // For month view, get the full month plus padding weeks
-      const monthStart = startOfMonth(date);
-      const monthEnd = endOfMonth(date);
-      const start = startOfWeek(monthStart, { weekStartsOn: 0 });
-      const end = endOfWeek(monthEnd, { weekStartsOn: 0 });
-      return { start, end };
-    }
-    case 'week': {
-      const start = startOfWeek(date, { weekStartsOn: 0 });
-      const end = endOfWeek(date, { weekStartsOn: 0 });
-      return { start, end };
-    }
-    case 'day': {
-      const start = startOfDay(date);
-      const end = endOfDay(date);
-      return { start, end };
-    }
-    case 'agenda': {
-      // For agenda view, show next 30 days
-      const start = startOfDay(date);
-      const end = endOfDay(new Date(date.getTime() + 30 * 24 * 60 * 60 * 1000));
-      return { start, end };
-    }
-    default:
-      return { start: startOfMonth(date), end: endOfMonth(date) };
-  }
-}
 
 export function CalendarClient() {
   const router = useRouter();
