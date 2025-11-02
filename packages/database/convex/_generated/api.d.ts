@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as callmelater from "../callmelater.js";
 import type * as cascade_deletes from "../cascade_deletes.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
@@ -40,6 +41,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  callmelater: typeof callmelater;
   cascade_deletes: typeof cascade_deletes;
   crons: typeof crons;
   http: typeof http;

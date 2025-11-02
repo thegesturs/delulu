@@ -158,11 +158,13 @@ export const createPost = mutation({
 
     // Schedule the post for publishing if scheduledAt is provided
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(
-        args.scheduledAt,
-        internal.posts.publishScheduledPost,
+      // Use scheduler to call the action immediately
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId: newPostId,
+          scheduledAt: args.scheduledAt,
         }
       );
     }
@@ -783,6 +785,20 @@ export const updatePostStatus = internalMutation({
     });
 
     return true;
+  },
+});
+
+// Helper internal mutation to save CallMeLater schedule ID
+export const saveCallMeLaterScheduleId = internalMutation({
+  args: {
+    postId: v.id('posts'),
+    scheduleId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.postId, {
+      callMeLaterScheduleId: args.scheduleId,
+    });
   },
 });
 
