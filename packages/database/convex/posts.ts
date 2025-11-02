@@ -210,13 +210,26 @@ export const updatePost = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
     }
 
-    // Schedule the post for publishing if scheduledAt is provided
+    // Handle scheduling changes
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(
-        args.scheduledAt,
-        internal.posts.publishScheduledPost,
+      // Cancel old schedule if it exists
+      if (oldPost.callMeLaterScheduleId) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.callmelater.cancelScheduleAction,
+          {
+            scheduleId: oldPost.callMeLaterScheduleId,
+          }
+        );
+      }
+
+      // Create new schedule
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId: args.id,
+          scheduledAt: args.scheduledAt,
         }
       );
     }
@@ -256,12 +269,24 @@ export const updatePostScheduledTime = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
     }
 
-    // Schedule the post for publishing at the new time
-    await ctx.scheduler.runAt(
-      args.scheduledAt,
-      internal.posts.publishScheduledPost,
+    // Reschedule the post: cancel old schedule and create new one
+    if (oldPost.callMeLaterScheduleId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        {
+          scheduleId: oldPost.callMeLaterScheduleId,
+        }
+      );
+    }
+
+    // Create new schedule at the new time
+    await ctx.scheduler.runAfter(
+      0,
+      internal.callmelater.schedulePostAction,
       {
         postId: args.id,
+        scheduledAt: args.scheduledAt,
       }
     );
 
@@ -341,11 +366,13 @@ export const upsertPost = mutation({
     }
 
     if (finalStatus === 'PROCESSING' || finalStatus === 'SCHEDULED') {
-      await ctx.scheduler.runAt(
-        args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
-        internal.posts.publishScheduledPost,
+      // Use CallMeLater for scheduling
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId,
+          scheduledAt: args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
         }
       );
     }
@@ -576,6 +603,17 @@ export const deletePost = mutation({
     const oldPost = await findPostById(ctx, args.postId);
     if (!oldPost || oldPost.userId !== user._id) {
       throw new Error('Post not found or access denied');
+    }
+
+    // Cancel scheduled post if it exists
+    if (oldPost.callMeLaterScheduleId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        {
+          scheduleId: oldPost.callMeLaterScheduleId,
+        }
+      );
     }
 
     // Soft delete the post
