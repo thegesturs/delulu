@@ -1,6 +1,7 @@
 "use client"
 
 import { useDroppable } from "@dnd-kit/core"
+import { format } from "date-fns"
 
 import { cn } from "@delulu/design-system/lib/utils"
 import { useCalendarDnd } from "@delulu/design-system/components/event-calendar"
@@ -32,26 +33,33 @@ export function DroppableCell({
     },
   })
 
-  // Format time for display in tooltip (only for debugging)
-  const formattedTime =
-    time !== undefined
-      ? `${Math.floor(time)}:${Math.round((time - Math.floor(time)) * 60)
-          .toString()
-          .padStart(2, "0")}`
-      : null
+  // Format time for display
+  const timeText = time !== undefined ? (() => {
+    const hours = Math.floor(time)
+    const minutes = Math.round((time - hours) * 60)
+    const cellDateTime = new Date(date)
+    cellDateTime.setHours(hours, minutes, 0, 0)
+    return format(cellDateTime, 'h:mm a')
+  })() : format(date, 'MMM d')
 
   return (
     <div
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        "data-dragging:bg-accent flex h-full flex-col overflow-hidden px-0.5 py-1 sm:px-1",
+        "data-dragging:bg-accent group/cell relative flex h-full flex-col overflow-hidden px-0.5 py-1 transition-all sm:px-1",
+        "hover:border hover:border-dashed hover:border-primary/50 hover:bg-accent/30 cursor-pointer rounded-sm",
         className
       )}
-      title={formattedTime ? `${formattedTime}` : undefined}
       data-dragging={isOver && activeEvent ? true : undefined}
     >
       {children}
+      {/* Hover indicator with text */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/cell:opacity-100">
+        <span className="text-xs font-medium text-foreground/70">
+          Create post at {timeText}
+        </span>
+      </div>
     </div>
   )
 }

@@ -22,8 +22,16 @@ import {
   type UniqueIdentifier,
 } from "@dnd-kit/core"
 import { addMinutes, differenceInMinutes } from "date-fns"
+import { toast } from "sonner"
 
 import { EventItem, type CalendarEvent } from "@delulu/design-system/components/event-calendar"
+import { SocialPostEvent } from "@delulu/design-system/components/event-calendar/social-post-event"
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event"
+
+// Type guard to check if an event is a SocialCalendarEvent
+function isSocialEvent(event: CalendarEvent): event is CalendarEvent & { postData: SocialPostEventData } {
+  return 'postData' in event && event.postData !== undefined
+}
 
 // Define the context type
 type CalendarDndContextType = {
@@ -286,6 +294,15 @@ export function CalendarDndProvider({
         )
       }
 
+      // Validate: Cannot schedule in the past (minimum 30 minutes from now)
+      const minimumTime = addMinutes(new Date(), 30)
+      if (newStart < minimumTime) {
+        toast.error('Invalid scheduling time', {
+          description: 'Posts must be scheduled at least 30 minutes in the future',
+        })
+        return
+      }
+
       // Calculate new end time based on the original duration
       const originalStart = new Date(calendarEvent.start)
       const originalEnd = new Date(calendarEvent.end)
@@ -355,15 +372,22 @@ export function CalendarDndProvider({
                 // Remove the transform that was causing the shift
               }}
             >
-              <EventItem
-                event={activeEvent}
-                view={activeView}
-                isDragging={true}
-                showTime={activeView !== "month"}
-                currentTime={currentTime || undefined}
-                isFirstDay={dragHandlePosition?.data?.isFirstDay !== false}
-                isLastDay={dragHandlePosition?.data?.isLastDay !== false}
-              />
+              {isSocialEvent(activeEvent) ? (
+                <SocialPostEvent
+                  event={activeEvent.postData}
+                  className="h-full"
+                />
+              ) : (
+                <EventItem
+                  event={activeEvent}
+                  view={activeView}
+                  isDragging={true}
+                  showTime={activeView !== "month"}
+                  currentTime={currentTime || undefined}
+                  isFirstDay={dragHandlePosition?.data?.isFirstDay !== false}
+                  isLastDay={dragHandlePosition?.data?.isLastDay !== false}
+                />
+              )}
             </div>
           )}
         </DragOverlay>

@@ -95,7 +95,7 @@ export function CalendarClient() {
   );
 
   // Mutations
-  const updatePost = useMutation(api.posts.updatePost);
+  const updatePostScheduledTime = useMutation(api.posts.updatePostScheduledTime);
   const softDeletePost = useMutation(api.posts.softDeletePost);
 
   // Transform posts to calendar events
@@ -108,22 +108,18 @@ export function CalendarClient() {
     async (event: CalendarEvent) => {
       try {
         const updateData = calendarEventToPostUpdate(event);
-        await updatePost({
+        await updatePostScheduledTime({
           id: updateData.id as Id<'posts'>,
           scheduledAt: updateData.scheduledAt,
-        });
-
-        toast.success('Post rescheduled', {
-          description: `Scheduled for ${event.start.toLocaleString()}`,
         });
       } catch (error) {
         console.error('Failed to reschedule post:', error);
         toast.error('Failed to reschedule post', {
-          description: 'Please try again',
+          description: error instanceof Error ? error.message : 'Please try again',
         });
       }
     },
-    [updatePost]
+    [updatePostScheduledTime]
   );
 
   // Handle event delete
@@ -145,14 +141,27 @@ export function CalendarClient() {
     [softDeletePost]
   );
 
-  // Navigate to compose page
+  // Navigate to post creation page
   const handleCreatePost = useCallback(() => {
-    router.push('/compose');
+    router.push('/post');
   }, [router]);
 
-  // Handle view/date changes to refetch data
-  // Note: EventCalendar doesn't expose these callbacks, so we'll need to wrap it
-  // For now, we'll fetch a wider range and rely on the query caching
+  // Handle slot click - redirect to post with scheduledAt param
+  const handleEventCreate = useCallback(
+    (startTime: Date) => {
+      router.push(`/post?scheduledAt=${startTime.getTime()}`);
+    },
+    [router]
+  );
+
+  // Handle event click - open post preview dialog
+  const handleEventSelect = useCallback(
+    (event: CalendarEvent) => {
+      setSelectedPostId(event.id);
+      setIsPreviewOpen(true);
+    },
+    []
+  );
 
   if (scheduledPosts === undefined) {
     return (
@@ -182,12 +191,14 @@ export function CalendarClient() {
       </div>
 
       {/* Calendar */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         <EventCalendar
           events={events}
           onEventUpdate={handleEventUpdate}
           onEventDelete={handleEventDelete}
-          initialView="month"
+          onEventCreate={handleEventCreate}
+          onEventSelect={handleEventSelect}
+          initialView="week"
         />
       </div>
 

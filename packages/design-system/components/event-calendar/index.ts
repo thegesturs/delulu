@@ -2,6 +2,7 @@
 export { AgendaView } from "./agenda-view"
 export { DayView } from "./day-view"
 export { DraggableEvent } from "./draggable-event"
+export { DraggableSocialPostEvent } from "./draggable-social-post-event"
 export { DroppableCell } from "./droppable-cell"
 export { EventDialog } from "./event-dialog"
 export { EventItem } from "./event-item"

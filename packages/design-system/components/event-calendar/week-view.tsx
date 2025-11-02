@@ -29,6 +29,13 @@ import {
   type CalendarEvent,
 } from "@delulu/design-system/components/event-calendar"
 import { EndHour, StartHour } from "@delulu/design-system/components/event-calendar/constants"
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event"
+import { DraggableSocialPostEvent } from "@delulu/design-system/components/event-calendar/draggable-social-post-event"
+
+// Type guard to check if an event is a SocialCalendarEvent
+function isSocialEvent(event: CalendarEvent): event is CalendarEvent & { postData: SocialPostEventData } {
+  return 'postData' in event && event.postData !== undefined
+}
 
 interface WeekViewProps {
   currentDate: Date
@@ -204,8 +211,8 @@ export function WeekView({
     return result
   }, [days, events])
 
-  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleEventClick = (event: CalendarEvent, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     onEventSelect(event)
   }
 
@@ -323,30 +330,42 @@ export function WeekView({
             data-today={isToday(day) || undefined}
           >
             {/* Positioned events */}
-            {(processedDayEvents[dayIndex] ?? []).map((positionedEvent) => (
-              <div
-                key={positionedEvent.event.id}
-                className="absolute z-10 px-0.5"
-                style={{
-                  top: `${positionedEvent.top}px`,
-                  height: `${positionedEvent.height}px`,
-                  left: `${positionedEvent.left * 100}%`,
-                  width: `${positionedEvent.width * 100}%`,
-                  zIndex: positionedEvent.zIndex,
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="h-full w-full">
-                  <DraggableEvent
-                    event={positionedEvent.event}
-                    view="week"
-                    onClick={(e) => handleEventClick(positionedEvent.event, e)}
-                    showTime
-                    height={positionedEvent.height}
-                  />
+            {(processedDayEvents[dayIndex] ?? []).map((positionedEvent) => {
+              const isSocial = isSocialEvent(positionedEvent.event)
+
+              return (
+                <div
+                  key={positionedEvent.event.id}
+                  className="absolute z-10 px-0.5"
+                  style={{
+                    top: `${positionedEvent.top}px`,
+                    height: `${positionedEvent.height}px`,
+                    left: `${positionedEvent.left * 100}%`,
+                    width: `${positionedEvent.width * 100}%`,
+                    zIndex: positionedEvent.zIndex,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {isSocial ? (
+                    <DraggableSocialPostEvent
+                      event={positionedEvent.event as CalendarEvent & { postData: SocialPostEventData }}
+                      view="week"
+                      onClick={() => handleEventClick(positionedEvent.event)}
+                      height={positionedEvent.height}
+                      className="h-full"
+                    />
+                  ) : (
+                    <DraggableEvent
+                      event={positionedEvent.event}
+                      view="week"
+                      onClick={(e) => handleEventClick(positionedEvent.event, e)}
+                      showTime
+                      height={positionedEvent.height}
+                    />
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
 
             {/* Current time indicator - only show for today's column */}
             {currentTimeVisible && isToday(day) && (

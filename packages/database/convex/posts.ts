@@ -223,6 +223,48 @@ export const updatePost = mutation({
   },
 });
 
+// Simple mutation to update only the scheduled time (for drag-and-drop in calendar)
+export const updatePostScheduledTime = mutation({
+  args: {
+    id: v.id('posts'),
+    scheduledAt: v.number(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const oldPost = await findPostById(ctx, args.id);
+
+    // Validate scheduled date must be in the future (minimum 30 minutes from now)
+    const minimumTime = getCurrentTimestamp() + 30 * 60 * 1000; // 30 minutes in ms
+    if (args.scheduledAt < minimumTime) {
+      throw new Error('Scheduled date must be at least 30 minutes in the future');
+    }
+
+    // Update the post with new scheduled time
+    await ctx.db.patch(args.id, {
+      scheduledAt: args.scheduledAt,
+      status: 'SCHEDULED',
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    // Update aggregates
+    const newPost = await ctx.db.get(args.id);
+    if (newPost) {
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+    }
+
+    // Schedule the post for publishing at the new time
+    await ctx.scheduler.runAt(
+      args.scheduledAt,
+      internal.posts.publishScheduledPost,
+      {
+        postId: args.id,
+      }
+    );
+
+    return true;
+  },
+});
+
 // Unified upsert mutation (create or update)
 export const upsertPost = mutation({
   args: postUpsertSchema.fields,

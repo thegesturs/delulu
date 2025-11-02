@@ -33,6 +33,13 @@ import {
   type CalendarEvent,
 } from "@delulu/design-system/components/event-calendar"
 import { DefaultStartHour } from "@delulu/design-system/components/event-calendar/constants"
+import { SocialPostEvent } from "@delulu/design-system/components/event-calendar/social-post-event"
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event"
+
+// Type guard to check if an event is a SocialCalendarEvent
+function isSocialEvent(event: CalendarEvent): event is CalendarEvent & { postData: SocialPostEventData } {
+  return 'postData' in event && event.postData !== undefined
+}
 
 interface MonthViewProps {
   currentDate: Date
@@ -78,8 +85,8 @@ export function MonthView({
     return result
   }, [days])
 
-  const handleEventClick = (event: CalendarEvent, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleEventClick = (event: CalendarEvent, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     onEventSelect(event)
   }
 
@@ -165,6 +172,8 @@ export function MonthView({
 
                         if (!visibleCount) return null
 
+                        const isSocial = isSocialEvent(event)
+
                         if (!isFirstDay) {
                           return (
                             <div
@@ -201,13 +210,20 @@ export function MonthView({
                             className="aria-hidden:hidden"
                             aria-hidden={isHidden ? "true" : undefined}
                           >
-                            <DraggableEvent
-                              event={event}
-                              view="month"
-                              onClick={(e) => handleEventClick(event, e)}
-                              isFirstDay={isFirstDay}
-                              isLastDay={isLastDay}
-                            />
+                            {isSocial ? (
+                              <SocialPostEvent
+                                event={event.postData}
+                                onClick={() => handleEventClick(event)}
+                              />
+                            ) : (
+                              <DraggableEvent
+                                event={event}
+                                view="month"
+                                onClick={(e) => handleEventClick(event, e)}
+                                isFirstDay={isFirstDay}
+                                isLastDay={isLastDay}
+                              />
+                            )}
                           </div>
                         )
                       })}
@@ -244,6 +260,17 @@ export function MonthView({
                                   const eventEnd = new Date(event.end)
                                   const isFirstDay = isSameDay(day, eventStart)
                                   const isLastDay = isSameDay(day, eventEnd)
+                                  const isSocial = isSocialEvent(event)
+
+                                  if (isSocial) {
+                                    return (
+                                      <SocialPostEvent
+                                        key={event.id}
+                                        event={event.postData}
+                                        onClick={() => handleEventClick(event)}
+                                      />
+                                    )
+                                  }
 
                                   return (
                                     <EventItem
