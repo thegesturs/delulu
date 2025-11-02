@@ -2,14 +2,14 @@
 
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
-import { action } from './_generated/server';
+import { internalAction } from './_generated/server';
 
 const CALLMELATER_API_URL = 'https://api.callmelater.xyz';
 
 /**
  * Schedule a post to be published at a specific time using CallMeLater API
  */
-export const schedulePostAction = action({
+export const schedulePostAction = internalAction({
   args: {
     postId: v.id('posts'),
     scheduledAt: v.number(),
@@ -72,7 +72,7 @@ export const schedulePostAction = action({
 /**
  * Cancel a scheduled post using CallMeLater API
  */
-export const cancelScheduleAction = action({
+export const cancelScheduleAction = internalAction({
   args: {
     scheduleId: v.string(),
   },
