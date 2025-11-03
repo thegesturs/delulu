@@ -25,6 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import React, { useEffect } from 'react';
 import PostLoading from './post-loading';
 
@@ -34,8 +35,10 @@ const ITEMS_PER_PAGE = 10;
 export default function PostsClient() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState('');
-  const [statusFilter, setStatusFilter] =
-    React.useState<PostStatusFilterType>('SAVED');
+  const [statusFilter, setStatusFilter] = useQueryState(
+    'status',
+    parseAsStringLiteral(['SAVED', 'SCHEDULED', 'PUBLISHED', 'FAILED'] as const).withDefault('SAVED')
+  );
   const [layout, setLayout] = React.useState<PostLayout>('list');
 
   // Debounce search term to avoid too many queries

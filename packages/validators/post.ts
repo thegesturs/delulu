@@ -231,7 +231,7 @@ const tikTokPrivacyValues = [
   tikTokPrivacyLevels.SELF_ONLY,
   tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
   tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-  tikTokPrivacyLevels.FOLLOWER_OF_CREATOR
+  tikTokPrivacyLevels.FOLLOWER_OF_CREATOR,
 ] as const;
 
 export const promotionContentTypes = {

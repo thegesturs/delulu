@@ -1,5 +1,6 @@
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import type { GetPostByIdSchema } from '@delulu/database/convex/schemas/posts_media';
+import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import type {
   FullPostType,
   ProviderSetting,
@@ -7,7 +8,6 @@ import type {
   TikTokSettings,
 } from '@delulu/validators/post';
 import { promotionContentTypes } from '@delulu/validators/post';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
@@ -86,7 +86,8 @@ export const useStore = create<PostState & PostActions>()(
         setTikTokSettings: (settings) =>
           set((state) => {
             // Initialize with defaults if not set
-            const currentSettings = state.tiktokSettings || DEFAULT_TIKTOK_SETTINGS;
+            const currentSettings =
+              state.tiktokSettings || DEFAULT_TIKTOK_SETTINGS;
 
             // Merge new settings
             const newSettings = { ...currentSettings, ...settings };

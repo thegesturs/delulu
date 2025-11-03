@@ -29,7 +29,9 @@ export async function extractVideoFrame(
     }
 
     const videoUrl =
-      typeof videoFile === 'string' ? videoFile : URL.createObjectURL(videoFile);
+      typeof videoFile === 'string'
+        ? videoFile
+        : URL.createObjectURL(videoFile);
 
     video.addEventListener('loadedmetadata', () => {
       // Use provided timestamp or middle of video
@@ -104,7 +106,9 @@ export async function generateThumbnailPreviews(
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const videoUrl =
-      typeof videoFile === 'string' ? videoFile : URL.createObjectURL(videoFile);
+      typeof videoFile === 'string'
+        ? videoFile
+        : URL.createObjectURL(videoFile);
 
     // Set timeout for the entire operation
     const timeoutId = setTimeout(() => {

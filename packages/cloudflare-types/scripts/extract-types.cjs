@@ -1,9 +1,4 @@
-#!/usr/bin/env node'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';'use strict';
-
-/**
- * Script to extract CloudflareEnv interface from generated .d.ts file
- * and update our types.ts file automatically
- */
+#!/usr/bin/env node'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');

@@ -158,11 +158,13 @@ export const createPost = mutation({
 
     // Schedule the post for publishing if scheduledAt is provided
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(
-        args.scheduledAt,
-        internal.posts.publishScheduledPost,
+      // Use scheduler to call the action immediately
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId: newPostId,
+          scheduledAt: args.scheduledAt,
         }
       );
     }
@@ -208,16 +210,85 @@ export const updatePost = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
     }
 
-    // Schedule the post for publishing if scheduledAt is provided
+    // Handle scheduling changes
     if (args.scheduledAt) {
-      await ctx.scheduler.runAt(
-        args.scheduledAt,
-        internal.posts.publishScheduledPost,
+      // Cancel old schedule if it exists
+      if (oldPost.callMeLaterScheduleId) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.callmelater.cancelScheduleAction,
+          {
+            scheduleId: oldPost.callMeLaterScheduleId,
+          }
+        );
+      }
+
+      // Create new schedule
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId: args.id,
+          scheduledAt: args.scheduledAt,
         }
       );
     }
+
+    return true;
+  },
+});
+
+// Simple mutation to update only the scheduled time (for drag-and-drop in calendar)
+export const updatePostScheduledTime = mutation({
+  args: {
+    id: v.id('posts'),
+    scheduledAt: v.number(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const oldPost = await findPostById(ctx, args.id);
+
+    // Validate scheduled date must be in the future (minimum 30 minutes from now)
+    const minimumTime = getCurrentTimestamp() + 30 * 60 * 1000; // 30 minutes in ms
+    if (args.scheduledAt < minimumTime) {
+      throw new Error(
+        'Scheduled date must be at least 30 minutes in the future'
+      );
+    }
+
+    // Update the post with new scheduled time
+    await ctx.db.patch(args.id, {
+      scheduledAt: args.scheduledAt,
+      status: 'SCHEDULED',
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    // Update aggregates
+    const newPost = await ctx.db.get(args.id);
+    if (newPost) {
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+    }
+
+    // Reschedule the post: cancel old schedule and create new one
+    if (oldPost.callMeLaterScheduleId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        {
+          scheduleId: oldPost.callMeLaterScheduleId,
+        }
+      );
+    }
+
+    // Create new schedule at the new time
+    await ctx.scheduler.runAfter(
+      0,
+      internal.callmelater.schedulePostAction,
+      {
+        postId: args.id,
+        scheduledAt: args.scheduledAt,
+      }
+    );
 
     return true;
   },
@@ -295,11 +366,13 @@ export const upsertPost = mutation({
     }
 
     if (finalStatus === 'PROCESSING' || finalStatus === 'SCHEDULED') {
-      await ctx.scheduler.runAt(
-        args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
-        internal.posts.publishScheduledPost,
+      // Use CallMeLater for scheduling
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.schedulePostAction,
         {
           postId,
+          scheduledAt: args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
         }
       );
     }
@@ -532,6 +605,17 @@ export const deletePost = mutation({
       throw new Error('Post not found or access denied');
     }
 
+    // Cancel scheduled post if it exists
+    if (oldPost.callMeLaterScheduleId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        {
+          scheduleId: oldPost.callMeLaterScheduleId,
+        }
+      );
+    }
+
     // Soft delete the post
     await ctx.db.patch(oldPost._id, {
       isDeleted: true,
@@ -739,5 +823,110 @@ export const updatePostStatus = internalMutation({
     });
 
     return true;
+  },
+});
+
+// Helper internal mutation to save CallMeLater schedule ID
+export const saveCallMeLaterScheduleId = internalMutation({
+  args: {
+    postId: v.id('posts'),
+    scheduleId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.postId, {
+      callMeLaterScheduleId: args.scheduleId,
+    });
+  },
+});
+
+// Get scheduled posts within a date range (optimized for calendar view)
+export const getScheduledPostsByDateRange = query({
+  args: {
+    startDate: v.number(), // Unix timestamp
+    endDate: v.number(), // Unix timestamp
+    organizationId: v.optional(v.string()),
+  },
+  returns: v.array(getPostByIdSchema),
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+
+    if (!user) {
+      return [];
+    }
+
+    // Query posts by user and filter by scheduled date range
+    const query = ctx.db
+      .query('posts')
+      .withIndex('by_user_status', (q) =>
+        q
+          .eq('userId', user._id)
+          .eq('status', 'SCHEDULED')
+          .eq('isDeleted', false)
+      );
+
+    // Filter by date range and organization
+    const posts = await query
+      .filter((q) => {
+        let filter = q.and(
+          q.gte(q.field('scheduledAt'), args.startDate),
+          q.lte(q.field('scheduledAt'), args.endDate)
+        );
+
+        if (args.organizationId) {
+          filter = q.and(
+            filter,
+            q.eq(q.field('organizationId'), args.organizationId)
+          );
+        }
+
+        return filter;
+      })
+      .collect();
+
+    // Populate social providers for each post
+    const postsWithProviders = await Promise.all(
+      posts.map(async (post) => {
+        // Get social providers
+        const socialProviders = await Promise.all(
+          post.socialProviderIds.map(async (id) => {
+            const provider = await ctx.db.get(id);
+            return provider;
+          })
+        );
+
+        const validSocialProviders = socialProviders.filter(
+          (p): p is NonNullable<typeof p> => p !== null
+        );
+
+        // Get alternative content with providers
+        const alternativeContent = post.alternativeContent || [];
+        const alternativeContentWithProviders = await Promise.all(
+          alternativeContent.map(async (alt) => {
+            const provider = await ctx.db.get(alt.socialProviderId);
+            if (!provider) {
+              return null;
+            }
+            return {
+              content: alt.content,
+              socialProviderId: alt.socialProviderId,
+              socialProvider: provider,
+            };
+          })
+        );
+
+        const validAlternativeContent = alternativeContentWithProviders.filter(
+          (a): a is NonNullable<typeof a> => a !== null
+        );
+
+        return {
+          ...post,
+          socialProviders: validSocialProviders,
+          alternativeContent: validAlternativeContent,
+        };
+      })
+    );
+
+    return postsWithProviders;
   },
 });

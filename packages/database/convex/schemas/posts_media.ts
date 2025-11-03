@@ -33,6 +33,7 @@ export const basePostSchema = v.object({
   userId: v.optional(v.id('users')),
   status: postStatusSchema,
   scheduledAt: v.optional(v.number()),
+  callMeLaterScheduleId: v.optional(v.string()),
   reviewStatus: postReviewStatusSchema,
   organizationId: v.optional(v.string()),
   isDeleted: v.boolean(),

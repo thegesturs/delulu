@@ -2,8 +2,8 @@ import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { convex } from '@delulu/database/node';
 import {
-  type TikTokSettings,
   type ProviderSetting,
+  type TikTokSettings,
   getValidMediaUrls,
   promotionContentTypes,
 } from '@delulu/validators/post';
@@ -175,7 +175,9 @@ const waitForPostCompletion = (
     }
 
     // Status is still 'Processing', continue polling
-    console.log(`[TikTok] Status: ${status}, waiting ${interval}ms before next check...`);
+    console.log(
+      `[TikTok] Status: ${status}, waiting ${interval}ms before next check...`
+    );
     await new Promise((resolve) => setTimeout(resolve, interval));
     return poll(attempts + 1);
   };
@@ -270,7 +272,10 @@ const uploadVideo = (
       );
     }
 
-    console.log('[TikTok] Upload successful, publish_id:', data.data.publish_id);
+    console.log(
+      '[TikTok] Upload successful, publish_id:',
+      data.data.publish_id
+    );
     return ok({
       data: {
         publish_id: data.data.publish_id,
@@ -332,7 +337,10 @@ const publishContent = (
         caption,
         tiktokSettings
       ).andThen((uploadResponse) => {
-        console.log('[TikTok] Video uploaded, publish_id:', uploadResponse.data.publish_id);
+        console.log(
+          '[TikTok] Video uploaded, publish_id:',
+          uploadResponse.data.publish_id
+        );
         console.log('[TikTok] Starting polling for completion...');
         // Poll for completion as required by TikTok guidelines
         return waitForPostCompletion(

@@ -84,6 +84,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
   const { data: connectUrl } =
     api.socialProvider.getSocialProviderConnectUrl.useQuery(
       {
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
         provider: socialType as any,
       },
       {

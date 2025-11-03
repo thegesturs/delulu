@@ -3,6 +3,7 @@ import './styles.css';
 import { TRPCReactProvider } from '@/trpc/react';
 import { DesignSystemProvider } from '@delulu/design-system';
 import { fonts } from '@delulu/design-system/lib/fonts';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type { ReactNode } from 'react';
 
 type RootLayoutProperties = {
@@ -17,7 +18,9 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
         termsUrl="https://delulu.social/legal/terms-of-service"
       >
         <ConvexClientProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <NuqsAdapter>{children}</NuqsAdapter>
+          </TRPCReactProvider>
         </ConvexClientProvider>
       </DesignSystemProvider>
     </body>

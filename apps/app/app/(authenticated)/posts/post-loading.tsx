@@ -12,7 +12,7 @@ export default function PostLoading({ layout = 'grid' }: PostLoadingProps) {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-x-4 border-b py-1.5 px-3 last:border-b-0"
+            className="flex items-center gap-x-4 border-b px-3 py-1.5 last:border-b-0"
           >
             <Skeleton className="h-5 w-20 flex-shrink-0" />
             <Skeleton className="h-4 flex-1" />

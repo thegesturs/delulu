@@ -6,6 +6,52 @@ import { httpAction } from './_generated/server';
 
 const http = httpRouter();
 
+/**
+ * HTTP endpoint to receive scheduled post publishing requests from CallMeLater
+ * This endpoint is called by CallMeLater at the scheduled time
+ */
+http.route({
+  path: '/publishPost',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const { postId } = body;
+
+      if (!postId) {
+        return new Response(
+          JSON.stringify({ error: 'Missing postId in request body' }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Call the existing internal action to publish the post
+      await ctx.runAction(internal.posts.publishScheduledPost, { postId });
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Error in publishPost HTTP endpoint:', error);
+
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to publish post',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+  }),
+});
+
 http.route({
   path: '/clerk-users-webhook',
   method: 'POST',

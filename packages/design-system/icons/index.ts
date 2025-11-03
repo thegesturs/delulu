@@ -2,7 +2,7 @@ import BarChart from './bar_chart';
 import Calendar from './calendar';
 import CheckCircle from './check_circled';
 import Chip from './chip';
-import ClipboardIcon from './clipboardIcon';
+import ClipboardIcon from './clipboard-icon';
 import Compass from './compass';
 import Database from './database';
 import Draft from './draft';

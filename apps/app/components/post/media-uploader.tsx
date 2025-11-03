@@ -167,7 +167,8 @@ function getPlatformConfig(
     maxImages = 1;
     maxVideos = 1;
     acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
-    uploadInstruction = 'Upload 1 vertical video (9:16) and 1 optional thumbnail';
+    uploadInstruction =
+      'Upload 1 vertical video (9:16) and 1 optional thumbnail';
     aspectRatioInstruction = 'Video: 9:16 vertical, Thumbnail: Square';
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       acceptedFileTypes = 'image/jpeg,image/png';
@@ -191,7 +192,8 @@ function getPlatformConfig(
     if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
       maxImages = 0;
       acceptedFileTypes = 'video/*';
-      countInstruction = '1/1 Reel video (9:16 vertical). No images with video.';
+      countInstruction =
+        '1/1 Reel video (9:16 vertical). No images with video.';
       aspectRatioInstruction = 'Video: 9:16 vertical, max 90 seconds';
     } else if (
       mediaFiles.length > 0 &&

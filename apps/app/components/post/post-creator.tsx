@@ -9,6 +9,8 @@ import {
   TabsTrigger,
 } from '@delulu/design-system/components/ui/tabs';
 import { useQuery } from 'convex-helpers/react/cache';
+import { format } from 'date-fns';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getSingleProviderInDefault } from '@/lib/platform-rules';
@@ -30,11 +32,14 @@ interface PostCreatorProps {
 }
 
 export function PostCreator({ postId }: PostCreatorProps = {}) {
+  const searchParams = useSearchParams();
   const alternativeContent = useAlternativeContent();
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>('global');
   const loadPost = useStore((state) => state.loadPost);
-  const post = useStore((state) => state.post);
+  const _post = useStore((state) => state.post);
+  const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
+  const setTime = useStore((state) => state.setTime);
 
   // Get single provider in default for smart labeling
   const singleProviderInDefault = getSingleProviderInDefault(
@@ -54,6 +59,24 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       loadPost(postData);
     }
   }, [postData, postId, loadPost]);
+
+  // Handle scheduledAt query parameter from calendar
+  useEffect(() => {
+    // Only handle scheduledAt if not in edit mode
+    if (!postId) {
+      const scheduledAtParam = searchParams.get('scheduledAt');
+      if (scheduledAtParam) {
+        const scheduledTime = Number.parseInt(scheduledAtParam, 10);
+        if (!Number.isNaN(scheduledTime)) {
+          const scheduledDate = new Date(scheduledTime);
+          // Set the date in the store
+          setDateAlongWithTime(scheduledDate);
+          // Set the time in HH:mm format
+          setTime(format(scheduledDate, 'HH:mm'));
+        }
+      }
+    }
+  }, [postId, searchParams, setDateAlongWithTime, setTime]);
 
   const handleTabChange = useCallback(
     (value: string) => {
@@ -109,7 +132,12 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
-            <TabsTrigger value="global" className={cn(singleProviderInDefault && 'min-w-fit gap-2 text-xs')}>
+            <TabsTrigger
+              value="global"
+              className={cn(
+                singleProviderInDefault && 'min-w-fit gap-2 text-xs'
+              )}
+            >
               {singleProviderInDefault ? (
                 <>
                   <SocialIcon
