@@ -3,7 +3,6 @@
 import { PostsView } from '@/components/posts/posts-view';
 import type { PostLayout } from '@/components/posts/types';
 import { api } from '@delulu/database/convex/_generated/api';
-import type { PostStatus } from '@delulu/database/convex/schemas';
 import {
   AnimatedTabs,
   AnimatedTabsList,
@@ -29,7 +28,6 @@ import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import React, { useEffect } from 'react';
 import PostLoading from './post-loading';
 
-type PostStatusFilterType = PostStatus;
 const ITEMS_PER_PAGE = 10;
 
 export default function PostsClient() {
@@ -37,7 +35,12 @@ export default function PostsClient() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = useQueryState(
     'status',
-    parseAsStringLiteral(['SAVED', 'SCHEDULED', 'PUBLISHED', 'FAILED'] as const).withDefault('SAVED')
+    parseAsStringLiteral([
+      'SAVED',
+      'SCHEDULED',
+      'PUBLISHED',
+      'FAILED',
+    ] as const).withDefault('SAVED')
   );
   const [layout, setLayout] = React.useState<PostLayout>('list');
 
@@ -205,7 +208,9 @@ export default function PostsClient() {
           <AnimatedTabs
             value={statusFilter}
             onValueChange={(value) =>
-              setStatusFilter(value as PostStatusFilterType)
+              setStatusFilter(
+                value as 'SAVED' | 'SCHEDULED' | 'PUBLISHED' | 'FAILED'
+              )
             }
             className="flex-1 pt-3"
           >

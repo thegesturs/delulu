@@ -1,8 +1,10 @@
 {
   "extends": "@delulu/typescript-config/nextjs.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["./src/*.tsx"],
+  "include": ["./*.js", "./*.ts", "./*.tsx"],
   "exclude": ["node_modules"]
 }
