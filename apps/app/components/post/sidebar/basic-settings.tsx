@@ -59,7 +59,7 @@ export function BasicSettings() {
       toast.success(
         'Post sent for processing, will be published shortly. You can close this window now.'
       );
-      router.push('/posts');
+      router.push('/posts?status=PROCESSING');
     } catch {
       toast.error('Failed to publish post');
     } finally {
@@ -93,7 +93,7 @@ export function BasicSettings() {
         status: 'SCHEDULED',
       });
       toast.success('Post scheduled successfully');
-      router.push('/posts');
+      router.push('/posts?status=SCHEDULED');
     } catch {
       toast.error('Failed to schedule post');
     } finally {
@@ -124,7 +124,7 @@ export function BasicSettings() {
       toast.success(
         postId ? 'Post updated successfully' : 'Post saved successfully'
       );
-      router.push('/posts');
+      router.push('/posts?status=SAVED');
     } catch {
       toast.error(postId ? 'Failed to update post' : 'Failed to save post');
     } finally {
