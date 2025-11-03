@@ -54,6 +54,7 @@ function DashboardClient() {
             scheduledCount: 0,
             failedCount: 0,
             savedCount: 0,
+            processingCount: 0,
             upcomingPosts: 0,
             thisWeekPosts: 0,
             lastWeekPosts: 0,

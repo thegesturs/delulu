@@ -211,6 +211,7 @@ export const getDashboardStats = query({
         scheduledCount: 0,
         failedCount: 0,
         savedCount: 0,
+        processingCount: 0,
         upcomingPosts: 0,
         thisWeekPosts: 0,
         lastWeekPosts: 0,
@@ -244,6 +245,10 @@ export const getDashboardStats = query({
 
     const savedCount = await postsByUserStatus.count(ctx, {
       bounds: { prefix: [user._id, 'SAVED'] },
+    });
+
+    const processingCount = await postsByUserStatus.count(ctx, {
+      bounds: { prefix: [user._id, 'PROCESSING'] },
     });
 
     // Calculate time ranges
@@ -323,6 +328,7 @@ export const getDashboardStats = query({
       scheduledCount,
       failedCount,
       savedCount,
+      processingCount,
       upcomingPosts,
       thisWeekPosts,
       lastWeekPosts,

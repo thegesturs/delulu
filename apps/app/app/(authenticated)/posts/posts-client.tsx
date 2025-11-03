@@ -20,6 +20,7 @@ import {
   FileText,
   LayoutGrid,
   List,
+  Loader2,
   Plus,
   XCircle,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ export default function PostsClient() {
       'SCHEDULED',
       'PUBLISHED',
       'FAILED',
+      'PROCESSING',
     ] as const).withDefault('SAVED')
   );
   const [layout, setLayout] = React.useState<PostLayout>('list');
@@ -209,7 +211,7 @@ export default function PostsClient() {
             value={statusFilter}
             onValueChange={(value) =>
               setStatusFilter(
-                value as 'SAVED' | 'SCHEDULED' | 'PUBLISHED' | 'FAILED'
+                value as 'SAVED' | 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'PROCESSING'
               )
             }
             className="flex-1 pt-3"
@@ -236,6 +238,18 @@ export default function PostsClient() {
                 {dashboardStats && dashboardStats.scheduledCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
                     {dashboardStats.scheduledCount}
+                  </Badge>
+                )}
+              </AnimatedTabsTrigger>
+              <AnimatedTabsTrigger
+                value="PROCESSING"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+              >
+                <Loader2 className="h-4 w-4" />
+                <span>Processing</span>
+                {dashboardStats && dashboardStats.processingCount > 0 && (
+                  <Badge variant="secondary" className="ml-1.5">
+                    {dashboardStats.processingCount}
                   </Badge>
                 )}
               </AnimatedTabsTrigger>

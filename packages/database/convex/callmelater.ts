@@ -7,6 +7,13 @@ import { internalAction } from './_generated/server';
 const CALLMELATER_API_URL = 'https://api.callmelater.xyz';
 
 /**
+ * CallMeLater API response types
+ */
+type CallMeLaterScheduleResponse = {
+  scheduleId: string;
+};
+
+/**
  * Schedule a post to be published at a specific time using CallMeLater API
  */
 export const schedulePostAction = internalAction({
@@ -54,7 +61,7 @@ export const schedulePostAction = internalAction({
         );
       }
 
-      const result = await response.json();
+      const result = await response.json() as CallMeLaterScheduleResponse;
       const scheduleId = result.scheduleId;
 
       // Save the scheduleId to the post using an internal mutation

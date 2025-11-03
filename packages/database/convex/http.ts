@@ -2,9 +2,17 @@ import type { WebhookEvent } from '@clerk/backend';
 import { httpRouter } from 'convex/server';
 import { Webhook } from 'svix';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
 
 const http = httpRouter();
+
+/**
+ * Type for CallMeLater publish post request body
+ */
+type PublishPostRequestBody = {
+  postId: string;
+};
 
 /**
  * HTTP endpoint to receive scheduled post publishing requests from CallMeLater
@@ -15,7 +23,7 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     try {
-      const body = await request.json();
+      const body = await request.json() as PublishPostRequestBody;
       const { postId } = body;
 
       if (!postId) {
@@ -29,7 +37,7 @@ http.route({
       }
 
       // Call the existing internal action to publish the post
-      await ctx.runAction(internal.posts.publishScheduledPost, { postId });
+      await ctx.runAction(internal.posts.publishScheduledPost, { postId: postId as Id<'posts'> });
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
