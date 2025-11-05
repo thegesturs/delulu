@@ -15,7 +15,7 @@ export function Footer() {
   const socials = [
     // { title: 'Facebook', href: 'https://www.facebook.com/delulu.social' },
     // { title: 'Instagram', href: 'https://www.instagram.com/delulu.social' },
-    { title: 'Twitter', href: 'https://x.com/delulu_social' },
+    { title: 'Twitter', href: 'https://x.com/delulusocial' },
     {
       title: 'LinkedIn',
       href: 'https://www.linkedin.com/company/delulu-social',
@@ -95,7 +95,7 @@ export function Footer() {
           <p className="text-muted-foreground text-sm">© Delulu Social</p>
           <div className="mt-4 flex gap-4 md:mt-0">
             <Link
-              href="https://x.com/delulu_social"
+              href="https://x.com/delulusocial"
               className="text-muted-foreground hover:text-foreground"
             >
               <FaTwitter size={20} />

@@ -365,14 +365,23 @@ export const upsertPost = mutation({
       }
     }
 
-    if (finalStatus === 'PROCESSING' || finalStatus === 'SCHEDULED') {
-      // Use CallMeLater for scheduling
+    if (finalStatus === 'PROCESSING') {
+      // PROCESSING: Publish immediately without CallMeLater to avoid unnecessary delay
+      await ctx.scheduler.runAfter(
+        0,
+        internal.posts.publishScheduledPost,
+        {
+          postId,
+        }
+      );
+    } else if (finalStatus === 'SCHEDULED') {
+      // SCHEDULED: Use CallMeLater for future publishing
       await ctx.scheduler.runAfter(
         0,
         internal.callmelater.schedulePostAction,
         {
           postId,
-          scheduledAt: args.scheduledAt ?? Date.now() + 1000, // Use 1 second minimum delay for better reliability
+          scheduledAt: args.scheduledAt!,
         }
       );
     }
