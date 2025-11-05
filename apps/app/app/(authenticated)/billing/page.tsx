@@ -18,6 +18,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@delulu/design-system/components/ui/alert';
+import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Tabs,
   TabsContent,
@@ -26,7 +27,7 @@ import {
 } from '@delulu/design-system/components/ui/tabs';
 import type { PlanType } from '@delulu/payments';
 import { BarChart3, CheckCircle2, CreditCard } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -51,9 +52,11 @@ const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
 };
 
 export default function BillingPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const success = searchParams?.get('success');
   const cancelled = searchParams?.get('cancelled');
+  const tab = searchParams?.get('tab') || 'overview';
 
   // Show success/error messages from checkout redirects
   useEffect(() => {
@@ -68,6 +71,12 @@ export default function BillingPage() {
       });
     }
   }, [success, cancelled]);
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams?.toString());
+    params.set('tab', value);
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
 
   return (
     <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto py-8">
@@ -94,7 +103,7 @@ export default function BillingPage() {
       )}
 
       {/* Tabs for different sections */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={tab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="w-fit">
           <TabsTrigger value="overview" className='w-fit'>
             <CreditCard className="mr-2 h-4 w-4" />
@@ -124,9 +133,9 @@ export default function BillingPage() {
               Upgrade your plan to unlock advanced features, higher limits, and
               priority support
             </p>
-            <TabsList>
-              <TabsTrigger value="plans">View All Plans</TabsTrigger>
-            </TabsList>
+            <Button onClick={() => handleTabChange('plans')}>
+              View All Plans
+            </Button>
           </div>
         </TabsContent>
 

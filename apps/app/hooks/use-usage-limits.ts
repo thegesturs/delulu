@@ -4,7 +4,7 @@
  * Checks usage limits for the current user's plan
  */
 
-import { useQuery } from 'convex/react';
+import { useQuery } from 'convex-helpers/react/cache';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { PlanType } from '@delulu/payments';
 

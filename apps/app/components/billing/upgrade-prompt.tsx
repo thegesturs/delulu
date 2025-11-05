@@ -7,14 +7,20 @@
  * Displays the required plan and upgrade button
  */
 
+import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
 import { PLANS, type PlanType } from '@delulu/payments';
 import { useAction } from 'convex/react';
 import { ArrowRight, Lock, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '@delulu/database/convex/_generated/api';
 
 interface UpgradePromptProps {
   feature: string;
@@ -77,10 +83,13 @@ export function UpgradePrompt({
         {/* Usage info if provided */}
         {currentUsage !== undefined && limit !== undefined && (
           <div className="rounded-lg bg-muted p-4">
-            <p className="text-sm text-muted-foreground">
-              You've reached your limit: <strong>{currentUsage}/{limit}</strong>
+            <p className="text-muted-foreground text-sm">
+              You've reached your limit:{' '}
+              <strong>
+                {currentUsage}/{limit}
+              </strong>
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-muted-foreground text-sm">
               Upgrade to {plan.name} for{' '}
               <strong>
                 {plan.limits.socialAccounts === -1
@@ -94,8 +103,8 @@ export function UpgradePrompt({
 
         {/* Plan features */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">With {plan.name}, you get:</p>
-          <ul className="space-y-1 text-sm text-muted-foreground">
+          <p className="font-medium text-sm">With {plan.name}, you get:</p>
+          <ul className="space-y-1 text-muted-foreground text-sm">
             {plan.features.aiContentGeneration && (
               <li className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
@@ -133,11 +142,11 @@ export function UpgradePrompt({
         {/* Pricing */}
         <div className="rounded-lg bg-primary/10 p-4">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">${plan.price.monthly}</span>
+            <span className="font-bold text-3xl">${plan.price.monthly}</span>
             <span className="text-muted-foreground">/month</span>
           </div>
           {plan.price.yearly > 0 && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-muted-foreground text-sm">
               Or ${plan.price.yearly}/year (save 17%)
             </p>
           )}
@@ -160,7 +169,7 @@ export function UpgradePrompt({
           )}
         </Button>
 
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-center text-muted-foreground text-xs">
           Cancel anytime • No hidden fees
         </p>
       </CardContent>
@@ -206,8 +215,10 @@ export function InlineUpgradePrompt({
       <div className="flex items-center gap-3">
         <Lock className="h-5 w-5 text-muted-foreground" />
         <div>
-          <p className="font-medium">{feature} requires {plan.name}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-medium">
+            {feature} requires {plan.name}
+          </p>
+          <p className="text-muted-foreground text-sm">
             Starting at ${plan.price.monthly}/month
           </p>
         </div>

@@ -1,5 +1,8 @@
 'use client';
+import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
+import { useUsageLimit } from '@/hooks/use-usage-limits';
 import { api } from '@/trpc/react';
+import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -16,13 +19,10 @@ import {
   socialDescriptions,
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
+import { useQuery } from 'convex-helpers/react/cache';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import type { JSX } from 'react';
-import { useUsageLimit } from '@/hooks/use-usage-limits';
-import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
-import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
-import { useQuery } from 'convex/react';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
@@ -119,12 +119,15 @@ function ConnectPlatformButton({
 
 export function ConnectedAccountsHeader(): JSX.Element {
   // Get current account count
-  const socialProviders = useQuery(ConvexApi.social_providers.getConnectedAccounts);
+  const socialProviders = useQuery(
+    ConvexApi.social_providers.getConnectedAccounts
+  );
   const accountCount = socialProviders?.length || 0;
 
   // Check usage limit
   const socialAccountsLimit = useUsageLimit('socialAccounts', accountCount);
-  const isAtLimit = !socialAccountsLimit.isUnlimited && !socialAccountsLimit.allowed;
+  const isAtLimit =
+    !socialAccountsLimit.isUnlimited && !socialAccountsLimit.allowed;
 
   return (
     <div className="space-y-4">
@@ -156,8 +159,8 @@ export function ConnectedAccountsHeader(): JSX.Element {
             <div className="grid grid-cols-1 gap-4 py-4">
               {isAtLimit ? (
                 <InlineUpgradePrompt
-                  title="Account Limit Reached"
-                  description={`You're using ${accountCount} of ${socialAccountsLimit.limit} social accounts on your plan. Upgrade to connect more accounts.`}
+                  // title="Account Limit Reached"
+                  // description={`You're using ${accountCount} of ${socialAccountsLimit.limit} social accounts on your plan. Upgrade to connect more accounts.`}
                   feature="socialAccounts"
                 />
               ) : (

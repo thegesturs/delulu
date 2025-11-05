@@ -6,17 +6,24 @@
  * Displays the user's active subscription plan with details and management options
  */
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
+import { useSubscription } from '@/hooks/use-subscription';
+import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
 import { PLANS } from '@delulu/payments';
 import { useAction } from 'convex/react';
+import { format } from 'date-fns';
 import { Calendar, CreditCard, ExternalLink, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '@delulu/database/convex/_generated/api';
-import { useSubscription } from '@/hooks/use-subscription';
-import { format } from 'date-fns';
 
 export function CurrentPlanCard() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
@@ -57,7 +64,7 @@ export function CurrentPlanCard() {
               {plan.name} Plan
               {subscription.isPaid && (
                 <Badge variant="default">
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="mr-1 h-3 w-3" />
                   Active
                 </Badge>
               )}
@@ -88,7 +95,7 @@ export function CurrentPlanCard() {
         {/* Pricing */}
         <div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">
+            <span className="font-bold text-3xl">
               {plan.price.monthly === 0 ? 'Free' : `$${plan.price.monthly}`}
             </span>
             {plan.price.monthly > 0 && (
@@ -96,15 +103,17 @@ export function CurrentPlanCard() {
             )}
           </div>
           {subscription.isPaid && subscription.currentPeriodEnd && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+            <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
               <Calendar className="h-4 w-4" />
               {subscription.cancelAtPeriodEnd ? (
                 <span>
-                  Expires on {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
+                  Expires on{' '}
+                  {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
                 </span>
               ) : (
                 <span>
-                  Renews on {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
+                  Renews on{' '}
+                  {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
                 </span>
               )}
             </div>
@@ -113,7 +122,7 @@ export function CurrentPlanCard() {
 
         {/* Plan Features */}
         <div>
-          <h4 className="font-medium mb-3">Your Plan Includes:</h4>
+          <h4 className="mb-3 font-medium">Your Plan Includes:</h4>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between">
               <span className="text-muted-foreground">Social Accounts</span>
@@ -153,11 +162,11 @@ export function CurrentPlanCard() {
         {/* Premium Features */}
         {subscription.isPaid && (
           <div>
-            <h4 className="font-medium mb-3">Premium Features:</h4>
+            <h4 className="mb-3 font-medium">Premium Features:</h4>
             <div className="flex flex-wrap gap-2">
               {plan.features.aiContentGeneration && (
                 <Badge variant="secondary">
-                  <Sparkles className="h-3 w-3 mr-1" />
+                  <Sparkles className="mr-1 h-3 w-3" />
                   AI Generation
                 </Badge>
               )}
@@ -188,13 +197,13 @@ export function CurrentPlanCard() {
 
         {/* Cancellation notice */}
         {subscription.cancelAtPeriodEnd && (
-          <div className="rounded-lg bg-destructive/10 p-4 border border-destructive/20">
-            <p className="text-sm text-destructive font-medium">
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+            <p className="font-medium text-destructive text-sm">
               Your subscription will end on{' '}
               {subscription.currentPeriodEnd &&
                 format(subscription.currentPeriodEnd, 'MMMM dd, yyyy')}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1 text-muted-foreground text-sm">
               You'll have access to all features until then.
             </p>
           </div>
@@ -203,7 +212,13 @@ export function CurrentPlanCard() {
 
       <CardFooter className="flex gap-2">
         {subscription.isFree ? (
-          <Button className="w-full" size="lg" onClick={() => window.location.href = '/billing'}>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => {
+              window.location.href = '/billing';
+            }}
+          >
             <Sparkles className="mr-2 h-4 w-4" />
             Upgrade Plan
           </Button>
@@ -222,7 +237,9 @@ export function CurrentPlanCard() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => window.location.href = '/billing'}
+                onClick={() => {
+                  window.location.href = '/billing';
+                }}
               >
                 Change Plan
               </Button>

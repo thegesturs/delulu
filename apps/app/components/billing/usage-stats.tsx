@@ -6,15 +6,21 @@
  * Displays current usage against plan limits with visual progress bars
  */
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
-import { Progress } from '@delulu/design-system/components/ui/progress';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { useQuery } from 'convex/react';
-import { AlertCircle, BarChart3, Image, Users, Zap } from 'lucide-react';
-import { api } from '@delulu/database/convex/_generated/api';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useUsageLimit } from '@/hooks/use-usage-limits';
+import { api } from '@delulu/database/convex/_generated/api';
+import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
+import { Progress } from '@delulu/design-system/components/ui/progress';
+import { useQuery } from 'convex-helpers/react/cache';
+import { AlertCircle, BarChart3, Image, Users, Zap } from 'lucide-react';
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -41,18 +47,20 @@ function UsageStatItem({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-sm font-medium">{label}</span>
+          <span className="font-medium text-sm">{label}</span>
         </div>
         <div className="flex items-center gap-2">
           {isAtLimit && <AlertCircle className="h-4 w-4 text-destructive" />}
-          <span className="text-sm font-mono">
+          <span className="font-mono text-sm">
             {isUnlimited ? (
               <>
-                {current} <span className="text-muted-foreground">/ Unlimited</span>
+                {current}{' '}
+                <span className="text-muted-foreground">/ Unlimited</span>
               </>
             ) : (
               <>
-                {current} <span className="text-muted-foreground">/ {limit}</span>
+                {current}{' '}
+                <span className="text-muted-foreground">/ {limit}</span>
               </>
             )}
           </span>
@@ -71,7 +79,7 @@ function UsageStatItem({
             }`}
           />
           {isNearLimit && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               {isAtLimit
                 ? 'Limit reached - Upgrade to continue'
                 : 'Approaching limit - Consider upgrading'}
@@ -96,7 +104,10 @@ export function UsageStats() {
   const draftsCount = user?.usage?.drafts || 0;
 
   // Get limit checks
-  const socialAccountsLimit = useUsageLimit('socialAccounts', socialAccountsCount);
+  const socialAccountsLimit = useUsageLimit(
+    'socialAccounts',
+    socialAccountsCount
+  );
   const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
   // Media storage would need actual calculation
   const teamMembersLimit = useUsageLimit('teamMembers', 1); // Update with actual team size
@@ -113,7 +124,8 @@ export function UsageStats() {
   }
 
   const hasAnyLimitReached =
-    (!socialAccountsLimit.isUnlimited && socialAccountsLimit.percentageUsed >= 100) ||
+    (!socialAccountsLimit.isUnlimited &&
+      socialAccountsLimit.percentageUsed >= 100) ||
     (!monthlyPostsLimit.isUnlimited && monthlyPostsLimit.percentageUsed >= 100);
 
   return (
@@ -128,7 +140,7 @@ export function UsageStats() {
           </div>
           {subscription.isPaid && (
             <Badge variant="secondary">
-              <BarChart3 className="h-3 w-3 mr-1" />
+              <BarChart3 className="mr-1 h-3 w-3" />
               {subscription.planType}
             </Badge>
           )}
@@ -178,12 +190,20 @@ export function UsageStats() {
 
         {/* Upgrade prompt */}
         {hasAnyLimitReached && subscription.isFree && (
-          <div className="rounded-lg bg-primary/10 p-4 space-y-3">
-            <p className="text-sm font-medium">You've reached your plan limit</p>
-            <p className="text-sm text-muted-foreground">
-              Upgrade to continue adding accounts and creating posts without interruption.
+          <div className="space-y-3 rounded-lg bg-primary/10 p-4">
+            <p className="font-medium text-sm">
+              You've reached your plan limit
             </p>
-            <Button className="w-full" onClick={() => window.location.href = '/billing'}>
+            <p className="text-muted-foreground text-sm">
+              Upgrade to continue adding accounts and creating posts without
+              interruption.
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.location.href = '/billing';
+              }}
+            >
               View Upgrade Options
             </Button>
           </div>
@@ -195,17 +215,19 @@ export function UsageStats() {
           (socialAccountsLimit.percentageUsed >= 80 ||
             monthlyPostsLimit.percentageUsed >= 80) && (
             <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
-              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+              <p className="font-medium text-sm text-yellow-700 dark:text-yellow-400">
                 Approaching your plan limits
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-muted-foreground text-sm">
                 Consider upgrading to avoid interruptions.
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 className="mt-3"
-                onClick={() => window.location.href = '/billing'}
+                onClick={() => {
+                  window.location.href = '/billing';
+                }}
               >
                 View Plans
               </Button>
@@ -227,7 +249,10 @@ export function CompactUsageStats() {
   const socialAccountsCount = socialProviders?.length || 0;
   const monthlyPostsCount = user?.usage?.generatedPosts || 0;
 
-  const socialAccountsLimit = useUsageLimit('socialAccounts', socialAccountsCount);
+  const socialAccountsLimit = useUsageLimit(
+    'socialAccounts',
+    socialAccountsCount
+  );
   const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
 
   if (subscription.isLoading) {
@@ -238,30 +263,42 @@ export function CompactUsageStats() {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Social Accounts</span>
-            <span className="text-sm font-mono">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Social Accounts
+            </span>
+            <span className="font-mono text-sm">
               {socialAccountsCount}/{' '}
-              {socialAccountsLimit.isUnlimited ? '∞' : socialAccountsLimit.limit}
+              {socialAccountsLimit.isUnlimited
+                ? '∞'
+                : socialAccountsLimit.limit}
             </span>
           </div>
           {!socialAccountsLimit.isUnlimited && (
-            <Progress value={socialAccountsLimit.percentageUsed} className="h-2" />
+            <Progress
+              value={socialAccountsLimit.percentageUsed}
+              className="h-2"
+            />
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Posts This Month</span>
-            <span className="text-sm font-mono">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Posts This Month
+            </span>
+            <span className="font-mono text-sm">
               {monthlyPostsCount}/{' '}
               {monthlyPostsLimit.isUnlimited ? '∞' : monthlyPostsLimit.limit}
             </span>
           </div>
           {!monthlyPostsLimit.isUnlimited && (
-            <Progress value={monthlyPostsLimit.percentageUsed} className="h-2" />
+            <Progress
+              value={monthlyPostsLimit.percentageUsed}
+              className="h-2"
+            />
           )}
         </CardContent>
       </Card>
