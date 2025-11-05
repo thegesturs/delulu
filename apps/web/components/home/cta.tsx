@@ -60,12 +60,12 @@ const CTA = () => {
         <div className="relative h-full w-full border-border border-b py-10">
           {/* Section Header */}
           <div className="mx-auto mb-16 max-w-2xl text-center">
-            <h1 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
+            <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
                 <span className="text-primary">$1</span> to join. You + 99
                 others get to boss Delulu around.
               </Balancer>
-            </h1>
+            </h2>
 
             {/* Delulu Mascot Section */}
             {/* <div className="mt-8 flex flex-col items-center gap-4">
