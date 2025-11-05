@@ -1,0 +1,77 @@
+# Delulu Social
+
+> A comprehensive social media management platform that enables users to create, schedule, and publish content across multiple social networks from a single dashboard.
+
+Delulu Social streamlines social media management by allowing creators, businesses, and teams to post content simultaneously across Facebook, Instagram, Twitter/X, LinkedIn, TikTok, Pinterest, Threads, and Farcaster. The platform features real-time collaboration, intelligent scheduling, media management, and multi-account support.
+
+## Platform Overview
+
+- [Home](https://delulu.social): Platform introduction and key features
+- [Pricing](https://delulu.social/pricing): Subscription tiers from Free to Pro with detailed feature breakdowns
+- [Contact](https://delulu.social/contact): Get in touch with the Delulu team
+
+## Key Features
+
+**Multi-Platform Posting**: Create content once and publish across 8+ social media platforms including Facebook, Instagram, Twitter/X, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.
+
+**Content Scheduling**: Plan and schedule posts in advance with calendar view, timezone support, and optimal posting time recommendations.
+
+**Media Management**: Upload and manage images, videos, and other media types with cloud storage integration and automatic format optimization.
+
+**Team Collaboration**: Real-time collaboration features powered by LiveBlocks enable teams to work together on content creation and approval workflows.
+
+**Account Management**: Connect and manage multiple social media accounts per platform with secure OAuth authentication.
+
+## Supported Platforms
+
+- **Facebook** (📘): Pages and personal profiles
+- **Instagram** (📷): Feed posts, stories, and reels
+- **Twitter/X** (🐦): Tweets and threads
+- **LinkedIn** (💼): Personal and company posts
+- **TikTok** (🎵): Video content publishing
+- **Pinterest** (📌): Pins and boards
+- **Threads** (🧵): Meta's text-based platform
+- **Farcaster** (🏰): Decentralized social protocol
+
+## Documentation
+
+- [API Documentation](https://docs.delulu.social): Complete API reference, authentication guides, and integration examples
+- [Developer Resources](https://docs.delulu.social): OpenAPI specifications and SDK documentation
+
+## Content
+
+- [Blog](https://delulu.social/blogs): Articles on social media management, content strategy, and platform updates
+- [Use Cases](https://delulu.social): Examples of how creators, agencies, and businesses use Delulu Social
+
+## Technology Stack
+
+**Frontend**: Next.js 15 with React 19, TypeScript, Tailwind CSS, and Radix UI components
+
+**Backend**: Prisma ORM with PostgreSQL, tRPC for type-safe APIs, Convex for real-time data
+
+**Authentication**: Clerk for user management with OAuth integrations for social platforms
+
+**Infrastructure**: Cloudflare Pages and Workers, AWS S3 for media storage, Stripe for payments
+
+**Developer Tools**: Turbo monorepo, Biome for linting, Vitest for testing, Storybook for component development
+
+## Pricing Tiers
+
+**Free**: Basic features for individual users testing the platform
+
+**Starter**: $9/month - Ideal for solo creators with multiple accounts
+
+**Creator**: $29/month - For professional content creators with advanced scheduling
+
+**Pro**: $79/month - Complete solution for teams and agencies with collaboration features
+
+## Legal
+
+- [Privacy Policy](https://delulu.social/legal/privacy-policy): How we collect, use, and protect user data
+- [Terms of Service](https://delulu.social/legal/terms-of-service): User agreement and platform usage terms
+- [Cookie Policy](https://delulu.social/legal/cookie-policy): Information about cookies and tracking
+
+## Optional
+
+- [Dashboard](https://solulu.delulu.social): Main application login and signup
+- [Twitter](https://twitter.com/delulusocial): Platform updates and community
