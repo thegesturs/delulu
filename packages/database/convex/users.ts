@@ -5,6 +5,7 @@ import {
   type MutationCtx,
   type QueryCtx,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from './_generated/server';
@@ -290,3 +291,23 @@ async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
   // Finally, delete the user
   await ctx.db.delete(userId);
 }
+
+// ============================================================================
+// Internal Queries (for Dodo Payments integration)
+// ============================================================================
+
+/**
+ * Internal query to get user by external ID (Clerk auth ID)
+ * Used by Dodo Payments identify function
+ */
+export const getByExternalId = internalQuery({
+  args: { externalId: v.string() },
+  returns: v.union(userSchema, v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_external_id', (q) => q.eq('externalId', args.externalId))
+      .unique();
+    return user;
+  },
+});

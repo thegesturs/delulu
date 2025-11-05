@@ -11,6 +11,7 @@
 import type * as callmelater from "../callmelater.js";
 import type * as cascade_deletes from "../cascade_deletes.js";
 import type * as crons from "../crons.js";
+import type * as dodo from "../dodo.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
@@ -19,12 +20,15 @@ import type * as schemas_enums from "../schemas/enums.js";
 import type * as schemas_index from "../schemas/index.js";
 import type * as schemas_posts_media from "../schemas/posts_media.js";
 import type * as schemas_social_providers from "../schemas/social_providers.js";
+import type * as schemas_subscriptions from "../schemas/subscriptions.js";
 import type * as schemas_users from "../schemas/users.js";
 import type * as schemas_utils from "../schemas/utils.js";
 import type * as social_providers from "../social_providers.js";
 import type * as stats from "../stats.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
+import type * as webhooks from "../webhooks.js";
 
 import type {
   ApiFromModules,
@@ -44,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   callmelater: typeof callmelater;
   cascade_deletes: typeof cascade_deletes;
   crons: typeof crons;
+  dodo: typeof dodo;
   http: typeof http;
   index: typeof index;
   media: typeof media;
@@ -52,12 +57,15 @@ declare const fullApi: ApiFromModules<{
   "schemas/index": typeof schemas_index;
   "schemas/posts_media": typeof schemas_posts_media;
   "schemas/social_providers": typeof schemas_social_providers;
+  "schemas/subscriptions": typeof schemas_subscriptions;
   "schemas/users": typeof schemas_users;
   "schemas/utils": typeof schemas_utils;
   social_providers: typeof social_providers;
   stats: typeof stats;
+  subscriptions: typeof subscriptions;
   users: typeof users;
   utils: typeof utils;
+  webhooks: typeof webhooks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
@@ -352,6 +360,61 @@ export declare const components: {
           processed: number;
           state: "inProgress" | "success" | "failed" | "canceled" | "unknown";
         }
+      >;
+    };
+  };
+  dodopayments: {
+    lib: {
+      checkout: FunctionReference<
+        "action",
+        "internal",
+        {
+          apiKey: string;
+          environment: "test_mode" | "live_mode";
+          payload: {
+            allowed_payment_method_types?: Array<string>;
+            billing_address?: {
+              city?: string;
+              country: string;
+              state?: string;
+              street?: string;
+              zipcode?: string;
+            };
+            billing_currency?: string;
+            confirm?: boolean;
+            customer?: { email?: string; name?: string; phone_number?: string };
+            customization?: {
+              show_on_demand_tag?: boolean;
+              show_order_details?: boolean;
+              theme?: string;
+            };
+            discount_code?: string;
+            feature_flags?: {
+              allow_currency_selection?: boolean;
+              allow_discount_code?: boolean;
+              allow_phone_number_collection?: boolean;
+              allow_tax_id?: boolean;
+              always_create_new_customer?: boolean;
+            };
+            metadata?: Record<string, string>;
+            product_cart: Array<{ product_id: string; quantity: number }>;
+            return_url?: string;
+            show_saved_payment_methods?: boolean;
+            subscription_data?: { trial_period_days?: number };
+          };
+        },
+        { checkout_url: string }
+      >;
+      customerPortal: FunctionReference<
+        "action",
+        "internal",
+        {
+          apiKey: string;
+          dodoCustomerId: string;
+          environment: "test_mode" | "live_mode";
+          send_email?: boolean;
+        },
+        { portal_url: string }
       >;
     };
   };

@@ -13,14 +13,17 @@ import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { CardContent } from '@delulu/design-system/components/ui/card';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
-import { useMutation } from 'convex/react';
-import { Loader } from 'lucide-react';
+import { useMutation, useQuery } from 'convex/react';
+import { Loader, AlertCircle } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import SocialSelector from './social-selector';
+import { useUsageLimit } from '@/hooks/use-usage-limits';
+import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
+import { Alert, AlertDescription } from '@delulu/design-system/components/ui/alert';
 
 export function BasicSettings() {
   const { date } = useDateTime();
@@ -36,7 +39,21 @@ export function BasicSettings() {
   const upsertPostMutation = useMutation(api.posts.upsertPost);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Get current user and monthly post count for usage limits
+  const user = useQuery(api.users.current);
+  const monthlyPostsCount = user?.usage?.generatedPosts || 0;
+
+  // Check monthly post limit
+  const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
+  const isAtPostLimit = !monthlyPostsLimit.isUnlimited && !monthlyPostsLimit.allowed;
+
   const handlePostNow = async () => {
+    // Check post limit before publishing
+    if (isAtPostLimit) {
+      toast.error('You have reached your monthly post limit. Please upgrade your plan.');
+      return;
+    }
+
     try {
       setIsProcessing(true);
 
@@ -70,6 +87,12 @@ export function BasicSettings() {
   // Handler 2: Schedule post for future (scheduledAt = selected date)
   const handleSchedulePost = async () => {
     if (!date) {
+      return;
+    }
+
+    // Check post limit before scheduling
+    if (isAtPostLimit) {
+      toast.error('You have reached your monthly post limit. Please upgrade your plan.');
       return;
     }
 
@@ -152,12 +175,34 @@ export function BasicSettings() {
         </div>
       </CardContent>
 
+      {/* Show limit warning if at or approaching limit */}
+      {!monthlyPostsLimit.isUnlimited && (isAtPostLimit || monthlyPostsLimit.percentageUsed >= 80) && (
+        <CardContent className="pt-4">
+          {isAtPostLimit ? (
+            <InlineUpgradePrompt
+              title="Monthly Post Limit Reached"
+              description={`You've used all ${monthlyPostsLimit.limit} posts for this month. Upgrade to continue posting.`}
+              feature="monthlyPosts"
+            />
+          ) : (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You've used {monthlyPostsCount} of {monthlyPostsLimit.limit} posts this month.
+                Consider upgrading to avoid interruptions.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      )}
+
       <CardContent className="flex flex-row gap-3 pt-4">
         <Button
           className="flex-1 justify-center gap-2"
           onClick={date ? handleSchedulePost : handlePostNow}
-          disabled={isProcessing || isMediaUploading}
+          disabled={isProcessing || isMediaUploading || isAtPostLimit}
           aria-busy={isProcessing || isMediaUploading}
+          title={isAtPostLimit ? 'Monthly post limit reached' : undefined}
         >
           {date ? 'Schedule Post' : 'Post Now'}
           {isProcessing ? (

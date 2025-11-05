@@ -19,6 +19,10 @@ import {
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import type { JSX } from 'react';
+import { useUsageLimit } from '@/hooks/use-usage-limits';
+import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
+import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
@@ -114,6 +118,14 @@ function ConnectPlatformButton({
 }
 
 export function ConnectedAccountsHeader(): JSX.Element {
+  // Get current account count
+  const socialProviders = useQuery(ConvexApi.social_providers.getConnectedAccounts);
+  const accountCount = socialProviders?.length || 0;
+
+  // Check usage limit
+  const socialAccountsLimit = useUsageLimit('socialAccounts', accountCount);
+  const isAtLimit = !socialAccountsLimit.isUnlimited && !socialAccountsLimit.allowed;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -127,7 +139,7 @@ export function ConnectedAccountsHeader(): JSX.Element {
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={isAtLimit}>
               <Plus className="mr-2 h-4 w-4" />
               Connect Account
             </Button>
@@ -136,13 +148,23 @@ export function ConnectedAccountsHeader(): JSX.Element {
             <DialogHeader>
               <DialogTitle>Connect Social Account</DialogTitle>
               <DialogDescription>
-                Choose a social media platform to connect with your account
+                {isAtLimit
+                  ? 'You have reached your plan limit for social accounts'
+                  : 'Choose a social media platform to connect with your account'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 py-4">
-              {SOCIAL_PLATFORMS.map((platform) => (
-                <ConnectPlatformButton key={platform} platform={platform} />
-              ))}
+              {isAtLimit ? (
+                <InlineUpgradePrompt
+                  title="Account Limit Reached"
+                  description={`You're using ${accountCount} of ${socialAccountsLimit.limit} social accounts on your plan. Upgrade to connect more accounts.`}
+                  feature="socialAccounts"
+                />
+              ) : (
+                SOCIAL_PLATFORMS.map((platform) => (
+                  <ConnectPlatformButton key={platform} platform={platform} />
+                ))
+              )}
             </div>
           </DialogContent>
         </Dialog>
