@@ -27,36 +27,36 @@ import {
 } from '@delulu/design-system/components/ui/tabs';
 import type { PlanType } from '@delulu/payments';
 import { BarChart3, CheckCircle2, CreditCard } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 /**
- * IMPORTANT: Update these product IDs with your actual Dodo product IDs
- * Get these from your Dodo Payments dashboard after creating products
+ * Dodo Payments Product IDs
+ * These map to the products created in your Dodo Payments dashboard
  */
 const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
   FREE: { monthly: '', yearly: '' }, // Free plan doesn't need IDs
-  STARTER: {
-    monthly: 'prod_starter_monthly_REPLACE_ME',
-    yearly: 'prod_starter_yearly_REPLACE_ME',
+  VIBE: {
+    monthly: 'pdt_mPTd8gsQS8YUISdStWURf', // $9.90/month
+    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA', // $99.90/year
   },
-  PRO: {
-    monthly: 'prod_pro_monthly_REPLACE_ME',
-    yearly: 'prod_pro_yearly_REPLACE_ME',
-  },
-  ENTERPRISE: {
-    monthly: 'prod_enterprise_monthly_REPLACE_ME',
-    yearly: 'prod_enterprise_yearly_REPLACE_ME',
+  ECHO: {
+    monthly: 'pdt_Wy6tQl25lVbD2mB7otYZk', // $4.99/month
+    yearly: 'pdt_Si8ICePOeVze97OIO8kCh', // $49/year
   },
 };
 
 export default function BillingPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const success = searchParams?.get('success');
   const cancelled = searchParams?.get('cancelled');
-  const tab = searchParams?.get('tab') || 'overview';
+
+  const [tab, setTab] = useQueryState(
+    'tab',
+    parseAsStringLiteral(['overview', 'usage', 'plans'] as const).withDefault('overview')
+  );
 
   // Show success/error messages from checkout redirects
   useEffect(() => {
@@ -71,12 +71,6 @@ export default function BillingPage() {
       });
     }
   }, [success, cancelled]);
-
-  const handleTabChange = (value: string) => {
-    const params = new URLSearchParams(searchParams?.toString());
-    params.set('tab', value);
-    router.push(`?${params.toString()}`, { scroll: false });
-  };
 
   return (
     <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto py-8">
@@ -103,7 +97,11 @@ export default function BillingPage() {
       )}
 
       {/* Tabs for different sections */}
-      <Tabs value={tab} onValueChange={handleTabChange} className="space-y-6">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as 'overview' | 'usage' | 'plans')}
+        className="space-y-6"
+      >
         <TabsList className="w-fit">
           <TabsTrigger value="overview" className='w-fit'>
             <CreditCard className="mr-2 h-4 w-4" />
@@ -133,7 +131,7 @@ export default function BillingPage() {
               Upgrade your plan to unlock advanced features, higher limits, and
               priority support
             </p>
-            <Button onClick={() => handleTabChange('plans')}>
+            <Button onClick={() => setTab('plans')}>
               View All Plans
             </Button>
           </div>

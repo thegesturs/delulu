@@ -93,13 +93,21 @@ export const handleSubscriptionActivated = internalMutation({
     }
 
     // Determine plan type based on product ID
-    // You should map your Dodo product IDs to plan types here
-    let planType: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' = 'STARTER';
+    let planType: 'FREE' | 'VIBE' | 'ECHO' = 'VIBE'; // Default to VIBE
 
-    // Example mapping (update with your actual product IDs)
-    // if (args.productId === 'prod_starter_monthly') planType = 'STARTER';
-    // if (args.productId === 'prod_pro_monthly') planType = 'PRO';
-    // if (args.productId === 'prod_enterprise_monthly') planType = 'ENTERPRISE';
+    // Map Dodo product IDs to plan types
+    if (args.productId === 'pdt_mPTd8gsQS8YUISdStWURf') {
+      planType = 'VIBE'; // monthly $9.90
+    }
+    if (args.productId === 'pdt_naiOlQemBRKGOVNKR8qmA') {
+      planType = 'VIBE'; // yearly $99.90
+    }
+    if (args.productId === 'pdt_Wy6tQl25lVbD2mB7otYZk') {
+      planType = 'ECHO'; // monthly $4.99
+    }
+    if (args.productId === 'pdt_Si8ICePOeVze97OIO8kCh') {
+      planType = 'ECHO'; // yearly $49
+    }
 
     // Check if subscription already exists
     const existingSubscription = await ctx.db

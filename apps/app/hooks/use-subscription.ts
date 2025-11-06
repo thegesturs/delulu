@@ -16,9 +16,8 @@ export interface UseSubscriptionReturn {
   isCancelled: boolean;
   isTrialing: boolean;
   isFree: boolean;
-  isStarter: boolean;
-  isPro: boolean;
-  isEnterprise: boolean;
+  isVibe: boolean;
+  isEcho: boolean;
   isPaid: boolean;
   isLoading: boolean;
   currentPeriodEnd: Date | null;
@@ -39,9 +38,8 @@ export function useSubscription(): UseSubscriptionReturn {
     isCancelled: subscription?.status === 'CANCELLED',
     isTrialing: subscription?.status === 'TRIALING',
     isFree: planType === 'FREE',
-    isStarter: planType === 'STARTER',
-    isPro: planType === 'PRO',
-    isEnterprise: planType === 'ENTERPRISE',
+    isVibe: planType === 'VIBE',
+    isEcho: planType === 'ECHO',
     isPaid: planType !== 'FREE',
     isLoading,
     currentPeriodEnd: subscription?.currentPeriodEnd

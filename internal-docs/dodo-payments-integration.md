@@ -21,7 +21,10 @@
 
 Delulu Social uses **Dodo Payments** for subscription management and billing. The integration supports:
 
-- **4 Subscription Tiers**: Free, Starter ($29/mo), Pro ($79/mo), Enterprise ($199/mo)
+- **3 Subscription Tiers**:
+  - Free (1 social, 10 posts/month)
+  - Echo ($4.99/mo, $49/yr - 5 socials, 30 posts/month)
+  - Vibe ($9.99/mo, $99/yr - unlimited socials/posts/storage)
 - **Feature Gating**: AI generation, analytics, collaboration, white-label
 - **Usage Limits**: Social accounts, monthly posts, media storage, team members
 - **Payment Processing**: Secure checkout via Dodo Payments
@@ -66,7 +69,7 @@ Webhook → Convex Mutations → Database Updates
   userId: Id<'users'>,
   dodoCustomerId: string,
   dodoSubscriptionId?: string,
-  planType: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE',
+  planType: 'FREE' | 'ECHO' | 'VIBE',
   status: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'UNPAID' | 'TRIALING',
   billingPeriod?: 'MONTHLY' | 'YEARLY',
   currentPeriodStart?: number,

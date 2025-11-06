@@ -7,9 +7,8 @@ import { v } from 'convex/values';
 // Plan types enum
 export const planTypes = v.union(
   v.literal('FREE'),
-  v.literal('STARTER'),
-  v.literal('PRO'),
-  v.literal('ENTERPRISE')
+  v.literal('VIBE'),
+  v.literal('ECHO')
 );
 
 // Subscription status enum

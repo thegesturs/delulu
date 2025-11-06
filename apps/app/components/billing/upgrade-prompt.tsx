@@ -34,7 +34,7 @@ interface UpgradePromptProps {
 
 export function UpgradePrompt({
   feature,
-  requiredPlan = 'STARTER',
+  requiredPlan = 'ECHO',
   currentUsage,
   limit,
   description,
@@ -182,7 +182,7 @@ export function UpgradePrompt({
  */
 export function InlineUpgradePrompt({
   feature,
-  requiredPlan = 'STARTER',
+  requiredPlan = 'ECHO',
   productId,
 }: Pick<UpgradePromptProps, 'feature' | 'requiredPlan' | 'productId'>) {
   const [isUpgrading, setIsUpgrading] = useState(false);

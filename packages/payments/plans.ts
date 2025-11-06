@@ -2,13 +2,12 @@
  * Subscription Plan Configuration
  *
  * Defines the limits and features for each subscription tier:
- * - FREE: Basic tier with limited features
- * - STARTER: Entry-level paid tier
- * - PRO: Full-featured tier for power users
- * - ENTERPRISE: Unlimited tier for teams
+ * - FREE: Basic tier with limited features (1 social, 10 posts/month)
+ * - ECHO: Entry-level paid tier (5 socials, 30 posts/month) - $4.99/mo
+ * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.99/mo
  */
 
-export type PlanType = 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+export type PlanType = 'FREE' | 'VIBE' | 'ECHO';
 
 export interface PlanLimits {
   socialAccounts: number; // Number of connected social media accounts
@@ -70,17 +69,17 @@ export const PLANS: Record<PlanType, Plan> = {
       bulkUpload: false,
     },
   },
-  STARTER: {
-    id: 'STARTER',
-    name: 'Starter',
+  ECHO: {
+    id: 'ECHO',
+    name: 'Echo',
     description: 'Great for individuals and small businesses',
     price: {
-      monthly: 29,
-      yearly: 290, // ~$24/month (save 17%)
+      monthly: 4.99,
+      yearly: 49, // Save 17%
     },
     limits: {
-      socialAccounts: 3,
-      monthlyPosts: 50,
+      socialAccounts: 5,
+      monthlyPosts: 30,
       mediaStorage: 1000, // 1 GB
       teamMembers: 1,
     },
@@ -95,45 +94,19 @@ export const PLANS: Record<PlanType, Plan> = {
       bulkUpload: false,
     },
   },
-  PRO: {
-    id: 'PRO',
-    name: 'Pro',
-    description: 'Best for professionals and growing teams',
+  VIBE: {
+    id: 'VIBE',
+    name: 'Vibe',
+    description: 'Unlimited power for professionals and teams',
     price: {
-      monthly: 79,
-      yearly: 790, // ~$66/month (save 17%)
-    },
-    limits: {
-      socialAccounts: 10,
-      monthlyPosts: 200,
-      mediaStorage: 5000, // 5 GB
-      teamMembers: 5,
-    },
-    features: {
-      aiContentGeneration: true,
-      analytics: true,
-      collaboration: true,
-      whiteLabel: false,
-      prioritySupport: true,
-      customBranding: false,
-      advancedScheduling: true,
-      bulkUpload: true,
-    },
-    popular: true, // Highlight as most popular
-  },
-  ENTERPRISE: {
-    id: 'ENTERPRISE',
-    name: 'Enterprise',
-    description: 'For large teams and agencies',
-    price: {
-      monthly: 199,
-      yearly: 1990, // ~$166/month (save 17%)
+      monthly: 9.99,
+      yearly: 99, // Save 17%
     },
     limits: {
       socialAccounts: -1, // Unlimited
       monthlyPosts: -1, // Unlimited
       mediaStorage: -1, // Unlimited
-      teamMembers: -1, // Unlimited
+      teamMembers: 10,
     },
     features: {
       aiContentGeneration: true,
@@ -145,6 +118,7 @@ export const PLANS: Record<PlanType, Plan> = {
       advancedScheduling: true,
       bulkUpload: true,
     },
+    popular: true, // Highlight as most popular
   },
 };
 
@@ -208,7 +182,7 @@ export function getRemainingLimit(
  * Get the next tier up from current plan
  */
 export function getNextTier(currentPlan: PlanType): PlanType | null {
-  const tiers: PlanType[] = ['FREE', 'STARTER', 'PRO', 'ENTERPRISE'];
+  const tiers: PlanType[] = ['FREE', 'ECHO', 'VIBE'];
   const currentIndex = tiers.indexOf(currentPlan);
 
   if (currentIndex === -1 || currentIndex === tiers.length - 1) {
