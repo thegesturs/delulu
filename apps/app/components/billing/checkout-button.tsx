@@ -6,18 +6,19 @@
  * A reusable button that initiates a Dodo Payments checkout session
  */
 
-import { Button, type ButtonProps } from '@delulu/design-system/components/ui/button';
+import { api } from '@delulu/database/convex/_generated/api';
+import { Button } from '@delulu/design-system/components/ui/button';
 import { useAction } from 'convex/react';
 import { ArrowRight, CreditCard } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '@delulu/database/convex/_generated/api';
 
-interface CheckoutButtonProps extends Omit<ButtonProps, 'onClick' | 'disabled'> {
+interface CheckoutButtonProps
+  extends Omit<React.ComponentProps<'button'>, 'onClick' | 'disabled'> {
   productId: string;
   returnUrl?: string;
   onSuccess?: () => void;
-  onError?: (error: Error) => void;
+  onError?: (error: unknown) => void;
   children?: React.ReactNode;
 }
 
@@ -38,7 +39,8 @@ export function CheckoutButton({
 
       const { checkout_url } = await createCheckout({
         productId,
-        returnUrl: returnUrl || `${window.location.origin}/billing?success=true`,
+        returnUrl:
+          returnUrl || `${window.location.origin}/billing?success=true`,
       });
 
       // Call success callback before redirect

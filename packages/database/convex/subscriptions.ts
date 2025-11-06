@@ -12,7 +12,7 @@
 import { v } from 'convex/values';
 import { action, internalMutation, query } from './_generated/server';
 import { checkout, customerPortal } from './dodo';
-import { planTypes, subscriptionSchema, subscriptionStatus } from './schemas';
+import { billingPeriod, planTypes, subscriptionSchema, subscriptionStatus } from './schemas';
 import { getCurrentTimestamp } from './utils';
 
 // ============================================================================
@@ -247,6 +247,7 @@ export const createSubscription = internalMutation({
     dodoSubscriptionId: v.optional(v.string()),
     planType: planTypes,
     status: subscriptionStatus,
+    billingPeriod: v.optional(billingPeriod),
     currentPeriodStart: v.optional(v.number()),
     currentPeriodEnd: v.optional(v.number()),
     metadata: v.optional(
@@ -260,6 +261,7 @@ export const createSubscription = internalMutation({
   handler: async (ctx, args) => {
     const subscriptionId = await ctx.db.insert('subscriptions', {
       ...args,
+      billingPeriod: args.billingPeriod,
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -287,6 +289,7 @@ export const updateSubscription = internalMutation({
     status: v.optional(subscriptionStatus),
     currentPeriodStart: v.optional(v.number()),
     currentPeriodEnd: v.optional(v.number()),
+    billingPeriod: v.optional(billingPeriod),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     metadata: v.optional(
       v.object({
@@ -302,6 +305,7 @@ export const updateSubscription = internalMutation({
 
     await ctx.db.patch(id, {
       ...updates,
+      billingPeriod: args.billingPeriod,
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -334,8 +338,8 @@ export const createCheckoutSession = action({
       }
 
       // Extract user info from identity
-      const userEmail = identity.email || identity.emailVerified || '';
-      const userName = identity.name || identity.givenName || identity.nickname || '';
+      const userEmail = identity.email;
+      const userName = identity.name || identity.givenName || identity.nickname;
 
       console.log('[Dodo] Creating checkout session with:', {
         productId: args.productId,
@@ -355,7 +359,7 @@ export const createCheckoutSession = action({
             },
           ],
           customer: {
-            email: userEmail,
+            email: userEmail!,
             name: userName,
             
           },

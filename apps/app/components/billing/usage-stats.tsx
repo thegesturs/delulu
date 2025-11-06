@@ -174,7 +174,7 @@ export function UsageStats() {
           label="Media Storage"
           current={0} // TODO: Calculate actual storage usage
           limit={100} // Placeholder
-          isUnlimited={subscription.isEnterprise}
+          isUnlimited={subscription.isVibe}
           percentageUsed={0}
         />
 
@@ -211,7 +211,7 @@ export function UsageStats() {
 
         {/* Plan upgrade suggestion for near-limits */}
         {!hasAnyLimitReached &&
-          !subscription.isEnterprise &&
+          !subscription.isVibe &&
           (socialAccountsLimit.percentageUsed >= 80 ||
             monthlyPostsLimit.percentageUsed >= 80) && (
             <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
