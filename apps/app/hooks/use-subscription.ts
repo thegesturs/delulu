@@ -11,6 +11,7 @@ import type { PlanType } from '@delulu/payments';
 export interface UseSubscriptionReturn {
   subscription: any | null | undefined;
   planType: PlanType;
+  billingPeriod: 'MONTHLY' | 'YEARLY' | null;
   isActive: boolean;
   isPastDue: boolean;
   isCancelled: boolean;
@@ -33,6 +34,7 @@ export function useSubscription(): UseSubscriptionReturn {
   return {
     subscription,
     planType,
+    billingPeriod: subscription?.billingPeriod || null,
     isActive: subscription?.status === 'ACTIVE',
     isPastDue: subscription?.status === 'PAST_DUE',
     isCancelled: subscription?.status === 'CANCELLED',

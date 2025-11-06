@@ -65,7 +65,7 @@ export default function BillingPage() {
   }, [status, cancelled]);
 
   return (
-    <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto py-8">
+    <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto px-2 py-8">
       {/* Page Header */}
       <div>
         <h1 className="font-bold text-3xl tracking-tight">
@@ -98,7 +98,8 @@ export default function BillingPage() {
         <Alert className="border-red-500/50 bg-red-500/10">
           <AlertTitle>Payment Failed</AlertTitle>
           <AlertDescription>
-            Your payment could not be processed. Please try again or contact support.
+            Your payment could not be processed. Please try again or contact
+            support.
           </AlertDescription>
         </Alert>
       )}
@@ -124,9 +125,7 @@ export default function BillingPage() {
       {/* Pricing Section */}
       <div className="space-y-6">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-2 font-bold text-2xl">
-            Choose Your Perfect Plan
-          </h2>
+          <h2 className="mb-2 font-bold text-2xl">Choose Your Perfect Plan</h2>
           <p className="text-muted-foreground">
             Start free and upgrade anytime. All paid plans include a 14-day
             money-back guarantee.
@@ -143,15 +142,13 @@ export default function BillingPage() {
 
       {/* FAQ Section */}
       <div className="mx-auto mt-12 max-w-3xl space-y-6">
-        <h3 className="font-semibold text-xl">
-          Frequently Asked Questions
-        </h3>
+        <h3 className="font-semibold text-xl">Frequently Asked Questions</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border p-4">
             <h4 className="mb-2 font-medium">Can I change plans later?</h4>
             <p className="text-muted-foreground text-sm">
-              Yes! You can upgrade or downgrade your plan at any time.
-              Changes take effect immediately for upgrades.
+              Yes! You can upgrade or downgrade your plan at any time. Changes
+              take effect immediately for upgrades.
             </p>
           </div>
           <div className="rounded-lg border p-4">
@@ -173,8 +170,8 @@ export default function BillingPage() {
           <div className="rounded-lg border p-4">
             <h4 className="mb-2 font-medium">Can I cancel anytime?</h4>
             <p className="text-muted-foreground text-sm">
-              Absolutely. Cancel anytime and retain access until the end of
-              your billing period.
+              Absolutely. Cancel anytime and retain access until the end of your
+              billing period.
             </p>
           </div>
         </div>

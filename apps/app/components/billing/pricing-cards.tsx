@@ -37,7 +37,11 @@ export function PricingCards({
   const [isAnnual, setIsAnnual] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
-  const { planType: currentPlan, isLoading } = useSubscription();
+  const {
+    planType: currentPlan,
+    billingPeriod: currentBillingPeriod,
+    isLoading
+  } = useSubscription();
 
   const plans = getAllPlans();
 
@@ -85,7 +89,18 @@ export function PricingCards({
   };
 
   const isCurrentPlan = (planType: PlanType) => {
-    return currentPlan === planType && !isLoading;
+    if (isLoading || currentPlan !== planType) {
+      return false;
+    }
+
+    // Free plan doesn't have billing period
+    if (planType === 'FREE') {
+      return true;
+    }
+
+    // For paid plans, check if both plan type and billing period match
+    const selectedPeriod = isAnnual ? 'YEARLY' : 'MONTHLY';
+    return currentBillingPeriod === selectedPeriod;
   };
 
   return (
@@ -115,6 +130,20 @@ export function PricingCards({
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
           const isCurrent = isCurrentPlan(plan.id);
           const isUpgrading = upgradingPlan === plan.id;
+
+          // Determine button text
+          const getButtonText = () => {
+            if (isUpgrading) return 'Loading...';
+            if (isCurrent) return 'Current Plan';
+            if (plan.id === 'FREE') return 'Get Started';
+
+            // Same plan type but different billing period
+            if (plan.id === currentPlan && !isLoading && !isCurrent) {
+              return isAnnual ? 'Switch to Annual' : 'Switch to Monthly';
+            }
+
+            return 'Upgrade';
+          };
 
           return (
             <Card
@@ -236,13 +265,7 @@ export function PricingCards({
                   className="w-full"
                   size="lg"
                 >
-                  {isUpgrading
-                    ? 'Loading...'
-                    : isCurrent
-                      ? 'Current Plan'
-                      : plan.id === 'FREE'
-                        ? 'Get Started'
-                        : 'Upgrade'}
+                  {getButtonText()}
                 </Button>
               </CardFooter>
             </Card>

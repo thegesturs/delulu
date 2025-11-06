@@ -124,21 +124,26 @@ export const handleSubscriptionActivated = internalMutation({
       return;
     }
 
-    // Determine plan type based on product ID
+    // Determine plan type and billing period based on product ID
     let planType: 'FREE' | 'VIBE' | 'ECHO' = 'VIBE'; // Default to VIBE
+    let billingPeriod: 'MONTHLY' | 'YEARLY' = 'MONTHLY'; // Default to MONTHLY
 
-    // Map Dodo product IDs to plan types
+    // Map Dodo product IDs to plan types and billing periods
     if (args.productId === 'pdt_mPTd8gsQS8YUISdStWURf') {
-      planType = 'VIBE'; // monthly $9.90
+      planType = 'VIBE'; // $9.99/month
+      billingPeriod = 'MONTHLY';
     }
     if (args.productId === 'pdt_naiOlQemBRKGOVNKR8qmA') {
-      planType = 'VIBE'; // yearly $99.90
+      planType = 'VIBE'; // $99/year
+      billingPeriod = 'YEARLY';
     }
     if (args.productId === 'pdt_Wy6tQl25lVbD2mB7otYZk') {
-      planType = 'ECHO'; // monthly $4.99
+      planType = 'ECHO'; // $4.99/month
+      billingPeriod = 'MONTHLY';
     }
     if (args.productId === 'pdt_Si8ICePOeVze97OIO8kCh') {
-      planType = 'ECHO'; // yearly $49
+      planType = 'ECHO'; // $49/year
+      billingPeriod = 'YEARLY';
     }
 
     // Check if subscription already exists
@@ -153,6 +158,7 @@ export const handleSubscriptionActivated = internalMutation({
         id: existingSubscription._id,
         status: 'ACTIVE',
         planType,
+        billingPeriod,
         currentPeriodStart: args.currentPeriodStart,
         currentPeriodEnd: args.currentPeriodEnd,
         metadata: {
@@ -168,6 +174,7 @@ export const handleSubscriptionActivated = internalMutation({
         dodoCustomerId: args.customerId,
         dodoSubscriptionId: args.subscriptionId,
         planType,
+        billingPeriod,
         status: 'ACTIVE',
         currentPeriodStart: args.currentPeriodStart,
         currentPeriodEnd: args.currentPeriodEnd,
