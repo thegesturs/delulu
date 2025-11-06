@@ -6,24 +6,34 @@
  * Displays all available subscription plans with pricing and features
  */
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
+import { useSubscription } from '@/hooks/use-subscription';
+import { api } from '@delulu/database/convex/_generated/api';
 import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Button } from '@delulu/design-system/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
 import { Switch } from '@delulu/design-system/components/ui/switch';
-import { PLANS, getAllPlans, type PlanType } from '@delulu/payments';
+import { PLANS, type PlanType, getAllPlans } from '@delulu/payments';
 import { useAction } from 'convex/react';
 import { Check, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '@delulu/database/convex/_generated/api';
-import { useSubscription } from '@/hooks/use-subscription';
 
 interface PricingCardsProps {
   productIds?: Record<PlanType, { monthly: string; yearly: string }>;
   onUpgradeSuccess?: () => void;
 }
 
-export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps) {
+export function PricingCards({
+  productIds,
+  onUpgradeSuccess,
+}: PricingCardsProps) {
   const [isAnnual, setIsAnnual] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
@@ -82,11 +92,15 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
     <div className="space-y-8">
       {/* Billing toggle */}
       <div className="flex items-center justify-center gap-4">
-        <span className={`text-sm ${!isAnnual ? 'font-medium' : 'text-muted-foreground'}`}>
+        <span
+          className={`text-sm ${isAnnual ? 'text-muted-foreground' : 'font-medium'}`}
+        >
           Monthly
         </span>
         <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
-        <span className={`text-sm ${isAnnual ? 'font-medium' : 'text-muted-foreground'}`}>
+        <span
+          className={`text-sm ${isAnnual ? 'font-medium' : 'text-muted-foreground'}`}
+        >
           Annual
           <Badge variant="secondary" className="ml-2">
             Save 17%
@@ -95,7 +109,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
       </div>
 
       {/* Pricing cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
@@ -110,7 +124,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="-top-3 -translate-x-1/2 absolute left-1/2">
                   <Badge className="bg-primary">Most Popular</Badge>
                 </div>
               )}
@@ -133,7 +147,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
                 {/* Pricing */}
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">
+                    <span className="font-bold text-4xl">
                       {price === 0 ? 'Free' : `$${price}`}
                     </span>
                     {price > 0 && (
@@ -143,7 +157,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
                     )}
                   </div>
                   {monthlyEquivalent && (
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="mt-1 text-muted-foreground text-sm">
                       ${monthlyEquivalent}/month billed annually
                     </p>
                   )}
@@ -152,16 +166,19 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
                 {/* Features */}
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.socialAccounts === -1
                         ? 'Unlimited'
                         : plan.limits.socialAccounts}{' '}
-                      social {plan.limits.socialAccounts === 1 ? 'account' : 'accounts'}
+                      social{' '}
+                      {plan.limits.socialAccounts === 1
+                        ? 'account'
+                        : 'accounts'}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.monthlyPosts === -1
                         ? 'Unlimited'
@@ -170,7 +187,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.mediaStorage === -1
                         ? 'Unlimited'
@@ -180,31 +197,31 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
                   </li>
                   {plan.features.analytics && (
                     <li className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span>Advanced analytics</span>
                     </li>
                   )}
                   {plan.features.aiContentGeneration && (
                     <li className="flex items-start gap-2">
-                      <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span>AI content generation</span>
                     </li>
                   )}
                   {plan.features.collaboration && (
                     <li className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span>Team collaboration</span>
                     </li>
                   )}
                   {plan.features.whiteLabel && (
                     <li className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span>White-label</span>
                     </li>
                   )}
                   {plan.features.prioritySupport && (
                     <li className="flex items-start gap-2">
-                      <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                       <span>Priority support</span>
                     </li>
                   )}
@@ -233,7 +250,7 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
         })}
       </div>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-muted-foreground text-sm">
         All plans include 14-day money-back guarantee • Cancel anytime
       </p>
     </div>

@@ -18,17 +18,9 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@delulu/design-system/components/ui/alert';
-import { Button } from '@delulu/design-system/components/ui/button';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@delulu/design-system/components/ui/tabs';
 import type { PlanType } from '@delulu/payments';
-import { BarChart3, CheckCircle2, CreditCard } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -53,11 +45,6 @@ export default function BillingPage() {
   const status = searchParams?.get('status'); // Dodo Payments returns 'status' param
   const subscriptionId = searchParams?.get('subscription_id');
   const cancelled = searchParams?.get('cancelled');
-
-  const [tab, setTab] = useQueryState(
-    'tab',
-    parseAsStringLiteral(['overview', 'usage', 'plans'] as const).withDefault('overview')
-  );
 
   // Show success/error messages from checkout redirects
   useEffect(() => {
@@ -116,136 +103,82 @@ export default function BillingPage() {
         </Alert>
       )}
 
-      {/* Tabs for different sections */}
-      <Tabs
-        value={tab}
-        onValueChange={(value) => setTab(value as 'overview' | 'usage' | 'plans')}
-        className="space-y-6"
-      >
-        <TabsList className="w-fit">
-          <TabsTrigger value="overview" className='w-fit'>
-            <CreditCard className="mr-2 h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="usage" className='w-fit'>
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Usage & Limits
-          </TabsTrigger>
-          <TabsTrigger value="plans" className='w-[200px]'>
-            <CreditCard className="mr-1 h-4 w-4" />
-            Plans & Pricing
-          </TabsTrigger>
-        </TabsList>
+      {/* Current Plan & Usage - Top Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CurrentPlanCard />
+        <UsageStats />
+      </div>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <CurrentPlanCard />
-            <UsageStats />
-          </div>
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Available Plans
+          </span>
+        </div>
+      </div>
 
-          {/* Quick upgrade CTA */}
-          <div className="rounded-lg border border-dashed p-8 text-center">
-            <h3 className="mb-2 font-semibold text-lg">Need more features?</h3>
-            <p className="mb-4 text-muted-foreground">
-              Upgrade your plan to unlock advanced features, higher limits, and
-              priority support
-            </p>
-            <Button onClick={() => setTab('plans')}>
-              View All Plans
-            </Button>
-          </div>
-        </TabsContent>
+      {/* Pricing Section */}
+      <div className="space-y-6">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="mb-2 font-bold text-2xl">
+            Choose Your Perfect Plan
+          </h2>
+          <p className="text-muted-foreground">
+            Start free and upgrade anytime. All paid plans include a 14-day
+            money-back guarantee.
+          </p>
+        </div>
 
-        {/* Usage Tab */}
-        <TabsContent value="usage" className="space-y-6">
-          <UsageStats />
+        <PricingCards
+          productIds={PRODUCT_IDS}
+          onUpgradeSuccess={() => {
+            toast.success('Redirecting to checkout...');
+          }}
+        />
+      </div>
 
-          {/* Usage tips */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border p-6">
-              <h3 className="mb-2 font-semibold">Optimize Your Usage</h3>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                <li>
-                  • Schedule posts in advance to stay within monthly limits
-                </li>
-                <li>• Compress images before uploading to save storage</li>
-                <li>• Disconnect unused social accounts to free up slots</li>
-              </ul>
-            </div>
-            <div className="rounded-lg border p-6">
-              <h3 className="mb-2 font-semibold">Understanding Limits</h3>
-              <ul className="space-y-2 text-muted-foreground text-sm">
-                <li>• Monthly post limits reset on the 1st of each month</li>
-                <li>• Storage includes all media files across all accounts</li>
-                <li>• Team members can be added from your account settings</li>
-              </ul>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Plans Tab */}
-        <TabsContent value="plans" className="space-y-6">
-          <div className="mx-auto mb-8 max-w-3xl text-center">
-            <h2 className="mb-2 font-bold text-2xl">
-              Choose Your Perfect Plan
-            </h2>
-            <p className="text-muted-foreground">
-              Start free and upgrade anytime. All paid plans include a 14-day
-              money-back guarantee.
+      {/* FAQ Section */}
+      <div className="mx-auto mt-12 max-w-3xl space-y-6">
+        <h3 className="font-semibold text-xl">
+          Frequently Asked Questions
+        </h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border p-4">
+            <h4 className="mb-2 font-medium">Can I change plans later?</h4>
+            <p className="text-muted-foreground text-sm">
+              Yes! You can upgrade or downgrade your plan at any time.
+              Changes take effect immediately for upgrades.
             </p>
           </div>
-
-          <PricingCards
-            productIds={PRODUCT_IDS}
-            onUpgradeSuccess={() => {
-              toast.success('Redirecting to checkout...');
-            }}
-          />
-
-          {/* FAQ Section */}
-          <div className="mx-auto mt-12 max-w-3xl">
-            <h3 className="mb-4 font-semibold text-xl">
-              Frequently Asked Questions
-            </h3>
-            <div className="space-y-4">
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-2 font-medium">Can I change plans later?</h4>
-                <p className="text-muted-foreground text-sm">
-                  Yes! You can upgrade or downgrade your plan at any time.
-                  Changes take effect immediately for upgrades, or at the end of
-                  your billing period for downgrades.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-2 font-medium">
-                  What payment methods do you accept?
-                </h4>
-                <p className="text-muted-foreground text-sm">
-                  We accept all major credit cards (Visa, MasterCard, American
-                  Express) and debit cards through our secure payment processor,
-                  Dodo Payments.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-2 font-medium">Is there a refund policy?</h4>
-                <p className="text-muted-foreground text-sm">
-                  Yes! All paid plans come with a 14-day money-back guarantee.
-                  If you're not satisfied, contact support for a full refund.
-                </p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <h4 className="mb-2 font-medium">Can I cancel anytime?</h4>
-                <p className="text-muted-foreground text-sm">
-                  Absolutely. You can cancel your subscription at any time from
-                  the billing portal. You'll retain access until the end of your
-                  billing period.
-                </p>
-              </div>
-            </div>
+          <div className="rounded-lg border p-4">
+            <h4 className="mb-2 font-medium">
+              What payment methods do you accept?
+            </h4>
+            <p className="text-muted-foreground text-sm">
+              We accept all major credit cards through our secure payment
+              processor, Dodo Payments.
+            </p>
           </div>
-        </TabsContent>
-      </Tabs>
+          <div className="rounded-lg border p-4">
+            <h4 className="mb-2 font-medium">Is there a refund policy?</h4>
+            <p className="text-muted-foreground text-sm">
+              Yes! All paid plans come with a 14-day money-back guarantee.
+              Contact support for a full refund.
+            </p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <h4 className="mb-2 font-medium">Can I cancel anytime?</h4>
+            <p className="text-muted-foreground text-sm">
+              Absolutely. Cancel anytime and retain access until the end of
+              your billing period.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
