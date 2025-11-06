@@ -31,8 +31,8 @@ import { toast } from 'sonner';
 const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
   FREE: { monthly: '', yearly: '' }, // Free plan doesn't need IDs
   VIBE: {
-    monthly: 'pdt_mPTd8gsQS8YUISdStWURf', // $9.90/month
-    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA', // $99.90/year
+    monthly: 'pdt_mPTd8gsQS8YUISdStWURf', // $9.99/month
+    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA', // $99/year
   },
   ECHO: {
     monthly: 'pdt_Wy6tQl25lVbD2mB7otYZk', // $4.99/month

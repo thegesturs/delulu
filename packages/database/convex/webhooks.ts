@@ -29,36 +29,25 @@ export const handlePaymentSucceeded = internalMutation({
   handler: async (ctx, args) => {
     console.log('[Webhook] Payment succeeded:', args.paymentId);
 
-    // Find user by Dodo customer ID or email
-    let user = await ctx.db
+    // Find user by email using index
+    const user = await ctx.db
       .query('users')
-      .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
+      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
       .first();
 
-    // If not found by customer ID, try to find by email
-    if (!user && args.customerEmail) {
-      user = await ctx.db
-        .query('users')
-        .filter((q) => q.eq(q.field('email'), args.customerEmail))
-        .first();
-
-      // Update user with Dodo customer ID
-      if (user) {
-        await ctx.db.patch(user._id, {
-          dodoCustomerId: args.customerId,
-        });
-        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
-      }
+    if (!user) {
+      console.error('[Webhook] User not found for email:', args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
     }
 
-    if (!user) {
-      console.error(
-        '[Webhook] User not found for customer:',
-        args.customerId,
-        'email:',
-        args.customerEmail
-      );
-      return;
+    // Update user with Dodo customer ID if not already set
+    if (!user.dodoCustomerId) {
+      await ctx.db.patch(user._id, {
+        dodoCustomerId: args.customerId,
+      });
+      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
     }
 
     // Create transaction record
@@ -102,36 +91,25 @@ export const handleSubscriptionActivated = internalMutation({
   handler: async (ctx, args) => {
     console.log('[Webhook] Subscription activated:', args.subscriptionId);
 
-    // Find user by Dodo customer ID or email
-    let user = await ctx.db
+    // Find user by email using index
+    const user = await ctx.db
       .query('users')
-      .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
+      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
       .first();
 
-    // If not found by customer ID, try to find by email
-    if (!user && args.customerEmail) {
-      user = await ctx.db
-        .query('users')
-        .filter((q) => q.eq(q.field('email'), args.customerEmail))
-        .first();
-
-      // Update user with Dodo customer ID
-      if (user) {
-        await ctx.db.patch(user._id, {
-          dodoCustomerId: args.customerId,
-        });
-        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
-      }
+    if (!user) {
+      console.error('[Webhook] User not found for email:', args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
     }
 
-    if (!user) {
-      console.error(
-        '[Webhook] User not found for customer:',
-        args.customerId,
-        'email:',
-        args.customerEmail
-      );
-      return;
+    // Update user with Dodo customer ID if not already set
+    if (!user.dodoCustomerId) {
+      await ctx.db.patch(user._id, {
+        dodoCustomerId: args.customerId,
+      });
+      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
     }
 
     // Determine plan type and billing period based on product ID
@@ -226,7 +204,9 @@ export const handleSubscriptionCancelled = internalMutation({
 
     if (!subscription) {
       console.error('[Webhook] Subscription not found:', args.subscriptionId);
-      return;
+      throw new Error(
+        `Subscription not found: ${args.subscriptionId}. Webhook will be retried by Dodo.`
+      );
     }
 
     // Update subscription status
@@ -250,7 +230,7 @@ export const handlePaymentFailed = internalMutation({
   args: {
     paymentId: v.string(),
     customerId: v.string(),
-    customerEmail: v.optional(v.string()),
+    customerEmail: v.string(),
     failureReason: v.string(),
     amount: v.number(),
     currency: v.string(),
@@ -262,36 +242,25 @@ export const handlePaymentFailed = internalMutation({
       args.failureReason
     );
 
-    // Find user by Dodo customer ID or email
-    let user = await ctx.db
+    // Find user by email using index
+    const user = await ctx.db
       .query('users')
-      .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
+      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
       .first();
 
-    // If not found by customer ID, try to find by email
-    if (!user && args.customerEmail) {
-      user = await ctx.db
-        .query('users')
-        .filter((q) => q.eq(q.field('email'), args.customerEmail))
-        .first();
-
-      // Update user with Dodo customer ID
-      if (user) {
-        await ctx.db.patch(user._id, {
-          dodoCustomerId: args.customerId,
-        });
-        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
-      }
+    if (!user) {
+      console.error('[Webhook] User not found for email:', args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
     }
 
-    if (!user) {
-      console.error(
-        '[Webhook] User not found for customer:',
-        args.customerId,
-        'email:',
-        args.customerEmail
-      );
-      return;
+    // Update user with Dodo customer ID if not already set
+    if (!user.dodoCustomerId) {
+      await ctx.db.patch(user._id, {
+        dodoCustomerId: args.customerId,
+      });
+      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
     }
 
     // Create failed transaction record

@@ -36,6 +36,7 @@ export function PricingCards({
 }: PricingCardsProps) {
   const [isAnnual, setIsAnnual] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
+  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const {
     planType: currentPlan,
@@ -46,6 +47,15 @@ export function PricingCards({
   const plans = getAllPlans();
 
   const handleUpgrade = async (planType: PlanType) => {
+    // Debounce: prevent rapid retry attempts (3 second cooldown)
+    const now = Date.now();
+    const COOLDOWN_MS = 3000;
+    if (now - lastAttemptTime < COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastAttemptTime)) / 1000);
+      toast.error(`Please wait ${remainingSeconds} second${remainingSeconds > 1 ? 's' : ''} before trying again.`);
+      return;
+    }
+
     // Free plan doesn't need checkout
     if (planType === 'FREE') {
       window.location.href = '/billing?plan=free';
@@ -63,6 +73,7 @@ export function PricingCards({
     }
 
     try {
+      setLastAttemptTime(now);
       setUpgradingPlan(planType);
       const { checkout_url } = await createCheckout({
         productId,
