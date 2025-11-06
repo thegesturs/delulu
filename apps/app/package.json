@@ -54,7 +54,7 @@
     "react-icons": "catalog:",
     "require-in-the-middle": "^7.5.2",
     "sonner": "^2.0.3",
-    "superjson": "2.2.1",
+    "superjson": "2.2.5",
     "svix": "^1.64.0",
     "twitter-api-sdk": "^1.2.1",
     "wrangler": "^4.16.1",
