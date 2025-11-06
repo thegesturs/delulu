@@ -22,7 +22,7 @@
     "@trpc/server": "catalog:",
     "@types/node": "^22.15.34",
     "ai": "^4.1.54",
-    "dotenv-cli": "^7.4.1",
+    "dotenv-cli": "^11.0.0",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
     "neverthrow": "^8.2.0",
