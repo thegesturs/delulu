@@ -19,6 +19,7 @@ import {
   AlertTitle,
 } from '@delulu/design-system/components/ui/alert';
 import type { PlanType } from '@delulu/payments';
+import { getProductIds } from '@delulu/payments/product-ids';
 import { CheckCircle2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -26,18 +27,15 @@ import { toast } from 'sonner';
 
 /**
  * Dodo Payments Product IDs
- * These map to the products created in your Dodo Payments dashboard
+ * Automatically uses correct IDs based on DODO_PAYMENTS_ENVIRONMENT
+ * - test_mode: Uses test product IDs
+ * - production: Uses production product IDs
  */
+const productIds = getProductIds();
 const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
   FREE: { monthly: '', yearly: '' }, // Free plan doesn't need IDs
-  VIBE: {
-    monthly: 'pdt_mPTd8gsQS8YUISdStWURf', // $9.99/month
-    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA', // $99/year
-  },
-  ECHO: {
-    monthly: 'pdt_Wy6tQl25lVbD2mB7otYZk', // $4.99/month
-    yearly: 'pdt_Si8ICePOeVze97OIO8kCh', // $49/year
-  },
+  VIBE: productIds.VIBE,
+  ECHO: productIds.ECHO,
 };
 
 export default function BillingPage() {

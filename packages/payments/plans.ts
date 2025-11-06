@@ -4,7 +4,9 @@
  * Defines the limits and features for each subscription tier:
  * - FREE: Basic tier with limited features (1 social, 10 posts/month)
  * - ECHO: Entry-level paid tier (5 socials, 30 posts/month) - $4.99/mo
- * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.99/mo
+ * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.90/mo
+ *
+ * Note: Pricing matches production environment ($9.90/$99.90 for VIBE)
  */
 
 export type PlanType = 'FREE' | 'VIBE' | 'ECHO';
@@ -99,8 +101,8 @@ export const PLANS: Record<PlanType, Plan> = {
     name: 'Vibe',
     description: 'Unlimited power for professionals and teams',
     price: {
-      monthly: 9.99,
-      yearly: 99, // Save 17%
+      monthly: 9.9,
+      yearly: 99.9, // Save 17%
     },
     limits: {
       socialAccounts: -1, // Unlimited

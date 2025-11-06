@@ -4,6 +4,7 @@
  * This file contains mutation handlers for Dodo Payments webhook events
  */
 
+import { getPlanFromProductId } from '@delulu/payments/product-ids';
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
@@ -113,28 +114,17 @@ export const handleSubscriptionActivated = internalMutation({
     }
 
     // Determine plan type and billing period based on product ID
-    let planType: 'FREE' | 'VIBE' | 'ECHO';
-    let billingPeriod: 'MONTHLY' | 'YEARLY';
+    // Supports both test and production product IDs
+    const planInfo = getPlanFromProductId(args.productId);
 
-    // Map Dodo product IDs to plan types and billing periods
-    if (args.productId === 'pdt_mPTd8gsQS8YUISdStWURf') {
-      planType = 'VIBE'; // $9.99/month
-      billingPeriod = 'MONTHLY';
-    } else if (args.productId === 'pdt_naiOlQemBRKGOVNKR8qmA') {
-      planType = 'VIBE'; // $99/year
-      billingPeriod = 'YEARLY';
-    } else if (args.productId === 'pdt_Wy6tQl25lVbD2mB7otYZk') {
-      planType = 'ECHO'; // $4.99/month
-      billingPeriod = 'MONTHLY';
-    } else if (args.productId === 'pdt_Si8ICePOeVze97OIO8kCh') {
-      planType = 'ECHO'; // $49/year
-      billingPeriod = 'YEARLY';
-    } else {
+    if (!planInfo) {
       console.error('[Webhook] Unknown product ID:', args.productId);
       throw new Error(
-        `Unknown product ID: ${args.productId}. Please add this product ID to the webhook handler mapping.`
+        `Unknown product ID: ${args.productId}. Please add this product ID to the product-ids.ts configuration.`
       );
     }
+
+    const { planType, billingPeriod } = planInfo;
 
     // Check if subscription already exists
     const existingSubscription = await ctx.db
