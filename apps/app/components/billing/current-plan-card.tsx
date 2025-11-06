@@ -35,7 +35,7 @@ export function CurrentPlanCard() {
   const handleManageSubscription = async () => {
     try {
       setIsLoadingPortal(true);
-      const { portal_url } = await getPortal({ sendEmail: false });
+      const { portal_url } = await getPortal();
       window.location.href = portal_url;
     } catch (error) {
       console.error('Failed to open customer portal:', error);

@@ -122,6 +122,12 @@ http.route({
     onPaymentSucceeded: async (ctx, payload) => {
       console.log('[Dodo Webhook] Payment succeeded:', payload.data.payment_id);
 
+      // Skip webhook if no subscription_id (one-off payment)
+      if (!payload.data.subscription_id) {
+        console.log('[Dodo Webhook] Skipping payment without subscription_id (one-off charge)');
+        return;
+      }
+
       await ctx.runMutation(internal.webhooks.handlePaymentSucceeded, {
         paymentId: payload.data.payment_id,
         businessId: payload.business_id,
@@ -130,7 +136,7 @@ http.route({
         amount: payload.data.total_amount,
         currency: payload.data.currency,
         status: payload.data.status ?? 'pending',
-        subscriptionId: payload.data.subscription_id!,
+        subscriptionId: payload.data.subscription_id,
         productId: payload.data.product_cart?.[0]?.product_id ?? '',
         webhookPayload: JSON.stringify(payload),
       });

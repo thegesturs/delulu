@@ -113,25 +113,27 @@ export const handleSubscriptionActivated = internalMutation({
     }
 
     // Determine plan type and billing period based on product ID
-    let planType: 'FREE' | 'VIBE' | 'ECHO' = 'VIBE'; // Default to VIBE
-    let billingPeriod: 'MONTHLY' | 'YEARLY' = 'MONTHLY'; // Default to MONTHLY
+    let planType: 'FREE' | 'VIBE' | 'ECHO';
+    let billingPeriod: 'MONTHLY' | 'YEARLY';
 
     // Map Dodo product IDs to plan types and billing periods
     if (args.productId === 'pdt_mPTd8gsQS8YUISdStWURf') {
       planType = 'VIBE'; // $9.99/month
       billingPeriod = 'MONTHLY';
-    }
-    if (args.productId === 'pdt_naiOlQemBRKGOVNKR8qmA') {
+    } else if (args.productId === 'pdt_naiOlQemBRKGOVNKR8qmA') {
       planType = 'VIBE'; // $99/year
       billingPeriod = 'YEARLY';
-    }
-    if (args.productId === 'pdt_Wy6tQl25lVbD2mB7otYZk') {
+    } else if (args.productId === 'pdt_Wy6tQl25lVbD2mB7otYZk') {
       planType = 'ECHO'; // $4.99/month
       billingPeriod = 'MONTHLY';
-    }
-    if (args.productId === 'pdt_Si8ICePOeVze97OIO8kCh') {
+    } else if (args.productId === 'pdt_Si8ICePOeVze97OIO8kCh') {
       planType = 'ECHO'; // $49/year
       billingPeriod = 'YEARLY';
+    } else {
+      console.error('[Webhook] Unknown product ID:', args.productId);
+      throw new Error(
+        `Unknown product ID: ${args.productId}. Please add this product ID to the webhook handler mapping.`
+      );
     }
 
     // Check if subscription already exists

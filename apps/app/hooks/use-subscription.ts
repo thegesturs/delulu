@@ -6,10 +6,11 @@
 
 import { useQuery } from 'convex-helpers/react/cache';
 import { api } from '@delulu/database/convex/_generated/api';
+import type { Doc } from '@delulu/database/convex/_generated/dataModel';
 import type { PlanType } from '@delulu/payments';
 
 export interface UseSubscriptionReturn {
-  subscription: any | null | undefined;
+  subscription: Doc<'subscriptions'> | null | undefined;
   planType: PlanType;
   billingPeriod: 'MONTHLY' | 'YEARLY' | null;
   isActive: boolean;

@@ -187,6 +187,88 @@ export const checkUsageLimit = query({
   },
 });
 
+/**
+ * Get current user's actual usage
+ * Counts social accounts, monthly posts, and media storage
+ */
+export const getUserUsage = query({
+  args: {},
+  returns: v.object({
+    socialAccounts: v.number(),
+    monthlyPosts: v.number(),
+    mediaStorage: v.number(),
+    teamMembers: v.number(),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        socialAccounts: 0,
+        monthlyPosts: 0,
+        mediaStorage: 0,
+        teamMembers: 1,
+      };
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+      .unique();
+
+    if (!user) {
+      return {
+        socialAccounts: 0,
+        monthlyPosts: 0,
+        mediaStorage: 0,
+        teamMembers: 1,
+      };
+    }
+
+    // Count social accounts
+    const socialAccounts = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .collect();
+
+    // Count posts created this month
+    const now = Date.now();
+    const monthStart = new Date(
+      new Date(now).getFullYear(),
+      new Date(now).getMonth(),
+      1
+    ).getTime();
+
+    const postsThisMonth = await ctx.db
+      .query('posts')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field('createdAt'), monthStart),
+          q.eq(q.field('isDeleted'), false)
+        )
+      )
+      .collect();
+
+    // Calculate media storage (sum of all media file sizes in MB)
+    const mediaFiles = await ctx.db
+      .query('media')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .collect();
+
+    const totalStorageMB =
+      mediaFiles.reduce((sum, media) => sum + (media.size ?? 0), 0) /
+      (1024 * 1024); // Convert bytes to MB
+
+    return {
+      socialAccounts: socialAccounts.length,
+      monthlyPosts: postsThisMonth.length,
+      mediaStorage: Math.round(totalStorageMB),
+      teamMembers: 1, // TODO: Implement team member counting when org feature is added
+    };
+  },
+});
+
 // ============================================================================
 // MUTATIONS
 // ============================================================================
@@ -215,7 +297,6 @@ export const createSubscription = internalMutation({
   handler: async (ctx, args) => {
     const subscriptionId = await ctx.db.insert('subscriptions', {
       ...args,
-      billingPeriod: args.billingPeriod,
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -382,16 +463,14 @@ export const createCheckoutSession = action({
  * Get customer portal URL
  */
 export const getCustomerPortal = action({
-  args: {
-    sendEmail: v.optional(v.boolean()),
-  },
+  args: {},
   returns: v.object({
     portal_url: v.string(),
   }),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     try {
       const portal = await customerPortal(ctx, {
-        send_email: args.sendEmail || false,
+        send_email: true,
       });
 
       if (!portal?.portal_url) {

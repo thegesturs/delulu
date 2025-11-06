@@ -79,8 +79,12 @@ export function PricingCards({
         productId,
         returnUrl: `${window.location.origin}/billing`,
       });
+
+      // Run callback before navigation so analytics/cleanup can complete
+      await onUpgradeSuccess?.();
+
+      // Navigate to checkout (this will leave the page)
       window.location.href = checkout_url;
-      onUpgradeSuccess?.();
     } catch (error) {
       console.error('Failed to create checkout:', error);
       toast.error('Failed to start checkout. Please try again.');
@@ -96,7 +100,11 @@ export function PricingCards({
   const getMonthlyEquivalent = (planType: PlanType) => {
     const plan = PLANS[planType];
     if (!isAnnual || plan.price.yearly === 0) return null;
-    return Math.round(plan.price.yearly / 12);
+    // Calculate cents-accurate monthly price (yearly price is in dollars)
+    const yearlyInCents = plan.price.yearly * 100;
+    const monthlyInCents = Math.round(yearlyInCents / 12);
+    const monthlyInDollars = monthlyInCents / 100;
+    return monthlyInDollars.toFixed(2);
   };
 
   const isCurrentPlan = (planType: PlanType) => {

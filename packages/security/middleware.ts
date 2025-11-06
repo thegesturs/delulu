@@ -25,6 +25,7 @@ export const noseconeOptions: NoseconeOptions = {
         "'unsafe-inline'",
         'https://www.googletagmanager.com',
         'https://*.clerk.accounts.dev',
+        'https://cdn.userjot.com', // UserJot SDK
       ],
       connectSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.connectSrc,
@@ -39,6 +40,8 @@ export const noseconeOptions: NoseconeOptions = {
         // Liveblocks WebSocket endpoints
         'https://*.liveblocks.io',
         'wss://*.liveblocks.io',
+        // UserJot API
+        'https://*.userjot.com',
       ],
       workerSrc: [
         ...noseconeDefaults.contentSecurityPolicy.directives.workerSrc,
