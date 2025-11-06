@@ -20,6 +20,7 @@ import {
   Network,
   Pencil,
 } from '@delulu/design-system/icons';
+import { CreditCard } from 'lucide-react';
 import { cn } from '@delulu/design-system/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -70,6 +71,11 @@ const navigationItems = [
     title: 'Connected Accounts',
     url: '/socials',
     icon: Network,
+  },
+  {
+    title: 'Billing',
+    url: '/billing',
+    icon: CreditCard,
   },
 ];
 

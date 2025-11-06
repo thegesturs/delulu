@@ -63,11 +63,10 @@ This is a **monorepo** using **Turbo** with multiple applications:
 - **tRPC** for type-safe APIs
 
 ### Backend & Infrastructure
-- **Prisma** for database ORM
-- **PostgreSQL** database
+- **Convex** for database and real-time sync
 - **Cloudflare** for deployment and edge functions
 - **AWS S3** for file storage
-- **Stripe** for payments
+- **Dodo Payments** for subscriptions and billing
 - **PostHog** for analytics
 - **Sentry** for error tracking
 

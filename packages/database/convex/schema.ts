@@ -3,6 +3,8 @@ import {
   baseMediaTableSchema,
   basePostSchema,
   baseSocialProviderSchema,
+  baseSubscriptionSchema,
+  baseTransactionSchema,
   baseUserSchema,
 } from './schemas';
 
@@ -46,4 +48,22 @@ export default defineSchema({
     .index('by_bucket_key', ['bucketKey'])
     .index('by_media_type', ['mediaType'])
     .index('by_created_at', ['createdAt']),
+
+  // Subscriptions table
+  subscriptions: defineTable(baseSubscriptionSchema.fields)
+    .index('by_user_id', ['userId'])
+    .index('by_dodo_customer_id', ['dodoCustomerId'])
+    .index('by_dodo_subscription_id', ['dodoSubscriptionId'])
+    .index('by_plan_type', ['planType'])
+    .index('by_status', ['status'])
+    .index('by_user_status', ['userId', 'status']),
+
+  // Transactions table for payment history
+  transactions: defineTable(baseTransactionSchema.fields)
+    .index('by_user_id', ['userId'])
+    .index('by_subscription_id', ['subscriptionId'])
+    .index('by_dodo_payment_id', ['dodoPaymentId'])
+    .index('by_dodo_customer_id', ['dodoCustomerId'])
+    .index('by_status', ['status'])
+    .index('by_user_status', ['userId', 'status'])
 });

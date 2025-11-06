@@ -27,6 +27,9 @@ export const baseUserSchema = v.object({
   usage: usageSchema,
   stats: v.optional(statsSchema), // Make stats optional for backward compatibility
   image: v.optional(v.string()),
+  // Subscription-related fields
+  dodoCustomerId: v.optional(v.string()), // Dodo Payments customer ID
+  subscriptionId: v.optional(v.id('subscriptions')), // Link to current subscription
   updatedAt: v.number(),
 });
 
@@ -45,6 +48,8 @@ export const userCreateSchema = v.object({
   externalId: v.optional(v.string()),
   usage: v.optional(usageSchema),
   image: v.optional(v.string()),
+  dodoCustomerId: v.optional(v.string()),
+  subscriptionId: v.optional(v.id('subscriptions')),
 });
 
 // User update schema (partial)
@@ -55,5 +60,7 @@ export const userUpdateSchema = v.object({
   externalId: v.optional(v.string()),
   usage: v.optional(usageSchema),
   image: v.optional(v.string()),
+  dodoCustomerId: v.optional(v.string()),
+  subscriptionId: v.optional(v.id('subscriptions')),
   updatedAt: v.optional(v.number()),
 });

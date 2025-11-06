@@ -1,3 +1,4 @@
+import { UserJot } from '@/components/analytics/userjot';
 import { ConvexClientProvider } from '@/components/providers/clerk-convex';
 import './styles.css';
 import { TRPCReactProvider } from '@/trpc/react';
@@ -23,6 +24,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
           </TRPCReactProvider>
         </ConvexClientProvider>
       </DesignSystemProvider>
+      <UserJot />
     </body>
   </html>
 );
