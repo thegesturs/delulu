@@ -50,7 +50,8 @@ const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
 
 export default function BillingPage() {
   const searchParams = useSearchParams();
-  const success = searchParams?.get('success');
+  const status = searchParams?.get('status'); // Dodo Payments returns 'status' param
+  const subscriptionId = searchParams?.get('subscription_id');
   const cancelled = searchParams?.get('cancelled');
 
   const [tab, setTab] = useQueryState(
@@ -60,17 +61,21 @@ export default function BillingPage() {
 
   // Show success/error messages from checkout redirects
   useEffect(() => {
-    if (success === 'true') {
+    if (status === 'succeeded' || status === 'active') {
       toast.success('Subscription updated successfully!', {
         description:
           'Your payment has been processed. Welcome to your new plan!',
+      });
+    } else if (status === 'failed') {
+      toast.error('Payment failed', {
+        description: 'Your payment could not be processed. Please try again.',
       });
     } else if (cancelled === 'true') {
       toast.error('Checkout cancelled', {
         description: 'You can upgrade anytime from this page.',
       });
     }
-  }, [success, cancelled]);
+  }, [status, cancelled]);
 
   return (
     <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto py-8">
@@ -85,13 +90,28 @@ export default function BillingPage() {
       </div>
 
       {/* Success Alert */}
-      {success === 'true' && (
+      {(status === 'succeeded' || status === 'active') && (
         <Alert className="border-green-500/50 bg-green-500/10">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertTitle>Subscription Updated!</AlertTitle>
           <AlertDescription>
             Your payment has been processed successfully. You now have access to
             all premium features.
+            {subscriptionId && (
+              <span className="mt-1 block text-muted-foreground text-xs">
+                Subscription ID: {subscriptionId}
+              </span>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Alert */}
+      {status === 'failed' && (
+        <Alert className="border-red-500/50 bg-red-500/10">
+          <AlertTitle>Payment Failed</AlertTitle>
+          <AlertDescription>
+            Your payment could not be processed. Please try again or contact support.
           </AlertDescription>
         </Alert>
       )}

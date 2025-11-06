@@ -52,9 +52,10 @@ export function PricingCards({ productIds, onUpgradeSuccess }: PricingCardsProps
       setUpgradingPlan(planType);
       const { checkout_url } = await createCheckout({
         productId,
-        returnUrl: `${window.location.origin}/billing?success=true`,
+        returnUrl: `${window.location.origin}/billing`,
       });
       window.location.href = checkout_url;
+      onUpgradeSuccess?.();
     } catch (error) {
       console.error('Failed to create checkout:', error);
       toast.error('Failed to start checkout. Please try again.');

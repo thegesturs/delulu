@@ -96,12 +96,14 @@ export const checkFeatureAccess = query({
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    let planType: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' = 'FREE';
+    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
 
     if (identity) {
       const user = await ctx.db
         .query('users')
-        .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+        .withIndex('by_external_id', (q) =>
+          q.eq('externalId', identity.subject)
+        )
         .unique();
 
       if (user?.subscriptionId) {
@@ -112,8 +114,7 @@ export const checkFeatureAccess = query({
       }
     }
 
-    // Import plan features dynamically
-    // Note: In production, you might want to define this mapping in the schema
+    // Plan features matching /packages/payments/plans.ts
     const planFeatures: Record<string, Record<string, boolean>> = {
       FREE: {
         aiContentGeneration: false,
@@ -125,7 +126,7 @@ export const checkFeatureAccess = query({
         advancedScheduling: false,
         bulkUpload: false,
       },
-      STARTER: {
+      ECHO: {
         aiContentGeneration: false,
         analytics: true,
         collaboration: false,
@@ -135,17 +136,7 @@ export const checkFeatureAccess = query({
         advancedScheduling: true,
         bulkUpload: false,
       },
-      PRO: {
-        aiContentGeneration: true,
-        analytics: true,
-        collaboration: true,
-        whiteLabel: false,
-        prioritySupport: true,
-        customBranding: false,
-        advancedScheduling: true,
-        bulkUpload: true,
-      },
-      ENTERPRISE: {
+      VIBE: {
         aiContentGeneration: true,
         analytics: true,
         collaboration: true,
@@ -188,12 +179,14 @@ export const checkUsageLimit = query({
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    let planType: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' = 'FREE';
+    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
 
     if (identity) {
       const user = await ctx.db
         .query('users')
-        .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+        .withIndex('by_external_id', (q) =>
+          q.eq('externalId', identity.subject)
+        )
         .unique();
 
       if (user?.subscriptionId) {
@@ -204,37 +197,32 @@ export const checkUsageLimit = query({
       }
     }
 
-    // Plan limits
+    // Plan limits matching /packages/payments/plans.ts
     const planLimits: Record<string, Record<string, number>> = {
       FREE: {
         socialAccounts: 1,
         monthlyPosts: 10,
-        mediaStorage: 100,
+        mediaStorage: 100, // 100 MB
         teamMembers: 1,
       },
-      STARTER: {
-        socialAccounts: 3,
-        monthlyPosts: 50,
-        mediaStorage: 1000,
+      ECHO: {
+        socialAccounts: 5,
+        monthlyPosts: 30,
+        mediaStorage: 1000, // 1 GB
         teamMembers: 1,
       },
-      PRO: {
-        socialAccounts: 10,
-        monthlyPosts: 200,
-        mediaStorage: 5000,
-        teamMembers: 5,
-      },
-      ENTERPRISE: {
+      VIBE: {
         socialAccounts: -1, // Unlimited
-        monthlyPosts: -1,
-        mediaStorage: -1,
-        teamMembers: -1,
+        monthlyPosts: -1, // Unlimited
+        mediaStorage: -1, // Unlimited
+        teamMembers: 10,
       },
     };
 
     const limit = planLimits[planType][args.limitType];
     const allowed = limit === -1 || args.currentValue < limit;
-    const remaining = limit === -1 ? -1 : Math.max(0, limit - args.currentValue);
+    const remaining =
+      limit === -1 ? -1 : Math.max(0, limit - args.currentValue);
 
     return {
       allowed,
@@ -339,6 +327,25 @@ export const createCheckoutSession = action({
   }),
   handler: async (ctx, args) => {
     try {
+      // Get authenticated user info from Clerk
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        throw new Error('User must be authenticated to create checkout session');
+      }
+
+      // Extract user info from identity
+      const userEmail = identity.email || identity.emailVerified || '';
+      const userName = identity.name || identity.givenName || identity.nickname || '';
+
+      console.log('[Dodo] Creating checkout session with:', {
+        productId: args.productId,
+        quantity: args.quantity || 1,
+        returnUrl: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
+        environment: process.env.DODO_PAYMENTS_ENVIRONMENT,
+        userEmail,
+        userName,
+      });
+
       const session = await checkout(ctx, {
         payload: {
           product_cart: [
@@ -347,6 +354,11 @@ export const createCheckoutSession = action({
               quantity: args.quantity || 1,
             },
           ],
+          customer: {
+            email: userEmail,
+            name: userName,
+            
+          },
           return_url: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
           billing_currency: 'USD',
           feature_flags: {
@@ -355,14 +367,43 @@ export const createCheckoutSession = action({
         },
       });
 
-      if (!session?.checkout_url) {
-        throw new Error('Checkout session did not return a checkout_url');
+      console.log('[Dodo] Checkout session response:', {
+        hasSession: !!session,
+        hasCheckoutUrl: !!session?.checkout_url,
+        sessionKeys: session ? Object.keys(session) : [],
+      });
+
+      if (!session) {
+        throw new Error('Checkout API returned null or undefined response');
       }
 
+      if (!session.checkout_url) {
+        console.error('[Dodo] Session object:', JSON.stringify(session));
+        throw new Error('Checkout session did not return a checkout_url. Check if product ID is valid in Dodo dashboard.');
+      }
+
+      console.log('[Dodo] Checkout session created successfully');
       return { checkout_url: session.checkout_url };
     } catch (error) {
-      console.error('[Dodo] Failed to create checkout session:', error);
-      throw new Error('Failed to create checkout session');
+      console.error('[Dodo] Failed to create checkout session:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        productId: args.productId,
+        environment: process.env.DODO_PAYMENTS_ENVIRONMENT,
+      });
+
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('product')) {
+          throw new Error(`Invalid product ID: ${args.productId}. Please check your Dodo Payments dashboard.`);
+        }
+        if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
+          throw new Error('Dodo Payments authentication failed. Check DODO_PAYMENTS_API_KEY in Convex dashboard.');
+        }
+        throw new Error(`Checkout failed: ${error.message}`);
+      }
+
+      throw new Error('Failed to create checkout session. Check Convex logs for details.');
     }
   },
 });

@@ -29,14 +29,30 @@ export const handlePaymentSucceeded = internalMutation({
   handler: async (ctx, args) => {
     console.log('[Webhook] Payment succeeded:', args.paymentId);
 
-    // Find user by Dodo customer ID
-    const user = await ctx.db
+    // Find user by Dodo customer ID or email
+    let user = await ctx.db
       .query('users')
       .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
       .first();
 
+    // If not found by customer ID, try to find by email
+    if (!user && args.customerEmail) {
+      user = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('email'), args.customerEmail))
+        .first();
+
+      // Update user with Dodo customer ID
+      if (user) {
+        await ctx.db.patch(user._id, {
+          dodoCustomerId: args.customerId,
+        });
+        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      }
+    }
+
     if (!user) {
-      console.error('[Webhook] User not found for customer:', args.customerId);
+      console.error('[Webhook] User not found for customer:', args.customerId, 'email:', args.customerEmail);
       return;
     }
 
@@ -81,14 +97,30 @@ export const handleSubscriptionActivated = internalMutation({
   handler: async (ctx, args) => {
     console.log('[Webhook] Subscription activated:', args.subscriptionId);
 
-    // Find user by Dodo customer ID
-    const user = await ctx.db
+    // Find user by Dodo customer ID or email
+    let user = await ctx.db
       .query('users')
       .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
       .first();
 
+    // If not found by customer ID, try to find by email
+    if (!user && args.customerEmail) {
+      user = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('email'), args.customerEmail))
+        .first();
+
+      // Update user with Dodo customer ID
+      if (user) {
+        await ctx.db.patch(user._id, {
+          dodoCustomerId: args.customerId,
+        });
+        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      }
+    }
+
     if (!user) {
-      console.error('[Webhook] User not found for customer:', args.customerId);
+      console.error('[Webhook] User not found for customer:', args.customerId, 'email:', args.customerEmail);
       return;
     }
 
@@ -194,6 +226,7 @@ export const handlePaymentFailed = internalMutation({
   args: {
     paymentId: v.string(),
     customerId: v.string(),
+    customerEmail: v.optional(v.string()),
     failureReason: v.string(),
     amount: v.number(),
     currency: v.string(),
@@ -201,14 +234,30 @@ export const handlePaymentFailed = internalMutation({
   handler: async (ctx, args) => {
     console.log('[Webhook] Payment failed:', args.paymentId, args.failureReason);
 
-    // Find user by Dodo customer ID
-    const user = await ctx.db
+    // Find user by Dodo customer ID or email
+    let user = await ctx.db
       .query('users')
       .filter((q) => q.eq(q.field('dodoCustomerId'), args.customerId))
       .first();
 
+    // If not found by customer ID, try to find by email
+    if (!user && args.customerEmail) {
+      user = await ctx.db
+        .query('users')
+        .filter((q) => q.eq(q.field('email'), args.customerEmail))
+        .first();
+
+      // Update user with Dodo customer ID
+      if (user) {
+        await ctx.db.patch(user._id, {
+          dodoCustomerId: args.customerId,
+        });
+        console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      }
+    }
+
     if (!user) {
-      console.error('[Webhook] User not found for customer:', args.customerId);
+      console.error('[Webhook] User not found for customer:', args.customerId, 'email:', args.customerEmail);
       return;
     }
 
