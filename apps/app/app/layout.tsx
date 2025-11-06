@@ -1,3 +1,4 @@
+import { UserJot } from '@/components/analytics/userjot';
 import { ConvexClientProvider } from '@/components/providers/clerk-convex';
 import './styles.css';
 import { TRPCReactProvider } from '@/trpc/react';
@@ -23,13 +24,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
           </TRPCReactProvider>
         </ConvexClientProvider>
       </DesignSystemProvider>
-      {/* UserJot SDK Loader */}
-      <script
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: UserJot SDK loader requires inline script
-        dangerouslySetInnerHTML={{
-          __html: `window.$ujq=window.$ujq||[];window.uj=window.uj||new Proxy({},{get:(_,p)=>(...a)=>window.$ujq.push([p,...a])});document.head.appendChild(Object.assign(document.createElement('script'),{src:'https://cdn.userjot.com/sdk/v2/uj.js',type:'module',async:!0}));`,
-        }}
-      />
+      <UserJot />
     </body>
   </html>
 );

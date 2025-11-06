@@ -855,6 +855,9 @@ importers:
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../analytics
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

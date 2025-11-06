@@ -9,10 +9,16 @@
  * - Check feature access and usage limits
  */
 
+import { PLANS } from '@delulu/payments/plans';
 import { v } from 'convex/values';
 import { action, internalMutation, query } from './_generated/server';
 import { checkout, customerPortal } from './dodo';
-import { billingPeriod, planTypes, subscriptionSchema, subscriptionStatus } from './schemas';
+import {
+  billingPeriod,
+  planTypes,
+  subscriptionSchema,
+  subscriptionStatus,
+} from './schemas';
 import { getCurrentTimestamp } from './utils';
 
 // ============================================================================
@@ -114,41 +120,9 @@ export const checkFeatureAccess = query({
       }
     }
 
-    // Plan features matching /packages/payments/plans.ts
-    const planFeatures: Record<string, Record<string, boolean>> = {
-      FREE: {
-        aiContentGeneration: false,
-        analytics: false,
-        collaboration: false,
-        whiteLabel: false,
-        prioritySupport: false,
-        customBranding: false,
-        advancedScheduling: false,
-        bulkUpload: false,
-      },
-      ECHO: {
-        aiContentGeneration: false,
-        analytics: true,
-        collaboration: false,
-        whiteLabel: false,
-        prioritySupport: false,
-        customBranding: false,
-        advancedScheduling: true,
-        bulkUpload: false,
-      },
-      VIBE: {
-        aiContentGeneration: true,
-        analytics: true,
-        collaboration: true,
-        whiteLabel: true,
-        prioritySupport: true,
-        customBranding: true,
-        advancedScheduling: true,
-        bulkUpload: true,
-      },
-    };
-
-    const hasAccess = planFeatures[planType][args.feature] || false;
+    // Get plan features from single source of truth
+    const plan = PLANS[planType];
+    const hasAccess = plan.features[args.feature] || false;
 
     return {
       hasAccess,
@@ -197,29 +171,9 @@ export const checkUsageLimit = query({
       }
     }
 
-    // Plan limits matching /packages/payments/plans.ts
-    const planLimits: Record<string, Record<string, number>> = {
-      FREE: {
-        socialAccounts: 1,
-        monthlyPosts: 10,
-        mediaStorage: 100, // 100 MB
-        teamMembers: 1,
-      },
-      ECHO: {
-        socialAccounts: 5,
-        monthlyPosts: 30,
-        mediaStorage: 1000, // 1 GB
-        teamMembers: 1,
-      },
-      VIBE: {
-        socialAccounts: -1, // Unlimited
-        monthlyPosts: -1, // Unlimited
-        mediaStorage: -1, // Unlimited
-        teamMembers: 10,
-      },
-    };
-
-    const limit = planLimits[planType][args.limitType];
+    // Get plan limits from single source of truth
+    const plan = PLANS[planType];
+    const limit = plan.limits[args.limitType];
     const allowed = limit === -1 || args.currentValue < limit;
     const remaining =
       limit === -1 ? -1 : Math.max(0, limit - args.currentValue);
@@ -334,7 +288,9 @@ export const createCheckoutSession = action({
       // Get authenticated user info from Clerk
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
-        throw new Error('User must be authenticated to create checkout session');
+        throw new Error(
+          'User must be authenticated to create checkout session'
+        );
       }
 
       // Extract user info from identity
@@ -361,7 +317,6 @@ export const createCheckoutSession = action({
           customer: {
             email: userEmail!,
             name: userName,
-            
           },
           return_url: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
           billing_currency: 'USD',
@@ -383,7 +338,9 @@ export const createCheckoutSession = action({
 
       if (!session.checkout_url) {
         console.error('[Dodo] Session object:', JSON.stringify(session));
-        throw new Error('Checkout session did not return a checkout_url. Check if product ID is valid in Dodo dashboard.');
+        throw new Error(
+          'Checkout session did not return a checkout_url. Check if product ID is valid in Dodo dashboard.'
+        );
       }
 
       console.log('[Dodo] Checkout session created successfully');
@@ -399,15 +356,24 @@ export const createCheckoutSession = action({
       // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('product')) {
-          throw new Error(`Invalid product ID: ${args.productId}. Please check your Dodo Payments dashboard.`);
+          throw new Error(
+            `Invalid product ID: ${args.productId}. Please check your Dodo Payments dashboard.`
+          );
         }
-        if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
-          throw new Error('Dodo Payments authentication failed. Check DODO_PAYMENTS_API_KEY in Convex dashboard.');
+        if (
+          error.message.includes('authentication') ||
+          error.message.includes('unauthorized')
+        ) {
+          throw new Error(
+            'Dodo Payments authentication failed. Check DODO_PAYMENTS_API_KEY in Convex dashboard.'
+          );
         }
         throw new Error(`Checkout failed: ${error.message}`);
       }
 
-      throw new Error('Failed to create checkout session. Check Convex logs for details.');
+      throw new Error(
+        'Failed to create checkout session. Check Convex logs for details.'
+      );
     }
   },
 });
