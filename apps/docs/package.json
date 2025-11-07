@@ -6,6 +6,6 @@
     "lint": "mintlify broken-links"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "catalog:"
   }
 }

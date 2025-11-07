@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
-    "typescript": "^5.9.3",
+    "typescript": "catalog:",
     "@types/node": "22.14.1",
     "@types/react": "catalog:react19",
     "@types/react-dom": "catalog:react19"
