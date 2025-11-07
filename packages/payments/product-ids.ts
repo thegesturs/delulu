@@ -45,8 +45,8 @@ export const PROD_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig
  * Checks DODO_PAYMENTS_ENVIRONMENT to determine which set to use
  */
 export function getProductIds(): Record<Exclude<PlanType, 'FREE'>, ProductIdConfig> {
-  const env = process.env.DODO_PAYMENTS_ENVIRONMENT || 'test_mode';
-  return env === 'production' ? PROD_PRODUCT_IDS : TEST_PRODUCT_IDS;
+  const env = process.env.DODO_PAYMENTS_ENVIRONMENT ?? 'test_mode';
+  return env === 'live_mode' ? PROD_PRODUCT_IDS : TEST_PRODUCT_IDS;
 }
 
 /**
