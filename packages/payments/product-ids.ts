@@ -32,7 +32,7 @@ export const TEST_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig
 export const PROD_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig> = {
   VIBE: {
     monthly: 'pdt_tbJH22RAmI1RSPWl9ZtZd', // $9.90/month (prod)
-    yearly: 'pdt_4iLNFL4WpmxdCAXIXVEkm',  // $99.90/year (prod)
+    yearly: 'pdt_4iLNFL4WpmxdCAXIXVEkm',  // $99.0/year (prod)
   },
   ECHO: {
     monthly: 'pdt_uOWl8h66nIVB570LbddrA', // $4.99/month (prod)

@@ -39,7 +39,7 @@ function UserJotIdentifierContent() {
       return;
     }
 
-    window.uj.init('cmhntjclh00db14ny2h3z94kl', {
+    window.uj.init('cmhq5pxc8033614nyqxr0iqg6', {
       widget: true,
       position: 'right',
       theme: 'auto',
@@ -61,6 +61,8 @@ function UserJotIdentifierContent() {
       lastName: user.lastName ?? undefined,
       avatar: user.imageUrl,
     });
+
+    console.log('Identified user:', user.id);
 
     identified.current = true;
   }, [user]);

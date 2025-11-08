@@ -17,7 +17,7 @@ import Script from 'next/script';
 import { useEffect, useState } from 'react';
 
 export function UserJot() {
-  const [hasConsent, setHasConsent] = useState(false);
+  const [hasConsent, setHasConsent] = useState(true);
 
   useEffect(() => {
     // Check if user has granted analytics consent
