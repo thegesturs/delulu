@@ -4,9 +4,9 @@
  * Checks if the current user has access to a specific feature based on their plan
  */
 
-import { useQuery } from 'convex/react';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { PlanType } from '@delulu/payments';
+import { useQuery } from 'convex/react';
 
 export type Feature =
   | 'aiContentGeneration'

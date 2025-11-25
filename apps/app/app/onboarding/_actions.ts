@@ -16,8 +16,14 @@ export const updateOnboardingStep = async (data: {
   const client = await clerkClient();
 
   try {
+    // Get current user to preserve existing metadata
+    const user = await client.users.getUser(userId);
+    const currentMetadata = user.publicMetadata as Record<string, unknown>;
+
+    // Merge step progress with existing metadata
     await client.users.updateUser(userId, {
       publicMetadata: {
+        ...currentMetadata,
         currentStep: data.currentStep,
         stepsCompleted: data.stepsCompleted,
         skippedSteps: data.skippedSteps || [],
@@ -41,8 +47,14 @@ export const completeOnboarding = async () => {
   const client = await clerkClient();
 
   try {
+    // Get current user to preserve existing metadata
+    const user = await client.users.getUser(userId);
+    const currentMetadata = user.publicMetadata as Record<string, unknown>;
+
+    // Mark onboarding as complete while preserving other metadata
     const result = await client.users.updateUser(userId, {
       publicMetadata: {
+        ...currentMetadata,
         onboardingComplete: true,
         completedAt: Date.now(),
       },
@@ -65,8 +77,14 @@ export const completeTour = async (dismissed = false) => {
   const client = await clerkClient();
 
   try {
+    // Get current user to preserve existing metadata
+    const user = await client.users.getUser(userId);
+    const currentMetadata = user.publicMetadata as Record<string, unknown>;
+
+    // Merge tour completion status with existing metadata
     await client.users.updateUser(userId, {
       publicMetadata: {
+        ...currentMetadata,
         tourCompleted: !dismissed,
         tourDismissed: dismissed,
       },

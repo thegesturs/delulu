@@ -25,7 +25,7 @@ export const PostHogProvider = (
       if (proxyHost) {
         try {
           await fetch(apiHost, { method: 'HEAD', mode: 'no-cors' });
-        } catch (error) {
+        } catch (_error) {
           // Direct host blocked, use Cloudflare proxy
           apiHost = proxyHost;
         }

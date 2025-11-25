@@ -1,5 +1,3 @@
-import type { FC } from 'react';
-
 const CheckCircle = ({ className }: { className?: string }) => {
   return (
     <svg

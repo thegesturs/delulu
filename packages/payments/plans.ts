@@ -138,7 +138,10 @@ export function getPlan(planType: PlanType): Plan {
 /**
  * Check if a feature is available for a plan
  */
-export function hasFeature(planType: PlanType, feature: keyof PlanFeatures): boolean {
+export function hasFeature(
+  planType: PlanType,
+  feature: keyof PlanFeatures
+): boolean {
   return PLANS[planType].features[feature];
 }
 

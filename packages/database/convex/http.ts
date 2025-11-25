@@ -124,7 +124,9 @@ http.route({
 
       // Skip webhook if no subscription_id (one-off payment)
       if (!payload.data.subscription_id) {
-        console.log('[Dodo Webhook] Skipping payment without subscription_id (one-off charge)');
+        console.log(
+          '[Dodo Webhook] Skipping payment without subscription_id (one-off charge)'
+        );
         return;
       }
 

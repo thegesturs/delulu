@@ -27,7 +27,8 @@
       "style": {
         "useTemplate": "off",
         "noNonNullAssertion": "off",
-        "noInferrableTypes": "off"
+        "noInferrableTypes": "off",
+        "useFilenamingConvention": "off"
       },
       "a11y": {
         "noAriaUnsupportedElements": "warn",

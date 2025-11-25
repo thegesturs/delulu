@@ -28,11 +28,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       ...initialState,
 
       setCurrentStep: (step: number) =>
-        set(
-          { currentStep: step },
-          false,
-          'onboarding/setCurrentStep'
-        ),
+        set({ currentStep: step }, false, 'onboarding/setCurrentStep'),
 
       nextStep: () =>
         set(
@@ -59,12 +55,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
           'onboarding/setAccountsConnected'
         ),
 
-      reset: () =>
-        set(
-          initialState,
-          false,
-          'onboarding/reset'
-        ),
+      reset: () => set(initialState, false, 'onboarding/reset'),
     }),
     { name: 'onboarding-store' }
   )

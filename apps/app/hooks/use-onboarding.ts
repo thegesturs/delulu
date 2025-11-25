@@ -1,16 +1,22 @@
-import { useUser } from '@delulu/auth';
-import { posthog } from '@delulu/analytics/posthog/client';
-import { useState } from 'react';
 import {
   completeOnboarding,
   completeTour,
   updateOnboardingStep,
 } from '@/app/onboarding/_actions';
 import { useOnboardingStore } from '@/store/onboarding';
+import { posthog } from '@delulu/analytics/posthog/client';
+import { useUser } from '@delulu/auth';
+import { useState } from 'react';
 
 export function useOnboarding() {
   const { user } = useUser();
-  const { currentStep, setCurrentStep, nextStep, previousStep, accountsConnected } = useOnboardingStore();
+  const {
+    currentStep,
+    setCurrentStep,
+    nextStep,
+    previousStep,
+    accountsConnected,
+  } = useOnboardingStore();
   const [isLoading, setIsLoading] = useState(false);
 
   // Get onboarding metadata from Clerk user
@@ -84,7 +90,9 @@ export function useOnboarding() {
       // Track completion
       posthog.capture('onboarding_completed', {
         stepsSkipped: skippedSteps,
-        duration: Date.now() - (user?.createdAt ? new Date(user.createdAt).getTime() : Date.now()),
+        duration:
+          Date.now() -
+          (user?.createdAt ? new Date(user.createdAt).getTime() : Date.now()),
       });
 
       // Update user properties

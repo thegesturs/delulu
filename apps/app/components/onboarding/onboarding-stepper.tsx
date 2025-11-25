@@ -1,14 +1,14 @@
 'use client';
 
+import { useOnboarding } from '@/hooks/use-onboarding';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useOnboarding } from '@/hooks/use-onboarding';
-import { OnboardingProgress } from './onboarding-progress';
-import { WelcomeStep } from './welcome-step';
 import { ConnectAccountsStep } from './connect-accounts-step';
+import { OnboardingProgress } from './onboarding-progress';
 import { PricingStep } from './pricing-step';
-import { motion, AnimatePresence } from 'motion/react';
+import { WelcomeStep } from './welcome-step';
 
 export function OnboardingStepper() {
   const router = useRouter();
@@ -50,8 +50,12 @@ export function OnboardingStepper() {
   };
 
   const getButtonText = () => {
-    if (isLastStep) return 'Start Using Delulu';
-    if (currentStep === 2) return canContinue ? 'Continue' : 'Connect at least 1 account';
+    if (isLastStep) {
+      return 'Start Using Delulu';
+    }
+    if (currentStep === 2) {
+      return canContinue ? 'Continue' : 'Connect at least 1 account';
+    }
     return 'Get Started';
   };
 
@@ -62,7 +66,7 @@ export function OnboardingStepper() {
         <OnboardingProgress currentStep={currentStep} totalSteps={3} />
 
         {/* Step Content */}
-        <div className="min-h-[400px] relative">
+        <div className="relative min-h-[400px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -80,7 +84,7 @@ export function OnboardingStepper() {
         </div>
 
         {/* Navigation Buttons */}
-        <motion.div 
+        <motion.div
           className="flex items-center justify-between pt-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

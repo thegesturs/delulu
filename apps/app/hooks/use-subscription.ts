@@ -4,10 +4,10 @@
  * Provides access to the current user's subscription information
  */
 
-import { useQuery } from 'convex-helpers/react/cache';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Doc } from '@delulu/database/convex/_generated/dataModel';
 import type { PlanType } from '@delulu/payments';
+import { useQuery } from 'convex-helpers/react/cache';
 
 export interface UseSubscriptionReturn {
   subscription: Doc<'subscriptions'> | null | undefined;

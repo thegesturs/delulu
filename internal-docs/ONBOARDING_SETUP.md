@@ -63,6 +63,15 @@ You need to add custom claims to your Clerk session token:
 
 **Why this is needed**: The middleware needs to access `onboardingComplete` from the session token to determine if users should be redirected to `/onboarding`.
 
+### 2. Important: Metadata Preservation
+
+All server actions (`updateOnboardingStep`, `completeOnboarding`, `completeTour`) now **preserve existing metadata** when making updates. This is critical because:
+- Clerk's `updateUser` replaces the entire `publicMetadata` object
+- Without merging, completing the tour would erase `onboardingComplete`, causing redirect loops
+- Each action fetches current metadata first, then merges updates
+
+This pattern should be followed for any future metadata updates.
+
 ---
 
 ## How It Works
@@ -232,6 +241,9 @@ types/
 
 ### Issue: Can't skip step 2 without connecting account
 **Expected**: The "Continue" button on Step 2 requires at least 1 connected account. Use "Skip this step" instead.
+
+### Issue: Redirected to onboarding after completing tour
+**Solution**: This was fixed by ensuring all server actions preserve existing metadata when updating Clerk publicMetadata. Each action now fetches current metadata and merges it with new updates.
 
 ---
 

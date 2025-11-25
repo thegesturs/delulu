@@ -61,7 +61,7 @@ export const schedulePostAction = internalAction({
         );
       }
 
-      const result = await response.json() as CallMeLaterScheduleResponse;
+      const result = (await response.json()) as CallMeLaterScheduleResponse;
       const scheduleId = result.scheduleId;
 
       // Save the scheduleId to the post using an internal mutation
@@ -84,7 +84,7 @@ export const cancelScheduleAction = internalAction({
     scheduleId: v.string(),
   },
   returns: v.boolean(),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const apiKey = process.env.CALLMELATER_API_KEY;
 
     if (!apiKey) {

@@ -9,7 +9,9 @@ export default async function OnboardingLayout({
   const { sessionClaims } = await auth();
 
   // If user has already completed onboarding, redirect to home
-  const metadata = sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined;
+  const metadata = sessionClaims?.metadata as
+    | { onboardingComplete?: boolean }
+    | undefined;
   if (metadata?.onboardingComplete === true) {
     redirect('/');
   }

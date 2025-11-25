@@ -33,14 +33,18 @@ export const getCurrentSubscription = query({
   returns: v.union(subscriptionSchema, v.null()),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity) {
+      return null;
+    }
 
     const user = await ctx.db
       .query('users')
       .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
       .unique();
 
-    if (!user || !user.subscriptionId) return null;
+    if (!user || !user.subscriptionId) {
+      return null;
+    }
 
     const subscription = await ctx.db.get(user.subscriptionId);
     return subscription;
