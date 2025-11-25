@@ -123,9 +123,9 @@ export function PricingCards({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Billing toggle */}
-      <div className="flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-2">
         <span
           className={`text-sm ${isAnnual ? 'text-muted-foreground' : 'font-medium'}`}
         >
@@ -143,7 +143,7 @@ export function PricingCards({
       </div>
 
       {/* Pricing cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);

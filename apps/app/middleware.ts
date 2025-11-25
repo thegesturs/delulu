@@ -20,6 +20,8 @@ const authRoutes = createRouteMatcher([
   '/verify-email(.*)',
 ]);
 
+const onboardingRoute = createRouteMatcher(['/onboarding(.*)']);
+
 // Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
 
@@ -28,7 +30,7 @@ export default clerkMiddleware(async (auth, req) => {
   await securityHeaders();
 
   // Get auth state
-  const { userId, redirectToSignIn } = await auth();
+  const { userId, redirectToSignIn, sessionClaims } = await auth();
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {
@@ -40,10 +42,23 @@ export default clerkMiddleware(async (auth, req) => {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
 
+  // For authenticated users visiting /onboarding, allow access
+  if (userId && onboardingRoute(req)) {
+    return NextResponse.next();
+  }
+
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
     const homeUrl = new URL('/', req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
+  }
+
+  // Check if authenticated user has completed onboarding
+  // If not, redirect to /onboarding
+  const metadata = sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined;
+  if (userId && !metadata?.onboardingComplete) {
+    const onboardingUrl = new URL('/onboarding', req.url);
+    return NextResponse.redirect(onboardingUrl);
   }
 
   // For all other routes, continue with security headers

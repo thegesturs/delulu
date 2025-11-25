@@ -1,3 +1,4 @@
+import { FeatureTour } from '@/components/onboarding/feature-tour';
 import { StoreProvider } from '@/providers/store-provider';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { secure } from '@delulu/security';
@@ -24,6 +25,7 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
         </GlobalSidebar>
         <PostHogIdentifier />
         <UserJotIdentifier />
+        <FeatureTour />
       </SidebarProvider>
     </>
   );

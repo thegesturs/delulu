@@ -51,3 +51,4 @@ export const PostHogProvider = (
 };
 
 export { usePostHog as useAnalytics } from 'posthog-js/react';
+export { posthog };
