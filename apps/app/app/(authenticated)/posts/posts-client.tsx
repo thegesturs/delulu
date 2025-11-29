@@ -211,7 +211,12 @@ export default function PostsClient() {
             value={statusFilter}
             onValueChange={(value) =>
               setStatusFilter(
-                value as 'SAVED' | 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'PROCESSING'
+                value as
+                  | 'SAVED'
+                  | 'SCHEDULED'
+                  | 'PUBLISHED'
+                  | 'FAILED'
+                  | 'PROCESSING'
               )
             }
             className="flex-1 pt-3"

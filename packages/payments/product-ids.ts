@@ -15,28 +15,34 @@ export interface ProductIdConfig {
 /**
  * Test Mode Product IDs (for development/staging)
  */
-export const TEST_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig> = {
+export const TEST_PRODUCT_IDS: Record<
+  Exclude<PlanType, 'FREE'>,
+  ProductIdConfig
+> = {
   VIBE: {
     monthly: 'pdt_mPTd8gsQS8YUISdStWURf', // $9.99/month (test)
-    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA',  // $99/year (test)
+    yearly: 'pdt_naiOlQemBRKGOVNKR8qmA', // $99/year (test)
   },
   ECHO: {
     monthly: 'pdt_Wy6tQl25lVbD2mB7otYZk', // $4.99/month (test)
-    yearly: 'pdt_Si8ICePOeVze97OIO8kCh',  // $49/year (test)
+    yearly: 'pdt_Si8ICePOeVze97OIO8kCh', // $49/year (test)
   },
 };
 
 /**
  * Production Product IDs
  */
-export const PROD_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig> = {
+export const PROD_PRODUCT_IDS: Record<
+  Exclude<PlanType, 'FREE'>,
+  ProductIdConfig
+> = {
   VIBE: {
     monthly: 'pdt_tbJH22RAmI1RSPWl9ZtZd', // $9.90/month (prod)
-    yearly: 'pdt_4iLNFL4WpmxdCAXIXVEkm',  // $99.0/year (prod)
+    yearly: 'pdt_4iLNFL4WpmxdCAXIXVEkm', // $99.0/year (prod)
   },
   ECHO: {
     monthly: 'pdt_uOWl8h66nIVB570LbddrA', // $4.99/month (prod)
-    yearly: 'pdt_LA4GUsC2joUtFdLnZLZeP',  // $49.00/year (prod)
+    yearly: 'pdt_LA4GUsC2joUtFdLnZLZeP', // $49.00/year (prod)
   },
 };
 
@@ -44,7 +50,10 @@ export const PROD_PRODUCT_IDS: Record<Exclude<PlanType, 'FREE'>, ProductIdConfig
  * Get product IDs based on environment
  * Checks DODO_PAYMENTS_ENVIRONMENT to determine which set to use
  */
-export function getProductIds(): Record<Exclude<PlanType, 'FREE'>, ProductIdConfig> {
+export function getProductIds(): Record<
+  Exclude<PlanType, 'FREE'>,
+  ProductIdConfig
+> {
   const env = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT ?? 'test_mode';
   return env === 'live_mode' ? PROD_PRODUCT_IDS : TEST_PRODUCT_IDS;
 }
@@ -73,20 +82,32 @@ export function getPlanFromProductId(productId: string): {
   // Check test IDs
   for (const [plan, ids] of Object.entries(TEST_PRODUCT_IDS)) {
     if (ids.monthly === productId) {
-      return { planType: plan as Exclude<PlanType, 'FREE'>, billingPeriod: 'MONTHLY' };
+      return {
+        planType: plan as Exclude<PlanType, 'FREE'>,
+        billingPeriod: 'MONTHLY',
+      };
     }
     if (ids.yearly === productId) {
-      return { planType: plan as Exclude<PlanType, 'FREE'>, billingPeriod: 'YEARLY' };
+      return {
+        planType: plan as Exclude<PlanType, 'FREE'>,
+        billingPeriod: 'YEARLY',
+      };
     }
   }
 
   // Check prod IDs
   for (const [plan, ids] of Object.entries(PROD_PRODUCT_IDS)) {
     if (ids.monthly === productId) {
-      return { planType: plan as Exclude<PlanType, 'FREE'>, billingPeriod: 'MONTHLY' };
+      return {
+        planType: plan as Exclude<PlanType, 'FREE'>,
+        billingPeriod: 'MONTHLY',
+      };
     }
     if (ids.yearly === productId) {
-      return { planType: plan as Exclude<PlanType, 'FREE'>, billingPeriod: 'YEARLY' };
+      return {
+        planType: plan as Exclude<PlanType, 'FREE'>,
+        billingPeriod: 'YEARLY',
+      };
     }
   }
 
@@ -98,7 +119,13 @@ export function getPlanFromProductId(productId: string): {
  */
 export function getAllProductIds(): string[] {
   return [
-    ...Object.values(TEST_PRODUCT_IDS).flatMap(ids => [ids.monthly, ids.yearly]),
-    ...Object.values(PROD_PRODUCT_IDS).flatMap(ids => [ids.monthly, ids.yearly]),
+    ...Object.values(TEST_PRODUCT_IDS).flatMap((ids) => [
+      ids.monthly,
+      ids.yearly,
+    ]),
+    ...Object.values(PROD_PRODUCT_IDS).flatMap((ids) => [
+      ids.monthly,
+      ids.yearly,
+    ]),
   ];
 }

@@ -41,7 +41,7 @@ export function PricingCards({
   const {
     planType: currentPlan,
     billingPeriod: currentBillingPeriod,
-    isLoading
+    isLoading,
   } = useSubscription();
 
   const plans = getAllPlans();
@@ -51,8 +51,12 @@ export function PricingCards({
     const now = Date.now();
     const COOLDOWN_MS = 3000;
     if (now - lastAttemptTime < COOLDOWN_MS) {
-      const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastAttemptTime)) / 1000);
-      toast.error(`Please wait ${remainingSeconds} second${remainingSeconds > 1 ? 's' : ''} before trying again.`);
+      const remainingSeconds = Math.ceil(
+        (COOLDOWN_MS - (now - lastAttemptTime)) / 1000
+      );
+      toast.error(
+        `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? 's' : ''} before trying again.`
+      );
       return;
     }
 
@@ -99,7 +103,9 @@ export function PricingCards({
 
   const getMonthlyEquivalent = (planType: PlanType) => {
     const plan = PLANS[planType];
-    if (!isAnnual || plan.price.yearly === 0) return null;
+    if (!isAnnual || plan.price.yearly === 0) {
+      return null;
+    }
     // Calculate cents-accurate monthly price (yearly price is in dollars)
     const yearlyInCents = plan.price.yearly * 100;
     const monthlyInCents = Math.round(yearlyInCents / 12);
@@ -123,9 +129,9 @@ export function PricingCards({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Billing toggle */}
-      <div className="flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-2">
         <span
           className={`text-sm ${isAnnual ? 'text-muted-foreground' : 'font-medium'}`}
         >
@@ -143,7 +149,7 @@ export function PricingCards({
       </div>
 
       {/* Pricing cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
@@ -152,9 +158,15 @@ export function PricingCards({
 
           // Determine button text
           const getButtonText = () => {
-            if (isUpgrading) return 'Loading...';
-            if (isCurrent) return 'Current Plan';
-            if (plan.id === 'FREE') return 'Get Started';
+            if (isUpgrading) {
+              return 'Loading...';
+            }
+            if (isCurrent) {
+              return 'Current Plan';
+            }
+            if (plan.id === 'FREE') {
+              return 'Get Started';
+            }
 
             // Same plan type but different billing period
             if (plan.id === currentPlan && !isLoading && !isCurrent) {

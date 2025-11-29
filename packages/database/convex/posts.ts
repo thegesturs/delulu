@@ -159,14 +159,10 @@ export const createPost = mutation({
     // Schedule the post for publishing if scheduledAt is provided
     if (args.scheduledAt) {
       // Use scheduler to call the action immediately
-      await ctx.scheduler.runAfter(
-        0,
-        internal.callmelater.schedulePostAction,
-        {
-          postId: newPostId,
-          scheduledAt: args.scheduledAt,
-        }
-      );
+      await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+        postId: newPostId,
+        scheduledAt: args.scheduledAt,
+      });
     }
 
     return newPostId;
@@ -224,14 +220,10 @@ export const updatePost = mutation({
       }
 
       // Create new schedule
-      await ctx.scheduler.runAfter(
-        0,
-        internal.callmelater.schedulePostAction,
-        {
-          postId: args.id,
-          scheduledAt: args.scheduledAt,
-        }
-      );
+      await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+        postId: args.id,
+        scheduledAt: args.scheduledAt,
+      });
     }
 
     return true;
@@ -281,14 +273,10 @@ export const updatePostScheduledTime = mutation({
     }
 
     // Create new schedule at the new time
-    await ctx.scheduler.runAfter(
-      0,
-      internal.callmelater.schedulePostAction,
-      {
-        postId: args.id,
-        scheduledAt: args.scheduledAt,
-      }
-    );
+    await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+      postId: args.id,
+      scheduledAt: args.scheduledAt,
+    });
 
     return true;
   },
@@ -367,23 +355,15 @@ export const upsertPost = mutation({
 
     if (finalStatus === 'PROCESSING') {
       // PROCESSING: Publish immediately without CallMeLater to avoid unnecessary delay
-      await ctx.scheduler.runAfter(
-        0,
-        internal.posts.publishScheduledPost,
-        {
-          postId,
-        }
-      );
+      await ctx.scheduler.runAfter(0, internal.posts.publishScheduledPost, {
+        postId,
+      });
     } else if (finalStatus === 'SCHEDULED') {
       // SCHEDULED: Use CallMeLater for future publishing
-      await ctx.scheduler.runAfter(
-        0,
-        internal.callmelater.schedulePostAction,
-        {
-          postId,
-          scheduledAt: args.scheduledAt!,
-        }
-      );
+      await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+        postId,
+        scheduledAt: args.scheduledAt!,
+      });
     }
 
     return postId;

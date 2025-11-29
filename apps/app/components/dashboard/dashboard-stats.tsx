@@ -30,7 +30,10 @@ export function DashboardStatsClient({
   return (
     <>
       {/* Primary Stats */}
-      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+      <div
+        className="grid gap-2 md:grid-cols-2 lg:grid-cols-4"
+        data-tour="dashboard-stats"
+      >
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Total Posts</CardTitle>

@@ -101,7 +101,7 @@ export function UsageStats() {
   // Calculate usage for each limit type
   const socialAccountsCount = socialProviders?.length || 0;
   const monthlyPostsCount = user?.usage?.generatedPosts || 0; // You might want a more accurate count
-  const draftsCount = user?.usage?.drafts || 0;
+  const _draftsCount = user?.usage?.drafts || 0;
 
   // Get limit checks
   const socialAccountsLimit = useUsageLimit(

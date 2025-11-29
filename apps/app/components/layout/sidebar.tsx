@@ -20,8 +20,8 @@ import {
   Network,
   Pencil,
 } from '@delulu/design-system/icons';
-import { CreditCard } from 'lucide-react';
 import { cn } from '@delulu/design-system/lib/utils';
+import { CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -56,26 +56,31 @@ const navigationItems = [
     title: 'Dashboard',
     url: '/',
     icon: Home,
+    dataTour: undefined, // Stats will be marked separately
   },
   {
     title: 'Posts',
     url: '/posts',
     icon: Draft,
+    dataTour: 'posts-nav',
   },
   {
     title: 'Calendar',
     url: '/calendar',
     icon: Calendar,
+    dataTour: 'calendar-nav',
   },
   {
     title: 'Connected Accounts',
     url: '/socials',
     icon: Network,
+    dataTour: 'accounts-nav',
   },
   {
     title: 'Billing',
     url: '/billing',
     icon: CreditCard,
+    dataTour: undefined,
   },
 ];
 
@@ -121,6 +126,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           <Button
             asChild
             className="flex w-full items-center group-data-[state=collapsed]:hidden"
+            data-tour="create-post"
           >
             <Link href="/post">
               <span className="mr-2 flex h-4 w-4 items-center justify-center [&>svg]:h-4 [&>svg]:w-4">
@@ -133,6 +139,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             asChild
             size="icon"
             className="w-full group-data-[state=expanded]:hidden"
+            data-tour="create-post"
           >
             <Link href="/post">
               <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
@@ -161,6 +168,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                     align: 'center',
                     sideOffset: 10,
                   }}
+                  data-tour={item.dataTour}
                 >
                   <Link
                     href={item.url}

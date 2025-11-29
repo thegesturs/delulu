@@ -25,7 +25,7 @@ export const PostHogProvider = (
       if (proxyHost) {
         try {
           await fetch(apiHost, { method: 'HEAD', mode: 'no-cors' });
-        } catch (error) {
+        } catch (_error) {
           // Direct host blocked, use Cloudflare proxy
           apiHost = proxyHost;
         }
@@ -51,3 +51,4 @@ export const PostHogProvider = (
 };
 
 export { usePostHog as useAnalytics } from 'posthog-js/react';
+export { posthog };

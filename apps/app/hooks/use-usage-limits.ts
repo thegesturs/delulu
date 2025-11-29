@@ -4,11 +4,15 @@
  * Checks usage limits for the current user's plan
  */
 
-import { useQuery } from 'convex-helpers/react/cache';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { PlanType } from '@delulu/payments';
+import { useQuery } from 'convex-helpers/react/cache';
 
-export type LimitType = 'socialAccounts' | 'monthlyPosts' | 'mediaStorage' | 'teamMembers';
+export type LimitType =
+  | 'socialAccounts'
+  | 'monthlyPosts'
+  | 'mediaStorage'
+  | 'teamMembers';
 
 export interface UseUsageLimitReturn {
   allowed: boolean;
@@ -20,7 +24,10 @@ export interface UseUsageLimitReturn {
   percentageUsed: number; // 0-100, or -1 for unlimited
 }
 
-export function useUsageLimit(limitType: LimitType, currentValue: number): UseUsageLimitReturn {
+export function useUsageLimit(
+  limitType: LimitType,
+  currentValue: number
+): UseUsageLimitReturn {
   const limitCheck = useQuery(api.subscriptions.checkUsageLimit, {
     limitType,
     currentValue,
@@ -54,10 +61,14 @@ export function useUsageLimit(limitType: LimitType, currentValue: number): UseUs
 export function useMultipleUsageLimits(
   limits: Array<{ type: LimitType; currentValue: number }>
 ) {
-  const results = limits.map(({ type, currentValue }) => useUsageLimit(type, currentValue));
+  const results = limits.map(({ type, currentValue }) =>
+    useUsageLimit(type, currentValue)
+  );
 
   return {
-    limits: Object.fromEntries(limits.map(({ type }, index) => [type, results[index]])),
+    limits: Object.fromEntries(
+      limits.map(({ type }, index) => [type, results[index]])
+    ),
     allAllowed: results.every((r) => r.allowed),
     someBlocked: results.some((r) => !r.allowed),
     isLoading: results.some((r) => r.isLoading),

@@ -65,5 +65,5 @@ export default defineSchema({
     .index('by_dodo_payment_id', ['dodoPaymentId'])
     .index('by_dodo_customer_id', ['dodoCustomerId'])
     .index('by_status', ['status'])
-    .index('by_user_status', ['userId', 'status'])
+    .index('by_user_status', ['userId', 'status']),
 });
