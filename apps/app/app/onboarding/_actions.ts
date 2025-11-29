@@ -20,10 +20,23 @@ export const updateOnboardingStep = async (data: {
     const user = await client.users.getUser(userId);
     const currentMetadata = user.publicMetadata as Record<string, unknown>;
 
+    // Clean up any corrupted array-as-object keys (e.g., "0", "1", "2")
+    const cleanMetadata = Object.entries(currentMetadata).reduce(
+      (acc, [key, value]) => {
+        // Skip numeric string keys that indicate corrupted arrays
+        if (!Number.isNaN(Number(key))) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+
     // Merge step progress with existing metadata
     await client.users.updateUser(userId, {
       publicMetadata: {
-        ...currentMetadata,
+        ...cleanMetadata,
         currentStep: data.currentStep,
         stepsCompleted: data.stepsCompleted,
         skippedSteps: data.skippedSteps || [],
@@ -51,10 +64,22 @@ export const completeOnboarding = async () => {
     const user = await client.users.getUser(userId);
     const currentMetadata = user.publicMetadata as Record<string, unknown>;
 
+    // Clean up any corrupted array-as-object keys
+    const cleanMetadata = Object.entries(currentMetadata).reduce(
+      (acc, [key, value]) => {
+        if (!Number.isNaN(Number(key))) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+
     // Mark onboarding as complete while preserving other metadata
     const result = await client.users.updateUser(userId, {
       publicMetadata: {
-        ...currentMetadata,
+        ...cleanMetadata,
         onboardingComplete: true,
         completedAt: Date.now(),
       },
@@ -81,10 +106,22 @@ export const completeTour = async (dismissed = false) => {
     const user = await client.users.getUser(userId);
     const currentMetadata = user.publicMetadata as Record<string, unknown>;
 
+    // Clean up any corrupted array-as-object keys
+    const cleanMetadata = Object.entries(currentMetadata).reduce(
+      (acc, [key, value]) => {
+        if (!Number.isNaN(Number(key))) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+
     // Merge tour completion status with existing metadata
     await client.users.updateUser(userId, {
       publicMetadata: {
-        ...currentMetadata,
+        ...cleanMetadata,
         tourCompleted: !dismissed,
         tourDismissed: dismissed,
       },

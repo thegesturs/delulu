@@ -28,6 +28,9 @@ export function OnboardingStepper() {
 
   const handleContinue = async () => {
     if (isLastStep) {
+      // Track final step completion before completing onboarding
+      await handleNextStep();
+
       // Complete onboarding and redirect
       const result = await handleCompleteOnboarding();
       if (result.success) {
