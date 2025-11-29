@@ -27,7 +27,7 @@ import type { JSX } from 'react';
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
   'LINKEDIN',
-  'TIKTOK',
+  // 'TIKTOK',
   'INSTAGRAM',
   'THREADS',
   'FACEBOOK',
