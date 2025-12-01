@@ -785,8 +785,8 @@ importers:
         specifier: ^2.22.3
         version: 2.24.3
       '@liveblocks/node':
-        specifier: ^2.22.3
-        version: 2.24.3
+        specifier: ^3.11.0
+        version: 3.11.0(@types/json-schema@7.0.15)
       '@liveblocks/react':
         specifier: ^2.22.3
         version: 2.24.3(react@19.1.0)
@@ -4134,8 +4134,13 @@ packages:
   '@liveblocks/core@2.24.3':
     resolution: {integrity: sha512-a0OL6VJ9jBexIcv7dAB+d0IPENZ8knFBxD/OzHUakQFVHNztriXVEQtZ84SYIxMGf0LayZO9UgA0gR9Qx0inIQ==}
 
-  '@liveblocks/node@2.24.3':
-    resolution: {integrity: sha512-BLQop7nFTDDOOzWA4ywOgGVNILXUCm1XP4jmhli7mKcOovj7OaZHnCDwS7EETLNJEsYlORfDmbUgEm++ftSz0Q==}
+  '@liveblocks/core@3.11.0':
+    resolution: {integrity: sha512-XWULxi0zdBOXH8UOdQHMA50ayhHLgvDOhLcCrP0VzA5Gn6Oa5tDXms5ekDZ9SBv4y+fxs9ckYaXRDlOYggnwTg==}
+    peerDependencies:
+      '@types/json-schema': ^7
+
+  '@liveblocks/node@3.11.0':
+    resolution: {integrity: sha512-3IyH3KEIJNqzEOE/8M0Ig7MGCeLQOQ+akICjf65mstFpgc1MS5JIhtRnCQ8l9M1/2hNbUY6UClO8NjioSjHAHA==}
 
   '@liveblocks/react@2.24.3':
     resolution: {integrity: sha512-XFjoQpt/NSSqe4y4PZHQHab7ff9OwZ6trcmXxMFIGxpX8dEcYVFSwdR4Q+uIBE9ymktiJMgVrw8gg7StTo8iCw==}
@@ -17131,13 +17136,18 @@ snapshots:
 
   '@liveblocks/core@2.24.3': {}
 
-  '@liveblocks/node@2.24.3':
+  '@liveblocks/core@3.11.0(@types/json-schema@7.0.15)':
     dependencies:
-      '@liveblocks/core': 2.24.3
+      '@types/json-schema': 7.0.15
+
+  '@liveblocks/node@3.11.0(@types/json-schema@7.0.15)':
+    dependencies:
+      '@liveblocks/core': 3.11.0(@types/json-schema@7.0.15)
       '@stablelib/base64': 1.0.1
       fast-sha256: 1.3.0
       node-fetch: 2.7.0
     transitivePeerDependencies:
+      - '@types/json-schema'
       - encoding
 
   '@liveblocks/react@2.24.3(react@19.1.0)':
