@@ -59,7 +59,7 @@
     "remark-mdx": "^3.1.0",
     "require-in-the-middle": "^7.5.2",
     "safe-mdx": "^0.0.6",
-    "sharp": "^0.34.1",
+    "sharp": "^0.34.5",
     "shiki": "^3.2.2",
     "simplex-noise": "^4.0.3",
     "three": "^0.177.0",
