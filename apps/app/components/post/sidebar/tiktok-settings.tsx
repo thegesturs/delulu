@@ -28,6 +28,7 @@ import { Info } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { TikTokConsentBanner } from './tiktok-consent-banner';
 
 interface TikTokSettingsProps {
   hasVideo: boolean;
@@ -294,47 +295,6 @@ export function TikTokSettingsDisplay({
     }
   };
 
-  const renderConsentText = () => {
-    const brandedContentIncluded =
-      tiktokSettings?.promotionContent === promotionContentTypes.PAID ||
-      tiktokSettings?.promotionContent === promotionContentTypes.BOTH;
-
-    // Don't show consent text if no commercial content is selected
-    if (
-      !tiktokSettings?.promotionContent ||
-      tiktokSettings.promotionContent === promotionContentTypes.NONE
-    ) {
-      return null;
-    }
-
-    return (
-      <p className="text-muted-foreground text-xs">
-        By posting, you agree to TikTok's{' '}
-        {brandedContentIncluded && (
-          <>
-            <a
-              href="https://www.tiktok.com/legal/page/global/bc-policy/en"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground"
-            >
-              Branded Content Policy
-            </a>
-            {' and '}
-          </>
-        )}
-        <a
-          href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-foreground"
-        >
-          Music Usage Confirmation
-        </a>
-        .
-      </p>
-    );
-  };
 
   // Show loading state while fetching creator info
   if (creatorInfo.isLoading && !creatorInfo.data) {
@@ -589,11 +549,17 @@ export function TikTokSettingsDisplay({
                 <p className="text-muted-foreground text-xs">
                   You are promoting another brand or a third party
                 </p>
+                {tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY && (
+                  <p className="text-muted-foreground text-xs mt-1">
+                    (Not available for private posts)
+                  </p>
+                )}
               </div>
               <Switch
                 id="branded-content"
                 checked={commercialContentState.brandedContent}
                 onCheckedChange={handleBrandedContentChange}
+                disabled={tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY}
               />
             </div>
 
@@ -615,9 +581,10 @@ export function TikTokSettingsDisplay({
       {/* Consent Declaration - only show when commercial content is selected */}
       {tiktokSettings?.promotionContent &&
         tiktokSettings.promotionContent !== promotionContentTypes.NONE && (
-          <div className="rounded-md bg-muted/50 p-3">
-            {renderConsentText()}
-          </div>
+          <TikTokConsentBanner
+            promotionContent={tiktokSettings.promotionContent}
+            variant="card"
+          />
         )}
     </div>
   );

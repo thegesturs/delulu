@@ -22,12 +22,11 @@ import {
 import { useQuery } from 'convex-helpers/react/cache';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import type { JSX } from 'react';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
   'LINKEDIN',
-  // 'TIKTOK',
+  'TIKTOK',
   'INSTAGRAM',
   'THREADS',
   'FACEBOOK',
@@ -117,7 +116,7 @@ function ConnectPlatformButton({
   );
 }
 
-export function ConnectedAccountsHeader(): JSX.Element {
+export function ConnectedAccountsHeader() {
   // Get current account count
   const socialProviders = useQuery(
     ConvexApi.social_providers.getConnectedAccounts

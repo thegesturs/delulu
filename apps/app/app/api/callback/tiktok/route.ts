@@ -39,6 +39,8 @@ const fetchWithTimeout = async (
 };
 
 export async function GET(request: NextRequest) {
+
+  console.log('tiktok callback');
   try {
     const { userId, getToken } = await auth();
     if (!userId) {

@@ -19,6 +19,7 @@ import {
 import { Button } from '@delulu/design-system/components/ui/button';
 import { CardContent } from '@delulu/design-system/components/ui/card';
 import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
+import { promotionContentTypes } from '@delulu/validators/post';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
 import { AlertCircle, Loader } from 'lucide-react';
@@ -28,6 +29,7 @@ import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { toast } from 'sonner';
 import SocialSelector from './social-selector';
+import { TikTokConsentBanner } from './tiktok-consent-banner';
 
 export function BasicSettings() {
   const { date } = useDateTime();
@@ -38,6 +40,12 @@ export function BasicSettings() {
   const providerSettingsForConvex = getProviderSettingsForConvex();
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
+  const { getProviderSettings } = useStore();
+
+  // Get all TikTok providers from selected social providers
+  const tiktokProviders = socialProviders.filter(
+    (sp) => sp.platform === 'TIKTOK'
+  );
 
   // Single unified mutation for all operations
   const upsertPostMutation = useMutation(api.posts.upsertPost);
@@ -232,6 +240,38 @@ export function BasicSettings() {
           )}
         </Button>
       </CardContent>
+
+      {/* TikTok Compliance Consent - show when TikTok is selected */}
+      {tiktokProviders.length > 0 && (
+        <CardContent className="pt-2">
+          <div className="space-y-2">
+            {tiktokProviders.map((provider) => {
+              const providerSetting = getProviderSettings(provider.socialId);
+              const tiktokSettings =
+                providerSetting?.type === 'TIKTOK'
+                  ? providerSetting.settings
+                  : null;
+
+              return (
+                <div key={provider.socialId}>
+                  {tiktokProviders.length > 1 && (
+                    <p className="text-muted-foreground text-xs mb-1">
+                      @{provider.name}
+                    </p>
+                  )}
+                  <TikTokConsentBanner
+                    promotionContent={
+                      tiktokSettings?.promotionContent ||
+                      promotionContentTypes.NONE
+                    }
+                    variant="inline"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      )}
 
       <CardContent className="pt-4">
         <SocialSelector />

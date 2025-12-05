@@ -23,14 +23,16 @@ const authRoutes = createRouteMatcher([
 const onboardingRoute = createRouteMatcher(['/onboarding(.*)']);
 
 // Create security headers middleware
-const securityHeaders = noseconeMiddleware(noseconeOptions);
+// const securityHeaders = noseconeMiddleware(noseconeOptions);
 
 export default clerkMiddleware(async (auth, req) => {
   // Get the security headers
-  await securityHeaders();
+  // await securityHeaders();
 
   // Get auth state
   const { userId, redirectToSignIn, sessionClaims } = await auth();
+
+  console.log('userId', userId);
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {
@@ -49,6 +51,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
+    console.log('redirecting to home');
     const homeUrl = new URL('/', req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
   }
