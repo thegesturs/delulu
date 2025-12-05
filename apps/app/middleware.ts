@@ -23,11 +23,11 @@ const authRoutes = createRouteMatcher([
 const onboardingRoute = createRouteMatcher(['/onboarding(.*)']);
 
 // Create security headers middleware
-// const securityHeaders = noseconeMiddleware(noseconeOptions);
+const securityHeaders = noseconeMiddleware(noseconeOptions);
 
 export default clerkMiddleware(async (auth, req) => {
   // Get the security headers
-  // await securityHeaders();
+  await securityHeaders();
 
   // Get auth state
   const { userId, redirectToSignIn, sessionClaims } = await auth();
@@ -51,7 +51,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
-    console.log('redirecting to home');
+    
     const homeUrl = new URL('/', req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
   }
@@ -65,6 +65,8 @@ export default clerkMiddleware(async (auth, req) => {
     const onboardingUrl = new URL('/onboarding', req.url);
     return NextResponse.redirect(onboardingUrl);
   }
+
+  console.log('continuing with security headers');
 
   // For all other routes, continue with security headers
   return NextResponse.next();
