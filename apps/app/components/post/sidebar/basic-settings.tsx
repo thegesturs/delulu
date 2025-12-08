@@ -44,7 +44,7 @@ export function BasicSettings() {
 
   // Get all TikTok providers from selected social providers
   const tiktokProviders = socialProviders.filter(
-    (sp) => sp.platform === 'TIKTOK'
+    (sp) => sp.socialType === 'TIKTOK'
   );
 
   // Single unified mutation for all operations
@@ -255,7 +255,7 @@ export function BasicSettings() {
               return (
                 <div key={provider.socialId}>
                   {tiktokProviders.length > 1 && (
-                    <p className="text-muted-foreground text-xs mb-1">
+                    <p className="mb-1 text-muted-foreground text-xs">
                       @{provider.name}
                     </p>
                   )}
