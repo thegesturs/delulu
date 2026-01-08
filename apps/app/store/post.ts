@@ -32,7 +32,9 @@ interface PostActions {
   setShouldReset: (shouldReset: boolean) => void;
   setDateAlongWithTime: (date: Date | undefined) => void;
   setTime: (time: string | null) => void;
-  setPost: (post: FullPostType) => void;
+  setPost: (
+    post: FullPostType | ((currentPost: FullPostType) => FullPostType)
+  ) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
   setTikTokSettings: (settings: Partial<TikTokSettings>) => void; // @deprecated
   setProviderSettings: (providerId: string, setting: ProviderSetting) => void;
@@ -80,7 +82,10 @@ export const useStore = create<PostState & PostActions>()(
         setShouldReset: (shouldReset) => set({ shouldReset }),
         setDateAlongWithTime: (date) => set({ date }),
         setTime: (time) => set({ time }),
-        setPost: (post) => set({ post }),
+        setPost: (post) =>
+          set((state) => ({
+            post: typeof post === 'function' ? post(state.post) : post,
+          })),
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
         setTikTokSettings: (settings) =>

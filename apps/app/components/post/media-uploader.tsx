@@ -382,7 +382,9 @@ export function MediaUploader({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isUserAction = useRef(false);
-  const isGlobal = socialType === SocialTypes.DEFAULT;
+  // Check if we're on the global/default tab by socialId, not socialType
+  // socialType can be TIKTOK when on default tab if TikTok is the only platform
+  const isGlobal = socialId === 'global';
 
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() => {
     const content = isGlobal
@@ -430,17 +432,18 @@ export function MediaUploader({
         })
       );
 
+      // Use functional update to always work with fresh state
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: post.content.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
             item.order === orderId ? { ...item, media: storeMedia } : item
           ),
-        });
+        }));
       } else {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) =>
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
@@ -452,11 +455,11 @@ export function MediaUploader({
                 }
               : item
           ),
-        });
+        }));
       }
       isUserAction.current = false;
     }
-  }, [mediaFiles, post, setPost, socialId, isGlobal, orderId]);
+  }, [mediaFiles, setPost, socialId, isGlobal, orderId]);
 
   const platformConfig = getPlatformConfig(socialType, mediaFiles);
   const {

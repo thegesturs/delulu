@@ -193,6 +193,11 @@ export function getSingleProviderInDefault(
   selectedProviders: SocialProviderType[],
   alternativeContent: FullPostType['alternativeContent']
 ): SocialProviderType | null {
+  // Guard against undefined during hydration
+  if (!alternativeContent) {
+    return selectedProviders.length === 1 ? selectedProviders[0] : null;
+  }
+
   const alternativeProviderIds = new Set(
     alternativeContent.map((alt) => alt.socialProvider.socialId)
   );
