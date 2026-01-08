@@ -17,6 +17,7 @@ export const config: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['http://localhost:3000', 'https://app.host.local', 'https://solulu.delulu.social'],
 
   // biome-ignore lint/suspicious/useAwait: rewrites is async
   async rewrites() {

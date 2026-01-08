@@ -1,6 +1,7 @@
 import { env } from '@/env';
-import { auth } from '@delulu/auth/server';
+import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
 import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -45,40 +46,40 @@ async function fetchWithTimeout(
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return NextResponse.redirect(
-        new URL(
-          '/socials?error=auth_required&code=AUTH_001&provider=TWITTER',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
+	try {
+		// Verify OAuth state and recover session
+		const sessionResult = await verifyOAuthStateAndRecoverSession(
+			request,
+			'TWITTER',
+		);
 
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=twitter',
-        },
-      });
-    }
+		if (!sessionResult.success) {
+			const { error, code: errorCode } = sessionResult.error;
+			return NextResponse.redirect(
+				new URL(
+					`/socials?error=${error}&code=${errorCode}&provider=TWITTER`,
+					env.NEXT_PUBLIC_APP_URL,
+				),
+			);
+		}
 
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
+		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
 
-    if (!state || !code) {
-      return NextResponse.redirect(
-        new URL(
-          '/socials?error=invalid_request&code=PARAM_001&provider=TWITTER',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
+		if (sessionRecovered) {
+			console.log('[TWITTER] Session was recovered from state parameter');
+		}
+
+		const { searchParams } = new URL(request.url);
+		const code = searchParams.get('code');
+
+		if (!code) {
+			return NextResponse.redirect(
+				new URL(
+					'/socials?error=missing_params&code=PARAM_001&provider=TWITTER',
+					env.NEXT_PUBLIC_APP_URL,
+				),
+			);
+		}
 
     const bearerToken = Buffer.from(
       `${env.TWITTER_CLIENT_ID}:${env.TWITTER_CLIENT_SECRET}`
@@ -133,22 +134,41 @@ export async function GET(request: NextRequest) {
       throw new Error('twitter_user_fetch_failed');
     }
 
-    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await fetchMutation(
-      api.social_providers.upsertSocialProvider,
-      {
-        socialType: 'TWITTER',
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        expiresIn: Date.now() + expires_in * 1000,
-        profileId: userObject.id,
-        username: userObject.username,
-        fullName: userObject.name ?? '',
-        profileImage: userObject.profile_image_url ?? '',
-        isActive: true,
-      },
-      { token }
-    );
+    // Conditional mutation based on token availability
+    let status;
+    if (useInternalMutation) {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProviderFromOAuth,
+        {
+          userId: userId as Id<'users'>,
+          socialType: 'TWITTER',
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: Date.now() + expires_in * 1000,
+          profileId: userObject.id,
+          username: userObject.username,
+          fullName: userObject.name ?? '',
+          profileImage: userObject.profile_image_url ?? '',
+          isActive: true,
+        }
+      );
+    } else {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProvider,
+        {
+          socialType: 'TWITTER',
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresIn: Date.now() + expires_in * 1000,
+          profileId: userObject.id,
+          username: userObject.username,
+          fullName: userObject.name ?? '',
+          profileImage: userObject.profile_image_url ?? '',
+          isActive: true,
+        },
+        { token: token! }
+      );
+    }
 
     // Handle different response statuses
     if (status === 'account_transferred') {

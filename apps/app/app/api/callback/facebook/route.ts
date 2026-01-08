@@ -1,6 +1,6 @@
 import { fetchWithTimeout } from '@/lib/utils';
+import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
 import { encryptData } from '@delulu/database/convex/utils';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { NextRequest } from 'next/server';
@@ -83,21 +83,32 @@ async function getAllPages(
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=facebook',
-        },
-      });
-    }
+	try {
+		// Verify OAuth state and recover session
+		const sessionResult = await verifyOAuthStateAndRecoverSession(
+			request,
+			'FACEBOOK',
+		);
 
-    const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
+		if (!sessionResult.success) {
+			const { error, code: errorCode } = sessionResult.error;
+			return NextResponse.redirect(
+				new URL(
+					`/socials?error=${error}&code=${errorCode}&provider=FACEBOOK`,
+					request.nextUrl.origin,
+				),
+			);
+		}
+
+		const { userId, useInternalMutation, sessionRecovered } = sessionResult.data;
+
+		if (sessionRecovered) {
+			console.log('[FACEBOOK] Session was recovered from state parameter');
+		}
+
+		const searchParams = request.nextUrl.searchParams;
+		const code = searchParams.get('code');
+		const error = searchParams.get('error');
     const errorReason = searchParams.get('error_reason');
 
     // Handle user denying access
