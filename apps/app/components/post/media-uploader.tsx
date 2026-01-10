@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 import { useMediaStorage } from '@/hooks/use-media-storage';
 import { getMediaUrlFromObject } from '@/lib/media-url';
 import {
-  getMediaRequirementMessage,
+  canAddMediaType,
+  canUploadMore as canUploadMoreUtil,
+  getDynamicMediaLimits,
   validateTikTokVideo,
 } from '@/lib/platform-rules';
 import { useStore } from '@/store/post';
@@ -48,16 +50,6 @@ interface MediaUploaderProps {
   socialType: SocialType;
   socialId: string;
   orderId?: number;
-}
-
-interface PlatformConfig {
-  maxImages: number;
-  maxVideos: number;
-  acceptedFileTypes: string;
-  uploadInstruction: string;
-  countInstruction: string;
-  aspectRatioInstruction: string;
-  platformHint: string;
 }
 
 interface MediaPreviewProps {
@@ -142,100 +134,14 @@ export function MediaPreview({
   );
 }
 
-function getPlatformConfig(
-  socialType: SocialType,
-  mediaFiles: MediaFile[]
-): PlatformConfig {
-  const currentImageCount = mediaFiles.filter(
-    (f) => f.mediaType === 'IMAGE'
-  ).length;
-  const currentVideoCount = mediaFiles.filter(
-    (f) => f.mediaType === 'VIDEO'
-  ).length;
-
-  let maxImages = socialType === 'INSTAGRAM' ? 10 : 4;
-  let maxVideos = 1;
-  let acceptedFileTypes = 'image/*,video/*';
-  let uploadInstruction = 'Drag and drop your media here, or';
-  let countInstruction = '';
-  let aspectRatioInstruction = '';
-
-  // Get platform requirement message from validation utility
-  const platformHint = getMediaRequirementMessage(socialType);
-
-  if (socialType === 'TIKTOK') {
-    maxImages = 1;
-    maxVideos = 1;
-    acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
-    uploadInstruction =
-      'Upload 1 vertical video (9:16) and 1 optional thumbnail';
-    aspectRatioInstruction = 'Video: 9:16 vertical, Thumbnail: Square';
-    if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
-      acceptedFileTypes = 'image/jpeg,image/png';
-    } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
-      acceptedFileTypes = 'video/mp4,video/quicktime';
-    }
-    countInstruction = `${currentImageCount}/${maxImages} thumbnail, ${currentVideoCount}/${maxVideos} video.`;
-  } else if (socialType === 'YOUTUBE') {
-    maxImages = 1;
-    maxVideos = 1;
-    acceptedFileTypes = 'video/mp4,video/quicktime,image/jpeg,image/png';
-    uploadInstruction = 'Upload 1 vertical video (9:16) for YouTube Shorts';
-    aspectRatioInstruction = 'Video: 9:16 vertical, max 60 seconds';
-    if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
-      acceptedFileTypes = 'image/jpeg,image/png';
-    } else if (mediaFiles.some((f) => f.mediaType === 'IMAGE')) {
-      acceptedFileTypes = 'video/mp4,video/quicktime';
-    }
-    countInstruction = `${currentImageCount}/${maxImages} thumbnail, ${currentVideoCount}/${maxVideos} video.`;
-  } else if (socialType === 'INSTAGRAM') {
-    if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
-      maxImages = 0;
-      acceptedFileTypes = 'video/*';
-      countInstruction =
-        '1/1 Reel video (9:16 vertical). No images with video.';
-      aspectRatioInstruction = 'Video: 9:16 vertical, max 90 seconds';
-    } else if (
-      mediaFiles.length > 0 &&
-      mediaFiles.every((f) => f.mediaType === 'IMAGE')
-    ) {
-      maxVideos = 0;
-      acceptedFileTypes = 'image/*';
-      countInstruction = `${currentImageCount}/${maxImages} images. Max 1 Reel (no images).`;
-    } else if (mediaFiles.length === 0) {
-      acceptedFileTypes = 'image/*,video/*';
-      countInstruction = `Up to ${maxImages} images OR 1 Reel (9:16 vertical).`;
-    }
-  } else {
-    if (mediaFiles.some((f) => f.mediaType === 'VIDEO')) {
-      maxImages = 0;
-    } else if (mediaFiles.length >= maxImages && maxImages > 0) {
-      maxVideos = 0;
-    }
-    countInstruction = `${currentImageCount}/${maxImages} images OR ${currentVideoCount}/${maxVideos} video.`;
-  }
-
-  return {
-    maxImages,
-    maxVideos,
-    acceptedFileTypes,
-    uploadInstruction,
-    countInstruction,
-    aspectRatioInstruction,
-    platformHint,
-  };
-}
-
 interface UploadZoneProps {
   isDragOver: boolean;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave: () => void;
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  acceptedFileTypes: string;
-  uploadInstruction: string;
-  countInstruction: string;
-  aspectRatioInstruction: string;
+  acceptedMimeTypes: string[];
+  instruction: string;
   platformHint: string;
   multiple: boolean;
   onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -248,10 +154,8 @@ function UploadZone({
   onDragLeave,
   onDrop,
   fileInputRef,
-  acceptedFileTypes,
-  uploadInstruction,
-  countInstruction,
-  aspectRatioInstruction,
+  acceptedMimeTypes,
+  instruction,
   platformHint,
   multiple,
   onFileInput,
@@ -261,6 +165,9 @@ function UploadZone({
   const requiresVideo =
     socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE;
   const requiresEither = socialType === SocialTypes.INSTAGRAM;
+
+  // Convert acceptedMimeTypes array to accept attribute string
+  const acceptString = acceptedMimeTypes.join(',');
 
   return (
     <motion.div
@@ -281,7 +188,7 @@ function UploadZone({
         ref={fileInputRef}
         type="file"
         multiple={multiple}
-        accept={acceptedFileTypes}
+        accept={acceptString}
         onChange={onFileInput}
         className="hidden"
       />
@@ -293,7 +200,7 @@ function UploadZone({
           <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
         </motion.div>
         <p className="mb-1 text-muted-foreground text-sm">
-          {uploadInstruction}{' '}
+          Drag and drop your media here, or{' '}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -302,12 +209,7 @@ function UploadZone({
             browse
           </button>
         </p>
-        <p className="text-muted-foreground text-xs">{countInstruction}</p>
-        {aspectRatioInstruction && (
-          <p className="mt-1 text-muted-foreground text-xs">
-            {aspectRatioInstruction}
-          </p>
-        )}
+        <p className="text-muted-foreground text-xs">{instruction}</p>
         {(requiresVideo || requiresEither) && (
           <div className="mt-3 rounded-md bg-muted px-3 py-2">
             <p className="text-foreground text-xs">
@@ -461,122 +363,68 @@ export function MediaUploader({
     }
   }, [mediaFiles, setPost, socialId, isGlobal, orderId]);
 
-  const platformConfig = getPlatformConfig(socialType, mediaFiles);
-  const {
-    maxImages,
-    maxVideos,
-    acceptedFileTypes,
-    uploadInstruction,
-    countInstruction,
-    aspectRatioInstruction,
-    platformHint,
-  } = platformConfig;
+  // Get dynamic media limits based on current state
+  const limits = getDynamicMediaLimits(socialType, mediaFiles);
+  const { acceptedMimeTypes, instruction, platformHint } = limits;
 
   const handleFileProcessing = useCallback(
     async (incomingFiles: File[]) => {
-      let filesToProcess = [...incomingFiles];
-      const currentImages = mediaFiles.filter(
-        (f) => f.mediaType === 'IMAGE'
-      ).length;
-      const currentVideos = mediaFiles.filter(
-        (f) => f.mediaType === 'VIDEO'
-      ).length;
       let newMediaFiles: MediaFile[] = [];
+      const validatedFiles: File[] = [];
 
-      if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
-        const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
-        const hasImage = mediaFiles.some((f) => f.mediaType === 'IMAGE');
+      // Validate each file using centralized validation
+      for (const file of incomingFiles) {
+        const mediaType = file.type.startsWith('image/') ? 'IMAGE' : 'VIDEO';
+        const validation = canAddMediaType(socialType, mediaType, [
+          ...mediaFiles,
+          ...validatedFiles.map((f) => ({
+            mediaType: f.type.startsWith('image/')
+              ? ('IMAGE' as const)
+              : ('VIDEO' as const),
+          })),
+        ]);
 
-        // Filter and validate files for TikTok/YouTube
-        const validatedFiles = [];
+        if (!validation.canAdd) {
+          if (incomingFiles.length === 1) {
+            // Only show error for single file uploads
+            toast.error(validation.reason);
+          }
+          continue;
+        }
 
-        for (const file of filesToProcess) {
-          const isVideo = file.type.startsWith('video/');
-          const isImage = file.type.startsWith('image/');
-
-          if (isVideo && !hasVideo && currentVideos < maxVideos) {
-            if (socialType === 'TIKTOK') {
-              // Validate TikTok video requirements
-              try {
-                const validation = await validateTikTokVideo(file);
-                if (!validation.isValid) {
-                  toast.error(
-                    `Video validation failed: ${validation.errors.join(', ')}`
-                  );
-                  continue;
-                }
-                // Show success message with video details
-                if (validation.metadata) {
-                  const { duration, width, height } = validation.metadata;
-                  toast.success(
-                    `Video validated: ${Math.floor(duration)}s, ${width}x${height}`
-                  );
-                }
-              } catch (error) {
-                toast.error(
-                  `Video validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
-                );
-                continue;
-              }
+        // TikTok video validation
+        if (
+          mediaType === 'VIDEO' &&
+          socialType === 'TIKTOK' &&
+          !mediaFiles.some((f) => f.mediaType === 'VIDEO')
+        ) {
+          try {
+            const videoValidation = await validateTikTokVideo(file);
+            if (!videoValidation.isValid) {
+              toast.error(
+                `Video validation failed: ${videoValidation.errors.join(', ')}`
+              );
+              continue;
             }
-            validatedFiles.push(file);
-          } else if (isImage && !hasImage && currentImages < maxImages) {
-            validatedFiles.push(file);
+            if (videoValidation.metadata) {
+              const { duration, width, height } = videoValidation.metadata;
+              toast.success(
+                `Video validated: ${Math.floor(duration)}s, ${width}x${height}`
+              );
+            }
+          } catch (error) {
+            toast.error(
+              `Video validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+            continue;
           }
         }
 
-        filesToProcess = validatedFiles.slice(
-          0,
-          maxImages + maxVideos - (currentImages + currentVideos)
-        );
-      } else if (socialType === 'INSTAGRAM') {
-        const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
-        if (hasVideo) {
-          filesToProcess = [];
-        } else {
-          const firstFileIsVideo = filesToProcess[0]?.type.startsWith('video/');
-          if (
-            firstFileIsVideo &&
-            currentVideos < maxVideos &&
-            currentImages === 0
-          ) {
-            filesToProcess = filesToProcess
-              .slice(0, 1)
-              .filter((f) => f.type.startsWith('video/'));
-          } else if (!firstFileIsVideo && currentVideos === 0) {
-            filesToProcess = filesToProcess
-              .filter((f) => f.type.startsWith('image/'))
-              .slice(0, maxImages - currentImages);
-          } else {
-            filesToProcess = [];
-          }
-        }
-      } else {
-        const hasVideo = mediaFiles.some((f) => f.mediaType === 'VIDEO');
-        if (hasVideo) {
-          filesToProcess = [];
-        } else {
-          const firstFileIsVideo = filesToProcess[0]?.type.startsWith('video/');
-          if (
-            firstFileIsVideo &&
-            currentVideos < maxVideos &&
-            currentImages === 0
-          ) {
-            filesToProcess = filesToProcess
-              .slice(0, 1)
-              .filter((f) => f.type.startsWith('video/'));
-          } else if (!firstFileIsVideo && currentVideos === 0) {
-            filesToProcess = filesToProcess
-              .filter((f) => f.type.startsWith('image/'))
-              .slice(0, maxImages - currentImages);
-          } else {
-            filesToProcess = [];
-          }
-        }
+        validatedFiles.push(file);
       }
 
       // Create initial media files with uploading state
-      newMediaFiles = filesToProcess.map((file) => {
+      newMediaFiles = validatedFiles.map((file) => {
         const extension = file.name.split('.').pop() || '';
         return {
           id: crypto.randomUUID(),
@@ -656,14 +504,7 @@ export function MediaUploader({
         setIsMediaUploading(false);
       }
     },
-    [
-      mediaFiles,
-      socialType,
-      maxImages,
-      maxVideos,
-      uploadAndSaveMedia,
-      setIsMediaUploading,
-    ]
+    [mediaFiles, socialType, uploadAndSaveMedia, setIsMediaUploading]
   );
 
   const handleDrop = useCallback(
@@ -772,24 +613,8 @@ export function MediaUploader({
     return 'aspect-square';
   };
 
-  const canUploadMore = (() => {
-    const imageCount = mediaFiles.filter((f) => f.mediaType === 'IMAGE').length;
-    const videoCount = mediaFiles.filter((f) => f.mediaType === 'VIDEO').length;
-
-    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
-      return imageCount < maxImages || videoCount < maxVideos;
-    }
-    if (socialType === 'INSTAGRAM') {
-      if (videoCount > 0) {
-        return false;
-      }
-      return imageCount < maxImages;
-    }
-    if (videoCount > 0) {
-      return false;
-    }
-    return imageCount < maxImages;
-  })();
+  // Check if more media can be uploaded using centralized utility
+  const canUploadMore = canUploadMoreUtil(socialType, mediaFiles);
 
   return (
     <div className="space-y-4">
@@ -804,10 +629,8 @@ export function MediaUploader({
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
             fileInputRef={fileInputRef}
-            acceptedFileTypes={acceptedFileTypes}
-            uploadInstruction={uploadInstruction}
-            countInstruction={countInstruction}
-            aspectRatioInstruction={aspectRatioInstruction}
+            acceptedMimeTypes={acceptedMimeTypes}
+            instruction={instruction}
             platformHint={platformHint}
             multiple={
               !(
@@ -907,8 +730,6 @@ export function MediaUploader({
           altText: m.altText,
           createdAt: new Date().toISOString(),
         }))}
-        maxImages={maxImages}
-        maxVideos={maxVideos}
       />
     </div>
   );
