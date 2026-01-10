@@ -30,7 +30,11 @@ export const getMedia = query({
   args: {
     ...mediaFiltersSchema.fields,
   },
-  returns: v.array(mediaTableSchema),
+  returns: v.object({
+    media: v.array(mediaTableSchema),
+    nextCursor: v.union(v.number(), v.null()),
+    hasMore: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
 
@@ -38,27 +42,36 @@ export const getMedia = query({
       throw new Error('User not found');
     }
 
-    const allMedia = await ctx.db
-      .query('media')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-      .collect();
+    const limit = Math.min(args.limit ?? 50, 100); // Cap at 100 per page
 
-    // Filter by media type if specified
-    let filteredMedia = allMedia;
+    // Build query using composite index for efficient pagination
+    let query = ctx.db
+      .query('media')
+      .withIndex('by_userId_createdAt', (q) =>
+        args.cursor
+          ? q.eq('userId', user._id).lt('createdAt', args.cursor)
+          : q.eq('userId', user._id)
+      )
+      .order('desc'); // Sort by createdAt DESC (newest first)
+
+    // Apply mediaType filter at database level if specified
     if (args.mediaType) {
-      filteredMedia = allMedia.filter(
-        (media) => media.mediaType === args.mediaType
-      );
+      query = query.filter((q) => q.eq(q.field('mediaType'), args.mediaType));
     }
 
-    // Sort by creation date (newest first)
-    filteredMedia.sort((a, b) => b.createdAt - a.createdAt);
+    // Fetch limit + 1 to determine hasMore
+    const results = await query.take(limit + 1);
 
-    // Apply pagination
-    const offset = args.offset || 0;
-    const limit = args.limit || 50;
+    // Separate actual results from hasMore indicator
+    const media = results.slice(0, limit);
+    const hasMore = results.length > limit;
+    const nextCursor = hasMore && media.length > 0 ? media.at(-1)?.createdAt ?? null : null;
 
-    return filteredMedia.slice(offset, offset + limit);
+    return {
+      media,
+      nextCursor,
+      hasMore,
+    };
   },
 });
 

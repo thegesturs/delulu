@@ -211,7 +211,7 @@ export function getSingleProviderInDefault(
 
 /**
  * Determines if Default should use video-only layout
- * True if ONLY video platforms (TikTok, YouTube) are in default
+ * True if ONLY video platforms (TikTok, YouTube, Instagram) are in default
  */
 export function shouldDefaultUseVideoLayout(
   platformsInDefault: SocialType[]
@@ -220,10 +220,35 @@ export function shouldDefaultUseVideoLayout(
     return false;
   }
 
-  const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
+  const videoPlatforms = [
+    SocialTypes.TIKTOK,
+    SocialTypes.YOUTUBE,
+    SocialTypes.INSTAGRAM, // Instagram Reels
+  ] as const;
 
   return platformsInDefault.every((platform) =>
     (videoPlatforms as readonly SocialType[]).includes(platform)
+  );
+}
+
+/**
+ * Determines if Default should use multi-post layout (threads)
+ * True if ONLY multi-post platforms (Twitter, Threads) are in default
+ */
+export function shouldDefaultUseMultiPostLayout(
+  platformsInDefault: SocialType[]
+): boolean {
+  if (platformsInDefault.length === 0) {
+    return false;
+  }
+
+  const multiPostPlatforms = [
+    SocialTypes.TWITTER,
+    SocialTypes.THREADS,
+  ] as const;
+
+  return platformsInDefault.every((platform) =>
+    (multiPostPlatforms as readonly SocialType[]).includes(platform)
   );
 }
 

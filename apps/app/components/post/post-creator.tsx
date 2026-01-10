@@ -11,7 +11,7 @@ import {
 import { useQuery } from 'convex-helpers/react/cache';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getSingleProviderInDefault } from '@/lib/platform-rules';
 import {
@@ -41,10 +41,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
 
-  // Get single provider in default for smart labeling
-  const singleProviderInDefault = getSingleProviderInDefault(
-    socialProviders,
-    alternativeContent
+  // Get single provider in default for smart labeling (memoized for performance)
+  const singleProviderInDefault = useMemo(
+    () => getSingleProviderInDefault(socialProviders, alternativeContent),
+    [socialProviders, alternativeContent]
   );
 
   // Fetch post data if in edit mode

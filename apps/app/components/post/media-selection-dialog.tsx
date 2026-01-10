@@ -1,8 +1,10 @@
 'use client';
 
+import { useQuery } from 'convex/react';
 import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -14,7 +16,6 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
-import { useQuery } from 'convex-helpers/react/cache';
 
 interface MediaItem {
   id: string;
@@ -44,6 +45,7 @@ interface MediaGridProps {
   canSelectImages: boolean;
   canSelectVideos: boolean;
   onMediaSelect: (media: MediaItem) => void;
+  onScrollEnd: () => void;
 }
 
 function MediaGrid({
@@ -52,82 +54,115 @@ function MediaGrid({
   canSelectImages,
   canSelectVideos,
   onMediaSelect,
+  onScrollEnd,
 }: MediaGridProps) {
-  return (
-    <div className="grid grid-cols-4 gap-3">
-      {filteredMedia.map((media) => {
-        const isSelected = selectedMedia.some((m) => m.id === media.id);
-        const canSelect =
-          !isSelected &&
-          ((media.mediaType === 'IMAGE' && canSelectImages) ||
-            (media.mediaType === 'VIDEO' && canSelectVideos));
+  const containerRef = useRef<HTMLDivElement>(null);
 
-        return (
-          <motion.div
-            key={media.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn(
-              'relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
-              {
-                'border-primary': isSelected,
-                'cursor-pointer border-border hover:border-input':
-                  canSelect && !isSelected,
-                'cursor-not-allowed border-border opacity-50':
-                  !canSelect && !isSelected,
-              }
-            )}
-            onClick={() => canSelect && onMediaSelect(media)}
-          >
-            {media.mediaType === 'IMAGE' ? (
-              <img
-                src={media.url}
-                alt={media.altText || 'Media'}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="relative h-full w-full">
-                <video
+  // Scroll detection for infinite scroll
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Trigger load more when scrolled to 80%
+    if (scrollPercentage > 0.8) {
+      onScrollEnd();
+    }
+  }, [onScrollEnd]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  return (
+    <div ref={containerRef} className="h-full overflow-y-auto">
+      <div className="grid grid-cols-4 gap-3">
+        {filteredMedia.map((media) => {
+          const isSelected = selectedMedia.some((m) => m.id === media.id);
+          const canSelect =
+            !isSelected &&
+            ((media.mediaType === 'IMAGE' && canSelectImages) ||
+              (media.mediaType === 'VIDEO' && canSelectVideos));
+
+          return (
+            <motion.div
+              key={media.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                'relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
+                {
+                  'border-primary': isSelected,
+                  'cursor-pointer border-border hover:border-input':
+                    canSelect && !isSelected,
+                  'cursor-not-allowed border-border opacity-50':
+                    !canSelect && !isSelected,
+                }
+              )}
+              onClick={() => canSelect && onMediaSelect(media)}
+            >
+              {media.mediaType === 'IMAGE' ? (
+                <Image
                   src={media.url}
-                  className="h-full w-full object-cover"
-                  muted
+                  alt={media.altText || 'Media'}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 25vw, 200px"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                  <div className="rounded-full bg-black bg-opacity-50 p-2">
-                    <Video className="h-4 w-4 text-white" />
+              ) : (
+                <div className="relative h-full w-full">
+                  <video
+                    src={media.url}
+                    className="h-full w-full object-cover"
+                    muted
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                    <div className="rounded-full bg-black bg-opacity-50 p-2">
+                      <Video className="h-4 w-4 text-white" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Selection indicator */}
-            {isSelected && (
-              <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
-                <svg
-                  className="h-3 w-3 text-primary-foreground"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            )}
-
-            {/* Media type indicator */}
-            <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
-              {media.mediaType === 'IMAGE' ? (
-                <ImageIcon className="h-3 w-3" />
-              ) : (
-                <Video className="h-3 w-3" />
               )}
-            </div>
-          </motion.div>
-        );
-      })}
+
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
+                  <svg
+                    className="h-3 w-3 text-primary-foreground"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              {/* Media type indicator */}
+              <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
+                {media.mediaType === 'IMAGE' ? (
+                  <ImageIcon className="h-3 w-3" />
+                ) : (
+                  <Video className="h-3 w-3" />
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -143,6 +178,9 @@ export function MediaSelectionDialog({
 }: MediaSelectionDialogProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [accumulatedMedia, setAccumulatedMedia] = useState<MediaItem[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Calculate current counts
   const currentImageCount = currentMedia.filter(
@@ -158,52 +196,74 @@ export function MediaSelectionDialog({
   const canSelectImages = remainingImages > 0;
   const canSelectVideos = remainingVideos > 0;
 
-  // Use Convex to fetch media - now with auto user fetching
-  const hasSearch = searchQuery && searchQuery.trim().length > 0;
-
-  // Use getMedia for browsing, searchMedia for searching
-  const browseData = useQuery(
+  // Use standard Convex query with cursor-based pagination
+  const mediaQuery = useQuery(
     api.media.getMedia,
-    !isOpen || hasSearch ? 'skip' : { limit: 20, offset: 0 }
-  );
-
-  const searchData = useQuery(
-    api.media.searchMedia,
-    !isOpen || !hasSearch
-      ? 'skip'
-      : {
-          searchTerm: searchQuery.trim(),
+    isOpen
+      ? {
           limit: 50,
-          offset: 0,
+          cursor: cursor ?? undefined,
         }
+      : 'skip'
   );
 
-  const mediaData = hasSearch ? searchData : browseData;
+  const isLoading = mediaQuery === undefined;
 
-  const isLoading = mediaData === undefined;
+  // Extract data from new response format
+  const currentPageMedia = mediaQuery?.media || [];
+  const nextCursor = mediaQuery?.nextCursor ?? null;
+  const hasMore = mediaQuery?.hasMore ?? false;
 
-  // Transform Convex data to match MediaItem interface
-  const allMedia: MediaItem[] = (mediaData || []).map((item) => ({
-    id: item._id as string,
-    url: item.url,
-    bucketKey: item.bucketKey,
-    mediaType: item.mediaType,
-    originalFilename: item.originalFilename,
-    size: item.size,
-    extension: item.extension,
-    altText: item.altText,
-    createdAt: new Date(item.createdAt).toISOString(),
-  }));
+  // Transform and accumulate media on new data
+  useEffect(() => {
+    if (currentPageMedia.length > 0) {
+      const newMedia: MediaItem[] = currentPageMedia.map((item) => ({
+        id: item._id as string,
+        url: item.url,
+        bucketKey: item.bucketKey,
+        mediaType: item.mediaType,
+        originalFilename: item.originalFilename,
+        size: item.size,
+        extension: item.extension,
+        altText: item.altText,
+        createdAt: new Date(item.createdAt).toISOString(),
+      }));
 
-  // Reset selection when dialog opens
+      setAccumulatedMedia((prev) => {
+        // If cursor is null, this is the first page - replace
+        if (!cursor) {
+          return newMedia;
+        }
+        // Otherwise append new media
+        const existingIds = new Set(prev.map((m) => m.id));
+        const uniqueNew = newMedia.filter((m) => !existingIds.has(m.id));
+        return [...prev, ...uniqueNew];
+      });
+
+      setIsLoadingMore(false);
+    }
+  }, [currentPageMedia, cursor]);
+
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (hasMore && nextCursor && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setCursor(nextCursor);
+    }
+  }, [hasMore, nextCursor, isLoadingMore]);
+
+  // Reset when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setSelectedMedia([]);
+      setCursor(null);
+      setAccumulatedMedia([]);
+      setIsLoadingMore(false);
     }
   }, [isOpen]);
 
-  // For now, no load more functionality (can be added later with pagination)
-  const hasMore = false;
+  // Use accumulated media as the source
+  const allMedia = accumulatedMedia;
 
   // Filter media based on platform constraints and availability
   const filteredMedia = allMedia.filter((media) => {
@@ -362,9 +422,9 @@ export function MediaSelectionDialog({
             {getConstraintMessage()}
           </div>
 
-          {/* Media Grid */}
+          {/* Media Grid with Virtual Scrolling */}
           <div className="h-96 overflow-y-auto">
-            {isLoading && (
+            {isLoading && accumulatedMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -385,23 +445,34 @@ export function MediaSelectionDialog({
                 </div>
               </div>
             )}
-            {!isLoading && filteredMedia.length > 0 && (
-              <MediaGrid
-                filteredMedia={filteredMedia}
-                selectedMedia={selectedMedia}
-                canSelectImages={canSelectImages}
-                canSelectVideos={canSelectVideos}
-                onMediaSelect={handleMediaSelect}
-              />
-            )}
+            {filteredMedia.length > 0 && (
+              <>
+                <MediaGrid
+                  filteredMedia={filteredMedia}
+                  selectedMedia={selectedMedia}
+                  canSelectImages={canSelectImages}
+                  canSelectVideos={canSelectVideos}
+                  onMediaSelect={handleMediaSelect}
+                  onScrollEnd={loadMore}
+                />
 
-            {/* Load more button - disabled for now */}
-            {hasMore && (
-              <div className="mt-4 text-center">
-                <Button variant="outline" disabled={true}>
-                  Load More
-                </Button>
-              </div>
+                {/* Loading indicator for pagination */}
+                {isLoadingMore && (
+                  <div className="mt-4 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="mt-2 text-muted-foreground text-sm">Loading more...</p>
+                  </div>
+                )}
+
+                {/* End of results indicator */}
+                {!hasMore && filteredMedia.length > 50 && (
+                  <div className="mt-4 text-center">
+                    <p className="text-muted-foreground text-sm">
+                      All media loaded ({filteredMedia.length} items)
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

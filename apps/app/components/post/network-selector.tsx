@@ -70,24 +70,32 @@ export function AlternativeContentSelector() {
         ),
       });
     } else {
-      // Add provider with default content
+      // Add provider with default content - deep copy ALL content items (supports threads)
       setPost({
         ...post,
         alternativeContent: [
           ...post.alternativeContent,
           {
             socialProvider: provider,
-            content: [
-              {
-                id: '',
-                order: 0,
-                name: provider.name,
-                media: post.content[0]?.media || [],
-                text: post.content[0]?.text || '',
-                tags: [],
-                socialId: provider.socialId,
-              },
-            ],
+            content: post.content.map((contentItem, index) => ({
+              id: '',
+              order: index,
+              name: provider.name,
+              // Deep copy media to prevent reference sharing
+              media: contentItem.media.map((m) => ({
+                mediaType: m.mediaType,
+                url: m.url,
+                bucketKey: m.bucketKey,
+                bucketUrl: m.bucketUrl,
+                altText: m.altText,
+                thumbnailBucketUrl: m.thumbnailBucketUrl,
+                thumbnailBucketKey: m.thumbnailBucketKey,
+              })),
+              text: contentItem.text,
+              title: contentItem.title, // Copy YouTube title
+              tags: [...(contentItem.tags || [])], // Deep copy tags
+              socialId: provider.socialId,
+            })),
           },
         ],
       });

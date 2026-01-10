@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
@@ -40,16 +40,23 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const isGlobal = socialType === SocialTypes.DEFAULT;
   const isTwitter = socialType === SocialTypes.TWITTER;
 
-  // Determine which platforms are in default (for intelligent defaults)
-  const platformsInDefault = isGlobal
-    ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
-    : [];
+  // Determine which platforms are in default (for intelligent defaults) - memoized
+  const platformsInDefault = useMemo(
+    () =>
+      isGlobal
+        ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
+        : [],
+    [isGlobal, selectedSocialProviders, post.alternativeContent]
+  );
 
-  // Determine effective social type for default tab
-  const effectiveSocialType =
-    isGlobal && platformsInDefault.length > 0
-      ? platformsInDefault[0] // Use first platform as representative
-      : socialType;
+  // Determine effective social type for default tab - memoized
+  const effectiveSocialType = useMemo(
+    () =>
+      isGlobal && platformsInDefault.length > 0
+        ? platformsInDefault[0] // Use first platform as representative
+        : socialType,
+    [isGlobal, platformsInDefault, socialType]
+  );
 
   const content = isGlobal
     ? post.content

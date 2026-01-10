@@ -20,16 +20,16 @@ export const postFiltersSchema = v.object({
   isDeleted: v.optional(v.boolean()),
 });
 
-// Media filters
+// Media filters (cursor-based pagination)
 export const mediaFiltersSchema = v.object({
   mediaType: v.optional(mediaTypeSchema),
   limit: v.optional(v.number()),
-  offset: v.optional(v.number()),
+  cursor: v.optional(v.number()), // createdAt timestamp for cursor pagination
 });
 
 // Search filters
 export const searchFiltersSchema = v.object({
-  organizationId: v.optional(v.id('organizations')),
+  organizationId: v.optional(v.string()), // String, not ID reference (organizations table doesn't exist)
   searchTerm: v.string(),
   mediaType: v.optional(mediaTypeSchema),
   limit: v.optional(v.number()),
@@ -44,6 +44,12 @@ export const paginatedPostsSchema = v.object({
   page: v.array(postSchema),
   isDone: v.boolean(),
   continueCursor: v.union(v.string(), v.null()),
+});
+
+export const paginatedMediaSchema = v.object({
+  media: v.array(v.any()), // Will be validated against mediaTableSchema
+  nextCursor: v.union(v.number(), v.null()), // createdAt timestamp
+  hasMore: v.boolean(),
 });
 
 export const mediaStatsSchema = v.object({

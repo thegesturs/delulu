@@ -182,6 +182,7 @@ export const baseMediaTableSchema = v.object({
 // Media table schema with system fields (for returns)
 export const mediaTableSchema = v.object({
   _id: v.id('media'),
+  _creationTime: v.number(),
   ...baseMediaTableSchema.fields,
 });
 
