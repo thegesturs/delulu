@@ -104,7 +104,7 @@ function MediaGrid({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className={cn(
-                'relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
+                'group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
                 {
                   'cursor-pointer border-primary': isSelected,
                   'cursor-pointer border-border hover:border-input':
@@ -114,6 +114,25 @@ function MediaGrid({
                 }
               )}
               onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
+              onMouseEnter={(e) => {
+                if (media.mediaType === 'VIDEO') {
+                  const video = e.currentTarget.querySelector('video');
+                  if (video) {
+                    video.play().catch(() => {
+                      // Ignore play errors
+                    });
+                  }
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (media.mediaType === 'VIDEO') {
+                  const video = e.currentTarget.querySelector('video');
+                  if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                  }
+                }
+              }}
             >
               {media.mediaType === 'IMAGE' ? (
                 <Image
@@ -130,19 +149,10 @@ function MediaGrid({
                     className="h-full w-full object-cover"
                     muted
                     loop
-                    onMouseEnter={(e) => {
-                      const video = e.currentTarget;
-                      video.play().catch(() => {
-                        // Ignore play errors
-                      });
-                    }}
-                    onMouseLeave={(e) => {
-                      const video = e.currentTarget;
-                      video.pause();
-                      video.currentTime = 0;
-                    }}
+                    playsInline
+                    preload="metadata"
                   />
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
                     <div className="rounded-full bg-black bg-opacity-50 p-2">
                       <Video className="h-4 w-4 text-white" />
                     </div>
