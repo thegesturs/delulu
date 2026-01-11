@@ -3,7 +3,8 @@
 import * as React from "react"
 import { setHours, setMinutes, getHours, getMinutes } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Icon } from "../../providers/icon"
+import { Calendar as CalendarHugeIcon } from "@hugeicons-pro/core-solid-rounded"
 import * as chrono from "chrono-node"
 import { motion, AnimatePresence } from "motion/react"
 
@@ -243,7 +244,7 @@ export function NaturalDatePicker({
               onClick={() => setShowSuggestions(false)}
               aria-label="Open calendar"
             >
-              <CalendarIcon className="h-4 w-4" />
+              <Icon icon={CalendarHugeIcon} size={16} />
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 mt-1" align="end">
