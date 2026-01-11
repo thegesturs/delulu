@@ -133,7 +133,7 @@ export function AnimatedTabsList(
   }, [updateIndicator])
 
   return (
-    <div className={cn('relative')}>
+    <div className={cn('relative', className?.includes('w-max') && 'w-max', className?.includes('w-auto') && 'w-auto')}>
       <TabsPrimitive.List
         ref={setListEl}
         data-slot="animated-tabs-list"

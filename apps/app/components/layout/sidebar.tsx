@@ -13,18 +13,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@delulu/design-system/components/ui/sidebar';
-import {
-  Calendar,
-  Draft,
-  Home,
-  Network,
-  Pencil,
-} from '@delulu/design-system/icons';
+import { Pencil } from '@delulu/design-system/icons';
 import { cn } from '@delulu/design-system/lib/utils';
-import { CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
+import { navigationItems } from '@/lib/navigation';
 // import { OrganizationSwitcher } from './organization-switcher';
 
 // Custom hook to detect screens below lg breakpoint (1024px)
@@ -50,57 +44,6 @@ const useIsSmallScreen = () => {
 type GlobalSidebarProperties = {
   readonly children: ReactNode;
 };
-
-const navigationItems = [
-  {
-    title: 'Dashboard',
-    url: '/',
-    icon: Home,
-    dataTour: undefined, // Stats will be marked separately
-  },
-  {
-    title: 'Posts',
-    url: '/posts',
-    icon: Draft,
-    dataTour: 'posts-nav',
-  },
-  {
-    title: 'Calendar',
-    url: '/calendar',
-    icon: Calendar,
-    dataTour: 'calendar-nav',
-  },
-  {
-    title: 'Connected Accounts',
-    url: '/socials',
-    icon: Network,
-    dataTour: 'accounts-nav',
-  },
-  {
-    title: 'Billing',
-    url: '/billing',
-    icon: CreditCard,
-    dataTour: undefined,
-  },
-];
-
-// const configurationItems = [
-//   {
-//     title: 'Knowledge Base',
-//     url: '/knowledge',
-//     icon: BookOpenIcon,
-//   },
-//   {
-//     title: 'Tone of Voice',
-//     url: '/tone',
-//     icon: UserIcon,
-//   },
-//   {
-//     title: 'AI Photos',
-//     url: '/photos',
-//     icon: ImageIcon,
-//   },
-// ];
 
 export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
@@ -278,7 +221,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden dark:border">
+      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden dark:border pb-16 md:pb-0">
         {children}
       </SidebarInset>
     </>

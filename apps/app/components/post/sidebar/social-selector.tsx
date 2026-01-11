@@ -93,7 +93,7 @@ export default function SocialSelector() {
           bounce: 0.2,
         }}
       >
-        <motion.div className="grid grid-cols-2 gap-1">
+        <motion.div className="grid grid-cols-1 gap-1 md:grid-cols-2">
           <LayoutGroup>
             <AnimatePresence initial={false} mode="popLayout">
               {socialProviders?.map((account) => (

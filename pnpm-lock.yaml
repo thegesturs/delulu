@@ -909,6 +909,18 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.1.1(react-hook-form@7.59.0(react@19.1.0))
+      '@hugeicons-pro/core-bulk-rounded':
+        specifier: ^3.1.0
+        version: 3.1.0
+      '@hugeicons-pro/core-solid-rounded':
+        specifier: ^3.1.0
+        version: 3.1.0
+      '@hugeicons/core-free-icons':
+        specifier: ^3.1.1
+        version: 3.1.1
+      '@hugeicons/react':
+        specifier: ^1.1.4
+        version: 1.1.4(react@19.1.0)
       '@radix-ui/react-accordion':
         specifier: ^1.2.4
         version: 1.2.11(@types/react-dom@19.1.2(@types/react@19.1.0))(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -3714,6 +3726,20 @@ packages:
     resolution: {integrity: sha512-J/NVING3LMAEvexJkyTLjruSm7aOFx7QX21pzkiJfMoNG0wl5aFEjLTl7ay7IQb9EWY6AkrBy7tHL2Alijpdcg==}
     peerDependencies:
       react-hook-form: ^7.55.0
+
+  '@hugeicons-pro/core-bulk-rounded@3.1.0':
+    resolution: {integrity: sha512-/sZcyzr4AibnQ2gq1/0iYj3oOk2a7CMBMM9IUCQH+Mr29jAGUKWoHK835htFYTreZ9JqQx4CrWwnkhjMFpsWhA==}
+
+  '@hugeicons-pro/core-solid-rounded@3.1.0':
+    resolution: {integrity: sha512-OtHo3NEsn3LAWDYlBtaW8wtWhbFaAVOpXSpNmtfSX2Ru+zJVyHS5L3KTXBmJ+fQJ6wMX9EQLgOpBtR08yKJtRw==}
+
+  '@hugeicons/core-free-icons@3.1.1':
+    resolution: {integrity: sha512-UpS2lUQFi5sKyJSWwM6rO+BnPLvVz1gsyCpPHeZyVuZqi89YH8ksliza4cwaODqKOZyeXmG8juo1ty4QtQofkg==}
+
+  '@hugeicons/react@1.1.4':
+    resolution: {integrity: sha512-gsc3eZyd2fGqRUThW9+lfjxxsOkz6KNVmRXRgJjP32GL0OnnLJnl3hytKt47CBbiQj2xE2kCw+rnP3UQCThcKw==}
+    peerDependencies:
+      react: '>=16.0.0'
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -16779,6 +16805,16 @@ snapshots:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.59.0(react@19.1.0)
 
+  '@hugeicons-pro/core-bulk-rounded@3.1.0': {}
+
+  '@hugeicons-pro/core-solid-rounded@3.1.0': {}
+
+  '@hugeicons/core-free-icons@3.1.1': {}
+
+  '@hugeicons/react@1.1.4(react@19.1.0)':
+    dependencies:
+      react: 19.1.0
+
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
       '@img/sharp-libvips-darwin-arm64': 1.0.4
@@ -20987,14 +21023,6 @@ snapshots:
       magic-string: 0.30.17
     optionalDependencies:
       vite: 5.4.19(@types/node@22.14.1)(lightningcss@1.30.1)(terser@5.43.1)
-
-  '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
-    dependencies:
-      '@vitest/spy': 3.2.4
-      estree-walker: 3.0.3
-      magic-string: 0.30.17
-    optionalDependencies:
-      vite: 7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
 
   '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
     dependencies:
@@ -28027,7 +28055,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
+      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4

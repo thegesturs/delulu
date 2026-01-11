@@ -20,7 +20,7 @@ export function PostSidebar() {
   );
 
   return (
-    <Card className="w-[500px]">
+    <Card className="w-full lg:w-[500px]">
       <Tabs defaultValue="basic" className="w-full px-3">
         <TabsList className="grid w-full grid-cols-2 rounded-none border-b bg-transparent p-0">
           <TabsTrigger
@@ -38,11 +38,11 @@ export function PostSidebar() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="basic" className="mt-4 space-y-0">
+        <TabsContent value="basic" className="mt-0 space-y-0">
           <BasicSettings />
         </TabsContent>
 
-        <TabsContent value="preview" className="mt-4 space-y-0">
+        <TabsContent value="preview" className="mt-0 space-y-0">
           {hasTikTokSelected && <TikTokPreview />}
         </TabsContent>
       </Tabs>

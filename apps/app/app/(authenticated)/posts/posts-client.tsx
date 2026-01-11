@@ -219,12 +219,12 @@ export default function PostsClient() {
                   | 'PROCESSING'
               )
             }
-            className="flex-1 pt-3"
+            className="flex-1 pt-3 overflow-x-auto no-scrollbar"
           >
-            <AnimatedTabsList>
+            <AnimatedTabsList className="flex w-max min-w-full gap-2 lg:gap-0 lg:grid lg:w-full lg:min-w-0">
               <AnimatedTabsTrigger
                 value="SAVED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 whitespace-nowrap data-[state=active]:text-foreground"
               >
                 <FileText className="h-4 w-4" />
                 <span>Draft</span>
@@ -236,7 +236,7 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="SCHEDULED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 whitespace-nowrap data-[state=active]:text-foreground"
               >
                 <Calendar className="h-4 w-4" />
                 <span>Scheduled</span>
@@ -248,7 +248,7 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="PROCESSING"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 whitespace-nowrap data-[state=active]:text-foreground"
               >
                 <Loader2 className="h-4 w-4" />
                 <span>Processing</span>
@@ -260,7 +260,7 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="PUBLISHED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 whitespace-nowrap data-[state=active]:text-foreground"
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>Published</span>
@@ -272,7 +272,7 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="FAILED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 px-4 whitespace-nowrap data-[state=active]:text-foreground"
               >
                 <XCircle className="h-4 w-4" />
                 <span>Failed</span>
