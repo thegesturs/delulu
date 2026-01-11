@@ -1,7 +1,8 @@
 'use client';
 
-import { MoonIcon, SunIcon } from '@radix-ui/react-icons';
 import { useTheme } from 'next-themes';
+import { Icon } from '../providers/icon';
+import { Moon, Sun } from '@hugeicons-pro/core-solid-rounded';
 import { Button } from '../components/ui/button';
 import {
   DropdownMenu,
@@ -27,8 +28,8 @@ export const ModeToggle = () => {
           size="icon"
           className="shrink-0 text-foreground"
         >
-          <SunIcon className="dark:-rotate-90 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0" />
-          <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Icon icon={Sun} size={20} className="dark:-rotate-90 rotate-0 scale-100 transition-all dark:scale-0" />
+          <Icon icon={Moon} size={20} className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>

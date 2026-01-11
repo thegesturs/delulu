@@ -1,4 +1,5 @@
 'use client';
+import { navigationItems } from '@/lib/navigation';
 import { UserButton } from '@delulu/auth';
 import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -18,7 +19,6 @@ import { cn } from '@delulu/design-system/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
-import { navigationItems } from '@/lib/navigation';
 // import { OrganizationSwitcher } from './organization-switcher';
 
 // Custom hook to detect screens below lg breakpoint (1024px)
@@ -221,7 +221,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden dark:border pb-16 md:pb-0">
+      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden pb-16 md:pb-0 dark:border">
         {children}
       </SidebarInset>
     </>

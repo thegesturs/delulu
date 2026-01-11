@@ -3,8 +3,8 @@ import {
   Draft,
   Home,
   Network,
+  CreditCard,
 } from '@delulu/design-system/icons';
-import { CreditCard } from 'lucide-react';
 
 export const navigationItems = [
   {
