@@ -5,54 +5,6 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 
 export const mediaRouter = createTRPCRouter({
-  // Get user's media with pagination and filtering
-  getUserMedia: protectedProcedure
-    .input(
-      z.object({
-        limit: z.number().min(1).max(50).default(20),
-        cursor: z.number().min(0).default(0).optional(),
-        mediaType: z.enum(['IMAGE', 'VIDEO']).optional(),
-        search: z.string().optional(),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      const { limit, cursor = 0, mediaType } = input;
-
-      const media = await fetchQuery(
-        api.media.getMedia,
-        {
-          limit: limit + 1, // Fetch one extra to determine if there are more
-          offset: cursor,
-          mediaType,
-        },
-        {
-          token: ctx.token,
-        }
-      );
-
-      // Filter by search if provided
-      const filteredMedia = input.search
-        ? media.filter(
-            (item) =>
-              item.originalFilename
-                ?.toLowerCase()
-                .includes(input.search!.toLowerCase()) ||
-              item.altText?.toLowerCase().includes(input.search!.toLowerCase())
-          )
-        : media;
-
-      const hasMore = filteredMedia.length > limit;
-      const actualMedia = hasMore
-        ? filteredMedia.slice(0, limit)
-        : filteredMedia;
-
-      return {
-        media: actualMedia,
-        hasMore,
-        nextCursor: hasMore ? cursor + limit : undefined,
-      };
-    }),
-
   // Get media by ID
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))

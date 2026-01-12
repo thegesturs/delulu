@@ -126,7 +126,7 @@ export function FarcasterConnect({
   //       <div className="flex flex-col items-center space-y-4 py-4">
   //         {loading && (
   //           <div className="flex items-center space-x-2">
-  //             <Loader2 className="h-4 w-4 animate-spin" />
+  //             <Icon icon={Loader2} size={16} className=" animate-spin" />
   //             <span>Creating connection request...</span>
   //           </div>
   //         )}
@@ -160,14 +160,14 @@ export function FarcasterConnect({
   //                 }
   //                 className="flex items-center space-x-2"
   //               >
-  //                 <ExternalLink className="h-4 w-4" />
+  //                 <Icon icon={ExternalLink} size={16} className="" />
   //                 <span>Open in Warpcast</span>
   //               </Button>
   //             </div>
 
   //             {status?.state === 'approved' && (
   //               <div className="flex items-center space-x-2 text-muted-foreground text-sm">
-  //                 <Loader2 className="h-4 w-4 animate-spin" />
+  //                 <Icon icon={Loader2} size={16} className=" animate-spin" />
   //                 <span>Completing connection...</span>
   //               </div>
   //             )}

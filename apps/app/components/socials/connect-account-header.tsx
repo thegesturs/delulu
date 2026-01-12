@@ -20,7 +20,9 @@ import {
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
 import { useQuery } from 'convex-helpers/react/cache';
-import { Plus } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Plus } from '@hugeicons-pro/core-solid-rounded';
 import Link from 'next/link';
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
@@ -142,7 +144,7 @@ export function ConnectedAccountsHeader() {
         <Dialog>
           <DialogTrigger asChild>
             <Button disabled={isAtLimit}>
-              <Plus className="mr-2 h-4 w-4" />
+              <Icon icon={Plus} size={16} className="mr-2 " />
               Connect Account
             </Button>
           </DialogTrigger>

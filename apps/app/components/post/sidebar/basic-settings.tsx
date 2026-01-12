@@ -22,7 +22,8 @@ import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-d
 import { promotionContentTypes } from '@delulu/validators/post';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
-import { AlertCircle, Loader } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { AlertCircleIcon, Loading01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FaBookmark } from 'react-icons/fa';
@@ -200,7 +201,7 @@ export function BasicSettings() {
               <InlineUpgradePrompt feature="monthlyPosts" requiredPlan="VIBE" />
             ) : (
               <Alert>
-                <AlertCircle className="h-4 w-4" />
+                <Icon icon={AlertCircleIcon} size={16} />
                 <AlertDescription>
                   You've used {monthlyPostsCount} of {monthlyPostsLimit.limit}{' '}
                   posts this month. Consider upgrading to avoid interruptions.
@@ -220,7 +221,7 @@ export function BasicSettings() {
         >
           {date ? 'Schedule Post' : 'Post Now'}
           {isProcessing ? (
-            <Loader className="size-4 animate-spin" />
+            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
           )}
@@ -234,7 +235,7 @@ export function BasicSettings() {
         >
           {postId ? 'Update Post' : 'Save Post'}
           {isProcessing ? (
-            <Loader className="size-4 animate-spin" />
+            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
           ) : (
             <FaBookmark className="size-4" />
           )}

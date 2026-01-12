@@ -14,20 +14,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { toast } from 'sonner';
 
+import { Icon } from '@delulu/design-system/providers/icon';
 import { useMediaStorage } from '@/hooks/use-media-storage';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { getMediaUrlFromObject } from '@/lib/media-url';
+import { Icon } from '@delulu/design-system/providers/icon';
 import {
   canAddMediaType,
   canUploadMore as canUploadMoreUtil,
   getDynamicMediaLimits,
   validateTikTokVideo,
 } from '@/lib/platform-rules';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { useStore } from '@/store/post';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { Button } from '@delulu/design-system/components/ui/button';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { SocialTypes } from '@delulu/validators/post';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { useShallow } from 'zustand/shallow';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { MediaSelectionDialog } from './media-selection-dialog';
 
 interface MediaFile {

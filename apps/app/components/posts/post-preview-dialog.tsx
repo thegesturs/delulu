@@ -14,7 +14,9 @@ import {
   socialBackgroundColors,
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
-import { AlertCircle, Calendar, ExternalLink } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { AlertCircleIcon, Calendar01Icon, Link01Icon } from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 import React from 'react';
 import { type Post, statusColors } from './types';
@@ -57,7 +59,7 @@ export function PostPreviewDialog({
             <Badge variant={statusColors[post.status]}>{post.status}</Badge>
             {post.scheduledAt && (
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                <Calendar className="h-4 w-4" />
+                <Icon icon={Calendar01Icon} size={16} className="" />
                 {new Date(post.scheduledAt).toLocaleDateString()}
               </div>
             )}
@@ -185,7 +187,7 @@ export function PostPreviewDialog({
                         </div>
                         {failureReason && (
                           <div className="flex items-start gap-2 text-destructive text-sm">
-                            <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                            <Icon icon={AlertCircleIcon} size={12} className="mt-0.5  flex-shrink-0" />
                             <span className="text-xs">{failureReason}</span>
                           </div>
                         )}
@@ -200,7 +202,7 @@ export function PostPreviewDialog({
                             rel="noopener noreferrer"
                             className="flex items-center gap-1"
                           >
-                            <ExternalLink className="h-3 w-3" />
+                            <Icon icon={Link01Icon} size={12} className="" />
                             View Post
                           </a>
                         </Button>
@@ -215,7 +217,7 @@ export function PostPreviewDialog({
             {post.postFailureReason && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" />
+                  <Icon icon={AlertCircleIcon} size={16} className="mt-0.5  flex-shrink-0 text-destructive" />
                   <div>
                     <p className="font-medium text-destructive text-sm">
                       Post Failed

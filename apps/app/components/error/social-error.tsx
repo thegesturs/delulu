@@ -1,7 +1,9 @@
 'use client';
 
 import { Button } from '@delulu/design-system/components/ui/button';
-import { AlertTriangle, XCircle } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { AlertTriangle, XCircle } from '@hugeicons-pro/core-solid-rounded';
 
 interface SocialErrorProps {
   title: string;
@@ -27,9 +29,9 @@ export function SocialError({
       <div className="flex gap-3">
         <div className="flex-shrink-0">
           {variant === 'error' ? (
-            <XCircle className="h-5 w-5 text-destructive" />
+            <Icon icon={XCircle} size={20} className=" text-destructive" />
           ) : (
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            <Icon icon={AlertTriangle} size={20} className=" text-yellow-500" />
           )}
         </div>
         <div className="flex-1">
@@ -54,7 +56,7 @@ export function SocialError({
             onClick={onDismiss}
             type="button"
           >
-            <XCircle className="h-4 w-4" />
+            <Icon icon={XCircle} size={16} className="" />
           </button>
         )}
       </div>

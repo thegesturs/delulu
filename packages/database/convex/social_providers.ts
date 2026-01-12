@@ -368,7 +368,6 @@ export const updateSocialProvider = mutation({
 // This is used when Clerk session is lost during OAuth redirect (local dev)
 export const upsertSocialProviderFromOAuth = mutation({
   args: v.object({
-    userId: v.id('users'),
     ...socialProviderCreateSchema.fields,
   }),
   returns: v.union(

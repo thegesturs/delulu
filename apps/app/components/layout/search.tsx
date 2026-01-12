@@ -1,12 +1,14 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
-import { ArrowRightIcon, SearchIcon } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { ArrowRight01Icon, Search01Icon } from '@hugeicons-pro/core-solid-rounded';
 
 export const Search = () => (
   <form action="/search" className="flex items-center gap-2 px-4">
     <div className="relative">
       <div className="absolute top-px bottom-px left-px flex h-8 w-8 items-center justify-center">
-        <SearchIcon size={16} className="text-muted-foreground" />
+        <Icon icon={Search01Icon} size={16} className="text-muted-foreground" />
       </div>
       <Input
         type="text"
@@ -19,7 +21,7 @@ export const Search = () => (
         size="icon"
         className="absolute top-px right-px bottom-px h-8 w-8"
       >
-        <ArrowRightIcon size={16} className="text-muted-foreground" />
+        <Icon icon={ArrowRight01Icon} size={16} className="text-muted-foreground" />
       </Button>
     </div>
   </form>

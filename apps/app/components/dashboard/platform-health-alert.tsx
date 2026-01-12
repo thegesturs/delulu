@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Alert01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 
 interface PlatformHealthAlertProps {
@@ -28,7 +29,7 @@ export function PlatformHealthAlert({
     <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <Icon icon={Alert01Icon} size={20} className="text-amber-600 dark:text-amber-400" />
           <CardTitle className="text-amber-800 dark:text-amber-200">
             Platform Connection Issues
           </CardTitle>

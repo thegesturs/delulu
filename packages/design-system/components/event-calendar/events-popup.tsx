@@ -1,7 +1,8 @@
 'use client';
 
 import { format, isSameDay } from 'date-fns';
-import { XIcon } from 'lucide-react';
+import { Icon } from '../../providers/icon';
+import { Cancel01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useEffect, useMemo, useRef } from 'react';
 
 import {
@@ -103,7 +104,7 @@ export function EventsPopup({
           className="rounded-full p-1 hover:bg-muted"
           aria-label="Close"
         >
-          <XIcon className="h-4 w-4" />
+          <Icon icon={Cancel01Icon} size={16} />
         </button>
       </div>
 

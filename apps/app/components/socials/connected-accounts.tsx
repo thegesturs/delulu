@@ -4,7 +4,9 @@ import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
-import { Loader2 } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Loading01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AccountFilters } from './account-filter';
@@ -104,7 +106,7 @@ export default function ConnectedAccounts() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Icon icon={Loading01Icon} size={20} className=" animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading accounts...</span>
         </div>
       </div>

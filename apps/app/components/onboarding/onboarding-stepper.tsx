@@ -2,7 +2,9 @@
 
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { ConnectAccountsStep } from './connect-accounts-step';
@@ -101,7 +103,7 @@ export function OnboardingStepper() {
                 disabled={isLoading}
                 className="hover:bg-muted/50"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <Icon icon={ArrowLeft01Icon} size={16} className="mr-2 " />
                 Back
               </Button>
             )}
@@ -124,7 +126,7 @@ export function OnboardingStepper() {
               className="px-8"
             >
               {getButtonText()}
-              {!isLastStep && <ArrowRight className="ml-2 h-4 w-4" />}
+              {!isLastStep && <Icon icon={ArrowRight01Icon} size={16} className="ml-2 " />}
             </Button>
           </div>
         </motion.div>

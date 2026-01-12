@@ -1,5 +1,6 @@
 import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
-import { CommandIcon } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { CommandIcon } from '@hugeicons-pro/core-solid-rounded';
 import type { ReactNode } from 'react';
 
 type AuthLayoutProps = {
@@ -11,7 +12,7 @@ const AuthLayout = ({ children }: AuthLayoutProps) => (
     <div className="relative hidden h-full flex-col bg-muted p-10 text-white md:flex dark:border-r">
       <div className="absolute inset-0 bg-zinc-900" />
       <div className="relative z-20 flex items-center font-medium text-lg">
-        <CommandIcon className="mr-2 h-6 w-6" />
+        <Icon icon={CommandIcon} size={24} className="mr-2 " />
         Delulu Inc
       </div>
       <div className="absolute top-4 right-4">

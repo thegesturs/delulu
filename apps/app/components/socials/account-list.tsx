@@ -3,7 +3,9 @@
 import type { SocialProvider } from '@/types/convex';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { cn } from '@delulu/design-system/lib/utils';
-import { Search } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Search01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
 
 interface AccountListProps {
@@ -21,7 +23,7 @@ export function AccountList({
     return (
       <div className="py-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <Search className="h-8 w-8 text-muted-foreground" />
+          <Icon icon={Search01Icon} size={32} className="text-muted-foreground" />
         </div>
         <p className="mb-2 text-lg text-muted-foreground">No accounts found</p>
         <p className="text-muted-foreground text-sm">

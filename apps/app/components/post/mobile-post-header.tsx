@@ -10,7 +10,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@delulu/design-system/components/ui/sheet';
-import { Loader, Settings2 } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Loading01Icon, Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { PostSidebar } from './sidebar/post-sidebar';
@@ -38,7 +39,7 @@ export function MobilePostHeader() {
           disabled={isProcessing || isMediaUploading}
         >
           {isProcessing ? (
-            <Loader className="size-4 animate-spin" />
+            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
           ) : (
             <FaBookmark className="size-4" />
           )}
@@ -52,7 +53,7 @@ export function MobilePostHeader() {
           disabled={isProcessing || isMediaUploading || isAtPostLimit}
         >
           {isProcessing ? (
-            <Loader className="size-4 animate-spin" />
+            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
           )}
@@ -63,7 +64,7 @@ export function MobilePostHeader() {
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
-            <Settings2 className="size-5" />
+            <Icon icon={Settings01Icon} size={20} />
             <span className="sr-only">Settings</span>
           </Button>
         </SheetTrigger>

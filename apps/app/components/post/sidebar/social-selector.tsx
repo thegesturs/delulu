@@ -23,7 +23,8 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import type { SocialType } from '@delulu/validators/post';
 import { useQuery } from 'convex-helpers/react/cache';
-import { Settings } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
 import {
   AnimatePresence,
   LayoutGroup,
@@ -233,7 +234,7 @@ function SocialSelectorItem({
                     onClick={handleSettingsClick}
                     className="h-6 w-6 hover:bg-white/20"
                   >
-                    <Settings className="h-3 w-3" />
+                    <Icon icon={Settings01Icon} size={12} />
                   </Button>
                 )}
                 {isSelected && (

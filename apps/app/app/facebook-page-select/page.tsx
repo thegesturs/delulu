@@ -9,7 +9,8 @@ import {
 import { Button } from '@delulu/design-system/components/ui/button';
 import type { FacebookPagesPublic } from '@delulu/validators/facebook';
 import { useQuery } from '@tanstack/react-query';
-import { TriangleAlert } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Alert01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -46,7 +47,7 @@ function FacebookPageSelectContent() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4">
           <Alert variant="destructive">
-            <TriangleAlert />
+            <Icon icon={Alert01Icon} size={16} />
             <AlertTitle>Failed to Load Facebook Pages</AlertTitle>
             <AlertDescription>
               We couldn't load your Facebook pages. This might be due to a

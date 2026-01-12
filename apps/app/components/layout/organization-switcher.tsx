@@ -8,12 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@delulu/design-system/components/ui/dropdown-menu';
+import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  ChevronDownIcon,
-  LayoutGridIcon,
-  SettingsIcon,
+  ChevronDown,
+  GridViewIcon,
+  Settings01Icon,
   UserIcon,
-} from 'lucide-react';
+} from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -45,7 +46,7 @@ export function OrganizationSwitcher() {
             />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent shadow-bevel">
-              <UserIcon className="h-4 w-4 text-sidebar-foreground" />
+              <Icon icon={UserIcon} size={16} className=" text-sidebar-foreground" />
             </div>
           )}
           <div className="flex flex-1 flex-col items-start overflow-hidden group-data-[state=collapsed]:hidden">
@@ -56,7 +57,7 @@ export function OrganizationSwitcher() {
               Personal Workspace
             </span>
           </div>
-          <ChevronDownIcon className="h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=collapsed]:hidden group-data-[state=open]:rotate-180" />
+          <Icon icon={ChevronDown} size={16} className=" shrink-0 opacity-50 transition-transform duration-200 group-data-[state=collapsed]:hidden group-data-[state=open]:rotate-180" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="p-2 md:w-[300px]">
@@ -72,7 +73,7 @@ export function OrganizationSwitcher() {
             />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-accent">
-              <UserIcon className="h-5 w-5 text-sidebar-foreground" />
+              <Icon icon={UserIcon} size={20} className=" text-sidebar-foreground" />
             </div>
           )}
           <div className="flex flex-col">
@@ -89,7 +90,7 @@ export function OrganizationSwitcher() {
             className="flex h-auto w-full justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
             onClick={() => router.push('/')}
           >
-            <LayoutGridIcon className="h-4 w-4 text-sidebar-foreground/80" />
+            <Icon icon={GridViewIcon} size={16} className=" text-sidebar-foreground/80" />
             Overview
           </Button>
           <Button
@@ -98,7 +99,7 @@ export function OrganizationSwitcher() {
             className="flex h-auto w-full justify-start gap-2 p-2 text-sm hover:bg-sidebar-accent"
             onClick={() => router.push('/settings')}
           >
-            <SettingsIcon className="h-4 w-4 text-sidebar-foreground/80" />
+            <Icon icon={Settings01Icon} size={16} className=" text-sidebar-foreground/80" />
             Settings
           </Button>
         </div>

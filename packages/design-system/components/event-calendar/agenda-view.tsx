@@ -1,7 +1,8 @@
 'use client';
 
 import { addDays, format, isToday } from 'date-fns';
-import { CalendarDays } from 'lucide-react';
+import { Icon } from '../../providers/icon';
+import { Calendar as CalendarHugeIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useMemo } from 'react';
 
 import {
@@ -77,7 +78,7 @@ export function AgendaView({
         })
       ) : (
         <div className="flex min-h-[70svh] flex-col items-center justify-center py-16 text-center">
-          <CalendarDays size={32} className="mb-2 text-muted-foreground/50" />
+          <Icon icon={CalendarHugeIcon} size={32} className="mb-2 text-muted-foreground/50" />
           <h3 className="font-medium text-lg">No events found</h3>
           <p className="text-muted-foreground">
             There are no events scheduled for this time period.

@@ -1,7 +1,8 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Image01Icon, Search01Icon, VideoIcon } from '@hugeicons-pro/core-solid-rounded';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -154,7 +155,7 @@ function MediaGrid({
                   />
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
                     <div className="rounded-full bg-black bg-opacity-50 p-2">
-                      <Video className="h-4 w-4 text-white" />
+                      <Icon icon={VideoIcon} size={16} className="text-white" />
                     </div>
                   </div>
                 </div>
@@ -180,9 +181,9 @@ function MediaGrid({
               {/* Media type indicator */}
               <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
                 {media.mediaType === 'IMAGE' ? (
-                  <ImageIcon className="h-3 w-3" />
+                  <Icon icon={Image01Icon} size={12} />
                 ) : (
-                  <Video className="h-3 w-3" />
+                  <Icon icon={VideoIcon} size={12} />
                 )}
               </div>
             </motion.div>
@@ -360,7 +361,7 @@ export function MediaSelectionDialog({
         <div className="space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+            <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground" />
             <Input
               placeholder="Search media..."
               value={searchQuery}
@@ -387,7 +388,7 @@ export function MediaSelectionDialog({
             {!isLoading && filteredMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
-                  <ImageIcon className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <Icon icon={Image01Icon} size={48} className="mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">No media found</p>
                   <p className="mt-2 text-muted-foreground text-sm">
                     {searchQuery

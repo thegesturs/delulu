@@ -12,13 +12,14 @@ import {
   subMonths,
   subWeeks,
 } from 'date-fns';
+import { Icon } from '../../providers/icon';
 import {
   CalendarCheck,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-} from 'lucide-react';
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Add01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -295,9 +296,10 @@ export function EventCalendar({
               className="max-[479px]:aspect-square max-[479px]:p-0!"
               onClick={handleToday}
             >
-              <CalendarCheck
-                className="min-[480px]:hidden"
+              <Icon
+                icon={CalendarCheck}
                 size={16}
+                className="min-[480px]:hidden"
                 aria-hidden="true"
               />
               <span className="max-[479px]:sr-only">Today</span>
@@ -309,7 +311,7 @@ export function EventCalendar({
                 onClick={handlePrevious}
                 aria-label="Previous"
               >
-                <ChevronLeftIcon size={16} aria-hidden="true" />
+                <Icon icon={ChevronLeft} size={16} aria-hidden="true" />
               </Button>
               <Button
                 variant="ghost"
@@ -317,7 +319,7 @@ export function EventCalendar({
                 onClick={handleNext}
                 aria-label="Next"
               >
-                <ChevronRightIcon size={16} aria-hidden="true" />
+                <Icon icon={ChevronRight} size={16} aria-hidden="true" />
               </Button>
             </div>
             <h2 className="font-semibold text-sm sm:text-lg md:text-xl">
@@ -336,9 +338,10 @@ export function EventCalendar({
                       {view.charAt(0).toUpperCase() + view.slice(1)}
                     </span>
                   </span>
-                  <ChevronDownIcon
-                    className="-me-1 opacity-60"
+                  <Icon
+                    icon={ChevronDown}
                     size={16}
+                    className="-me-1 opacity-60"
                     aria-hidden="true"
                   />
                 </Button>
@@ -366,9 +369,10 @@ export function EventCalendar({
                   setIsEventDialogOpen(true);
                 }}
               >
-                <PlusIcon
-                  className="sm:-ms-1 opacity-60"
+                <Icon
+                  icon={Add01Icon}
                   size={16}
+                  className="sm:-ms-1 opacity-60"
                   aria-hidden="true"
                 />
                 <span className="max-sm:sr-only">New event</span>

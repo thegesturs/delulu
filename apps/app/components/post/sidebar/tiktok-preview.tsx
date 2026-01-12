@@ -3,18 +3,19 @@
 import { usePost, useSelectedSocialProviders } from '@/store/post';
 import { api } from '@delulu/database/convex/_generated/api';
 import { useQuery } from 'convex-helpers/react/cache';
+import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Bookmark,
-  Heart,
-  Home,
-  Inbox,
-  MessageCircle,
-  Music,
-  Plus,
-  Search,
-  Share2,
-  User,
-} from 'lucide-react';
+  BookmarkIcon,
+  FavouriteCircleIcon,
+  HomeIcon,
+  InboxIcon,
+  MessageIcon,
+  MusicNoteIcon,
+  Add01Icon,
+  Search01Icon,
+  ShareIcon,
+  UserIcon,
+} from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 
 export function TikTokPreview() {
@@ -149,7 +150,7 @@ export function TikTokPreview() {
                 {/* Music */}
                 {hasVideo && (
                   <div className="flex items-center gap-2 text-white/80">
-                    <Music className="h-4 w-4" />
+                    <Icon icon={MusicNoteIcon} size={16} />
                     <span className="text-[11px]">Original Sound</span>
                   </div>
                 )}
@@ -184,7 +185,7 @@ export function TikTokPreview() {
 
                 {/* Like */}
                 <div className="flex flex-col items-center">
-                  <Heart className="h-8 w-8 text-white" fill="none" />
+                  <Icon icon={FavouriteCircleIcon} size={32} className="text-white" />
                   <span className="text-white/80 text-xs">
                     {formatNumber(12300)}
                   </span>
@@ -192,7 +193,7 @@ export function TikTokPreview() {
 
                 {/* Comment */}
                 <div className="flex flex-col items-center">
-                  <MessageCircle className="h-8 w-8 text-white" fill="none" />
+                  <Icon icon={MessageIcon} size={32} className="text-white" />
                   <span className="text-white/80 text-xs">
                     {formatNumber(234)}
                   </span>
@@ -200,7 +201,7 @@ export function TikTokPreview() {
 
                 {/* Bookmark */}
                 <div className="flex flex-col items-center">
-                  <Bookmark className="h-8 w-8 text-white" fill="none" />
+                  <Icon icon={BookmarkIcon} size={32} className="text-white" />
                   <span className="text-white/80 text-xs">
                     {formatNumber(1234)}
                   </span>
@@ -208,7 +209,7 @@ export function TikTokPreview() {
 
                 {/* Share */}
                 <div className="flex flex-col items-center">
-                  <Share2 className="h-8 w-8 text-white" fill="none" />
+                  <Icon icon={ShareIcon} size={32} className="text-white" />
                   <span className="text-white/80 text-xs">
                     {formatNumber(567)}
                   </span>
@@ -223,22 +224,22 @@ export function TikTokPreview() {
               {/* Bottom Navigation */}
               <div className="absolute right-0 bottom-0 left-0 flex h-12 items-center justify-around bg-black/70 px-4">
                 <div className="flex flex-col items-center text-white">
-                  <Home className="h-5 w-5" />
+                  <Icon icon={HomeIcon} size={20} />
                   <span className="text-[11px]">Home</span>
                 </div>
                 <div className="flex flex-col items-center text-white/70">
-                  <Search className="h-5 w-5" />
+                  <Icon icon={Search01Icon} size={20} />
                   <span className="text-[11px]">Discover</span>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white">
-                  <Plus className="-translate-y-[1px] h-5 w-5" />
+                  <Icon icon={Add01Icon} size={20} className="-translate-y-[1px]" />
                 </div>
                 <div className="flex flex-col items-center text-white/70">
-                  <Inbox className="h-5 w-5" />
+                  <Icon icon={InboxIcon} size={20} />
                   <span className="text-[11px]">Inbox</span>
                 </div>
                 <div className="flex flex-col items-center text-white/70">
-                  <User className="h-5 w-5" />
+                  <Icon icon={UserIcon} size={20} />
                   <span className="text-[11px]">Profile</span>
                 </div>
               </div>

@@ -18,7 +18,9 @@ import {
 import { Input } from '@delulu/design-system/components/ui/input';
 import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
 import type { FacebookPagePublic } from '@delulu/validators/facebook';
-import { Search } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Search01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FaFacebookF } from 'react-icons/fa6';
@@ -105,7 +107,7 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
         </DialogHeader>
 
         <div className="relative mt-4">
-          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+          <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3  transform text-muted-foreground" />
           <Input
             placeholder="Search pages..."
             value={searchQuery}

@@ -130,6 +130,9 @@ importers:
       '@delulu/webhooks':
         specifier: workspace:*
         version: link:../../packages/webhooks
+      '@hugeicons-pro/core-solid-rounded':
+        specifier: ^3.1.0
+        version: 3.1.0
       '@opennextjs/cloudflare':
         specifier: 1.6.0
         version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9))
@@ -181,9 +184,6 @@ importers:
       import-in-the-middle:
         specifier: ^1.13.1
         version: 1.14.2
-      lucide-react:
-        specifier: ^0.511.0
-        version: 0.511.0(react@19.1.0)
       motion:
         specifier: ^12.15.0
         version: 12.19.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -21024,6 +21024,14 @@ snapshots:
     optionalDependencies:
       vite: 5.4.19(@types/node@22.14.1)(lightningcss@1.30.1)(terser@5.43.1)
 
+  '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
+
   '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
     dependencies:
       '@vitest/spy': 3.2.4
@@ -28055,7 +28063,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
+      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4

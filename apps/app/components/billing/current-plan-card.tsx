@@ -21,7 +21,8 @@ import {
 import { PLANS } from '@delulu/payments';
 import { useAction } from 'convex/react';
 import { format } from 'date-fns';
-import { Calendar, CreditCard, ExternalLink, Sparkles } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Calendar01Icon, CreditCardIcon, Link01Icon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -64,7 +65,7 @@ export function CurrentPlanCard() {
               {plan.name} Plan
               {subscription.isPaid && (
                 <Badge variant="default">
-                  <Sparkles className="mr-1 h-3 w-3" />
+                  <Icon icon={SparklesIcon} size={12} className="mr-1" />
                   Active
                 </Badge>
               )}
@@ -85,7 +86,7 @@ export function CurrentPlanCard() {
               disabled={isLoadingPortal}
             >
               {isLoadingPortal ? 'Loading...' : 'Manage'}
-              <ExternalLink className="ml-2 h-3 w-3" />
+              <Icon icon={Link01Icon} size={12} className="ml-2" />
             </Button>
           )}
         </div>
@@ -104,7 +105,7 @@ export function CurrentPlanCard() {
           </div>
           {subscription.isPaid && subscription.currentPeriodEnd && (
             <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
-              <Calendar className="h-4 w-4" />
+              <Icon icon={Calendar01Icon} size={16} />
               {subscription.cancelAtPeriodEnd ? (
                 <span>
                   Expires on{' '}
@@ -166,7 +167,7 @@ export function CurrentPlanCard() {
             <div className="flex flex-wrap gap-2">
               {plan.features.aiContentGeneration && (
                 <Badge variant="secondary">
-                  <Sparkles className="mr-1 h-3 w-3" />
+                  <Icon icon={SparklesIcon} size={12} className="mr-1" />
                   AI Generation
                 </Badge>
               )}
@@ -219,7 +220,7 @@ export function CurrentPlanCard() {
               window.location.href = '/billing';
             }}
           >
-            <Sparkles className="mr-2 h-4 w-4" />
+            <Icon icon={SparklesIcon} size={16} className="mr-2" />
             Upgrade Plan
           </Button>
         ) : (
@@ -230,7 +231,7 @@ export function CurrentPlanCard() {
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
             >
-              <CreditCard className="mr-2 h-4 w-4" />
+              <Icon icon={CreditCardIcon} size={16} className="mr-2" />
               {isLoadingPortal ? 'Loading...' : 'Billing Portal'}
             </Button>
             {!subscription.cancelAtPeriodEnd && (

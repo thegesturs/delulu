@@ -18,7 +18,8 @@ import {
 } from '@delulu/design-system/components/ui/card';
 import { PLANS, type PlanType } from '@delulu/payments';
 import { useAction } from 'convex/react';
-import { ArrowRight, Lock, Sparkles } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { ArrowRight01Icon, LockIcon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -71,7 +72,7 @@ export function UpgradePrompt({
     <Card className={className}>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Lock className="h-5 w-5 text-muted-foreground" />
+          <Icon icon={LockIcon} size={20} className="text-muted-foreground" />
           <CardTitle className="text-xl">{feature} Requires Upgrade</CardTitle>
         </div>
         <CardDescription>
@@ -107,30 +108,30 @@ export function UpgradePrompt({
           <ul className="space-y-1 text-muted-foreground text-sm">
             {plan.features.aiContentGeneration && (
               <li className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Icon icon={SparklesIcon} size={16} className="text-primary" />
                 AI Content Generation
               </li>
             )}
             {plan.features.analytics && (
               <li className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Icon icon={SparklesIcon} size={16} className="text-primary" />
                 Advanced Analytics
               </li>
             )}
             {plan.features.advancedScheduling && (
               <li className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Icon icon={SparklesIcon} size={16} className="text-primary" />
                 Advanced Scheduling
               </li>
             )}
             {plan.features.collaboration && (
               <li className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
+                <Icon icon={SparklesIcon} size={16} className="text-primary" />
                 Team Collaboration
               </li>
             )}
             <li className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Icon icon={SparklesIcon} size={16} className="text-primary" />
               {plan.limits.monthlyPosts === -1
                 ? 'Unlimited'
                 : `${plan.limits.monthlyPosts}`}{' '}
@@ -164,7 +165,7 @@ export function UpgradePrompt({
           ) : (
             <>
               Upgrade to {plan.name}
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <Icon icon={ArrowRight01Icon} size={16} className="ml-2" />
             </>
           )}
         </Button>
@@ -213,7 +214,7 @@ export function InlineUpgradePrompt({
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
       <div className="flex items-center gap-3">
-        <Lock className="h-5 w-5 text-muted-foreground" />
+        <Icon icon={LockIcon} size={20} className="text-muted-foreground" />
         <div>
           <p className="font-medium">
             {feature} requires {plan.name}

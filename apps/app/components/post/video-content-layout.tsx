@@ -10,7 +10,8 @@ import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { cn } from '@delulu/design-system/lib/utils';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
-import { Edit3, ImageIcon, Trash2 } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { PencilEdit01Icon, Image01Icon, Delete01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useCallback, useState } from 'react';
 import { MediaUploader } from './media-uploader';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';
@@ -171,7 +172,7 @@ export function VideoContentLayout({
                 <div className="flex items-center gap-2">
                   {hasThumbnail && (
                     <Badge variant="secondary" className="gap-1">
-                      <ImageIcon className="h-3 w-3" />
+                      <Icon icon={Image01Icon} size={12} />
                       Set
                     </Badge>
                   )}
@@ -182,7 +183,7 @@ export function VideoContentLayout({
                     onClick={onRemoveVideo}
                     className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Icon icon={Delete01Icon} size={14} />
                   </Button>
                 </div>
               </div>
@@ -207,7 +208,7 @@ export function VideoContentLayout({
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
-                          <Edit3 className="h-4 w-4" />
+                          <Icon icon={PencilEdit01Icon} size={16} />
                           <span className="font-medium text-sm">
                             Change Thumbnail
                           </span>
@@ -230,7 +231,7 @@ export function VideoContentLayout({
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
-                          <ImageIcon className="h-4 w-4" />
+                          <Icon icon={Image01Icon} size={16} />
                           <span className="font-medium text-sm">
                             Select Thumbnail
                           </span>
@@ -248,7 +249,7 @@ export function VideoContentLayout({
                 onClick={() => setIsThumbnailDialogOpen(true)}
                 className="w-full"
               >
-                <ImageIcon className="mr-2 h-4 w-4" />
+                <Icon icon={Image01Icon} size={16} className="mr-2" />
                 {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
               </Button>
             </div>

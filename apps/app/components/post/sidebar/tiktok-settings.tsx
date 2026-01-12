@@ -16,6 +16,7 @@ import {
 } from '@delulu/design-system/components/ui/select';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import {
   type PromotionContentType,
@@ -24,7 +25,7 @@ import {
   promotionContentTypes,
   tikTokPrivacyLevels,
 } from '@delulu/validators/post';
-import { Info } from 'lucide-react';
+import { InformationCircleIcon } from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -295,7 +296,6 @@ export function TikTokSettingsDisplay({
     }
   };
 
-
   // Show loading state while fetching creator info
   if (creatorInfo.isLoading && !creatorInfo.data) {
     return (
@@ -505,7 +505,11 @@ export function TikTokSettingsDisplay({
           (commercialContentState.yourBrand ||
             commercialContentState.brandedContent) && (
             <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-              <Info className="text-blue-600 dark:text-blue-400" />
+              <Icon
+                icon={InformationCircleIcon}
+                size={16}
+                className="text-blue-600 dark:text-blue-400"
+              />
               <AlertDescription className="text-blue-800 dark:text-blue-300">
                 Your video will be labeled "
                 {commercialContentState.brandedContent
@@ -550,7 +554,7 @@ export function TikTokSettingsDisplay({
                   You are promoting another brand or a third party
                 </p>
                 {tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY && (
-                  <p className="text-muted-foreground text-xs mt-1">
+                  <p className="mt-1 text-muted-foreground text-xs">
                     (Not available for private posts)
                   </p>
                 )}
@@ -559,7 +563,9 @@ export function TikTokSettingsDisplay({
                 id="branded-content"
                 checked={commercialContentState.brandedContent}
                 onCheckedChange={handleBrandedContentChange}
-                disabled={tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY}
+                disabled={
+                  tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
+                }
               />
             </div>
 

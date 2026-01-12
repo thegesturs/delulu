@@ -10,7 +10,9 @@ import {
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
 import { useQuery } from 'convex-helpers/react/cache';
-import { Check, Loader2 } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Tick01Icon, Loading01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -155,13 +157,13 @@ function ActionStatus({
   if (isConnected) {
     return (
       <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Check className="size-4" />
+        <Icon icon={Tick01Icon} className="size-4" />
       </div>
     );
   }
 
   if (isLoading) {
-    return <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />;
+    return <Icon icon={Loading01Icon} size={20} className=" animate-spin text-muted-foreground" />;
   }
 
   return (

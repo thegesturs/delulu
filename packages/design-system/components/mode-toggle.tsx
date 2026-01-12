@@ -1,8 +1,7 @@
 'use client';
 
-import { useTheme } from 'next-themes';
-import { Icon } from '../providers/icon';
 import { Moon, Sun } from '@hugeicons-pro/core-solid-rounded';
+import { useTheme } from 'next-themes';
 import { Button } from '../components/ui/button';
 import {
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import { Icon } from '../providers/icon';
 
 const themes = [
   { label: 'Light', value: 'light' },
@@ -28,8 +28,16 @@ export const ModeToggle = () => {
           size="icon"
           className="shrink-0 text-foreground"
         >
-          <Icon icon={Sun} size={20} className="dark:-rotate-90 rotate-0 scale-100 transition-all dark:scale-0" />
-          <Icon icon={Moon} size={20} className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Icon
+            icon={Sun}
+            size={20}
+            className="dark:-rotate-90 rotate-0 scale-100 transition-all dark:scale-0"
+          />
+          <Icon
+            icon={Moon}
+            size={20}
+            className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+          />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>

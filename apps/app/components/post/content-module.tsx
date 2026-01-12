@@ -5,8 +5,9 @@ import { useCallback, useMemo } from 'react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Remove01Icon, Add01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { type SocialType, SocialTypes } from '@delulu/validators/post';
-import { Minus, Plus } from 'lucide-react';
 
 import {
   getDefaultCharacterLimit,
@@ -424,7 +425,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                       className="h-6 w-6"
                       onClick={() => removeTweet(item.order)}
                     >
-                      <Minus className="h-3 w-3" />
+                      <Icon icon={Remove01Icon} size={12} />
                     </Button>
                   )}
                   <Button
@@ -432,7 +433,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     className="h-6 w-6"
                     onClick={() => addTweet(item.order)}
                   >
-                    <Plus className="h-3 w-3" />
+                    <Icon icon={Add01Icon} size={12} />
                   </Button>
                 </div>
               )}

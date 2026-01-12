@@ -17,7 +17,8 @@ import type { SocialType } from '@delulu/validators/post';
 
 import { getPlatformsInDefault } from '@/lib/platform-rules';
 import { useSelectedSocialProviders, useStore } from '@/store/post';
-import { ArrowDown } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { ArrowDown01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useShallow } from 'zustand/shallow';
 import { SocialIcon } from './sidebar/social-icon';
 
@@ -110,7 +111,7 @@ export function AlternativeContentSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button size="icon" className="size-7 rounded-md">
-          <ArrowDown className="size-3" />
+          <Icon icon={ArrowDown01Icon} size={12} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">
