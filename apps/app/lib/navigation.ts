@@ -1,9 +1,9 @@
 import {
   Calendar,
+  CreditCard,
   Draft,
   Home,
   Network,
-  CreditCard,
 } from '@delulu/design-system/icons';
 
 export const navigationItems = [

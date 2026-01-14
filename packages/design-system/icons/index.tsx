@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   CreditCard as CreditCardIcon,
   Pencil as PencilIcon,
+  ConnectIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 
 // Create wrapped components for navigation icons
@@ -29,7 +30,7 @@ export const Draft: ComponentType<{ className?: string }> = (props) => (
 );
 
 export const Network: ComponentType<{ className?: string }> = (props) => (
-  <Icon icon={NetworkIcon} size={14} {...props} />
+  <Icon icon={ConnectIcon} size={14} {...props} />
 );
 
 export const Settings: ComponentType<{ className?: string }> = (props) => (
