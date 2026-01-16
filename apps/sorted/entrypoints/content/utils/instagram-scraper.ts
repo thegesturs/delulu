@@ -160,9 +160,59 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       return null;
     }
 
-    // Find thumbnail image
-    const imgElement = trySelectors(reelElement, INSTAGRAM_SELECTORS.REEL_THUMBNAIL);
-    const thumbnailUrl = imgElement?.getAttribute('src') || '';
+    // Find thumbnail - Instagram uses CSS background-image, not <img> tags!
+    let thumbnailUrl = '';
+
+    // Strategy 1: Look for background-image in the reel container (primary method)
+    const bgElement = reelElement.querySelector('[style*="background-image"]') as HTMLElement;
+    if (bgElement) {
+      const bgImage = bgElement.style.backgroundImage;
+      if (bgImage && bgImage !== 'none') {
+        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (urlMatch) {
+          thumbnailUrl = urlMatch[1];
+          // Filter out GIF placeholders (Instagram uses these for loading states)
+          if (thumbnailUrl.startsWith('data:image/gif')) {
+            thumbnailUrl = '';
+          }
+        }
+      }
+    }
+
+    // Strategy 2: Check link element for background-image
+    if (!thumbnailUrl) {
+      const linkBg = (linkElement as HTMLElement).style?.backgroundImage;
+      if (linkBg && linkBg !== 'none') {
+        const urlMatch = linkBg.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+          thumbnailUrl = urlMatch[1];
+        }
+      }
+    }
+
+    // Strategy 3: Look for img elements (fallback for posts)
+    if (!thumbnailUrl) {
+      const imgElement = reelElement.querySelector('img[src]') as HTMLImageElement;
+      if (imgElement) {
+        const src = imgElement.getAttribute('src') || '';
+        if (src && !src.startsWith('data:image/gif')) {
+          thumbnailUrl = src;
+        }
+      }
+    }
+
+    // Strategy 4: Check computed styles (more expensive, last resort)
+    if (!thumbnailUrl && bgElement) {
+      const computedBg = window.getComputedStyle(bgElement).backgroundImage;
+      if (computedBg && computedBg !== 'none') {
+        const urlMatch = computedBg.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+          thumbnailUrl = urlMatch[1];
+        }
+      }
+    }
+
+    console.log('[Sorted] Thumbnail for', id, ':', thumbnailUrl ? 'YES' : 'NO', thumbnailUrl ? `(${thumbnailUrl.substring(0, 60)}...)` : '');
 
     // Extract metrics
     const metrics: ReelMetrics = {

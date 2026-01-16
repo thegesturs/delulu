@@ -4,9 +4,12 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { OverlayPanel } from './content/components/overlay-panel';
+import { SortPanel } from './content/components/sort-panel';
+import { SortedGrid } from './content/components/sorted-grid';
 import { isReelsTab, monitorUrlChanges } from './content/utils/url-detector';
-import { UI_CONFIG } from './shared/constants';
+import { scrollAndLoadReels, createCancelToken } from './content/utils/infinite-scroll';
+import { validateScrapingCapability } from './content/utils/instagram-scraper';
+import type { ReelData, SortMetric } from './shared/types';
 import './content/styles/overlay.css';
 
 export default defineContentScript({
@@ -15,125 +18,279 @@ export default defineContentScript({
   main() {
     console.log('[Sorted] Content script loaded');
 
-    let shadowRoot: ShadowRoot | null = null;
-    let fabButton: HTMLElement | null = null;
-    let reactRoot: any = null;
+    let panelContainer: HTMLElement | null = null;
+    let gridContainer: HTMLElement | null = null;
+    let panelRoot: any = null;
+    let gridRoot: any = null;
     let cleanupUrlMonitor: (() => void) | null = null;
+    let originalGrid: HTMLElement | null = null;
+    let isSorting = false;
+    let isActive = false;
+    let currentReels: ReelData[] = [];
+    let currentMetric: SortMetric = 'views';
+    let currentQuantity: number = 25;
 
     /**
-     * Create and inject the FAB (Floating Action Button)
+     * Sort reels by specified metric
      */
-    function createFAB() {
-      if (fabButton) return;
-
-      fabButton = document.createElement('div');
-      fabButton.id = 'sorted-fab';
-      fabButton.style.cssText = `
-        position: fixed;
-        bottom: ${UI_CONFIG.FAB_POSITION.bottom};
-        right: ${UI_CONFIG.FAB_POSITION.right};
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        z-index: ${UI_CONFIG.Z_INDEX.FAB};
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        font-size: 28px;
-      `;
-
-      fabButton.innerHTML = '📊';
-
-      fabButton.addEventListener('mouseenter', () => {
-        fabButton!.style.transform = 'scale(1.1)';
-        fabButton!.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.4)';
+    function sortReels(reels: ReelData[], metric: SortMetric): ReelData[] {
+      return [...reels].sort((a, b) => {
+        const aValue = a.metrics[metric] ?? -1;
+        const bValue = b.metrics[metric] ?? -1;
+        return bValue - aValue;
       });
-
-      fabButton.addEventListener('mouseleave', () => {
-        fabButton!.style.transform = 'scale(1)';
-        fabButton!.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-      });
-
-      fabButton.addEventListener('click', () => {
-        showOverlay();
-      });
-
-      document.body.appendChild(fabButton);
-      console.log('[Sorted] FAB created');
     }
 
     /**
-     * Remove the FAB
+     * Find Instagram's reels grid container
      */
-    function removeFAB() {
-      if (fabButton) {
-        fabButton.remove();
-        fabButton = null;
-        console.log('[Sorted] FAB removed');
-      }
-    }
+    function findReelsContainer(): HTMLElement | null {
+      console.log('[Sorted] Finding reels container...');
 
-    /**
-     * Create shadow DOM container for overlay
-     */
-    function createShadowContainer() {
-      if (shadowRoot) return;
+      // First, try to find any reel link
+      const reelLinks = document.querySelectorAll('a[href*="/reel/"]');
+      console.log(`[Sorted] Found ${reelLinks.length} reel links`);
 
-      const container = document.createElement('div');
-      container.id = 'sorted-overlay-container';
-      shadowRoot = container.attachShadow({ mode: 'open' });
-
-      // Inject styles into shadow DOM
-      const style = document.createElement('style');
-      style.textContent = getOverlayStyles();
-      shadowRoot.appendChild(style);
-
-      // Create root element for React
-      const rootElement = document.createElement('div');
-      rootElement.id = 'sorted-root';
-      shadowRoot.appendChild(rootElement);
-
-      document.body.appendChild(container);
-      console.log('[Sorted] Shadow container created');
-    }
-
-    /**
-     * Show the overlay
-     */
-    function showOverlay() {
-      if (!shadowRoot) {
-        createShadowContainer();
+      if (reelLinks.length === 0) {
+        console.log('[Sorted] No reel links found on page');
+        return null;
       }
 
-      const rootElement = shadowRoot!.querySelector('#sorted-root');
-      if (!rootElement) {
-        console.error('[Sorted] Root element not found');
+      // Find the common parent that contains all reel links
+      const firstLink = reelLinks[0];
+      let container = firstLink.parentElement;
+
+      // Walk up the DOM tree to find a container with multiple reels
+      while (container) {
+        const reelsInContainer = container.querySelectorAll('a[href*="/reel/"]').length;
+
+        // If this container has most/all of the reels, it's probably the grid
+        if (reelsInContainer >= reelLinks.length * 0.8) {
+          console.log(`[Sorted] Found container with ${reelsInContainer} reels:`, container.tagName, container.className);
+          return container as HTMLElement;
+        }
+
+        container = container.parentElement;
+      }
+
+      // Fallback: try specific selectors
+      const selectors = [
+        'main > div > div > div > div', // Common Instagram structure
+        'article',
+        '[style*="display: grid"]',
+        '[style*="display:grid"]',
+      ];
+
+      for (const selector of selectors) {
+        const elements = document.querySelectorAll(selector);
+        for (const element of elements) {
+          if (element.querySelector('a[href*="/reel/"]')) {
+            console.log('[Sorted] Found container via selector:', selector);
+            return element as HTMLElement;
+          }
+        }
+      }
+
+      console.log('[Sorted] Could not find reels container');
+      return null;
+    }
+
+    /**
+     * Create and inject the sort panel
+     */
+    function createSortPanel(retryCount = 0) {
+      if (panelContainer) {
+        console.log('[Sorted] Panel already exists');
         return;
       }
 
-      // Create React root if it doesn't exist
-      if (!reactRoot) {
-        reactRoot = createRoot(rootElement);
+      const reelsContainer = findReelsContainer();
+      if (!reelsContainer) {
+        console.log(`[Sorted] Reels container not found (attempt ${retryCount + 1}/5)`);
+
+        // Retry up to 5 times with increasing delays
+        if (retryCount < 5) {
+          const delay = 1000 * (retryCount + 1); // 1s, 2s, 3s, 4s, 5s
+          console.log(`[Sorted] Retrying in ${delay}ms...`);
+          setTimeout(() => createSortPanel(retryCount + 1), delay);
+        } else {
+          console.log('[Sorted] ❌ Failed to find reels container after 5 attempts');
+          console.log('[Sorted] Try refreshing the page or check if you\'re on a reels tab');
+        }
+        return;
       }
 
-      // Render the overlay
-      reactRoot.render(React.createElement(OverlayPanel, { onClose: hideOverlay }));
-      console.log('[Sorted] Overlay shown');
+      console.log('[Sorted] ✅ Found reels container, creating panel...');
+
+      // Create panel container
+      panelContainer = document.createElement('div');
+      panelContainer.id = 'sorted-panel';
+      panelContainer.style.cssText = 'margin-bottom: 24px;';
+
+      // Insert before reels container
+      reelsContainer.parentElement?.insertBefore(panelContainer, reelsContainer);
+
+      // Create React root
+      panelRoot = createRoot(panelContainer);
+      panelRoot.render(
+        React.createElement(SortPanel, {
+          onSort: handleSort,
+          isSorting: isSorting,
+          onReset: handleReset,
+          isActive: isActive,
+        })
+      );
+
+      console.log('[Sorted] ✅ Sort panel created successfully!');
+      console.log('[Sorted] Look for the control panel above the reels grid');
     }
 
     /**
-     * Hide the overlay
+     * Remove sort panel
      */
-    function hideOverlay() {
-      if (reactRoot) {
-        reactRoot.unmount();
-        reactRoot = null;
+    function removeSortPanel() {
+      if (panelRoot) {
+        panelRoot.unmount();
+        panelRoot = null;
       }
-      console.log('[Sorted] Overlay hidden');
+      if (panelContainer) {
+        panelContainer.remove();
+        panelContainer = null;
+      }
+    }
+
+    /**
+     * Handle sort action
+     */
+    async function handleSort(metric: SortMetric, quantity: number) {
+      if (isSorting) return;
+
+      try {
+        isSorting = true;
+        currentMetric = metric;
+        currentQuantity = quantity;
+        updatePanel();
+
+        console.log(`[Sorted] Starting sort: ${metric}, quantity: ${quantity}`);
+
+        // Validate scraping capability
+        const error = validateScrapingCapability();
+        if (error) {
+          alert(error);
+          return;
+        }
+
+        // Scrape reels
+        const cancelToken = createCancelToken();
+        const reels = await scrollAndLoadReels(
+          quantity as any,
+          (current, total, message) => {
+            console.log(`[Sorted] Progress: ${current}/${total} - ${message}`);
+          },
+          cancelToken
+        );
+
+        console.log(`[Sorted] Scraped ${reels.length} reels`);
+
+        if (reels.length === 0) {
+          alert('No reels found');
+          return;
+        }
+
+        // Sort reels
+        const sorted = sortReels(reels, metric);
+        currentReels = sorted.slice(0, quantity);
+
+        // Replace Instagram grid with sorted grid
+        replaceGrid();
+        isActive = true;
+      } catch (error) {
+        console.error('[Sorted] Sort failed:', error);
+        alert('Failed to sort reels. Please try again.');
+      } finally {
+        isSorting = false;
+        updatePanel();
+      }
+    }
+
+    /**
+     * Replace Instagram's grid with our sorted grid
+     */
+    function replaceGrid() {
+      const reelsContainer = findReelsContainer();
+      if (!reelsContainer) {
+        console.log('[Sorted] Reels container not found for replacement');
+        return;
+      }
+
+      // Hide original grid
+      if (!originalGrid) {
+        originalGrid = reelsContainer;
+      }
+      originalGrid.style.display = 'none';
+
+      // Create our grid container if it doesn't exist
+      if (!gridContainer) {
+        gridContainer = document.createElement('div');
+        gridContainer.id = 'sorted-grid';
+        originalGrid.parentElement?.insertBefore(gridContainer, originalGrid.nextSibling);
+      }
+
+      // Render sorted grid
+      if (!gridRoot) {
+        gridRoot = createRoot(gridContainer);
+      }
+
+      gridRoot.render(
+        React.createElement(SortedGrid, {
+          reels: currentReels,
+          sortMetric: currentMetric,
+          quantity: currentQuantity,
+        })
+      );
+
+      console.log('[Sorted] Grid replaced with sorted reels');
+    }
+
+    /**
+     * Reset to original Instagram grid
+     */
+    function handleReset() {
+      if (originalGrid) {
+        originalGrid.style.display = '';
+      }
+
+      if (gridRoot) {
+        gridRoot.unmount();
+        gridRoot = null;
+      }
+
+      if (gridContainer) {
+        gridContainer.remove();
+        gridContainer = null;
+      }
+
+      isActive = false;
+      currentReels = [];
+      updatePanel();
+
+      console.log('[Sorted] Reset to original grid');
+    }
+
+    /**
+     * Update panel state
+     */
+    function updatePanel() {
+      if (panelRoot && panelContainer) {
+        panelRoot.render(
+          React.createElement(SortPanel, {
+            onSort: handleSort,
+            isSorting: isSorting,
+            onReset: handleReset,
+            isActive: isActive,
+          })
+        );
+      }
     }
 
     /**
@@ -143,60 +300,50 @@ export default defineContentScript({
       console.log('[Sorted] URL changed:', newUrl);
 
       if (isReelsTab(newUrl)) {
-        // On reels tab - show FAB
-        createFAB();
+        // On reels tab - inject panel after a delay for DOM to load
+        setTimeout(() => {
+          createSortPanel();
+        }, 1000);
       } else {
-        // Not on reels tab - remove FAB and overlay
-        removeFAB();
-        hideOverlay();
+        // Not on reels tab - cleanup
+        cleanup();
       }
     }
 
     /**
-     * Initialize the extension
+     * Cleanup
+     */
+    function cleanup() {
+      console.log('[Sorted] Cleaning up...');
+      removeSortPanel();
+      handleReset();
+    }
+
+    /**
+     * Initialize
      */
     function initialize() {
       console.log('[Sorted] Initializing...');
+      console.log('[Sorted] Current URL:', window.location.href);
+      console.log('[Sorted] Is reels tab?', isReelsTab());
 
       // Check if we're on a reels tab
       if (isReelsTab()) {
-        createFAB();
+        console.log('[Sorted] On reels tab, will create panel in 2 seconds...');
+        // Wait for Instagram to load
+        setTimeout(() => {
+          console.log('[Sorted] Attempting to create panel...');
+          createSortPanel();
+        }, 2000);
+      } else {
+        console.log('[Sorted] Not on reels tab, waiting for navigation...');
       }
 
       // Monitor URL changes
       cleanupUrlMonitor = monitorUrlChanges(handleUrlChange);
 
-      console.log('[Sorted] Initialized');
+      console.log('[Sorted] Initialized successfully');
     }
-
-    /**
-     * Cleanup on script unload
-     */
-    function cleanup() {
-      console.log('[Sorted] Cleaning up...');
-      removeFAB();
-      hideOverlay();
-      if (cleanupUrlMonitor) {
-        cleanupUrlMonitor();
-      }
-      if (shadowRoot) {
-        const container = shadowRoot.host;
-        container.remove();
-        shadowRoot = null;
-      }
-    }
-
-    // Listen for messages from popup or background
-    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      console.log('[Sorted] Received message:', message);
-
-      if (message.type === 'OPEN_OVERLAY') {
-        showOverlay();
-        sendResponse({ success: true });
-      }
-
-      return true;
-    });
 
     // Initialize
     initialize();
@@ -205,74 +352,3 @@ export default defineContentScript({
     window.addEventListener('beforeunload', cleanup);
   },
 });
-
-/**
- * Get overlay styles as string
- * This will be replaced by the actual CSS content later
- */
-function getOverlayStyles(): string {
-  // For now, return basic styles
-  // The full styles will be in overlay.css
-  return `
-    * {
-      box-sizing: border-box;
-    }
-
-    .sorted-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: ${UI_CONFIG.Z_INDEX.OVERLAY};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: sortedFadeIn ${UI_CONFIG.FADE_DURATION}ms ease;
-    }
-
-    @keyframes sortedFadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    .sorted-backdrop {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
-    }
-
-    .sorted-panel {
-      position: relative;
-      width: ${UI_CONFIG.OVERLAY_WIDTH};
-      max-width: ${UI_CONFIG.OVERLAY_MAX_WIDTH};
-      height: ${UI_CONFIG.OVERLAY_HEIGHT};
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      animation: sortedScaleIn ${UI_CONFIG.SCALE_DURATION}ms ease;
-      overflow: hidden;
-    }
-
-    @keyframes sortedScaleIn {
-      from {
-        transform: scale(0.9);
-        opacity: 0;
-      }
-      to {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-  `;
-}
