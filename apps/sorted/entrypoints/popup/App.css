@@ -91,6 +91,11 @@ body {
   background: #f0f4ff;
 }
 
+.popup-radio span {
+  font-size: 13px;
+  flex: 1;
+}
+
 .popup-radio input[type="radio"] {
   margin: 0;
   cursor: pointer;
@@ -102,10 +107,7 @@ body {
   color: #667eea;
 }
 
-.popup-radio span {
-  font-size: 13px;
-  flex: 1;
-}
+
 
 .popup-checkbox {
   display: flex;

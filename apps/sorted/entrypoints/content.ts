@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { OverlayPanel } from './content/components/OverlayPanel';
+import { OverlayPanel } from './content/components/overlay-panel';
 import { isReelsTab, monitorUrlChanges } from './content/utils/url-detector';
 import { UI_CONFIG } from './shared/constants';
 import './content/styles/overlay.css';
@@ -185,6 +185,18 @@ export default defineContentScript({
         shadowRoot = null;
       }
     }
+
+    // Listen for messages from popup or background
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      console.log('[Sorted] Received message:', message);
+
+      if (message.type === 'OPEN_OVERLAY') {
+        showOverlay();
+        sendResponse({ success: true });
+      }
+
+      return true;
+    });
 
     // Initialize
     initialize();

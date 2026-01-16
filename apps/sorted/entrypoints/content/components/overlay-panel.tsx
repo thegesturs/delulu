@@ -2,11 +2,11 @@
  * Main overlay panel component
  */
 
-import { useReelScraper } from '../hooks/useReelScraper';
-import { LoadingState } from './LoadingState';
-import { ErrorState } from './ErrorState';
-import { SortControls } from './SortControls';
-import { ReelCard } from './ReelCard';
+import { useReelScraper } from '../hooks/use-reel-scraper';
+import { LoadingState } from './loading-state';
+import { ErrorState } from './error-state';
+import { SortControls } from './sort-controls';
+import { ReelCard } from './reel-card';
 
 interface OverlayPanelProps {
   onClose: () => void;
