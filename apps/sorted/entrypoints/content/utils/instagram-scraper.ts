@@ -1,0 +1,307 @@
+/**
+ * Instagram DOM scraping utilities
+ *
+ * ⚠️ CRITICAL: Instagram's DOM structure changes frequently.
+ * These selectors may need to be updated as Instagram evolves.
+ *
+ * The scraper attempts multiple fallback strategies for robustness.
+ */
+
+import type { ReelData, ReelMetrics } from '../../shared/types';
+import { INSTAGRAM_SELECTORS, ERROR_MESSAGES } from '../../shared/constants';
+
+/**
+ * Try multiple selectors until one returns an element
+ */
+function trySelectors(container: Element, selectors: readonly string[]): Element | null {
+  for (const selector of selectors) {
+    try {
+      const element = container.querySelector(selector);
+      if (element) {
+        return element;
+      }
+    } catch (error) {
+      // Invalid selector, continue to next
+      console.warn(`Invalid selector: ${selector}`, error);
+    }
+  }
+  return null;
+}
+
+/**
+ * Try multiple selectors until one returns elements
+ */
+function trySelectorsAll(container: Element | Document, selectors: readonly string[]): Element[] {
+  for (const selector of selectors) {
+    try {
+      const elements = Array.from(container.querySelectorAll(selector));
+      if (elements.length > 0) {
+        return elements;
+      }
+    } catch (error) {
+      // Invalid selector, continue to next
+      console.warn(`Invalid selector: ${selector}`, error);
+    }
+  }
+  return [];
+}
+
+/**
+ * Extract numeric value from text
+ * Handles formats like: "1.2K", "5M", "123,456", "1.2k views"
+ */
+function parseMetricValue(text: string): number | undefined {
+  if (!text) {
+    return undefined;
+  }
+
+  // Remove common words and extract numeric parts
+  const cleaned = text
+    .toLowerCase()
+    .replace(/views?|likes?|comments?/gi, '')
+    .trim();
+
+  // Match number with optional K/M suffix
+  const match = cleaned.match(/([\d,\.]+)\s*([km])?/i);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, numStr, suffix] = match;
+  let value = Number.parseFloat(numStr.replace(/,/g, ''));
+
+  if (Number.isNaN(value)) {
+    return undefined;
+  }
+
+  // Apply multiplier
+  if (suffix) {
+    const multiplier = suffix.toLowerCase() === 'k' ? 1000 : 1000000;
+    value *= multiplier;
+  }
+
+  return Math.floor(value);
+}
+
+/**
+ * Extract metric from element using multiple strategies
+ */
+function extractMetric(container: Element, selectors: readonly string[]): number | undefined {
+  const element = trySelectors(container, selectors);
+  if (!element) {
+    return undefined;
+  }
+
+  // Try aria-label first (most reliable)
+  const ariaLabel = element.getAttribute('aria-label');
+  if (ariaLabel) {
+    const value = parseMetricValue(ariaLabel);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  // Try title attribute
+  const title = element.getAttribute('title');
+  if (title) {
+    const value = parseMetricValue(title);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  // Try text content
+  const text = element.textContent;
+  if (text) {
+    const value = parseMetricValue(text);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract reel ID from URL
+ */
+function extractReelId(url: string): string | null {
+  const match = url.match(/\/reel\/([^\/\?]+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Scrape metrics from a single reel element
+ */
+export function scrapeReelElement(reelElement: Element): ReelData | null {
+  try {
+    // Find the link element
+    const linkElement = trySelectors(reelElement, INSTAGRAM_SELECTORS.REEL_LINK);
+    if (!linkElement) {
+      console.warn('No link found in reel element', reelElement);
+      return null;
+    }
+
+    const href = linkElement.getAttribute('href');
+    if (!href) {
+      console.warn('Link has no href', linkElement);
+      return null;
+    }
+
+    // Construct full URL
+    const url = href.startsWith('http')
+      ? href
+      : `https://www.instagram.com${href}`;
+
+    // Extract reel ID
+    const id = extractReelId(url);
+    if (!id) {
+      console.warn('Could not extract reel ID from URL', url);
+      return null;
+    }
+
+    // Find thumbnail image
+    const imgElement = trySelectors(reelElement, INSTAGRAM_SELECTORS.REEL_THUMBNAIL);
+    const thumbnailUrl = imgElement?.getAttribute('src') || '';
+
+    // Extract metrics
+    const metrics: ReelMetrics = {
+      views: extractMetric(reelElement, INSTAGRAM_SELECTORS.VIEW_COUNT),
+      likes: extractMetric(reelElement, INSTAGRAM_SELECTORS.LIKE_COUNT),
+      comments: extractMetric(reelElement, INSTAGRAM_SELECTORS.COMMENT_COUNT),
+    };
+
+    return {
+      id,
+      url,
+      thumbnailUrl,
+      metrics,
+      scrapedAt: Date.now(),
+    };
+  } catch (error) {
+    console.error('Error scraping reel element:', error, reelElement);
+    return null;
+  }
+}
+
+/**
+ * Find all reel elements currently visible on the page
+ */
+export function findReelElements(): Element[] {
+  // Try to find reel grid container first
+  const gridContainers = trySelectorsAll(document, INSTAGRAM_SELECTORS.REEL_GRID);
+
+  if (gridContainers.length > 0) {
+    // Find all reel links within the grid
+    const reelLinks: Element[] = [];
+    for (const container of gridContainers) {
+      const links = trySelectorsAll(container, INSTAGRAM_SELECTORS.REEL_LINK);
+      reelLinks.push(...links);
+    }
+
+    // Get parent elements of links (usually the article/div containers)
+    const reelElements = reelLinks
+      .map(link => link.closest('article') || link.closest('div[class]') || link)
+      .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
+
+    return reelElements;
+  }
+
+  // Fallback: Find all reel links directly
+  const reelLinks = trySelectorsAll(document, INSTAGRAM_SELECTORS.REEL_LINK);
+
+  // Get parent containers
+  const reelElements = reelLinks
+    .map(link => link.closest('article') || link.closest('div[class]') || link)
+    .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
+
+  return reelElements;
+}
+
+/**
+ * Scrape all visible reels on the current page
+ */
+export function scrapeVisibleReels(): ReelData[] {
+  const reelElements = findReelElements();
+  console.log(`Found ${reelElements.length} reel elements`);
+
+  const reels: ReelData[] = [];
+  const seenIds = new Set<string>();
+
+  for (const element of reelElements) {
+    const reel = scrapeReelElement(element);
+    if (reel && !seenIds.has(reel.id)) {
+      reels.push(reel);
+      seenIds.add(reel.id);
+    }
+  }
+
+  console.log(`Successfully scraped ${reels.length} unique reels`);
+  return reels;
+}
+
+/**
+ * Check if Instagram is currently loading content
+ */
+export function isLoading(): boolean {
+  const loadingElements = trySelectorsAll(document, INSTAGRAM_SELECTORS.LOADING_SPINNER);
+  return loadingElements.length > 0;
+}
+
+/**
+ * Wait for Instagram to finish loading
+ */
+export async function waitForLoad(timeout = 5000): Promise<void> {
+  const startTime = Date.now();
+
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (!isLoading()) {
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startTime > timeout) {
+        reject(new Error('Loading timeout'));
+        return;
+      }
+
+      setTimeout(check, 100);
+    };
+
+    check();
+  });
+}
+
+/**
+ * Validate that we're able to scrape reels
+ * Returns null if valid, error message if invalid
+ */
+export function validateScrapingCapability(): string | null {
+  // Check if we can find any reel elements
+  const reelElements = findReelElements();
+
+  if (reelElements.length === 0) {
+    return ERROR_MESSAGES.NO_REELS_FOUND;
+  }
+
+  // Try to scrape one reel to verify selectors work
+  const testReel = scrapeReelElement(reelElements[0]);
+
+  if (!testReel) {
+    return ERROR_MESSAGES.INVALID_SELECTORS;
+  }
+
+  // Check if we got at least one metric
+  const hasAnyMetric =
+    testReel.metrics.views !== undefined ||
+    testReel.metrics.likes !== undefined ||
+    testReel.metrics.comments !== undefined;
+
+  if (!hasAnyMetric) {
+    console.warn('Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view.');
+    // Don't return error - we can still sort by available metrics
+  }
+
+  return null;
+}

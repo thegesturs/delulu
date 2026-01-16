@@ -1,8 +1,8 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "@delulu/sorted",
+  "description": "Instagram Reel Sorter - Sort reels by engagement metrics",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -19,6 +19,7 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.278",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",

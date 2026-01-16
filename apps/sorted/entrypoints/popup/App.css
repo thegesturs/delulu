@@ -1,42 +1,248 @@
+/**
+ * Popup UI styles for extension settings
+ */
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #f8f9fa;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 360px;
+  min-height: 500px;
+}
+
+.popup-container {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  min-height: 500px;
+}
+
+/* Header */
+.popup-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #54bc4ae0);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.popup-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
 }
 
-@keyframes logo-spin {
+.popup-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+}
+
+.popup-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Content */
+.popup-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.popup-section {
+  margin-bottom: 24px;
+}
+
+.popup-section:last-child {
+  margin-bottom: 0;
+}
+
+.popup-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.popup-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.popup-radio:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.popup-radio input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.popup-radio input[type="radio"]:checked ~ span {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.popup-radio span {
+  font-size: 13px;
+  flex: 1;
+}
+
+.popup-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.popup-checkbox:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.popup-checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #667eea;
+  width: 18px;
+  height: 18px;
+}
+
+.popup-checkbox span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.popup-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  margin-left: 28px;
+  line-height: 1.4;
+}
+
+/* Actions */
+.popup-actions {
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.popup-button {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.popup-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.popup-button-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.popup-button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.popup-button-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.popup-button-secondary:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+/* Message */
+.popup-message {
+  margin: 16px 20px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  animation: slideIn 200ms ease;
+}
+
+@keyframes slideIn {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(-10px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.popup-message-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
 }
 
-.card {
-  padding: 2em;
+.popup-message-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
-.read-the-docs {
-  color: #888;
+/* Footer */
+.popup-footer {
+  padding: 12px 20px;
+  text-align: center;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.popup-version {
+  font-size: 11px;
+  color: #999;
+  margin: 0;
+}
+
+/* Loading State */
+.popup-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+  font-size: 14px;
+  color: #666;
 }
