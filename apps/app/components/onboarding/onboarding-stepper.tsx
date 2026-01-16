@@ -4,7 +4,11 @@ import { useOnboarding } from '@/hooks/use-onboarding';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Icon } from '@delulu/design-system/providers/icon';
 
-import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Loading03Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { ConnectAccountsStep } from './connect-accounts-step';
@@ -30,10 +34,8 @@ export function OnboardingStepper() {
 
   const handleContinue = async () => {
     if (isLastStep) {
-      // Track final step completion before completing onboarding
-      await handleNextStep();
-
-      // Complete onboarding and redirect
+      // On last step, complete onboarding directly without advancing
+      // (there's no step 4, so we don't call handleNextStep)
       const result = await handleCompleteOnboarding();
       if (result.success) {
         router.push('/');
@@ -125,8 +127,23 @@ export function OnboardingStepper() {
               size="lg"
               className="px-8"
             >
-              {getButtonText()}
-              {!isLastStep && <Icon icon={ArrowRight01Icon} size={16} className="ml-2 " />}
+              {isLoading ? (
+                <>
+                  <Icon
+                    icon={Loading03Icon}
+                    size={16}
+                    className="mr-2 animate-spin"
+                  />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  {getButtonText()}
+                  {!isLastStep && (
+                    <Icon icon={ArrowRight01Icon} size={16} className="ml-2 " />
+                  )}
+                </>
+              )}
             </Button>
           </div>
         </motion.div>

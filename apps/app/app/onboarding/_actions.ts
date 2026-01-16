@@ -13,6 +13,16 @@ export const updateOnboardingStep = async (data: {
     return { error: 'Not authenticated' };
   }
 
+  // VALIDATION: Check step bounds
+  if (data.currentStep < 1 || data.currentStep > 3) {
+    return { error: 'Invalid step number' };
+  }
+
+  // VALIDATION: Ensure arrays are valid
+  if (!Array.isArray(data.stepsCompleted)) {
+    return { error: 'Invalid stepsCompleted format' };
+  }
+
   const client = await clerkClient();
 
   try {
@@ -46,7 +56,9 @@ export const updateOnboardingStep = async (data: {
     return { success: true };
   } catch (error) {
     console.error('Error updating onboarding step:', error);
-    return { error: 'Failed to update onboarding progress' };
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to update onboarding progress';
+    return { error: errorMessage };
   }
 };
 
@@ -76,19 +88,36 @@ export const completeOnboarding = async () => {
       {} as Record<string, unknown>
     );
 
+    // Get current step data and ensure final step is marked as completed
+    const currentStep = (cleanMetadata.currentStep as number) || 3;
+    const currentStepsCompleted = (cleanMetadata.stepsCompleted as string[]) || [];
+    const stepNames = { 1: 'welcome', 2: 'connect', 3: 'pricing' };
+    const finalStepName = stepNames[currentStep as keyof typeof stepNames] || 'pricing';
+
+    // Add final step to completed steps if not already there
+    const allStepsCompleted = Array.from(
+      new Set([...currentStepsCompleted, finalStepName])
+    );
+
     // Mark onboarding as complete while preserving other metadata
     const result = await client.users.updateUser(userId, {
       publicMetadata: {
         ...cleanMetadata,
         onboardingComplete: true,
         completedAt: Date.now(),
+        // Keep step tracking for analytics
+        currentStep: currentStep,
+        stepsCompleted: allStepsCompleted,
+        skippedSteps: cleanMetadata.skippedSteps || [],
       },
     });
 
     return { success: true, publicMetadata: result.publicMetadata };
   } catch (error) {
     console.error('Error completing onboarding:', error);
-    return { error: 'Failed to complete onboarding' };
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to complete onboarding';
+    return { error: errorMessage };
   }
 };
 

@@ -11,7 +11,10 @@ import {
   SheetTrigger,
 } from '@delulu/design-system/components/ui/sheet';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Loading01Icon, Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Loading03Icon,
+  Settings01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { FaBookmark } from 'react-icons/fa';
 import { PiPaperPlaneTiltFill } from 'react-icons/pi';
 import { PostSidebar } from './sidebar/post-sidebar';
@@ -39,7 +42,7 @@ export function MobilePostHeader() {
           disabled={isProcessing || isMediaUploading}
         >
           {isProcessing ? (
-            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
+            <Icon icon={Loading03Icon} size={16} className="animate-spin" />
           ) : (
             <FaBookmark className="size-4" />
           )}
@@ -53,7 +56,7 @@ export function MobilePostHeader() {
           disabled={isProcessing || isMediaUploading || isAtPostLimit}
         >
           {isProcessing ? (
-            <Icon icon={Loading01Icon} size={16} className="animate-spin" />
+            <Icon icon={Loading03Icon} size={16} className="animate-spin" />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
           )}
@@ -68,7 +71,10 @@ export function MobilePostHeader() {
             <span className="sr-only">Settings</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-[90%] overflow-y-auto pt-10 sm:max-w-[500px]">
+        <SheetContent
+          side="right"
+          className="w-[90%] overflow-y-auto pt-10 sm:max-w-[500px]"
+        >
           <SheetHeader className="mb-4">
             <SheetTitle>Post Settings</SheetTitle>
           </SheetHeader>

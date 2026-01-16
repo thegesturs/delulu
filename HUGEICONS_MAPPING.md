@@ -51,9 +51,9 @@ This file documents the correct Hugeicons icon names to use in the codebase.
 - `AlertCircle` → `AlertCircleIcon` ✓
 - `AlertTriangle` → `Alert01Icon` (use Alert instead)
 - `InformationCircle` → `InformationCircleIcon` ✓
-- `Loading` → `Loading01Icon`
-- `Loader` → `Loading01Icon` (use Loading)
-- `Loader2` → `Loading01Icon` (use Loading)
+- `Loading` → `Loading03Icon`
+- `Loader` → `Loading03Icon` (use Loading)
+- `Loader2` → `Loading03Icon` (use Loading)
 - `Check` → `Tick01Icon` (use Tick)
 - `XCircle` → `CancelCircleIcon` (use CancelCircle)
 - `UserMultiple` → `UserMultipleIcon` ✓

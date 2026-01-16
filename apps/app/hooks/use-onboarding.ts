@@ -6,7 +6,8 @@ import {
 import { useOnboardingStore } from '@/store/onboarding';
 import { posthog } from '@delulu/analytics/posthog/client';
 import { useUser } from '@delulu/auth';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function useOnboarding() {
   const { user } = useUser();
@@ -32,54 +33,123 @@ export function useOnboarding() {
   const stepsCompleted = metadata?.stepsCompleted || [];
   const skippedSteps = metadata?.skippedSteps || [];
 
+  // CRITICAL FIX: Hydrate Zustand store from Clerk metadata on mount
+  // This ensures page refreshes don't lose progress
+  useEffect(() => {
+    if (metadata?.currentStep && currentStep !== metadata.currentStep) {
+      setCurrentStep(metadata.currentStep);
+    }
+  }, [metadata?.currentStep, currentStep, setCurrentStep]);
+
   // Move to next step
   const handleNextStep = async () => {
     const stepName = getStepName(currentStep);
+    setIsLoading(true);
 
-    // Track step completion
-    posthog.capture('onboarding_step_completed', {
-      step: currentStep,
-      stepName,
-      accountsConnected,
-    });
+    try {
+      // Track step completion
+      posthog.capture('onboarding_step_completed', {
+        step: currentStep,
+        stepName,
+        accountsConnected,
+      });
 
-    // Update Clerk metadata
-    const newStepsCompleted = [...stepsCompleted, stepName];
-    await updateOnboardingStep({
-      currentStep: currentStep + 1,
-      stepsCompleted: newStepsCompleted,
-      skippedSteps,
-    });
+      // CRITICAL FIX: Prevent duplicate steps using Set
+      const newStepsCompleted = Array.from(
+        new Set([...stepsCompleted, stepName])
+      );
 
-    // Move to next step in UI
-    nextStep();
+      // CRITICAL FIX: Update server first, validate response before UI update
+      const result = await updateOnboardingStep({
+        currentStep: currentStep + 1,
+        stepsCompleted: newStepsCompleted,
+        skippedSteps,
+      });
+
+      if (result.success) {
+        // Reload user data to get fresh metadata
+        await user?.reload();
+        // Move to next step in UI only after server success
+        nextStep();
+      } else {
+        // Show error if server update failed
+        toast.error(result.error || 'Failed to save progress. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handleNextStep:', error);
+      toast.error('Failed to save progress. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Skip current step
   const handleSkipStep = async () => {
     const stepName = getStepName(currentStep);
+    setIsLoading(true);
 
-    // Track skip event
-    posthog.capture('onboarding_step_skipped', {
-      step: currentStep,
-      stepName,
-    });
+    try {
+      // Track skip event
+      posthog.capture('onboarding_step_skipped', {
+        step: currentStep,
+        stepName,
+      });
 
-    // Update Clerk metadata
-    const newSkippedSteps = [...skippedSteps, stepName];
-    await updateOnboardingStep({
-      currentStep: currentStep + 1,
-      stepsCompleted,
-      skippedSteps: newSkippedSteps,
-    });
+      // CRITICAL FIX: Prevent duplicate skipped steps using Set
+      const newSkippedSteps = Array.from(
+        new Set([...skippedSteps, stepName])
+      );
 
-    // Move to next step in UI
-    nextStep();
+      // CRITICAL FIX: Validate server response before UI update
+      const result = await updateOnboardingStep({
+        currentStep: currentStep + 1,
+        stepsCompleted,
+        skippedSteps: newSkippedSteps,
+      });
+
+      if (result.success) {
+        await user?.reload();
+        nextStep();
+      } else {
+        toast.error(result.error || 'Failed to save progress. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handleSkipStep:', error);
+      toast.error('Failed to save progress. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Go back to previous step
-  const handlePreviousStep = () => {
-    previousStep();
+  const handlePreviousStep = async () => {
+    // CRITICAL FIX: Sync back button with server
+    // This prevents page refresh from jumping forward
+    if (currentStep > 1) {
+      setIsLoading(true);
+
+      try {
+        const newStep = currentStep - 1;
+
+        const result = await updateOnboardingStep({
+          currentStep: newStep,
+          stepsCompleted, // Keep existing completed steps
+          skippedSteps,
+        });
+
+        if (result.success) {
+          await user?.reload();
+          previousStep();
+        } else {
+          toast.error(result.error || 'Failed to update progress.');
+        }
+      } catch (error) {
+        console.error('Error in handlePreviousStep:', error);
+        toast.error('Failed to update progress.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   // Complete onboarding
@@ -87,7 +157,15 @@ export function useOnboarding() {
     setIsLoading(true);
 
     try {
-      // Track completion
+      // Track the final step completion
+      const currentStepName = getStepName(currentStep);
+      posthog.capture('onboarding_step_completed', {
+        step: currentStep,
+        stepName: currentStepName,
+        accountsConnected,
+      });
+
+      // Track overall completion
       posthog.capture('onboarding_completed', {
         stepsSkipped: skippedSteps,
         duration:
@@ -107,12 +185,16 @@ export function useOnboarding() {
       if (result.success) {
         // Reload user data to get updated metadata
         await user?.reload();
+        toast.success('Welcome to Delulu Social! 🎉');
         return { success: true };
       }
 
+      // Show error if completion failed
+      toast.error(result.error || 'Failed to complete onboarding. Please try again.');
       return { error: result.error };
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      toast.error('Failed to complete onboarding. Please try again.');
       return { error: 'Failed to complete onboarding' };
     } finally {
       setIsLoading(false);

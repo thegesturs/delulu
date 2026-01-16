@@ -19,7 +19,12 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { cn } from '@delulu/design-system/lib/utils';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Image01Icon, Loading01Icon, Upload01Icon, VideoIcon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Image01Icon,
+  Loading03Icon,
+  Upload01Icon,
+  VideoIcon,
+} from '@hugeicons-pro/core-solid-rounded';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -251,7 +256,11 @@ export function VideoThumbnailSelector({
             {/* Thumbnail Previews Grid */}
             {isGenerating ? (
               <div className="flex items-center justify-center py-12">
-                <Icon icon={Loading01Icon} size={24} className="animate-spin text-muted-foreground" />
+                <Icon
+                  icon={Loading03Icon}
+                  size={24}
+                  className="animate-spin text-muted-foreground"
+                />
               </div>
             ) : (
               thumbnailPreviews.length > 0 && (
@@ -287,7 +296,11 @@ export function VideoThumbnailSelector({
                         {selectedFrame === preview && !customThumbnail && (
                           <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
                             <div className="rounded-full bg-primary p-1">
-                              <Icon icon={Image01Icon} size={12} className="text-primary-foreground" />
+                              <Icon
+                                icon={Image01Icon}
+                                size={12}
+                                className="text-primary-foreground"
+                              />
                             </div>
                           </div>
                         )}
@@ -350,7 +363,11 @@ export function VideoThumbnailSelector({
                 >
                   {isUploading ? (
                     <>
-                      <Icon icon={Loading01Icon} size={16} className="mr-2 animate-spin" />
+                      <Icon
+                        icon={Loading03Icon}
+                        size={16}
+                        className="mr-2 animate-spin"
+                      />
                       Uploading...
                     </>
                   ) : (

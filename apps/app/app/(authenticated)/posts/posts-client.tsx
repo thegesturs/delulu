@@ -19,7 +19,7 @@ import {
   CancelCircleIcon,
   DocumentAttachmentIcon,
   GridViewIcon,
-  Loading01Icon,
+  Loading03Icon,
   Menu01Icon,
   TickDouble01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
@@ -251,7 +251,7 @@ export default function PostsClient() {
                 value="PROCESSING"
                 className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <Icon icon={Loading01Icon} size={16} />
+                <Icon icon={Loading03Icon} size={16} />
                 <span>Processing</span>
                 {dashboardStats && dashboardStats.processingCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
