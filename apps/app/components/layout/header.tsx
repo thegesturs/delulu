@@ -1,3 +1,4 @@
+import { UserButton } from '@delulu/auth';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,15 +18,16 @@ type HeaderProps = {
 };
 
 export const Header = ({ pages, page, children }: HeaderProps) => (
-  <header className="flex h-16 shrink-0 items-center justify-between gap-2">
-    <div className="flex items-center gap-2 px-4">
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-2 h-4" />
-      <Breadcrumb>
+  <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+    <div className="flex items-center gap-2">
+      <div className="md:hidden font-bold text-lg">Delulu</div>
+      <SidebarTrigger className="-ml-1 hidden md:flex" />
+      <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
+      <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           {pages.map((page, index) => (
             <Fragment key={page}>
-              {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+              {index > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href="#">{page}</BreadcrumbLink>
               </BreadcrumbItem>
@@ -38,6 +40,12 @@ export const Header = ({ pages, page, children }: HeaderProps) => (
         </BreadcrumbList>
       </Breadcrumb>
     </div>
-    {children}
+    <div className="flex items-center gap-2">
+      {children}
+      <div className="md:hidden">
+        <UserButton />
+      </div>
+    </div>
   </header>
 );
+

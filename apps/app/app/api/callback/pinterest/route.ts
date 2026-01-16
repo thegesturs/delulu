@@ -1,6 +1,7 @@
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
+import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
 import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -42,33 +43,32 @@ async function fetchWithTimeout(
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
-        },
-      });
-    }
+	try {
+		// Verify OAuth state and recover session
+		const sessionResult = await verifyOAuthStateAndRecoverSession(
+			request,
+			'PINTEREST',
+		);
 
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
-        },
-      });
-    }
+		if (!sessionResult.success) {
+			const { error, code: errorCode } = sessionResult.error;
+			return new NextResponse(null, {
+				status: 302,
+				headers: {
+					Location: `/socials?error=${error}&code=${errorCode}&provider=PINTEREST`,
+				},
+			});
+		}
 
-    const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const _state = searchParams.get('state');
+		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
+
+		if (sessionRecovered) {
+			console.log('[PINTEREST] Session was recovered from state parameter');
+		}
+
+		const searchParams = request.nextUrl.searchParams;
+		const code = searchParams.get('code');
+		const error = searchParams.get('error');
 
     // Handle user denying access
     if (error === 'access_denied') {
@@ -149,22 +149,41 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as PinterestUserResponse;
 
-    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
-    const status = await fetchMutation(
-      api.social_providers.upsertSocialProvider,
-      {
-        socialType: 'PINTEREST',
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresIn: Date.now() + 3600 * 1000,
-        profileId: userObject.username,
-        username: userObject.username,
-        fullName: userObject.username,
-        profileImage: userObject.profile_image,
-        isActive: true,
-      },
-      { token }
-    );
+    // Conditional mutation based on token availability
+    let status;
+    if (useInternalMutation) {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProviderFromOAuth,
+        {
+          userId: userId as Id<'users'>,
+          socialType: 'PINTEREST',
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresIn: Date.now() + 3600 * 1000,
+          profileId: userObject.username,
+          username: userObject.username,
+          fullName: userObject.username,
+          profileImage: userObject.profile_image,
+          isActive: true,
+        }
+      );
+    } else {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProvider,
+        {
+          socialType: 'PINTEREST',
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresIn: Date.now() + 3600 * 1000,
+          profileId: userObject.username,
+          username: userObject.username,
+          fullName: userObject.username,
+          profileImage: userObject.profile_image,
+          isActive: true,
+        },
+        { token: token! }
+      );
+    }
 
     // Handle different response statuses
     if (status === 'account_transferred') {

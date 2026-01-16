@@ -5,7 +5,8 @@ import { PlatformHealthAlert } from '@/components/dashboard/platform-health-aler
 import { UpcomingSchedule } from '@/components/dashboard/upcoming-schedule';
 import type { DashboardStats, UpcomingPost } from '@/types/convex';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Add } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 import { Header } from '../layout/header';
 
@@ -26,7 +27,7 @@ export function DashboardContent({
     <div className="space-y-2 overflow-auto p-8">
       <Header pages={['Dashboard']} page="Overview">
         <Button onClick={() => router.push('/post')}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Icon icon={Add} size={16} className="mr-2" />
           Create Post
         </Button>
       </Header>

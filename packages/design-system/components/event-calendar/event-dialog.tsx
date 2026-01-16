@@ -1,7 +1,8 @@
 'use client';
 
 import { format, isBefore } from 'date-fns';
-import { Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { Icon } from '../../providers/icon';
+import { Calendar as CalendarHugeIcon, Delete01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useEffect, useMemo, useState } from 'react';
 
 import type {
@@ -294,7 +295,8 @@ export function EventDialog({
                     >
                       {startDate ? format(startDate, 'PPP') : 'Pick a date'}
                     </span>
-                    <CalendarIcon
+                    <Icon
+                      icon={CalendarHugeIcon}
                       size={16}
                       className="shrink-0 text-muted-foreground/80"
                       aria-hidden="true"
@@ -362,7 +364,8 @@ export function EventDialog({
                     >
                       {endDate ? format(endDate, 'PPP') : 'Pick a date'}
                     </span>
-                    <CalendarIcon
+                    <Icon
+                      icon={CalendarHugeIcon}
                       size={16}
                       className="shrink-0 text-muted-foreground/80"
                       aria-hidden="true"
@@ -457,7 +460,7 @@ export function EventDialog({
               onClick={handleDelete}
               aria-label="Delete event"
             >
-              <Trash2 size={16} aria-hidden="true" />
+              <Icon icon={Delete01Icon} size={16} aria-hidden="true" />
             </Button>
           )}
           <div className="flex flex-1 justify-end gap-2">

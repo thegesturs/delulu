@@ -12,18 +12,19 @@ import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Toggle } from '@delulu/design-system/components/ui/toggle';
+import { Icon } from '@delulu/design-system/providers/icon';
+import {
+  Add01Icon,
+  Calendar01Icon,
+  CancelCircleIcon,
+  DocumentAttachmentIcon,
+  GridViewIcon,
+  Loading03Icon,
+  Menu01Icon,
+  TickDouble01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { useQuery } from 'convex-helpers/react/cache';
 import { usePaginatedQuery } from 'convex/react';
-import {
-  Calendar,
-  CheckCircle,
-  FileText,
-  LayoutGrid,
-  List,
-  Loader2,
-  Plus,
-  XCircle,
-} from 'lucide-react';
 import Link from 'next/link';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import React, { useEffect } from 'react';
@@ -105,34 +106,34 @@ export default function PostsClient() {
                   value="SAVED"
                   className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
-                  <FileText className="h-4 w-4" />
+                  <Icon icon={DocumentAttachmentIcon} size={16} />
                   <span>Draft</span>
                 </AnimatedTabsTrigger>
                 <AnimatedTabsTrigger
                   value="SCHEDULED"
                   className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
-                  <Calendar className="h-4 w-4" />
+                  <Icon icon={Calendar01Icon} size={16} />
                   <span>Scheduled</span>
                 </AnimatedTabsTrigger>
                 <AnimatedTabsTrigger
                   value="PUBLISHED"
                   className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
-                  <CheckCircle className="h-4 w-4" />
+                  <Icon icon={TickDouble01Icon} size={16} />
                   <span>Published</span>
                 </AnimatedTabsTrigger>
                 <AnimatedTabsTrigger
                   value="FAILED"
                   className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
-                  <XCircle className="h-4 w-4" />
+                  <Icon icon={CancelCircleIcon} size={16} />
                   <span>Failed</span>
                 </AnimatedTabsTrigger>
               </AnimatedTabsList>
             </AnimatedTabs>
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
+              <Icon icon={Add01Icon} size={16} className="mr-2" />
               Add Post
             </Button>
           </div>
@@ -153,7 +154,7 @@ export default function PostsClient() {
                 aria-label="Grid view"
                 size="sm"
               >
-                <LayoutGrid className="h-4 w-4" />
+                <Icon icon={GridViewIcon} size={16} />
               </Toggle>
               <Toggle
                 pressed={layout === 'list'}
@@ -161,7 +162,7 @@ export default function PostsClient() {
                 aria-label="List view"
                 size="sm"
               >
-                <List className="h-4 w-4" />
+                <Icon icon={Menu01Icon} size={16} />
               </Toggle>
             </div>
           </div>
@@ -182,13 +183,13 @@ export default function PostsClient() {
                   value="SAVED"
                   className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
                 >
-                  <FileText className="h-4 w-4" />
+                  <Icon icon={DocumentAttachmentIcon} size={16} />
                   <span>Draft</span>
                 </AnimatedTabsTrigger>
               </AnimatedTabsList>
             </AnimatedTabs>
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
+              <Icon icon={Add01Icon} size={16} className="mr-2" />
               Add Post
             </Button>
           </div>
@@ -219,14 +220,14 @@ export default function PostsClient() {
                   | 'PROCESSING'
               )
             }
-            className="flex-1 pt-3"
+            className="no-scrollbar flex-1 overflow-x-auto pt-3"
           >
-            <AnimatedTabsList>
+            <AnimatedTabsList className="flex w-max min-w-full gap-2 lg:grid lg:w-full lg:min-w-0 lg:gap-0">
               <AnimatedTabsTrigger
                 value="SAVED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <FileText className="h-4 w-4" />
+                <Icon icon={DocumentAttachmentIcon} size={16} />
                 <span>Draft</span>
                 {dashboardStats && dashboardStats.savedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
@@ -236,9 +237,9 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="SCHEDULED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <Calendar className="h-4 w-4" />
+                <Icon icon={Calendar01Icon} size={16} />
                 <span>Scheduled</span>
                 {dashboardStats && dashboardStats.scheduledCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
@@ -248,9 +249,9 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="PROCESSING"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <Loader2 className="h-4 w-4" />
+                <Icon icon={Loading03Icon} size={16} />
                 <span>Processing</span>
                 {dashboardStats && dashboardStats.processingCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
@@ -260,9 +261,9 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="PUBLISHED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <CheckCircle className="h-4 w-4" />
+                <Icon icon={TickDouble01Icon} size={16} />
                 <span>Published</span>
                 {dashboardStats && dashboardStats.publishedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
@@ -272,9 +273,9 @@ export default function PostsClient() {
               </AnimatedTabsTrigger>
               <AnimatedTabsTrigger
                 value="FAILED"
-                className="flex min-w-fit items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
+                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
               >
-                <XCircle className="h-4 w-4" />
+                <Icon icon={CancelCircleIcon} size={16} />
                 <span>Failed</span>
                 {dashboardStats && dashboardStats.failedCount > 0 && (
                   <Badge variant="secondary" className="ml-1.5">
@@ -292,7 +293,7 @@ export default function PostsClient() {
             variant={'secondary'}
           >
             <Link href={'/posts/create'}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Icon icon={Add01Icon} size={16} className="mr-1" />
               Add Post
             </Link>
           </Button>
@@ -314,7 +315,7 @@ export default function PostsClient() {
               aria-label="Grid view"
               size="sm"
             >
-              <LayoutGrid className="h-4 w-4" />
+              <Icon icon={GridViewIcon} size={16} />
             </Toggle>
             <Toggle
               pressed={layout === 'list'}
@@ -322,7 +323,7 @@ export default function PostsClient() {
               aria-label="List view"
               size="sm"
             >
-              <List className="h-4 w-4" />
+              <Icon icon={Menu01Icon} size={16} />
             </Toggle>
           </div>
         </div>

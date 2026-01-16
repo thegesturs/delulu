@@ -193,6 +193,11 @@ export function getSingleProviderInDefault(
   selectedProviders: SocialProviderType[],
   alternativeContent: FullPostType['alternativeContent']
 ): SocialProviderType | null {
+  // Guard against undefined during hydration
+  if (!alternativeContent) {
+    return selectedProviders.length === 1 ? selectedProviders[0] : null;
+  }
+
   const alternativeProviderIds = new Set(
     alternativeContent.map((alt) => alt.socialProvider.socialId)
   );
@@ -206,7 +211,7 @@ export function getSingleProviderInDefault(
 
 /**
  * Determines if Default should use video-only layout
- * True if ONLY video platforms (TikTok, YouTube) are in default
+ * True if ONLY video platforms (TikTok, YouTube, Instagram) are in default
  */
 export function shouldDefaultUseVideoLayout(
   platformsInDefault: SocialType[]
@@ -215,10 +220,35 @@ export function shouldDefaultUseVideoLayout(
     return false;
   }
 
-  const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
+  const videoPlatforms = [
+    SocialTypes.TIKTOK,
+    SocialTypes.YOUTUBE,
+    SocialTypes.INSTAGRAM, // Instagram Reels
+  ] as const;
 
   return platformsInDefault.every((platform) =>
     (videoPlatforms as readonly SocialType[]).includes(platform)
+  );
+}
+
+/**
+ * Determines if Default should use multi-post layout (threads)
+ * True if ONLY multi-post platforms (Twitter, Threads) are in default
+ */
+export function shouldDefaultUseMultiPostLayout(
+  platformsInDefault: SocialType[]
+): boolean {
+  if (platformsInDefault.length === 0) {
+    return false;
+  }
+
+  const multiPostPlatforms = [
+    SocialTypes.TWITTER,
+    SocialTypes.THREADS,
+  ] as const;
+
+  return platformsInDefault.every((platform) =>
+    (multiPostPlatforms as readonly SocialType[]).includes(platform)
   );
 }
 
@@ -578,4 +608,337 @@ export function formatDuration(seconds: number): string {
   }
 
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ============================================================================
+// DYNAMIC MEDIA VALIDATION UTILITIES
+// ============================================================================
+
+/**
+ * Represents the current state of media in a post
+ */
+export interface MediaState {
+  images: number;
+  videos: number;
+  totalCount: number;
+}
+
+/**
+ * Dynamic media limits that adjust based on current media state
+ */
+export interface DynamicMediaLimits {
+  maxImages: number;
+  maxVideos: number;
+  remainingImages: number;
+  remainingVideos: number;
+  canAddImages: boolean;
+  canAddVideos: boolean;
+  canMixTypes: boolean;
+  acceptedMimeTypes: string[];
+  instruction: string;
+  platformHint: string;
+}
+
+/**
+ * Result of validating whether media can be added
+ */
+export interface MediaAdditionValidation {
+  canAdd: boolean;
+  reason?: string;
+  updatedLimits?: DynamicMediaLimits;
+}
+
+/**
+ * Calculate current media state from media array
+ */
+export function getMediaState(
+  media: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+): MediaState {
+  const images = media.filter((m) => m.mediaType === 'IMAGE').length;
+  const videos = media.filter((m) => m.mediaType === 'VIDEO').length;
+
+  return {
+    images,
+    videos,
+    totalCount: images + videos,
+  };
+}
+
+/**
+ * Get dynamic media limits adjusted for platform and current media state
+ * This is the single source of truth for all media validation rules
+ */
+export function getDynamicMediaLimits(
+  socialType: SocialType,
+  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+): DynamicMediaLimits {
+  const state = getMediaState(currentMedia);
+  const platformName = getPlatformDisplayName(socialType);
+  const baseMaxImages = PLATFORM_IMAGE_LIMITS[socialType];
+
+  // TikTok/YouTube: Special case - video + thumbnail
+  if (socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE) {
+    if (state.videos > 0) {
+      // Video exists, can only add thumbnail
+      return {
+        maxImages: 1,
+        maxVideos: 1,
+        remainingImages: Math.max(0, 1 - state.images),
+        remainingVideos: 0,
+        canAddImages: state.images < 1,
+        canAddVideos: false,
+        canMixTypes: true,
+        acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        instruction:
+          state.images > 0
+            ? `${platformName}: Video and thumbnail complete`
+            : `${platformName}: Add 1 optional thumbnail image`,
+        platformHint: 'Video uploaded',
+      };
+    }
+
+    if (state.images > 0) {
+      // Thumbnail exists, can only add video
+      return {
+        maxImages: 1,
+        maxVideos: 1,
+        remainingImages: 0,
+        remainingVideos: Math.max(0, 1 - state.videos),
+        canAddImages: false,
+        canAddVideos: state.videos < 1,
+        canMixTypes: true,
+        acceptedMimeTypes: ['video/mp4', 'video/quicktime', 'video/webm'],
+        instruction:
+          state.videos > 0
+            ? `${platformName}: Video and thumbnail complete`
+            : `${platformName}: Add 1 vertical video (9:16)`,
+        platformHint: 'Thumbnail uploaded',
+      };
+    }
+
+    // Empty state - allow both
+    return {
+      maxImages: 1,
+      maxVideos: 1,
+      remainingImages: 1,
+      remainingVideos: 1,
+      canAddImages: true,
+      canAddVideos: true,
+      canMixTypes: true,
+      acceptedMimeTypes: [
+        'image/*',
+        'video/mp4',
+        'video/quicktime',
+        'video/webm',
+      ],
+      instruction: `${platformName}: Upload 1 vertical video (9:16) and 1 optional thumbnail`,
+      platformHint: 'Video required',
+    };
+  }
+
+  // Instagram: Carousel (10 images) OR Reels (1 video)
+  if (socialType === SocialTypes.INSTAGRAM) {
+    if (state.videos > 0) {
+      // Reels mode - no more media allowed
+      return {
+        maxImages: 0,
+        maxVideos: 1,
+        remainingImages: 0,
+        remainingVideos: 0,
+        canAddImages: false,
+        canAddVideos: false,
+        canMixTypes: false,
+        acceptedMimeTypes: [],
+        instruction: 'Instagram Reels: 1 video only',
+        platformHint: 'Reels mode',
+      };
+    }
+
+    if (state.images > 0) {
+      // Carousel mode - can add more images, no videos
+      const remaining = Math.max(0, 10 - state.images);
+      return {
+        maxImages: 10,
+        maxVideos: 0,
+        remainingImages: remaining,
+        remainingVideos: 0,
+        canAddImages: remaining > 0,
+        canAddVideos: false,
+        canMixTypes: false,
+        acceptedMimeTypes: remaining > 0 ? ['image/*'] : [],
+        instruction:
+          remaining > 0
+            ? `Instagram Carousel: Add up to ${remaining} more ${remaining === 1 ? 'image' : 'images'}`
+            : 'Instagram Carousel: Maximum 10 images reached',
+        platformHint: 'Carousel mode',
+      };
+    }
+
+    // Empty state - allow either
+    return {
+      maxImages: 10,
+      maxVideos: 1,
+      remainingImages: 10,
+      remainingVideos: 1,
+      canAddImages: true,
+      canAddVideos: true,
+      canMixTypes: false,
+      acceptedMimeTypes: ['image/*', 'video/mp4', 'video/quicktime'],
+      instruction:
+        'Instagram: Up to 10 images (Carousel) OR 1 video (Reels, 9:16 vertical)',
+      platformHint: 'Choose format',
+    };
+  }
+
+  // Other platforms: Multiple images OR single video (can't mix)
+  // Twitter (4), LinkedIn (4), Facebook (10), Pinterest (5), etc.
+  if (state.videos > 0) {
+    // Video mode - no more media
+    return {
+      maxImages: 0,
+      maxVideos: 1,
+      remainingImages: 0,
+      remainingVideos: 0,
+      canAddImages: false,
+      canAddVideos: false,
+      canMixTypes: false,
+      acceptedMimeTypes: [],
+      instruction: `${platformName}: Maximum 1 video reached`,
+      platformHint: 'Video mode',
+    };
+  }
+
+  if (state.images > 0) {
+    // Image mode - can add more images, no videos
+    const remaining = Math.max(0, baseMaxImages - state.images);
+    return {
+      maxImages: baseMaxImages,
+      maxVideos: 0,
+      remainingImages: remaining,
+      remainingVideos: 0,
+      canAddImages: remaining > 0,
+      canAddVideos: false,
+      canMixTypes: false,
+      acceptedMimeTypes: remaining > 0 ? ['image/*'] : [],
+      instruction:
+        remaining > 0
+          ? `${platformName}: Add up to ${remaining} more ${remaining === 1 ? 'image' : 'images'}`
+          : `${platformName}: Maximum ${baseMaxImages} images reached`,
+      platformHint: 'Image mode',
+    };
+  }
+
+  // Empty state - allow either
+  return {
+    maxImages: baseMaxImages,
+    maxVideos: 1,
+    remainingImages: baseMaxImages,
+    remainingVideos: 1,
+    canAddImages: true,
+    canAddVideos: true,
+    canMixTypes: false,
+    acceptedMimeTypes: ['image/*', 'video/*'],
+    instruction: `${platformName}: Up to ${baseMaxImages} ${baseMaxImages === 1 ? 'image' : 'images'} OR 1 video`,
+    platformHint: 'Choose format',
+  };
+}
+
+/**
+ * Validate if a specific media type can be added to current media
+ */
+export function canAddMediaType(
+  socialType: SocialType,
+  mediaTypeToAdd: 'IMAGE' | 'VIDEO',
+  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+): MediaAdditionValidation {
+  const limits = getDynamicMediaLimits(socialType, currentMedia);
+  const platformName = getPlatformDisplayName(socialType);
+
+  if (mediaTypeToAdd === 'IMAGE') {
+    if (!limits.canAddImages) {
+      // Generate specific error message based on platform
+      const state = getMediaState(currentMedia);
+
+      if (state.videos > 0 && !limits.canMixTypes) {
+        return {
+          canAdd: false,
+          reason: `${platformName} doesn't allow mixing images and videos. Remove the video first.`,
+        };
+      }
+
+      if (state.images >= limits.maxImages) {
+        return {
+          canAdd: false,
+          reason: `${platformName} allows maximum ${limits.maxImages} ${limits.maxImages === 1 ? 'image' : 'images'}.`,
+        };
+      }
+
+      return {
+        canAdd: false,
+        reason: `Cannot add images to ${platformName} at this time.`,
+      };
+    }
+
+    return {
+      canAdd: true,
+      updatedLimits: limits,
+    };
+  }
+
+  if (mediaTypeToAdd === 'VIDEO') {
+    if (!limits.canAddVideos) {
+      const state = getMediaState(currentMedia);
+
+      if (state.images > 0 && !limits.canMixTypes) {
+        return {
+          canAdd: false,
+          reason: `${platformName} doesn't allow mixing videos and images. Remove the images first.`,
+        };
+      }
+
+      if (state.videos >= limits.maxVideos) {
+        return {
+          canAdd: false,
+          reason: `${platformName} allows maximum ${limits.maxVideos} video.`,
+        };
+      }
+
+      return {
+        canAdd: false,
+        reason: `Cannot add videos to ${platformName} at this time.`,
+      };
+    }
+
+    return {
+      canAdd: true,
+      updatedLimits: limits,
+    };
+  }
+
+  return {
+    canAdd: false,
+    reason: 'Unknown media type',
+  };
+}
+
+/**
+ * Get user-friendly instruction about media count limits
+ */
+export function getMediaCountInstruction(
+  socialType: SocialType,
+  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+): string {
+  const limits = getDynamicMediaLimits(socialType, currentMedia);
+  return limits.instruction;
+}
+
+/**
+ * Check if more media can be uploaded for this platform
+ */
+export function canUploadMore(
+  socialType: SocialType,
+  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+): boolean {
+  const limits = getDynamicMediaLimits(socialType, currentMedia);
+  return limits.canAddImages || limits.canAddVideos;
 }

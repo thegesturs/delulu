@@ -7,7 +7,8 @@ import {
 import type { SupportedSocialPlatform } from '@delulu/design-system/lib/social-config';
 import { cn } from '@delulu/design-system/lib/utils';
 import { format } from 'date-fns';
-import { Clock } from 'lucide-react';
+import { Icon } from '../../providers/icon';
+import { ClockIcon } from '@hugeicons-pro/core-solid-rounded';
 import type React from 'react';
 
 export interface SocialPostEventData {
@@ -61,7 +62,7 @@ export function SocialPostEvent({
     >
       {/* Time Badge - 12 hour format */}
       <div className="flex items-center gap-1 font-semibold text-foreground text-xs">
-        <Clock className="h-3.5 w-3.5" />
+        <Icon icon={ClockIcon} size={14} />
         <span>{format(event.scheduledTime, 'h:mm a')}</span>
       </div>
 

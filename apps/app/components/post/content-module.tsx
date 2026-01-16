@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Remove01Icon, Add01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { type SocialType, SocialTypes } from '@delulu/validators/post';
-import { Minus, Plus } from 'lucide-react';
 
 import {
   getDefaultCharacterLimit,
@@ -40,16 +41,23 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const isGlobal = socialType === SocialTypes.DEFAULT;
   const isTwitter = socialType === SocialTypes.TWITTER;
 
-  // Determine which platforms are in default (for intelligent defaults)
-  const platformsInDefault = isGlobal
-    ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
-    : [];
+  // Determine which platforms are in default (for intelligent defaults) - memoized
+  const platformsInDefault = useMemo(
+    () =>
+      isGlobal
+        ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
+        : [],
+    [isGlobal, selectedSocialProviders, post.alternativeContent]
+  );
 
-  // Determine effective social type for default tab
-  const effectiveSocialType =
-    isGlobal && platformsInDefault.length > 0
-      ? platformsInDefault[0] // Use first platform as representative
-      : socialType;
+  // Determine effective social type for default tab - memoized
+  const effectiveSocialType = useMemo(
+    () =>
+      isGlobal && platformsInDefault.length > 0
+        ? platformsInDefault[0] // Use first platform as representative
+        : socialType,
+    [isGlobal, platformsInDefault, socialType]
+  );
 
   const content = isGlobal
     ? post.content
@@ -417,7 +425,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                       className="h-6 w-6"
                       onClick={() => removeTweet(item.order)}
                     >
-                      <Minus className="h-3 w-3" />
+                      <Icon icon={Remove01Icon} size={12} />
                     </Button>
                   )}
                   <Button
@@ -425,7 +433,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     className="h-6 w-6"
                     onClick={() => addTweet(item.order)}
                   >
-                    <Plus className="h-3 w-3" />
+                    <Icon icon={Add01Icon} size={12} />
                   </Button>
                 </div>
               )}

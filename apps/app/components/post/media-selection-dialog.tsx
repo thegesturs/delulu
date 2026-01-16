@@ -1,9 +1,17 @@
 'use client';
 
-import { ImageIcon, Search, VideoIcon as Video } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Image01Icon, Search01Icon, VideoIcon } from '@hugeicons-pro/core-solid-rounded';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import {
+  canAddMediaType,
+  getDynamicMediaLimits,
+  getMediaCountInstruction,
+} from '@/lib/platform-rules';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
@@ -14,7 +22,7 @@ import {
 } from '@delulu/design-system/components/ui/dialog';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { cn } from '@delulu/design-system/lib/utils';
-import { useQuery } from 'convex-helpers/react/cache';
+import type { SocialType } from '@delulu/validators/post';
 
 interface MediaItem {
   id: string;
@@ -32,10 +40,8 @@ interface MediaSelectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (media: MediaItem[]) => void;
-  socialType: string;
+  socialType: SocialType;
   currentMedia: MediaItem[];
-  maxImages: number;
-  maxVideos: number;
 }
 
 interface MediaGridProps {
@@ -44,6 +50,7 @@ interface MediaGridProps {
   canSelectImages: boolean;
   canSelectVideos: boolean;
   onMediaSelect: (media: MediaItem) => void;
+  onScrollEnd: () => void;
 }
 
 function MediaGrid({
@@ -52,82 +59,137 @@ function MediaGrid({
   canSelectImages,
   canSelectVideos,
   onMediaSelect,
+  onScrollEnd,
 }: MediaGridProps) {
-  return (
-    <div className="grid grid-cols-4 gap-3">
-      {filteredMedia.map((media) => {
-        const isSelected = selectedMedia.some((m) => m.id === media.id);
-        const canSelect =
-          !isSelected &&
-          ((media.mediaType === 'IMAGE' && canSelectImages) ||
-            (media.mediaType === 'VIDEO' && canSelectVideos));
+  const containerRef = useRef<HTMLDivElement>(null);
 
-        return (
-          <motion.div
-            key={media.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={cn(
-              'relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
-              {
-                'border-primary': isSelected,
-                'cursor-pointer border-border hover:border-input':
-                  canSelect && !isSelected,
-                'cursor-not-allowed border-border opacity-50':
-                  !canSelect && !isSelected,
-              }
-            )}
-            onClick={() => canSelect && onMediaSelect(media)}
-          >
-            {media.mediaType === 'IMAGE' ? (
-              <img
-                src={media.url}
-                alt={media.altText || 'Media'}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="relative h-full w-full">
-                <video
+  // Scroll detection for infinite scroll
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // Trigger load more when scrolled to 80%
+    if (scrollPercentage > 0.8) {
+      onScrollEnd();
+    }
+  }, [onScrollEnd]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  return (
+    <div ref={containerRef} className="h-full overflow-y-auto">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {filteredMedia.map((media) => {
+          const isSelected = selectedMedia.some((m) => m.id === media.id);
+          const canSelect =
+            !isSelected &&
+            ((media.mediaType === 'IMAGE' && canSelectImages) ||
+              (media.mediaType === 'VIDEO' && canSelectVideos));
+
+          return (
+            <motion.div
+              key={media.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                'group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
+                {
+                  'cursor-pointer border-primary': isSelected,
+                  'cursor-pointer border-border hover:border-input':
+                    canSelect && !isSelected,
+                  'cursor-not-allowed border-border opacity-50':
+                    !canSelect && !isSelected,
+                }
+              )}
+              onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
+              onMouseEnter={(e) => {
+                if (media.mediaType === 'VIDEO') {
+                  const video = e.currentTarget.querySelector('video');
+                  if (video) {
+                    video.play().catch(() => {
+                      // Ignore play errors
+                    });
+                  }
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (media.mediaType === 'VIDEO') {
+                  const video = e.currentTarget.querySelector('video');
+                  if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                  }
+                }
+              }}
+            >
+              {media.mediaType === 'IMAGE' ? (
+                <Image
                   src={media.url}
-                  className="h-full w-full object-cover"
-                  muted
+                  alt={media.altText || 'Media'}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 25vw, 200px"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                  <div className="rounded-full bg-black bg-opacity-50 p-2">
-                    <Video className="h-4 w-4 text-white" />
+              ) : (
+                <div className="relative h-full w-full">
+                  <video
+                    src={media.url}
+                    className="h-full w-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
+                    <div className="rounded-full bg-black bg-opacity-50 p-2">
+                      <Icon icon={VideoIcon} size={16} className="text-white" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Selection indicator */}
-            {isSelected && (
-              <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
-                <svg
-                  className="h-3 w-3 text-primary-foreground"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            )}
-
-            {/* Media type indicator */}
-            <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
-              {media.mediaType === 'IMAGE' ? (
-                <ImageIcon className="h-3 w-3" />
-              ) : (
-                <Video className="h-3 w-3" />
               )}
-            </div>
-          </motion.div>
-        );
-      })}
+
+              {/* Selection indicator */}
+              {isSelected && (
+                <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
+                  <svg
+                    className="h-3 w-3 text-primary-foreground"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              {/* Media type indicator */}
+              <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
+                {media.mediaType === 'IMAGE' ? (
+                  <Icon icon={Image01Icon} size={12} />
+                ) : (
+                  <Icon icon={VideoIcon} size={12} />
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -138,167 +200,128 @@ export function MediaSelectionDialog({
   onSelect,
   socialType,
   currentMedia,
-  maxImages,
-  maxVideos,
 }: MediaSelectionDialogProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [accumulatedMedia, setAccumulatedMedia] = useState<MediaItem[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Calculate current counts
-  const currentImageCount = currentMedia.filter(
-    (m) => m.mediaType === 'IMAGE'
-  ).length;
-  const currentVideoCount = currentMedia.filter(
-    (m) => m.mediaType === 'VIDEO'
-  ).length;
+  // Get dynamic media limits based on current state
+  const limits = getDynamicMediaLimits(socialType, currentMedia);
+  const { canAddImages, canAddVideos, remainingImages, remainingVideos } =
+    limits;
 
-  // Calculate what can still be selected
-  const remainingImages = maxImages - currentImageCount;
-  const remainingVideos = maxVideos - currentVideoCount;
-  const canSelectImages = remainingImages > 0;
-  const canSelectVideos = remainingVideos > 0;
-
-  // Use Convex to fetch media - now with auto user fetching
-  const hasSearch = searchQuery && searchQuery.trim().length > 0;
-
-  // Use getMedia for browsing, searchMedia for searching
-  const browseData = useQuery(
+  // Use standard Convex query with cursor-based pagination
+  const mediaQuery = useQuery(
     api.media.getMedia,
-    !isOpen || hasSearch ? 'skip' : { limit: 20, offset: 0 }
-  );
-
-  const searchData = useQuery(
-    api.media.searchMedia,
-    !isOpen || !hasSearch
-      ? 'skip'
-      : {
-          searchTerm: searchQuery.trim(),
+    isOpen
+      ? {
           limit: 50,
-          offset: 0,
+          cursor: cursor ?? undefined,
         }
+      : 'skip'
   );
 
-  const mediaData = hasSearch ? searchData : browseData;
+  const isLoading = mediaQuery === undefined;
 
-  const isLoading = mediaData === undefined;
+  // Extract data from new response format
+  const currentPageMedia = mediaQuery?.media || [];
+  const nextCursor = mediaQuery?.nextCursor ?? null;
+  const hasMore = mediaQuery?.hasMore ?? false;
 
-  // Transform Convex data to match MediaItem interface
-  const allMedia: MediaItem[] = (mediaData || []).map((item) => ({
-    id: item._id as string,
-    url: item.url,
-    bucketKey: item.bucketKey,
-    mediaType: item.mediaType,
-    originalFilename: item.originalFilename,
-    size: item.size,
-    extension: item.extension,
-    altText: item.altText,
-    createdAt: new Date(item.createdAt).toISOString(),
-  }));
+  // Transform and accumulate media on new data
+  useEffect(() => {
+    if (currentPageMedia.length > 0) {
+      const newMedia: MediaItem[] = currentPageMedia.map((item) => ({
+        id: item._id as string,
+        url: item.url,
+        bucketKey: item.bucketKey,
+        mediaType: item.mediaType,
+        originalFilename: item.originalFilename,
+        size: item.size,
+        extension: item.extension,
+        altText: item.altText,
+        createdAt: new Date(item.createdAt).toISOString(),
+      }));
 
-  // Reset selection when dialog opens
+      setAccumulatedMedia((prev) => {
+        // If cursor is null, this is the first page - replace
+        if (!cursor) {
+          return newMedia;
+        }
+        // Otherwise append new media
+        const existingIds = new Set(prev.map((m) => m.id));
+        const uniqueNew = newMedia.filter((m) => !existingIds.has(m.id));
+        return [...prev, ...uniqueNew];
+      });
+
+      setIsLoadingMore(false);
+    }
+  }, [currentPageMedia, cursor]);
+
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (hasMore && nextCursor && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setCursor(nextCursor);
+    }
+  }, [hasMore, nextCursor, isLoadingMore]);
+
+  // Reset when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setSelectedMedia([]);
+      setCursor(null);
+      setAccumulatedMedia([]);
+      setIsLoadingMore(false);
     }
   }, [isOpen]);
 
-  // For now, no load more functionality (can be added later with pagination)
-  const hasMore = false;
+  // Use accumulated media as the source
+  const allMedia = accumulatedMedia;
 
-  // Filter media based on platform constraints and availability
+  // Filter media based on platform constraints
   const filteredMedia = allMedia.filter((media) => {
-    // Filter by what can still be selected
-    if (media.mediaType === 'IMAGE' && !canSelectImages) {
+    // Filter by what can still be added
+    if (media.mediaType === 'IMAGE' && !canAddImages) {
       return false;
     }
-    if (media.mediaType === 'VIDEO' && !canSelectVideos) {
+    if (media.mediaType === 'VIDEO' && !canAddVideos) {
       return false;
     }
 
     return true;
   });
 
-  const canSelectImageMedia = (selectedImages: number): boolean => {
-    // Check if we can select more images
-    if (selectedImages + currentImageCount >= maxImages) {
-      return false;
+  // Validate if a specific media item can be selected
+  const canSelectMedia = (media: MediaItem): boolean => {
+    // If already selected, allow deselection
+    if (selectedMedia.some((m) => m.id === media.id)) {
+      return true;
     }
 
-    // Platform-specific constraints for images
-    const hasVideos =
-      currentVideoCount > 0 ||
-      selectedMedia.some((m) => m.mediaType === 'VIDEO');
-    const restrictedPlatforms = ['INSTAGRAM', 'TWITTER', 'LINKEDIN'];
-
-    if (restrictedPlatforms.includes(socialType) && hasVideos) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const canSelectVideoMedia = (
-    selectedVideos: number,
-    selectedImages: number
-  ): boolean => {
-    // Check if we can select more videos
-    if (selectedVideos + currentVideoCount >= maxVideos) {
-      return false;
-    }
-
-    const hasImages = currentImageCount > 0 || selectedImages > 0;
-    const restrictedPlatforms = ['INSTAGRAM', 'TWITTER', 'LINKEDIN'];
-    const singleVideoPlatforms = ['TIKTOK', 'YOUTUBE'];
-
-    // Platform-specific constraints for videos
-    if (restrictedPlatforms.includes(socialType) && hasImages) {
-      return false;
-    }
-
-    // TikTok/YouTube: Only 1 video allowed
-    if (
-      singleVideoPlatforms.includes(socialType) &&
-      (currentVideoCount > 0 || selectedVideos > 0)
-    ) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const canSelectMedia = (
-    media: MediaItem,
-    selectedMedia: MediaItem[]
-  ): boolean => {
-    const selectedImages = selectedMedia.filter(
-      (m) => m.mediaType === 'IMAGE'
-    ).length;
-    const selectedVideos = selectedMedia.filter(
-      (m) => m.mediaType === 'VIDEO'
-    ).length;
-
-    if (media.mediaType === 'IMAGE') {
-      return canSelectImageMedia(selectedImages);
-    }
-
-    if (media.mediaType === 'VIDEO') {
-      return canSelectVideoMedia(selectedVideos, selectedImages);
-    }
-
-    return true;
+    // Use centralized validation with current + selected media
+    const allCurrentMedia = [...currentMedia, ...selectedMedia];
+    const validation = canAddMediaType(
+      socialType,
+      media.mediaType,
+      allCurrentMedia
+    );
+    return validation.canAdd;
   };
 
   const handleMediaSelect = (media: MediaItem) => {
     setSelectedMedia((prev) => {
       const isSelected = prev.some((m) => m.id === media.id);
 
+      // Allow deselection
       if (isSelected) {
-        // Deselect media
         return prev.filter((m) => m.id !== media.id);
       }
 
       // Check if we can select this media
-      if (!canSelectMedia(media, prev)) {
+      if (!canSelectMedia(media)) {
         return prev;
       }
 
@@ -312,35 +335,25 @@ export function MediaSelectionDialog({
   };
 
   // Calculate max selection info
-  const maxSelectable = Math.min(
-    remainingImages + remainingVideos,
-    socialType === 'TIKTOK' || socialType === 'YOUTUBE' ? 2 : 10
-  );
+  const maxSelectable = remainingImages + remainingVideos;
 
+  // Get constraint message using centralized utility
   const getConstraintMessage = () => {
-    if (socialType === 'TIKTOK' || socialType === 'YOUTUBE') {
-      return `${remainingVideos} video(s) and ${remainingImages} thumbnail(s) remaining`;
+    const instruction = getMediaCountInstruction(socialType, currentMedia);
+
+    if (selectedMedia.length > 0) {
+      // Show what will be available after current selection
+      const futureMedia = [...currentMedia, ...selectedMedia];
+      const futureLimits = getDynamicMediaLimits(socialType, futureMedia);
+      return `${instruction} → After selection: ${futureLimits.remainingImages} image(s), ${futureLimits.remainingVideos} video(s) remaining`;
     }
-    if (
-      socialType === 'INSTAGRAM' &&
-      (currentVideoCount > 0 ||
-        selectedMedia.some((m) => m.mediaType === 'VIDEO'))
-    ) {
-      return 'Only 1 video allowed (no images)';
-    }
-    if (
-      socialType === 'INSTAGRAM' &&
-      (currentImageCount > 0 ||
-        selectedMedia.some((m) => m.mediaType === 'IMAGE'))
-    ) {
-      return `${remainingImages} image(s) remaining (no videos)`;
-    }
-    return `${remainingImages} image(s) or ${remainingVideos} video(s) remaining`;
+
+    return instruction;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[80vh] max-w-4xl">
+      <DialogContent className="max-h-[85vh] max-w-6xl">
         <DialogHeader>
           <DialogTitle>Select from Your Media Library</DialogTitle>
         </DialogHeader>
@@ -348,7 +361,7 @@ export function MediaSelectionDialog({
         <div className="space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+            <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground" />
             <Input
               placeholder="Search media..."
               value={searchQuery}
@@ -362,9 +375,9 @@ export function MediaSelectionDialog({
             {getConstraintMessage()}
           </div>
 
-          {/* Media Grid */}
+          {/* Media Grid with Virtual Scrolling */}
           <div className="h-96 overflow-y-auto">
-            {isLoading && (
+            {isLoading && accumulatedMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -375,7 +388,7 @@ export function MediaSelectionDialog({
             {!isLoading && filteredMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
-                  <ImageIcon className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <Icon icon={Image01Icon} size={48} className="mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">No media found</p>
                   <p className="mt-2 text-muted-foreground text-sm">
                     {searchQuery
@@ -385,23 +398,36 @@ export function MediaSelectionDialog({
                 </div>
               </div>
             )}
-            {!isLoading && filteredMedia.length > 0 && (
-              <MediaGrid
-                filteredMedia={filteredMedia}
-                selectedMedia={selectedMedia}
-                canSelectImages={canSelectImages}
-                canSelectVideos={canSelectVideos}
-                onMediaSelect={handleMediaSelect}
-              />
-            )}
+            {filteredMedia.length > 0 && (
+              <>
+                <MediaGrid
+                  filteredMedia={filteredMedia}
+                  selectedMedia={selectedMedia}
+                  canSelectImages={canAddImages}
+                  canSelectVideos={canAddVideos}
+                  onMediaSelect={handleMediaSelect}
+                  onScrollEnd={loadMore}
+                />
 
-            {/* Load more button - disabled for now */}
-            {hasMore && (
-              <div className="mt-4 text-center">
-                <Button variant="outline" disabled={true}>
-                  Load More
-                </Button>
-              </div>
+                {/* Loading indicator for pagination */}
+                {isLoadingMore && (
+                  <div className="mt-4 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="mt-2 text-muted-foreground text-sm">
+                      Loading more...
+                    </p>
+                  </div>
+                )}
+
+                {/* End of results indicator */}
+                {!hasMore && filteredMedia.length > 50 && (
+                  <div className="mt-4 text-center">
+                    <p className="text-muted-foreground text-sm">
+                      All media loaded ({filteredMedia.length} items)
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

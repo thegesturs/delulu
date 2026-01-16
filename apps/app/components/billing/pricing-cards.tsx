@@ -21,7 +21,8 @@ import {
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { PLANS, type PlanType, getAllPlans } from '@delulu/payments';
 import { useAction } from 'convex/react';
-import { Check, Sparkles } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Tick01Icon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -226,7 +227,7 @@ export function PricingCards({
                 {/* Features */}
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.socialAccounts === -1
                         ? 'Unlimited'
@@ -238,7 +239,7 @@ export function PricingCards({
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.monthlyPosts === -1
                         ? 'Unlimited'
@@ -247,7 +248,7 @@ export function PricingCards({
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                     <span>
                       {plan.limits.mediaStorage === -1
                         ? 'Unlimited'
@@ -257,31 +258,31 @@ export function PricingCards({
                   </li>
                   {plan.features.analytics && (
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                       <span>Advanced analytics</span>
                     </li>
                   )}
                   {plan.features.aiContentGeneration && (
                     <li className="flex items-start gap-2">
-                      <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <Icon icon={SparklesIcon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                       <span>AI content generation</span>
                     </li>
                   )}
                   {plan.features.collaboration && (
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                       <span>Team collaboration</span>
                     </li>
                   )}
                   {plan.features.whiteLabel && (
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                       <span>White-label</span>
                     </li>
                   )}
                   {plan.features.prioritySupport && (
                     <li className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
                       <span>Priority support</span>
                     </li>
                   )}

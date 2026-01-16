@@ -20,7 +20,8 @@ import {
 } from '@delulu/design-system/components/ui/card';
 import { Progress } from '@delulu/design-system/components/ui/progress';
 import { useQuery } from 'convex-helpers/react/cache';
-import { AlertCircle, BarChart3, Image, Users, Zap } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { AlertCircleIcon, BarChartIcon, Image01Icon, UserMultipleIcon, FlashIcon } from '@hugeicons-pro/core-solid-rounded';
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -50,7 +51,7 @@ function UsageStatItem({
           <span className="font-medium text-sm">{label}</span>
         </div>
         <div className="flex items-center gap-2">
-          {isAtLimit && <AlertCircle className="h-4 w-4 text-destructive" />}
+          {isAtLimit && <Icon icon={AlertCircleIcon} size={16} className="text-destructive" />}
           <span className="font-mono text-sm">
             {isUnlimited ? (
               <>
@@ -140,7 +141,7 @@ export function UsageStats() {
           </div>
           {subscription.isPaid && (
             <Badge variant="secondary">
-              <BarChart3 className="mr-1 h-3 w-3" />
+              <Icon icon={BarChartIcon} size={12} className="mr-1" />
               {subscription.planType}
             </Badge>
           )}
@@ -150,7 +151,7 @@ export function UsageStats() {
       <CardContent className="space-y-6">
         {/* Social Accounts */}
         <UsageStatItem
-          icon={<Zap className="h-4 w-4 text-muted-foreground" />}
+          icon={<Icon icon={FlashIcon} size={16} className="text-muted-foreground" />}
           label="Social Accounts"
           current={socialAccountsCount}
           limit={socialAccountsLimit.limit}
@@ -160,7 +161,7 @@ export function UsageStats() {
 
         {/* Monthly Posts */}
         <UsageStatItem
-          icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
+          icon={<Icon icon={BarChartIcon} size={16} className="text-muted-foreground" />}
           label="Posts This Month"
           current={monthlyPostsCount}
           limit={monthlyPostsLimit.limit}
@@ -170,7 +171,7 @@ export function UsageStats() {
 
         {/* Media Storage */}
         <UsageStatItem
-          icon={<Image className="h-4 w-4 text-muted-foreground" />}
+          icon={<Icon icon={Image01Icon} size={16} className="text-muted-foreground" />}
           label="Media Storage"
           current={0} // TODO: Calculate actual storage usage
           limit={100} // Placeholder
@@ -180,7 +181,7 @@ export function UsageStats() {
 
         {/* Team Members */}
         <UsageStatItem
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          icon={<Icon icon={UserMultipleIcon} size={16} className="text-muted-foreground" />}
           label="Team Members"
           current={1}
           limit={teamMembersLimit.limit}

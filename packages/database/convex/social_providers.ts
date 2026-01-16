@@ -362,3 +362,61 @@ export const updateSocialProvider = mutation({
     return true;
   },
 });
+
+// OAuth callback mutation - accepts userId parameter, no auth token needed
+// Security: userId comes from cryptographically signed OAuth state parameter
+// This is used when Clerk session is lost during OAuth redirect (local dev)
+export const upsertSocialProviderFromOAuth = mutation({
+  args: v.object({
+    ...socialProviderCreateSchema.fields,
+  }),
+  returns: v.union(
+    v.literal('created'),
+    v.literal('account_transferred'),
+    v.literal('updated')
+  ),
+  handler: async (ctx, args) => {
+    const { userId, ...providerData } = args;
+    const now = getCurrentTimestamp();
+
+    // Encrypt tokens
+    const encryptedAccessToken = await encryptData(providerData.accessToken);
+    const encryptedRefreshToken = providerData.refreshToken
+      ? await encryptData(providerData.refreshToken)
+      : undefined;
+
+    // Check if provider exists by profileId
+    const existingProvider = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_profile_id', (q) => q.eq('profileId', providerData.profileId))
+      .unique();
+
+    if (existingProvider) {
+      // Update existing provider
+      await ctx.db.patch(existingProvider._id, {
+        ...providerData,
+        userId,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        updatedAt: now,
+      });
+
+      if (existingProvider.userId !== userId) {
+        return 'account_transferred';
+      }
+      return 'updated';
+    }
+
+    // Create new provider
+    await ctx.db.insert('socialProviders', {
+      ...providerData,
+      userId,
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      updatedAt: now,
+      isActive: providerData.isActive ?? true,
+    });
+
+    return 'created';
+  },
+});

@@ -21,8 +21,8 @@ interface PostState {
   shouldReset: boolean;
   // TikTok specific settings - @deprecated use providerSettings
   tiktokSettings: TikTokSettings | null;
-  // Provider-specific settings map (socialProviderId -> settings)
-  providerSettings: Map<string, ProviderSetting>;
+  // Provider-specific settings (socialProviderId -> settings)
+  providerSettings: Record<string, ProviderSetting>;
   // Media upload state
   isMediaUploading: boolean;
 }
@@ -32,13 +32,16 @@ interface PostActions {
   setShouldReset: (shouldReset: boolean) => void;
   setDateAlongWithTime: (date: Date | undefined) => void;
   setTime: (time: string | null) => void;
-  setPost: (post: FullPostType) => void;
+  setPost: (
+    post: FullPostType | ((currentPost: FullPostType) => FullPostType)
+  ) => void;
   setSelectedSocialProviders: (providers: SocialProviderType[]) => void;
   setTikTokSettings: (settings: Partial<TikTokSettings>) => void; // @deprecated
   setProviderSettings: (providerId: string, setting: ProviderSetting) => void;
   getProviderSettings: (providerId: string) => ProviderSetting | undefined;
   setIsMediaUploading: (isUploading: boolean) => void;
   loadPost: (postData: GetPostByIdSchema) => void;
+  cleanupDeletedProviders: (validProviderIds: string[]) => void;
   reset: () => void;
 }
 
@@ -66,7 +69,7 @@ const initialState: PostState = {
   // TikTok specific settings defaults - @deprecated
   tiktokSettings: null,
   // Provider-specific settings
-  providerSettings: new Map<string, ProviderSetting>(),
+  providerSettings: {},
   // Media upload state defaults
   isMediaUploading: false,
 };
@@ -80,7 +83,10 @@ export const useStore = create<PostState & PostActions>()(
         setShouldReset: (shouldReset) => set({ shouldReset }),
         setDateAlongWithTime: (date) => set({ date }),
         setTime: (time) => set({ time }),
-        setPost: (post) => set({ post }),
+        setPost: (post) =>
+          set((state) => ({
+            post: typeof post === 'function' ? post(state.post) : post,
+          })),
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
         setTikTokSettings: (settings) =>
@@ -107,42 +113,15 @@ export const useStore = create<PostState & PostActions>()(
             };
           }),
         setProviderSettings: (providerId, setting) =>
-          set((state) => {
-            // Always create a new Map to ensure consistency
-            const currentSettings = state.providerSettings;
-            const newProviderSettings = new Map();
-
-            // Copy existing settings
-            if (currentSettings instanceof Map) {
-              // It's already a Map
-              for (const [key, value] of currentSettings.entries()) {
-                newProviderSettings.set(key, value);
-              }
-            } else {
-              // It's a plain object (after hydration)
-              for (const [key, value] of Object.entries(
-                currentSettings as Record<string, ProviderSetting>
-              )) {
-                newProviderSettings.set(key, value);
-              }
-            }
-
-            // Set the new setting
-            newProviderSettings.set(providerId, setting);
-            return { providerSettings: newProviderSettings };
-          }),
+          set((state) => ({
+            providerSettings: {
+              ...state.providerSettings,
+              [providerId]: setting,
+            },
+          })),
         getProviderSettings: (providerId) => {
           const state = get();
-          const providerSettings = state.providerSettings;
-
-          // Handle both Map and plain object (after hydration from localStorage)
-          if (providerSettings instanceof Map) {
-            return providerSettings.get(providerId);
-          }
-          // After hydration, it becomes a plain object
-          return (providerSettings as Record<string, ProviderSetting>)[
-            providerId
-          ];
+          return state.providerSettings[providerId];
         },
         setIsMediaUploading: (isUploading) =>
           set({ isMediaUploading: isUploading }),
@@ -177,7 +156,7 @@ export const useStore = create<PostState & PostActions>()(
             : undefined;
 
           // Load provider settings if they exist
-          const providerSettings = new Map<string, ProviderSetting>();
+          const providerSettings: Record<string, ProviderSetting> = {};
           if (postData.providerSettings) {
             postData.providerSettings.forEach((setting) => {
               // Only add valid provider settings
@@ -186,10 +165,8 @@ export const useStore = create<PostState & PostActions>()(
                 setting.socialProviderId &&
                 setting.settings
               ) {
-                providerSettings.set(
-                  setting.socialProviderId,
-                  setting as ProviderSetting
-                );
+                providerSettings[setting.socialProviderId] =
+                  setting as ProviderSetting;
               }
             });
           }
@@ -208,6 +185,39 @@ export const useStore = create<PostState & PostActions>()(
               ? `${scheduledDate.getHours().toString().padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}`
               : '00:00',
             providerSettings,
+          });
+        },
+        cleanupDeletedProviders: (validProviderIds) => {
+          const state = get();
+          const validIds = new Set(validProviderIds);
+
+          // Filter selectedSocialProviders
+          const validSelectedProviders = state.selectedSocialProviders.filter(
+            (provider) => validIds.has(provider.socialId)
+          );
+
+          // Filter alternative content
+          const validAlternativeContent = state.post.alternativeContent.filter(
+            (alt) => validIds.has(alt.socialProvider.socialId)
+          );
+
+          // Filter provider settings
+          const validProviderSettings: Record<string, ProviderSetting> = {};
+          for (const [providerId, setting] of Object.entries(
+            state.providerSettings
+          )) {
+            if (validIds.has(providerId)) {
+              validProviderSettings[providerId] = setting;
+            }
+          }
+
+          set({
+            selectedSocialProviders: validSelectedProviders,
+            post: {
+              ...state.post,
+              alternativeContent: validAlternativeContent,
+            },
+            providerSettings: validProviderSettings,
           });
         },
         reset: () => set(initialState),
@@ -244,17 +254,7 @@ export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
 // Stable function that gets state directly without React hooks
 export const getProviderSettingsForConvex = () => {
   const state = useStore.getState();
-
-  // Handle both Map and plain object (after hydration from localStorage)
-  const providerSettings = state.providerSettings;
-  let values: ProviderSetting[];
-
-  if (providerSettings instanceof Map) {
-    values = Array.from(providerSettings.values());
-  } else {
-    // After hydration, it becomes a plain object
-    values = Object.values(providerSettings as Record<string, ProviderSetting>);
-  }
+  const values = Object.values(state.providerSettings);
 
   return values.map((setting) => ({
     type: setting.type,

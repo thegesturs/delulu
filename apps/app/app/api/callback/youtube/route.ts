@@ -1,8 +1,9 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
+import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
 import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -50,31 +51,32 @@ function validatePermissions(grantedScope: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { userId, getToken } = await auth();
-    if (!userId) {
-      return NextResponse.redirect(
-        new URL(
-          '/socials?error=auth_required&code=AUTH_001&provider=YOUTUBE',
-          env.NEXT_PUBLIC_APP_URL
-        )
-      );
-    }
+	try {
+		// Verify OAuth state and recover session
+		const sessionResult = await verifyOAuthStateAndRecoverSession(
+			request,
+			'YOUTUBE',
+		);
 
-    const token = await getToken({ template: 'convex' });
-    if (!token) {
-      return new NextResponse(null, {
-        status: 302,
-        headers: {
-          Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=YOUTUBE',
-        },
-      });
-    }
+		if (!sessionResult.success) {
+			const { error, code: errorCode } = sessionResult.error;
+			return NextResponse.redirect(
+				new URL(
+					`/socials?error=${error}&code=${errorCode}&provider=YOUTUBE`,
+					env.NEXT_PUBLIC_APP_URL,
+				),
+			);
+		}
 
-    const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
+		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
+
+		if (sessionRecovered) {
+			console.log('[YOUTUBE] Session was recovered from state parameter');
+		}
+
+		const { searchParams } = new URL(request.url);
+		const code = searchParams.get('code');
+		const error = searchParams.get('error');
 
     // Handle user denying access
     if (error === 'access_denied') {
@@ -175,26 +177,49 @@ export async function GET(request: NextRequest) {
       channel.snippet.customUrl ||
       channel.snippet.title.replace(/\s+/g, '').toLowerCase();
 
-    // Store the YouTube connection using Convex
-    const status = await fetchMutation(
-      api.social_providers.upsertSocialProvider,
-      {
-        socialType: 'YOUTUBE',
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || '',
-        expiresIn: Date.now() + tokenData.expires_in * 1000,
-        profileId: channel.id,
-        username: channelUsername,
-        fullName: channel.snippet.title,
-        profileImage:
-          channel.snippet.thumbnails?.high?.url ||
-          channel.snippet.thumbnails?.medium?.url ||
-          channel.snippet.thumbnails?.default?.url ||
-          '',
-        isActive: true,
-      },
-      { token }
-    );
+    // Conditional mutation based on token availability
+    let status;
+    if (useInternalMutation) {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProviderFromOAuth,
+        {
+          userId: userId as Id<'users'>,
+          socialType: 'YOUTUBE',
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || '',
+          expiresIn: Date.now() + tokenData.expires_in * 1000,
+          profileId: channel.id,
+          username: channelUsername,
+          fullName: channel.snippet.title,
+          profileImage:
+            channel.snippet.thumbnails?.high?.url ||
+            channel.snippet.thumbnails?.medium?.url ||
+            channel.snippet.thumbnails?.default?.url ||
+            '',
+          isActive: true,
+        }
+      );
+    } else {
+      status = await fetchMutation(
+        api.social_providers.upsertSocialProvider,
+        {
+          socialType: 'YOUTUBE',
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token || '',
+          expiresIn: Date.now() + tokenData.expires_in * 1000,
+          profileId: channel.id,
+          username: channelUsername,
+          fullName: channel.snippet.title,
+          profileImage:
+            channel.snippet.thumbnails?.high?.url ||
+            channel.snippet.thumbnails?.medium?.url ||
+            channel.snippet.thumbnails?.default?.url ||
+            '',
+          isActive: true,
+        },
+        { token: token! }
+      );
+    }
 
     // Handle different response statuses
     if (status === 'account_transferred') {

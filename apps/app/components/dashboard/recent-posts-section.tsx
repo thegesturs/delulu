@@ -10,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Plus } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 
 interface RecentPostsSectionProps {
@@ -47,7 +49,7 @@ export function RecentPostsSection({
               className="mt-4"
               variant="outline"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Icon icon={Plus} size={16} className="mr-2 " />
               Create Post
             </Button>
           </div>

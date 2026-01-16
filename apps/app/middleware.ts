@@ -10,7 +10,8 @@ const publicRoutes = createRouteMatcher([
   '/sign-up(.*)',
   '/api/webhooks(.*)',
   '/verify-email(.*)',
-  '/api/trpc(.*)',
+  // '/api/trpc(.*)',
+  '/api/callback(.*)', // Add this line - OAuth callbacks must be public
   '/api/transcribe(.*)',
 ]);
 
@@ -32,7 +33,7 @@ export default clerkMiddleware(async (auth, req) => {
   // Get auth state
   const { userId, redirectToSignIn, sessionClaims } = await auth();
 
-  console.log('userId', userId);
+  console.log('userId', userId, req.url);
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {

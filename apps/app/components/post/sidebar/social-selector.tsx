@@ -7,6 +7,7 @@ import {
 } from '@/store/post';
 import { api as trpcApi } from '@/trpc/react';
 import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,8 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import type { SocialType } from '@delulu/validators/post';
 import { useQuery } from 'convex-helpers/react/cache';
-import { Settings } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
 import {
   AnimatePresence,
   LayoutGroup,
@@ -30,8 +32,9 @@ import {
   motion,
 } from 'motion/react';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IoCheckmarkCircle } from 'react-icons/io5';
+import { toast } from 'sonner';
 import { PlatformSettingsDialog } from './platform-settings-dialog';
 import { SocialIcon } from './social-icon';
 
@@ -43,6 +46,43 @@ interface SocialSelectorItemProps {
 
 export default function SocialSelector() {
   const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
+  const selectedProviders = useSelectedSocialProviders();
+
+  // Validate that selected providers still exist in the database
+  const validatedSelectedProviders = useMemo(() => {
+    if (!socialProviders) return selectedProviders;
+
+    const validIds = new Set(socialProviders.map((p) => p._id));
+    const valid = selectedProviders.filter((p) =>
+      validIds.has(p.socialId as Id<'socialProviders'>)
+    );
+
+    // Clean up if mismatch detected
+    if (valid.length !== selectedProviders.length) {
+      // Use the cleanup helper from the store
+      const validProviderIds = Array.from(validIds);
+      useStore.getState().cleanupDeletedProviders(validProviderIds);
+    }
+
+    return valid;
+  }, [socialProviders, selectedProviders]);
+
+  // Show warning if providers were removed
+  useEffect(() => {
+    if (!socialProviders) return;
+
+    const removed =
+      selectedProviders.length - validatedSelectedProviders.length;
+    if (removed > 0) {
+      toast.error(
+        `${removed} social account${removed > 1 ? 's were' : ' was'} disconnected and removed from this post.`
+      );
+    }
+  }, [
+    socialProviders,
+    selectedProviders.length,
+    validatedSelectedProviders.length,
+  ]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -54,7 +94,7 @@ export default function SocialSelector() {
           bounce: 0.2,
         }}
       >
-        <motion.div className="grid grid-cols-2 gap-1">
+        <motion.div className="grid grid-cols-1 gap-1 md:grid-cols-2">
           <LayoutGroup>
             <AnimatePresence initial={false} mode="popLayout">
               {socialProviders?.map((account) => (
@@ -194,7 +234,7 @@ function SocialSelectorItem({
                     onClick={handleSettingsClick}
                     className="h-6 w-6 hover:bg-white/20"
                   >
-                    <Settings className="h-3 w-3" />
+                    <Icon icon={Settings01Icon} size={12} />
                   </Button>
                 )}
                 {isSelected && (

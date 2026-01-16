@@ -8,15 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
+import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Calendar,
-  CheckCircle,
-  Clock,
-  FileText,
-  Flame,
-  Users,
-  XCircle,
-} from 'lucide-react';
+  Calendar01Icon,
+  TickDouble01Icon,
+  ClockIcon,
+  DocumentAttachmentIcon,
+  FireIcon,
+  UserMultipleIcon,
+  CancelCircleIcon,
+} from '@hugeicons-pro/core-solid-rounded';
 
 interface DashboardStatsClientProps {
   stats: DashboardStats;
@@ -37,7 +38,7 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Total Posts</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <Icon icon={DocumentAttachmentIcon} size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -50,7 +51,7 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Published</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <Icon icon={TickDouble01Icon} size={16} className="text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -69,7 +70,7 @@ export function DashboardStatsClient({
             <CardTitle className="font-medium text-sm">
               Connected Accounts
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Icon icon={UserMultipleIcon} size={16} className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -95,12 +96,14 @@ export function DashboardStatsClient({
             <CardTitle className="font-medium text-sm">
               Posting Streak
             </CardTitle>
-            <Flame
-              className={`h-4 w-4 ${
+            <Icon
+              icon={FireIcon}
+              size={16}
+              className={
                 stats.postingStreak && stats.postingStreak > 0
                   ? 'text-orange-500 dark:text-orange-400'
                   : 'text-muted-foreground'
-              }`}
+              }
             />
           </CardHeader>
           <CardContent>
@@ -127,7 +130,7 @@ export function DashboardStatsClient({
             <CardTitle className="font-medium text-sm">
               Upcoming Posts
             </CardTitle>
-            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Icon icon={ClockIcon} size={16} className="text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -142,7 +145,7 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Scheduled</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Icon icon={Calendar01Icon} size={16} className="text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -158,7 +161,7 @@ export function DashboardStatsClient({
               <CardTitle className="font-medium text-red-800 text-sm dark:text-red-200">
                 Failed Posts
               </CardTitle>
-              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <Icon icon={CancelCircleIcon} size={16} className="text-red-600 dark:text-red-400" />
             </CardHeader>
             <CardContent>
               <div className="font-bold text-2xl text-red-800 dark:text-red-200">

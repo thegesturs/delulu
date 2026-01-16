@@ -21,16 +21,19 @@ import { fetchMutation } from '@delulu/database/server';
 import { fetchQuery } from '@delulu/database/server';
 
 export const socialProviderRouter = {
-  getSocialProviderConnectUrl: protectedProcedure
-    .input(
-      z.object({
-        provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
-      })
-    )
-    .query(({ input }) => {
-      const link = connectUrlRegistry[input.provider].connectUrl();
-      return link;
-    }),
+	getSocialProviderConnectUrl: protectedProcedure
+		.input(
+			z.object({
+				provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			// Pass userId to connectUrl to generate signed state
+			const link = await connectUrlRegistry[input.provider].connectUrl(
+				ctx.userId,
+			);
+			return link;
+		}),
   // createPost: protectedProcedure
   //   .input(savePostInputSchema)
   //   .mutation(async ({ input, ctx }) => {

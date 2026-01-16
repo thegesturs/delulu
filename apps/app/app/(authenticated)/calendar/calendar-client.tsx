@@ -11,7 +11,8 @@ import { EventCalendar } from '@delulu/design-system/components/event-calendar';
 import type { CalendarEvent } from '@delulu/design-system/components/event-calendar';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { useMutation, useQuery } from 'convex/react';
-import { CalendarPlus } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { CalendarPlus } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -137,7 +138,7 @@ export function CalendarClient() {
           </p>
         </div>
         <Button onClick={handleCreatePost} size="lg">
-          <CalendarPlus className="mr-2 h-5 w-5" />
+          <Icon icon={CalendarPlus} size={20} className="mr-2 " />
           Create Post
         </Button>
       </div>

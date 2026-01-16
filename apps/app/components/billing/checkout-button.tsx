@@ -9,7 +9,8 @@
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
 import { useAction } from 'convex/react';
-import { ArrowRight, CreditCard } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { ArrowRight01Icon, CreditCardIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -68,7 +69,7 @@ export function CheckoutButton({
         <>
           {children || (
             <>
-              <CreditCard className="mr-2 h-4 w-4" />
+              <Icon icon={CreditCardIcon} size={16} className="mr-2" />
               Checkout
             </>
           )}
@@ -89,7 +90,7 @@ export function UpgradeButton({ planName, ...props }: UpgradeButtonProps) {
   return (
     <CheckoutButton {...props}>
       Upgrade to {planName}
-      <ArrowRight className="ml-2 h-4 w-4" />
+      <Icon icon={ArrowRight01Icon} size={16} className="ml-2" />
     </CheckoutButton>
   );
 }
@@ -103,7 +104,7 @@ export function SubscribeButton(props: CheckoutButtonProps) {
       {props.children || (
         <>
           Start Subscription
-          <ArrowRight className="ml-2 h-4 w-4" />
+          <Icon icon={ArrowRight01Icon} size={16} className="ml-2" />
         </>
       )}
     </CheckoutButton>

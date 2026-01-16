@@ -41,13 +41,16 @@ export default defineSchema({
     .index('by_social_type', ['socialType'])
     .index('by_is_active', ['isActive']),
 
-  // Media table (unchanged, keeping external storage)
+  // Media table (external storage with optimized indexes for pagination)
   media: defineTable(baseMediaTableSchema.fields)
     .index('by_user_id', ['userId'])
     .index('by_organization_id', ['organizationId'])
     .index('by_bucket_key', ['bucketKey'])
     .index('by_media_type', ['mediaType'])
-    .index('by_created_at', ['createdAt']),
+    .index('by_created_at', ['createdAt'])
+    // Composite indexes for efficient cursor-based pagination
+    .index('by_userId_createdAt', ['userId', 'createdAt'])
+    .index('by_userId_mediaType', ['userId', 'mediaType']),
 
   // Subscriptions table
   subscriptions: defineTable(baseSubscriptionSchema.fields)

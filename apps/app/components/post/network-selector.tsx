@@ -17,7 +17,8 @@ import type { SocialType } from '@delulu/validators/post';
 
 import { getPlatformsInDefault } from '@/lib/platform-rules';
 import { useSelectedSocialProviders, useStore } from '@/store/post';
-import { ArrowDown } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { ArrowDown01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useShallow } from 'zustand/shallow';
 import { SocialIcon } from './sidebar/social-icon';
 
@@ -70,24 +71,32 @@ export function AlternativeContentSelector() {
         ),
       });
     } else {
-      // Add provider with default content
+      // Add provider with default content - deep copy ALL content items (supports threads)
       setPost({
         ...post,
         alternativeContent: [
           ...post.alternativeContent,
           {
             socialProvider: provider,
-            content: [
-              {
-                id: '',
-                order: 0,
-                name: provider.name,
-                media: post.content[0]?.media || [],
-                text: post.content[0]?.text || '',
-                tags: [],
-                socialId: provider.socialId,
-              },
-            ],
+            content: post.content.map((contentItem, index) => ({
+              id: '',
+              order: index,
+              name: provider.name,
+              // Deep copy media to prevent reference sharing
+              media: contentItem.media.map((m) => ({
+                mediaType: m.mediaType,
+                url: m.url,
+                bucketKey: m.bucketKey,
+                bucketUrl: m.bucketUrl,
+                altText: m.altText,
+                thumbnailBucketUrl: m.thumbnailBucketUrl,
+                thumbnailBucketKey: m.thumbnailBucketKey,
+              })),
+              text: contentItem.text,
+              title: contentItem.title, // Copy YouTube title
+              tags: [...(contentItem.tags || [])], // Deep copy tags
+              socialId: provider.socialId,
+            })),
           },
         ],
       });
@@ -102,7 +111,7 @@ export function AlternativeContentSelector() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button size="icon" className="size-7 rounded-md">
-          <ArrowDown className="size-3" />
+          <Icon icon={ArrowDown01Icon} size={12} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="start">

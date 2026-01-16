@@ -25,7 +25,8 @@ import {
 } from '@delulu/design-system/lib/social-config';
 import { cn } from '@delulu/design-system/lib/utils';
 import { useMutation } from 'convex/react';
-import { Calendar, Eye, MoreHorizontal } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Calendar01Icon, ViewIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -185,12 +186,12 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
         className="h-8 w-8"
         onClick={() => setShowPreview(true)}
       >
-        <Eye className="h-3.5 w-3.5" />
+        <Icon icon={ViewIcon} size={14} />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8">
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <Icon icon={MoreHorizontalIcon} size={14} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -229,7 +230,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               {/* Scheduled At - flex-shrink-0 to prevent shrinking */}
               {post.scheduledAt && (
                 <div className="flex flex-shrink-0 items-center gap-1 text-muted-foreground text-xs">
-                  <Calendar className="h-3 w-3" />
+                  <Icon icon={Calendar01Icon} size={12} />
                   {new Date(post.scheduledAt).toLocaleDateString()}
                 </div>
               )}
@@ -386,7 +387,7 @@ export function PostCard({ post, layout = 'grid' }: PostCardProps) {
               <div className="mt-auto flex items-center justify-between text-muted-foreground text-xs">
                 {post.scheduledAt ? (
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
+                    <Icon icon={Calendar01Icon} size={12} />
                     <span>
                       {new Date(post.scheduledAt).toLocaleDateString()}
                     </span>

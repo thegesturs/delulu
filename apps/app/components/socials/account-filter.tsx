@@ -9,7 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
-import { Grid3X3, List, Search } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { GridViewIcon, Menu01Icon, Search01Icon } from '@hugeicons-pro/core-solid-rounded';
 
 interface AccountFiltersProps {
   searchQuery: string;
@@ -37,7 +39,7 @@ export function AccountFilters({
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
           <div className="relative max-w-sm flex-1">
-            <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+            <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3  transform text-muted-foreground" />
             <Input
               placeholder="Search accounts..."
               value={searchQuery}
@@ -78,7 +80,7 @@ export function AccountFilters({
             onClick={() => setViewMode('list')}
             className="h-9 w-9 p-0"
           >
-            <List className="h-4 w-4" />
+            <Icon icon={Menu01Icon} size={16} className="" />
           </Button>
           <Button
             variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -86,7 +88,7 @@ export function AccountFilters({
             onClick={() => setViewMode('grid')}
             className="h-9 w-9 p-0"
           >
-            <Grid3X3 className="h-4 w-4" />
+            <Icon icon={GridViewIcon} size={16} className="" />
           </Button>
         </div>
       </div>

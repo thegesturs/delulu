@@ -2,7 +2,8 @@
 
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Card, CardContent } from '@delulu/design-system/components/ui/card';
-import { Plus, Upload } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { Add01Icon, Upload01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 
 export function QuickActions() {
@@ -12,7 +13,7 @@ export function QuickActions() {
     {
       title: 'Create Post',
       description: 'Write and schedule new content',
-      icon: Plus,
+      icon: Add01Icon,
       action: () => router.push('/post'),
       variant: 'default' as const,
       className: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -20,7 +21,7 @@ export function QuickActions() {
     {
       title: 'Upload Media',
       description: 'Add images and videos to library',
-      icon: Upload,
+      icon: Upload01Icon,
       action: () => router.push('/media'),
       variant: 'outline' as const,
     },
@@ -29,7 +30,6 @@ export function QuickActions() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {primaryActions.map((action) => {
-        const Icon = action.icon;
         return (
           <Card
             key={action.title}
@@ -39,7 +39,7 @@ export function QuickActions() {
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
                 <div className="rounded-lg bg-primary/10 p-3 transition-colors group-hover:bg-primary/20">
-                  <Icon className="h-6 w-6 text-primary" />
+                  <Icon icon={action.icon} size={24} className="text-primary" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg">{action.title}</h3>

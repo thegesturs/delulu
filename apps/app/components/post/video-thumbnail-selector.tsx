@@ -18,7 +18,13 @@ import {
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
 import { cn } from '@delulu/design-system/lib/utils';
-import { ImageIcon, Loader2, Upload, VideoIcon } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import {
+  Image01Icon,
+  Loading03Icon,
+  Upload01Icon,
+  VideoIcon,
+} from '@hugeicons-pro/core-solid-rounded';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -240,7 +246,7 @@ export function VideoThumbnailSelector({
               className="w-full"
               disabled={!videoSource}
             >
-              <VideoIcon className="mr-2 h-4 w-4" />
+              <Icon icon={VideoIcon} size={16} className="mr-2" />
               Capture Current Frame
             </Button>
           </div>
@@ -250,7 +256,11 @@ export function VideoThumbnailSelector({
             {/* Thumbnail Previews Grid */}
             {isGenerating ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Icon
+                  icon={Loading03Icon}
+                  size={24}
+                  className="animate-spin text-muted-foreground"
+                />
               </div>
             ) : (
               thumbnailPreviews.length > 0 && (
@@ -286,7 +296,11 @@ export function VideoThumbnailSelector({
                         {selectedFrame === preview && !customThumbnail && (
                           <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
                             <div className="rounded-full bg-primary p-1">
-                              <ImageIcon className="h-3 w-3 text-primary-foreground" />
+                              <Icon
+                                icon={Image01Icon}
+                                size={12}
+                                className="text-primary-foreground"
+                              />
                             </div>
                           </div>
                         )}
@@ -319,7 +333,7 @@ export function VideoThumbnailSelector({
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full"
               >
-                <Upload className="mr-2 h-4 w-4" />
+                <Icon icon={Upload01Icon} size={16} className="mr-2" />
                 Upload Custom Thumbnail
               </Button>
             </div>
@@ -349,12 +363,16 @@ export function VideoThumbnailSelector({
                 >
                   {isUploading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Icon
+                        icon={Loading03Icon}
+                        size={16}
+                        className="mr-2 animate-spin"
+                      />
                       Uploading...
                     </>
                   ) : (
                     <>
-                      <Upload className="mr-2 h-4 w-4" />
+                      <Icon icon={Upload01Icon} size={16} className="mr-2" />
                       Save Thumbnail
                     </>
                   )}

@@ -71,52 +71,52 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const { userId, getToken } = await auth();
+// export async function GET(req: NextRequest) {
+//   try {
+//     const { userId, getToken } = await auth();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+//     if (!userId) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+//     }
 
-    const token = await getToken({ template: 'convex' });
+//     const token = await getToken({ template: 'convex' });
 
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+//     if (!token) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+//     }
 
-    const user = await fetchQuery(
-      api.users.getUserByExternalId,
-      {
-        externalId: userId,
-      },
-      { token }
-    );
-    if (!user?._id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+//     const user = await fetchQuery(
+//       api.users.getUserByExternalId,
+//       {
+//         externalId: userId,
+//       },
+//       { token }
+//     );
+//     if (!user?._id) {
+//       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+//     }
 
-    const { searchParams } = new URL(req.url);
-    const limit = Number.parseInt(searchParams.get('limit') || '50');
-    const offset = Number.parseInt(searchParams.get('offset') || '0');
-    const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
+//     const { searchParams } = new URL(req.url);
+//     const limit = Number.parseInt(searchParams.get('limit') || '50');
+//     const offset = Number.parseInt(searchParams.get('offset') || '0');
+//     const mediaType = searchParams.get('mediaType') as 'IMAGE' | 'VIDEO' | null;
 
-    const media = await fetchQuery(
-      api.media.getMedia,
-      {
-        limit,
-        offset,
-        ...(mediaType && { mediaType }),
-      },
-      { token }
-    );
+//     const media = await fetchQuery(
+//       api.media.getMedia,
+//       {
+//         limit,
+//         offset,
+//         ...(mediaType && { mediaType }),
+//       },
+//       { token }
+//     );
 
-    return NextResponse.json(media);
-  } catch (error) {
-    console.error('Error fetching media:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch media' },
-      { status: 500 }
-    );
-  }
-}
+//     return NextResponse.json(media);
+//   } catch (error) {
+//     console.error('Error fetching media:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to fetch media' },
+//       { status: 500 }
+//     );
+//   }
+// }

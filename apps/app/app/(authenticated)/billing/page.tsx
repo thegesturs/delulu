@@ -20,7 +20,8 @@ import {
 } from '@delulu/design-system/components/ui/alert';
 import type { PlanType } from '@delulu/payments';
 import { getProductIds } from '@delulu/payments/product-ids';
-import { CheckCircle2 } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+import { TickDouble01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -77,7 +78,7 @@ export default function BillingPage() {
       {/* Success Alert */}
       {(status === 'succeeded' || status === 'active') && (
         <Alert className="border-green-500/50 bg-green-500/10">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <Icon icon={TickDouble01Icon} size={16} className=" text-green-500" />
           <AlertTitle>Subscription Updated!</AlertTitle>
           <AlertDescription>
             Your payment has been processed successfully. You now have access to

@@ -28,14 +28,15 @@ import {
   socialBackgroundColors,
   socialIcons,
 } from '@delulu/design-system/lib/social-config';
+import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  MoreHorizontal,
-  RefreshCw,
-  Trash2,
-} from 'lucide-react';
+  Alert01Icon,
+  TickDouble01Icon,
+  ClockIcon,
+  MoreHorizontalIcon,
+  Reload,
+  Delete01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import Link from 'next/link';
 import { useState } from 'react';
 import DeleteAlertDialog from '../alerts/delete-post';
@@ -95,7 +96,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
   if (!connectUrl || socialType === 'LENS' || socialType === 'DEFAULT') {
     return (
       <DropdownMenuItem disabled className="cursor-not-allowed">
-        <RefreshCw className="mr-2 h-4 w-4" />
+        <Icon icon={Reload} size={16} className="mr-2 " />
         Reconnect
       </DropdownMenuItem>
     );
@@ -104,7 +105,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
   return (
     <DropdownMenuItem asChild className="cursor-pointer">
       <Link href={connectUrl}>
-        <RefreshCw className="mr-2 h-4 w-4" />
+        <Icon icon={Reload} size={16} className="mr-2 " />
         Reconnect
       </Link>
     </DropdownMenuItem>
@@ -141,7 +142,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
             </div>
             {isAccountExpired && (
               <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-destructive">
-                <AlertTriangle className="h-2.5 w-2.5 text-destructive-foreground" />
+                <Icon icon={Alert01Icon} size={10} className="text-destructive-foreground" />
               </div>
             )}
           </div>
@@ -170,7 +171,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+                        <Icon icon={TickDouble01Icon} size={14} className="flex-shrink-0 text-green-600 dark:text-green-400" />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
@@ -184,7 +185,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                     </Tooltip>
                   </TooltipProvider>
                 ) : (
-                  <Clock className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <Icon icon={ClockIcon} size={14} className="flex-shrink-0 text-muted-foreground" />
                 )}
               </div>
               <p className="truncate text-muted-foreground text-xs">
@@ -226,7 +227,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   size="icon"
                   className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-foreground/80 group-hover:opacity-100"
                 >
-                  <MoreHorizontal className="h-4 w-4" />
+                  <Icon icon={MoreHorizontalIcon} size={16} className="" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -237,7 +238,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   onClick={() => setDeleteDialogOpen(true)}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Icon icon={Delete01Icon} size={16} className="mr-2 " />
                   Delete Account
                 </DropdownMenuItem>
               </DropdownMenuContent>

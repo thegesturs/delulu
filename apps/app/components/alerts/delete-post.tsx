@@ -8,7 +8,9 @@ import {
   AlertDialogTitle,
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Loader } from 'lucide-react';
+import { Icon } from '@delulu/design-system/providers/icon';
+
+import { Loader } from '@hugeicons-pro/core-solid-rounded';
 
 export default function DeleteAlertDialog({
   open,
@@ -42,7 +44,7 @@ export default function DeleteAlertDialog({
             disabled={isLoading}
             className="flex items-center gap-2"
           >
-            {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : null}
+            {isLoading ? <Icon icon={Loader} size={16} className=" animate-spin" /> : null}
             Delete
           </Button>
         </AlertDialogFooter>

@@ -11,7 +11,7 @@ import {
 import { useQuery } from 'convex-helpers/react/cache';
 import { format } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getSingleProviderInDefault } from '@/lib/platform-rules';
 import {
@@ -23,6 +23,7 @@ import { cn } from '@delulu/design-system/lib/utils';
 import { SocialTypes } from '@delulu/validators/post';
 import { Header } from '../layout/header';
 import { ContentModule } from './content-module';
+import { MobilePostHeader } from './mobile-post-header';
 import { AlternativeContentSelector } from './network-selector';
 import { PostSidebar } from './sidebar/post-sidebar';
 import { SocialIcon } from './sidebar/social-icon';
@@ -41,10 +42,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
 
-  // Get single provider in default for smart labeling
-  const singleProviderInDefault = getSingleProviderInDefault(
-    socialProviders,
-    alternativeContent
+  // Get single provider in default for smart labeling (memoized for performance)
+  const singleProviderInDefault = useMemo(
+    () => getSingleProviderInDefault(socialProviders, alternativeContent),
+    [socialProviders, alternativeContent]
   );
 
   // Fetch post data if in edit mode
@@ -114,7 +115,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full flex-col gap-4 lg:flex-row overflow-y-auto lg:overflow-visible pb-20 lg:pb-0">
       <div className="flex-1">
         {/* Show warning if post is already published */}
         {postData && postData.status === 'PUBLISHED' && (
@@ -129,42 +130,48 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
             </p>
           </div>
         )}
-        <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
+        <div className="hidden lg:block">
+          <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
+        </div>
+        <MobilePostHeader />
+        
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
-          <TabsList className={cn(socialProviders.length < 2 && 'hidden')}>
-            <TabsTrigger
-              value="global"
-              className={cn(
-                singleProviderInDefault && 'min-w-fit gap-2 text-xs'
-              )}
-            >
-              {singleProviderInDefault ? (
-                <>
+          <div className="w-full overflow-x-auto pb-2 lg:overflow-visible lg:pb-0">
+            <TabsList className={cn(socialProviders.length < 2 && 'hidden', 'w-max lg:w-full justify-start')}>
+              <TabsTrigger
+                value="global"
+                className={cn(
+                  singleProviderInDefault && 'min-w-fit gap-2 text-xs'
+                )}
+              >
+                {singleProviderInDefault ? (
+                  <>
+                    <SocialIcon
+                      type={singleProviderInDefault.socialType}
+                      className="size-4"
+                    />
+                    {singleProviderInDefault.name}
+                  </>
+                ) : (
+                  'Global'
+                )}
+              </TabsTrigger>
+              {alternativeContent.map((content) => (
+                <TabsTrigger
+                  key={content.socialProvider.socialId}
+                  value={content.socialProvider.socialId}
+                  className="min-w-fit gap-2 text-xs"
+                >
                   <SocialIcon
-                    type={singleProviderInDefault.socialType}
+                    type={content.socialProvider.socialType}
                     className="size-4"
                   />
-                  {singleProviderInDefault.name}
-                </>
-              ) : (
-                'Global'
-              )}
-            </TabsTrigger>
-            {alternativeContent.map((content) => (
-              <TabsTrigger
-                key={content.socialProvider.socialId}
-                value={content.socialProvider.socialId}
-                className="min-w-fit gap-2 text-xs"
-              >
-                <SocialIcon
-                  type={content.socialProvider.socialType}
-                  className="size-4"
-                />
-                {content.socialProvider.name}
-              </TabsTrigger>
-            ))}
-            <AlternativeContentSelector />
-          </TabsList>
+                  {content.socialProvider.name}
+                </TabsTrigger>
+              ))}
+              <AlternativeContentSelector />
+            </TabsList>
+          </div>
 
           <TabsContent value="global">
             <ContentModule socialId="global" socialType={SocialTypes.DEFAULT} />
@@ -183,7 +190,9 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           ))}
         </Tabs>
       </div>
-      <PostSidebar />
+      <div className="hidden lg:block">
+        <PostSidebar />
+      </div>
     </div>
   );
 }
