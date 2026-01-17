@@ -44,18 +44,17 @@ export async function POST(request: NextRequest) {
     const uniqueFileName = `${randomUUID()}.${fileExtension}`;
     const key = `${userId}/${uniqueFileName}`;
 
+    const startTime = Date.now();
     console.log(
-      `[DEBUG] Uploading file: ${file.name} (${file.type}) as key: ${key}`
+      `[DEBUG] Starting upload: ${file.name} (${file.type}) as key: ${key}, size: ${file.size} bytes`
     );
 
-    // Convert File to ArrayBuffer for R2
-    const arrayBuffer = await file.arrayBuffer();
-
-    // Upload directly to R2
-    const uploadResult = await r2Provider.uploadFile(
-      key,
-      arrayBuffer,
-      file.type
+    // Upload file directly to R2 - in Cloudflare Workers, File is already the right type
+    // R2 will handle it efficiently without loading entire file into memory
+    const uploadStart = Date.now();
+    const uploadResult = await r2Provider.uploadFileStream(key, file, file.type);
+    console.log(
+      `[DEBUG] R2 upload took ${Date.now() - uploadStart}ms, total: ${Date.now() - startTime}ms`
     );
 
     if (uploadResult.isErr()) {

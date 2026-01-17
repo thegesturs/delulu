@@ -6,14 +6,23 @@ interface UploadMediaResult {
 }
 
 export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
+  const startTime = Date.now();
+  console.log(
+    `[CLIENT] Starting upload: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+  );
+
   // Upload directly through the API (file is processed server-side)
   const formData = new FormData();
   formData.append('file', file);
 
+  const uploadStart = Date.now();
   const response = await fetch('/api/upload', {
     method: 'POST',
     body: formData,
   });
+  console.log(
+    `[CLIENT] Upload request took ${Date.now() - uploadStart}ms`
+  );
 
   if (!response.ok) {
     throw new Error('Failed to upload file');
@@ -25,7 +34,11 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   };
 
   // Get download URL after successful upload
+  const urlStart = Date.now();
   const downloadUrl = await getDownloadUrl(bucketKey);
+  console.log(
+    `[CLIENT] Get download URL took ${Date.now() - urlStart}ms, total: ${Date.now() - startTime}ms`
+  );
 
   // Note: Media will be saved to database when the post is published
   // For now, we just return the upload result

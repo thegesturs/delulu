@@ -80,6 +80,60 @@ export class R2Provider {
     return ResultAsync.fromSafePromise(Promise.resolve(downloadUrl));
   }
 
+  /**
+   * Upload file with streaming (no memory buffering)
+   * Accepts File directly - in Cloudflare Workers, this is efficient
+   */
+  uploadFileStream(
+    key: string,
+    file: File | ArrayBuffer,
+    contentType: string
+  ): ResultAsync<
+    { success: boolean; key: string; downloadUrl: string },
+    R2UploadError
+  > {
+    if (!this.bucket) {
+      return ResultAsync.fromSafePromise(
+        Promise.reject(new R2UploadError('R2 bucket not configured'))
+      );
+    }
+
+    // Cast to 'any' to bypass type checking between Node.js and Cloudflare Workers types
+    // In actual Cloudflare Workers runtime, File is the correct type for R2
+    return ResultAsync.fromPromise(
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      this.bucket.put(key, file as any, {
+        httpMetadata: {
+          contentType: contentType,
+        },
+        customMetadata: {
+          uploadedAt: new Date().toISOString(),
+        },
+      }),
+      (error) => new R2UploadError(`Failed to upload file to R2: ${error}`)
+    ).andThen((result) => {
+      if (!result) {
+        return err(
+          new R2UploadError('Upload completed but no result returned')
+        );
+      }
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const downloadUrl = isProduction
+        ? `https://media.delulu.social/${key}`
+        : `/api/media/${key}`;
+
+      return ok({
+        success: true,
+        key: key,
+        downloadUrl,
+      });
+    });
+  }
+
+  /**
+   * Upload file from ArrayBuffer (legacy method)
+   */
   uploadFile(
     key: string,
     file: ArrayBuffer,
@@ -116,7 +170,6 @@ export class R2Provider {
     });
   }
 
-  // Note: getSignedUploadUrl removed - we use direct uploads through the API instead
 }
 
 export const r2Provider = new R2Provider();
