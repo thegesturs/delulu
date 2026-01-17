@@ -1,7 +1,6 @@
 import { env } from '@/env';
-import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -76,31 +75,29 @@ function generateUniqueUsername(firstName: string, lastName: string): string {
 }
 
 export async function GET(request: NextRequest) {
-	try {
-		// Verify OAuth state and recover session
-		const sessionResult = await verifyOAuthStateAndRecoverSession(
-			request,
-			'LINKEDIN',
-		);
+  try {
+    const { userId, getToken } = await auth();
+    if (!userId) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
+    const token = await getToken({ template: 'convex' });
 
-		if (!sessionResult.success) {
-			const { error, code: errorCode } = sessionResult.error;
-			return NextResponse.redirect(
-				new URL(
-					`/socials?error=${error}&code=${errorCode}&provider=LINKEDIN`,
-					env.NEXT_PUBLIC_APP_URL,
-				),
-			);
-		}
+    if (!token) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
 
-		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
-
-		if (sessionRecovered) {
-			console.log('[LINKEDIN] Session was recovered from state parameter');
-		}
-
-		const { searchParams } = new URL(request.url);
-		const code = searchParams.get('code');
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
 
     if (!code) {
       return NextResponse.redirect(
@@ -168,41 +165,22 @@ export async function GET(request: NextRequest) {
       userObject.profilePicture?.['displayImage~']?.elements[0]?.identifiers[0]
         ?.identifier;
 
-    // Conditional mutation based on token availability
-    let status;
-    if (useInternalMutation) {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProviderFromOAuth,
-        {
-          userId: userId as Id<'users'>,
-          socialType: 'LINKEDIN',
-          accessToken: access_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: userObject.id,
-          username: username,
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          profileImage: profileImage ?? '/images/user.png',
-          isActive: true,
-        }
-      );
-    } else {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: 'LINKEDIN',
-          accessToken: access_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: userObject.id,
-          username: username,
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          profileImage: profileImage ?? '/images/user.png',
-          isActive: true,
-        },
-        { token: token! }
-      );
-    }
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'LINKEDIN',
+        accessToken: access_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: userObject.id,
+        username: username,
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        profileImage: profileImage ?? '/images/user.png',
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

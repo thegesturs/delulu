@@ -1,8 +1,7 @@
 import { env } from '@/env';
 import { fetchWithTimeout } from '@/lib/utils';
-import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -26,34 +25,34 @@ interface ThreadsUser {
 }
 
 export async function GET(request: NextRequest) {
-	try {
-		// Verify OAuth state and recover session
-		const sessionResult = await verifyOAuthStateAndRecoverSession(
-			request,
-			'THREADS',
-		);
+  try {
+    const { userId, getToken } = await auth();
+    if (!userId) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=threads',
+        },
+      });
+    }
 
-		if (!sessionResult.success) {
-			const { error, code: errorCode } = sessionResult.error;
-			return new NextResponse(null, {
-				status: 302,
-				headers: {
-					Location: `/socials?error=${error}&code=${errorCode}&provider=THREADS`,
-				},
-			});
-		}
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=threads',
+        },
+      });
+    }
 
-		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
-
-		if (sessionRecovered) {
-			console.log('[THREADS] Session was recovered from state parameter');
-		}
-
-		const searchParams = request.nextUrl.searchParams;
-		const code = searchParams.get('code');
-		const error = searchParams.get('error');
-		const errorReason = searchParams.get('error_reason');
-		const _errorDescription = searchParams.get('error_description');
+    const searchParams = request.nextUrl.searchParams;
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    const errorReason = searchParams.get('error_reason');
+    const _errorDescription = searchParams.get('error_description');
 
     if (error === 'access_denied' && errorReason === 'user_denied') {
       return new NextResponse(null, {
@@ -150,41 +149,22 @@ export async function GET(request: NextRequest) {
 
     const userObject = (await userResponse.json()) as ThreadsUser;
 
-    // Conditional mutation based on token availability
-    let status;
-    if (useInternalMutation) {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProviderFromOAuth,
-        {
-          userId: userId as Id<'users'>,
-          socialType: 'THREADS',
-          accessToken: longLivedTokenData.access_token,
-          expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: userObject.id,
-          username: userObject.username,
-          fullName: userObject.name,
-          profileImage: userObject.threads_profile_picture_url,
-          isActive: true,
-        }
-      );
-    } else {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: 'THREADS',
-          accessToken: longLivedTokenData.access_token,
-          expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: userObject.id,
-          username: userObject.username,
-          fullName: userObject.name,
-          profileImage: userObject.threads_profile_picture_url,
-          isActive: true,
-        },
-        { token: token! }
-      );
-    }
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'THREADS',
+        accessToken: longLivedTokenData.access_token,
+        expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name,
+        profileImage: userObject.threads_profile_picture_url,
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

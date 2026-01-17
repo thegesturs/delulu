@@ -1,7 +1,6 @@
 import { fetchWithTimeout } from '@/lib/utils';
-import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -23,32 +22,32 @@ interface BlueskyProfile {
 }
 
 export async function GET(request: NextRequest) {
-	try {
-		// Verify OAuth state and recover session
-		const sessionResult = await verifyOAuthStateAndRecoverSession(
-			request,
-			'BLUESKY',
-		);
+  try {
+    const { userId, getToken } = await auth();
+    if (!userId) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=bluesky',
+        },
+      });
+    }
 
-		if (!sessionResult.success) {
-			const { error, code: errorCode } = sessionResult.error;
-			return new NextResponse(null, {
-				status: 302,
-				headers: {
-					Location: `/socials?error=${error}&code=${errorCode}&provider=BLUESKY`,
-				},
-			});
-		}
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=bluesky',
+        },
+      });
+    }
 
-		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
-
-		if (sessionRecovered) {
-			console.log('[BLUESKY] Session was recovered from state parameter');
-		}
-
-		const searchParams = request.nextUrl.searchParams;
-		const code = searchParams.get('code');
-		const error = searchParams.get('error');
+    const searchParams = request.nextUrl.searchParams;
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
 
     if (error === 'access_denied') {
       return new NextResponse(null, {
@@ -131,43 +130,23 @@ export async function GET(request: NextRequest) {
 
     const profileData = (await profileResponse.json()) as BlueskyProfile;
 
-    // Conditional mutation based on token availability
-    let status;
-    if (useInternalMutation) {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProviderFromOAuth,
-        {
-          userId: userId as Id<'users'>,
-          socialType: 'BLUESKY',
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresIn: Date.now() + 24 * 60 * 60 * 1000,
-          refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000,
-          profileId: tokenData.did,
-          username: tokenData.handle,
-          fullName: profileData.displayName || tokenData.handle,
-          profileImage: profileData.avatar,
-          isActive: true,
-        }
-      );
-    } else {
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: 'BLUESKY',
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresIn: Date.now() + 24 * 60 * 60 * 1000,
-          refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000,
-          profileId: tokenData.did,
-          username: tokenData.handle,
-          fullName: profileData.displayName || tokenData.handle,
-          profileImage: profileData.avatar,
-          isActive: true,
-        },
-        { token: token! }
-      );
-    }
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'BLUESKY',
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
+        refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        profileId: tokenData.did,
+        username: tokenData.handle,
+        fullName: profileData.displayName || tokenData.handle,
+        profileImage: profileData.avatar,
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {
