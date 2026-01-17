@@ -27,11 +27,9 @@ export const socialProviderRouter = {
 				provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
 			}),
 		)
-		.query(async ({ input, ctx }) => {
-			// Pass userId to connectUrl to generate signed state
-			const link = await connectUrlRegistry[input.provider].connectUrl(
-				ctx.userId,
-			);
+		.query(async ({ input }) => {
+			// Generate connect URL for the provider
+			const link = connectUrlRegistry[input.provider].connectUrl();
 			return link;
 		}),
   // createPost: protectedProcedure
