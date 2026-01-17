@@ -9,6 +9,7 @@
 
 import type { ReelData, ReelMetrics } from '../../shared/types';
 import { INSTAGRAM_SELECTORS, ERROR_MESSAGES } from '../../shared/constants';
+import { getCachedMetrics } from './graphql-interceptor';
 
 /**
  * Try multiple selectors until one returns an element
@@ -46,81 +47,7 @@ function trySelectorsAll(container: Element | Document, selectors: readonly stri
   return [];
 }
 
-/**
- * Extract numeric value from text
- * Handles formats like: "1.2K", "5M", "123,456", "1.2k views"
- */
-function parseMetricValue(text: string): number | undefined {
-  if (!text) {
-    return undefined;
-  }
-
-  // Remove common words and extract numeric parts
-  const cleaned = text
-    .toLowerCase()
-    .replace(/views?|likes?|comments?/gi, '')
-    .trim();
-
-  // Match number with optional K/M suffix
-  const match = cleaned.match(/([\d,\.]+)\s*([km])?/i);
-  if (!match) {
-    return undefined;
-  }
-
-  const [, numStr, suffix] = match;
-  let value = Number.parseFloat(numStr.replace(/,/g, ''));
-
-  if (Number.isNaN(value)) {
-    return undefined;
-  }
-
-  // Apply multiplier
-  if (suffix) {
-    const multiplier = suffix.toLowerCase() === 'k' ? 1000 : 1000000;
-    value *= multiplier;
-  }
-
-  return Math.floor(value);
-}
-
-/**
- * Extract metric from element using multiple strategies
- */
-function extractMetric(container: Element, selectors: readonly string[]): number | undefined {
-  const element = trySelectors(container, selectors);
-  if (!element) {
-    return undefined;
-  }
-
-  // Try aria-label first (most reliable)
-  const ariaLabel = element.getAttribute('aria-label');
-  if (ariaLabel) {
-    const value = parseMetricValue(ariaLabel);
-    if (value !== undefined) {
-      return value;
-    }
-  }
-
-  // Try title attribute
-  const title = element.getAttribute('title');
-  if (title) {
-    const value = parseMetricValue(title);
-    if (value !== undefined) {
-      return value;
-    }
-  }
-
-  // Try text content
-  const text = element.textContent;
-  if (text) {
-    const value = parseMetricValue(text);
-    if (value !== undefined) {
-      return value;
-    }
-  }
-
-  return undefined;
-}
+// DOM metric extraction removed - we now use GraphQL interceptor exclusively
 
 /**
  * Extract reel ID from URL
@@ -214,12 +141,19 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
 
     console.log('[Sorted] Thumbnail for', id, ':', thumbnailUrl ? 'YES' : 'NO', thumbnailUrl ? `(${thumbnailUrl.substring(0, 60)}...)` : '');
 
-    // Extract metrics
-    const metrics: ReelMetrics = {
-      views: extractMetric(reelElement, INSTAGRAM_SELECTORS.VIEW_COUNT),
-      likes: extractMetric(reelElement, INSTAGRAM_SELECTORS.LIKE_COUNT),
-      comments: extractMetric(reelElement, INSTAGRAM_SELECTORS.COMMENT_COUNT),
+    // Get metrics from GraphQL interceptor cache ONLY
+    // Instagram sends these via GraphQL - we intercept and cache them
+    const metrics = getCachedMetrics(id) || {
+      views: undefined,
+      likes: undefined,
+      comments: undefined,
     };
+
+    if (metrics.views !== undefined || metrics.likes !== undefined || metrics.comments !== undefined) {
+      console.log('[Sorted] ✅ Found cached metrics for', id, metrics);
+    } else {
+      console.log('[Sorted] ⚠️ No cached metrics for', id, '- waiting for GraphQL data');
+    }
 
     return {
       id,

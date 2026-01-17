@@ -9,14 +9,26 @@ import { SortedGrid } from './content/components/sorted-grid';
 import { isReelsTab, monitorUrlChanges } from './content/utils/url-detector';
 import { scrollAndLoadReels, createCancelToken } from './content/utils/infinite-scroll';
 import { validateScrapingCapability } from './content/utils/instagram-scraper';
+import { initializeGraphQLInterceptor, clearMetricsCache } from './content/utils/graphql-interceptor';
 import type { ReelData, SortMetric } from './shared/types';
 import './content/styles/overlay.css';
 
 export default defineContentScript({
   matches: ['*://www.instagram.com/*', '*://instagram.com/*'],
+  runAt: 'document_start', // Run EARLY to hook XHR before Instagram
 
   main() {
     console.log('[Sorted] Content script loaded');
+
+    // Inject external interceptor script (bypasses CSP)
+    const interceptorScript = document.createElement('script');
+    interceptorScript.src = browser.runtime.getURL('/interceptor.js');
+    interceptorScript.onload = () => console.log('[Sorted] Interceptor injected!');
+    interceptorScript.onerror = () => console.error('[Sorted] Failed to load interceptor');
+    (document.head || document.documentElement).prepend(interceptorScript);
+
+    // Initialize GraphQL interceptor FIRST (before Instagram makes API calls)
+    initializeGraphQLInterceptor();
 
     let panelContainer: HTMLElement | null = null;
     let gridContainer: HTMLElement | null = null;
@@ -172,6 +184,23 @@ export default defineContentScript({
         updatePanel();
 
         console.log(`[Sorted] Starting sort: ${metric}, quantity: ${quantity}`);
+
+        // Scroll MORE aggressively to trigger Instagram to load more data
+        console.log('[Sorted] Scrolling to trigger GraphQL requests...');
+
+        // Scroll to bottom
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Scroll to middle
+        window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Scroll back to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        console.log('[Sorted] Finished scrolling, checking for cached metrics...');
 
         // Validate scraping capability
         const error = validateScrapingCapability();
