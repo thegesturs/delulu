@@ -192,6 +192,78 @@ export const checkUsageLimit = query({
 });
 
 /**
+ * Check social account limit with current count in one query
+ * Replaces the pattern of calling getConnectedAccounts + checkUsageLimit separately
+ */
+export const checkSocialAccountLimit = query({
+  args: {},
+  returns: v.object({
+    currentCount: v.number(),
+    limit: v.number(),
+    allowed: v.boolean(),
+    planType: planTypes,
+    remaining: v.number(),
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        currentCount: 0,
+        limit: 1, // FREE plan default
+        allowed: true,
+        planType: 'FREE' as const,
+        remaining: 1,
+      };
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+      .unique();
+
+    if (!user) {
+      return {
+        currentCount: 0,
+        limit: 1,
+        allowed: true,
+        planType: 'FREE' as const,
+        remaining: 1,
+      };
+    }
+
+    // Get plan type
+    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription) {
+        planType = subscription.planType;
+      }
+    }
+
+    // Count current social accounts in ONE query
+    const currentAccounts = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .collect();
+
+    const currentCount = currentAccounts.length;
+    const plan = PLANS[planType];
+    const limit = plan.limits.socialAccounts;
+    const allowed = limit === -1 || currentCount < limit;
+    const remaining = limit === -1 ? -1 : Math.max(0, limit - currentCount);
+
+    return {
+      currentCount,
+      limit,
+      allowed,
+      planType,
+      remaining,
+    };
+  },
+});
+
+/**
  * Get current user's actual usage
  * Counts social accounts, monthly posts, and media storage
  */

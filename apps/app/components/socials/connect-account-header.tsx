@@ -1,6 +1,5 @@
 'use client';
 import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
-import { useUsageLimit } from '@/hooks/use-usage-limits';
 import { api } from '@/trpc/react';
 import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -119,16 +118,10 @@ function ConnectPlatformButton({
 }
 
 export function ConnectedAccountsHeader() {
-  // Get current account count
-  const socialProviders = useQuery(
-    ConvexApi.social_providers.getConnectedAccounts
-  );
-  const accountCount = socialProviders?.length || 0;
-
-  // Check usage limit
-  const socialAccountsLimit = useUsageLimit('socialAccounts', accountCount);
-  const isAtLimit =
-    !socialAccountsLimit.isUnlimited && !socialAccountsLimit.allowed;
+  // Check limit with single efficient query
+  const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
+  const isAtLimit = !limitCheck?.allowed;
+  const accountCount = limitCheck?.currentCount || 0;
 
   return (
     <div className="space-y-4">
@@ -153,17 +146,13 @@ export function ConnectedAccountsHeader() {
               <DialogTitle>Connect Social Account</DialogTitle>
               <DialogDescription>
                 {isAtLimit
-                  ? 'You have reached your plan limit for social accounts'
+                  ? `You've reached your ${limitCheck?.planType} plan limit of ${limitCheck?.limit} social accounts`
                   : 'Choose a social media platform to connect with your account'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 py-4">
               {isAtLimit ? (
-                <InlineUpgradePrompt
-                  // title="Account Limit Reached"
-                  // description={`You're using ${accountCount} of ${socialAccountsLimit.limit} social accounts on your plan. Upgrade to connect more accounts.`}
-                  feature="socialAccounts"
-                />
+                <InlineUpgradePrompt feature="socialAccounts" />
               ) : (
                 SOCIAL_PLATFORMS.map((platform) => (
                   <ConnectPlatformButton key={platform} platform={platform} />

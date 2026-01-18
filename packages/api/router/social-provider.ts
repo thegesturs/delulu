@@ -27,8 +27,22 @@ export const socialProviderRouter = {
 				provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
 			}),
 		)
-		.query(async ({ input }) => {
-			// Generate connect URL for the provider
+		.query(async ({ input, ctx }) => {
+			// Check if user has reached their social account limit (single efficient query)
+			const limitCheck = await fetchQuery(
+				api.subscriptions.checkSocialAccountLimit,
+				{},
+				{ token: ctx.token },
+			);
+
+			if (!limitCheck.allowed) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
+				});
+			}
+
+			// Generate connect URL only if within limit
 			const link = connectUrlRegistry[input.provider].connectUrl();
 			return link;
 		}),
@@ -139,6 +153,33 @@ export const socialProviderRouter = {
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.userId;
       const externalId = ctx.externalId;
+
+      // Check if user has reached their social account limit (single efficient query)
+      const limitCheck = await fetchQuery(
+        api.subscriptions.checkSocialAccountLimit,
+        {},
+        { token: ctx.token },
+      );
+
+      // Check if this specific page is already connected (update/transfer case)
+      const currentAccounts = await fetchQuery(
+        api.social_providers.getConnectedAccounts,
+        {},
+        { token: ctx.token },
+      );
+
+      const isExistingPage = currentAccounts.some(
+        (acc) => acc.profileId === input.pageId,
+      );
+
+      // Only validate limit if creating NEW connection
+      if (!isExistingPage && !limitCheck.allowed) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
+        });
+      }
+
       // Securely retrieve the page access token from KV storage
       let pageAccessToken: string;
       try {
@@ -192,6 +233,7 @@ export const socialProviderRouter = {
         });
       }
 
+      // Call Convex mutation (will have its own backup validation)
       await fetchMutation(
         api.social_providers.connectFacebookPage,
         {
