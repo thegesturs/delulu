@@ -34,17 +34,19 @@
  */
 .sorted-panel-compact {
   width: 100%;
-  max-width: 935px; /* Matches Instagram feed width */
-  margin: 0 auto;
+  /* Removed max-width to match parent container width exactly */
+  /* margin: 0 auto; - Let parent handle alignment */
   margin-bottom: 4px; /* Minimal gap between panel and grid */
   background: var(--sorted-system-background);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 4px; /* Subtle roundedness */
-  box-shadow: var(--sorted-shadow-sm);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  padding: 8px 16px;
+  /* Removed box-shadow as it looks like a border */
+  box-shadow: none;
+  border: none; /* Ensure no border */
+  padding: 8px 0; /* Removed horizontal padding to align content with grid */
   animation: fadeIn 0.3s ease-out;
+  box-sizing: border-box; /* Critical for width calculation */
 }
 
 .sorted-compact-controls {
@@ -52,6 +54,7 @@
   align-items: center;
   gap: 16px;
   height: 40px;
+  padding: 0 8px; /* Add internal padding for controls instead */
 }
 
 .sorted-logo {
@@ -234,6 +237,8 @@
   grid-template-columns: repeat(4, 1fr); /* 4 columns as requested */
   gap: 4px; /* Minimal gap like Instagram */
   padding-bottom: 32px;
+  width: 100%; /* Full width */
+  box-sizing: border-box;
 }
 
 /* Reel Card Updates */
