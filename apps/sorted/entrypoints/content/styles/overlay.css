@@ -60,19 +60,16 @@
 .sorted-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-right: 4px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
 }
 
 .sorted-icon {
-  font-size: 16px;
-}
-
-.sorted-brand {
-  font-size: 14px;
-  font-weight: 700;
+  width: 20px;
+  height: 20px;
   color: var(--sorted-text-primary);
-  letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
 
 .sorted-divider {
