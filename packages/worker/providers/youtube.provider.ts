@@ -34,7 +34,7 @@ import {
 import type { SocialProvider } from './types';
 
 // Constants for file size limits (100MB)
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const MAX_FILE_SIZE = 300 * 1024 * 1024;
 
 // Profile management
 const getProfile = (
@@ -231,7 +231,7 @@ const publishContent = (
   // Get fresh access token first
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) =>
-      getVideoStreamWithMimeType(videoMedia.url).andThen(
+      getVideoStreamWithMimeType(videoMedia.url!).andThen(
         ({ stream, mimeType }) => {
           console.log(`[YouTube] Processing video with MIME type: ${mimeType}`);
 

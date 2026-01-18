@@ -18,6 +18,7 @@ interface TikTokUserResponse {
     user: {
       display_name: string;
       avatar_url: string;
+      username: string;
     };
   };
 }
@@ -39,7 +40,6 @@ const fetchWithTimeout = async (
 };
 
 export async function GET(request: NextRequest) {
-
   console.log('tiktok callback');
   try {
     const { userId, getToken } = await auth();
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       throw new Error('tiktok_invalid_user_data');
     }
 
-    const { display_name, avatar_url } = userData.data.user;
+    const { username, display_name, avatar_url } = userData.data.user;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
     const status = await fetchMutation(
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         refreshToken: refresh_token,
         expiresIn: Date.now() + expires_in * 1000,
         profileId: open_id,
-        username: display_name,
+        username: username,
         fullName: display_name,
         profileImage: avatar_url,
         isActive: true,
