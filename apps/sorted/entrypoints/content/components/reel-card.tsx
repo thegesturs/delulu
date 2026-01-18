@@ -9,8 +9,8 @@ interface ReelCardProps {
   rank: number;
 }
 
-function formatMetric(value: number | undefined): string {
-  if (value === undefined) {
+function formatMetric(value: number | undefined | null): string {
+  if (value === undefined || value === null) {
     return 'N/A';
   }
 

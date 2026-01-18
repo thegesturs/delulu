@@ -6,9 +6,9 @@
  * Represents metrics for a single reel
  */
 export interface ReelMetrics {
-  likes?: number;
-  views?: number;
-  comments?: number;
+  likes?: number | null;
+  views?: number | null;
+  comments?: number | null;
 }
 
 /**
@@ -25,7 +25,7 @@ export interface ReelData {
 /**
  * Metric to sort by
  */
-export type SortMetric = 'likes' | 'views' | 'comments';
+export type SortMetric = 'likes' | 'views' | 'comments' | 'oldest';
 
 /**
  * Number of reels to scrape

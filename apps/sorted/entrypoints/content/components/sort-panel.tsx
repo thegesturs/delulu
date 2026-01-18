@@ -58,6 +58,17 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
             />
             <span>Comments</span>
           </label>
+          <label className={`sorted-compact-radio ${sortMetric === 'oldest' ? 'active' : ''}`}>
+            <input
+              type="radio"
+              name="metric"
+              value="oldest"
+              checked={sortMetric === 'oldest'}
+              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              disabled={isSorting}
+            />
+            <span>Oldest</span>
+          </label>
         </div>
 
         <div className="sorted-divider" />

@@ -86,6 +86,12 @@ export default defineContentScript({
      * Sort reels by specified metric
      */
     function sortReels(reels: ReelData[], metric: SortMetric): ReelData[] {
+      // For "oldest", just reverse the Instagram order (newest first → oldest first)
+      if (metric === 'oldest') {
+        return [...reels].reverse();
+      }
+
+      // For other metrics, sort descending (highest first)
       return [...reels].sort((a, b) => {
         const aValue = a.metrics[metric] ?? -1;
         const bValue = b.metrics[metric] ?? -1;
