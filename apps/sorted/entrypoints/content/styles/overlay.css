@@ -1,6 +1,15 @@
 /**
- * Styles for injected sort panel and grid
+ * Sorted - Injected Panel & Grid Styles
+ * Design: Clean, professional with indigo accents
  */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --sorted-indigo: #6366f1;
+  --sorted-indigo-light: #818cf8;
+  --sorted-indigo-dark: #4f46e5;
+}
 
 /* Panel Container */
 .sorted-panel-container {
@@ -55,8 +64,8 @@
 
 .sorted-select:focus {
   outline: none;
-  border-color: #0095f6;
-  box-shadow: 0 0 0 1px #0095f6;
+  border-color: var(--sorted-indigo);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
 .sorted-select:disabled {
@@ -78,12 +87,16 @@
 }
 
 .sorted-button-primary {
-  background: #0095f6;
+  background: var(--sorted-indigo);
   color: white;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
 }
 
 .sorted-button-primary:hover:not(:disabled) {
-  background: #0084e0;
+  background: var(--sorted-indigo-dark);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
 }
 
 .sorted-button-primary:disabled {
@@ -133,16 +146,28 @@
   margin: 0;
 }
 
-/* Grid */
+/* Grid - 4-5 items per row */
 .sorted-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 1400px) {
+  .sorted-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .sorted-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
   .sorted-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -183,45 +208,77 @@
   color: rgba(var(--ig-secondary-text), 1);
 }
 
-/* Overlay on Hover */
+/* Overlay on Hover - Refined gradient */
 .sorted-grid-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.7) 50%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .sorted-grid-item:hover .sorted-grid-overlay {
   opacity: 1;
 }
 
-/* Metrics on Hover */
+/* Metrics Container */
 .sorted-grid-metrics {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   align-items: center;
   padding: 20px;
+  width: 100%;
 }
 
-/* Rank Badge */
+/* Rank Badge - Indigo accent */
 .sorted-grid-rank {
-  font-size: 28px;
-  font-weight: 900;
+  background: var(--sorted-indigo);
+  border-radius: 8px;
+  padding: 10px 20px;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+  animation: badgePop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sorted-grid-rank-number {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
   color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 8px 16px;
-  border-radius: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+/* Stats Container */
+.sorted-grid-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 140px;
 }
 
 .sorted-grid-metric {
@@ -229,15 +286,32 @@
   align-items: center;
   gap: 10px;
   color: white;
-  font-size: 18px;
-  font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.sorted-grid-metric:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
 }
 
 .sorted-grid-metric svg {
-  width: 26px;
-  height: 26px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.sorted-grid-metric span {
+  flex: 1;
+  text-align: right;
 }
 
 /* Dark Mode Support (Instagram's dark mode) */

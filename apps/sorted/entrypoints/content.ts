@@ -6,6 +6,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { SortPanel } from './content/components/sort-panel';
 import { SortedGrid } from './content/components/sorted-grid';
+import { LoadingOverlay } from './content/components/loading-overlay';
 import { isReelsTab, monitorUrlChanges } from './content/utils/url-detector';
 import { scrollAndLoadReels, createCancelToken } from './content/utils/infinite-scroll';
 import { validateScrapingCapability } from './content/utils/instagram-scraper';
@@ -32,10 +33,13 @@ export default defineContentScript({
 
     let panelContainer: HTMLElement | null = null;
     let gridContainer: HTMLElement | null = null;
+    let loadingContainer: HTMLElement | null = null;
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     let panelRoot: any = null;
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     let gridRoot: any = null;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    let loadingRoot: any = null;
     let cleanupUrlMonitor: (() => void) | null = null;
     let originalGrid: HTMLElement | null = null;
     let isSorting = false;
@@ -43,6 +47,36 @@ export default defineContentScript({
     let currentReels: ReelData[] = [];
     let currentMetric: SortMetric = 'views';
     let currentQuantity: number = 25;
+
+    /**
+     * Show loading overlay
+     */
+    function showLoadingOverlay(message: string = 'Analyzing reels...', progress?: string) {
+      if (!loadingContainer) {
+        loadingContainer = document.createElement('div');
+        loadingContainer.id = 'sorted-loading';
+        document.body.appendChild(loadingContainer);
+        loadingRoot = createRoot(loadingContainer);
+      }
+
+      loadingRoot.render(
+        React.createElement(LoadingOverlay, { message, progress })
+      );
+    }
+
+    /**
+     * Hide loading overlay
+     */
+    function hideLoadingOverlay() {
+      if (loadingRoot) {
+        loadingRoot.unmount();
+        loadingRoot = null;
+      }
+      if (loadingContainer) {
+        loadingContainer.remove();
+        loadingContainer = null;
+      }
+    }
 
     /**
      * Sort reels by specified metric
@@ -187,17 +221,22 @@ export default defineContentScript({
 
         console.log(`[Sorted] Starting sort: ${metric}, quantity: ${quantity}`);
 
+        // Show loading overlay
+        showLoadingOverlay('Loading reels...', 'Scrolling through profile');
+
         // Scroll aggressively to trigger Instagram to load ALL data with metrics
         console.log('[Sorted] Scrolling to load all reels with metrics...');
 
         // Scroll to bottom MULTIPLE times to trigger enough GraphQL requests
         for (let i = 0; i < 3; i++) {
+          showLoadingOverlay('Loading reels...', `Scroll ${i + 1}/3`);
           console.log(`[Sorted] Scroll iteration ${i + 1}/3...`);
           window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for GraphQL + DOM update
         }
 
         // Scroll back to top
+        showLoadingOverlay('Processing reels...', 'Analyzing metrics');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for DOM to re-render
 
@@ -234,16 +273,21 @@ export default defineContentScript({
         }
 
         // Sort reels
+        showLoadingOverlay('Sorting reels...', `By ${metric}`);
         const sorted = sortReels(reels, metric);
         currentReels = sorted.slice(0, quantity);
 
         // Replace Instagram grid with sorted grid
         replaceGrid();
         isActive = true;
+
+        // Hide loading overlay after a brief moment to show completion
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error('[Sorted] Sort failed:', error);
         alert('Failed to sort reels. Please try again.');
       } finally {
+        hideLoadingOverlay();
         isSorting = false;
         updatePanel();
       }
@@ -351,6 +395,7 @@ export default defineContentScript({
      */
     function cleanup() {
       console.log('[Sorted] Cleaning up...');
+      hideLoadingOverlay();
       removeSortPanel();
       handleReset();
     }

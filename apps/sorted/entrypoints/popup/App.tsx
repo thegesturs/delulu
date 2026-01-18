@@ -28,11 +28,17 @@ function App() {
         <div className="popup-icon">📊</div>
         <h1 className="popup-title">Sorted</h1>
         <p className="popup-subtitle">Instagram Reel Sorter</p>
+        <div className="popup-branding">
+          <span>by</span>
+          <a href="https://delulu.social" target="_blank" rel="noopener noreferrer">
+            delulu.social
+          </a>
+        </div>
       </div>
 
       {/* Content */}
       <div className="popup-content">
-        <div className="popup-status">
+        <div className={`popup-status ${isOnReelsTab ? 'active' : ''}`}>
           {isOnReelsTab ? (
             <>
               <div className="popup-status-icon">✅</div>
