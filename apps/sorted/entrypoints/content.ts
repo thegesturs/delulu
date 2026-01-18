@@ -12,13 +12,20 @@ import { scrollAndLoadReels, createCancelToken } from './content/utils/infinite-
 import { validateScrapingCapability } from './content/utils/instagram-scraper';
 import { initializeGraphQLInterceptor, clearMetricsCache } from './content/utils/graphql-interceptor';
 import type { ReelData, SortMetric } from './shared/types';
-import './content/styles/overlay.css';
+// Import styles inline to ensure they are injected
+import overlayStyles from './content/styles/overlay.css?inline';
 
 export default defineContentScript({
   matches: ['*://www.instagram.com/*', '*://instagram.com/*'],
   runAt: 'document_start', // Run EARLY to hook XHR before Instagram
 
   main() {
+    // Inject styles immediately
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = overlayStyles;
+    styleSheet.id = 'sorted-styles';
+    (document.head || document.documentElement).appendChild(styleSheet);
+
     // Inject external interceptor script (bypasses CSP)
     const interceptorScript = document.createElement('script');
     interceptorScript.src = browser.runtime.getURL('/interceptor.js');
@@ -154,8 +161,8 @@ export default defineContentScript({
       // Create panel container
       panelContainer = document.createElement('div');
       panelContainer.id = 'sorted-panel';
-      panelContainer.style.cssText = 'margin-bottom: 24px;';
-
+      // No inline styles here, managed by CSS class
+      
       // Insert before reels container
       reelsContainer.parentElement?.insertBefore(panelContainer, reelsContainer);
 

@@ -1,23 +1,24 @@
 /**
  * Sorted - Chrome Extension Popup
- * Design: Swiss Modernism meets Instagram Analytics
+ * Design: iOS System Design
  */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
 :root {
-  --indigo: #6366f1;
-  --indigo-light: #818cf8;
-  --indigo-dark: #4f46e5;
-  --black: #0a0a0a;
-  --gray-900: #1a1a1a;
-  --gray-800: #2a2a2a;
-  --gray-700: #3a3a3a;
-  --gray-500: #6a6a6a;
-  --gray-400: #9a9a9a;
-  --gray-200: #e5e5e5;
-  --gray-100: #f5f5f5;
-  --white: #ffffff;
+  /* iOS System Colors */
+  --system-blue: #6366f1;
+  --system-gray: #8E8E93;
+  --system-gray-2: #AEAEB2;
+  --system-gray-3: #C7C7CC;
+  --system-gray-4: #D1D1D6;
+  --system-gray-5: #E5E5EA;
+  --system-gray-6: #F2F2F7;
+  --system-background: #FFFFFF;
+  --system-separator: rgba(60, 60, 67, 0.36);
+  
+  /* Text Colors */
+  --text-primary: #000000;
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.3);
 }
 
 * {
@@ -27,306 +28,246 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--gray-100);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--system-gray-6);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
-  width: 380px;
-  min-height: 520px;
+  width: 360px;
+  min-height: 500px;
 }
 
 .popup-container {
   display: flex;
   flex-direction: column;
-  background: var(--white);
-  min-height: 520px;
-  position: relative;
+  min-height: 100vh;
+  background: var(--system-gray-6);
 }
 
-/* Header - Clean and minimal with indigo accent */
+/* Header */
 .popup-header {
-  background: var(--white);
-  border-bottom: 1px solid var(--gray-200);
-  padding: 32px 24px 24px;
-  position: relative;
-}
-
-/* Indigo accent line at top */
-.popup-header::before {
-  content: '';
-  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--system-separator);
+  padding: 16px;
+  text-align: center;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--indigo) 0%, var(--indigo-light) 100%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .popup-icon {
   width: 48px;
   height: 48px;
-  background: var(--indigo);
-  border-radius: 12px;
+  background: var(--system-blue);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
 }
 
 .popup-title {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
   letter-spacing: -0.02em;
-  margin: 0 0 4px 0;
-  color: var(--black);
-  font-family: 'DM Sans', sans-serif;
 }
 
 .popup-subtitle {
-  font-size: 14px;
-  color: var(--gray-500);
-  margin: 0 0 16px 0;
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 2px 0 0 0;
 }
 
-/* Branding */
 .popup-branding {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--gray-400);
-  margin-top: 8px;
-  font-weight: 500;
-}
-
-.popup-branding span {
-  color: var(--gray-500);
-}
-
-.popup-branding a {
-  color: var(--indigo);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
-}
-
-.popup-branding a:hover {
-  color: var(--indigo-dark);
+  display: none; /* Hide branding in minimal mode */
 }
 
 /* Content */
 .popup-content {
   flex: 1;
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-/* Status Card */
+/* iOS Grouped Style for Sections */
+.popup-status,
+.popup-instructions {
+  background: var(--system-background);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
 .popup-status {
-  background: var(--gray-100);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid var(--gray-200);
-  transition: all 0.3s ease;
-}
-
-.popup-status.active {
-  background: rgba(99, 102, 241, 0.05);
-  border-color: var(--indigo);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .popup-status-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  font-size: 24px;
+  margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  margin-bottom: 12px;
-  background: var(--white);
-  border: 1px solid var(--gray-200);
+  background: var(--system-gray-6);
+  border-radius: 50%;
 }
 
 .popup-status.active .popup-status-icon {
-  background: var(--indigo);
-  border-color: var(--indigo);
+  background: rgba(52, 199, 89, 0.1);
+  color: #34C759;
 }
 
 .popup-status h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  margin: 0 0 8px 0;
-  color: var(--black);
-  letter-spacing: -0.01em;
+  margin: 0 0 4px 0;
 }
 
 .popup-status p {
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--gray-500);
-  margin: 0 0 8px 0;
-}
-
-.popup-status p:last-child {
-  margin-bottom: 0;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+  max-width: 260px;
 }
 
 .popup-example {
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  background: var(--white);
-  padding: 8px 12px;
+  margin-top: 12px !important;
+  font-size: 12px !important;
+  color: var(--system-blue) !important;
+  background: rgba(0, 122, 255, 0.1);
+  padding: 4px 8px;
   border-radius: 6px;
-  margin-top: 12px;
-  border: 1px solid var(--gray-200);
-  color: var(--indigo);
 }
 
-/* Instructions */
+/* Instructions List */
 .popup-instructions {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: 12px;
-  padding: 20px;
+  padding: 0 0 0 16px; /* Indent for list */
 }
 
 .popup-instructions h4 {
+  margin: 16px 16px 8px 0;
   font-size: 13px;
-  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--gray-500);
-  margin: 0 0 16px 0;
+  color: var(--text-secondary);
+  font-weight: 400;
 }
 
 .popup-instructions ol {
   margin: 0;
-  padding: 0 0 0 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  padding: 0;
+  list-style: none;
 }
 
 .popup-instructions li {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--gray-700);
-  font-weight: 500;
+  padding: 12px 16px 12px 0;
+  font-size: 15px;
+  border-bottom: 0.5px solid var(--system-separator);
+  display: flex;
+  gap: 12px;
 }
 
-.popup-instructions li::marker {
-  color: var(--indigo);
-  font-weight: 700;
+.popup-instructions li:last-child {
+  border-bottom: none;
+}
+
+.popup-instructions li::before {
+  content: counter(list-item);
+  counter-increment: list-item; /* This assumes implied counter reset */
+  color: var(--system-blue);
+  font-weight: 600;
+  min-width: 16px;
+}
+
+.popup-instructions ol {
+  counter-reset: list-item;
 }
 
 /* Debug */
 .popup-debug {
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--gray-200);
+  background: var(--system-background);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 12px;
 }
 
 .popup-debug summary {
-  font-size: 12px;
-  color: var(--gray-400);
-  cursor: pointer;
+  color: var(--text-secondary);
   font-weight: 500;
-  user-select: none;
-  padding: 4px 0;
-}
-
-.popup-debug summary:hover {
-  color: var(--gray-500);
-}
-
-.popup-debug p {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--gray-500);
-  margin: 8px 0 4px 0;
-  word-break: break-all;
-  line-height: 1.6;
+  cursor: pointer;
 }
 
 .popup-url {
-  background: var(--gray-100);
+  background: var(--system-gray-6);
   padding: 8px;
-  border-radius: 4px;
-  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+  margin-top: 8px;
+  color: var(--text-secondary);
 }
 
 /* Footer */
 .popup-footer {
-  padding: 16px 24px;
+  padding: 16px;
   text-align: center;
-  border-top: 1px solid var(--gray-200);
-  background: var(--gray-100);
+  background: var(--system-gray-6);
 }
 
 .popup-version {
   font-size: 11px;
-  color: var(--gray-400);
+  color: var(--text-tertiary);
   margin: 0;
-  font-weight: 500;
-  font-family: 'DM Mono', monospace;
 }
 
-/* Animations */
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --system-background: #1C1C1E;
+    --system-gray-6: #000000;
+    --system-separator: rgba(84, 84, 88, 0.65);
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(235, 235, 245, 0.6);
+    --text-tertiary: rgba(235, 235, 245, 0.3);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .popup-header {
+    background: rgba(28, 28, 30, 0.85);
+    border-bottom: 0.5px solid rgba(84, 84, 88, 0.65);
   }
-}
 
-.popup-status,
-.popup-instructions {
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
+  .popup-status.active .popup-status-icon {
+    background: rgba(48, 209, 88, 0.2);
+    color: #30D158;
+  }
+  
+  .popup-status-icon {
+    background: #2C2C2E;
+  }
 
-.popup-instructions {
-  animation-delay: 0.1s;
-  animation-fill-mode: both;
-}
-
-/* Loading State */
-.popup-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 520px;
-  gap: 12px;
-}
-
-.popup-loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--gray-200);
-  border-top-color: var(--indigo);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.popup-loading p {
-  font-size: 13px;
-  color: var(--gray-500);
-  font-weight: 500;
+  .popup-example {
+    background: rgba(10, 132, 255, 0.2);
+    color: #0A84FF !important;
+  }
 }
