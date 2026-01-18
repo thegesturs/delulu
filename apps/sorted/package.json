@@ -15,15 +15,15 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react": "catalog:react19",
+    "react-dom": "catalog:react19"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.278",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "catalog:react19",
+    "@types/react-dom": "catalog:react19",
     "@wxt-dev/module-react": "^1.1.5",
-    "typescript": "^5.9.3",
+    "typescript": "catalog:",
     "wxt": "^0.20.6"
   }
 }

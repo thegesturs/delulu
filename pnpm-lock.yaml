@@ -310,27 +310,27 @@ importers:
   apps/sorted:
     dependencies:
       react:
-        specifier: ^19.2.3
-        version: 19.2.3
+        specifier: catalog:react19
+        version: 19.1.0
       react-dom:
-        specifier: ^19.2.3
-        version: 19.2.3(react@19.2.3)
+        specifier: catalog:react19
+        version: 19.1.0(react@19.1.0)
     devDependencies:
       '@types/chrome':
         specifier: ^0.0.278
         version: 0.0.278
       '@types/react':
-        specifier: ^19.2.7
-        version: 19.2.8
+        specifier: catalog:react19
+        version: 19.1.0
       '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.8)
+        specifier: catalog:react19
+        version: 19.1.0(@types/react@19.1.0)
       '@wxt-dev/module-react':
         specifier: ^1.1.5
         version: 1.1.5(vite@7.0.0(@types/node@22.15.34)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))(wxt@0.20.13(@types/node@22.15.34)(jiti@2.6.1)(lightningcss@1.30.1)(rollup@4.44.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: 'catalog:'
+        version: 5.8.3
       wxt:
         specifier: ^0.20.6
         version: 0.20.13(@types/node@22.15.34)(jiti@2.6.1)(lightningcss@1.30.1)(rollup@4.44.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
@@ -7300,9 +7300,6 @@ packages:
 
   '@types/react@19.1.1':
     resolution: {integrity: sha512-ePapxDL7qrgqSF67s0h9m412d9DbXyC1n59O2st+9rjuuamWsZuD2w55rqY12CbzsZ7uVXb5Nw0gEp9Z8MMutQ==}
-
-  '@types/react@19.2.8':
-    resolution: {integrity: sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==}
 
   '@types/resolve@1.20.6':
     resolution: {integrity: sha512-A4STmOXPhMUtHH+S6ymgE2GiBSMqf4oTvcQZMcHzokuTLVYzXTB8ttjcgxOVaAp2lGwEdzZ0J+cRbbeevQj1UQ==}
@@ -21218,11 +21215,11 @@ snapshots:
   '@storybook/addon-docs@8.6.14(@types/react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
     dependencies:
       '@mdx-js/react': 3.1.0(@types/react@19.1.0)(react@19.2.3)
-      '@storybook/blocks': 8.6.14(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))
+      '@storybook/blocks': 8.6.14(react-dom@19.1.0(react@19.1.0))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))
       '@storybook/csf-plugin': 8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))
-      '@storybook/react-dom-shim': 8.6.14(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))
+      '@storybook/react-dom-shim': 8.6.14(react-dom@19.1.0(react@19.1.0))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))
       react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
+      react-dom: 19.1.0(react@19.2.3)
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
       ts-dedent: 2.2.0
     transitivePeerDependencies:
@@ -21297,14 +21294,14 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@storybook/blocks@8.6.14(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
+  '@storybook/blocks@8.6.14(react-dom@19.1.0(react@19.1.0))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
     dependencies:
-      '@storybook/icons': 1.4.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@storybook/icons': 1.4.0(react-dom@19.1.0(react@19.1.0))(react@19.2.3)
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
       ts-dedent: 2.2.0
     optionalDependencies:
       react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
+      react-dom: 19.1.0(react@19.1.0)
 
   '@storybook/builder-webpack5@8.6.14(esbuild@0.25.5)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))(typescript@5.8.3)':
     dependencies:
@@ -21384,10 +21381,10 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@storybook/icons@1.4.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@storybook/icons@1.4.0(react-dom@19.1.0(react@19.1.0))(react@19.2.3)':
     dependencies:
       react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
+      react-dom: 19.1.0(react@19.1.0)
 
   '@storybook/instrumenter@8.6.14(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
     dependencies:
@@ -21514,10 +21511,10 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
 
-  '@storybook/react-dom-shim@8.6.14(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
+  '@storybook/react-dom-shim@8.6.14(react-dom@19.1.0(react@19.1.0))(react@19.2.3)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
     dependencies:
       react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
+      react-dom: 19.1.0(react@19.1.0)
       storybook: 8.6.14(bufferutil@4.0.9)(prettier@3.6.2)
 
   '@storybook/react-dom-shim@9.0.15(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(storybook@8.6.14(bufferutil@4.0.9)(prettier@3.6.2))':
@@ -22110,7 +22107,7 @@ snapshots:
 
   '@types/hoist-non-react-statics@3.3.6':
     dependencies:
-      '@types/react': 19.2.8
+      '@types/react': 19.1.1
       hoist-non-react-statics: 3.3.2
 
   '@types/html-minifier-terser@6.1.0': {}
@@ -22204,25 +22201,17 @@ snapshots:
       '@types/react': 19.1.0
     optional: true
 
-  '@types/react-dom@19.2.3(@types/react@19.2.8)':
-    dependencies:
-      '@types/react': 19.2.8
-
   '@types/react-reconciler@0.28.9(@types/react@19.1.1)':
     dependencies:
       '@types/react': 19.1.1
 
   '@types/react@19.1.0':
     dependencies:
-      csstype: 3.1.3
+      csstype: 3.2.3
 
   '@types/react@19.1.1':
     dependencies:
       csstype: 3.1.3
-
-  '@types/react@19.2.8':
-    dependencies:
-      csstype: 3.2.3
 
   '@types/resolve@1.20.6': {}
 
@@ -23840,7 +23829,7 @@ snapshots:
   dom-helpers@5.2.1:
     dependencies:
       '@babel/runtime': 7.27.6
-      csstype: 3.1.3
+      csstype: 3.2.3
 
   dom-serializer@1.4.1:
     dependencies:
@@ -27935,6 +27924,11 @@ snapshots:
       react: 19.1.0
       scheduler: 0.26.0
 
+  react-dom@19.1.0(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      scheduler: 0.26.0
+
   react-dom@19.2.3(react@19.1.0):
     dependencies:
       react: 19.1.0
@@ -28017,7 +28011,7 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 2.11.2
       '@formatjs/intl': 3.1.6(typescript@5.8.3)
       '@types/hoist-non-react-statics': 3.3.6
-      '@types/react': 19.2.8
+      '@types/react': 19.1.1
       hoist-non-react-statics: 3.3.2
       intl-messageformat: 10.7.16
       react: 19.1.0
@@ -29887,7 +29881,8 @@ snapshots:
 
   typescript@5.8.3: {}
 
-  typescript@5.9.3: {}
+  typescript@5.9.3:
+    optional: true
 
   ufo@1.6.1: {}
 

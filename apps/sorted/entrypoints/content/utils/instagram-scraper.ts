@@ -139,8 +139,6 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       }
     }
 
-    console.log('[Sorted] Thumbnail for', id, ':', thumbnailUrl ? 'YES' : 'NO', thumbnailUrl ? `(${thumbnailUrl.substring(0, 60)}...)` : '');
-
     // Get metrics from GraphQL interceptor cache ONLY
     // Instagram sends these via GraphQL - we intercept and cache them
     const metrics = getCachedMetrics(id) || {
@@ -148,12 +146,6 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       likes: undefined,
       comments: undefined,
     };
-
-    if (metrics.views !== undefined || metrics.likes !== undefined || metrics.comments !== undefined) {
-      console.log('[Sorted] ✅ Found cached metrics for', id, metrics);
-    } else {
-      console.log('[Sorted] ⚠️ No cached metrics for', id, '- waiting for GraphQL data');
-    }
 
     return {
       id,
@@ -207,8 +199,6 @@ export function findReelElements(): Element[] {
  */
 export function scrapeVisibleReels(): ReelData[] {
   const reelElements = findReelElements();
-  console.log(`Found ${reelElements.length} reel elements`);
-
   const reels: ReelData[] = [];
   const seenIds = new Set<string>();
 
@@ -220,7 +210,6 @@ export function scrapeVisibleReels(): ReelData[] {
     }
   }
 
-  console.log(`Successfully scraped ${reels.length} unique reels`);
   return reels;
 }
 

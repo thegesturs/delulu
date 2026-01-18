@@ -189,11 +189,9 @@ export async function scrollAndLoadReels(
     // Check if we got new content
     if (!hasNewContent || allReels.size === previousCount) {
       consecutiveFailures++;
-      console.log(`No new content after scroll attempt ${scrollAttempts} (failure ${consecutiveFailures}/3)`);
 
       // If we've reached the end or had too many failures, stop
       if (hasReachedEnd() || consecutiveFailures >= 3) {
-        console.log('Reached end of content or too many failures, stopping');
         break;
       }
     } else {

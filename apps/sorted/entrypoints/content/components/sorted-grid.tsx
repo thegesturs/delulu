@@ -38,9 +38,6 @@ function getMetricLabel(metric: SortMetric): string {
 }
 
 export function SortedGrid({ reels, sortMetric, quantity }: SortedGridProps) {
-  console.log('[Sorted] Rendering grid with', reels.length, 'reels');
-  console.log('[Sorted] Sample reel:', reels[0]);
-
   return (
     <div className="sorted-grid-container">
       {/* Header */}
