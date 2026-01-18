@@ -38,14 +38,9 @@ const metricsCache = new Map<string, ReelMetrics>();
 
 /**
  * Get cached metrics for a reel
- * Read from the page world cache
+ * Reads from content script cache (populated via postMessage from MAIN world)
  */
 export function getCachedMetrics(reelId: string): ReelMetrics | undefined {
-  const pageCache = (window as any).__sortedMetricsCache;
-  if (pageCache && pageCache.get) {
-    return pageCache.get(reelId);
-  }
-  // Fallback to content script cache
   return metricsCache.get(reelId);
 }
 
@@ -114,11 +109,22 @@ function processGraphQLResponse(response: GraphQLResponse): void {
 
 /**
  * Initialize GraphQL interception
- * The actual interceptor runs in content.main.ts (MAIN world)
- * This just logs that it's ready
+ * The actual interceptor runs in interceptor.js (MAIN world)
+ * This listens for postMessage events from the MAIN world
  */
 export function initializeGraphQLInterceptor(): void {
-  console.log('[Sorted] GraphQL interceptor ready (running in main world via content.main.ts)');
+  console.log('[Sorted] GraphQL interceptor ready - listening for messages from MAIN world');
+
+  // Listen for metrics from the MAIN world interceptor
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return; // Only accept messages from same window
+
+    if (event.data.type === 'SORTED_METRICS_CACHED') {
+      const { reelId, metrics } = event.data;
+      metricsCache.set(reelId, metrics);
+      console.log('[Sorted] 📥 Received metrics from MAIN world:', reelId, metrics);
+    }
+  });
 
   // Keep backup fetch interceptor in isolated world
   const originalFetch = window.fetch;

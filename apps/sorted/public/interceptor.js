@@ -38,8 +38,24 @@
                   if (media.code) {
                     window.__sortedMetricsCache.set(media.code, metrics);
                     console.log('[Sorted] 📊', media.code, metrics);
+
+                    // Send message to content script (CRITICAL for cross-world communication)
+                    window.postMessage({
+                      type: 'SORTED_METRICS_CACHED',
+                      reelId: media.code,
+                      metrics: metrics
+                    }, '*');
                   }
-                  if (media.pk) window.__sortedMetricsCache.set(media.pk, metrics);
+                  if (media.pk) {
+                    window.__sortedMetricsCache.set(media.pk, metrics);
+
+                    // Also send for pk
+                    window.postMessage({
+                      type: 'SORTED_METRICS_CACHED',
+                      reelId: media.pk,
+                      metrics: metrics
+                    }, '*');
+                  }
                 }
               });
             }

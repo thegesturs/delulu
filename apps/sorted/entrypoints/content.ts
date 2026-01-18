@@ -32,7 +32,9 @@ export default defineContentScript({
 
     let panelContainer: HTMLElement | null = null;
     let gridContainer: HTMLElement | null = null;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     let panelRoot: any = null;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     let gridRoot: any = null;
     let cleanupUrlMonitor: (() => void) | null = null;
     let originalGrid: HTMLElement | null = null;
@@ -185,22 +187,26 @@ export default defineContentScript({
 
         console.log(`[Sorted] Starting sort: ${metric}, quantity: ${quantity}`);
 
-        // Scroll MORE aggressively to trigger Instagram to load more data
-        console.log('[Sorted] Scrolling to trigger GraphQL requests...');
+        // Scroll aggressively to trigger Instagram to load ALL data with metrics
+        console.log('[Sorted] Scrolling to load all reels with metrics...');
 
-        // Scroll to bottom
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Scroll to middle
-        window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Scroll to bottom MULTIPLE times to trigger enough GraphQL requests
+        for (let i = 0; i < 3; i++) {
+          console.log(`[Sorted] Scroll iteration ${i + 1}/3...`);
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for GraphQL + DOM update
+        }
 
         // Scroll back to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for DOM to re-render
 
-        console.log('[Sorted] Finished scrolling, checking for cached metrics...');
+        console.log('[Sorted] Finished scrolling, waiting for metrics to sync...');
+
+        // Wait for postMessage events to be processed
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        console.log('[Sorted] Ready to scrape with cached metrics!');
 
         // Validate scraping capability
         const error = validateScrapingCapability();
@@ -212,6 +218,7 @@ export default defineContentScript({
         // Scrape reels
         const cancelToken = createCancelToken();
         const reels = await scrollAndLoadReels(
+          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
           quantity as any,
           (current, total, message) => {
             console.log(`[Sorted] Progress: ${current}/${total} - ${message}`);
