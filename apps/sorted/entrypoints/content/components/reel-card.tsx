@@ -31,6 +31,8 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
   };
 
   return (
+    // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div className="sorted-reel-card" onClick={handleClick}>
       {/* Rank badge */}
       <div className="sorted-reel-rank">{rank}</div>

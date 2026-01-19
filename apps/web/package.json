@@ -46,7 +46,7 @@
     "next": "15.3.3",
     "postprocessing": "^6.37.7",
     "react": "catalog:react19",
-    "react-dom": "19.1.0",
+    "react-dom": "catalog:react19",
     "react-icons": "catalog:",
     "react-intl": "^7.1.11",
     "react-wrap-balancer": "^1.1.1",
