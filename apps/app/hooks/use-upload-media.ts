@@ -6,31 +6,58 @@ interface UploadMediaResult {
 }
 
 export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
-  // Upload directly through the API (file is processed server-side)
-  const formData = new FormData();
-  formData.append('file', file);
+  const startTime = Date.now();
+  console.log(
+    `[CLIENT] Starting upload: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+  );
 
-  const response = await fetch('/api/upload', {
+  // Step 1: Get presigned URL
+  const presignedStart = Date.now();
+  const presignedResponse = await fetch('/api/upload/presigned', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size,
+    }),
   });
+  console.log(`[CLIENT] Presigned URL request took ${Date.now() - presignedStart}ms`);
 
-  if (!response.ok) {
-    throw new Error('Failed to upload file');
+  if (!presignedResponse.ok) {
+    throw new Error('Failed to get presigned URL');
   }
 
-  const { bucketKey } = (await response.json()) as {
-    uploadUrl: string | null; // Ignored - always null for direct uploads
-    bucketKey: string;
+  const { uploadUrl, key } = (await presignedResponse.json()) as {
+    uploadUrl: string;
+    key: string;
   };
 
-  // Get download URL after successful upload
-  const downloadUrl = await getDownloadUrl(bucketKey);
+  // Step 2: Upload directly to R2 using presigned URL
+  const uploadStart = Date.now();
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type,
+    },
+  });
+  console.log(
+    `[CLIENT] Direct R2 upload took ${Date.now() - uploadStart}ms`
+  );
 
-  // Note: Media will be saved to database when the post is published
-  // For now, we just return the upload result
+  if (!uploadResponse.ok) {
+    throw new Error('Failed to upload to R2');
+  }
 
-  return { bucketKey, url: downloadUrl };
+  // Step 3: Get download URL
+  const urlStart = Date.now();
+  const downloadUrl = await getDownloadUrl(key);
+  console.log(
+    `[CLIENT] Get download URL took ${Date.now() - urlStart}ms, total: ${Date.now() - startTime}ms`
+  );
+
+  return { bucketKey: key, url: downloadUrl };
 }
 
 async function getDownloadUrl(key: string): Promise<string> {

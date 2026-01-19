@@ -1,7 +1,6 @@
 import { env } from '@/env';
-import { verifyOAuthStateAndRecoverSession } from '@/lib/oauth-callback-helper';
+import { auth } from '@delulu/auth/server';
 import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { fetchMutation } from '@delulu/database/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -19,6 +18,7 @@ interface TikTokUserResponse {
     user: {
       display_name: string;
       avatar_url: string;
+      username: string;
     };
   };
 }
@@ -40,42 +40,44 @@ const fetchWithTimeout = async (
 };
 
 export async function GET(request: NextRequest) {
-	console.log('tiktok callback');
-	try {
-		// Verify OAuth state and recover session
-		const sessionResult = await verifyOAuthStateAndRecoverSession(
-			request,
-			'TIKTOK',
-		);
+  console.log('tiktok callback');
+  try {
+    const { userId, getToken } = await auth();
+    if (!userId) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=auth_required&code=AUTH_001&provider=TIKTOK',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
 
-		if (!sessionResult.success) {
-			const { error, code } = sessionResult.error;
-			return NextResponse.redirect(
-				new URL(
-					`/socials?error=${error}&code=${code}&provider=TIKTOK`,
-					env.NEXT_PUBLIC_APP_URL,
-				),
-			);
-		}
+    const token = await getToken({ template: 'convex' });
+    if (!token) {
+      return new NextResponse(null, {
+        status: 302,
+        headers: {
+          Location:
+            '/socials?error=auth_required&code=AUTH_001&provider=tiktok',
+        },
+      });
+    }
 
-		const { userId, token, useInternalMutation, sessionRecovered } = sessionResult.data;
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
 
-		if (sessionRecovered) {
-			console.log('[TIKTOK] Session was recovered from state parameter');
-		}
+    console.log('code', code);
+    console.log('state', state);
 
-		// Get the OAuth code from query params
-		const { searchParams } = new URL(request.url);
-		const code = searchParams.get('code');
-
-		if (!code) {
-			return NextResponse.redirect(
-				new URL(
-					'/socials?error=missing_params&code=PARAM_001&provider=TIKTOK',
-					env.NEXT_PUBLIC_APP_URL,
-				),
-			);
-		}
+    if (!state || !code) {
+      return NextResponse.redirect(
+        new URL(
+          '/socials?error=invalid_request&code=PARAM_001&provider=TIKTOK',
+          env.NEXT_PUBLIC_APP_URL
+        )
+      );
+    }
 
     // Exchange code for access token
     const tokenResponse = await fetchWithTimeout(
@@ -130,47 +132,24 @@ export async function GET(request: NextRequest) {
       throw new Error('tiktok_invalid_user_data');
     }
 
-    const { display_name, avatar_url } = userData.data.user;
+    const { username, display_name, avatar_url } = userData.data.user;
 
-    // Conditional mutation based on token availability
-    let status;
-    if (useInternalMutation) {
-      // Local dev - use OAuth mutation without token
-      console.log('[TIKTOK] Using OAuth mutation without token for userId:', userId);
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProviderFromOAuth,
-        {
-          userId: userId as Id<'users'>,
-          socialType: 'TIKTOK',
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          profileId: open_id,
-          username: display_name,
-          fullName: display_name,
-          profileImage: avatar_url,
-          isActive: true,
-        }
-      );
-    } else {
-      // Production - use regular mutation with token
-      console.log('[TIKTOK] Using authenticated mutation with token');
-      status = await fetchMutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: 'TIKTOK',
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          profileId: open_id,
-          username: display_name,
-          fullName: display_name,
-          profileImage: avatar_url,
-          isActive: true,
-        },
-        { token: token! }
-      );
-    }
+    // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    const status = await fetchMutation(
+      api.social_providers.upsertSocialProvider,
+      {
+        socialType: 'TIKTOK',
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        profileId: open_id,
+        username: username,
+        fullName: display_name,
+        profileImage: avatar_url,
+        isActive: true,
+      },
+      { token }
+    );
 
     // Handle different response statuses
     if (status === 'account_transferred') {

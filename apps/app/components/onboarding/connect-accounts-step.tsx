@@ -1,5 +1,6 @@
 'use client';
 
+import { useOnboarding } from '@/hooks/use-onboarding';
 import { useOnboardingStore } from '@/store/onboarding';
 import { api } from '@/trpc/react';
 import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
@@ -56,13 +57,15 @@ const itemVariants = {
 } as const;
 
 export function ConnectAccountsStep() {
+  const { handleNextStep } = useOnboarding();
   const { setAccountsConnected } = useOnboardingStore();
+  const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const accounts = useQuery(ConvexApi.social_providers.getConnectedAccounts);
-  const accountCount = accounts?.length || 0;
+  const accountCount = limitCheck?.currentCount || 0;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastAccountCount, setLastAccountCount] = useState(0);
 
-  // Update store when accounts change
+  // Update store when accounts change + auto-advance on first connection
   useEffect(() => {
     setAccountsConnected(accountCount);
 
@@ -70,9 +73,17 @@ export function ConnectAccountsStep() {
     if (accountCount > lastAccountCount) {
       setIsRefreshing(true);
       setTimeout(() => setIsRefreshing(false), 1000);
+
+      // Auto-advance to step 3 after first account is connected
+      if (accountCount === 1 && lastAccountCount === 0) {
+        // Give user 2 seconds to see success state, then advance
+        setTimeout(() => {
+          handleNextStep();
+        }, 2000);
+      }
     }
     setLastAccountCount(accountCount);
-  }, [accountCount, setAccountsConnected, lastAccountCount]);
+  }, [accountCount, setAccountsConnected, lastAccountCount, handleNextStep]);
 
   // CRITICAL FIX: Auto-refresh when page becomes visible (after OAuth redirect)
   // Convex useQuery automatically refetches when page visibility changes
@@ -150,6 +161,7 @@ export function ConnectAccountsStep() {
             key={platform}
             platform={platform}
             isConnected={accounts?.some((acc) => acc.socialType === platform)}
+            isAtLimit={!limitCheck?.allowed}
           />
         ))}
       </motion.div>
@@ -160,11 +172,13 @@ export function ConnectAccountsStep() {
 function PlatformCard({
   platform,
   isConnected,
+  isAtLimit,
 }: {
   platform: SupportedSocialPlatform;
   isConnected?: boolean;
+  isAtLimit?: boolean;
 }) {
-  // Don't fetch connection URL if already connected
+  // Don't fetch connection URL if already connected OR at limit
   const {
     data: connectUrl,
     isLoading,
@@ -172,7 +186,7 @@ function PlatformCard({
   } = api.socialProvider.getSocialProviderConnectUrl.useQuery(
     { provider: platform },
     {
-      enabled: !isConnected, // Only fetch if not connected
+      enabled: !isConnected && !isAtLimit, // Only fetch if not connected AND not at limit
       retry: 1, // Only retry once instead of multiple times
       retryDelay: 1000, // Wait 1 second before retry
       staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -204,6 +218,34 @@ function PlatformCard({
       ? 'border-border bg-muted/30 opacity-80'
       : 'border-border bg-card hover:border-primary/20 hover:bg-accent/50 hover:shadow-sm'
   }`;
+
+  // Show upgrade prompt if at limit
+  if (isAtLimit && !isConnected) {
+    return (
+      <motion.div variants={itemVariants}>
+        <div className={containerClass}>
+          <div className="flex w-full items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-lg ${socialBackgroundColors[platform]} shadow-sm`}
+              >
+                <SocialIcon type={platform} size="md" className="text-white" />
+              </div>
+              <span className="font-semibold tracking-tight">
+                {socialDisplayNames[platform]}
+              </span>
+            </div>
+            <Link
+              href="/settings/billing"
+              className="text-primary text-sm hover:underline"
+            >
+              Upgrade
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   // Show non-clickable card if: connected, loading, error, or no URL
   if (isConnected || isLoading || error || !connectUrl) {

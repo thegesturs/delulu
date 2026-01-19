@@ -10,7 +10,7 @@ const publicRoutes = createRouteMatcher([
   '/sign-up(.*)',
   '/api/webhooks(.*)',
   '/verify-email(.*)',
-  // '/api/trpc(.*)',
+  '/api/trpc(.*)',
   '/api/callback(.*)', // Add this line - OAuth callbacks must be public
   '/api/transcribe(.*)',
 ]);

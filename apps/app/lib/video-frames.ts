@@ -88,6 +88,8 @@ export async function extractVideoFrame(
       reject(new Error('Video frame extraction timeout'));
     }, 15000); // 15 second timeout
 
+    // Important: Set CORS mode for external videos
+    video.crossOrigin = 'anonymous';
     video.src = videoUrl;
     video.load();
   });

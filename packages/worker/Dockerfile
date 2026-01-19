@@ -24,6 +24,7 @@ COPY packages/auth/package.json ./packages/auth/
 COPY packages/email/package.json ./packages/email/
 COPY packages/cloudflare-types/package.json ./packages/cloudflare-types/
 COPY packages/analytics/package.json ./packages/analytics/
+COPY packages/payments/package.json ./packages/payments/
 
 # Install dependencies
 RUN pnpm install
@@ -38,9 +39,10 @@ COPY packages/auth ./packages/auth
 COPY packages/email ./packages/email
 COPY packages/cloudflare-types ./packages/cloudflare-types
 COPY packages/analytics ./packages/analytics
+COPY packages/payments ./packages/payments
 
 # Copy environment file
-COPY packages/worker/.env.local ./packages/worker/.env.local
+COPY packages/worker/.env.prod ./packages/worker/.env.prod
 
 # Set environment variables
 ENV NODE_ENV=production
