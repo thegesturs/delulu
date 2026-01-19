@@ -31,7 +31,7 @@ export const CACHE_EXPIRATION_MS = 60 * 60 * 1000;
  * Instagram URL patterns
  */
 export const INSTAGRAM_PATTERNS = {
-  REELS_TAB: /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/reels\/?$/,
+  REELS_TAB: /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/reels\/?(?:\?.*)?$/,
   PROFILE: /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/?$/,
   REEL: /^https?:\/\/(www\.)?instagram\.com\/reel\/[^\/]+\/?$/,
 } as const;

@@ -48,6 +48,7 @@ export default defineContentScript({
     let originalGrid: HTMLElement | null = null;
     let isSorting = false;
     let isActive = false;
+    let isCancelled = false;
     let currentReels: ReelData[] = [];
     let currentMetric: SortMetric = 'views';
     let currentQuantity: number = 25;
@@ -206,6 +207,7 @@ export default defineContentScript({
 
       try {
         isSorting = true;
+        isCancelled = false; // Reset cancellation flag for new operation
         currentMetric = metric;
         currentQuantity = quantity;
         updatePanel();
@@ -215,18 +217,25 @@ export default defineContentScript({
 
         // Scroll aggressively to trigger Instagram to load ALL data with metrics
         for (let i = 0; i < 3; i++) {
+          if (isCancelled) return; // Check if operation was cancelled
           showLoadingOverlay('Loading reels...', `Scroll ${i + 1}/3`);
           window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
+
+        if (isCancelled) return; // Check if operation was cancelled
 
         // Scroll back to top
         showLoadingOverlay('Processing reels...', 'Analyzing metrics');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         await new Promise(resolve => setTimeout(resolve, 1500));
 
+        if (isCancelled) return; // Check if operation was cancelled
+
         // Wait for postMessage events to be processed
         await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (isCancelled) return; // Check if operation was cancelled
 
         // Validate scraping capability
         const error = validateScrapingCapability();
@@ -244,6 +253,8 @@ export default defineContentScript({
           cancelToken
         );
 
+        if (isCancelled) return; // Check if operation was cancelled after scraping
+
         if (reels.length === 0) {
           alert('No reels found');
           return;
@@ -254,8 +265,14 @@ export default defineContentScript({
         const sorted = sortReels(reels, metric);
         currentReels = sorted.slice(0, quantity);
 
+        if (isCancelled) return; // Check if operation was cancelled before grid replacement
+
         // Replace Instagram grid with sorted grid
-        replaceGrid();
+        const gridReplaced = replaceGrid();
+        if (!gridReplaced) {
+          alert('Failed to replace grid. Reels container not found.');
+          return;
+        }
         isActive = true;
 
         // Hide loading overlay after a brief moment to show completion
@@ -272,11 +289,12 @@ export default defineContentScript({
 
     /**
      * Replace Instagram's grid with our sorted grid
+     * @returns true if successful, false otherwise
      */
-    function replaceGrid() {
+    function replaceGrid(): boolean {
       const reelsContainer = findReelsContainer();
       if (!reelsContainer) {
-        return;
+        return false;
       }
 
       // Hide original grid
@@ -304,6 +322,8 @@ export default defineContentScript({
           quantity: currentQuantity,
         })
       );
+
+      return true;
     }
 
     /**
@@ -360,6 +380,7 @@ export default defineContentScript({
      * Cleanup
      */
     function cleanup() {
+      isCancelled = true;
       hideLoadingOverlay();
       removeSortPanel();
       handleReset();
