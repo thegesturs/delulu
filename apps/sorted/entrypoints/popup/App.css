@@ -1,0 +1,273 @@
+/**
+ * Sorted - Chrome Extension Popup
+ * Design: iOS System Design
+ */
+
+:root {
+  /* iOS System Colors */
+  --system-blue: #6366f1;
+  --system-gray: #8E8E93;
+  --system-gray-2: #AEAEB2;
+  --system-gray-3: #C7C7CC;
+  --system-gray-4: #D1D1D6;
+  --system-gray-5: #E5E5EA;
+  --system-gray-6: #F2F2F7;
+  --system-background: #FFFFFF;
+  --system-separator: rgba(60, 60, 67, 0.36);
+  
+  /* Text Colors */
+  --text-primary: #000000;
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--system-gray-6);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 360px;
+  min-height: 500px;
+}
+
+.popup-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--system-gray-6);
+}
+
+/* Header */
+.popup-header {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--system-separator);
+  padding: 16px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.popup-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--system-blue);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
+.popup-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.popup-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 2px 0 0 0;
+}
+
+.popup-branding {
+  display: none; /* Hide branding in minimal mode */
+}
+
+/* Content */
+.popup-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* iOS Grouped Style for Sections */
+.popup-status,
+.popup-instructions {
+  background: var(--system-background);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.popup-status {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.popup-status-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--system-gray-6);
+  border-radius: 50%;
+}
+
+.popup-status.active .popup-status-icon {
+  background: rgba(52, 199, 89, 0.1);
+  color: #34C759;
+}
+
+.popup-status h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.popup-status p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+  max-width: 260px;
+}
+
+.popup-example {
+  margin-top: 12px !important;
+  font-size: 12px !important;
+  color: var(--system-blue) !important;
+  background: rgba(0, 122, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Instructions List */
+.popup-instructions {
+  padding: 0 0 0 16px; /* Indent for list */
+}
+
+.popup-instructions h4 {
+  margin: 16px 16px 8px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.popup-instructions ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popup-instructions li {
+  padding: 12px 16px 12px 0;
+  font-size: 15px;
+  border-bottom: 0.5px solid var(--system-separator);
+  display: flex;
+  gap: 12px;
+}
+
+.popup-instructions li:last-child {
+  border-bottom: none;
+}
+
+.popup-instructions li::before {
+  content: counter(list-item);
+  counter-increment: list-item; /* This assumes implied counter reset */
+  color: var(--system-blue);
+  font-weight: 600;
+  min-width: 16px;
+}
+
+.popup-instructions ol {
+  counter-reset: list-item;
+}
+
+/* Debug */
+.popup-debug {
+  background: var(--system-background);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 12px;
+}
+
+.popup-debug summary {
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.popup-url {
+  background: var(--system-gray-6);
+  padding: 8px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+  margin-top: 8px;
+  color: var(--text-secondary);
+}
+
+/* Footer */
+.popup-footer {
+  padding: 16px;
+  text-align: center;
+  background: var(--system-gray-6);
+}
+
+.popup-version {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --system-background: #1C1C1E;
+    --system-gray-6: #000000;
+    --system-separator: rgba(84, 84, 88, 0.65);
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(235, 235, 245, 0.6);
+    --text-tertiary: rgba(235, 235, 245, 0.3);
+  }
+
+  .popup-header {
+    background: rgba(28, 28, 30, 0.85);
+    border-bottom: 0.5px solid rgba(84, 84, 88, 0.65);
+  }
+
+  .popup-status.active .popup-status-icon {
+    background: rgba(48, 209, 88, 0.2);
+    color: #30D158;
+  }
+  
+  .popup-status-icon {
+    background: #2C2C2E;
+  }
+
+  .popup-example {
+    background: rgba(10, 132, 255, 0.2);
+    color: #0A84FF !important;
+  }
+}

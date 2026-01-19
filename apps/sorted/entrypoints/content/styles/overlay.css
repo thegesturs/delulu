@@ -1,0 +1,367 @@
+/**
+ * Sorted - Injected Panel & Grid Styles
+ * Design: iOS-style minimal, glassmorphism, clean
+ */
+
+:root {
+  /* iOS System Colors */
+  --sorted-system-blue: #6366f1;
+  --sorted-system-gray: #8E8E93;
+  --sorted-system-background: rgba(255, 255, 255, 0.85);
+  --sorted-system-grouped-background: #F2F2F7;
+  --sorted-separator: rgba(60, 60, 67, 0.36);
+  
+  /* Text Colors */
+  --sorted-text-primary: #000000;
+  --sorted-text-secondary: rgba(60, 60, 67, 0.6);
+  --sorted-text-tertiary: rgba(60, 60, 67, 0.3);
+
+  /* Shadows */
+  --sorted-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --sorted-shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+  --sorted-shadow-lg: 0 12px 32px rgba(0,0,0,0.2);
+}
+
+/* Base Font Setup */
+.sorted-overlay, .sorted-panel-compact {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 
+ * Compact Panel Design (Single Line)
+ */
+.sorted-panel-compact {
+  width: 100%;
+  /* Removed max-width to match parent container width exactly */
+  /* margin: 0 auto; - Let parent handle alignment */
+  margin-bottom: 4px; /* Minimal gap between panel and grid */
+  background: var(--sorted-system-background);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 4px; /* Subtle roundedness */
+  /* Removed box-shadow as it looks like a border */
+  box-shadow: none;
+  border: none; /* Ensure no border */
+  padding: 8px 0; /* Removed horizontal padding to align content with grid */
+  animation: fadeIn 0.3s ease-out;
+  box-sizing: border-box; /* Critical for width calculation */
+}
+
+.sorted-compact-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 40px;
+  padding: 0 8px; /* Add internal padding for controls instead */
+}
+
+.sorted-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.sorted-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--sorted-text-primary);
+  flex-shrink: 0;
+}
+
+.sorted-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--sorted-separator);
+  opacity: 0.5;
+}
+
+/* Compact Radio Group */
+.sorted-compact-group {
+  display: flex;
+  align-items: center;
+  background: rgba(118, 118, 128, 0.12);
+  padding: 2px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.sorted-compact-radio {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.sorted-compact-radio input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sorted-compact-radio span {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sorted-text-primary);
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sorted-compact-radio input:checked + span {
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+}
+
+.sorted-compact-radio input:not(:checked):hover + span {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Compact Select */
+.sorted-compact-select {
+  appearance: auto; /* Standard select appearance */
+  background: transparent;
+  border: 1px solid var(--sorted-separator); /* Visible border */
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sorted-text-primary);
+  padding: 4px 24px 4px 8px; /* Padding for arrow */
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 100px;
+}
+
+.sorted-compact-select:focus {
+  outline: none;
+}
+
+/* Compact Button */
+.sorted-compact-button {
+  background: var(--sorted-system-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+}
+
+.sorted-compact-button:hover:not(:disabled) {
+  background: #4f46e5; /* darker indigo */
+  transform: translateY(-0.5px);
+}
+
+.sorted-compact-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sorted-compact-reset {
+  background: transparent;
+  color: var(--sorted-text-secondary);
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.sorted-compact-reset:hover {
+  background: rgba(118, 118, 128, 0.12);
+  color: var(--sorted-text-primary);
+}
+
+/* Spinner */
+.sorted-loading-spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Results Grid Updates */
+.sorted-grid-container {
+  width: 100%;
+  max-width: 935px; /* Matches Instagram feed width */
+  margin: 0 auto;
+}
+
+.sorted-results-header {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 4px;
+}
+
+.sorted-results-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sorted-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sorted-results-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns as requested */
+  gap: 4px; /* Minimal gap like Instagram */
+  padding-bottom: 32px;
+  width: 100%; /* Full width */
+  box-sizing: border-box;
+}
+
+/* Reel Card Updates */
+.sorted-reel-card {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 9/16; /* Vertical video aspect ratio */
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  border-radius: 4px; /* Subtle roundedness */
+}
+
+.sorted-reel-thumbnail {
+  width: 100%;
+  height: 100%;
+}
+
+.sorted-reel-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.sorted-reel-card:hover .sorted-reel-thumbnail img {
+  transform: scale(1.02); /* Subtle zoom */
+}
+
+/* Overlay only on Hover */
+.sorted-reel-metrics {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent; /* Transparent by default */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  opacity: 1; /* Visible by default */
+  transition: all 0.2s ease;
+  backdrop-filter: none; /* No blur by default */
+  -webkit-backdrop-filter: none;
+}
+
+.sorted-reel-metrics .sorted-grid-stats {
+  opacity: 1; /* Metrics visible by default */
+}
+
+/* Hover state: clear overlay */
+.sorted-reel-card:hover .sorted-reel-metrics {
+  background: rgba(99, 102, 241, 0.4); /* Indigo overlay on hover */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Rank Badge - Floating top left */
+.sorted-reel-rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.sorted-metric {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.sorted-metric-icon {
+  font-size: 18px;
+  opacity: 1;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sorted-system-background: rgba(30, 30, 30, 0.85);
+    --sorted-system-grouped-background: #000000;
+    --sorted-separator: rgba(84, 84, 88, 0.65);
+    
+    --sorted-text-primary: #FFFFFF;
+    --sorted-text-secondary: rgba(235, 235, 245, 0.6);
+    --sorted-text-tertiary: rgba(235, 235, 245, 0.3);
+    
+    --sorted-shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --sorted-shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+    --sorted-shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+  }
+
+  .sorted-panel-compact {
+    background: var(--sorted-system-background);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sorted-compact-radio input:checked + span {
+    background: rgba(99, 99, 102, 1);
+    color: white;
+  }
+  
+  .sorted-compact-radio input:not(:checked):hover + span {
+    background: rgba(99, 99, 102, 0.5);
+  }
+
+  .sorted-compact-reset:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+}

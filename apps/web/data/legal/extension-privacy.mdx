@@ -1,0 +1,319 @@
+---
+title: Sorted Extension Privacy Policy
+date: 2026-01-19
+slug: extension-privacy
+---
+
+**Last Updated:** January 19, 2026
+
+This Privacy Policy describes how the **Sorted - Instagram Reel Sorter** Chrome extension ("Extension", "Sorted", "we", "our") handles data when you use our Extension.
+
+## Overview
+
+**Sorted collects ZERO personal data.** We are committed to your privacy. All processing happens locally in your browser, and no information is ever transmitted to external servers.
+
+## Data Collection
+
+### What We DO NOT Collect
+
+- ✅ **No personal information** (name, email, phone, address)
+- ✅ **No Instagram credentials** (username, password, authentication tokens)
+- ✅ **No browsing history** or activity outside Instagram
+- ✅ **No analytics or tracking data**
+- ✅ **No device information** (IP address, location, device IDs)
+- ✅ **No user-generated content** (posts, messages, photos)
+- ✅ **No Instagram account information** (followers, following, profile data)
+
+### What We Process Locally
+
+The Extension processes the following data **locally in your browser only**:
+
+1. **Instagram Reel Metrics**
+   - Like counts, view counts, comment counts
+   - Reel timestamps (for "oldest" sorting)
+   - This data is read from Instagram's GraphQL API responses that are already loaded by Instagram
+
+2. **User Preferences**
+   - Last selected sorting type (Most Liked, Most Viewed, etc.)
+   - Last selected quantity (25, 50, or All reels)
+   - Stored using Chrome's `storage.local` API on your device
+
+**Important:** All reel data is temporarily cached in your browser's memory while sorting is active. This cache is cleared when you navigate away from the page or close your browser.
+
+## How the Extension Works
+
+### GraphQL Interception
+
+When you visit an Instagram profile's reels tab:
+
+1. Instagram loads reel data using GraphQL API requests
+2. Our Extension intercepts these responses (which you can already see in your browser's network inspector)
+3. We extract engagement metrics (likes, views, comments) from the responses
+4. This data is processed locally to sort the reels
+5. **No data leaves your device**
+
+### Local Processing Only
+
+- All sorting algorithms run in your browser
+- No external API calls or network requests are made by our Extension
+- No data is uploaded, transmitted, or stored on remote servers
+- The Extension works entirely offline (after Instagram's data is loaded)
+
+## Permissions Explained
+
+The Extension requests the following Chrome permissions:
+
+### `storage` Permission
+
+**Purpose:** Save your sorting preferences between browsing sessions
+
+**What It Accesses:**
+- Your last selected sort type (e.g., "Most Liked")
+- Your last selected quantity (e.g., "50 reels")
+
+**What It Does NOT Access:**
+- No passwords or sensitive data
+- No data from other websites or extensions
+
+**How to Clear:** You can clear all Extension data by:
+1. Right-clicking the Extension icon
+2. Selecting "Options" or "Extension options"
+3. Clicking "Clear all data" (if implemented)
+4. Or by uninstalling the Extension
+
+### `activeTab` Permission
+
+**Purpose:** Detect when you're viewing an Instagram profile's reels tab
+
+**What It Accesses:**
+- Current tab URL to determine if you're on Instagram reels
+- Page title to update Extension popup status
+
+**What It Does NOT Access:**
+- Content from other tabs
+- Your browsing history
+- Tabs you're not actively viewing
+
+### `host_permissions` (instagram.com)
+
+**Purpose:** Read reel metrics from Instagram pages you visit
+
+**What It Accesses:**
+- Instagram page content when you're actively viewing reels
+- GraphQL API responses from Instagram's servers
+
+**What It Does NOT Access:**
+- Other websites (Google, Facebook, etc.)
+- Instagram direct messages or private content
+- Content from accounts you don't have permission to view
+
+## Third-Party Services
+
+**We use NO third-party services.** The Extension:
+- Does not integrate with external APIs
+- Does not use analytics services (Google Analytics, Mixpanel, etc.)
+- Does not connect to advertising networks
+- Does not use crash reporting tools (unless debugging is explicitly enabled by the user)
+- Does not communicate with our servers or any other servers
+
+## Data Storage
+
+### Chrome Local Storage
+
+The Extension uses Chrome's `storage.local` API to store:
+- **Sorting preference:** String value like "likes", "views", "comments", or "oldest"
+- **Quantity preference:** Number value like 25, 50, or "all"
+
+**Storage Size:** Less than 1 KB
+**Storage Location:** Local to your Chrome browser profile
+**Retention:** Indefinitely until you clear Extension data or uninstall
+
+### Temporary Memory Cache
+
+While sorting is active:
+- Reel metadata is cached in browser memory (RAM)
+- This cache is automatically cleared when:
+  - You navigate away from the Instagram page
+  - You close the browser tab
+  - You close Chrome
+  - You click the "Reset" button in the Extension
+
+**No persistent cache is created on your hard drive.**
+
+## Instagram Data Access
+
+### What Instagram Data We Read
+
+When you use the Extension on Instagram, we read:
+- **Public reel metadata:** Likes, views, comments, timestamps
+- **Reel IDs:** To identify and sort reels correctly
+- **Profile information:** Only the username of the profile you're viewing
+
+### What We Do NOT Read
+
+- ❌ Direct messages or private conversations
+- ❌ Your Instagram login credentials
+- ❌ Private account content you don't have access to
+- ❌ Stories, feed posts, or explore content
+- ❌ User profiles beyond the current viewing context
+
+### Instagram's Terms of Service
+
+**Important:** While the Extension reads publicly available data that Instagram already loads for you, the use of extensions may be subject to Instagram's Terms of Service. We do not:
+- Scrape or store Instagram data
+- Automate actions without user initiation
+- Access private or restricted content
+- Make unauthorized API calls
+
+## User Rights
+
+### Access to Your Data
+
+Since we don't collect any data, there is no data to access. All processing happens locally in your browser.
+
+### Data Portability
+
+The Extension does not store any user data that can be exported. Your sorting preferences are stored locally and can be viewed in Chrome's extension settings.
+
+### Right to Deletion
+
+To delete all Extension data:
+
+1. **Remove preferences:**
+   - Uninstall the Extension (Chrome removes all associated data automatically)
+
+2. **Clear cached data:**
+   - Close the Instagram tab
+   - Cached reel data is automatically cleared from memory
+
+3. **Complete removal:**
+   - Navigate to `chrome://extensions/`
+   - Click "Remove" on Sorted extension
+   - All data is permanently deleted
+
+### Right to Object
+
+Since we don't collect data, there's nothing to object to. However, if you prefer not to use the Extension's sorting features, simply don't activate it or uninstall it.
+
+## Children's Privacy
+
+The Extension does not knowingly collect data from anyone, including children under 13 (or the applicable age in your jurisdiction). Since we collect zero data, the Extension can be used by anyone with an Instagram account (which requires users to be 13+).
+
+## International Users
+
+The Extension works globally and does not transfer data internationally because:
+- All processing happens locally in your browser
+- No data is transmitted to servers in any country
+- No data leaves your device
+
+## Security
+
+### How We Protect Your Privacy
+
+1. **No data collection:** The best security is not having data to protect
+2. **Local processing only:** All operations happen in your isolated browser environment
+3. **No network requests:** The Extension doesn't make external API calls
+4. **Open source:** Our code is publicly available for security review at [GitHub Repository URL]
+5. **Manifest V3:** We use Chrome's latest extension manifest for enhanced security
+
+### What You Can Do
+
+- Review our open-source code before installing
+- Monitor network requests in Chrome DevTools (you'll see zero requests from our Extension)
+- Report security concerns to: security@delulu.social
+
+## Cookies
+
+The Extension does NOT use cookies. The only storage mechanism is Chrome's `storage.local` API for user preferences.
+
+## Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. When we do:
+
+1. **Version number:** The version number at the top will be updated
+2. **"Last Updated" date:** Will reflect the date of changes
+3. **Notification:** Significant changes will be announced via:
+   - Extension update notes in Chrome Web Store
+   - Notification when you open the Extension after an update (for major changes)
+   - Blog post at delulu.social
+
+4. **Review:** We recommend reviewing this policy periodically
+
+### Version History
+
+- **v1.0.0** (January 19, 2026) - Initial privacy policy for Extension launch
+
+## Contact Us
+
+If you have questions about this Privacy Policy or the Extension's data practices:
+
+### Email
+- General inquiries: hello@delulu.social
+- Privacy concerns: privacy@delulu.social
+- Security reports: security@delulu.social
+
+### GitHub
+- Report issues: [https://github.com/delulu/sorted/issues](https://github.com/delulu/sorted/issues)
+- Security vulnerabilities: Use GitHub's private security reporting feature
+
+### Website
+- Visit: [https://delulu.social](https://delulu.social)
+- Support documentation: [https://delulu.social/docs/extension](https://delulu.social/docs/extension)
+
+### Company Information
+- **Developer:** Delulu Social LLP
+- **Location:** India
+- **Website:** https://delulu.social
+
+## Compliance
+
+### GDPR (European Users)
+
+For users in the European Economic Area (EEA):
+- **Data Controller:** Delulu Social LLP
+- **Legal Basis:** Legitimate interest (providing requested functionality)
+- **Data Processing:** None (we process no personal data)
+- **Your Rights:** Since we collect no data, rights regarding access, rectification, and deletion are not applicable
+
+### CCPA (California Users)
+
+For users in California, USA:
+- **Personal Information Collected:** None
+- **Sale of Personal Information:** We do not sell personal information
+- **Right to Know:** No data to disclose
+- **Right to Delete:** No data to delete
+
+### Other Jurisdictions
+
+The Extension complies with privacy regulations worldwide by the principle of **data minimization** - we simply don't collect any data.
+
+## Disclaimer
+
+This Extension is not affiliated with, endorsed by, or officially connected with Instagram or Meta Platforms, Inc. Instagram is a trademark of Meta Platforms, Inc.
+
+The Extension relies on publicly available data that Instagram loads in your browser. Instagram's page structure and API may change without notice, which could affect the Extension's functionality.
+
+## Summary (TL;DR)
+
+✅ **Zero data collection**
+✅ **All processing happens locally in your browser**
+✅ **No external servers or API calls**
+✅ **No tracking or analytics**
+✅ **Open source for transparency**
+✅ **Only reads data Instagram already loads for you**
+✅ **Minimal permissions (storage, activeTab, Instagram access)**
+
+---
+
+**By using the Sorted Extension, you acknowledge that:**
+1. You have read and understood this Privacy Policy
+2. You understand that no personal data is collected
+3. All processing happens locally in your browser
+4. You use the Extension in compliance with Instagram's Terms of Service
+
+---
+
+<div align="center">
+  <p><strong>Made with privacy in mind by <a href="https://delulu.social">Delulu Social</a></strong></p>
+  <p>Last Updated: January 19, 2026 | Version 1.0.0</p>
+</div>
