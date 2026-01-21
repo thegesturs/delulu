@@ -3,19 +3,12 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
+import { getAllPlans, type Plan, type PlanType } from '@delulu/payments';
 import Link from 'next/link';
 import { useState } from 'react';
 
-interface PricingTier {
-  monthly: number | 'free';
-  yearly?: number;
-  features: string[];
-  tier: string;
-  subtitle: string;
-  cta?: string;
-}
-
 const PricingCard = ({
+  planId,
   tier,
   subtitle,
   monthlyPrice,
@@ -25,16 +18,17 @@ const PricingCard = ({
   isYearly,
   cta = 'Get Started',
 }: {
+  planId: PlanType;
   tier: string;
   subtitle: string;
-  monthlyPrice: number | 'free';
-  yearlyPrice?: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
   isHighlighted?: boolean;
   features: string[];
   isYearly: boolean;
   cta?: string;
 }) => {
-  const isFree = monthlyPrice === 'free';
+  const isFree = monthlyPrice === 0;
   const price = isFree ? monthlyPrice : isYearly ? yearlyPrice : monthlyPrice;
 
   return (
@@ -77,7 +71,7 @@ const PricingCard = ({
           {isYearly && !isFree && yearlyPrice && (
             <p className="mt-1 font-medium text-primary text-sm">
               Save $
-              {((monthlyPrice as number) * 12 - yearlyPrice * 12).toFixed(2)}{' '}
+              {((monthlyPrice as number) * 12 - yearlyPrice).toFixed(2)}{' '}
               yearly
             </p>
           )}
@@ -116,63 +110,82 @@ const PricingCard = ({
   );
 };
 
+/**
+ * Helper function to convert plan configuration to feature list
+ */
+const getFeatureList = (plan: Plan): string[] => {
+  const features: string[] = [];
+
+  // Limits
+  if (plan.limits.socialAccounts > 0 || plan.limits.socialAccounts === -1) {
+    features.push(
+      plan.limits.socialAccounts === -1
+        ? 'Unlimited social accounts'
+        : `${plan.limits.socialAccounts} social ${plan.limits.socialAccounts === 1 ? 'account' : 'accounts'}`
+    );
+  }
+
+  if (plan.limits.monthlyPosts > 0 || plan.limits.monthlyPosts === -1) {
+    features.push(
+      plan.limits.monthlyPosts === -1
+        ? 'Unlimited posts per month'
+        : `${plan.limits.monthlyPosts} posts/month`
+    );
+  }
+
+  if (plan.limits.mediaStorage > 0 || plan.limits.mediaStorage === -1) {
+    features.push(
+      plan.limits.mediaStorage === -1
+        ? 'Unlimited storage'
+        : `${plan.limits.mediaStorage >= 1000 ? `${plan.limits.mediaStorage / 1000}GB` : `${plan.limits.mediaStorage}MB`} storage`
+    );
+  }
+
+  if (plan.limits.teamMembers > 1) {
+    features.push(`${plan.limits.teamMembers} team members`);
+  }
+
+  // Features
+  if (plan.features.advancedScheduling) features.push('Advanced scheduling');
+  if (plan.features.analytics) features.push('Advanced analytics');
+  if (plan.features.aiContentGeneration) features.push('AI content generation');
+  if (plan.features.collaboration) features.push('Team collaboration');
+  if (plan.features.prioritySupport) features.push('Priority support');
+  if (plan.features.whiteLabel) features.push('White-label branding');
+  if (plan.features.customBranding) features.push('Custom branding');
+  if (plan.features.bulkUpload) features.push('Bulk upload');
+
+  return features;
+};
+
 export default function Pricing() {
   const [isYearly, setIsYearly] = useState(false);
 
-  const pricingTiers: PricingTier[] = [
-    {
-      tier: 'Free',
-      subtitle: 'Perfect for getting started',
-      monthly: 'free',
-      features: ['Up to 2 Platforms', '15 Scheduled Posts/Month'],
-      cta: 'Start Free',
-    },
-    {
-      tier: 'Starter',
-      subtitle: 'Best for beginner creators',
-      monthly: 12,
-      yearly: 8,
-      features: [
-        '5 connected social accounts',
-        'Multiple accounts per platform',
-        'Unlimited posts',
-        'Schedule posts',
-        'Carousel posts',
-      ],
-    },
-    {
-      tier: 'Creator',
-      subtitle: 'Best for growing creators',
-      monthly: 19.99,
-      yearly: 17,
-      features: [
-        '15 connected social accounts',
-        'Multiple accounts per platform',
-        'Unlimited posts',
-        'Schedule posts',
-        'Carousel posts',
-        'Content studio access',
-      ],
-    },
-    {
-      tier: 'Pro',
-      subtitle: 'Best for scaling brands',
-      monthly: 29.99,
-      yearly: 24,
-      features: [
-        'Unlimited connected accounts',
-        'Multiple accounts per platform',
-        'Unlimited posts',
-        'Schedule posts',
-        'Carousel posts',
-        'Content studio access',
-      ],
-    },
-  ];
+  const plans = getAllPlans();
 
   return (
     <div id="pricing" className="mx-auto max-w-7xl px-4 py-24">
       <div className="mb-16 text-center">
+        {/* Urgency Banner */}
+        <div className="mx-auto mb-8 w-fit animate-pulse">
+          <div className="flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/10 px-6 py-3 shadow-lg backdrop-blur-sm">
+            <svg
+              className="h-5 w-5 text-primary"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span className="font-semibold text-foreground text-sm">
+              ⚡ Limited Spots: Only 50 founders get current pricing
+            </span>
+          </div>
+        </div>
+
         <h2 className="mb-4 font-bold text-4xl">
           <span className="text-primary">Simple</span> Pricing for Everyone
         </h2>
@@ -207,18 +220,19 @@ export default function Pricing() {
           </span>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
-        {pricingTiers.map((tier, index) => (
+      <div className="grid gap-4 md:grid-cols-3">
+        {plans.map((plan) => (
           <PricingCard
-            key={tier.tier}
-            tier={tier.tier}
-            subtitle={tier.subtitle}
-            monthlyPrice={tier.monthly}
-            yearlyPrice={tier.yearly}
-            features={tier.features}
-            isHighlighted={index === 2}
+            key={plan.id}
+            planId={plan.id}
+            tier={plan.name}
+            subtitle={plan.description}
+            monthlyPrice={plan.price.monthly}
+            yearlyPrice={plan.price.yearly}
+            features={getFeatureList(plan)}
+            isHighlighted={plan.popular || false}
             isYearly={isYearly}
-            cta={tier.cta}
+            cta={plan.id === 'FREE' ? 'Start Free' : 'Get Started'}
           />
         ))}
       </div>

@@ -18,9 +18,9 @@ export const ctaBenefitsData = [
     id: 'time-value',
     image: '/images/delulu/coin-flip.png',
     alt: 'Delulu flipping a coin',
-    title: 'Your Time > $1',
+    title: 'Your Time is Valuable',
     description:
-      "If Delulu doesn't save you at least 5 hours this month, I'll toss your dollar back. Congrats, you just bought a latte with zero effort.",
+      'Save 5+ hours every month with automated scheduling and cross-platform posting.',
     imageWidth: 'w-24 md:w-28',
   },
   {
@@ -29,7 +29,7 @@ export const ctaBenefitsData = [
     alt: 'Delulu with checklist',
     title: 'You Call the Shots',
     description:
-      'The first 100 aren\'t "beta testers." You\'re literally steering what gets built. Delulu listens. Delulu ships.',
+      'Your feedback shapes our roadmap. We\'re constantly improving based on real user needs.',
     imageWidth: 'w-40',
   },
   {
@@ -62,8 +62,7 @@ const CTA = () => {
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
-                <span className="text-primary">$1</span> to join. You + 99
-                others get to boss Delulu around.
+                Join Thousands of Content Creators Simplifying Their Social Media
               </Balancer>
             </h2>
 
@@ -122,17 +121,32 @@ const CTA = () => {
           {/* Bottom CTA */}
           <div className="mx-auto mt-16 max-w-2xl text-center">
             <div className="flex flex-col items-center gap-4">
+              {/* Urgency Messaging */}
+              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2">
+                <svg
+                  className="h-4 w-4 text-primary"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="font-medium text-foreground text-xs">
+                  Lock in current pricing · Limited to 50 early adopters
+                </span>
+              </div>
+
               <Button size="lg" className="h-14 px-8 text-lg" asChild>
                 <Link href="https://solulu.delulu.social/sign-in">
-                  👉 I'll Risk My $1
+                  Get Started Free
                 </Link>
               </Button>
-              <p className="text-muted-foreground text-sm">
-                Code:{' '}
-                <span className="font-bold font-mono text-primary">
-                  FIRST100
-                </span>{' '}
-                · One-time deal · Delulu won't let you in later
+
+              <p className="text-muted-foreground text-xs">
+                No credit card required · Cancel anytime
               </p>
             </div>
           </div>

@@ -461,6 +461,9 @@ importers:
       '@delulu/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@delulu/rate-limit':
         specifier: workspace:*
         version: link:../../packages/rate-limit

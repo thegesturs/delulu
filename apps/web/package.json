@@ -22,6 +22,7 @@
     "@delulu/email": "workspace:*",
     "@delulu/next-config": "workspace:*",
     "@delulu/observability": "workspace:*",
+    "@delulu/payments": "workspace:*",
     "@delulu/rate-limit": "workspace:*",
     "@delulu/security": "workspace:*",
     "@delulu/seo": "workspace:*",
