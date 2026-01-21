@@ -8,7 +8,7 @@ export default defineConfig({
     description: 'Sort Instagram reels by likes, views, or comments. Find the most engaging content instantly.',
     version: '1.0.0',
     homepage_url: 'https://delulu.social',
-    permissions: ['storage', 'activeTab'],
+    permissions: ['activeTab'],
     host_permissions: [
       '*://www.instagram.com/*',
       '*://instagram.com/*'
