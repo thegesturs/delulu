@@ -175,6 +175,7 @@ export const baseMediaTableSchema = v.object({
   bucketUrl: v.optional(v.string()),
   thumbnailBucketUrl: v.optional(v.string()),
   thumbnailBucketKey: v.optional(v.string()),
+  thumbnailTimestamp: v.optional(v.number()), // Timestamp in seconds when video frame was extracted
   createdAt: v.number(),
   updatedAt: v.number(),
 });
@@ -199,6 +200,7 @@ export const mediaCreateSchema = v.object({
   bucketUrl: v.optional(v.string()),
   thumbnailBucketUrl: v.optional(v.string()),
   thumbnailBucketKey: v.optional(v.string()),
+  thumbnailTimestamp: v.optional(v.number()), // Timestamp in seconds when video frame was extracted
 });
 
 // Media update schema (partial)
@@ -211,4 +213,5 @@ export const mediaUpdateSchema = v.object({
   bucketUrl: v.optional(v.string()),
   thumbnailBucketUrl: v.optional(v.string()),
   thumbnailBucketKey: v.optional(v.string()),
+  thumbnailTimestamp: v.optional(v.number()), // Timestamp in seconds when video frame was extracted
 });

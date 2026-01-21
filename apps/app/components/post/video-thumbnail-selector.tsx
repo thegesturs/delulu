@@ -42,6 +42,7 @@ interface VideoThumbnailSelectorProps {
     url: string;
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
+    thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
   }) => void;
   isOpen: boolean;
   onClose: () => void;
@@ -183,6 +184,7 @@ export function VideoThumbnailSelector({
         url: result.url,
         thumbnailBucketUrl: result.url,
         thumbnailBucketKey: result.bucketKey,
+        thumbnailTimestamp: selectedFrame?.timestamp, // Pass timestamp in seconds for video frames
       });
 
       toast.success('Thumbnail uploaded successfully');

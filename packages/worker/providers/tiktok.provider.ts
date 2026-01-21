@@ -138,6 +138,52 @@ const checkPostStatus = (
   });
 };
 
+// Get recent video ID from video list API
+const getRecentVideoId = (
+  accessToken: string,
+  maxAgeMinutes = 2
+): ResultAsync<string | null, SocialProviderError> => {
+  console.log('[TikTok] Fetching recent video list to get item_id');
+
+  return ResultAsync.fromPromise(
+    axios.post(
+      'https://open.tiktokapis.com/v2/video/list/',
+      { max_count: 5 },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+      }
+    ),
+    (error) => createAPIError('TikTok', error)
+  ).andThen((response) => {
+    const videos = response.data?.data?.videos;
+    if (!videos || videos.length === 0) {
+      console.log('[TikTok] No videos found in list');
+      return ok(null);
+    }
+
+    // Find most recent video within age limit
+    const now = Date.now() / 1000;
+    const maxAge = maxAgeMinutes * 60;
+
+    for (const video of videos) {
+      const videoAge = now - video.create_time;
+      if (videoAge <= maxAge) {
+        console.log('[TikTok] Found recent video:', {
+          id: video.id,
+          ageSeconds: videoAge.toFixed(0),
+        });
+        return ok(video.id);
+      }
+    }
+
+    console.log('[TikTok] No videos found within age limit');
+    return ok(null);
+  });
+};
+
 // Poll post status until completion or failure (following YouTube pattern)
 const waitForPostCompletion = (
   accessToken: string,
@@ -193,8 +239,21 @@ const uploadVideo = (
   accessToken: string,
   videoUrl: string,
   caption: string,
+  media: { thumbnailTimestamp?: number },
   settings?: TikTokSettings
 ): ResultAsync<TikTokVideoUploadResponse, SocialProviderError> => {
+  // Calculate thumbnail timestamp in milliseconds
+  // Convert seconds to milliseconds, default to 1000ms (1 second)
+  const thumbnailTimestampMs = media.thumbnailTimestamp
+    ? Math.floor(media.thumbnailTimestamp * 1000)
+    : 1000;
+
+  console.log('[TikTok] Video cover timestamp:', {
+    timestampMs: thumbnailTimestampMs,
+    timestampSeconds: (thumbnailTimestampMs / 1000).toFixed(2),
+    fromUserSelection: !!media.thumbnailTimestamp,
+  });
+
   // Build post_info with user settings or defaults
   // biome-ignore lint/suspicious/noExplicitAny: <Dont want to declare the type>
   const postInfo: any = {
@@ -203,7 +262,7 @@ const uploadVideo = (
     disable_duet: settings?.allowDuet === false,
     disable_comment: settings?.allowComments === false,
     disable_stitch: settings?.allowStitch === false,
-    video_cover_timestamp_ms: 1000, // Sets thumbnail at 1 second into video
+    video_cover_timestamp_ms: thumbnailTimestampMs,
   };
 
   // Add commercial content disclosure based on promotionContent type
@@ -328,13 +387,17 @@ const publishContent = (
   });
 
   // Get fresh access token and upload (validation is done in frontend)
+  let storedAccessToken = '';
+
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) => {
+      storedAccessToken = freshAccessToken; // Store for later use
       console.log('[TikTok] About to upload video');
       return uploadVideo(
         freshAccessToken,
         videoMedia.url!,
         caption,
+        videoMedia, // Pass media object for thumbnail timestamp
         tiktokSettings
       ).andThen((uploadResponse) => {
         console.log(
@@ -346,19 +409,35 @@ const publishContent = (
         return waitForPostCompletion(
           freshAccessToken,
           uploadResponse.data.publish_id
-        ).map(() => {
+        ).andThen(() => {
           console.log('[TikTok] Polling completed successfully');
-          return uploadResponse;
+          // Get real video ID from video list API
+          return getRecentVideoId(freshAccessToken, 2).map((itemId) => ({
+            uploadResponse,
+            itemId,
+          }));
         });
       });
     })
-    .map((uploadResponse) => {
+    .map(({ uploadResponse, itemId }) => {
       console.log('[TikTok] Creating final result');
+
+      // Use real item_id if available, fallback to publish_id
+      const videoId = itemId || uploadResponse.data.publish_id;
+
+      if (!itemId) {
+        console.warn(
+          '[TikTok] ⚠️ Could not retrieve real video ID, using publish_id as fallback (may result in broken link)'
+        );
+      } else {
+        console.log('[TikTok] ✅ Using correct video URL with item_id:', itemId);
+      }
+
       return {
         platformPostId: uploadResponse.data.publish_id,
         postId: content.postId,
         platformId: profile.id,
-        platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${uploadResponse.data.publish_id}`,
+        platformPostUrl: `https://www.tiktok.com/@${profile.username}/video/${videoId}`,
         postedAt: new Date(),
       };
     });
