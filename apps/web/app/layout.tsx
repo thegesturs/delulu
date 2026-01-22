@@ -24,6 +24,9 @@ export const metadata: Metadata = createMetadata({
   description:
     'Social media management platform for creating and publishing content across multiple social networks',
   image: '/images/logo.png',
+  alternates: {
+    canonical: `${env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social'}`,
+  },
 });
 
 const RootLayout = ({ children }: RootLayoutProperties) => {

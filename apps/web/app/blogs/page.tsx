@@ -8,6 +8,9 @@ export const metadata: Metadata = createMetadata({
   title: 'Blog',
   description:
     'Discover the latest insights, tips, and strategies for social media management, content creation, and digital marketing. Learn how to grow your audience across all major social platforms.',
+  alternates: {
+    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social'}/blogs`,
+  },
 });
 
 const BlogIndex = () => {

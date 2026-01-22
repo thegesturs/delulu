@@ -1,7 +1,18 @@
 import { env } from '@/env';
 import { Button } from '@delulu/design-system/components/ui/button';
+import { createMetadata } from '@delulu/seo/metadata';
 import { Check, Minus, MoveRight, PhoneCall } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = createMetadata({
+  title: 'Pricing',
+  description:
+    'Simple, transparent pricing for social media management. Choose the perfect plan for your business - from startups to enterprises. No hidden fees, cancel anytime.',
+  alternates: {
+    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social'}/pricing`,
+  },
+});
 
 const Pricing = () => (
   <div className="w-full py-20 lg:py-40">
