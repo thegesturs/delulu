@@ -23,6 +23,7 @@ interface VideoMedia {
   bucketUrl?: string;
   thumbnailBucketUrl?: string;
   thumbnailBucketKey?: string;
+  thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
 }
 
 interface VideoContentLayoutProps {
@@ -37,6 +38,7 @@ interface VideoContentLayoutProps {
     url: string;
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
+    thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
   }) => void;
   onRemoveVideo: () => void;
   socialId: string;

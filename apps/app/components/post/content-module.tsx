@@ -189,6 +189,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         url: string;
         thumbnailBucketUrl?: string;
         thumbnailBucketKey?: string;
+        thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
       }
     ) => {
       if (isGlobal) {
@@ -204,6 +205,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                           ...media,
                           thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
                           thumbnailBucketKey: thumbnail.thumbnailBucketKey,
+                          thumbnailTimestamp: thumbnail.thumbnailTimestamp,
                         }
                       : media
                   ),
@@ -230,6 +232,8 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                                     thumbnail.thumbnailBucketUrl,
                                   thumbnailBucketKey:
                                     thumbnail.thumbnailBucketKey,
+                                  thumbnailTimestamp:
+                                    thumbnail.thumbnailTimestamp,
                                 }
                               : media
                           ),
