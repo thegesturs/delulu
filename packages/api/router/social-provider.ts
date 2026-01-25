@@ -433,4 +433,94 @@ export const socialProviderRouter = {
         });
       }
     }),
+  deleteSocialProvider: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      // Get the social provider with decrypted tokens
+      const socialProvider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        {
+          id: input.socialProviderId as Id<'socialProviders'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
+
+      if (!socialProvider) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Social account not found',
+        });
+      }
+
+      // Verify ownership (check that the social provider belongs to the current user)
+      if (socialProvider.userId !== ctx.userId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to delete this account',
+        });
+      }
+
+      // If TikTok, revoke the access token before deletion
+      if (socialProvider.socialType === 'TIKTOK' && socialProvider.accessToken) {
+        try {
+          log.info('Revoking TikTok access token', {
+            socialProviderId: input.socialProviderId,
+          });
+
+          const revokeResponse = await fetch(
+            'https://open.tiktokapis.com/v2/oauth/revoke/',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                client_key: keys().TIKTOK_CLIENT_ID,
+                client_secret: keys().TIKTOK_CLIENT_SECRET,
+                token: socialProvider.accessToken,
+              }),
+            }
+          );
+
+          if (revokeResponse.ok) {
+            log.info('Successfully revoked TikTok access token', {
+              socialProviderId: input.socialProviderId,
+            });
+          } else {
+            const errorBody = await revokeResponse.text().catch(() => undefined);
+            log.warn('Failed to revoke TikTok token (continuing with deletion)', {
+              socialProviderId: input.socialProviderId,
+              status: revokeResponse.status,
+              body: errorBody,
+            });
+            // Continue with deletion even if revocation failed
+          }
+        } catch (error) {
+          log.error('Error during TikTok token revocation (continuing with deletion)', {
+            socialProviderId: input.socialProviderId,
+            error,
+          });
+          // Continue with deletion even if revocation threw an error
+        }
+      }
+
+      // Delete from database (cascade deletion handles cleanup)
+      await fetchMutation(
+        api.social_providers.deleteSocial,
+        {
+          socialId: input.socialProviderId as Id<'socialProviders'>,
+        },
+        {
+          token: ctx.token,
+        }
+      );
+
+      return { success: true };
+    }),
 } satisfies TRPCRouterRecord;

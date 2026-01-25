@@ -4,7 +4,6 @@ import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Icon } from '@delulu/design-system/providers/icon';
 import { useQuery } from 'convex-helpers/react/cache';
-import { useMutation } from 'convex/react';
 
 import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useMemo, useState } from 'react';
@@ -13,6 +12,7 @@ import { AccountFilters } from './account-filter';
 import { AccountList } from './account-list';
 import { AccountStats } from './account-stats';
 import { ConnectedAccountsHeader } from './connect-account-header';
+import { api as TrpcApi } from '@/trpc/react';
 
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
@@ -41,7 +41,7 @@ export default function ConnectedAccounts() {
   const accounts = useQuery(api.social_providers.getConnectedAccounts);
   const isLoadingAccounts = accounts === undefined;
 
-  const deleteSocial = useMutation(api.social_providers.deleteSocial);
+  const deleteSocialMutation = TrpcApi.socialProvider.deleteSocialProvider.useMutation();
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) {
@@ -90,16 +90,27 @@ export default function ConnectedAccounts() {
   }, [accounts]);
 
   const handleDeleteSocial = (socialId: Id<'socialProviders'>) => {
-    deleteSocial({ socialId })
-      .then(() => {
-        toast.success('Account deleted successfully');
-      })
-      .catch((error) => {
-        toast.error('Failed to delete account');
-        if (process.env.NODE_ENV === 'development') {
-          console.error(error);
-        }
-      });
+    deleteSocialMutation.mutate(
+      { socialProviderId: socialId },
+      {
+        onSuccess: () => {
+          toast.success('Account deleted successfully');
+        },
+        onError: (error) => {
+          // Handle specific error messages from tRPC
+          if (error.message.includes('FORBIDDEN')) {
+            toast.error('You do not have permission to delete this account');
+          } else if (error.message.includes('NOT_FOUND')) {
+            toast.error('Account not found');
+          } else {
+            toast.error('Failed to delete account');
+          }
+          if (process.env.NODE_ENV === 'development') {
+            console.error(error);
+          }
+        },
+      }
+    );
   };
 
   if (isLoadingAccounts) {

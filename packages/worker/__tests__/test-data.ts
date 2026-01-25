@@ -1,6 +1,7 @@
 // Social provider IDs and types mapping (updated with real IDs from database)
+// cspell:disable-next-line
 export const SOCIAL_PROVIDER_DATA = [
-  { id: 'js794zzmcym2e09cnxfc4yx5057qy2nj', socialType: 'TIKTOK' },
+  { id: 'jd71qm2ztsth1c3bh68a9hng9x7ztvvs', socialType: 'TIKTOK' }, // Real production TikTok account
   { id: 'js734bks5yxa8s93yn908x2tqd7pwrv5', socialType: 'YOUTUBE' },
   { id: 'js72nvt36ep43bpq7qssjy879d7p6atg', socialType: 'THREADS' },
   { id: 'js7ew09rx9brckw85pvk56vsy57p6xn3', socialType: 'INSTAGRAM' },
@@ -66,6 +67,24 @@ export const TEST_CONTENT = {
         },
       ],
       text: 'some posting stuff\n\nnice post and stuff',
+      tags: [],
+    },
+  ],
+
+  videoWithThumbnail: [
+    {
+      order: 0,
+      name: 'DEFAULT',
+      media: [
+        {
+          bucketKey:
+            'user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4',
+          url: 'https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4',
+          mediaType: 'VIDEO' as const,
+          thumbnailTimestamp: 5.5, // Frame at 5.5 seconds
+        },
+      ],
+      text: 'Testing TikTok video with custom thumbnail at 5.5 seconds',
       tags: [],
     },
   ],
