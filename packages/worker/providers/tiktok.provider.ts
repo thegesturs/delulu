@@ -138,50 +138,82 @@ const checkPostStatus = (
   });
 };
 
-// Get recent video ID from video list API
+// Get recent video ID from video list API with retry logic
 const getRecentVideoId = (
   accessToken: string,
-  maxAgeMinutes = 2
+  maxAgeMinutes = 5, // Increased from 2 to 5 minutes
+  maxRetries = 3,
+  retryDelay = 5000 // 5 seconds between retries
 ): ResultAsync<string | null, SocialProviderError> => {
-  console.log('[TikTok] Fetching recent video list to get item_id');
+  const attemptFetch = async (attempt: number): Promise<string | null> => {
+    console.log(`[TikTok] Fetching recent video list (attempt ${attempt + 1}/${maxRetries})`);
 
-  return ResultAsync.fromPromise(
-    axios.post(
-      'https://open.tiktokapis.com/v2/video/list/',
-      { max_count: 5 },
+    // Add delay before first attempt to let video propagate to list API
+    if (attempt === 0) {
+      console.log('[TikTok] Waiting 3 seconds for video to appear in list API...');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+
+    const response = await axios.post(
+      'https://open.tiktokapis.com/v2/video/list/?fields=id,create_time',
+      {
+        max_count: 10, // Increased from 5 to 10 for better coverage
+      },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json; charset=UTF-8',
         },
       }
-    ),
-    (error) => createAPIError('TikTok', error)
-  ).andThen((response) => {
+    );
+
     const videos = response.data?.data?.videos;
     if (!videos || videos.length === 0) {
       console.log('[TikTok] No videos found in list');
-      return ok(null);
+
+      if (attempt < maxRetries - 1) {
+        console.log(`[TikTok] Retrying in ${retryDelay / 1000} seconds...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        return attemptFetch(attempt + 1);
+      }
+
+      return null;
     }
 
     // Find most recent video within age limit
     const now = Date.now() / 1000;
     const maxAge = maxAgeMinutes * 60;
 
+    console.log('[TikTok] Found videos:', videos.length);
+
     for (const video of videos) {
       const videoAge = now - video.create_time;
+      console.log(`[TikTok] Video ${video.id}: age ${videoAge.toFixed(0)}s (limit: ${maxAge}s)`);
+
       if (videoAge <= maxAge) {
-        console.log('[TikTok] Found recent video:', {
+        console.log('[TikTok] ✅ Found recent video:', {
           id: video.id,
           ageSeconds: videoAge.toFixed(0),
         });
-        return ok(video.id);
+        return video.id;
       }
     }
 
     console.log('[TikTok] No videos found within age limit');
-    return ok(null);
-  });
+
+    if (attempt < maxRetries - 1) {
+      console.log(`[TikTok] Retrying in ${retryDelay / 1000} seconds...`);
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      return attemptFetch(attempt + 1);
+    }
+
+    return null;
+  };
+
+  return ResultAsync.fromPromise(
+    attemptFetch(0),
+    (error) => createAPIError('TikTok', error)
+  ).map((videoId) => videoId);
 };
 
 // Poll post status until completion or failure (following YouTube pattern)
@@ -387,11 +419,8 @@ const publishContent = (
   });
 
   // Get fresh access token and upload (validation is done in frontend)
-  let storedAccessToken = '';
-
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) => {
-      storedAccessToken = freshAccessToken; // Store for later use
       console.log('[TikTok] About to upload video');
       return uploadVideo(
         freshAccessToken,
@@ -411,8 +440,8 @@ const publishContent = (
           uploadResponse.data.publish_id
         ).andThen(() => {
           console.log('[TikTok] Polling completed successfully');
-          // Get real video ID from video list API
-          return getRecentVideoId(freshAccessToken, 2).map((itemId) => ({
+          // Get real video ID from video list API with retry logic
+          return getRecentVideoId(freshAccessToken).map((itemId) => ({
             uploadResponse,
             itemId,
           }));
@@ -425,12 +454,12 @@ const publishContent = (
       // Use real item_id if available, fallback to publish_id
       const videoId = itemId || uploadResponse.data.publish_id;
 
-      if (!itemId) {
+      if (itemId) {
+        console.log('[TikTok] ✅ Using correct video URL with item_id:', itemId);
+      } else {
         console.warn(
           '[TikTok] ⚠️ Could not retrieve real video ID, using publish_id as fallback (may result in broken link)'
         );
-      } else {
-        console.log('[TikTok] ✅ Using correct video URL with item_id:', itemId);
       }
 
       return {

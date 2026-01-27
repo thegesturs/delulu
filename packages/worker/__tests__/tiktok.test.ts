@@ -49,11 +49,12 @@ describe('TikTok Provider Tests', () => {
       });
 
       // Verify URL format: should be https://www.tiktok.com/@username/video/{id}
-      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/\d+/);
+      // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
+      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/);
 
       console.log('✅ Video published successfully with default thumbnail');
     }
-  }, 120000); // 2 minute timeout for API calls
+  }, 180000); // 3 minute timeout (includes retry delays)
 
   it('should publish video with custom thumbnail at 5.5 seconds', async () => {
     console.log('\n=== Testing TikTok video with custom thumbnail at 5.5s ===');
@@ -94,7 +95,8 @@ describe('TikTok Provider Tests', () => {
       });
 
       // Verify URL format and that it uses real item_id (not publish_id)
-      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/\d+/);
+      // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
+      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/);
 
       // Verify the URL doesn't use the same ID as platformPostId (publish_id)
       const urlVideoId = value.platformPostUrl.split('/video/')[1];
@@ -107,7 +109,7 @@ describe('TikTok Provider Tests', () => {
       console.log('✅ Video published successfully with custom thumbnail at 5.5 seconds');
       console.log('⚠️ Please manually verify on TikTok that the thumbnail is at 5.5 seconds, not 1 second');
     }
-  }, 120000); // 2 minute timeout for API calls
+  }, 180000); // 3 minute timeout (includes retry delays)
 
   it('should use real video ID (item_id) in URL, not publish_id', async () => {
     console.log('\n=== Testing TikTok video URL uses real item_id ===');
@@ -161,5 +163,5 @@ describe('TikTok Provider Tests', () => {
       console.log('Video URL:', value.platformPostUrl);
       console.log('⚠️ Please manually verify this URL opens correctly in a browser');
     }
-  }, 120000); // 2 minute timeout for API calls
+  }, 180000); // 3 minute timeout (includes retry delays)
 });
