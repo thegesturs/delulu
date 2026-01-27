@@ -1,7 +1,7 @@
 // Social provider IDs and types mapping (updated with real IDs from database)
 // cspell:disable-next-line
 export const SOCIAL_PROVIDER_DATA = [
-  { id: 'jd71qm2ztsth1c3bh68a9hng9x7ztvvs', socialType: 'TIKTOK' }, // Real production TikTok account
+  { id: 'jd700er0g06x9dvnc7tk22hfcn7zy70f', socialType: 'TIKTOK' }, // Real production TikTok account
   { id: 'js734bks5yxa8s93yn908x2tqd7pwrv5', socialType: 'YOUTUBE' },
   { id: 'js72nvt36ep43bpq7qssjy879d7p6atg', socialType: 'THREADS' },
   { id: 'js7ew09rx9brckw85pvk56vsy57p6xn3', socialType: 'INSTAGRAM' },
