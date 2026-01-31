@@ -58,4 +58,52 @@ describe('Instagram Provider Tests', () => {
     // Just verify it didn't crash - result can be undefined if provider fails
     expect(result?.isOk?.() === true).toBe(true);
   });
+
+  it('should call processMessage for reel with thumbnail timestamp (thumb_offset)', async () => {
+    const result = await processMessageTestOnly(
+      JSON.stringify({
+        socialType: instagramProvider.socialType,
+        socialPublishInput: {
+          content: TEST_CONTENT.videoWithThumbnail,
+          postId: MOCK_POST_ID,
+          socialProviderId: instagramProvider.id,
+        },
+      })
+    );
+
+    // Just verify it didn't crash - result can be undefined if provider fails
+    expect(result?.isOk?.() === true).toBe(true);
+  });
+
+  it('should call processMessage for reel with custom cover image (cover_url)', async () => {
+    const result = await processMessageTestOnly(
+      JSON.stringify({
+        socialType: instagramProvider.socialType,
+        socialPublishInput: {
+          content: TEST_CONTENT.videoWithCoverImage,
+          postId: MOCK_POST_ID,
+          socialProviderId: instagramProvider.id,
+        },
+      })
+    );
+
+    // Just verify it didn't crash - result can be undefined if provider fails
+    expect(result?.isOk?.() === true).toBe(true);
+  });
+
+  it('should call processMessage for reel with both thumbnail options (cover_url takes priority)', async () => {
+    const result = await processMessageTestOnly(
+      JSON.stringify({
+        socialType: instagramProvider.socialType,
+        socialPublishInput: {
+          content: TEST_CONTENT.videoWithBothThumbnailOptions,
+          postId: MOCK_POST_ID,
+          socialProviderId: instagramProvider.id,
+        },
+      })
+    );
+
+    // Just verify it didn't crash - result can be undefined if provider fails
+    expect(result?.isOk?.() === true).toBe(true);
+  });
 });
