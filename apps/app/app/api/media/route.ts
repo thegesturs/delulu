@@ -15,6 +15,7 @@ const CreateMediaSchema = z.object({
   bucketUrl: z.string().optional(),
   thumbnailBucketUrl: z.string().optional(),
   thumbnailBucketKey: z.string().optional(),
+  thumbnailTimestamp: z.number().optional(), // Timestamp in seconds when video frame was extracted
 });
 
 export async function POST(req: NextRequest) {
