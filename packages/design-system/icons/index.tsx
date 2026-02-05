@@ -14,6 +14,7 @@ import {
   CreditCard as CreditCardIcon,
   Pencil as PencilIcon,
   ConnectIcon,
+  AiChat02Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 
 // Create wrapped components for navigation icons
@@ -43,4 +44,8 @@ export const CreditCard: ComponentType<{ className?: string }> = (props) => (
 
 export const Pencil: ComponentType<{ className?: string }> = (props) => (
   <Icon icon={PencilIcon} size={14} {...props} />
+);
+
+export const Robot: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={AiChat02Icon} size={14} {...props} />
 );

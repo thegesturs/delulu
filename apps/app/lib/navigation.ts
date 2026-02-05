@@ -4,6 +4,7 @@ import {
   Draft,
   Home,
   Network,
+  Robot,
 } from '@delulu/design-system/icons';
 
 export const navigationItems = [
@@ -30,6 +31,12 @@ export const navigationItems = [
     url: '/socials',
     icon: Network,
     dataTour: 'accounts-nav',
+  },
+  {
+    title: 'Automations',
+    url: '/automations',
+    icon: Robot,
+    dataTour: 'automations-nav',
   },
   {
     title: 'Billing',

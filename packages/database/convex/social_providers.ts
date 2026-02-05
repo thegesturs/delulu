@@ -363,6 +363,43 @@ export const updateSocialProvider = mutation({
   },
 });
 
+/**
+ * Get social provider by profile ID and type (used by Lambda processor)
+ */
+export const getByProfileId = query({
+  args: {
+    profileId: v.string(),
+    socialType: v.string(),
+  },
+  returns: v.union(socialProviderSchema, v.null()),
+  handler: async (ctx, args) => {
+    const provider = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_profile_id', (q) => q.eq('profileId', args.profileId))
+      .first();
+
+    if (!provider || provider.socialType !== args.socialType) {
+      return null;
+    }
+
+    // Return with decrypted tokens for API calls
+    try {
+      const decryptedAccessToken = await decryptData(provider.accessToken);
+      const decryptedRefreshToken = provider.refreshToken
+        ? await decryptData(provider.refreshToken)
+        : undefined;
+
+      return {
+        ...provider,
+        accessToken: decryptedAccessToken,
+        refreshToken: decryptedRefreshToken,
+      };
+    } catch {
+      return null;
+    }
+  },
+});
+
 // OAuth callback mutation - accepts userId parameter, no auth token needed
 // Security: userId comes from cryptographically signed OAuth state parameter
 // This is used when Clerk session is lost during OAuth redirect (local dev)

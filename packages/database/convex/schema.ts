@@ -1,11 +1,14 @@
 import { defineSchema, defineTable } from 'convex/server';
 import {
+  baseAutomationLogSchema,
+  baseAutomationSchema,
   baseMediaTableSchema,
   basePostSchema,
   baseSocialProviderSchema,
   baseSubscriptionSchema,
   baseTransactionSchema,
   baseUserSchema,
+  baseWebhookEventSchema,
 } from './schemas';
 
 export default defineSchema({
@@ -69,4 +72,30 @@ export default defineSchema({
     .index('by_dodo_customer_id', ['dodoCustomerId'])
     .index('by_status', ['status'])
     .index('by_user_status', ['userId', 'status']),
+
+  // Automations table for Instagram DM automation rules
+  automations: defineTable(baseAutomationSchema.fields)
+    .index('by_user_id', ['userId'])
+    .index('by_organization_id', ['organizationId'])
+    .index('by_social_provider_id', ['socialProviderId'])
+    .index('by_is_active', ['isActive'])
+    .index('by_trigger_type', ['triggerType'])
+    .index('by_social_provider_active', ['socialProviderId', 'isActive']),
+
+  // Automation logs for execution history
+  automationLogs: defineTable(baseAutomationLogSchema.fields)
+    .index('by_automation_id', ['automationId'])
+    .index('by_user_id', ['userId'])
+    .index('by_instagram_comment_id', ['instagramCommentId'])
+    .index('by_instagram_user_id', ['instagramUserId'])
+    .index('by_status', ['status'])
+    .index('by_automation_status', ['automationId', 'status'])
+    .index('by_created_at', ['createdAt']),
+
+  // Webhook events for raw event storage and debugging
+  webhookEvents: defineTable(baseWebhookEventSchema.fields)
+    .index('by_event_id', ['eventId'])
+    .index('by_platform', ['platform'])
+    .index('by_status', ['status'])
+    .index('by_received_at', ['receivedAt']),
 });

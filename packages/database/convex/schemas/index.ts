@@ -4,4 +4,5 @@ export * from './users';
 export * from './social_providers';
 export * from './posts_media';
 export * from './subscriptions';
+export * from './automations';
 export * from './utils';

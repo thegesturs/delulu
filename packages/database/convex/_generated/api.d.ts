@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as automationLogs from "../automationLogs.js";
+import type * as automations from "../automations.js";
 import type * as callmelater from "../callmelater.js";
 import type * as cascade_deletes from "../cascade_deletes.js";
 import type * as crons from "../crons.js";
@@ -16,6 +18,7 @@ import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
 import type * as posts from "../posts.js";
+import type * as schemas_automations from "../schemas/automations.js";
 import type * as schemas_enums from "../schemas/enums.js";
 import type * as schemas_index from "../schemas/index.js";
 import type * as schemas_posts_media from "../schemas/posts_media.js";
@@ -28,6 +31,7 @@ import type * as stats from "../stats.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
+import type * as webhookEvents from "../webhookEvents.js";
 import type * as webhooks from "../webhooks.js";
 
 import type {
@@ -45,6 +49,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  automationLogs: typeof automationLogs;
+  automations: typeof automations;
   callmelater: typeof callmelater;
   cascade_deletes: typeof cascade_deletes;
   crons: typeof crons;
@@ -53,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   media: typeof media;
   posts: typeof posts;
+  "schemas/automations": typeof schemas_automations;
   "schemas/enums": typeof schemas_enums;
   "schemas/index": typeof schemas_index;
   "schemas/posts_media": typeof schemas_posts_media;
@@ -65,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   subscriptions: typeof subscriptions;
   users: typeof users;
   utils: typeof utils;
+  webhookEvents: typeof webhookEvents;
   webhooks: typeof webhooks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

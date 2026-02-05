@@ -208,4 +208,150 @@ http.route({
   }),
 });
 
+// ============================================================================
+// Instagram Webhook (Backup/Alternative to Lambda)
+// ============================================================================
+
+/**
+ * Validates the X-Hub-Signature-256 header from Meta using Web Crypto API
+ */
+async function validateInstagramSignature(
+  payload: string,
+  signature: string | undefined
+): Promise<boolean> {
+  const appSecret = process.env.INSTAGRAM_APP_SECRET;
+  if (!signature || !appSecret) {
+    return false;
+  }
+
+  try {
+    // Import the secret key for HMAC
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(appSecret);
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    // Sign the payload
+    const payloadData = encoder.encode(payload);
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, payloadData);
+
+    // Convert to hex string
+    const hashArray = Array.from(new Uint8Array(signatureBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    const expectedSignature = `sha256=${hashHex}`;
+
+    // Compare signatures (not timing-safe, but acceptable for webhook validation)
+    return signature === expectedSignature;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * GET: Webhook verification challenge from Meta
+ */
+http.route({
+  path: '/instagram-webhook',
+  method: 'GET',
+  handler: httpAction(async (_ctx, request) => {
+    const url = new URL(request.url);
+    const mode = url.searchParams.get('hub.mode');
+    const token = url.searchParams.get('hub.verify_token');
+    const challenge = url.searchParams.get('hub.challenge');
+
+    console.log('[Instagram Webhook] Verification request:', {
+      mode,
+      token,
+      challenge,
+    });
+
+    if (
+      mode === 'subscribe' &&
+      token === process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+    ) {
+      console.log('[Instagram Webhook] Verification successful');
+      return new Response(challenge, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+
+    console.error('[Instagram Webhook] Verification failed: invalid token');
+    return new Response('Forbidden', { status: 403 });
+  }),
+});
+
+/**
+ * POST: Receive webhook events from Meta
+ * This is a backup endpoint - primary processing is via Lambda
+ */
+http.route({
+  path: '/instagram-webhook',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const signature = request.headers.get('x-hub-signature-256') ?? undefined;
+    const body = await request.text();
+
+    // Validate signature
+    if (!(await validateInstagramSignature(body, signature))) {
+      console.error('[Instagram Webhook] Invalid signature');
+      // Return 200 to prevent retries
+      return new Response(JSON.stringify({ status: 'received' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let payload: { object: string; entry: unknown[] };
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      console.error('[Instagram Webhook] Failed to parse body');
+      return new Response(JSON.stringify({ status: 'received' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(
+      '[Instagram Webhook] Received:',
+      JSON.stringify(payload, null, 2)
+    );
+
+    // Only process Instagram events
+    if (payload.object !== 'instagram') {
+      console.log('[Instagram Webhook] Ignoring non-Instagram event');
+      return new Response(JSON.stringify({ status: 'received' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Store the raw webhook event
+    try {
+      const eventId = `convex-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      await ctx.runMutation(internal.webhookEvents.createWebhookEvent, {
+        eventId,
+        platform: 'instagram',
+        eventType: 'webhook',
+        rawPayload: body,
+        status: 'RECEIVED',
+      });
+    } catch (error) {
+      console.error('[Instagram Webhook] Failed to store event:', error);
+    }
+
+    // Always return 200 to Instagram
+    return new Response(JSON.stringify({ status: 'received' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }),
+});
+
 export default http;
