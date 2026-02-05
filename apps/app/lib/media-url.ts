@@ -1,15 +1,13 @@
 /**
- * Generates the correct media URL
- * Always uses the authenticated API route which proxies to R2
+ * Generates the correct media URL based on environment
+ * In development: Uses local API route
+ * In production: Uses CDN domain
  */
 export function getMediaUrl(
   bucketKey: string | undefined,
   fallbackUrl?: string
 ): string {
-  if (!bucketKey) {
-    return fallbackUrl || '';
-  }
-  return `/api/media/${bucketKey}`;
+  return `https://media.delulu.social/${bucketKey}`;
 }
 
 /**

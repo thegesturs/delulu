@@ -12,7 +12,6 @@ import {
   getDynamicMediaLimits,
   getMediaCountInstruction,
 } from '@/lib/platform-rules';
-import { getMediaUrl } from '@/lib/media-url';
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
@@ -100,8 +99,6 @@ function MediaGrid({
             ((media.mediaType === 'IMAGE' && canSelectImages) ||
               (media.mediaType === 'VIDEO' && canSelectVideos));
 
-          const mediaUrl = getMediaUrl(media.bucketKey, media.url);
-
           return (
             <motion.div
               key={media.id}
@@ -140,7 +137,7 @@ function MediaGrid({
             >
               {media.mediaType === 'IMAGE' ? (
                 <Image
-                  src={mediaUrl}
+                  src={media.url}
                   alt={media.altText || 'Media'}
                   fill
                   className="object-cover"
@@ -149,7 +146,7 @@ function MediaGrid({
               ) : (
                 <div className="relative h-full w-full">
                   <video
-                    src={mediaUrl}
+                    src={media.url}
                     className="h-full w-full object-cover"
                     muted
                     loop
