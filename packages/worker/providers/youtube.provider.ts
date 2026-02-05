@@ -205,6 +205,105 @@ const uploadVideoToYouTube = (
   });
 };
 
+// Get image stream from URL for thumbnail upload
+const getImageStream = (
+  url: string
+): ResultAsync<{ stream: Readable; mimeType: string }, SocialProviderError> =>
+  ResultAsync.fromPromise(
+    new Promise<{ stream: Readable; mimeType: string }>((resolve, reject) => {
+      https
+        .get(url, (response: IncomingMessage) => {
+          // Handle redirects
+          if (response.statusCode === 301 || response.statusCode === 302) {
+            const redirectUrl = response.headers.location;
+            if (redirectUrl) {
+              https
+                .get(redirectUrl, (redirectResponse: IncomingMessage) => {
+                  if (redirectResponse.statusCode !== 200) {
+                    reject(
+                      new Error(
+                        `Failed to get image stream after redirect. Status Code: ${redirectResponse.statusCode}`
+                      )
+                    );
+                    return;
+                  }
+                  const contentType =
+                    redirectResponse.headers['content-type'] || 'image/jpeg';
+                  resolve({ stream: redirectResponse, mimeType: contentType });
+                })
+                .on('error', reject);
+              return;
+            }
+          }
+
+          if (response.statusCode !== 200) {
+            reject(
+              new Error(
+                `Failed to get image stream. Status Code: ${response.statusCode}`
+              )
+            );
+            return;
+          }
+
+          const contentType = response.headers['content-type'] || 'image/jpeg';
+          console.log(`[YouTube] Thumbnail Content-Type: ${contentType}`);
+          resolve({ stream: response, mimeType: contentType });
+        })
+        .on('error', reject);
+    }),
+    (error) =>
+      error instanceof Error
+        ? new InvalidMediaError('YouTube', `Thumbnail fetch failed: ${error.message}`)
+        : createAPIError('YouTube', error)
+  );
+
+// Set custom thumbnail for a video
+// Note: YouTube requires channel to be verified to upload custom thumbnails
+const setVideoThumbnail = (
+  accessToken: string,
+  videoId: string,
+  thumbnailUrl: string
+): ResultAsync<void, SocialProviderError> => {
+  console.log(`[YouTube] Setting custom thumbnail for video: ${videoId}`);
+
+  return getImageStream(thumbnailUrl).andThen(({ stream, mimeType }) => {
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+
+    const youtube = google.youtube({ version: 'v3', auth });
+
+    return ResultAsync.fromPromise(
+      youtube.thumbnails.set({
+        videoId: videoId,
+        media: {
+          body: stream,
+          mimeType: mimeType,
+        },
+      }),
+      (error): SocialProviderError => {
+        console.log('[YouTube] Thumbnail upload failed:', error);
+        // Check if it's a verification error
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (
+          errorMessage.includes('forbidden') ||
+          errorMessage.includes('verify')
+        ) {
+          return new YouTubeError(
+            'Custom thumbnails require a verified YouTube channel'
+          );
+        }
+        return createAPIError('YouTube', error);
+      }
+    ).map((response) => {
+      console.log(
+        '[YouTube] Custom thumbnail set successfully:',
+        response.data
+      );
+    });
+  });
+};
+
 // Main publish function
 const publishContent = (
   content: { content: PostContent[]; postId: string },
@@ -225,6 +324,18 @@ const publishContent = (
   if (!videoMedia?.url) {
     return errAsync(
       new InvalidMediaError('YouTube', 'YouTube Shorts requires a video file')
+    );
+  }
+
+  // Check for custom thumbnail (YouTube only supports custom images, not timestamps)
+  const customThumbnailUrl = videoMedia.thumbnailBucketUrl;
+  if (customThumbnailUrl) {
+    console.log('[YouTube] Custom thumbnail URL provided:', customThumbnailUrl);
+  }
+  if (videoMedia.thumbnailTimestamp !== undefined) {
+    console.log(
+      '[YouTube] Note: YouTube does not support timestamp-based thumbnails. Ignoring thumbnailTimestamp:',
+      videoMedia.thumbnailTimestamp
     );
   }
 
@@ -259,7 +370,20 @@ const publishContent = (
             stream,
             mimeType,
             metadata
-          );
+          ).andThen((uploadResponse) => {
+            // If custom thumbnail provided, set it after video upload
+            if (customThumbnailUrl) {
+              console.log(
+                `[YouTube] Video uploaded (${uploadResponse.id}), now setting custom thumbnail...`
+              );
+              return setVideoThumbnail(
+                freshAccessToken,
+                uploadResponse.id,
+                customThumbnailUrl
+              ).map(() => uploadResponse);
+            }
+            return ok(uploadResponse);
+          });
         }
       )
     )
