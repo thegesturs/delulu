@@ -26,6 +26,9 @@ export default $config({
     const queue = new sst.aws.Queue('SocialPostsQueue');
 
     const SECRET_KEY = new sst.Secret('LAMBDA_SECRET_KEY');
+    const INSTAGRAM_APP_SECRET = new sst.Secret('InstagramAppSecret');
+    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret('InstagramWebhookVerifyToken');
+    const CONVEX_URL = new sst.Secret('ConvexUrl');
 
     const triggerFunction = new sst.aws.Function('TriggerSqsFunction', {
       handler: 'src/trigger-sqs.handler',
@@ -57,9 +60,20 @@ export default $config({
       link: [task],
     });
 
+    // ============================================================================
+    // INSTAGRAM WEBHOOK
+    // ============================================================================
+    const instagramWebhook = new sst.aws.Function('InstagramWebhook', {
+      handler: 'src/instagram-webhook.handler',
+      url: true,
+      link: [SECRET_KEY, INSTAGRAM_APP_SECRET, INSTAGRAM_WEBHOOK_VERIFY_TOKEN, CONVEX_URL],
+      timeout: '30 seconds',
+    });
+
     return {
       SocialPostsQueueURL: queue.url,
       SocialPostsApiEndpoint: triggerFunction.url,
+      InstagramWebhookURL: instagramWebhook.url,
     };
   },
 });

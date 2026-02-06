@@ -31,7 +31,6 @@ import type * as stats from "../stats.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
-import type * as webhookEvents from "../webhookEvents.js";
 import type * as webhooks from "../webhooks.js";
 
 import type {
@@ -72,7 +71,6 @@ declare const fullApi: ApiFromModules<{
   subscriptions: typeof subscriptions;
   users: typeof users;
   utils: typeof utils;
-  webhookEvents: typeof webhookEvents;
   webhooks: typeof webhooks;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

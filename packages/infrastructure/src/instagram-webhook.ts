@@ -1,16 +1,19 @@
+import { createHmac } from 'node:crypto';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { Resource } from 'sst';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface Env {
-  INSTAGRAM_APP_SECRET: string;
-  INSTAGRAM_WEBHOOK_VERIFY_TOKEN: string;
-  CONVEX_URL: string;
-  LAMBDA_SECRET_KEY: string;
+interface LambdaEvent {
+  requestContext: { http: { method: string } };
+  queryStringParameters?: Record<string, string>;
+  headers: Record<string, string>;
+  body?: string;
+  isBase64Encoded?: boolean;
 }
 
 interface InstagramWebhookPayload {
@@ -57,35 +60,21 @@ interface WebhookData {
 }
 
 // ============================================================================
-// Signature Validation (Web Crypto API)
+// Signature Validation
 // ============================================================================
 
-async function validateSignature(
+function validateSignature(
   payload: string,
-  signature: string | null,
+  signature: string | undefined,
   appSecret: string
-): Promise<boolean> {
+): boolean {
   if (!signature) return false;
-
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(appSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
-  const hashHex = Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  return signature === `sha256=${hashHex}`;
+  const expected = `sha256=${createHmac('sha256', appSecret).update(payload).digest('hex')}`;
+  return signature === expected;
 }
 
 // ============================================================================
-// Condition Evaluation (pure function)
+// Condition Evaluation
 // ============================================================================
 
 function evaluateConditions(
@@ -113,11 +102,7 @@ function evaluateConditions(
         return compareText.endsWith(compareValue);
       case 'regex':
         try {
-          const regex = new RegExp(
-            condition.value || '',
-            condition.caseSensitive ? '' : 'i'
-          );
-          return regex.test(text);
+          return new RegExp(condition.value || '', condition.caseSensitive ? '' : 'i').test(text);
         } catch {
           return false;
         }
@@ -131,36 +116,26 @@ function evaluateConditions(
 // Template Rendering
 // ============================================================================
 
-function renderTemplate(
-  template: string,
-  variables: Record<string, string>
-): string {
-  return template.replace(/{(\w+)}/g, (match, key) => {
-    return variables[key] !== undefined ? variables[key] : match;
-  });
+function renderTemplate(template: string, variables: Record<string, string>): string {
+  return template.replace(/{(\w+)}/g, (match, key) => variables[key] ?? match);
 }
 
 // ============================================================================
 // Extract Comment Events
 // ============================================================================
 
-function extractCommentEvents(
-  payload: InstagramWebhookPayload
-): CommentEvent[] {
+function extractCommentEvents(payload: InstagramWebhookPayload): CommentEvent[] {
   const events: CommentEvent[] = [];
 
   for (const entry of payload.entry) {
     if (!entry.changes) continue;
-
     for (const change of entry.changes) {
       if (change.field !== 'comments') continue;
-
-      const { value } = change;
       events.push({
-        commentId: value.id,
-        commentText: value.text || '',
-        username: value.from.username,
-        mediaId: value.media?.id,
+        commentId: change.value.id,
+        commentText: change.value.text || '',
+        username: change.value.from.username,
+        mediaId: change.value.media?.id,
         instagramAccountId: entry.id,
       });
     }
@@ -195,7 +170,7 @@ async function sendPrivateReply(
   );
 
   if (!response.ok) {
-    const data = await response.json() as { error?: { message?: string } };
+    const data = (await response.json()) as { error?: { message?: string } };
     console.error('Instagram API error:', data.error?.message);
     return false;
   }
@@ -204,54 +179,41 @@ async function sendPrivateReply(
 }
 
 // ============================================================================
-// Process a single comment event
+// Process a single comment
 // ============================================================================
 
 async function processComment(
   convex: ConvexHttpClient,
   event: CommentEvent,
-  webhookSecret: string
+  secretKey: string
 ): Promise<void> {
-  // No mediaId means we can't match any automation
   if (!event.mediaId) return;
 
-  // 1. Single Convex query: get automations + token + usage
+  // 1. Single Convex query: automations + token + usage
   const data = await convex.query(api.automations.getForWebhook, {
-    webhookSecret,
+    webhookSecret: secretKey,
     instagramAccountId: event.instagramAccountId,
     mediaId: event.mediaId,
   });
 
-  // No match → done (1 Convex call total)
   if (!data) return;
-
-  // Check plan limit
-  if (data.dmsSent >= data.dmLimit) return;
+  if ((data.dmsSent ?? 0) >= data.dmLimit) return;
 
   // 2. Evaluate conditions in-memory, find first match
   for (const automation of data.automations) {
-    if (!evaluateConditions(event.commentText, automation.conditions)) {
-      continue;
-    }
+    if (!evaluateConditions(event.commentText, automation.conditions)) continue;
 
-    // Render message
     const message = renderTemplate(automation.messageTemplate, {
       username: event.username || 'there',
       comment_text: event.commentText,
     });
 
-    // Send DM
-    const success = await sendPrivateReply(
-      data.accessToken,
-      data.profileId,
-      event.commentId,
-      message
-    );
+    const success = await sendPrivateReply(data.accessToken, data.profileId, event.commentId, message);
 
     if (success) {
       // 3. Single Convex mutation: increment usage + stats + log
       await convex.mutation(api.automations.recordDMSent, {
-        webhookSecret,
+        webhookSecret: secretKey,
         userId: data.userId,
         automationId: automation._id,
         instagramCommentId: event.commentId,
@@ -259,92 +221,73 @@ async function processComment(
       });
     }
 
-    // One reply per comment — stop after first match
+    // One reply per comment
     break;
   }
 }
 
 // ============================================================================
-// Worker
+// Lambda Handler
 // ============================================================================
 
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+const json = (statusCode: number, body: Record<string, string>) => ({
+  statusCode,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
 
-    // ========================================================================
-    // GET: Webhook verification challenge
-    // ========================================================================
-    if (request.method === 'GET') {
-      const mode = url.searchParams.get('hub.mode');
-      const token = url.searchParams.get('hub.verify_token');
-      const challenge = url.searchParams.get('hub.challenge');
+export async function handler(event: LambdaEvent) {
+  const method = event.requestContext.http.method;
 
-      if (mode === 'subscribe' && token === env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN) {
-        return new Response(challenge, {
-          status: 200,
-          headers: { 'Content-Type': 'text/plain' },
-        });
-      }
+  // GET: Webhook verification challenge
+  if (method === 'GET') {
+    const params = event.queryStringParameters || {};
+    if (
+      params['hub.mode'] === 'subscribe' &&
+      params['hub.verify_token'] === Resource.INSTAGRAM_WEBHOOK_VERIFY_TOKEN.value
+    ) {
+      return { statusCode: 200, body: params['hub.challenge'] || '' };
+    }
+    return json(403, { error: 'Forbidden' });
+  }
 
-      return new Response('Forbidden', { status: 403 });
+  // POST: Webhook event processing
+  if (method === 'POST') {
+    const body = event.isBase64Encoded
+      ? Buffer.from(event.body || '', 'base64').toString()
+      : event.body || '';
+
+    const signature = event.headers['x-hub-signature-256'];
+
+    if (!validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)) {
+      return json(200, { status: 'received' });
     }
 
-    // ========================================================================
-    // POST: Webhook event processing
-    // ========================================================================
-    if (request.method === 'POST') {
-      const body = await request.text();
-      const signature = request.headers.get('x-hub-signature-256');
+    let payload: InstagramWebhookPayload;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      return json(200, { status: 'received' });
+    }
 
-      // Validate signature
-      if (!(await validateSignature(body, signature, env.INSTAGRAM_APP_SECRET))) {
-        return new Response(JSON.stringify({ status: 'received' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
+    if (payload.object !== 'instagram') {
+      return json(200, { status: 'received' });
+    }
 
-      let payload: InstagramWebhookPayload;
+    // Process comments (Lambda waits for completion, no waitUntil needed)
+    const convex = new ConvexHttpClient(Resource.CONVEX_URL.value);
+    const commentEvents = extractCommentEvents(payload);
+
+    for (const commentEvent of commentEvents) {
       try {
-        payload = JSON.parse(body);
-      } catch {
-        return new Response(JSON.stringify({ status: 'received' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        await processComment(convex, commentEvent, Resource.LAMBDA_SECRET_KEY.value);
+      } catch (error) {
+        console.error('Error processing comment:', commentEvent.commentId, error);
       }
-
-      // Only process Instagram events
-      if (payload.object !== 'instagram') {
-        return new Response(JSON.stringify({ status: 'received' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Return 200 immediately, process in background
-      const convex = new ConvexHttpClient(env.CONVEX_URL);
-      const commentEvents = extractCommentEvents(payload);
-
-      ctx.waitUntil(
-        (async () => {
-          for (const event of commentEvents) {
-            try {
-              await processComment(convex, event, env.LAMBDA_SECRET_KEY);
-            } catch (error) {
-              console.error('Error processing comment:', event.commentId, error);
-            }
-          }
-        })()
-      );
-
-      return new Response(JSON.stringify({ status: 'received' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
     }
 
-    return new Response('Method not allowed', { status: 405 });
-  },
-};
+    return json(200, { status: 'received' });
+  }
+
+  return json(405, { error: 'Method not allowed' });
+}

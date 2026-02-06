@@ -197,7 +197,7 @@ export default function EditAutomationPage() {
   }
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background overflow-auto">
       <div className="mx-auto max-w-4xl p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">

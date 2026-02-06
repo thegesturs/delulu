@@ -95,7 +95,7 @@ export const getForWebhook = query({
       accessToken: v.string(),
       profileId: v.string(),
       userId: v.id('users'),
-      dmsSent: v.number(),
+      dmsSent: v.optional(v.number()),
       dmLimit: v.number(),
     }),
     v.null()
@@ -161,7 +161,7 @@ export const getForWebhook = query({
       accessToken,
       profileId: provider.profileId,
       userId: user._id,
-      dmsSent: user.usage.dmsSent,
+      dmsSent: user.usage.dmsSent ?? 0,
       dmLimit: DM_PLAN_LIMITS[planType],
     };
   },
@@ -194,7 +194,7 @@ export const recordDMSent = mutation({
       await ctx.db.patch(args.userId, {
         usage: {
           ...user.usage,
-          dmsSent: user.usage.dmsSent + 1,
+          dmsSent: user.usage.dmsSent ? user.usage.dmsSent + 1 : 1,
         },
         updatedAt: now,
       });
