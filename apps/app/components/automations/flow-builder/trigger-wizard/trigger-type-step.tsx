@@ -1,0 +1,95 @@
+'use client';
+
+import { Badge } from '@delulu/design-system/components/ui/badge';
+import { cn } from '@delulu/design-system/lib/utils';
+import { Icon } from '@delulu/design-system/providers/icon';
+import {
+  Comment01Icon,
+  AtIcon,
+  UserStoryIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import type { AutomationTriggerType } from '../utils/flow-types';
+
+interface TriggerOption {
+  type: AutomationTriggerType;
+  title: string;
+  description: string;
+  icon: typeof Comment01Icon;
+  enabled: boolean;
+}
+
+const TRIGGER_OPTIONS: TriggerOption[] = [
+  {
+    type: 'COMMENT',
+    title: 'Post or Reel Comments',
+    description: 'User comments on your Post or Reel',
+    icon: Comment01Icon,
+    enabled: true,
+  },
+  {
+    type: 'MENTION',
+    title: 'Mentions',
+    description: 'User mentions you in their post or story',
+    icon: AtIcon,
+    enabled: false,
+  },
+  {
+    type: 'STORY_REPLY',
+    title: 'Story Replies',
+    description: 'User replies to your Instagram story',
+    icon: UserStoryIcon,
+    enabled: false,
+  },
+];
+
+interface TriggerTypeStepProps {
+  selectedType: AutomationTriggerType | null;
+  onSelect: (type: AutomationTriggerType) => void;
+}
+
+export function TriggerTypeStep({ selectedType, onSelect }: TriggerTypeStepProps) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="font-semibold">Choose Trigger Type</h3>
+        <p className="text-muted-foreground text-sm">
+          What event should start this automation?
+        </p>
+      </div>
+      <div className="grid gap-3">
+        {TRIGGER_OPTIONS.map((option) => (
+          <button
+            key={option.type}
+            type="button"
+            disabled={!option.enabled}
+            onClick={() => option.enabled && onSelect(option.type)}
+            className={cn(
+              'flex items-center gap-4 rounded-xl border p-4 text-left transition-all',
+              !option.enabled && 'cursor-not-allowed opacity-60',
+              option.enabled && selectedType === option.type
+                ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                : option.enabled
+                  ? 'border-border hover:border-primary/50'
+                  : 'border-border'
+            )}
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
+              <Icon icon={option.icon} size={22} className="text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm">{option.title}</p>
+                {!option.enabled && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    COMING SOON
+                  </Badge>
+                )}
+              </div>
+              <p className="text-muted-foreground text-xs">{option.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

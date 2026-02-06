@@ -6,33 +6,26 @@ import { Icon } from '@delulu/design-system/providers/icon';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
 import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AutomationsHeader } from './automations-header';
 import { AutomationStats } from './automation-stats';
 import { AutomationFilters } from './automation-filters';
 import { AutomationList } from './automation-list';
-import { CreateAutomationDialog } from './create-automation-dialog';
 
 export default function AutomationsClient() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterTrigger, setFilterTrigger] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const automations = useQuery(api.automations.getAutomations, {});
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
   const isLoading = automations === undefined;
 
   const deleteAutomationMutation = useMutation(api.automations.deleteAutomation);
   const toggleAutomationMutation = useMutation(api.automations.toggleAutomation);
-
-  // Filter to only Instagram providers
-  const instagramProviders = useMemo(() => {
-    if (!socialProviders) return [];
-    return socialProviders.filter((p) => p.socialType === 'INSTAGRAM');
-  }, [socialProviders]);
 
   const filteredAutomations = useMemo(() => {
     if (!automations) return [];
@@ -48,7 +41,8 @@ export default function AutomationsClient() {
         (filterStatus === 'inactive' && !automation.isActive);
 
       const matchesTrigger =
-        filterTrigger === 'all' || automation.triggerType === filterTrigger;
+        filterTrigger === 'all' ||
+        automation.triggers.some((t) => t.triggerType === filterTrigger);
 
       return matchesSearch && matchesStatus && matchesTrigger;
     });
@@ -108,7 +102,7 @@ export default function AutomationsClient() {
   return (
     <div className="h-screen bg-background">
       <div className="mx-auto flex max-w-6xl flex-col space-y-6 p-6">
-        <AutomationsHeader onCreateClick={() => setCreateDialogOpen(true)} />
+        <AutomationsHeader onCreateClick={() => router.push('/automations/new')} />
         <AutomationStats stats={stats} />
         <AutomationFilters
           searchQuery={searchQuery}
@@ -125,11 +119,6 @@ export default function AutomationsClient() {
           viewMode={viewMode}
           onDelete={handleDelete}
           onToggle={handleToggle}
-        />
-        <CreateAutomationDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          instagramProviders={instagramProviders}
         />
       </div>
     </div>

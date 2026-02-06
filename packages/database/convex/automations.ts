@@ -1,12 +1,15 @@
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import {
   DM_PLAN_LIMITS,
-  automationConditionSchema,
   automationCreateSchema,
   automationSchema,
+  automationStepSchema,
   automationUpdateSchema,
+  commentReplySchema,
+  dmButtonSchema,
+  triggerStepSchema,
 } from './schemas/automations';
 import { getCurrentUser } from './users';
 import { decryptData, getCurrentTimestamp } from './utils';
@@ -74,7 +77,7 @@ export const getAutomation = query({
 });
 
 /**
- * Get automations + access token + usage for webhook processing (called by CF Worker)
+ * Get automations + access token + usage for webhook processing (called by Lambda)
  * Single query: automations + token + plan limits + usage
  */
 export const getForWebhook = query({
@@ -88,8 +91,8 @@ export const getForWebhook = query({
       automations: v.array(
         v.object({
           _id: v.id('automations'),
-          conditions: v.array(automationConditionSchema),
-          messageTemplate: v.string(),
+          triggers: v.array(triggerStepSchema),
+          steps: v.array(automationStepSchema),
         })
       ),
       accessToken: v.string(),
@@ -102,7 +105,8 @@ export const getForWebhook = query({
   ),
   handler: async (ctx, args) => {
     // Verify shared secret
-    if (args.webhookSecret !== process.env.LAMBDA_SECRET_KEY) {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      console.log('[getForWebhook] Secret mismatch');
       return null;
     }
 
@@ -115,10 +119,11 @@ export const getForWebhook = query({
       .first();
 
     if (!provider || provider.socialType !== 'INSTAGRAM') {
+      console.log(`[getForWebhook] No Instagram provider for profileId=${args.instagramAccountId}`);
       return null;
     }
 
-    // 2. Get active automations, filter by mediaId
+    // 2. Get active automations that have a trigger targeting this mediaId
     const allAutomations = await ctx.db
       .query('automations')
       .withIndex('by_social_provider_active', (q) =>
@@ -126,12 +131,17 @@ export const getForWebhook = query({
       )
       .collect();
 
-    // Filter to automations targeting this specific mediaId
+    console.log(`[getForWebhook] Provider ${provider._id}, found ${allAutomations.length} active automations`);
+
+    // Filter to automations where any trigger targets this mediaId
     const matchingAutomations = allAutomations.filter((a) =>
-      a.targetPostIds.includes(args.mediaId)
+      a.triggers.some((t) => t.targetPostIds.includes(args.mediaId))
     );
 
     if (matchingAutomations.length === 0) {
+      console.log(`[getForWebhook] No automations target mediaId=${args.mediaId}. Active automations target: ${
+        allAutomations.flatMap((a) => a.triggers.flatMap((t) => t.targetPostIds)).join(', ') || 'none'
+      }`);
       return null;
     }
 
@@ -155,8 +165,8 @@ export const getForWebhook = query({
     return {
       automations: matchingAutomations.map((a) => ({
         _id: a._id,
-        conditions: a.conditions,
-        messageTemplate: a.messageTemplate,
+        triggers: a.triggers,
+        steps: a.steps,
       })),
       accessToken,
       profileId: provider.profileId,
@@ -168,7 +178,7 @@ export const getForWebhook = query({
 });
 
 /**
- * Record a DM sent (called by CF Worker)
+ * Record a DM sent (called by Lambda)
  * Single mutation: increment usage + stats + minimal log
  */
 export const recordDMSent = mutation({
@@ -182,7 +192,7 @@ export const recordDMSent = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Verify shared secret
-    if (args.webhookSecret !== process.env.LAMBDA_SECRET_KEY) {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
       throw new Error('Unauthorized');
     }
 
@@ -259,11 +269,9 @@ export const createAutomation = mutation({
       socialProviderId: args.socialProviderId,
       name: args.name,
       description: args.description,
-      isActive: args.isActive ?? false,
-      triggerType: args.triggerType,
-      targetPostIds: args.targetPostIds,
-      conditions: args.conditions,
-      messageTemplate: args.messageTemplate,
+      isActive: args.isActive ?? true,
+      triggers: args.triggers,
+      steps: args.steps,
       totalTriggered: 0,
       totalDMsSent: 0,
       totalFailed: 0,

@@ -78,7 +78,6 @@ export default defineSchema({
     .index('by_organization_id', ['organizationId'])
     .index('by_social_provider_id', ['socialProviderId'])
     .index('by_is_active', ['isActive'])
-    .index('by_trigger_type', ['triggerType'])
     .index('by_social_provider_active', ['socialProviderId', 'isActive']),
 
   // Automation logs for execution history (minimal — DM_SENT only)

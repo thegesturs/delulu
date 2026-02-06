@@ -43,14 +43,74 @@ export type AutomationConditionOperator =
   (typeof AUTOMATION_CONDITION_OPERATOR)[keyof typeof AUTOMATION_CONDITION_OPERATOR];
 
 // ============================================================================
-// AUTOMATION CONDITION SCHEMA (Embedded)
+// STEP-BASED FLOW SCHEMAS
 // ============================================================================
 
-export const automationConditionSchema = v.object({
-  operator: automationConditionOperatorSchema,
-  value: v.optional(v.string()), // Not required for 'always' operator
-  caseSensitive: v.optional(v.boolean()),
+// Comment reply options (random pick from list)
+export const commentReplySchema = v.object({
+  enabled: v.boolean(),
+  replies: v.array(v.string()),
 });
+
+export type CommentReply = Infer<typeof commentReplySchema>;
+
+// DM buttons
+export const dmQuickReplySchema = v.object({
+  type: v.literal('quick_reply'),
+  title: v.string(), // max 20 chars
+  payload: v.optional(v.string()),
+});
+
+export const dmUrlButtonSchema = v.object({
+  type: v.literal('url'),
+  title: v.string(), // max 20 chars
+  url: v.string(),
+});
+
+export const dmButtonSchema = v.union(dmQuickReplySchema, dmUrlButtonSchema);
+
+export type DmButton = Infer<typeof dmButtonSchema>;
+
+// Trigger step (multiple per automation, OR logic)
+export const triggerStepSchema = v.object({
+  id: v.string(),
+  type: v.literal('trigger'),
+  triggerType: automationTriggerTypeSchema,
+  targetPostIds: v.array(v.string()),
+  nextStepId: v.optional(v.string()),
+});
+
+export type TriggerStep = Infer<typeof triggerStepSchema>;
+
+// Condition step
+export const conditionStepSchema = v.object({
+  id: v.string(),
+  type: v.literal('condition'),
+  operator: automationConditionOperatorSchema,
+  value: v.optional(v.string()),
+  caseSensitive: v.optional(v.boolean()),
+  yesStepId: v.optional(v.string()),
+  noStepId: v.optional(v.string()),
+});
+
+export type ConditionStep = Infer<typeof conditionStepSchema>;
+
+// Send DM action step
+export const sendDmStepSchema = v.object({
+  id: v.string(),
+  type: v.literal('send_dm'),
+  messageTemplate: v.string(),
+  buttons: v.optional(v.array(dmButtonSchema)), // max 13 quick replies
+  commentReply: v.optional(commentReplySchema),
+  nextStepId: v.optional(v.string()),
+});
+
+export type SendDmStep = Infer<typeof sendDmStepSchema>;
+
+// Union of all non-trigger steps
+export const automationStepSchema = v.union(conditionStepSchema, sendDmStepSchema);
+
+export type AutomationStep = Infer<typeof automationStepSchema>;
 
 // ============================================================================
 // AUTOMATION SCHEMAS
@@ -65,17 +125,9 @@ export const baseAutomationSchema = v.object({
   description: v.optional(v.string()),
   isActive: v.boolean(),
 
-  // Trigger configuration
-  triggerType: automationTriggerTypeSchema,
-
-  // Target specific posts (required — must target specific posts)
-  targetPostIds: v.array(v.string()),
-
-  // Conditions (AND logic - all must match)
-  conditions: v.array(automationConditionSchema),
-
-  // DM template with {variables}
-  messageTemplate: v.string(),
+  // Step-based flow
+  triggers: v.array(triggerStepSchema),
+  steps: v.array(automationStepSchema),
 
   // Stats (denormalized for quick access)
   totalTriggered: v.number(),
@@ -102,10 +154,8 @@ export const automationCreateSchema = v.object({
   name: v.string(),
   description: v.optional(v.string()),
   isActive: v.optional(v.boolean()),
-  triggerType: automationTriggerTypeSchema,
-  targetPostIds: v.array(v.string()),
-  conditions: v.array(automationConditionSchema),
-  messageTemplate: v.string(),
+  triggers: v.array(triggerStepSchema),
+  steps: v.array(automationStepSchema),
 });
 
 // Automation update schema (partial)
@@ -113,10 +163,8 @@ export const automationUpdateSchema = v.object({
   name: v.optional(v.string()),
   description: v.optional(v.string()),
   isActive: v.optional(v.boolean()),
-  triggerType: v.optional(automationTriggerTypeSchema),
-  targetPostIds: v.optional(v.array(v.string())),
-  conditions: v.optional(v.array(automationConditionSchema)),
-  messageTemplate: v.optional(v.string()),
+  triggers: v.optional(v.array(triggerStepSchema)),
+  steps: v.optional(v.array(automationStepSchema)),
 });
 
 // ============================================================================

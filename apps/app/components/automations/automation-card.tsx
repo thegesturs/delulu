@@ -47,18 +47,34 @@ const triggerTypeIcons: Record<string, typeof Comment01Icon> = {
   STORY_REPLY: Comment01Icon,
 };
 
-function formatConditions(conditions: Automation['conditions']): string {
-  if (conditions.length === 0) return 'No conditions';
-  if (conditions[0].operator === 'always') return 'Always trigger';
+function getPrimaryTriggerType(automation: Automation): string {
+  if (automation.triggers.length === 0) return 'COMMENT';
+  return automation.triggers[0].triggerType;
+}
 
-  const conditionTexts = conditions.slice(0, 2).map((c) => {
-    if (c.operator === 'contains' && c.value) return `contains "${c.value}"`;
-    if (c.operator === 'equals' && c.value) return `equals "${c.value}"`;
-    return c.operator;
-  });
+function formatStepsSummary(automation: Automation): string {
+  const conditionSteps = automation.steps.filter((s) => s.type === 'condition');
+  const dmSteps = automation.steps.filter((s) => s.type === 'send_dm');
 
-  const suffix = conditions.length > 2 ? ` +${conditions.length - 2} more` : '';
-  return conditionTexts.join(', ') + suffix;
+  if (conditionSteps.length === 0 && dmSteps.length === 0) return 'No steps configured';
+
+  const parts: string[] = [];
+  if (conditionSteps.length > 0) {
+    const first = conditionSteps[0];
+    if (first.type === 'condition') {
+      if (first.operator === 'always') {
+        parts.push('Always trigger');
+      } else if (first.value) {
+        parts.push(`${first.operator} "${first.value}"`);
+      } else {
+        parts.push(first.operator);
+      }
+    }
+  }
+  if (dmSteps.length > 0) {
+    parts.push(`${dmSteps.length} DM${dmSteps.length > 1 ? 's' : ''}`);
+  }
+  return parts.join(' • ');
 }
 
 export function AutomationCard({
@@ -71,7 +87,8 @@ export function AutomationCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  const TriggerIcon = triggerTypeIcons[automation.triggerType] || Comment01Icon;
+  const primaryTriggerType = getPrimaryTriggerType(automation);
+  const TriggerIcon = triggerTypeIcons[primaryTriggerType] || Comment01Icon;
   const successRate = automation.totalDMsSent + automation.totalFailed > 0
     ? Math.round((automation.totalDMsSent / (automation.totalDMsSent + automation.totalFailed)) * 100)
     : 0;
@@ -103,7 +120,7 @@ export function AutomationCard({
               </Badge>
             </div>
             <p className="mt-0.5 truncate text-muted-foreground text-sm">
-              {triggerTypeLabels[automation.triggerType]} • {formatConditions(automation.conditions)}
+              {triggerTypeLabels[primaryTriggerType]} • {formatStepsSummary(automation)}
             </p>
           </div>
 
@@ -225,10 +242,10 @@ export function AutomationCard({
         <div className="flex-1">
           <h3 className="mb-1 font-medium text-foreground">{automation.name}</h3>
           <p className="mb-2 text-muted-foreground text-sm">
-            {triggerTypeLabels[automation.triggerType]}
+            {triggerTypeLabels[primaryTriggerType]}
           </p>
           <p className="line-clamp-2 text-muted-foreground text-xs">
-            {formatConditions(automation.conditions)}
+            {formatStepsSummary(automation)}
           </p>
         </div>
 

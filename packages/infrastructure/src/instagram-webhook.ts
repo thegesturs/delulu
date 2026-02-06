@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
-import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { ConvexHttpClient } from 'convex/browser';
 import { Resource } from 'sst';
 
 // ============================================================================
@@ -42,15 +42,65 @@ interface CommentEvent {
   instagramAccountId: string;
 }
 
+interface Condition {
+  operator:
+    | 'contains'
+    | 'not_contains'
+    | 'equals'
+    | 'starts_with'
+    | 'ends_with'
+    | 'regex'
+    | 'always';
+  value?: string;
+  caseSensitive?: boolean;
+}
+
+interface TriggerStep {
+  id: string;
+  type: 'trigger';
+  triggerType: string;
+  targetPostIds: string[];
+  nextStepId?: string;
+}
+
+interface ConditionStep {
+  id: string;
+  type: 'condition';
+  operator: Condition['operator'];
+  value?: string;
+  caseSensitive?: boolean;
+  yesStepId?: string;
+  noStepId?: string;
+}
+
+interface DmButton {
+  type: 'quick_reply' | 'url';
+  title: string;
+  payload?: string;
+  url?: string;
+}
+
+interface CommentReply {
+  enabled: boolean;
+  replies: string[];
+}
+
+interface SendDmStep {
+  id: string;
+  type: 'send_dm';
+  messageTemplate: string;
+  buttons?: DmButton[];
+  commentReply?: CommentReply;
+  nextStepId?: string;
+}
+
+type AutomationStep = ConditionStep | SendDmStep;
+
 interface WebhookData {
   automations: Array<{
     _id: Id<'automations'>;
-    conditions: Array<{
-      operator: 'contains' | 'not_contains' | 'equals' | 'starts_with' | 'ends_with' | 'regex' | 'always';
-      value?: string;
-      caseSensitive?: boolean;
-    }>;
-    messageTemplate: string;
+    triggers: TriggerStep[];
+    steps: AutomationStep[];
   }>;
   accessToken: string;
   profileId: string;
@@ -77,54 +127,114 @@ function validateSignature(
 // Condition Evaluation
 // ============================================================================
 
-function evaluateConditions(
-  text: string,
-  conditions: WebhookData['automations'][0]['conditions']
-): boolean {
-  return conditions.every((condition) => {
-    const compareText = condition.caseSensitive ? text : text.toLowerCase();
-    const compareValue = condition.caseSensitive
-      ? condition.value || ''
-      : (condition.value || '').toLowerCase();
+function evaluateCondition(text: string, condition: Condition): boolean {
+  const compareText = condition.caseSensitive ? text : text.toLowerCase();
+  const compareValue = condition.caseSensitive
+    ? condition.value || ''
+    : (condition.value || '').toLowerCase();
 
-    switch (condition.operator) {
-      case 'always':
-        return true;
-      case 'contains':
-        return compareText.includes(compareValue);
-      case 'not_contains':
-        return !compareText.includes(compareValue);
-      case 'equals':
-        return compareText === compareValue;
-      case 'starts_with':
-        return compareText.startsWith(compareValue);
-      case 'ends_with':
-        return compareText.endsWith(compareValue);
-      case 'regex':
-        try {
-          return new RegExp(condition.value || '', condition.caseSensitive ? '' : 'i').test(text);
-        } catch {
-          return false;
-        }
-      default:
+  switch (condition.operator) {
+    case 'always':
+      return true;
+    case 'contains':
+      return compareText.includes(compareValue);
+    case 'not_contains':
+      return !compareText.includes(compareValue);
+    case 'equals':
+      return compareText === compareValue;
+    case 'starts_with':
+      return compareText.startsWith(compareValue);
+    case 'ends_with':
+      return compareText.endsWith(compareValue);
+    case 'regex':
+      try {
+        return new RegExp(
+          condition.value || '',
+          condition.caseSensitive ? '' : 'i'
+        ).test(text);
+      } catch {
         return false;
-    }
-  });
+      }
+    default:
+      return false;
+  }
 }
 
 // ============================================================================
 // Template Rendering
 // ============================================================================
 
-function renderTemplate(template: string, variables: Record<string, string>): string {
+function renderTemplate(
+  template: string,
+  variables: Record<string, string>
+): string {
   return template.replace(/{(\w+)}/g, (match, key) => variables[key] ?? match);
+}
+
+// ============================================================================
+// Step-Based Flow Execution
+// ============================================================================
+
+interface FlowResult {
+  message: string;
+  buttons?: DmButton[];
+  commentReply?: CommentReply;
+}
+
+function executeStepFlow(
+  triggers: TriggerStep[],
+  steps: AutomationStep[],
+  mediaId: string,
+  commentText: string,
+  variables: Record<string, string>
+): FlowResult | null {
+  // 1. Find matching trigger (any trigger with this mediaId)
+  const trigger = triggers.find((t) => t.targetPostIds.includes(mediaId));
+  if (!trigger) return null;
+
+  // 2. Build step map
+  const stepMap = new Map(steps.map((s) => [s.id, s]));
+
+  // 3. Traverse from trigger.nextStepId
+  let currentId = trigger.nextStepId;
+  const visited = new Set<string>();
+
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId);
+    const step = stepMap.get(currentId);
+    if (!step) break;
+
+    if (step.type === 'send_dm') {
+      return {
+        message: renderTemplate(step.messageTemplate, variables),
+        buttons: step.buttons,
+        commentReply: step.commentReply,
+      };
+    }
+
+    if (step.type === 'condition') {
+      const match = evaluateCondition(commentText, {
+        operator: step.operator,
+        value: step.value,
+        caseSensitive: step.caseSensitive,
+      });
+      currentId = match ? step.yesStepId : step.noStepId;
+      continue;
+    }
+
+    break;
+  }
+
+  return null;
 }
 
 // ============================================================================
 // Extract Comment Events
 // ============================================================================
 
-function extractCommentEvents(payload: InstagramWebhookPayload): CommentEvent[] {
+function extractCommentEvents(
+  payload: InstagramWebhookPayload
+): CommentEvent[] {
   const events: CommentEvent[] = [];
 
   for (const entry of payload.entry) {
@@ -152,8 +262,42 @@ async function sendPrivateReply(
   accessToken: string,
   profileId: string,
   commentId: string,
-  message: string
+  message: string,
+  buttons?: DmButton[]
 ): Promise<boolean> {
+  // biome-ignore lint/suspicious/noExplicitAny: Instagram API body varies
+  const body: any = {
+    recipient: { comment_id: commentId },
+    message: { text: message },
+  };
+
+  // Add quick reply buttons
+  const quickReplies = buttons?.filter((b) => b.type === 'quick_reply') ?? [];
+  const urlButtons = buttons?.filter((b) => b.type === 'url') ?? [];
+
+  if (quickReplies.length > 0) {
+    body.message.quick_replies = quickReplies.slice(0, 13).map((b) => ({
+      content_type: 'text',
+      title: b.title,
+      payload: b.payload || b.title,
+    }));
+  } else if (urlButtons.length > 0) {
+    body.message = {
+      attachment: {
+        type: 'template',
+        payload: {
+          template_type: 'button',
+          text: message,
+          buttons: urlButtons.slice(0, 3).map((b) => ({
+            type: 'web_url',
+            url: b.url,
+            title: b.title,
+          })),
+        },
+      },
+    };
+  }
+
   const response = await fetch(
     `https://graph.instagram.com/v24.0/${profileId}/messages`,
     {
@@ -162,10 +306,7 @@ async function sendPrivateReply(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        recipient: { comment_id: commentId },
-        message: { text: message },
-      }),
+      body: JSON.stringify(body),
     }
   );
 
@@ -176,6 +317,30 @@ async function sendPrivateReply(
   }
 
   return true;
+}
+
+// ============================================================================
+// Reply to Comment
+// ============================================================================
+
+async function replyToComment(
+  accessToken: string,
+  commentId: string,
+  message: string
+): Promise<void> {
+  const url = `https://graph.instagram.com/v24.0/${commentId}/replies`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    console.error('[reply] Failed to reply to comment:', commentId);
+  }
 }
 
 // ============================================================================
@@ -192,7 +357,9 @@ async function processComment(
     return;
   }
 
-  console.log(`[process] Comment ${event.commentId} by @${event.username} on media ${event.mediaId}`);
+  console.log(
+    `[process] Comment ${event.commentId} by @${event.username} on media ${event.mediaId}`
+  );
 
   // 1. Single Convex query: automations + token + usage
   const data = await convex.query(api.automations.getForWebhook, {
@@ -211,23 +378,42 @@ async function processComment(
     return;
   }
 
-  console.log(`[match] ${data.automations.length} automations, usage ${data.dmsSent ?? 0}/${data.dmLimit}`);
+  console.log(
+    `[match] ${data.automations.length} automations, usage ${data.dmsSent ?? 0}/${data.dmLimit}`
+  );
 
-  // 2. Evaluate conditions in-memory, find first match
+  // 2. Execute step-based flow, find first match
+  const variables = {
+    username: event.username || 'there',
+    comment_text: event.commentText,
+  };
+
   for (const automation of data.automations) {
-    if (!evaluateConditions(event.commentText, automation.conditions)) continue;
+    const result = executeStepFlow(
+      automation.triggers,
+      automation.steps,
+      event.mediaId,
+      event.commentText,
+      variables
+    );
 
-    const message = renderTemplate(automation.messageTemplate, {
-      username: event.username || 'there',
-      comment_text: event.commentText,
-    });
+    if (!result) continue;
 
-    console.log(`[dm] Sending DM for automation ${automation._id} to @${event.username}`);
-    const success = await sendPrivateReply(data.accessToken, data.profileId, event.commentId, message);
+    console.log(
+      `[dm] Sending DM for automation ${automation._id} to @${event.username}`
+    );
+    const success = await sendPrivateReply(
+      data.accessToken,
+      data.profileId,
+      event.commentId,
+      result.message,
+      result.buttons
+    );
 
     if (success) {
       console.log(`[dm] DM sent successfully for comment ${event.commentId}`);
-      // 3. Single Convex mutation: increment usage + stats + log
+
+      // Record DM sent
       await convex.mutation(api.automations.recordDMSent, {
         webhookSecret: secretKey,
         userId: data.userId,
@@ -235,6 +421,19 @@ async function processComment(
         instagramCommentId: event.commentId,
         instagramUsername: event.username,
       });
+
+      // Reply to comment if configured
+      if (
+        result.commentReply?.enabled &&
+        result.commentReply.replies.length > 0
+      ) {
+        const reply =
+          result.commentReply.replies[
+            Math.floor(Math.random() * result.commentReply.replies.length)
+          ];
+        await replyToComment(data.accessToken, event.commentId, reply);
+        console.log(`[reply] Replied to comment ${event.commentId}`);
+      }
     } else {
       console.error(`[dm] DM failed for comment ${event.commentId}`);
     }
@@ -262,7 +461,8 @@ export async function handler(event: LambdaEvent) {
     const params = event.queryStringParameters || {};
     if (
       params['hub.mode'] === 'subscribe' &&
-      params['hub.verify_token'] === Resource.INSTAGRAM_WEBHOOK_VERIFY_TOKEN.value
+      params['hub.verify_token'] ===
+        Resource.INSTAGRAM_WEBHOOK_VERIFY_TOKEN.value
     ) {
       return { statusCode: 200, body: params['hub.challenge'] || '' };
     }
@@ -277,7 +477,9 @@ export async function handler(event: LambdaEvent) {
 
     const signature = event.headers['x-hub-signature-256'];
 
-    if (!validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)) {
+    if (
+      !validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)
+    ) {
       console.warn('[webhook] Invalid signature, ignoring');
       return json(200, { status: 'received' });
     }
@@ -303,9 +505,17 @@ export async function handler(event: LambdaEvent) {
 
     for (const commentEvent of commentEvents) {
       try {
-        await processComment(convex, commentEvent, Resource.LAMBDA_SECRET_KEY.value);
+        await processComment(
+          convex,
+          commentEvent,
+          Resource.LAMBDA_SECRET_KEY.value
+        );
       } catch (error) {
-        console.error('Error processing comment:', commentEvent.commentId, error);
+        console.error(
+          'Error processing comment:',
+          commentEvent.commentId,
+          error
+        );
       }
     }
 
