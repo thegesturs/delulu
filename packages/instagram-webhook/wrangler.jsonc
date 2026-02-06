@@ -5,7 +5,7 @@
   "compatibility_date": "2025-01-01",
   "observability": {
     "logs": {
-      "enabled": false,
+      "enabled": true,
       "invocation_logs": true
     }
   }
