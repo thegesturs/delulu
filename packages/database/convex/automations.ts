@@ -1,14 +1,15 @@
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import {
+  DM_PLAN_LIMITS,
+  automationConditionSchema,
   automationCreateSchema,
   automationSchema,
-  automationTriggerTypeSchema,
   automationUpdateSchema,
 } from './schemas/automations';
 import { getCurrentUser } from './users';
-import { getCurrentTimestamp } from './utils';
+import { decryptData, getCurrentTimestamp } from './utils';
 
 // ============================================================================
 // Queries
@@ -73,53 +74,153 @@ export const getAutomation = query({
 });
 
 /**
- * Get active automations for a social provider (used by Lambda processor)
+ * Get automations + access token + usage for webhook processing (called by CF Worker)
+ * Single query: automations + token + plan limits + usage
  */
-export const getActiveByProvider = query({
+export const getForWebhook = query({
   args: {
-    socialProviderId: v.id('socialProviders'),
-    triggerType: automationTriggerTypeSchema,
+    webhookSecret: v.string(),
+    instagramAccountId: v.string(),
+    mediaId: v.string(),
   },
-  returns: v.array(automationSchema),
+  returns: v.union(
+    v.object({
+      automations: v.array(
+        v.object({
+          _id: v.id('automations'),
+          conditions: v.array(automationConditionSchema),
+          messageTemplate: v.string(),
+        })
+      ),
+      accessToken: v.string(),
+      profileId: v.string(),
+      userId: v.id('users'),
+      dmsSent: v.number(),
+      dmLimit: v.number(),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
-    const automations = await ctx.db
+    // Verify shared secret
+    if (args.webhookSecret !== process.env.WEBHOOK_SECRET) {
+      return null;
+    }
+
+    // 1. Find social provider by profileId
+    const provider = await ctx.db
+      .query('socialProviders')
+      .withIndex('by_profile_id', (q) =>
+        q.eq('profileId', args.instagramAccountId)
+      )
+      .first();
+
+    if (!provider || provider.socialType !== 'INSTAGRAM') {
+      return null;
+    }
+
+    // 2. Get active automations, filter by mediaId
+    const allAutomations = await ctx.db
       .query('automations')
       .withIndex('by_social_provider_active', (q) =>
-        q.eq('socialProviderId', args.socialProviderId).eq('isActive', true)
+        q.eq('socialProviderId', provider._id).eq('isActive', true)
       )
       .collect();
 
-    // Filter by trigger type
-    return automations.filter((a) => a.triggerType === args.triggerType);
+    // Filter to automations targeting this specific mediaId
+    const matchingAutomations = allAutomations.filter((a) =>
+      a.targetPostIds.includes(args.mediaId)
+    );
+
+    if (matchingAutomations.length === 0) {
+      return null;
+    }
+
+    // 3. Get user + subscription for plan limits
+    const user = await ctx.db.get(provider.userId!);
+    if (!user) {
+      return null;
+    }
+
+    let planType: 'FREE' | 'VIBE' | 'ECHO' = 'FREE';
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription && subscription.status === 'ACTIVE') {
+        planType = subscription.planType as 'FREE' | 'VIBE' | 'ECHO';
+      }
+    }
+
+    // 4. Decrypt access token
+    const accessToken = await decryptData(provider.accessToken);
+
+    return {
+      automations: matchingAutomations.map((a) => ({
+        _id: a._id,
+        conditions: a.conditions,
+        messageTemplate: a.messageTemplate,
+      })),
+      accessToken,
+      profileId: provider.profileId,
+      userId: user._id,
+      dmsSent: user.usage.dmsSent,
+      dmLimit: DM_PLAN_LIMITS[planType],
+    };
   },
 });
 
 /**
- * Get rate limit counts for an automation (used for rate limiting)
+ * Record a DM sent (called by CF Worker)
+ * Single mutation: increment usage + stats + minimal log
  */
-export const getRateLimitCounts = query({
-  args: { automationId: v.id('automations') },
-  returns: v.object({
-    hourCount: v.number(),
-    dayCount: v.number(),
-  }),
+export const recordDMSent = mutation({
+  args: {
+    webhookSecret: v.string(),
+    userId: v.id('users'),
+    automationId: v.id('automations'),
+    instagramCommentId: v.string(),
+    instagramUsername: v.optional(v.string()),
+  },
+  returns: v.null(),
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const oneHourAgo = now - 60 * 60 * 1000;
-    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    // Verify shared secret
+    if (args.webhookSecret !== process.env.WEBHOOK_SECRET) {
+      throw new Error('Unauthorized');
+    }
 
-    // Get logs for this automation
-    const logs = await ctx.db
-      .query('automationLogs')
-      .withIndex('by_automation_status', (q) =>
-        q.eq('automationId', args.automationId).eq('status', 'DM_SENT')
-      )
-      .collect();
+    const now = getCurrentTimestamp();
 
-    const hourCount = logs.filter((l) => l.createdAt >= oneHourAgo).length;
-    const dayCount = logs.filter((l) => l.createdAt >= oneDayAgo).length;
+    // 1. Increment user usage.dmsSent
+    const user = await ctx.db.get(args.userId);
+    if (user) {
+      await ctx.db.patch(args.userId, {
+        usage: {
+          ...user.usage,
+          dmsSent: user.usage.dmsSent + 1,
+        },
+        updatedAt: now,
+      });
+    }
 
-    return { hourCount, dayCount };
+    // 2. Increment automation stats
+    const automation = await ctx.db.get(args.automationId);
+    if (automation) {
+      await ctx.db.patch(args.automationId, {
+        totalTriggered: automation.totalTriggered + 1,
+        totalDMsSent: automation.totalDMsSent + 1,
+        updatedAt: now,
+      });
+    }
+
+    // 3. Insert minimal log
+    await ctx.db.insert('automationLogs', {
+      automationId: args.automationId,
+      userId: args.userId,
+      instagramCommentId: args.instagramCommentId,
+      instagramUsername: args.instagramUsername,
+      status: 'DM_SENT',
+      createdAt: now,
+    });
+
+    return null;
   },
 });
 
@@ -163,9 +264,6 @@ export const createAutomation = mutation({
       targetPostIds: args.targetPostIds,
       conditions: args.conditions,
       messageTemplate: args.messageTemplate,
-      maxDMsPerHour: args.maxDMsPerHour ?? 20,
-      maxDMsPerDay: args.maxDMsPerDay ?? 100,
-      cooldownMinutes: args.cooldownMinutes,
       totalTriggered: 0,
       totalDMsSent: 0,
       totalFailed: 0,
@@ -253,34 +351,5 @@ export const toggleAutomation = mutation({
     });
 
     return !automation.isActive;
-  },
-});
-
-/**
- * Increment automation stats (called by Lambda processor)
- */
-export const incrementStats = mutation({
-  args: {
-    automationId: v.id('automations'),
-    field: v.union(
-      v.literal('totalTriggered'),
-      v.literal('totalDMsSent'),
-      v.literal('totalFailed')
-    ),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const automation = await ctx.db.get(args.automationId);
-    if (!automation) {
-      return null;
-    }
-
-    const currentValue = automation[args.field] || 0;
-    await ctx.db.patch(args.automationId, {
-      [args.field]: currentValue + 1,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return null;
   },
 });

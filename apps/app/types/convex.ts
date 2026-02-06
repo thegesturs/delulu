@@ -23,6 +23,11 @@ export type UserId = Id<'users'>;
 export type Media = Doc<'media'>;
 export type MediaId = Id<'media'>;
 
+// Automation types
+export type Automation = Doc<'automations'>;
+export type AutomationId = Id<'automations'>;
+export type AutomationLog = Doc<'automationLogs'>;
+
 // Layout types for components
 export type PostLayout = 'grid' | 'list';
 

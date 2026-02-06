@@ -1,5 +1,6 @@
 'use client';
 
+import type { Automation } from '@/types/convex';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -27,23 +28,6 @@ import { useState } from 'react';
 import DeleteAlertDialog from '../alerts/delete-post';
 import Link from 'next/link';
 
-interface Automation {
-  _id: Id<'automations'>;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  triggerType: string;
-  messageTemplate: string;
-  conditions: Array<{ operator: string; value?: string }>;
-  totalTriggered: number;
-  totalDMsSent: number;
-  totalFailed: number;
-  maxDMsPerHour: number;
-  maxDMsPerDay: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
 interface AutomationCardProps {
   automation: Automation;
   viewMode: 'grid' | 'list';
@@ -63,7 +47,7 @@ const triggerTypeIcons: Record<string, typeof Comment01Icon> = {
   STORY_REPLY: Comment01Icon,
 };
 
-function formatConditions(conditions: Array<{ operator: string; value?: string }>): string {
+function formatConditions(conditions: Automation['conditions']): string {
   if (conditions.length === 0) return 'No conditions';
   if (conditions[0].operator === 'always') return 'Always trigger';
 

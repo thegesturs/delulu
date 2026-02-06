@@ -84,8 +84,6 @@ export function CreateAutomationDialog({
   const [messageTemplate, setMessageTemplate] = useState(
     "Hey {username}! Thanks for commenting. Here's a special link just for you: [YOUR_LINK]"
   );
-  const [maxDMsPerHour, setMaxDMsPerHour] = useState(20);
-  const [maxDMsPerDay, setMaxDMsPerDay] = useState(100);
   const [targetPostIds, setTargetPostIds] = useState<string[]>([]);
 
   const createAutomation = useMutation(api.automations.createAutomation);
@@ -99,8 +97,6 @@ export function CreateAutomationDialog({
     setMessageTemplate(
       "Hey {username}! Thanks for commenting. Here's a special link just for you: [YOUR_LINK]"
     );
-    setMaxDMsPerHour(20);
-    setMaxDMsPerDay(100);
     setTargetPostIds([]);
     setActiveTab('basics');
   };
@@ -150,6 +146,12 @@ export function CreateAutomationDialog({
       return;
     }
 
+    if (targetPostIds.length === 0) {
+      toast.error('Please select at least one post');
+      setActiveTab('posts');
+      return;
+    }
+
     if (!messageTemplate.trim()) {
       toast.error('Please enter a message template');
       setActiveTab('message');
@@ -176,9 +178,7 @@ export function CreateAutomationDialog({
           caseSensitive: c.caseSensitive,
         })),
         messageTemplate,
-        maxDMsPerHour,
-        maxDMsPerDay,
-        targetPostIds: targetPostIds.length > 0 ? targetPostIds : undefined,
+        targetPostIds,
         isActive: false, // Start as inactive
       });
 
@@ -282,30 +282,6 @@ export function CreateAutomationDialog({
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxHour">Max DMs per hour</Label>
-                <Input
-                  id="maxHour"
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={maxDMsPerHour}
-                  onChange={(e) => setMaxDMsPerHour(Number(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxDay">Max DMs per day</Label>
-                <Input
-                  id="maxDay"
-                  type="number"
-                  min={1}
-                  max={500}
-                  value={maxDMsPerDay}
-                  onChange={(e) => setMaxDMsPerDay(Number(e.target.value))}
-                />
-              </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="posts" className="mt-4 space-y-4">
@@ -316,9 +292,8 @@ export function CreateAutomationDialog({
                 className="mt-0.5 flex-shrink-0"
               />
               <p>
-                Choose which posts this automation should monitor. Select "All
-                Posts" to respond to comments on any post, or pick specific
-                posts for targeted campaigns.
+                Choose which posts this automation should monitor. Select at
+                least one post for this automation to work.
               </p>
             </div>
 

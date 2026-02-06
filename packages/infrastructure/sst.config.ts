@@ -57,57 +57,9 @@ export default $config({
       link: [task],
     });
 
-    // ============================================================================
-    // INSTAGRAM WEBHOOKS INFRASTRUCTURE
-    // ============================================================================
-
-    // Secrets for Instagram webhook processing
-    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret(
-      'INSTAGRAM_WEBHOOK_VERIFY_TOKEN'
-    );
-    const INSTAGRAM_APP_SECRET = new sst.Secret('INSTAGRAM_APP_SECRET');
-    const CONVEX_URL = new sst.Secret('CONVEX_URL');
-
-    // Dead Letter Queue for failed webhook processing
-    const instagramWebhooksDLQ = new sst.aws.Queue('InstagramWebhooksDLQ');
-
-    // Main Instagram Webhooks Queue with DLQ
-    const instagramWebhooksQueue = new sst.aws.Queue('InstagramWebhooksQueue', {
-      visibilityTimeout: '60 seconds',
-      dlq: instagramWebhooksDLQ.arn,
-    });
-
-    // Lambda: Receives webhooks from Instagram (must respond <15s)
-    const instagramWebhookReceiver = new sst.aws.Function(
-      'InstagramWebhookReceiver',
-      {
-        handler: 'src/instagram-webhook-receiver.handler',
-        url: true, // Expose as HTTP endpoint for Meta to call
-        link: [
-          instagramWebhooksQueue,
-          INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
-          INSTAGRAM_APP_SECRET,
-        ],
-        timeout: '15 seconds',
-        memory: '256 MB',
-      }
-    );
-
-    // Lambda: Processes webhook events (SQS consumer)
-    instagramWebhooksQueue.subscribe({
-      handler: 'src/instagram-webhook-processor.handler',
-      link: [CONVEX_URL, INSTAGRAM_APP_SECRET],
-      timeout: '60 seconds',
-      memory: '512 MB',
-    });
-
     return {
       SocialPostsQueueURL: queue.url,
       SocialPostsApiEndpoint: triggerFunction.url,
-      // Instagram Webhooks
-      InstagramWebhookReceiverURL: instagramWebhookReceiver.url,
-      InstagramWebhooksQueueURL: instagramWebhooksQueue.url,
-      InstagramWebhooksDLQURL: instagramWebhooksDLQ.url,
     };
   },
 });

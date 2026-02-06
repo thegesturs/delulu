@@ -13,6 +13,13 @@
 - 🧵 Threads
 - 🏰 Farcaster
 
+## Strict Rules
+
+### Never Duplicate Types or Schemas
+- **Frontend**: Use `Doc<'tableName'>` from Convex or types from `apps/app/types/convex.ts`. Never hand-write an `interface` that mirrors a DB document — import the canonical type.
+- **Convex functions**: Reuse existing schema validators (`automationConditionSchema`, `automationCreateSchema`, etc.) in `args` and `returns`. Never inline `v.object({ operator: v.union(v.literal(...), ...) })` when a schema already defines that shape.
+- **One source of truth**: If a type/schema exists in `packages/database/convex/schemas/`, use it. If it doesn't exist yet, create it there first, then import it everywhere.
+
 ## Architecture
 
 This is a **monorepo** using **Turbo** with multiple applications:

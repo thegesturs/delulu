@@ -1,24 +1,8 @@
 'use client';
 
+import type { Automation } from '@/types/convex';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { AutomationCard } from './automation-card';
-
-interface Automation {
-  _id: Id<'automations'>;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  triggerType: string;
-  messageTemplate: string;
-  conditions: Array<{ operator: string; value?: string }>;
-  totalTriggered: number;
-  totalDMsSent: number;
-  totalFailed: number;
-  maxDMsPerHour: number;
-  maxDMsPerDay: number;
-  createdAt: number;
-  updatedAt: number;
-}
 
 interface AutomationListProps {
   automations: Automation[];

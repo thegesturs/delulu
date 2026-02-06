@@ -8,7 +8,6 @@ import {
   baseSubscriptionSchema,
   baseTransactionSchema,
   baseUserSchema,
-  baseWebhookEventSchema,
 } from './schemas';
 
 export default defineSchema({
@@ -82,20 +81,8 @@ export default defineSchema({
     .index('by_trigger_type', ['triggerType'])
     .index('by_social_provider_active', ['socialProviderId', 'isActive']),
 
-  // Automation logs for execution history
+  // Automation logs for execution history (minimal — DM_SENT only)
   automationLogs: defineTable(baseAutomationLogSchema.fields)
     .index('by_automation_id', ['automationId'])
-    .index('by_user_id', ['userId'])
-    .index('by_instagram_comment_id', ['instagramCommentId'])
-    .index('by_instagram_user_id', ['instagramUserId'])
-    .index('by_status', ['status'])
-    .index('by_automation_status', ['automationId', 'status'])
-    .index('by_created_at', ['createdAt']),
-
-  // Webhook events for raw event storage and debugging
-  webhookEvents: defineTable(baseWebhookEventSchema.fields)
-    .index('by_event_id', ['eventId'])
-    .index('by_platform', ['platform'])
-    .index('by_status', ['status'])
-    .index('by_received_at', ['receivedAt']),
+    .index('by_user_id', ['userId']),
 });

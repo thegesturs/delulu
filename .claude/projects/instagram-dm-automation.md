@@ -11,21 +11,16 @@ Build a production-grade Instagram DM automation system that automatically sends
 ## Architecture
 
 ```
-Instagram Comment → Meta Webhooks
-                         ↓
-              AWS Lambda (Webhook Receiver)
-              - Validates X-Hub-Signature-256
-              - Returns 200 immediately
-                         ↓
-              AWS SQS Queue (InstagramWebhooksQueue)
-              - Message deduplication
-              - Dead letter queue for failures
-                         ↓
-              AWS Lambda (Webhook Processor)
-              - Fetches automation rules from Convex
-              - Evaluates conditions
-              - Sends private reply via Instagram API
-              - Logs results to Convex
+Instagram Comment → Cloudflare Worker
+  1. Validate X-Hub-Signature-256
+  2. Return 200 immediately
+  3. ctx.waitUntil() → background processing:
+     a. Query Convex: get automations for this mediaId + access token + usage
+     b. Evaluate conditions in-memory
+     c. No match? → done (1 Convex call total)
+     d. Match + under plan limit? → send DM via Instagram API
+     e. Mutate Convex: increment usage.dmsSent + automation stats + minimal log
+  Done. (2 Convex calls per DM sent, 1 per non-match)
 ```
 
 ---
@@ -34,124 +29,83 @@ Instagram Comment → Meta Webhooks
 
 ### 1. Database Schemas (Convex) ✅
 
-**Files Created:**
+**Files:**
 - `packages/database/convex/schemas/automations.ts`
+- `packages/database/convex/schemas/users.ts` (added `dmsSent` to usage)
 
-**Tables Added:**
-- `automations` - Automation rules (trigger type, conditions, message template, rate limits)
-- `automationLogs` - Execution history for each automation run
-- `webhookEvents` - Raw webhook storage for debugging
+**Tables:**
+- `automations` - Automation rules (trigger type, conditions, message template, target posts)
+- `automationLogs` - Minimal execution history (DM_SENT only)
 
 **Indexes:**
-- by_user_id, by_social_provider_id, by_is_active, by_trigger_type
-- by_automation_id, by_instagram_comment_id, by_status
-- by_event_id, by_platform, by_received_at
+- automations: by_user_id, by_social_provider_id, by_is_active, by_trigger_type, by_social_provider_active
+- automationLogs: by_automation_id, by_user_id
+
+**DM Plan Limits (in `DM_PLAN_LIMITS`):**
+- FREE → 100 DMs/month
+- VIBE → 5,000 DMs/month
+- ECHO → 50,000 DMs/month
 
 ---
 
-### 2. SST Infrastructure ✅
+### 2. Cloudflare Worker ✅
 
-**File Modified:**
-- `packages/infrastructure/sst.config.ts`
+**Package:** `packages/instagram-webhook/`
 
-**Resources Added:**
-- `InstagramWebhooksDLQ` - Dead letter queue (14 days retention)
-- `InstagramWebhooksQueue` - Main SQS queue with DLQ retry (3 attempts)
-- `InstagramWebhookReceiver` - Lambda function with HTTP URL for Meta webhooks
-- SQS subscriber Lambda for processing events
+**Files:**
+- `package.json` - CF Worker tooling + Convex
+- `wrangler.toml` - Worker config
+- `tsconfig.json`
+- `src/index.ts` - The entire worker
 
-**Secrets Required:**
+**Secrets Required (set via `wrangler secret put`):**
 ```bash
-pnpm sst secret set INSTAGRAM_WEBHOOK_VERIFY_TOKEN "your-token"
-pnpm sst secret set INSTAGRAM_APP_SECRET "from-meta-dashboard"
-pnpm sst secret set CONVEX_URL "https://your-convex.convex.cloud"
+INSTAGRAM_APP_SECRET         # From Meta App Dashboard → Settings → Basic
+INSTAGRAM_WEBHOOK_VERIFY_TOKEN  # Random string you create
+CONVEX_URL                   # Your Convex deployment URL
+CONVEX_DEPLOY_KEY            # Convex deploy key (for internal functions)
 ```
 
 ---
 
-### 3. Lambda Handlers ✅
+### 3. Convex Functions ✅
 
-**Files Created:**
-- `packages/infrastructure/src/instagram-webhook-receiver.ts`
-  - Handles GET (verification challenge)
-  - Handles POST (webhook events)
-  - Validates X-Hub-Signature-256
-  - Queues events to SQS
+**Files:**
+- `packages/database/convex/automations.ts`
+  - `getAutomations` - List user's automations
+  - `getAutomation` - Get single automation
+  - `getForWebhook` - (internal) Single query: automations + token + usage for CF Worker
+  - `recordDMSent` - (internal) Single mutation: increment usage + stats + log
+  - `createAutomation` - Create new automation
+  - `updateAutomation` - Update automation
+  - `deleteAutomation` - Delete automation
+  - `toggleAutomation` - Enable/disable
 
-- `packages/infrastructure/src/instagram-webhook-processor.ts`
-  - Consumes SQS messages
-  - Queries Convex for automations
-  - Evaluates conditions (contains, equals, regex, always, etc.)
-  - Renders message templates with variables
-  - Sends private replies via Instagram API
-  - Logs results to Convex
+- `packages/database/convex/automationLogs.ts`
+  - `getLogsByAutomation` - Query logs for display
+
+- `packages/database/convex/social_providers.ts`
+  - `getByProfileId` - Find provider by Instagram profile ID
 
 ---
 
 ### 4. Instagram OAuth Scopes ✅
 
-**File Modified:**
+**File:**
 - `packages/api/services/connect-url.service.ts`
 
-**Scopes Added:**
+**Scopes:**
 - `instagram_business_manage_messages` (for sending DMs)
 - `instagram_business_manage_comments` (for reading comments)
 
 ---
 
-### 5. Convex HTTP Endpoint (Backup) ✅
-
-**File Modified:**
-- `packages/database/convex/http.ts`
-
-**Routes Added:**
-- `GET /instagram-webhook` - Verification challenge
-- `POST /instagram-webhook` - Event receiver (stores raw events)
-
-Uses Web Crypto API for signature validation (Convex runtime compatible).
-
----
-
-### 6. Convex Functions ✅
-
-**Files Created:**
-- `packages/database/convex/automations.ts`
-  - `getAutomations` - List user's automations
-  - `getAutomation` - Get single automation
-  - `getActiveByProvider` - Get active automations for a provider
-  - `getRateLimitCounts` - Check hourly/daily limits
-  - `createAutomation` - Create new automation
-  - `updateAutomation` - Update automation
-  - `deleteAutomation` - Delete automation
-  - `toggleAutomation` - Enable/disable
-  - `incrementStats` - Update stats (internal)
-
-- `packages/database/convex/automationLogs.ts`
-  - `getLogsByAutomation` - Query logs
-  - `getByCommentId` - Duplicate detection
-  - `getAnalytics` - Stats and daily counts
-  - `create` - Create log entry (internal)
-
-- `packages/database/convex/webhookEvents.ts`
-  - `getWebhookEvents` - List events
-  - `getByEventId` - Get single event
-  - `createWebhookEvent` - Store event (internal)
-  - `updateByEventId` - Update status (internal)
-
-**File Modified:**
-- `packages/database/convex/social_providers.ts`
-  - Added `getByProfileId` - Find provider by Instagram profile ID
-
----
-
-### 7. UI Components ✅
-
-**Files Created:**
+### 5. UI Components ✅
 
 **Pages:**
 - `apps/app/app/(authenticated)/automations/page.tsx` - Main list page
 - `apps/app/app/(authenticated)/automations/[id]/page.tsx` - Edit automation
-- `apps/app/app/(authenticated)/automations/[id]/analytics/page.tsx` - View logs & stats
+- `apps/app/app/(authenticated)/automations/[id]/analytics/page.tsx` - View stats & logs
 
 **Components:**
 - `apps/app/components/automations/automations-client.tsx` - Main client component
@@ -161,29 +115,38 @@ Uses Web Crypto API for signature validation (Convex runtime compatible).
 - `apps/app/components/automations/automation-list.tsx` - Grid/list view
 - `apps/app/components/automations/automation-card.tsx` - Individual automation card
 - `apps/app/components/automations/create-automation-dialog.tsx` - Create dialog with tabs
-- `apps/app/components/automations/index.ts` - Barrel export
+- `apps/app/components/automations/post-selector.tsx` - Instagram post selection
 
-**Navigation:**
-- `apps/app/lib/navigation.ts` - Added "Automations" nav item
-- `packages/design-system/icons/index.tsx` - Added Robot icon
+---
+
+## Removed (Simplified Away)
+
+- **AWS Lambda infrastructure** (receiver + processor + SQS + DLQ)
+- **webhookEvents table** - No longer stored
+- **Per-automation rate limits** (maxDMsPerHour, maxDMsPerDay, cooldownMinutes) — replaced by plan-level limits
+- **Verbose logging** (TRIGGERED, DM_FAILED, RATE_LIMITED, CONDITION_NOT_MET, DUPLICATE) — now only DM_SENT
+- **Convex HTTP /instagram-webhook** endpoint — replaced by CF Worker
 
 ---
 
 ## Pending Work
 
 ### 1. Testing & Deployment
-- [ ] Deploy SST infrastructure
-- [ ] Configure Meta App Dashboard with webhook URL
-- [ ] Test webhook verification
-- [ ] Test comment → DM flow end-to-end
+- [ ] `pnpm install` — new package picked up by workspace
+- [ ] `npx convex dev` — schema deploys (new dmsSent field, removed webhookEvents)
+- [ ] `cd packages/instagram-webhook && pnpm dev` — Worker runs locally
+- [ ] Set wrangler secrets for CF Worker
+- [ ] `pnpm deploy` from worker package → deploy to CF
+- [ ] Update Meta webhook URL → CF Worker URL
+- [ ] Test verification: `curl <worker-url>?hub.mode=subscribe&hub.verify_token=...&hub.challenge=test`
+- [ ] Test end-to-end: Comment on IG post → DM received → user.usage.dmsSent incremented
 
-### 2. Token Refresh
+### 2. Data Migration
+- [ ] Add `dmsSent: 0` to all existing users' usage objects
+- [ ] Add `targetPostIds: []` to any existing automations with missing field
+
+### 3. Token Refresh
 - [ ] Implement Instagram token refresh logic (60-day expiry)
-
-### 3. UI Enhancements (Optional)
-- [ ] Add post selector for targeting specific posts
-- [ ] Add cooldown per user setting
-- [ ] Bulk enable/disable automations
 
 ### 4. Additional Triggers (Future)
 - [ ] Mention trigger
@@ -193,21 +156,16 @@ Uses Web Crypto API for signature validation (Convex runtime compatible).
 
 ## Environment Variables
 
-### SST Secrets (AWS)
+### CF Worker Secrets
 ```bash
-INSTAGRAM_WEBHOOK_VERIFY_TOKEN  # Random string you create
-INSTAGRAM_APP_SECRET            # From Meta App Dashboard → Settings → Basic
-CONVEX_URL                      # Your Convex deployment URL
-```
-
-### Convex Environment Variables
-```
-INSTAGRAM_WEBHOOK_VERIFY_TOKEN  # Same as SST (for backup endpoint)
-INSTAGRAM_APP_SECRET            # Same as SST (for backup endpoint)
+wrangler secret put INSTAGRAM_APP_SECRET
+wrangler secret put INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+wrangler secret put CONVEX_URL
+wrangler secret put CONVEX_DEPLOY_KEY
 ```
 
 ### Meta App Dashboard
-- Callback URL: Lambda URL from `pnpm sst deploy` output
+- Callback URL: CF Worker URL from `wrangler deploy` output
 - Verify Token: Same as INSTAGRAM_WEBHOOK_VERIFY_TOKEN
 - Subscribe to: `comments` field
 
@@ -218,12 +176,12 @@ INSTAGRAM_APP_SECRET            # Same as SST (for backup endpoint)
 | Purpose | Path |
 |---------|------|
 | Automation schemas | `packages/database/convex/schemas/automations.ts` |
+| User schema (dmsSent) | `packages/database/convex/schemas/users.ts` |
 | Main schema | `packages/database/convex/schema.ts` |
-| SST config | `packages/infrastructure/sst.config.ts` |
-| Webhook receiver | `packages/infrastructure/src/instagram-webhook-receiver.ts` |
-| Webhook processor | `packages/infrastructure/src/instagram-webhook-processor.ts` |
 | Convex automations | `packages/database/convex/automations.ts` |
 | Convex logs | `packages/database/convex/automationLogs.ts` |
+| CF Worker | `packages/instagram-webhook/src/index.ts` |
+| Worker config | `packages/instagram-webhook/wrangler.toml` |
 | OAuth scopes | `packages/api/services/connect-url.service.ts` |
 | UI pages | `apps/app/app/(authenticated)/automations/` |
 | UI components | `apps/app/components/automations/` |
@@ -232,8 +190,9 @@ INSTAGRAM_APP_SECRET            # Same as SST (for backup endpoint)
 
 ## Rate Limits
 
-**Default limits (configurable per automation):**
-- Max 20 DMs per hour
-- Max 100 DMs per day
+**Plan-level limits (tracked in user.usage.dmsSent):**
+- FREE: 100 DMs/month
+- VIBE: 5,000 DMs/month
+- ECHO: 50,000 DMs/month
 - Instagram allows only 1 private reply per comment
 - Private replies must be within 7 days of comment

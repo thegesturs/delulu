@@ -73,8 +73,6 @@ export default function EditAutomationPage() {
   const [isActive, setIsActive] = useState(false);
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [messageTemplate, setMessageTemplate] = useState('');
-  const [maxDMsPerHour, setMaxDMsPerHour] = useState(20);
-  const [maxDMsPerDay, setMaxDMsPerDay] = useState(100);
   const [targetPostIds, setTargetPostIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -90,9 +88,7 @@ export default function EditAutomationPage() {
         }))
       );
       setMessageTemplate(automation.messageTemplate);
-      setMaxDMsPerHour(automation.maxDMsPerHour);
-      setMaxDMsPerDay(automation.maxDMsPerDay);
-      setTargetPostIds(automation.targetPostIds || []);
+      setTargetPostIds(automation.targetPostIds);
     }
   }, [automation]);
 
@@ -154,9 +150,7 @@ export default function EditAutomationPage() {
           caseSensitive: c.caseSensitive,
         })),
         messageTemplate,
-        maxDMsPerHour,
-        maxDMsPerDay,
-        targetPostIds: targetPostIds.length > 0 ? targetPostIds : undefined,
+        targetPostIds,
       });
 
       toast.success('Automation updated successfully');
@@ -263,28 +257,6 @@ export default function EditAutomationPage() {
                   rows={2}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Max DMs per hour</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={maxDMsPerHour}
-                    onChange={(e) => setMaxDMsPerHour(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Max DMs per day</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={maxDMsPerDay}
-                    onChange={(e) => setMaxDMsPerDay(Number(e.target.value))}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -295,9 +267,8 @@ export default function EditAutomationPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground text-sm">
-                Choose which posts this automation monitors. Select "All Posts"
-                to respond to comments on any post, or pick specific posts for
-                targeted campaigns.
+                Choose which posts this automation monitors. Select at least one
+                post for this automation to work.
               </p>
               <PostSelector
                 socialProviderId={automation.socialProviderId}

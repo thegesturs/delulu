@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "instagram-webhook",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-01-01"
+
+  // Secrets (set via `wrangler secret put`):
+  // - INSTAGRAM_APP_SECRET
+  // - INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+  // - CONVEX_URL
+  // - WEBHOOK_SECRET
+}
