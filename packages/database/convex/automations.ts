@@ -102,7 +102,7 @@ export const getForWebhook = query({
   ),
   handler: async (ctx, args) => {
     // Verify shared secret
-    if (args.webhookSecret !== process.env.WEBHOOK_SECRET) {
+    if (args.webhookSecret !== process.env.LAMBDA_SECRET_KEY) {
       return null;
     }
 
@@ -182,7 +182,7 @@ export const recordDMSent = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Verify shared secret
-    if (args.webhookSecret !== process.env.WEBHOOK_SECRET) {
+    if (args.webhookSecret !== process.env.LAMBDA_SECRET_KEY) {
       throw new Error('Unauthorized');
     }
 

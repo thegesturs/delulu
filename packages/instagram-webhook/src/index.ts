@@ -10,7 +10,7 @@ interface Env {
   INSTAGRAM_APP_SECRET: string;
   INSTAGRAM_WEBHOOK_VERIFY_TOKEN: string;
   CONVEX_URL: string;
-  WEBHOOK_SECRET: string;
+  LAMBDA_SECRET_KEY: string;
 }
 
 interface InstagramWebhookPayload {
@@ -331,7 +331,7 @@ export default {
         (async () => {
           for (const event of commentEvents) {
             try {
-              await processComment(convex, event, env.WEBHOOK_SECRET);
+              await processComment(convex, event, env.LAMBDA_SECRET_KEY);
             } catch (error) {
               console.error('Error processing comment:', event.commentId, error);
             }
