@@ -63,7 +63,8 @@ export const connectUrlRegistry = {
         response_type: 'code',
         client_key: keys().TIKTOK_CLIENT_ID,
         redirect_uri: keys().TIKTOK_CALLBACK_URL,
-        scope: 'user.info.basic,video.publish,video.upload,user.info.profile,video.list',
+        scope:
+          'user.info.basic,video.publish,video.upload,user.info.profile,video.list',
         state: nanoid(10),
       });
 
@@ -79,6 +80,8 @@ export const connectUrlRegistry = {
         scope: [
           'instagram_business_basic',
           'instagram_business_content_publish',
+          'instagram_business_manage_messages',
+          'instagram_business_manage_comments',
         ].join(','),
         state: nanoid(),
       });
