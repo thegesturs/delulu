@@ -26,9 +26,9 @@ export default $config({
     const queue = new sst.aws.Queue('SocialPostsQueue');
 
     const SECRET_KEY = new sst.Secret('LAMBDA_SECRET_KEY');
-    const INSTAGRAM_APP_SECRET = new sst.Secret('InstagramAppSecret');
-    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret('InstagramWebhookVerifyToken');
-    const CONVEX_URL = new sst.Secret('ConvexUrl');
+    const INSTAGRAM_APP_SECRET = new sst.Secret('INSTAGRAM_APP_SECRET');
+    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret('INSTAGRAM_WEBHOOK_VERIFY_TOKEN');
+    const CONVEX_URL = new sst.Secret('CONVEX_URL');
 
     const triggerFunction = new sst.aws.Function('TriggerSqsFunction', {
       handler: 'src/trigger-sqs.handler',

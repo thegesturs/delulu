@@ -17,17 +17,9 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "InstagramWebhookReceiver": {
+    "InstagramWebhook": {
       "name": string
       "type": "sst.aws.Function"
-      "url": string
-    }
-    "InstagramWebhooksDLQ": {
-      "type": "sst.aws.Queue"
-      "url": string
-    }
-    "InstagramWebhooksQueue": {
-      "type": "sst.aws.Queue"
       "url": string
     }
     "LAMBDA_SECRET_KEY": {

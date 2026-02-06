@@ -187,7 +187,12 @@ async function processComment(
   event: CommentEvent,
   secretKey: string
 ): Promise<void> {
-  if (!event.mediaId) return;
+  if (!event.mediaId) {
+    console.log(`[skip] No mediaId for comment ${event.commentId}`);
+    return;
+  }
+
+  console.log(`[process] Comment ${event.commentId} by @${event.username} on media ${event.mediaId}`);
 
   // 1. Single Convex query: automations + token + usage
   const data = await convex.query(api.automations.getForWebhook, {
@@ -196,8 +201,17 @@ async function processComment(
     mediaId: event.mediaId,
   });
 
-  if (!data) return;
-  if ((data.dmsSent ?? 0) >= data.dmLimit) return;
+  if (!data) {
+    console.log(`[skip] No matching automations for media ${event.mediaId}`);
+    return;
+  }
+
+  if ((data.dmsSent ?? 0) >= data.dmLimit) {
+    console.log(`[skip] DM limit reached: ${data.dmsSent}/${data.dmLimit}`);
+    return;
+  }
+
+  console.log(`[match] ${data.automations.length} automations, usage ${data.dmsSent ?? 0}/${data.dmLimit}`);
 
   // 2. Evaluate conditions in-memory, find first match
   for (const automation of data.automations) {
@@ -208,9 +222,11 @@ async function processComment(
       comment_text: event.commentText,
     });
 
+    console.log(`[dm] Sending DM for automation ${automation._id} to @${event.username}`);
     const success = await sendPrivateReply(data.accessToken, data.profileId, event.commentId, message);
 
     if (success) {
+      console.log(`[dm] DM sent successfully for comment ${event.commentId}`);
       // 3. Single Convex mutation: increment usage + stats + log
       await convex.mutation(api.automations.recordDMSent, {
         webhookSecret: secretKey,
@@ -219,6 +235,8 @@ async function processComment(
         instagramCommentId: event.commentId,
         instagramUsername: event.username,
       });
+    } else {
+      console.error(`[dm] DM failed for comment ${event.commentId}`);
     }
 
     // One reply per comment
@@ -260,6 +278,7 @@ export async function handler(event: LambdaEvent) {
     const signature = event.headers['x-hub-signature-256'];
 
     if (!validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)) {
+      console.warn('[webhook] Invalid signature, ignoring');
       return json(200, { status: 'received' });
     }
 
@@ -267,16 +286,20 @@ export async function handler(event: LambdaEvent) {
     try {
       payload = JSON.parse(body);
     } catch {
+      console.warn('[webhook] Invalid JSON body');
       return json(200, { status: 'received' });
     }
 
     if (payload.object !== 'instagram') {
+      console.log(`[webhook] Ignoring non-instagram event: ${payload.object}`);
       return json(200, { status: 'received' });
     }
 
     // Process comments (Lambda waits for completion, no waitUntil needed)
     const convex = new ConvexHttpClient(Resource.CONVEX_URL.value);
     const commentEvents = extractCommentEvents(payload);
+
+    console.log(`[webhook] Processing ${commentEvents.length} comment events`);
 
     for (const commentEvent of commentEvents) {
       try {
