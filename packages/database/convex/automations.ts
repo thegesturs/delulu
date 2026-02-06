@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import {
   automationCreateSchema,
   automationSchema,
@@ -28,6 +28,7 @@ export const getAutomations = query({
       return [];
     }
 
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
     let automations;
     if (args.socialProviderId) {
       automations = await ctx.db
@@ -256,9 +257,9 @@ export const toggleAutomation = mutation({
 });
 
 /**
- * Increment automation stats (internal, called by Lambda processor)
+ * Increment automation stats (called by Lambda processor)
  */
-export const incrementStats = internalMutation({
+export const incrementStats = mutation({
   args: {
     automationId: v.id('automations'),
     field: v.union(

@@ -1,9 +1,20 @@
-import type { SQSEvent, SQSRecord } from 'aws-lambda';
+import { ConvexHttpClient } from 'convex/browser';
 import { Resource } from 'sst';
+import { api } from '@delulu/database/convex/_generated/api';
 
 // ============================================================================
 // Types
 // ============================================================================
+
+interface SQSRecord {
+  body: string;
+  messageId: string;
+  receiptHandle: string;
+}
+
+interface SQSEvent {
+  Records: SQSRecord[];
+}
 
 interface QueuedWebhookEvent {
   payload: InstagramWebhookPayload;
@@ -39,79 +50,12 @@ interface CommentEvent {
   timestamp: number;
 }
 
-interface Automation {
-  _id: string;
-  socialProviderId: string;
-  name: string;
-  isActive: boolean;
-  triggerType: string;
-  targetPostIds?: string[];
-  conditions: Array<{
-    operator: string;
-    value?: string;
-    caseSensitive?: boolean;
-  }>;
-  messageTemplate: string;
-  maxDMsPerHour: number;
-  maxDMsPerDay: number;
-  cooldownMinutes?: number;
-}
-
-interface SocialProvider {
-  _id: string;
-  profileId: string;
-  accessToken: string;
-  socialType: string;
-}
-
 // ============================================================================
 // Convex Client
 // ============================================================================
 
-async function convexQuery<T>(
-  functionPath: string,
-  args: Record<string, unknown>
-): Promise<T> {
-  const response = await fetch(`${Resource.CONVEX_URL.value}/api/query`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      path: functionPath,
-      args,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Convex query failed: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  return result.value as T;
-}
-
-async function convexMutation<T>(
-  functionPath: string,
-  args: Record<string, unknown>
-): Promise<T> {
-  const response = await fetch(`${Resource.CONVEX_URL.value}/api/mutation`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      path: functionPath,
-      args,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Convex mutation failed: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  return result.value as T;
+function getConvexClient() {
+  return new ConvexHttpClient(Resource.CONVEX_URL.value);
 }
 
 // ============================================================================
@@ -120,9 +64,12 @@ async function convexMutation<T>(
 
 function evaluateConditions(
   text: string,
-  conditions: Automation['conditions']
+  conditions: Array<{
+    operator: string;
+    value?: string;
+    caseSensitive?: boolean;
+  }>
 ): boolean {
-  // All conditions must match (AND logic)
   return conditions.every((condition) => {
     const compareText = condition.caseSensitive ? text : text.toLowerCase();
     const compareValue = condition.caseSensitive
@@ -183,10 +130,8 @@ async function sendPrivateReply(
   message: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    // Instagram Private Reply API
-    // POST /{comment-id}/private_replies
     const response = await fetch(
-      `https://graph.instagram.com/v21.0/${commentId}/private_replies`,
+      `https://graph.instagram.com/v24.0/${commentId}/private_replies`,
       {
         method: 'POST',
         headers: {
@@ -223,39 +168,6 @@ async function sendPrivateReply(
 }
 
 // ============================================================================
-// Rate Limiting
-// ============================================================================
-
-async function checkRateLimits(
-  automationId: string,
-  maxPerHour: number,
-  maxPerDay: number
-): Promise<{ allowed: boolean; reason?: string }> {
-  try {
-    const result = await convexQuery<{
-      hourCount: number;
-      dayCount: number;
-    }>('automations:getRateLimitCounts', {
-      automationId,
-    });
-
-    if (result.hourCount >= maxPerHour) {
-      return { allowed: false, reason: 'Hourly rate limit exceeded' };
-    }
-
-    if (result.dayCount >= maxPerDay) {
-      return { allowed: false, reason: 'Daily rate limit exceeded' };
-    }
-
-    return { allowed: true };
-  } catch (error) {
-    console.error('Failed to check rate limits:', error);
-    // Allow if rate limit check fails (fail open)
-    return { allowed: true };
-  }
-}
-
-// ============================================================================
 // Main Processing Logic
 // ============================================================================
 
@@ -286,7 +198,10 @@ function extractCommentEvents(
   return events;
 }
 
-async function processCommentEvent(event: CommentEvent): Promise<void> {
+async function processCommentEvent(
+  convex: ConvexHttpClient,
+  event: CommentEvent
+): Promise<void> {
   const startTime = Date.now();
 
   console.log('Processing comment event:', {
@@ -296,12 +211,9 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
   });
 
   // 1. Check for duplicate processing
-  const existingLog = await convexQuery<{ _id: string } | null>(
-    'automationLogs:getByCommentId',
-    {
-      instagramCommentId: event.commentId,
-    }
-  );
+  const existingLog = await convex.query(api.automationLogs.getByCommentId, {
+    instagramCommentId: event.commentId,
+  });
 
   if (existingLog) {
     console.log('Comment already processed:', event.commentId);
@@ -309,13 +221,10 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
   }
 
   // 2. Find the social provider for this Instagram account
-  const socialProvider = await convexQuery<SocialProvider | null>(
-    'social_providers:getByProfileId',
-    {
-      profileId: event.instagramAccountId,
-      socialType: 'INSTAGRAM',
-    }
-  );
+  const socialProvider = await convex.query(api.social_providers.getByProfileId, {
+    profileId: event.instagramAccountId,
+    socialType: 'INSTAGRAM',
+  });
 
   if (!socialProvider) {
     console.log(
@@ -326,19 +235,13 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
   }
 
   // 3. Get active automations for this social provider
-  const automations = await convexQuery<Automation[]>(
-    'automations:getActiveByProvider',
-    {
-      socialProviderId: socialProvider._id,
-      triggerType: 'COMMENT',
-    }
-  );
+  const automations = await convex.query(api.automations.getActiveByProvider, {
+    socialProviderId: socialProvider._id,
+    triggerType: 'COMMENT',
+  });
 
   if (automations.length === 0) {
-    console.log(
-      'No active automations for provider:',
-      socialProvider._id
-    );
+    console.log('No active automations for provider:', socialProvider._id);
     return;
   }
 
@@ -355,7 +258,7 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
         'Comment on non-targeted post, skipping automation:',
         automation._id
       );
-      await convexMutation('automationLogs:create', {
+      await convex.mutation(api.automationLogs.create, {
         automationId: automation._id,
         instagramCommentId: event.commentId,
         instagramUserId: event.userId,
@@ -371,7 +274,7 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
     // Evaluate conditions
     if (!evaluateConditions(event.commentText, automation.conditions)) {
       console.log('Conditions not met for automation:', automation._id);
-      await convexMutation('automationLogs:create', {
+      await convex.mutation(api.automationLogs.create, {
         automationId: automation._id,
         instagramCommentId: event.commentId,
         instagramUserId: event.userId,
@@ -385,19 +288,13 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
     }
 
     // Check rate limits
-    const rateLimitCheck = await checkRateLimits(
-      automation._id,
-      automation.maxDMsPerHour,
-      automation.maxDMsPerDay
-    );
+    const rateLimits = await convex.query(api.automations.getRateLimitCounts, {
+      automationId: automation._id,
+    });
 
-    if (!rateLimitCheck.allowed) {
-      console.log(
-        'Rate limit exceeded for automation:',
-        automation._id,
-        rateLimitCheck.reason
-      );
-      await convexMutation('automationLogs:create', {
+    if (rateLimits.hourCount >= automation.maxDMsPerHour) {
+      console.log('Hourly rate limit exceeded for automation:', automation._id);
+      await convex.mutation(api.automationLogs.create, {
         automationId: automation._id,
         instagramCommentId: event.commentId,
         instagramUserId: event.userId,
@@ -405,7 +302,23 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
         instagramMediaId: event.mediaId,
         commentText: event.commentText,
         status: 'RATE_LIMITED',
-        errorMessage: rateLimitCheck.reason,
+        errorMessage: 'Hourly rate limit exceeded',
+        processingTimeMs: Date.now() - startTime,
+      });
+      continue;
+    }
+
+    if (rateLimits.dayCount >= automation.maxDMsPerDay) {
+      console.log('Daily rate limit exceeded for automation:', automation._id);
+      await convex.mutation(api.automationLogs.create, {
+        automationId: automation._id,
+        instagramCommentId: event.commentId,
+        instagramUserId: event.userId,
+        instagramUsername: event.username,
+        instagramMediaId: event.mediaId,
+        commentText: event.commentText,
+        status: 'RATE_LIMITED',
+        errorMessage: 'Daily rate limit exceeded',
         processingTimeMs: Date.now() - startTime,
       });
       continue;
@@ -426,11 +339,8 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
 
     // Log the result
     if (result.success) {
-      console.log(
-        'Private reply sent successfully:',
-        result.messageId
-      );
-      await convexMutation('automationLogs:create', {
+      console.log('Private reply sent successfully:', result.messageId);
+      await convex.mutation(api.automationLogs.create, {
         automationId: automation._id,
         instagramCommentId: event.commentId,
         instagramUserId: event.userId,
@@ -444,13 +354,13 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
       });
 
       // Update automation stats
-      await convexMutation('automations:incrementStats', {
+      await convex.mutation(api.automations.incrementStats, {
         automationId: automation._id,
         field: 'totalDMsSent',
       });
     } else {
       console.error('Failed to send private reply:', result.error);
-      await convexMutation('automationLogs:create', {
+      await convex.mutation(api.automationLogs.create, {
         automationId: automation._id,
         instagramCommentId: event.commentId,
         instagramUserId: event.userId,
@@ -464,21 +374,24 @@ async function processCommentEvent(event: CommentEvent): Promise<void> {
       });
 
       // Update automation stats
-      await convexMutation('automations:incrementStats', {
+      await convex.mutation(api.automations.incrementStats, {
         automationId: automation._id,
         field: 'totalFailed',
       });
     }
 
     // Update triggered count
-    await convexMutation('automations:incrementStats', {
+    await convex.mutation(api.automations.incrementStats, {
       automationId: automation._id,
       field: 'totalTriggered',
     });
   }
 }
 
-async function processRecord(record: SQSRecord): Promise<void> {
+async function processRecord(
+  convex: ConvexHttpClient,
+  record: SQSRecord
+): Promise<void> {
   let queuedEvent: QueuedWebhookEvent;
 
   try {
@@ -494,7 +407,7 @@ async function processRecord(record: SQSRecord): Promise<void> {
 
   // Store raw webhook event for debugging
   try {
-    await convexMutation('webhookEvents:create', {
+    await convex.mutation(api.webhookEvents.createWebhookEvent, {
       eventId,
       platform: 'instagram',
       eventType: payload.entry?.[0]?.changes?.[0]?.field || 'unknown',
@@ -510,11 +423,11 @@ async function processRecord(record: SQSRecord): Promise<void> {
     const commentEvents = extractCommentEvents(payload);
 
     for (const event of commentEvents) {
-      await processCommentEvent(event);
+      await processCommentEvent(convex, event);
     }
 
     // Update webhook event status
-    await convexMutation('webhookEvents:updateByEventId', {
+    await convex.mutation(api.webhookEvents.updateByEventId, {
       eventId,
       status: 'PROCESSED',
       processedAt: Date.now(),
@@ -523,11 +436,10 @@ async function processRecord(record: SQSRecord): Promise<void> {
     console.error('Error processing webhook:', error);
 
     // Update webhook event status
-    await convexMutation('webhookEvents:updateByEventId', {
+    await convex.mutation(api.webhookEvents.updateByEventId, {
       eventId,
       status: 'FAILED',
-      errorMessage:
-        error instanceof Error ? error.message : 'Unknown error',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
     });
 
     // Re-throw to trigger SQS retry
@@ -542,7 +454,9 @@ async function processRecord(record: SQSRecord): Promise<void> {
 export async function handler(event: SQSEvent): Promise<void> {
   console.log(`Processing ${event.Records.length} webhook event(s)`);
 
+  const convex = getConvexClient();
+
   for (const record of event.Records) {
-    await processRecord(record);
+    await processRecord(convex, record);
   }
 }

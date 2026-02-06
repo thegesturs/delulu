@@ -46,7 +46,10 @@ export default $config({
         QUEUE_URL: queue.url,
         DEBUG: 'true',
       },
-      dev: false,
+      dev: {
+        command: 'pnpm dev',
+        directory: 'packages/worker',
+      },
     });
 
     queue.subscribe({
@@ -66,17 +69,12 @@ export default $config({
     const CONVEX_URL = new sst.Secret('CONVEX_URL');
 
     // Dead Letter Queue for failed webhook processing
-    const instagramWebhooksDLQ = new sst.aws.Queue('InstagramWebhooksDLQ', {
-      retentionPeriod: '14 days',
-    });
+    const instagramWebhooksDLQ = new sst.aws.Queue('InstagramWebhooksDLQ');
 
-    // Main Instagram Webhooks Queue
+    // Main Instagram Webhooks Queue with DLQ
     const instagramWebhooksQueue = new sst.aws.Queue('InstagramWebhooksQueue', {
-      dlq: {
-        queue: instagramWebhooksDLQ.arn,
-        retry: 3,
-      },
       visibilityTimeout: '60 seconds',
+      dlq: instagramWebhooksDLQ.arn,
     });
 
     // Lambda: Receives webhooks from Instagram (must respond <15s)

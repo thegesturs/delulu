@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internalMutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import {
   webhookEventCreateSchema,
   webhookEventSchema,
@@ -66,13 +66,13 @@ export const getByEventId = query({
 });
 
 // ============================================================================
-// Internal Mutations (called by Lambda processor and HTTP handler)
+// Mutations (called by Lambda processor and HTTP handler)
 // ============================================================================
 
 /**
  * Create a webhook event record
  */
-export const createWebhookEvent = internalMutation({
+export const createWebhookEvent = mutation({
   args: webhookEventCreateSchema.fields,
   returns: v.id('webhookEvents'),
   handler: async (ctx, args) => {
@@ -95,7 +95,7 @@ export const createWebhookEvent = internalMutation({
 /**
  * Update webhook event status by event ID
  */
-export const updateByEventId = internalMutation({
+export const updateByEventId = mutation({
   args: {
     eventId: v.string(),
     ...webhookEventUpdateSchema.fields,
@@ -121,7 +121,7 @@ export const updateByEventId = internalMutation({
 /**
  * Increment retry count for a webhook event
  */
-export const incrementRetryCount = internalMutation({
+export const incrementRetryCount = mutation({
   args: { eventId: v.string() },
   returns: v.boolean(),
   handler: async (ctx, args) => {

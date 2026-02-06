@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { internalMutation, query } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import {
   automationLogCreateSchema,
   automationLogSchema,
@@ -34,6 +34,7 @@ export const getLogsByAutomation = query({
       return [];
     }
 
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
     let logsQuery;
     if (args.status) {
       logsQuery = ctx.db
@@ -187,13 +188,13 @@ export const getAnalytics = query({
 });
 
 // ============================================================================
-// Internal Mutations (called by Lambda processor)
+// Mutations (called by Lambda processor)
 // ============================================================================
 
 /**
  * Create an automation log entry
  */
-export const create = internalMutation({
+export const create = mutation({
   args: automationLogCreateSchema.fields,
   returns: v.id('automationLogs'),
   handler: async (ctx, args) => {
