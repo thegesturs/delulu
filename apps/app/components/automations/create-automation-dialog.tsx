@@ -21,8 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@delulu/design-system/components/ui/tabs';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@delulu/design-system/components/ui/tabs';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
   Add01Icon,
@@ -32,6 +37,7 @@ import {
 import { useMutation } from 'convex/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { PostSelector } from './post-selector';
 
 interface CreateAutomationDialogProps {
   open: boolean;
@@ -55,7 +61,7 @@ const OPERATORS = [
 ];
 
 const VARIABLES = [
-  { name: '{username}', description: 'The commenter\'s Instagram username' },
+  { name: '{username}', description: "The commenter's Instagram username" },
   { name: '{comment_text}', description: 'The full text of the comment' },
 ];
 
@@ -76,10 +82,11 @@ export function CreateAutomationDialog({
     { operator: 'always', value: '', caseSensitive: false },
   ]);
   const [messageTemplate, setMessageTemplate] = useState(
-    'Hey {username}! Thanks for commenting. Here\'s a special link just for you: [YOUR_LINK]'
+    "Hey {username}! Thanks for commenting. Here's a special link just for you: [YOUR_LINK]"
   );
   const [maxDMsPerHour, setMaxDMsPerHour] = useState(20);
   const [maxDMsPerDay, setMaxDMsPerDay] = useState(100);
+  const [targetPostIds, setTargetPostIds] = useState<string[]>([]);
 
   const createAutomation = useMutation(api.automations.createAutomation);
 
@@ -90,10 +97,11 @@ export function CreateAutomationDialog({
     setTriggerType('COMMENT');
     setConditions([{ operator: 'always', value: '', caseSensitive: false }]);
     setMessageTemplate(
-      'Hey {username}! Thanks for commenting. Here\'s a special link just for you: [YOUR_LINK]'
+      "Hey {username}! Thanks for commenting. Here's a special link just for you: [YOUR_LINK]"
     );
     setMaxDMsPerHour(20);
     setMaxDMsPerDay(100);
+    setTargetPostIds([]);
     setActiveTab('basics');
   };
 
@@ -103,7 +111,10 @@ export function CreateAutomationDialog({
   };
 
   const addCondition = () => {
-    setConditions([...conditions, { operator: 'contains', value: '', caseSensitive: false }]);
+    setConditions([
+      ...conditions,
+      { operator: 'contains', value: '', caseSensitive: false },
+    ]);
   };
 
   const removeCondition = (index: number) => {
@@ -112,7 +123,11 @@ export function CreateAutomationDialog({
     }
   };
 
-  const updateCondition = (index: number, field: keyof Condition, value: string | boolean) => {
+  const updateCondition = (
+    index: number,
+    field: keyof Condition,
+    value: string | boolean
+  ) => {
     const newConditions = [...conditions];
     newConditions[index] = { ...newConditions[index], [field]: value };
     setConditions(newConditions);
@@ -149,13 +164,21 @@ export function CreateAutomationDialog({
         socialProviderId: socialProviderId as Id<'socialProviders'>,
         triggerType: triggerType as 'COMMENT' | 'MENTION' | 'STORY_REPLY',
         conditions: conditions.map((c) => ({
-          operator: c.operator as 'contains' | 'equals' | 'starts_with' | 'ends_with' | 'regex' | 'always' | 'not_contains',
+          operator: c.operator as
+            | 'contains'
+            | 'equals'
+            | 'starts_with'
+            | 'ends_with'
+            | 'regex'
+            | 'always'
+            | 'not_contains',
           value: c.operator === 'always' ? undefined : c.value,
           caseSensitive: c.caseSensitive,
         })),
         messageTemplate,
         maxDMsPerHour,
         maxDMsPerDay,
+        targetPostIds: targetPostIds.length > 0 ? targetPostIds : undefined,
         isActive: false, // Start as inactive
       });
 
@@ -180,8 +203,11 @@ export function CreateAutomationDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basics">Basics</TabsTrigger>
+            <TabsTrigger value="posts" disabled={!socialProviderId}>
+              Posts
+            </TabsTrigger>
             <TabsTrigger value="conditions">Conditions</TabsTrigger>
             <TabsTrigger value="message">Message</TabsTrigger>
           </TabsList>
@@ -210,7 +236,10 @@ export function CreateAutomationDialog({
 
             <div className="space-y-2">
               <Label htmlFor="account">Instagram Account *</Label>
-              <Select value={socialProviderId} onValueChange={setSocialProviderId}>
+              <Select
+                value={socialProviderId}
+                onValueChange={setSocialProviderId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select an Instagram account" />
                 </SelectTrigger>
@@ -279,12 +308,37 @@ export function CreateAutomationDialog({
             </div>
           </TabsContent>
 
+          <TabsContent value="posts" className="mt-4 space-y-4">
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-blue-800 text-sm dark:bg-blue-900/20 dark:text-blue-200">
+              <Icon
+                icon={InformationCircleIcon}
+                size={16}
+                className="mt-0.5 flex-shrink-0"
+              />
+              <p>
+                Choose which posts this automation should monitor. Select "All
+                Posts" to respond to comments on any post, or pick specific
+                posts for targeted campaigns.
+              </p>
+            </div>
+
+            <PostSelector
+              socialProviderId={socialProviderId || null}
+              selectedPostIds={targetPostIds}
+              onSelectionChange={setTargetPostIds}
+            />
+          </TabsContent>
+
           <TabsContent value="conditions" className="mt-4 space-y-4">
             <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-blue-800 text-sm dark:bg-blue-900/20 dark:text-blue-200">
-              <Icon icon={InformationCircleIcon} size={16} className="mt-0.5 flex-shrink-0" />
+              <Icon
+                icon={InformationCircleIcon}
+                size={16}
+                className="mt-0.5 flex-shrink-0"
+              />
               <p>
-                Define when this automation should trigger. All conditions must match (AND logic).
-                Use "Always" to respond to every comment.
+                Define when this automation should trigger. All conditions must
+                match (AND logic). Use "Always" to respond to every comment.
               </p>
             </div>
 
@@ -294,7 +348,9 @@ export function CreateAutomationDialog({
                   <div className="flex-1 space-y-2">
                     <Select
                       value={condition.operator}
-                      onValueChange={(value) => updateCondition(index, 'operator', value)}
+                      onValueChange={(value) =>
+                        updateCondition(index, 'operator', value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -311,7 +367,9 @@ export function CreateAutomationDialog({
                       <Input
                         placeholder="Enter keyword or pattern..."
                         value={condition.value}
-                        onChange={(e) => updateCondition(index, 'value', e.target.value)}
+                        onChange={(e) =>
+                          updateCondition(index, 'value', e.target.value)
+                        }
                       />
                     )}
                   </div>
@@ -322,13 +380,21 @@ export function CreateAutomationDialog({
                     disabled={conditions.length === 1}
                     className="mt-1"
                   >
-                    <Icon icon={Delete01Icon} size={16} className="text-destructive" />
+                    <Icon
+                      icon={Delete01Icon}
+                      size={16}
+                      className="text-destructive"
+                    />
                   </Button>
                 </div>
               ))}
             </div>
 
-            <Button variant="outline" onClick={addCondition} className="w-full gap-2">
+            <Button
+              variant="outline"
+              onClick={addCondition}
+              className="w-full gap-2"
+            >
               <Icon icon={Add01Icon} size={16} />
               Add Condition
             </Button>

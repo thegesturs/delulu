@@ -2,7 +2,7 @@ import type { WebhookEvent } from '@clerk/backend';
 import { createDodoWebhookHandler } from '@dodopayments/convex';
 import { httpRouter } from 'convex/server';
 import { Webhook } from 'svix';
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
 
@@ -242,7 +242,9 @@ async function validateInstagramSignature(
 
     // Convert to hex string
     const hashArray = Array.from(new Uint8Array(signatureBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
     const expectedSignature = `sha256=${hashHex}`;
 
     // Compare signatures (not timing-safe, but acceptable for webhook validation)
@@ -335,7 +337,7 @@ http.route({
     // Store the raw webhook event
     try {
       const eventId = `convex-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      await ctx.runMutation(internal.webhookEvents.createWebhookEvent, {
+      await ctx.runMutation(api.webhookEvents.createWebhookEvent, {
         eventId,
         platform: 'instagram',
         eventType: 'webhook',

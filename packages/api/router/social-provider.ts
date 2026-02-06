@@ -21,31 +21,31 @@ import { fetchMutation } from '@delulu/database/server';
 import { fetchQuery } from '@delulu/database/server';
 
 export const socialProviderRouter = {
-	getSocialProviderConnectUrl: protectedProcedure
-		.input(
-			z.object({
-				provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
-			}),
-		)
-		.query(async ({ input, ctx }) => {
-			// Check if user has reached their social account limit (single efficient query)
-			const limitCheck = await fetchQuery(
-				api.subscriptions.checkSocialAccountLimit,
-				{},
-				{ token: ctx.token },
-			);
+  getSocialProviderConnectUrl: protectedProcedure
+    .input(
+      z.object({
+        provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Check if user has reached their social account limit (single efficient query)
+      const limitCheck = await fetchQuery(
+        api.subscriptions.checkSocialAccountLimit,
+        {},
+        { token: ctx.token }
+      );
 
-			if (!limitCheck.allowed) {
-				throw new TRPCError({
-					code: 'FORBIDDEN',
-					message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
-				});
-			}
+      if (!limitCheck.allowed) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
+        });
+      }
 
-			// Generate connect URL only if within limit
-			const link = connectUrlRegistry[input.provider].connectUrl();
-			return link;
-		}),
+      // Generate connect URL only if within limit
+      const link = connectUrlRegistry[input.provider].connectUrl();
+      return link;
+    }),
   // createPost: protectedProcedure
   //   .input(savePostInputSchema)
   //   .mutation(async ({ input, ctx }) => {
@@ -158,18 +158,18 @@ export const socialProviderRouter = {
       const limitCheck = await fetchQuery(
         api.subscriptions.checkSocialAccountLimit,
         {},
-        { token: ctx.token },
+        { token: ctx.token }
       );
 
       // Check if this specific page is already connected (update/transfer case)
       const currentAccounts = await fetchQuery(
         api.social_providers.getConnectedAccounts,
         {},
-        { token: ctx.token },
+        { token: ctx.token }
       );
 
       const isExistingPage = currentAccounts.some(
-        (acc) => acc.profileId === input.pageId,
+        (acc) => acc.profileId === input.pageId
       );
 
       // Only validate limit if creating NEW connection
@@ -433,6 +433,93 @@ export const socialProviderRouter = {
         });
       }
     }),
+  getInstagramPosts: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+        limit: z.number().min(1).max(50).optional().default(25),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Get social provider with decrypted tokens
+      const provider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        { id: input.socialProviderId as Id<'socialProviders'> },
+        { token: ctx.token }
+      );
+
+      if (!provider?.accessToken || !provider.profileId) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Instagram account not found or access token missing',
+        });
+      }
+
+      if (provider.socialType !== 'INSTAGRAM') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'This endpoint only supports Instagram accounts',
+        });
+      }
+
+      try {
+        const response = await fetch(
+          `https://graph.instagram.com/v24.0/${provider.profileId}/media?fields=id,caption,media_type,timestamp,permalink,thumbnail_url,media_url&limit=${input.limit}&access_token=${provider.accessToken}`
+        );
+
+        if (!response.ok) {
+          const errorBody = await response.text().catch(() => undefined);
+          log.error('Instagram media fetch failed', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody,
+          });
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: `Instagram API error: ${response.status}`,
+          });
+        }
+
+        const data = (await response.json()) as {
+          data?: Array<{
+            id: string;
+            caption?: string;
+            media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+            timestamp: string;
+            permalink: string;
+            thumbnail_url?: string;
+            media_url?: string;
+          }>;
+          error?: { message: string };
+        };
+
+        if (data.error) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: data.error.message || 'Failed to fetch Instagram posts',
+          });
+        }
+
+        const posts = data.data || [];
+
+        return posts.map((p) => ({
+          id: p.id,
+          caption: p.caption || '',
+          mediaType: p.media_type,
+          thumbnailUrl: p.thumbnail_url || p.media_url || '',
+          permalink: p.permalink,
+          timestamp: p.timestamp,
+        }));
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to fetch Instagram posts',
+        });
+      }
+    }),
   deleteSocialProvider: protectedProcedure
     .input(
       z.object({
@@ -467,7 +554,10 @@ export const socialProviderRouter = {
       }
 
       // If TikTok, revoke the access token before deletion
-      if (socialProvider.socialType === 'TIKTOK' && socialProvider.accessToken) {
+      if (
+        socialProvider.socialType === 'TIKTOK' &&
+        socialProvider.accessToken
+      ) {
         try {
           log.info('Revoking TikTok access token', {
             socialProviderId: input.socialProviderId,
@@ -493,19 +583,27 @@ export const socialProviderRouter = {
               socialProviderId: input.socialProviderId,
             });
           } else {
-            const errorBody = await revokeResponse.text().catch(() => undefined);
-            log.warn('Failed to revoke TikTok token (continuing with deletion)', {
-              socialProviderId: input.socialProviderId,
-              status: revokeResponse.status,
-              body: errorBody,
-            });
+            const errorBody = await revokeResponse
+              .text()
+              .catch(() => undefined);
+            log.warn(
+              'Failed to revoke TikTok token (continuing with deletion)',
+              {
+                socialProviderId: input.socialProviderId,
+                status: revokeResponse.status,
+                body: errorBody,
+              }
+            );
             // Continue with deletion even if revocation failed
           }
         } catch (error) {
-          log.error('Error during TikTok token revocation (continuing with deletion)', {
-            socialProviderId: input.socialProviderId,
-            error,
-          });
+          log.error(
+            'Error during TikTok token revocation (continuing with deletion)',
+            {
+              socialProviderId: input.socialProviderId,
+              error,
+            }
+          );
           // Continue with deletion even if revocation threw an error
         }
       }

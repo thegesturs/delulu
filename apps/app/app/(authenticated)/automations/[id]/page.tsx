@@ -1,10 +1,16 @@
 'use client';
 
+import { PostSelector } from '@/components/automations/post-selector';
 import { Header } from '@/components/layout/header';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
 import {
@@ -14,14 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
-import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { Switch } from '@delulu/design-system/components/ui/switch';
+import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
   Add01Icon,
+  ArrowLeft01Icon,
   Delete01Icon,
   Loading03Icon,
-  ArrowLeft01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
@@ -56,7 +62,9 @@ export default function EditAutomationPage() {
   const router = useRouter();
   const automationId = params.id as Id<'automations'>;
 
-  const automation = useQuery(api.automations.getAutomation, { id: automationId });
+  const automation = useQuery(api.automations.getAutomation, {
+    id: automationId,
+  });
   const updateAutomation = useMutation(api.automations.updateAutomation);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -67,6 +75,7 @@ export default function EditAutomationPage() {
   const [messageTemplate, setMessageTemplate] = useState('');
   const [maxDMsPerHour, setMaxDMsPerHour] = useState(20);
   const [maxDMsPerDay, setMaxDMsPerDay] = useState(100);
+  const [targetPostIds, setTargetPostIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (automation) {
@@ -83,11 +92,15 @@ export default function EditAutomationPage() {
       setMessageTemplate(automation.messageTemplate);
       setMaxDMsPerHour(automation.maxDMsPerHour);
       setMaxDMsPerDay(automation.maxDMsPerDay);
+      setTargetPostIds(automation.targetPostIds || []);
     }
   }, [automation]);
 
   const addCondition = () => {
-    setConditions([...conditions, { operator: 'contains', value: '', caseSensitive: false }]);
+    setConditions([
+      ...conditions,
+      { operator: 'contains', value: '', caseSensitive: false },
+    ]);
   };
 
   const removeCondition = (index: number) => {
@@ -96,7 +109,11 @@ export default function EditAutomationPage() {
     }
   };
 
-  const updateCondition = (index: number, field: keyof Condition, value: string | boolean) => {
+  const updateCondition = (
+    index: number,
+    field: keyof Condition,
+    value: string | boolean
+  ) => {
     const newConditions = [...conditions];
     newConditions[index] = { ...newConditions[index], [field]: value };
     setConditions(newConditions);
@@ -125,13 +142,21 @@ export default function EditAutomationPage() {
         description: description.trim() || undefined,
         isActive,
         conditions: conditions.map((c) => ({
-          operator: c.operator as 'contains' | 'equals' | 'starts_with' | 'ends_with' | 'regex' | 'always' | 'not_contains',
+          operator: c.operator as
+            | 'contains'
+            | 'equals'
+            | 'starts_with'
+            | 'ends_with'
+            | 'regex'
+            | 'always'
+            | 'not_contains',
           value: c.operator === 'always' ? undefined : c.value,
           caseSensitive: c.caseSensitive,
         })),
         messageTemplate,
         maxDMsPerHour,
         maxDMsPerDay,
+        targetPostIds: targetPostIds.length > 0 ? targetPostIds : undefined,
       });
 
       toast.success('Automation updated successfully');
@@ -150,7 +175,11 @@ export default function EditAutomationPage() {
         <div className="flex-1">
           <Header pages={['Automations']} page="Loading..." />
           <div className="flex h-64 items-center justify-center">
-            <Icon icon={Loading03Icon} size={24} className="animate-spin text-muted-foreground" />
+            <Icon
+              icon={Loading03Icon}
+              size={24}
+              className="animate-spin text-muted-foreground"
+            />
           </div>
         </div>
       </div>
@@ -259,6 +288,25 @@ export default function EditAutomationPage() {
             </CardContent>
           </Card>
 
+          {/* Target Posts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Target Posts</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Choose which posts this automation monitors. Select "All Posts"
+                to respond to comments on any post, or pick specific posts for
+                targeted campaigns.
+              </p>
+              <PostSelector
+                socialProviderId={automation.socialProviderId}
+                selectedPostIds={targetPostIds}
+                onSelectionChange={setTargetPostIds}
+              />
+            </CardContent>
+          </Card>
+
           {/* Conditions */}
           <Card>
             <CardHeader>
@@ -266,7 +314,8 @@ export default function EditAutomationPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground text-sm">
-                All conditions must match for the automation to trigger (AND logic).
+                All conditions must match for the automation to trigger (AND
+                logic).
               </p>
               <div className="space-y-3">
                 {conditions.map((condition, index) => (
@@ -274,7 +323,9 @@ export default function EditAutomationPage() {
                     <div className="flex-1 space-y-2">
                       <Select
                         value={condition.operator}
-                        onValueChange={(value) => updateCondition(index, 'operator', value)}
+                        onValueChange={(value) =>
+                          updateCondition(index, 'operator', value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -291,7 +342,9 @@ export default function EditAutomationPage() {
                         <Input
                           placeholder="Enter keyword or pattern..."
                           value={condition.value}
-                          onChange={(e) => updateCondition(index, 'value', e.target.value)}
+                          onChange={(e) =>
+                            updateCondition(index, 'value', e.target.value)
+                          }
                         />
                       )}
                     </div>
@@ -302,12 +355,20 @@ export default function EditAutomationPage() {
                       disabled={conditions.length === 1}
                       className="mt-1"
                     >
-                      <Icon icon={Delete01Icon} size={16} className="text-destructive" />
+                      <Icon
+                        icon={Delete01Icon}
+                        size={16}
+                        className="text-destructive"
+                      />
                     </Button>
                   </div>
                 ))}
               </div>
-              <Button variant="outline" onClick={addCondition} className="w-full gap-2">
+              <Button
+                variant="outline"
+                onClick={addCondition}
+                className="w-full gap-2"
+              >
                 <Icon icon={Add01Icon} size={16} />
                 Add Condition
               </Button>
