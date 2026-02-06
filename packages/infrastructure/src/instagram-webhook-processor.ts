@@ -1,6 +1,6 @@
+import { api } from '@delulu/database/convex/_generated/api';
 import { ConvexHttpClient } from 'convex/browser';
 import { Resource } from 'sst';
-import { api } from '@delulu/database/convex/_generated/api';
 
 // ============================================================================
 // Types
@@ -126,20 +126,28 @@ function renderTemplate(
 
 async function sendPrivateReply(
   accessToken: string,
+  igUserId: string,
   commentId: string,
   message: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    // Use the messages endpoint with comment_id as recipient
+    // Docs: POST /{ig-user-id}/messages with recipient.comment_id
     const response = await fetch(
-      `https://graph.instagram.com/v24.0/${commentId}/private_replies`,
+      `https://graph.instagram.com/v24.0/${igUserId}/messages`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          message,
-          access_token: accessToken,
+          recipient: {
+            comment_id: commentId,
+          },
+          message: {
+            text: message,
+          },
         }),
       }
     );
@@ -156,7 +164,7 @@ async function sendPrivateReply(
 
     return {
       success: true,
-      messageId: data.id,
+      messageId: data.message_id,
     };
   } catch (error) {
     console.error('Failed to send private reply:', error);
@@ -177,10 +185,14 @@ function extractCommentEvents(
   const events: CommentEvent[] = [];
 
   for (const entry of payload.entry) {
-    if (!entry.changes) continue;
+    if (!entry.changes) {
+      continue;
+    }
 
     for (const change of entry.changes) {
-      if (change.field !== 'comments') continue;
+      if (change.field !== 'comments') {
+        continue;
+      }
 
       const { value } = change;
       events.push({
@@ -221,10 +233,13 @@ async function processCommentEvent(
   }
 
   // 2. Find the social provider for this Instagram account
-  const socialProvider = await convex.query(api.social_providers.getByProfileId, {
-    profileId: event.instagramAccountId,
-    socialType: 'INSTAGRAM',
-  });
+  const socialProvider = await convex.query(
+    api.social_providers.getByProfileId,
+    {
+      profileId: event.instagramAccountId,
+      socialType: 'INSTAGRAM',
+    }
+  );
 
   if (!socialProvider) {
     console.log(
@@ -330,9 +345,11 @@ async function processCommentEvent(
       comment_text: event.commentText,
     });
 
-    // Send the private reply
+    // Send the private reply using the messages endpoint
+    // socialProvider.profileId is the IG_ID (user_id) needed for the endpoint
     const result = await sendPrivateReply(
       socialProvider.accessToken,
+      socialProvider.profileId,
       event.commentId,
       message
     );

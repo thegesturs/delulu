@@ -19,6 +19,7 @@ interface InstagramLongLivedTokenResponse {
 
 interface InstagramUserResponse {
   id: string;
+  user_id: string; // Instagram Business Account ID (used in webhooks)
   name: string;
   username: string;
   account_type: string;
@@ -137,8 +138,10 @@ export async function GET(request: NextRequest) {
       (await longLivedTokenResponse.json()) as InstagramLongLivedTokenResponse;
 
     // Get user profile information
+    // Note: user_id is the Instagram Business Account ID used in webhooks
+    // id is the app-scoped ID which is different
     const userResponse = await fetchWithTimeout(
-      `https://graph.instagram.com/v23.0/me?fields=id,name,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`,
+      `https://graph.instagram.com/v23.0/me?fields=id,user_id,name,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`,
       {
         method: 'GET',
       }
@@ -158,6 +161,7 @@ export async function GET(request: NextRequest) {
     const userObject = (await userResponse.json()) as InstagramUserResponse;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
+    // Use user_id (IG_ID) as profileId - works for both API calls and webhook entry.id matching
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
@@ -165,7 +169,7 @@ export async function GET(request: NextRequest) {
         accessToken: longLivedTokenData.access_token,
         expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
         refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-        profileId: userObject.id,
+        profileId: userObject.user_id,
         username: userObject.username,
         fullName: userObject.name,
         profileImage: userObject.profile_picture_url,
