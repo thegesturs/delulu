@@ -1,6 +1,6 @@
-import BillingClient from './billing-client';
+import BillingClient from "./billing-client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function BillingPage() {
   return <BillingClient />;

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useAnalytics } from '@delulu/analytics/posthog/client';
-import { useUser } from '@delulu/auth';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef } from 'react';
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { useUser } from "@delulu/auth";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef } from "react";
 
 function PostHogIdentifierContent() {
   const { user } = useUser();
@@ -19,7 +19,7 @@ function PostHogIdentifierContent() {
       if (searchParams.toString()) {
         url = `${url}?${searchParams.toString()}`;
       }
-      analytics.capture('$pageview', {
+      analytics.capture("$pageview", {
         $current_url: url,
       });
     }

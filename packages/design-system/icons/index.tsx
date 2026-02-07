@@ -12,9 +12,9 @@ import {
   Home as HomeIcon,
   Pencil as PencilIcon,
   Settings as SettingsIcon,
-} from '@hugeicons-pro/core-solid-rounded';
-import type { ComponentType } from 'react';
-import { Icon } from '../providers/icon';
+} from "@hugeicons-pro/core-solid-rounded";
+import type { ComponentType } from "react";
+import { Icon } from "../providers/icon";
 
 // Create wrapped components for navigation icons
 export const Home: ComponentType<{ className?: string }> = (props) => (

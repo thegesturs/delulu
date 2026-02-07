@@ -9,11 +9,11 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components';
+} from "@react-email/components";
 
-type MagicLinkEmailProps = {
+interface MagicLinkEmailProps {
   readonly url: string;
-};
+}
 
 export const MagicLinkEmail = ({ url }: MagicLinkEmailProps) => (
   <Tailwind>

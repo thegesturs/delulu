@@ -1,57 +1,57 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
 // ============================================================================
 // ENUMS AND BASIC TYPES
 // ============================================================================
 
 export const socialTypeSchema = v.union(
-  v.literal('TWITTER'),
-  v.literal('LINKEDIN'),
-  v.literal('LENS'),
-  v.literal('YOUTUBE'),
-  v.literal('INSTAGRAM'),
-  v.literal('FACEBOOK'),
-  v.literal('TIKTOK'),
-  v.literal('THREADS'),
-  v.literal('PINTEREST'),
-  v.literal('FARCASTER'),
-  v.literal('BLUESKY'),
-  v.literal('DEFAULT')
+  v.literal("TWITTER"),
+  v.literal("LINKEDIN"),
+  v.literal("LENS"),
+  v.literal("YOUTUBE"),
+  v.literal("INSTAGRAM"),
+  v.literal("FACEBOOK"),
+  v.literal("TIKTOK"),
+  v.literal("THREADS"),
+  v.literal("PINTEREST"),
+  v.literal("FARCASTER"),
+  v.literal("BLUESKY"),
+  v.literal("DEFAULT")
 );
 
 export const postStatusSchema = v.union(
-  v.literal('SAVED'),
-  v.literal('PUBLISHED'),
-  v.literal('SCHEDULED'),
-  v.literal('DELETED'),
-  v.literal('FAILED'),
-  v.literal('PROCESSING')
+  v.literal("SAVED"),
+  v.literal("PUBLISHED"),
+  v.literal("SCHEDULED"),
+  v.literal("DELETED"),
+  v.literal("FAILED"),
+  v.literal("PROCESSING")
 );
 
 export const POST_STATUS = {
-  SAVED: 'SAVED',
-  PUBLISHED: 'PUBLISHED',
-  SCHEDULED: 'SCHEDULED',
-  DELETED: 'DELETED',
-  FAILED: 'FAILED',
-  PROCESSING: 'PROCESSING',
+  SAVED: "SAVED",
+  PUBLISHED: "PUBLISHED",
+  SCHEDULED: "SCHEDULED",
+  DELETED: "DELETED",
+  FAILED: "FAILED",
+  PROCESSING: "PROCESSING",
 } as const;
 
 export type PostStatus = (typeof POST_STATUS)[keyof typeof POST_STATUS];
 
 export const postReviewStatusSchema = v.union(
-  v.literal('PENDING'),
-  v.literal('APPROVED'),
-  v.literal('REJECTED')
+  v.literal("PENDING"),
+  v.literal("APPROVED"),
+  v.literal("REJECTED")
 );
 
 export const privacyStatusSchema = v.union(
-  v.literal('PUBLIC'),
-  v.literal('PRIVATE'),
-  v.literal('UNLISTED')
+  v.literal("PUBLIC"),
+  v.literal("PRIVATE"),
+  v.literal("UNLISTED")
 );
 
-export const mediaTypeSchema = v.union(v.literal('IMAGE'), v.literal('VIDEO'));
+export const mediaTypeSchema = v.union(v.literal("IMAGE"), v.literal("VIDEO"));
 
 // ============================================================================
 // MEDIA SCHEMA - Matching validators/post.ts mediaSchema
@@ -87,7 +87,7 @@ export const contentSchema = v.object({
 // ============================================================================
 
 export const alternativeContentSchema = v.object({
-  socialProviderId: v.id('socialProviders'),
+  socialProviderId: v.id("socialProviders"),
   content: v.array(contentSchema),
 });
 
@@ -96,15 +96,15 @@ export const alternativeContentSchema = v.object({
 // ============================================================================
 
 export const tikTokPrivacySchema = v.union(
-  v.literal('SELF_ONLY'),
-  v.literal('MUTUAL_FOLLOW_FRIENDS'),
-  v.literal('PUBLIC_TO_EVERYONE')
+  v.literal("SELF_ONLY"),
+  v.literal("MUTUAL_FOLLOW_FRIENDS"),
+  v.literal("PUBLIC_TO_EVERYONE")
 );
 
 export const promotionContentSchema = v.union(
-  v.literal('NONE'),
-  v.literal('SELF'),
-  v.literal('PAID')
+  v.literal("NONE"),
+  v.literal("SELF"),
+  v.literal("PAID")
 );
 
 export const tikTokSettingsSchema = v.object({

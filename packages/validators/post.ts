@@ -1,50 +1,50 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const videoTypes = ['MP4', 'MOV', 'MKV', 'WEBM'];
-export const allowedImageTypes = ['JPEG', 'GIF', 'PNG', 'HEIC', 'WEBP'];
+export const videoTypes = ["MP4", "MOV", "MKV", "WEBM"];
+export const allowedImageTypes = ["JPEG", "GIF", "PNG", "HEIC", "WEBP"];
 
 export const allowedImageMimeTypes = new Set([
-  'image/jpeg',
-  'image/gif',
-  'image/png',
+  "image/jpeg",
+  "image/gif",
+  "image/png",
 ]);
 
 export const allowedVideoMimeTypes = new Set([
-  'video/mp4',
-  'video/quicktime',
-  'video/x-matroska',
-  'video/webm',
+  "video/mp4",
+  "video/quicktime",
+  "video/x-matroska",
+  "video/webm",
 ]);
 
 export const SocialTypes = {
-  DEFAULT: 'DEFAULT',
-  TWITTER: 'TWITTER',
-  LINKEDIN: 'LINKEDIN',
-  YOUTUBE: 'YOUTUBE',
-  INSTAGRAM: 'INSTAGRAM',
-  FACEBOOK: 'FACEBOOK',
-  TIKTOK: 'TIKTOK',
-  LENS: 'LENS',
-  THREADS: 'THREADS',
-  PINTEREST: 'PINTEREST',
-  FARCASTER: 'FARCASTER',
-  BLUESKY: 'BLUESKY',
+  DEFAULT: "DEFAULT",
+  TWITTER: "TWITTER",
+  LINKEDIN: "LINKEDIN",
+  YOUTUBE: "YOUTUBE",
+  INSTAGRAM: "INSTAGRAM",
+  FACEBOOK: "FACEBOOK",
+  TIKTOK: "TIKTOK",
+  LENS: "LENS",
+  THREADS: "THREADS",
+  PINTEREST: "PINTEREST",
+  FARCASTER: "FARCASTER",
+  BLUESKY: "BLUESKY",
 } as const;
 
 export type SocialType = (typeof SocialTypes)[keyof typeof SocialTypes];
 export const SocialTypeSchema = z.enum([
-  'DEFAULT',
-  'TWITTER',
-  'LINKEDIN',
-  'YOUTUBE',
-  'INSTAGRAM',
-  'FACEBOOK',
-  'TIKTOK',
-  'LENS',
-  'THREADS',
-  'PINTEREST',
-  'FARCASTER',
-  'BLUESKY',
+  "DEFAULT",
+  "TWITTER",
+  "LINKEDIN",
+  "YOUTUBE",
+  "INSTAGRAM",
+  "FACEBOOK",
+  "TIKTOK",
+  "LENS",
+  "THREADS",
+  "PINTEREST",
+  "FARCASTER",
+  "BLUESKY",
 ]);
 
 // Implement it later, once basic features are one
@@ -55,7 +55,7 @@ export const platformPostSchema = z.object({
   platformPostUrl: z.string(),
 });
 
-export const privacyStatusSchema = z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']);
+export const privacyStatusSchema = z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]);
 
 export const SocialProviderSchema = z.object({
   socialId: z.string(),
@@ -67,7 +67,7 @@ export type SocialProviderType = z.infer<typeof SocialProviderSchema>;
 
 export const mediaSchema = z.object({
   url: z.string().optional(),
-  mediaType: z.enum(['IMAGE', 'VIDEO']),
+  mediaType: z.enum(["IMAGE", "VIDEO"]),
   bucketUrl: z.string().optional(),
   bucketKey: z.string().optional(),
   altText: z.string().optional(),
@@ -80,7 +80,7 @@ export type MediaType = z.infer<typeof mediaSchema>;
 
 export const getValidMediaUrls = (media: MediaType[]) => {
   return media
-    .filter((m) => typeof m.url === 'string' && typeof m.url !== 'undefined')
+    .filter((m) => typeof m.url === "string" && typeof m.url !== "undefined")
     .map((m) => {
       return {
         url: m.url,
@@ -195,17 +195,17 @@ export const postToLinkedInInputSchema = z.object({
 
 export type PostToLinkedInInput = z.infer<typeof postToLinkedInInputSchema>;
 
-export function getFileType(url: string): 'image' | 'video' | 'unknown' {
-  const extension = url.split('.').pop()?.toUpperCase();
+export function getFileType(url: string): "image" | "video" | "unknown" {
+  const extension = url.split(".").pop()?.toUpperCase();
   if (extension) {
     if (allowedImageTypes.includes(extension)) {
-      return 'image';
+      return "image";
     }
     if (videoTypes.includes(extension)) {
-      return 'video';
+      return "video";
     }
   }
-  return 'unknown';
+  return "unknown";
 }
 
 export const postReturnSchema = z.object({
@@ -219,10 +219,10 @@ export const postReturnSchema = z.object({
 export type PostReturnType = z.infer<typeof postReturnSchema>;
 
 export const tikTokPrivacyLevels = {
-  SELF_ONLY: 'SELF_ONLY',
-  MUTUAL_FOLLOW_FRIENDS: 'MUTUAL_FOLLOW_FRIENDS',
-  PUBLIC_TO_EVERYONE: 'PUBLIC_TO_EVERYONE',
-  FOLLOWER_OF_CREATOR: 'FOLLOWER_OF_CREATOR',
+  SELF_ONLY: "SELF_ONLY",
+  MUTUAL_FOLLOW_FRIENDS: "MUTUAL_FOLLOW_FRIENDS",
+  PUBLIC_TO_EVERYONE: "PUBLIC_TO_EVERYONE",
+  FOLLOWER_OF_CREATOR: "FOLLOWER_OF_CREATOR",
 } as const;
 
 export type TiktokPrivacyLevels =
@@ -237,10 +237,10 @@ const tikTokPrivacyValues = [
 ] as const;
 
 export const promotionContentTypes = {
-  NONE: 'NONE',
-  SELF: 'SELF',
-  PAID: 'PAID',
-  BOTH: 'BOTH',
+  NONE: "NONE",
+  SELF: "SELF",
+  PAID: "PAID",
+  BOTH: "BOTH",
 } as const;
 
 export type PromotionContentType =
@@ -261,15 +261,15 @@ export const tikTokSettingsSchema = z
     allowComments: z.boolean().default(true),
     allowDuet: z.boolean().default(true),
     allowStitch: z.boolean().default(true),
-    promotionContent: z.enum(promotionContentValues).default('NONE'),
+    promotionContent: z.enum(promotionContentValues).default("NONE"),
   })
   .refine(
     (data) => {
       // Paid partnerships and BOTH cannot have privacy level "SELF_ONLY"
       if (
-        (data.promotionContent === 'PAID' ||
-          data.promotionContent === 'BOTH') &&
-        data.privacy === 'SELF_ONLY'
+        (data.promotionContent === "PAID" ||
+          data.promotionContent === "BOTH") &&
+        data.privacy === "SELF_ONLY"
       ) {
         return false;
       }
@@ -283,7 +283,7 @@ export const tikTokSettingsSchema = z
 export type TikTokSettings = z.infer<typeof tikTokSettingsSchema>;
 
 // Zod schema for provider settings (must be before SocialPublishInputSchema)
-export const providerSettingSchema = z.discriminatedUnion('type', [
+export const providerSettingSchema = z.discriminatedUnion("type", [
   z.object({
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.TIKTOK),
@@ -293,7 +293,7 @@ export const providerSettingSchema = z.discriminatedUnion('type', [
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.YOUTUBE),
     settings: z.object({
-      privacy: z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED']),
+      privacy: z.enum(["PUBLIC", "PRIVATE", "UNLISTED"]),
       madeForKids: z.boolean(),
       ageRestriction: z.boolean().optional(),
     }),
@@ -311,28 +311,28 @@ export const providerSettingSchema = z.discriminatedUnion('type', [
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.FACEBOOK),
     settings: z.object({
-      privacy: z.enum(['PUBLIC', 'FRIENDS', 'ONLY_ME']),
+      privacy: z.enum(["PUBLIC", "FRIENDS", "ONLY_ME"]),
     }),
   }),
   z.object({
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.TWITTER),
     settings: z.object({
-      replyRestriction: z.enum(['everyone', 'following', 'mentioned']),
+      replyRestriction: z.enum(["everyone", "following", "mentioned"]),
     }),
   }),
   z.object({
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.LINKEDIN),
     settings: z.object({
-      visibility: z.enum(['PUBLIC', 'CONNECTIONS']),
+      visibility: z.enum(["PUBLIC", "CONNECTIONS"]),
     }),
   }),
   z.object({
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.THREADS),
     settings: z.object({
-      replyControl: z.enum(['everyone', 'following', 'mentioned']),
+      replyControl: z.enum(["everyone", "following", "mentioned"]),
     }),
   }),
   z.object({
@@ -369,45 +369,45 @@ export const providerSettingSchema = z.discriminatedUnion('type', [
 ]);
 
 // Provider-specific settings types
-export type YouTubeSettings = {
-  privacy: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+export interface YouTubeSettings {
+  privacy: "PUBLIC" | "PRIVATE" | "UNLISTED";
   madeForKids: boolean;
   ageRestriction?: boolean;
-};
+}
 
-export type InstagramSettings = {
+export interface InstagramSettings {
   shareToFeed: boolean;
   shareToStory: boolean;
   shareToReels: boolean;
-};
+}
 
-export type FacebookSettings = {
-  privacy: 'PUBLIC' | 'FRIENDS' | 'ONLY_ME';
-};
+export interface FacebookSettings {
+  privacy: "PUBLIC" | "FRIENDS" | "ONLY_ME";
+}
 
-export type TwitterSettings = {
-  replyRestriction: 'everyone' | 'following' | 'mentioned';
-};
+export interface TwitterSettings {
+  replyRestriction: "everyone" | "following" | "mentioned";
+}
 
-export type LinkedInSettings = {
-  visibility: 'PUBLIC' | 'CONNECTIONS';
-};
+export interface LinkedInSettings {
+  visibility: "PUBLIC" | "CONNECTIONS";
+}
 
-export type ThreadsSettings = {
-  replyControl: 'everyone' | 'following' | 'mentioned';
-};
+export interface ThreadsSettings {
+  replyControl: "everyone" | "following" | "mentioned";
+}
 
-export type PinterestSettings = {
+export interface PinterestSettings {
   boardId?: string;
-};
+}
 
-export type FarcasterSettings = {
+export interface FarcasterSettings {
   channelId?: string;
-};
+}
 
-export type BlueskySettings = {
+export interface BlueskySettings {
   replyDisabled?: boolean;
-};
+}
 
 // Simple discriminated union for provider settings
 export type ProviderSetting =

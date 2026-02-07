@@ -1,16 +1,16 @@
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import type { GetPostByIdSchema } from '@delulu/database/convex/schemas/posts_media';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import type { GetPostByIdSchema } from "@delulu/database/convex/schemas/posts_media";
+import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
 import type {
   FullPostType,
   ProviderSetting,
   SocialProviderType,
   TikTokSettings,
-} from '@delulu/validators/post';
-import { promotionContentTypes } from '@delulu/validators/post';
-import { create } from 'zustand';
-import { createJSONStorage, devtools, persist } from 'zustand/middleware';
-import { useShallow } from 'zustand/shallow';
+} from "@delulu/validators/post";
+import { promotionContentTypes } from "@delulu/validators/post";
+import { create } from "zustand";
+import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { useShallow } from "zustand/shallow";
 
 // Define the store's state types
 interface PostState {
@@ -47,23 +47,23 @@ interface PostActions {
 
 const initialState: PostState = {
   date: undefined,
-  time: '00:00',
+  time: "00:00",
   shouldReset: false,
   post: {
-    id: '',
+    id: "",
     content: [
       {
-        title: '',
-        text: '',
+        title: "",
+        text: "",
         media: [],
-        name: 'DEFAULT',
+        name: "DEFAULT",
         order: 0,
         tags: [],
       },
     ],
     alternativeContent: [],
     scheduledTime: undefined,
-    orgId: '',
+    orgId: "",
   },
   selectedSocialProviders: [],
   // TikTok specific settings defaults - @deprecated
@@ -85,7 +85,7 @@ export const useStore = create<PostState & PostActions>()(
         setTime: (time) => set({ time }),
         setPost: (post) =>
           set((state) => ({
-            post: typeof post === 'function' ? post(state.post) : post,
+            post: typeof post === "function" ? post(state.post) : post,
           })),
         setSelectedSocialProviders: (providers) =>
           set({ selectedSocialProviders: providers }),
@@ -102,7 +102,7 @@ export const useStore = create<PostState & PostActions>()(
             if (
               (newSettings.promotionContent === promotionContentTypes.PAID ||
                 newSettings.promotionContent === promotionContentTypes.BOTH) &&
-              newSettings.privacy === 'SELF_ONLY'
+              newSettings.privacy === "SELF_ONLY"
             ) {
               newSettings.privacy = DEFAULT_TIKTOK_SETTINGS.privacy;
             }
@@ -147,7 +147,7 @@ export const useStore = create<PostState & PostActions>()(
             scheduledTime: postData.scheduledAt
               ? new Date(postData.scheduledAt)
               : undefined,
-            orgId: postData.organizationId || '',
+            orgId: postData.organizationId || "",
           };
 
           // Set scheduled date/time if exists
@@ -182,8 +182,8 @@ export const useStore = create<PostState & PostActions>()(
             ),
             date: scheduledDate,
             time: scheduledDate
-              ? `${scheduledDate.getHours().toString().padStart(2, '0')}:${scheduledDate.getMinutes().toString().padStart(2, '0')}`
-              : '00:00',
+              ? `${scheduledDate.getHours().toString().padStart(2, "0")}:${scheduledDate.getMinutes().toString().padStart(2, "0")}`
+              : "00:00",
             providerSettings,
           });
         },
@@ -223,7 +223,7 @@ export const useStore = create<PostState & PostActions>()(
         reset: () => set(initialState),
       }),
       {
-        name: 'post-storage',
+        name: "post-storage",
         storage: createJSONStorage(() => localStorage),
         skipHydration: true,
       }
@@ -258,7 +258,7 @@ export const getProviderSettingsForConvex = () => {
 
   return values.map((setting) => ({
     type: setting.type,
-    socialProviderId: setting.socialProviderId as Id<'socialProviders'>,
+    socialProviderId: setting.socialProviderId as Id<"socialProviders">,
     settings: setting.settings,
   }));
 };

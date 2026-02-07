@@ -1,13 +1,13 @@
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchMutation, fetchQuery } from '@delulu/database/server';
-import { type NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchMutation, fetchQuery } from "@delulu/database/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 const CreateMediaSchema = z.object({
   bucketKey: z.string(),
   url: z.string(),
-  mediaType: z.enum(['IMAGE', 'VIDEO']),
+  mediaType: z.enum(["IMAGE", "VIDEO"]),
   originalFilename: z.string().optional(),
   size: z.number().optional(),
   extension: z.string().optional(),
@@ -22,13 +22,13 @@ export async function POST(req: NextRequest) {
     const { userId, getToken } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const token = await getToken({ template: 'convex' });
+    const token = await getToken({ template: "convex" });
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await fetchQuery(
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       { token }
     );
     if (!user?._id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -55,17 +55,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(savedMedia);
   } catch (error) {
-    console.error('Error saving media:', error);
+    console.error("Error saving media:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: "Invalid request data", details: error.errors },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to save media' },
+      { error: "Failed to save media" },
       { status: 500 }
     );
   }

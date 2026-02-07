@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useUser } from '@delulu/auth';
-import { Suspense, useEffect, useRef } from 'react';
+import { useUser } from "@delulu/auth";
+import { Suspense, useEffect, useRef } from "react";
 
 // Extend window object to include UserJot types
 declare global {
@@ -16,8 +16,8 @@ declare global {
 
 interface UserJotConfig {
   widget?: boolean;
-  position?: 'left' | 'right';
-  theme?: 'auto' | 'light' | 'dark';
+  position?: "left" | "right";
+  theme?: "auto" | "light" | "dark";
 }
 
 interface UserJotIdentifyData {
@@ -39,10 +39,10 @@ function UserJotIdentifierContent() {
       return;
     }
 
-    window.uj.init('cmhq5pxc8033614nyqxr0iqg6', {
+    window.uj.init("cmhq5pxc8033614nyqxr0iqg6", {
       widget: true,
-      position: 'right',
-      theme: 'auto',
+      position: "right",
+      theme: "auto",
     });
 
     initialized.current = true;
@@ -50,7 +50,7 @@ function UserJotIdentifierContent() {
 
   // Identify user when authenticated
   useEffect(() => {
-    if (!user || !window.uj || identified.current) {
+    if (!(user && window.uj) || identified.current) {
       return;
     }
 
@@ -62,7 +62,7 @@ function UserJotIdentifierContent() {
       avatar: user.imageUrl,
     });
 
-    console.log('Identified user:', user.id);
+    console.log("Identified user:", user.id);
 
     identified.current = true;
   }, [user]);

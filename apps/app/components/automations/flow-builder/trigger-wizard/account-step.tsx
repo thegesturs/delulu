@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { InstagramIcon } from '@hugeicons-pro/core-solid-rounded';
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { InstagramIcon } from "@hugeicons-pro/core-solid-rounded";
 
 interface SocialProvider {
   _id: string;
@@ -43,18 +43,18 @@ export function AccountStep({
       <div className="grid gap-3 sm:grid-cols-2">
         {providers.map((provider) => (
           <button
-            key={provider._id}
-            type="button"
-            onClick={() => onSelect(provider._id)}
             className={cn(
-              'flex items-center gap-3 rounded-xl border p-4 text-left transition-all',
+              "flex items-center gap-3 rounded-xl border p-4 text-left transition-all",
               selectedId === provider._id
-                ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                : 'border-border hover:border-primary/50'
+                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                : "border-border hover:border-primary/50"
             )}
+            key={provider._id}
+            onClick={() => onSelect(provider._id)}
+            type="button"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
-              <Icon icon={InstagramIcon} size={20} className="text-white" />
+              <Icon className="text-white" icon={InstagramIcon} size={20} />
             </div>
             <div>
               <p className="font-medium text-sm">

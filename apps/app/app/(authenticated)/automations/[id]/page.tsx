@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { FlowBuilder } from '@/components/automations/flow-builder/flow-builder';
-import { useParams } from 'next/navigation';
+import { useParams } from "next/navigation";
+import { FlowBuilder } from "@/components/automations/flow-builder/flow-builder";
 
 export default function EditAutomationPage() {
   const params = useParams();

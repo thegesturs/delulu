@@ -1,12 +1,11 @@
-'use client';
-import { api } from '@/trpc/react';
+"use client";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from '@delulu/design-system/components/ui/avatar';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+} from "@delulu/design-system/components/ui/avatar";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,17 +13,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@delulu/design-system/components/ui/dialog';
-import { Input } from '@delulu/design-system/components/ui/input';
-import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
-import { Icon } from '@delulu/design-system/providers/icon';
-import type { FacebookPagePublic } from '@delulu/validators/facebook';
-
-import { Search01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { FaFacebookF } from 'react-icons/fa6';
-import { toast } from 'sonner';
+} from "@delulu/design-system/components/ui/dialog";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { ScrollArea } from "@delulu/design-system/components/ui/scroll-area";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { FacebookPagePublic } from "@delulu/validators/facebook";
+import { Search01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { FaFacebookF } from "react-icons/fa6";
+import { toast } from "sonner";
+import { api } from "@/trpc/react";
 
 interface FacebookPageSelectProps {
   pages: FacebookPagePublic[];
@@ -33,27 +32,27 @@ interface FacebookPageSelectProps {
 
 function formatNumber(num?: number): string {
   if (!num) {
-    return '0';
+    return "0";
   }
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + "M";
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
+    return (num / 1000).toFixed(1) + "K";
   }
   return num.toString();
 }
 
 export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
-  const [selectedPageId, setSelectedPageId] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
 
   const { mutate: connectPage, isPending } =
     api.socialProvider.connectFacebookPage.useMutation({
       onSuccess: () => {
-        router.push('/socials?success=true&provider=facebook');
+        router.push("/socials?success=true&provider=facebook");
       },
       onError: (error) => {
         router.push(
@@ -64,13 +63,13 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
 
   const handleCancel = () => {
     setIsCancelling(true);
-    router.push('/socials?error=user_cancelled&provider=facebook');
+    router.push("/socials?error=user_cancelled&provider=facebook");
   };
 
   const handleConfirm = () => {
     const selectedPage = pages.find((page) => page.id === selectedPageId);
     if (!selectedPage) {
-      toast.error('No page selected');
+      toast.error("No page selected");
       return;
     }
 
@@ -108,15 +107,15 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
 
         <div className="relative mt-4">
           <Icon
+            className="absolute top-1/2 left-3 -translate-y-1/2 transform text-muted-foreground"
             icon={Search01Icon}
             size={16}
-            className="-translate-y-1/2 absolute top-1/2 left-3 transform text-muted-foreground"
           />
           <Input
+            className="pl-9"
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pages..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
           />
         </div>
 
@@ -124,18 +123,18 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
           <div className="space-y-2">
             {filteredPages.map((page) => (
               <button
-                key={page.id}
-                type="button"
-                onClick={() => setSelectedPageId(page.id)}
                 className={`w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent ${
                   selectedPageId === page.id
-                    ? 'border-primary bg-accent'
-                    : 'border-border'
+                    ? "border-primary bg-accent"
+                    : "border-border"
                 }`}
+                key={page.id}
+                onClick={() => setSelectedPageId(page.id)}
+                type="button"
               >
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={page.picture?.data.url} alt={page.name} />
+                    <AvatarImage alt={page.name} src={page.picture?.data.url} />
                     <AvatarFallback>
                       {page.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -143,8 +142,8 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="truncate font-medium">{page.name}</h3>
-                      {page.verification_status === 'verified' && (
-                        <Badge variant="default" className="bg-blue-600">
+                      {page.verification_status === "verified" && (
+                        <Badge className="bg-blue-600" variant="default">
                           Verified
                         </Badge>
                       )}
@@ -164,14 +163,14 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
                       <svg
                         className="h-4 w-4 text-primary-foreground"
                         fill="none"
-                        viewBox="0 0 24 24"
                         stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
                         <path
+                          d="M5 13l4 4L19 7"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M5 13l4 4L19 7"
                         />
                       </svg>
                     </div>
@@ -184,18 +183,18 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
 
         <DialogFooter className="mt-6 flex items-center justify-between sm:justify-between">
           <Button
-            variant="outline"
-            onClick={handleCancel}
             disabled={isCancelling}
+            onClick={handleCancel}
+            variant="outline"
           >
-            {isCancelling ? 'Cancelling...' : 'Cancel'}
+            {isCancelling ? "Cancelling..." : "Cancel"}
           </Button>
           <Button
-            onClick={handleConfirm}
-            disabled={!selectedPageId || isPending}
             className="min-w-[100px]"
+            disabled={!selectedPageId || isPending}
+            onClick={handleConfirm}
           >
-            {isPending ? 'Connecting...' : 'Connect'}
+            {isPending ? "Connecting..." : "Connect"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,11 +6,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@delulu/design-system/components/ui/alert-dialog';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/alert-dialog";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Icon } from "@delulu/design-system/providers/icon";
 
-import { Loader } from '@hugeicons-pro/core-solid-rounded';
+import { Loader } from "@hugeicons-pro/core-solid-rounded";
 
 export default function DeleteAlertDialog({
   open,
@@ -28,24 +28,24 @@ export default function DeleteAlertDialog({
   isLoading?: boolean;
 }) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog onOpenChange={onOpenChange} open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title ?? 'Are you sure?'}</AlertDialogTitle>
+          <AlertDialogTitle>{title ?? "Are you sure?"}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description ?? 'This action cannot be undone'}
+            {description ?? "This action cannot be undone"}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={isLoading}
             className="flex items-center gap-2"
+            disabled={isLoading}
+            onClick={onConfirm}
+            variant="destructive"
           >
             {isLoading ? (
-              <Icon icon={Loader} size={16} className=" animate-spin" />
+              <Icon className="animate-spin" icon={Loader} size={16} />
             ) : null}
             Delete
           </Button>

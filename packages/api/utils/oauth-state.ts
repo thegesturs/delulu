@@ -14,18 +14,18 @@ const STATE_TTL = 15 * 60 * 1000; // 15 minutes
 async function getSigningKey(): Promise<CryptoKey> {
   const secret = process.env.OAUTH_STATE_SECRET;
   if (!secret) {
-    throw new Error('OAUTH_STATE_SECRET environment variable not configured');
+    throw new Error("OAUTH_STATE_SECRET environment variable not configured");
   }
 
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
 
   return await crypto.subtle.importKey(
-    'raw',
+    "raw",
     keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
+    { name: "HMAC", hash: "SHA-256" },
     false,
-    ['sign', 'verify']
+    ["sign", "verify"]
   );
 }
 
@@ -44,20 +44,20 @@ export async function signState(payload: {
   const dataBuffer = encoder.encode(data);
 
   // Create HMAC signature
-  const signature = await crypto.subtle.sign('HMAC', key, dataBuffer);
+  const signature = await crypto.subtle.sign("HMAC", key, dataBuffer);
 
   // Encode signature as base64url
   const signatureArray = new Uint8Array(signature);
   const signatureB64 = btoa(String.fromCharCode(...signatureArray))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 
   // Encode payload as base64url
   const dataB64 = btoa(data)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 
   return `${dataB64}.${signatureB64}`;
 }
@@ -72,23 +72,23 @@ export async function verifyState(state: string): Promise<{
   timestamp: number;
 }> {
   try {
-    const [dataB64, signatureB64] = state.split('.');
-    if (!dataB64 || !signatureB64) {
-      throw new Error('Invalid state format');
+    const [dataB64, signatureB64] = state.split(".");
+    if (!(dataB64 && signatureB64)) {
+      throw new Error("Invalid state format");
     }
 
     // Decode base64url to get payload
-    const data = atob(dataB64.replace(/-/g, '+').replace(/_/g, '/'));
+    const data = atob(dataB64.replace(/-/g, "+").replace(/_/g, "/"));
     const payload = JSON.parse(data);
 
     // Validate payload structure
-    if (!payload.userId || !payload.nonce || !payload.timestamp) {
-      throw new Error('Invalid payload structure');
+    if (!(payload.userId && payload.nonce && payload.timestamp)) {
+      throw new Error("Invalid payload structure");
     }
 
     // Check expiration
     if (Date.now() - payload.timestamp > STATE_TTL) {
-      throw new Error('State token expired');
+      throw new Error("State token expired");
     }
 
     // Verify HMAC signature
@@ -98,25 +98,25 @@ export async function verifyState(state: string): Promise<{
 
     // Decode base64url signature
     const signatureArray = Uint8Array.from(
-      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/')),
+      atob(signatureB64.replace(/-/g, "+").replace(/_/g, "/")),
       (c) => c.charCodeAt(0)
     );
 
     const isValid = await crypto.subtle.verify(
-      'HMAC',
+      "HMAC",
       key,
       signatureArray,
       dataBuffer
     );
 
     if (!isValid) {
-      throw new Error('Invalid signature');
+      throw new Error("Invalid signature");
     }
 
     return payload;
   } catch (error) {
     const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
+      error instanceof Error ? error.message : "Unknown error";
     throw new Error(`State verification failed: ${errorMessage}`);
   }
 }

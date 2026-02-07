@@ -1,10 +1,10 @@
-import { fetchWithTimeout } from '@/lib/utils';
-import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
-import { encryptData } from '@delulu/database/convex/utils';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { keys } from "@delulu/api/keys";
+import { auth } from "@delulu/auth/server";
+import { encryptData } from "@delulu/database/convex/utils";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/utils";
 
 interface FacebookTokenResponse {
   access_token: string;
@@ -58,25 +58,25 @@ interface FacebookPageResponse {
 
 async function getAllPages(
   accessToken: string
-): Promise<FacebookPageResponse['data']> {
-  let allPages: FacebookPageResponse['data'] = [];
+): Promise<FacebookPageResponse["data"]> {
+  let allPages: FacebookPageResponse["data"] = [];
   let nextUrl = `https://graph.facebook.com/v23.0/me/accounts?fields=access_token,category,category_list,name,id,tasks,picture{url,width,height,is_silhouette},cover,link,followers_count,fan_count,verification_status&access_token=${accessToken}`;
 
   while (nextUrl) {
     const response = await fetchWithTimeout(nextUrl, {
-      method: 'GET',
+      method: "GET",
     });
 
     if (!response.ok) {
-      console.error('Facebook pages fetch failed:', await response.text());
-      throw new Error('Failed to fetch Facebook pages');
+      console.error("Facebook pages fetch failed:", await response.text());
+      throw new Error("Failed to fetch Facebook pages");
     }
 
     const pagesData = (await response.json()) as FacebookPageResponse;
     allPages = [...allPages, ...pagesData.data];
 
     // Get the next page URL if it exists
-    nextUrl = pagesData.paging?.next || '';
+    nextUrl = pagesData.paging?.next || "";
   }
 
   return allPages;
@@ -90,23 +90,23 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=facebook',
+            "/socials?error=auth_required&code=AUTH_001&provider=facebook",
         },
       });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const errorReason = searchParams.get('error_reason');
+    const code = searchParams.get("code");
+    const error = searchParams.get("error");
+    const errorReason = searchParams.get("error_reason");
 
     // Handle user denying access
-    if (error === 'access_denied' && errorReason === 'user_denied') {
+    if (error === "access_denied" && errorReason === "user_denied") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_denied&code=FACEBOOK_001&provider=facebook',
+            "/socials?error=user_denied&code=FACEBOOK_001&provider=facebook",
         },
       });
     }
@@ -116,37 +116,37 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=invalid_request&code=PARAM_001&provider=facebook',
+            "/socials?error=invalid_request&code=PARAM_001&provider=facebook",
         },
       });
     }
 
     // Exchange code for access token
     const tokenUrl = new URL(
-      'https://graph.facebook.com/v23.0/oauth/access_token'
+      "https://graph.facebook.com/v23.0/oauth/access_token"
     );
-    tokenUrl.searchParams.append('client_id', keys().FACEBOOK_CLIENT_ID);
-    tokenUrl.searchParams.append('redirect_uri', keys().FACEBOOK_CALLBACK_URL);
+    tokenUrl.searchParams.append("client_id", keys().FACEBOOK_CLIENT_ID);
+    tokenUrl.searchParams.append("redirect_uri", keys().FACEBOOK_CALLBACK_URL);
     tokenUrl.searchParams.append(
-      'client_secret',
+      "client_secret",
       keys().FACEBOOK_CLIENT_SECRET
     );
-    tokenUrl.searchParams.append('code', code);
+    tokenUrl.searchParams.append("code", code);
 
     const tokenRequest = await fetchWithTimeout(tokenUrl.toString(), {
-      method: 'GET',
+      method: "GET",
     });
 
     if (!tokenRequest.ok) {
       console.error(
-        'Facebook token exchange failed:',
+        "Facebook token exchange failed:",
         await tokenRequest.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=FACEBOOK_002&provider=facebook',
+            "/socials?error=token_invalid&code=FACEBOOK_002&provider=facebook",
         },
       });
     }
@@ -155,39 +155,39 @@ export async function GET(request: NextRequest) {
 
     // Exchange short-lived token for long-lived token
     const longLivedTokenUrl = new URL(
-      'https://graph.facebook.com/v23.0/oauth/access_token'
+      "https://graph.facebook.com/v23.0/oauth/access_token"
     );
-    longLivedTokenUrl.searchParams.append('grant_type', 'fb_exchange_token');
+    longLivedTokenUrl.searchParams.append("grant_type", "fb_exchange_token");
     longLivedTokenUrl.searchParams.append(
-      'client_id',
+      "client_id",
       keys().FACEBOOK_CLIENT_ID
     );
     longLivedTokenUrl.searchParams.append(
-      'client_secret',
+      "client_secret",
       keys().FACEBOOK_CLIENT_SECRET
     );
     longLivedTokenUrl.searchParams.append(
-      'fb_exchange_token',
+      "fb_exchange_token",
       tokenData.access_token
     );
 
     const longLivedTokenResponse = await fetchWithTimeout(
       longLivedTokenUrl.toString(),
       {
-        method: 'GET',
+        method: "GET",
       }
     );
 
     if (!longLivedTokenResponse.ok) {
       console.error(
-        'Facebook long-lived token exchange failed:',
+        "Facebook long-lived token exchange failed:",
         await longLivedTokenResponse.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=FACEBOOK_003&provider=facebook',
+            "/socials?error=token_invalid&code=FACEBOOK_003&provider=facebook",
         },
       });
     }
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
           status: 302,
           headers: {
             Location:
-              '/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook',
+              "/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook",
           },
         });
       }
@@ -229,22 +229,22 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (error) {
-      console.error('Error fetching Facebook pages:', error);
+      console.error("Error fetching Facebook pages:", error);
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=pages_fetch_failed&code=FACEBOOK_004&provider=facebook',
+            "/socials?error=pages_fetch_failed&code=FACEBOOK_004&provider=facebook",
         },
       });
     }
   } catch (error) {
-    console.error('Facebook callback error:', error);
+    console.error("Facebook callback error:", error);
     return new NextResponse(null, {
       status: 302,
       headers: {
         Location:
-          '/socials?error=server_error&code=FACEBOOK_500&provider=facebook',
+          "/socials?error=server_error&code=FACEBOOK_500&provider=facebook",
       },
     });
   }

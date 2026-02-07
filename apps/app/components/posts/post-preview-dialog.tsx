@@ -1,29 +1,28 @@
-'use client';
-import { getMediaUrlFromObject } from '@/lib/media-url';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+"use client";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@delulu/design-system/components/ui/dialog';
-import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
+} from "@delulu/design-system/components/ui/dialog";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import {
   type SupportedSocialPlatform,
   socialBackgroundColors,
   socialDisplayNames,
-} from '@delulu/design-system/lib/social-config';
-import { Icon } from '@delulu/design-system/providers/icon';
-
+} from "@delulu/design-system/lib/social-config";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AlertCircleIcon,
   Calendar01Icon,
   Link01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
-import Image from 'next/image';
-import React from 'react';
-import { type Post, statusColors } from './types';
+} from "@hugeicons-pro/core-solid-rounded";
+import Image from "next/image";
+import React from "react";
+import { getMediaUrlFromObject } from "@/lib/media-url";
+import { type Post, statusColors } from "./types";
 
 interface PostPreviewDialogProps {
   post: Post;
@@ -48,7 +47,7 @@ export function PostPreviewDialog({
       setImageError(false);
       setImageLoading(true);
     }
-  }, [open, post._id]);
+  }, [open]);
 
   return (
     <Dialog {...{ open, onOpenChange }}>
@@ -63,7 +62,7 @@ export function PostPreviewDialog({
             <Badge variant={statusColors[post.status]}>{post.status}</Badge>
             {post.scheduledAt && (
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                <Icon icon={Calendar01Icon} size={16} className="" />
+                <Icon className="" icon={Calendar01Icon} size={16} />
                 {new Date(post.scheduledAt).toLocaleDateString()}
               </div>
             )}
@@ -72,12 +71,12 @@ export function PostPreviewDialog({
           {/* Media */}
           {firstMedia && (
             <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-              {imageLoading && firstMedia.mediaType === 'IMAGE' && (
+              {imageLoading && firstMedia.mediaType === "IMAGE" && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               )}
-              {firstMedia.mediaType === 'IMAGE' ? (
+              {firstMedia.mediaType === "IMAGE" ? (
                 imageError ? (
                   <div className="flex h-full w-full items-center justify-center bg-muted">
                     <div className="text-center text-muted-foreground">
@@ -90,38 +89,38 @@ export function PostPreviewDialog({
                   </div>
                 ) : (
                   <Image
-                    src={getMediaUrlFromObject(firstMedia)}
-                    alt={firstMedia.altText || 'Post media'}
-                    fill
+                    alt={firstMedia.altText || "Post media"}
                     className={`object-cover transition-opacity duration-300 ${
-                      imageLoading ? 'opacity-0' : 'opacity-100'
+                      imageLoading ? "opacity-0" : "opacity-100"
                     }`}
-                    onLoad={() => setImageLoading(false)}
+                    fill
                     onError={() => {
                       setImageError(true);
                       setImageLoading(false);
-                      if (process.env.NODE_ENV === 'development') {
+                      if (process.env.NODE_ENV === "development") {
                         console.error(
                           `[DEBUG] Failed to load image in preview: ${getMediaUrlFromObject(firstMedia)}`
                         );
                       }
                     }}
+                    onLoad={() => setImageLoading(false)}
+                    src={getMediaUrlFromObject(firstMedia)}
                   />
                 )
               ) : (
                 <video
-                  src={getMediaUrlFromObject(firstMedia)}
+                  aria-label="Post video content"
                   className="h-full w-full object-cover"
                   controls
-                  playsInline
-                  aria-label="Post video content"
                   onError={() => {
-                    if (process.env.NODE_ENV === 'development') {
+                    if (process.env.NODE_ENV === "development") {
                       console.error(
                         `[DEBUG] Failed to load video in preview: ${getMediaUrlFromObject(firstMedia)}`
                       );
                     }
                   }}
+                  playsInline
+                  src={getMediaUrlFromObject(firstMedia)}
                 >
                   <track kind="captions" />
                 </video>
@@ -151,8 +150,8 @@ export function PostPreviewDialog({
 
                 return (
                   <div
-                    key={provider._id}
                     className="flex items-center justify-between rounded-lg border p-3"
+                    key={provider._id}
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0">
@@ -164,9 +163,9 @@ export function PostPreviewDialog({
                           } shadow-sm`}
                         >
                           <SocialIcon
-                            type={socialType as SupportedSocialPlatform}
-                            size="md"
                             className="text-white"
+                            size="md"
+                            type={socialType as SupportedSocialPlatform}
                           />
                         </div>
                       </div>
@@ -179,12 +178,12 @@ export function PostPreviewDialog({
                               ]}
                           </span>
                           {!provider.isActive && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className="text-xs" variant="secondary">
                               Disconnected
                             </Badge>
                           )}
                           {failureReason && (
-                            <Badge variant="destructive" className="text-xs">
+                            <Badge className="text-xs" variant="destructive">
                               Failed
                             </Badge>
                           )}
@@ -192,9 +191,9 @@ export function PostPreviewDialog({
                         {failureReason && (
                           <div className="flex items-start gap-2 text-destructive text-sm">
                             <Icon
+                              className="mt-0.5 flex-shrink-0"
                               icon={AlertCircleIcon}
                               size={12}
-                              className="mt-0.5 flex-shrink-0"
                             />
                             <span className="text-xs">{failureReason}</span>
                           </div>
@@ -203,14 +202,14 @@ export function PostPreviewDialog({
                     </div>
                     <div className="flex gap-2">
                       {provider.isActive && platformPostUrl && (
-                        <Button variant="outline" size="sm" asChild>
+                        <Button asChild size="sm" variant="outline">
                           <a
-                            href={platformPostUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="flex items-center gap-1"
+                            href={platformPostUrl}
+                            rel="noopener noreferrer"
+                            target="_blank"
                           >
-                            <Icon icon={Link01Icon} size={12} className="" />
+                            <Icon className="" icon={Link01Icon} size={12} />
                             View Post
                           </a>
                         </Button>
@@ -226,9 +225,9 @@ export function PostPreviewDialog({
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <div className="flex items-start gap-2">
                   <Icon
+                    className="mt-0.5 flex-shrink-0 text-destructive"
                     icon={AlertCircleIcon}
                     size={16}
-                    className="mt-0.5 flex-shrink-0 text-destructive"
                   />
                   <div>
                     <p className="font-medium text-destructive text-sm">

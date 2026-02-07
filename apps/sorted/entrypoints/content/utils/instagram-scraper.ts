@@ -7,9 +7,9 @@
  * The scraper attempts multiple fallback strategies for robustness.
  */
 
-import { ERROR_MESSAGES, INSTAGRAM_SELECTORS } from '../../shared/constants';
-import type { ReelData } from '../../shared/types';
-import { getCachedMetrics } from './graphql-interceptor';
+import { ERROR_MESSAGES, INSTAGRAM_SELECTORS } from "../../shared/constants";
+import type { ReelData } from "../../shared/types";
+import { getCachedMetrics } from "./graphql-interceptor";
 
 /**
  * Try multiple selectors until one returns an element
@@ -74,30 +74,30 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       INSTAGRAM_SELECTORS.REEL_LINK
     );
     if (!linkElement) {
-      console.warn('No link found in reel element', reelElement);
+      console.warn("No link found in reel element", reelElement);
       return null;
     }
 
-    const href = linkElement.getAttribute('href');
+    const href = linkElement.getAttribute("href");
     if (!href) {
-      console.warn('Link has no href', linkElement);
+      console.warn("Link has no href", linkElement);
       return null;
     }
 
     // Construct full URL
-    const url = href.startsWith('http')
+    const url = href.startsWith("http")
       ? href
       : `https://www.instagram.com${href}`;
 
     // Extract reel ID
     const id = extractReelId(url);
     if (!id) {
-      console.warn('Could not extract reel ID from URL', url);
+      console.warn("Could not extract reel ID from URL", url);
       return null;
     }
 
     // Find thumbnail - Instagram uses CSS background-image, not <img> tags!
-    let thumbnailUrl = '';
+    let thumbnailUrl = "";
 
     // Strategy 1: Look for background-image in the reel container (primary method)
     const bgElement = reelElement.querySelector(
@@ -105,13 +105,13 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     ) as HTMLElement;
     if (bgElement) {
       const bgImage = bgElement.style.backgroundImage;
-      if (bgImage && bgImage !== 'none') {
+      if (bgImage && bgImage !== "none") {
         const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
         if (urlMatch) {
           thumbnailUrl = urlMatch[1];
           // Filter out GIF placeholders (Instagram uses these for loading states)
-          if (thumbnailUrl.startsWith('data:image/gif')) {
-            thumbnailUrl = '';
+          if (thumbnailUrl.startsWith("data:image/gif")) {
+            thumbnailUrl = "";
           }
         }
       }
@@ -120,9 +120,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     // Strategy 2: Check link element for background-image
     if (!thumbnailUrl) {
       const linkBg = (linkElement as HTMLElement).style?.backgroundImage;
-      if (linkBg && linkBg !== 'none') {
+      if (linkBg && linkBg !== "none") {
         const urlMatch = linkBg.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+        if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }
       }
@@ -131,11 +131,11 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     // Strategy 3: Look for img elements (fallback for posts)
     if (!thumbnailUrl) {
       const imgElement = reelElement.querySelector(
-        'img[src]'
+        "img[src]"
       ) as HTMLImageElement;
       if (imgElement) {
-        const src = imgElement.getAttribute('src') || '';
-        if (src && !src.startsWith('data:image/gif')) {
+        const src = imgElement.getAttribute("src") || "";
+        if (src && !src.startsWith("data:image/gif")) {
           thumbnailUrl = src;
         }
       }
@@ -144,9 +144,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     // Strategy 4: Check computed styles (more expensive, last resort)
     if (!thumbnailUrl && bgElement) {
       const computedBg = window.getComputedStyle(bgElement).backgroundImage;
-      if (computedBg && computedBg !== 'none') {
+      if (computedBg && computedBg !== "none") {
         const urlMatch = computedBg.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+        if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }
       }
@@ -168,7 +168,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       scrapedAt: Date.now(),
     };
   } catch (error) {
-    console.error('Error scraping reel element:', error, reelElement);
+    console.error("Error scraping reel element:", error, reelElement);
     return null;
   }
 }
@@ -194,7 +194,7 @@ export function findReelElements(): Element[] {
     // Get parent elements of links (usually the article/div containers)
     const reelElements = reelLinks
       .map(
-        (link) => link.closest('article') || link.closest('div[class]') || link
+        (link) => link.closest("article") || link.closest("div[class]") || link
       )
       .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
@@ -207,7 +207,7 @@ export function findReelElements(): Element[] {
   // Get parent containers
   const reelElements = reelLinks
     .map(
-      (link) => link.closest('article') || link.closest('div[class]') || link
+      (link) => link.closest("article") || link.closest("div[class]") || link
     )
     .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
@@ -258,7 +258,7 @@ export async function waitForLoad(timeout = 5000): Promise<void> {
       }
 
       if (Date.now() - startTime > timeout) {
-        reject(new Error('Loading timeout'));
+        reject(new Error("Loading timeout"));
         return;
       }
 
@@ -296,7 +296,7 @@ export function validateScrapingCapability(): string | null {
 
   if (!hasAnyMetric) {
     console.warn(
-      'Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view.'
+      "Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view."
     );
     // Don't return error - we can still sort by available metrics
   }

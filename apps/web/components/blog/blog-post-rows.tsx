@@ -1,16 +1,16 @@
-'use client';
-import type { Blog } from 'content-collections';
-import { format } from 'date-fns';
-import FuzzySearch from 'fuzzy-search';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+"use client";
+import type { Blog } from "content-collections";
+import { format } from "date-fns";
+import FuzzySearch from "fuzzy-search";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const searcher = useMemo(
     () =>
-      new FuzzySearch(blogs, ['title', 'description'], {
+      new FuzzySearch(blogs, ["title", "description"], {
         caseSensitive: false,
       }),
     [blogs]
@@ -29,11 +29,11 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
           Latest <span className="text-primary">Blogs</span>
         </h1>
         <input
-          type="text"
-          value={search}
+          className="rounded-md border border-input bg-muted p-2 text-foreground text-sm placeholder-muted-foreground outline-none focus:outline-none focus:ring-0"
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search blogs"
-          className="rounded-md border border-input bg-muted p-2 text-foreground text-sm placeholder-muted-foreground outline-none focus:outline-none focus:ring-0"
+          type="text"
+          value={search}
         />
       </div>
 
@@ -55,15 +55,15 @@ export const BlogPostRows = ({ blogs }: { blogs: Blog[] }) => {
 export const BlogPostCard = ({ blog }: { blog: Blog }) => {
   return (
     <Link
-      href={`/blog/${blog.slug}`}
       className="group overflow-hidden rounded-2xl bg-white transition duration-200 hover:shadow-lg"
+      href={`/blog/${blog.slug}`}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
-          src={blog.image || '/placeholder-image.jpg'} // Make sure to handle missing cover images
-          alt={blog.title}
-          fill
+          alt={blog.title} // Make sure to handle missing cover images
           className="rounded-xl object-cover transition duration-200 group-hover:scale-105"
+          fill
+          src={blog.image || "/placeholder-image.jpg"}
         />
       </div>
 
@@ -71,14 +71,14 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
         <div className="mb-3 flex items-center gap-2">
           {blog.categories.map((category, i) => (
             <span
-              key={i}
               className="rounded bg-primary/10 px-2 py-1 font-medium text-primary text-xs"
+              key={i}
             >
               {category}
             </span>
           ))}
           <span className="text-muted-foreground text-sm">
-            {format(new Date(blog.date), 'd MMM, yyyy')}
+            {format(new Date(blog.date), "d MMM, yyyy")}
           </span>
           <span className="text-muted-foreground text-sm">•</span>
           <span className="text-muted-foreground text-sm">5 min read</span>
@@ -95,11 +95,11 @@ export const BlogPostCard = ({ blog }: { blog: Blog }) => {
         <div className="flex items-center gap-2">
           {blog.authorAvatar && (
             <Image
-              src={blog.authorAvatar}
               alt={blog.author}
-              width={24}
-              height={24}
               className="rounded-full object-cover"
+              height={24}
+              src={blog.authorAvatar}
+              width={24}
             />
           )}
           <span className="text-muted-foreground text-sm">{blog.author}</span>

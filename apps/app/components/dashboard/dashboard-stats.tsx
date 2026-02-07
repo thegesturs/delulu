@@ -1,14 +1,13 @@
-'use client';
+"use client";
 
-import type { DashboardStats } from '@/types/convex';
-import { Badge } from '@delulu/design-system/components/ui/badge';
+import { Badge } from "@delulu/design-system/components/ui/badge";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Calendar01Icon,
   CancelCircleIcon,
@@ -17,7 +16,8 @@ import {
   FireIcon,
   TickDouble01Icon,
   UserMultipleIcon,
-} from '@hugeicons-pro/core-solid-rounded';
+} from "@hugeicons-pro/core-solid-rounded";
+import type { DashboardStats } from "@/types/convex";
 
 interface DashboardStatsClientProps {
   stats: DashboardStats;
@@ -39,14 +39,14 @@ export function DashboardStatsClient({
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Total Posts</CardTitle>
             <Icon
+              className="text-muted-foreground"
               icon={DocumentAttachmentIcon}
               size={16}
-              className="text-muted-foreground"
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.totalPosts}
+              {isLoading ? "..." : stats.totalPosts}
             </div>
             <p className="text-muted-foreground text-xs">All your content</p>
           </CardContent>
@@ -56,14 +56,14 @@ export function DashboardStatsClient({
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Published</CardTitle>
             <Icon
+              className="text-green-600 dark:text-green-400"
               icon={TickDouble01Icon}
               size={16}
-              className="text-green-600 dark:text-green-400"
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.publishedCount}
+              {isLoading ? "..." : stats.publishedCount}
             </div>
             {/* <div className="flex items-center space-x-2 text-xs">
               <span className="text-muted-foreground">
@@ -79,18 +79,18 @@ export function DashboardStatsClient({
               Connected Accounts
             </CardTitle>
             <Icon
+              className="text-muted-foreground"
               icon={UserMultipleIcon}
               size={16}
-              className="text-muted-foreground"
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.connectedAccounts}
+              {isLoading ? "..." : stats.connectedAccounts}
             </div>
             <div className="flex items-center space-x-2 text-xs">
               {stats.expiredTokens > 0 && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge className="text-xs" variant="destructive">
                   {stats.expiredTokens} expired
                 </Badge>
               )}
@@ -109,26 +109,26 @@ export function DashboardStatsClient({
               Posting Streak
             </CardTitle>
             <Icon
-              icon={FireIcon}
-              size={16}
               className={
                 stats.postingStreak && stats.postingStreak > 0
-                  ? 'text-orange-500 dark:text-orange-400'
-                  : 'text-muted-foreground'
+                  ? "text-orange-500 dark:text-orange-400"
+                  : "text-muted-foreground"
               }
+              icon={FireIcon}
+              size={16}
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.postingStreak || 0}
+              {isLoading ? "..." : stats.postingStreak || 0}
             </div>
             <div className="flex items-center space-x-2 text-xs">
               <span className="text-muted-foreground">
                 {stats.postingStreak === 0
-                  ? 'Start posting to build streak'
+                  ? "Start posting to build streak"
                   : stats.postingStreak === 1
-                    ? 'day streak'
-                    : 'days streak'}
+                    ? "day streak"
+                    : "days streak"}
               </span>
             </div>
           </CardContent>
@@ -143,14 +143,14 @@ export function DashboardStatsClient({
               Upcoming Posts
             </CardTitle>
             <Icon
+              className="text-blue-600 dark:text-blue-400"
               icon={ClockIcon}
               size={16}
-              className="text-blue-600 dark:text-blue-400"
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.upcomingPosts}
+              {isLoading ? "..." : stats.upcomingPosts}
             </div>
             <p className="text-muted-foreground text-xs">
               Scheduled for next 7 days
@@ -162,14 +162,14 @@ export function DashboardStatsClient({
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Scheduled</CardTitle>
             <Icon
+              className="text-blue-600 dark:text-blue-400"
               icon={Calendar01Icon}
               size={16}
-              className="text-blue-600 dark:text-blue-400"
             />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
-              {isLoading ? '...' : stats.scheduledCount}
+              {isLoading ? "..." : stats.scheduledCount}
             </div>
             <p className="text-muted-foreground text-xs">Ready to publish</p>
           </CardContent>
@@ -182,14 +182,14 @@ export function DashboardStatsClient({
                 Failed Posts
               </CardTitle>
               <Icon
+                className="text-red-600 dark:text-red-400"
                 icon={CancelCircleIcon}
                 size={16}
-                className="text-red-600 dark:text-red-400"
               />
             </CardHeader>
             <CardContent>
               <div className="font-bold text-2xl text-red-800 dark:text-red-200">
-                {isLoading ? '...' : stats.failedCount}
+                {isLoading ? "..." : stats.failedCount}
               </div>
               <p className="text-red-600 text-xs dark:text-red-400">
                 Need attention

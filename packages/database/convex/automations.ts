@@ -1,15 +1,15 @@
-import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 import {
-  DM_PLAN_LIMITS,
   automationCreateSchema,
   automationSchema,
   automationStepSchema,
   automationUpdateSchema,
+  DM_PLAN_LIMITS,
   triggerStepSchema,
-} from './schemas/automations';
-import { getCurrentUser } from './users';
-import { decryptData, getCurrentTimestamp } from './utils';
+} from "./schemas/automations";
+import { getCurrentUser } from "./users";
+import { decryptData, getCurrentTimestamp } from "./utils";
 
 // ============================================================================
 // Queries
@@ -20,7 +20,7 @@ import { decryptData, getCurrentTimestamp } from './utils';
  */
 export const getAutomations = query({
   args: {
-    socialProviderId: v.optional(v.id('socialProviders')),
+    socialProviderId: v.optional(v.id("socialProviders")),
   },
   returns: v.array(automationSchema),
   handler: async (ctx, args) => {
@@ -33,15 +33,15 @@ export const getAutomations = query({
     let automations;
     if (args.socialProviderId) {
       automations = await ctx.db
-        .query('automations')
-        .withIndex('by_social_provider_id', (q) =>
-          q.eq('socialProviderId', args.socialProviderId!)
+        .query("automations")
+        .withIndex("by_social_provider_id", (q) =>
+          q.eq("socialProviderId", args.socialProviderId!)
         )
         .collect();
     } else {
       automations = await ctx.db
-        .query('automations')
-        .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+        .query("automations")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
         .collect();
     }
 
@@ -56,7 +56,7 @@ export const getAutomations = query({
  * Get a single automation by ID
  */
 export const getAutomation = query({
-  args: { id: v.id('automations') },
+  args: { id: v.id("automations") },
   returns: v.union(automationSchema, v.null()),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -87,18 +87,18 @@ export const getForWebhook = query({
     v.object({
       automations: v.array(
         v.object({
-          _id: v.id('automations'),
+          _id: v.id("automations"),
           triggers: v.array(triggerStepSchema),
           steps: v.array(automationStepSchema),
         })
       ),
       accessToken: v.string(),
       profileId: v.string(),
-      userId: v.id('users'),
+      userId: v.id("users"),
       planType: v.union(
-        v.literal('FREE'),
-        v.literal('VIBE'),
-        v.literal('ECHO')
+        v.literal("FREE"),
+        v.literal("VIBE"),
+        v.literal("ECHO")
       ),
       dmsSent: v.optional(v.number()),
       dmLimit: v.number(),
@@ -108,19 +108,19 @@ export const getForWebhook = query({
   handler: async (ctx, args) => {
     // Verify shared secret
     if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
-      console.log('[getForWebhook] Secret mismatch');
+      console.log("[getForWebhook] Secret mismatch");
       return null;
     }
 
     // 1. Find social provider by profileId
     const provider = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_profile_id', (q) =>
-        q.eq('profileId', args.instagramAccountId)
+      .query("socialProviders")
+      .withIndex("by_profile_id", (q) =>
+        q.eq("profileId", args.instagramAccountId)
       )
       .first();
 
-    if (!provider || provider.socialType !== 'INSTAGRAM') {
+    if (!provider || provider.socialType !== "INSTAGRAM") {
       console.log(
         `[getForWebhook] No Instagram provider for profileId=${args.instagramAccountId}`
       );
@@ -129,9 +129,9 @@ export const getForWebhook = query({
 
     // 2. Get active automations that have a trigger targeting this mediaId
     const allAutomations = await ctx.db
-      .query('automations')
-      .withIndex('by_social_provider_active', (q) =>
-        q.eq('socialProviderId', provider._id).eq('isActive', true)
+      .query("automations")
+      .withIndex("by_social_provider_active", (q) =>
+        q.eq("socialProviderId", provider._id).eq("isActive", true)
       )
       .collect();
 
@@ -149,7 +149,7 @@ export const getForWebhook = query({
         `[getForWebhook] No automations target mediaId=${args.mediaId}. Active automations target: ${
           allAutomations
             .flatMap((a) => a.triggers.flatMap((t) => t.targetPostIds))
-            .join(', ') || 'none'
+            .join(", ") || "none"
         }`
       );
       return null;
@@ -161,11 +161,11 @@ export const getForWebhook = query({
       return null;
     }
 
-    let planType: 'FREE' | 'VIBE' | 'ECHO' = 'FREE';
+    let planType: "FREE" | "VIBE" | "ECHO" = "FREE";
     if (user.subscriptionId) {
       const subscription = await ctx.db.get(user.subscriptionId);
-      if (subscription && subscription.status === 'ACTIVE') {
-        planType = subscription.planType as 'FREE' | 'VIBE' | 'ECHO';
+      if (subscription && subscription.status === "ACTIVE") {
+        planType = subscription.planType as "FREE" | "VIBE" | "ECHO";
       }
     }
 
@@ -195,8 +195,8 @@ export const getForWebhook = query({
 export const recordDMSent = mutation({
   args: {
     webhookSecret: v.string(),
-    userId: v.id('users'),
-    automationId: v.id('automations'),
+    userId: v.id("users"),
+    automationId: v.id("automations"),
     instagramCommentId: v.string(),
     instagramUsername: v.optional(v.string()),
   },
@@ -204,7 +204,7 @@ export const recordDMSent = mutation({
   handler: async (ctx, args) => {
     // Verify shared secret
     if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
-      throw new Error('Unauthorized');
+      throw new Error("Unauthorized");
     }
 
     const now = getCurrentTimestamp();
@@ -232,12 +232,12 @@ export const recordDMSent = mutation({
     }
 
     // 3. Insert minimal log
-    await ctx.db.insert('automationLogs', {
+    await ctx.db.insert("automationLogs", {
       automationId: args.automationId,
       userId: args.userId,
       instagramCommentId: args.instagramCommentId,
       instagramUsername: args.instagramUsername,
-      status: 'DM_SENT',
+      status: "DM_SENT",
       createdAt: now,
     });
 
@@ -254,27 +254,27 @@ export const recordDMSent = mutation({
  */
 export const createAutomation = mutation({
   args: automationCreateSchema.fields,
-  returns: v.id('automations'),
+  returns: v.id("automations"),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Verify user owns the social provider
     const socialProvider = await ctx.db.get(args.socialProviderId);
     if (!socialProvider || socialProvider.userId !== user._id) {
-      throw new Error('Social provider not found or access denied');
+      throw new Error("Social provider not found or access denied");
     }
 
     // Only allow Instagram providers
-    if (socialProvider.socialType !== 'INSTAGRAM') {
-      throw new Error('Automations are only supported for Instagram accounts');
+    if (socialProvider.socialType !== "INSTAGRAM") {
+      throw new Error("Automations are only supported for Instagram accounts");
     }
 
     const now = getCurrentTimestamp();
 
-    const automationId = await ctx.db.insert('automations', {
+    const automationId = await ctx.db.insert("automations", {
       userId: user._id,
       organizationId: args.organizationId,
       socialProviderId: args.socialProviderId,
@@ -299,19 +299,19 @@ export const createAutomation = mutation({
  */
 export const updateAutomation = mutation({
   args: {
-    id: v.id('automations'),
+    id: v.id("automations"),
     ...automationUpdateSchema.fields,
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
     if (!automation || automation.userId !== user._id) {
-      throw new Error('Automation not found or access denied');
+      throw new Error("Automation not found or access denied");
     }
 
     const { id, ...updateData } = args;
@@ -329,17 +329,17 @@ export const updateAutomation = mutation({
  * Delete an automation
  */
 export const deleteAutomation = mutation({
-  args: { id: v.id('automations') },
+  args: { id: v.id("automations") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
     if (!automation || automation.userId !== user._id) {
-      throw new Error('Automation not found or access denied');
+      throw new Error("Automation not found or access denied");
     }
 
     await ctx.db.delete(args.id);
@@ -351,17 +351,17 @@ export const deleteAutomation = mutation({
  * Toggle automation active state
  */
 export const toggleAutomation = mutation({
-  args: { id: v.id('automations') },
+  args: { id: v.id("automations") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
     if (!automation || automation.userId !== user._id) {
-      throw new Error('Automation not found or access denied');
+      throw new Error("Automation not found or access denied");
     }
 
     await ctx.db.patch(args.id, {

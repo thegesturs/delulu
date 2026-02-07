@@ -1,19 +1,19 @@
-import merge from 'lodash.merge';
-import type { Metadata } from 'next';
+import merge from "lodash.merge";
+import type { Metadata } from "next";
 
-type MetadataGenerator = Omit<Metadata, 'description' | 'title'> & {
+type MetadataGenerator = Omit<Metadata, "description" | "title"> & {
   title: string;
   description: string;
   image?: string;
 };
 
-const applicationName = 'Delulu Social';
-const author: Metadata['authors'] = {
-  name: 'Delulu Social',
-  url: 'https://delulu.social/',
+const applicationName = "Delulu Social";
+const author: Metadata["authors"] = {
+  name: "Delulu Social",
+  url: "https://delulu.social/",
 };
-const publisher = 'Delulu Social';
-const twitterHandle = '@delulusocial';
+const publisher = "Delulu Social";
+const twitterHandle = "@delulusocial";
 // const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 const productionUrl = process.env.NEXT_PUBLIC_WEB_URL;
 
@@ -30,44 +30,44 @@ export const createMetadata = ({
     applicationName,
     keywords: [
       // Core functionality (AI search terms)
-      'social media management platform',
-      'how to manage multiple social media accounts',
-      'best social media scheduling tool',
-      'multi-platform posting software',
-      'social media content creation tools',
-      'social media automation platform',
+      "social media management platform",
+      "how to manage multiple social media accounts",
+      "best social media scheduling tool",
+      "multi-platform posting software",
+      "social media content creation tools",
+      "social media automation platform",
 
       // Platform-specific (conversational queries)
-      'post to Instagram and Facebook simultaneously',
-      'schedule TikTok and Twitter posts',
-      'LinkedIn content management',
-      'Pinterest marketing automation',
-      'Threads publishing tool',
-      'Farcaster social media manager',
+      "post to Instagram and Facebook simultaneously",
+      "schedule TikTok and Twitter posts",
+      "LinkedIn content management",
+      "Pinterest marketing automation",
+      "Threads publishing tool",
+      "Farcaster social media manager",
 
       // Problem-solving keywords (AI loves these)
-      'how to save time on social media',
-      'social media management for businesses',
-      'content calendar and planning',
-      'social media analytics and insights',
-      'team collaboration for social media',
-      'cross-platform content synchronization',
+      "how to save time on social media",
+      "social media management for businesses",
+      "content calendar and planning",
+      "social media analytics and insights",
+      "team collaboration for social media",
+      "cross-platform content synchronization",
 
       // Technical/brand terms
-      'Delulu Social',
-      'social media dashboard',
-      'social media marketing tool',
-      'social media scheduler',
-      'social media automation',
+      "Delulu Social",
+      "social media dashboard",
+      "social media marketing tool",
+      "social media scheduler",
+      "social media automation",
     ],
     metadataBase: productionUrl
       ? new URL(`${productionUrl}`)
-      : new URL('https://delulu.social'),
+      : new URL("https://delulu.social"),
     authors: [author],
     creator: author.name,
     publisher,
-    category: 'Social Media Management',
-    classification: 'Social Media Management Platform',
+    category: "Social Media Management",
+    classification: "Social Media Management Platform",
     formatDetection: {
       telephone: false,
     },
@@ -77,9 +77,9 @@ export const createMetadata = ({
       googleBot: {
         index: true,
         follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
       },
     },
     verification: {
@@ -87,19 +87,19 @@ export const createMetadata = ({
     },
     appleWebApp: {
       capable: true,
-      statusBarStyle: 'default',
+      statusBarStyle: "default",
       title: parsedTitle,
     },
     openGraph: {
       title: parsedTitle,
       description,
-      type: 'website',
+      type: "website",
       siteName: applicationName,
-      locale: 'en_US',
-      countryName: 'United States',
+      locale: "en_US",
+      countryName: "United States",
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       creator: twitterHandle,
       site: twitterHandle,
       title: parsedTitle,
@@ -118,7 +118,7 @@ export const createMetadata = ({
       width: 1200,
       height: 630,
       alt: title,
-      type: 'image/png',
+      type: "image/png",
     };
 
     metadata.openGraph.images = [imageObject];

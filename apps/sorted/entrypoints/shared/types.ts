@@ -25,12 +25,12 @@ export interface ReelData {
 /**
  * Metric to sort by
  */
-export type SortMetric = 'likes' | 'views' | 'comments' | 'oldest';
+export type SortMetric = "likes" | "views" | "comments" | "oldest";
 
 /**
  * Number of reels to scrape
  */
-export type Quantity = 25 | 50 | 'all';
+export type Quantity = 25 | 50 | "all";
 
 /**
  * User preferences stored in chrome.storage
@@ -45,11 +45,11 @@ export interface UserPreferences {
  * Scraping state
  */
 export type ScrapingStatus =
-  | 'idle'
-  | 'scraping'
-  | 'sorting'
-  | 'complete'
-  | 'error';
+  | "idle"
+  | "scraping"
+  | "sorting"
+  | "complete"
+  | "error";
 
 /**
  * Scraping progress information
@@ -65,15 +65,15 @@ export interface ScrapingProgress {
  * Message types for communication between extension contexts
  */
 export enum MessageType {
-  OPEN_OVERLAY = 'OPEN_OVERLAY',
-  CLOSE_OVERLAY = 'CLOSE_OVERLAY',
-  START_SCRAPING = 'START_SCRAPING',
-  CANCEL_SCRAPING = 'CANCEL_SCRAPING',
-  SCRAPING_PROGRESS = 'SCRAPING_PROGRESS',
-  SCRAPING_COMPLETE = 'SCRAPING_COMPLETE',
-  SCRAPING_ERROR = 'SCRAPING_ERROR',
-  GET_PREFERENCES = 'GET_PREFERENCES',
-  SET_PREFERENCES = 'SET_PREFERENCES',
+  OPEN_OVERLAY = "OPEN_OVERLAY",
+  CLOSE_OVERLAY = "CLOSE_OVERLAY",
+  START_SCRAPING = "START_SCRAPING",
+  CANCEL_SCRAPING = "CANCEL_SCRAPING",
+  SCRAPING_PROGRESS = "SCRAPING_PROGRESS",
+  SCRAPING_COMPLETE = "SCRAPING_COMPLETE",
+  SCRAPING_ERROR = "SCRAPING_ERROR",
+  GET_PREFERENCES = "GET_PREFERENCES",
+  SET_PREFERENCES = "SET_PREFERENCES",
 }
 
 /**

@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { PostSelector } from '@/components/automations/post-selector';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Label } from '@delulu/design-system/components/ui/label';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Label } from "@delulu/design-system/components/ui/label";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AtIcon,
   Comment01Icon,
   InstagramIcon,
   UserStoryIcon,
-} from '@hugeicons-pro/core-solid-rounded';
-import type { AutomationTriggerType, TriggerStep } from '../utils/flow-types';
+} from "@hugeicons-pro/core-solid-rounded";
+import { PostSelector } from "@/components/automations/post-selector";
+import type { AutomationTriggerType, TriggerStep } from "../utils/flow-types";
 
 interface SocialProvider {
   _id: string;
@@ -36,23 +36,23 @@ const TRIGGER_TYPE_OPTIONS: {
   enabled: boolean;
 }[] = [
   {
-    type: 'COMMENT',
-    label: 'Post or Reel Comments',
-    description: 'Fires when a user comments on your post or reel',
+    type: "COMMENT",
+    label: "Post or Reel Comments",
+    description: "Fires when a user comments on your post or reel",
     icon: Comment01Icon,
     enabled: true,
   },
   {
-    type: 'MENTION',
-    label: 'Mentions',
-    description: 'Fires when a user mentions you',
+    type: "MENTION",
+    label: "Mentions",
+    description: "Fires when a user mentions you",
     icon: AtIcon,
     enabled: false,
   },
   {
-    type: 'STORY_REPLY',
-    label: 'Story Replies',
-    description: 'Fires when a user replies to your story',
+    type: "STORY_REPLY",
+    label: "Story Replies",
+    description: "Fires when a user replies to your story",
     icon: UserStoryIcon,
     enabled: false,
   },
@@ -78,18 +78,18 @@ export function TriggerPanel({
         <div className="grid gap-2">
           {instagramProviders.map((provider) => (
             <button
-              key={provider._id}
-              type="button"
-              onClick={() => onSocialProviderChange(provider._id)}
               className={cn(
-                'flex items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                "flex items-center gap-3 rounded-lg border p-3 text-left transition-all",
                 socialProviderId === provider._id
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                  : 'border-border hover:border-primary/50'
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                  : "border-border hover:border-primary/50"
               )}
+              key={provider._id}
+              onClick={() => onSocialProviderChange(provider._id)}
+              type="button"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
-                <Icon icon={InstagramIcon} size={16} className="text-white" />
+                <Icon className="text-white" icon={InstagramIcon} size={16} />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-xs">
@@ -118,31 +118,31 @@ export function TriggerPanel({
         <div className="grid gap-2">
           {TRIGGER_TYPE_OPTIONS.map((option) => (
             <button
-              key={option.type}
-              type="button"
+              className={cn(
+                "flex items-center gap-3 rounded-lg border p-3 text-left transition-all",
+                !option.enabled && "cursor-not-allowed opacity-50",
+                option.enabled && trigger.triggerType === option.type
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                  : option.enabled
+                    ? "border-border hover:border-primary/50"
+                    : "border-border"
+              )}
               disabled={!option.enabled}
+              key={option.type}
               onClick={() =>
                 option.enabled &&
                 onChange({ ...trigger, triggerType: option.type })
               }
-              className={cn(
-                'flex items-center gap-3 rounded-lg border p-3 text-left transition-all',
-                !option.enabled && 'cursor-not-allowed opacity-50',
-                option.enabled && trigger.triggerType === option.type
-                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                  : option.enabled
-                    ? 'border-border hover:border-primary/50'
-                    : 'border-border'
-              )}
+              type="button"
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
-                <Icon icon={option.icon} size={16} className="text-white" />
+                <Icon className="text-white" icon={option.icon} size={16} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-xs">{option.label}</p>
                   {!option.enabled && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge className="text-[10px]" variant="secondary">
                       SOON
                     </Badge>
                   )}
@@ -163,11 +163,11 @@ export function TriggerPanel({
           Select which posts this trigger monitors.
         </p>
         <PostSelector
-          socialProviderId={socialProviderId || null}
-          selectedPostIds={trigger.targetPostIds}
           onSelectionChange={(postIds) =>
             onChange({ ...trigger, targetPostIds: postIds })
           }
+          selectedPostIds={trigger.targetPostIds}
+          socialProviderId={socialProviderId || null}
         />
       </div>
     </div>

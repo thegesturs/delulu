@@ -1,25 +1,25 @@
-import type { UserJSON } from '@clerk/backend';
-import { type Validator, v } from 'convex/values';
-import type { Id } from './_generated/dataModel';
+import type { UserJSON } from "@clerk/backend";
+import { type Validator, v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import {
-  type MutationCtx,
-  type QueryCtx,
   internalMutation,
   internalQuery,
+  type MutationCtx,
   mutation,
+  type QueryCtx,
   query,
-} from './_generated/server';
-import { userSchema } from './schemas';
-import { getCurrentTimestamp, isValidEmail } from './utils';
+} from "./_generated/server";
+import { userSchema } from "./schemas";
+import { getCurrentTimestamp, isValidEmail } from "./utils";
 
 // User queries
 export const getUserById = query({
-  args: { id: v.id('users') },
+  args: { id: v.id("users") },
   returns: v.union(userSchema, v.null()),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
     return user;
@@ -31,8 +31,8 @@ export const getUserByExternalId = query({
   returns: v.union(userSchema, v.null()),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_external_id', (q) => q.eq('externalId', args.externalId))
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
       .unique();
     return user;
   },
@@ -46,8 +46,8 @@ export const getUserByEmail = query({
     }
 
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
 
     return user;
@@ -55,22 +55,22 @@ export const getUserByEmail = query({
 });
 
 export const deleteUser = mutation({
-  args: { id: v.id('users') },
+  args: { id: v.id("users") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Delete user's posts
     const posts = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", args.id))
       .collect();
 
     for (const post of posts) {
@@ -79,8 +79,8 @@ export const deleteUser = mutation({
 
     // Delete user's social providers
     const socialProviders = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.id))
+      .query("socialProviders")
+      .withIndex("by_user_id", (q) => q.eq("userId", args.id))
       .collect();
 
     for (const provider of socialProviders) {
@@ -89,8 +89,8 @@ export const deleteUser = mutation({
 
     // Delete user's media
     const media = await ctx.db
-      .query('media')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.id))
+      .query("media")
+      .withIndex("by_user_id", (q) => q.eq("userId", args.id))
       .collect();
 
     for (const mediaItem of media) {
@@ -106,7 +106,7 @@ export const deleteUser = mutation({
 
 // User usage queries and mutations
 export const getUserUsage = query({
-  args: { id: v.id('users') },
+  args: { id: v.id("users") },
   returns: v.union(
     v.object({
       socialAccounts: v.number(),
@@ -118,8 +118,8 @@ export const getUserUsage = query({
   ),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
     return user?.usage || null;
@@ -128,7 +128,7 @@ export const getUserUsage = query({
 
 export const updateUserUsage = mutation({
   args: {
-    id: v.id('users'),
+    id: v.id("users"),
     socialAccounts: v.optional(v.number()),
     generatedPosts: v.optional(v.number()),
     drafts: v.optional(v.number()),
@@ -137,12 +137,12 @@ export const updateUserUsage = mutation({
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const updatedUsage = { ...user.usage };
@@ -186,11 +186,11 @@ export const upsertFromClerk = internalMutation({
   args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
   async handler(ctx, { data }) {
     const userAttributes = {
-      name: `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'User',
-      email: data.email_addresses?.[0]?.email_address || '',
+      name: `${data.first_name || ""} ${data.last_name || ""}`.trim() || "User",
+      email: data.email_addresses?.[0]?.email_address || "",
       externalId: data.id,
       emailVerified:
-        data.email_addresses?.[0]?.verification?.status === 'verified' || false,
+        data.email_addresses?.[0]?.verification?.status === "verified",
       image: data.image_url || undefined,
       usage: {
         socialAccounts: 0,
@@ -204,7 +204,7 @@ export const upsertFromClerk = internalMutation({
     const user = await userByExternalId(ctx, data.id);
     if (user === null) {
       // Create new user
-      await ctx.db.insert('users', userAttributes);
+      await ctx.db.insert("users", userAttributes);
     } else {
       // Update existing user
       await ctx.db.patch(user._id, userAttributes);
@@ -240,28 +240,28 @@ export async function getCurrentUserOrThrow(ctx: QueryCtx) {
 // Helper to get current user from Clerk identity
 export async function getCurrentUser(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
-  console.log('>>> Identity', identity);
+  console.log(">>> Identity", identity);
   if (identity === null) {
     return null;
   }
-  console.log('>>> Subject', identity.subject);
+  console.log(">>> Subject", identity.subject);
   return await userByExternalId(ctx, identity.subject);
 }
 
 // Helper to find user by Clerk external ID
 async function userByExternalId(ctx: QueryCtx, externalId: string) {
   return await ctx.db
-    .query('users')
-    .withIndex('by_external_id', (q) => q.eq('externalId', externalId))
+    .query("users")
+    .withIndex("by_external_id", (q) => q.eq("externalId", externalId))
     .unique();
 }
 
 // Internal helper for cascading user deletion
-async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
+async function deleteUserInternal(ctx: MutationCtx, userId: Id<"users">) {
   // Delete user's posts
   const posts = await ctx.db
-    .query('posts')
-    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .query("posts")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
     .collect();
 
   for (const post of posts) {
@@ -270,8 +270,8 @@ async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
 
   // Delete user's social providers
   const socialProviders = await ctx.db
-    .query('socialProviders')
-    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .query("socialProviders")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
     .collect();
 
   for (const provider of socialProviders) {
@@ -280,8 +280,8 @@ async function deleteUserInternal(ctx: MutationCtx, userId: Id<'users'>) {
 
   // Delete user's media
   const media = await ctx.db
-    .query('media')
-    .withIndex('by_user_id', (q) => q.eq('userId', userId))
+    .query("media")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
     .collect();
 
   for (const mediaItem of media) {
@@ -305,8 +305,8 @@ export const getByExternalId = internalQuery({
   returns: v.union(userSchema, v.null()),
   handler: async (ctx, args) => {
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_external_id', (q) => q.eq('externalId', args.externalId))
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
       .unique();
     return user;
   },

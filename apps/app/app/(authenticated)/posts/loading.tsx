@@ -1,5 +1,5 @@
-import { Skeleton } from '@delulu/design-system/components/ui/skeleton';
-import PostLoading from './post-loading';
+import { Skeleton } from "@delulu/design-system/components/ui/skeleton";
+import PostLoading from "./post-loading";
 
 export default function PostsLoading() {
   return (

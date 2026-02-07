@@ -1,26 +1,26 @@
-import { BlogCard } from '@/components/blog/blog-card';
-import { JsonLd, createBlogSchema } from '@delulu/seo/json-ld';
-import { createMetadata } from '@delulu/seo/metadata';
-import { allBlogs } from 'content-collections';
-import type { Metadata } from 'next';
+import { createBlogSchema, JsonLd } from "@delulu/seo/json-ld";
+import { createMetadata } from "@delulu/seo/metadata";
+import { allBlogs } from "content-collections";
+import type { Metadata } from "next";
+import { BlogCard } from "@/components/blog/blog-card";
 
 export const metadata: Metadata = createMetadata({
-  title: 'Blog',
+  title: "Blog",
   description:
-    'Discover the latest insights, tips, and strategies for social media management, content creation, and digital marketing. Learn how to grow your audience across all major social platforms.',
+    "Discover the latest insights, tips, and strategies for social media management, content creation, and digital marketing. Learn how to grow your audience across all major social platforms.",
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social'}/blogs`,
+    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social"}/blogs`,
   },
 });
 
 const BlogIndex = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social';
+  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
   const blogUrl = `${baseUrl}/blogs`;
 
   const blogSchema = createBlogSchema({
-    title: 'Delulu Social Blog',
+    title: "Delulu Social Blog",
     description:
-      'Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.',
+      "Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.",
     url: blogUrl,
     posts: allBlogs.map((blog) => ({
       title: blog.title,
@@ -48,7 +48,7 @@ const BlogIndex = () => {
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {allBlogs.map((blog) => (
-              <BlogCard key={blog.slug} blog={blog} />
+              <BlogCard blog={blog} key={blog.slug} />
             ))}
           </div>
         </div>

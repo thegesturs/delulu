@@ -1,7 +1,7 @@
-import { v } from 'convex/values';
-import { query } from './_generated/server';
-import { automationLogSchema } from './schemas/automations';
-import { getCurrentUser } from './users';
+import { v } from "convex/values";
+import { query } from "./_generated/server";
+import { automationLogSchema } from "./schemas/automations";
+import { getCurrentUser } from "./users";
 
 // ============================================================================
 // Queries
@@ -12,7 +12,7 @@ import { getCurrentUser } from './users';
  */
 export const getLogsByAutomation = query({
   args: {
-    automationId: v.id('automations'),
+    automationId: v.id("automations"),
     limit: v.optional(v.number()),
   },
   returns: v.array(automationLogSchema),
@@ -29,11 +29,11 @@ export const getLogsByAutomation = query({
     }
 
     const logs = await ctx.db
-      .query('automationLogs')
-      .withIndex('by_automation_id', (q) =>
-        q.eq('automationId', args.automationId)
+      .query("automationLogs")
+      .withIndex("by_automation_id", (q) =>
+        q.eq("automationId", args.automationId)
       )
-      .order('desc')
+      .order("desc")
       .take(args.limit ?? 100);
 
     return logs;

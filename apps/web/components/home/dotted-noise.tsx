@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 interface DottedNoiseProps {
   className?: string;
@@ -15,14 +15,14 @@ export function DottedNoise({ className }: DottedNoiseProps) {
       return;
     }
 
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     if (!context) {
       return;
     }
 
     // Set canvas size to match display size
     const updateCanvasSize = () => {
-      if (!canvas || !context) {
+      if (!(canvas && context)) {
         return;
       }
       const rect = canvas.getBoundingClientRect();
@@ -31,7 +31,7 @@ export function DottedNoise({ className }: DottedNoiseProps) {
       context.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
     updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
+    window.addEventListener("resize", updateCanvasSize);
 
     // Parameters for the effect
     const dotSpacing = 16; // Space between dots
@@ -99,7 +99,7 @@ export function DottedNoise({ className }: DottedNoiseProps) {
 
     // Animation loop
     function animate() {
-      if (!canvas || !context) {
+      if (!(canvas && context)) {
         return;
       }
 
@@ -107,7 +107,7 @@ export function DottedNoise({ className }: DottedNoiseProps) {
       const height = canvas.height / window.devicePixelRatio;
 
       // Clear with very dark background
-      context.fillStyle = 'rgba(0, 0, 0, 0.98)';
+      context.fillStyle = "rgba(0, 0, 0, 0.98)";
       context.fillRect(0, 0, width, height);
 
       const time = frame * timeScale;
@@ -169,15 +169,15 @@ export function DottedNoise({ className }: DottedNoiseProps) {
     animate();
 
     return () => {
-      window.removeEventListener('resize', updateCanvasSize);
+      window.removeEventListener("resize", updateCanvasSize);
     };
   }, []);
 
   return (
     <canvas
-      ref={canvasRef}
       className={className}
-      style={{ width: '100%', height: '100%' }}
+      ref={canvasRef}
+      style={{ width: "100%", height: "100%" }}
     />
   );
 }

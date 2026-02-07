@@ -1,17 +1,16 @@
-'use client';
+"use client";
 
-import type { SocialProvider } from '@/types/convex';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
-
-import { Search01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { AccountCard } from './account-card'; // Assuming AccountCard is in the same directory
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Search01Icon } from "@hugeicons-pro/core-solid-rounded";
+import type { SocialProvider } from "@/types/convex";
+import { AccountCard } from "./account-card"; // Assuming AccountCard is in the same directory
 
 interface AccountListProps {
   accounts: SocialProvider[];
-  viewMode: 'grid' | 'list';
-  onDelete: (socialId: Id<'socialProviders'>) => void;
+  viewMode: "grid" | "list";
+  onDelete: (socialId: Id<"socialProviders">) => void;
 }
 
 export function AccountList({
@@ -24,9 +23,9 @@ export function AccountList({
       <div className="py-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <Icon
+            className="text-muted-foreground"
             icon={Search01Icon}
             size={32}
-            className="text-muted-foreground"
           />
         </div>
         <p className="mb-2 text-lg text-muted-foreground">No accounts found</p>
@@ -40,14 +39,14 @@ export function AccountList({
   return (
     <div
       className={cn(
-        viewMode === 'grid' &&
-          'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
-        viewMode === 'list' && 'space-y-3',
-        'max-h-[calc(100vh-370px)] space-y-2 overflow-auto py-2'
+        viewMode === "grid" &&
+          "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3",
+        viewMode === "list" && "space-y-3",
+        "max-h-[calc(100vh-370px)] space-y-2 overflow-auto py-2"
       )}
     >
       {accounts.map((account) => (
-        <AccountCard key={account._id} account={account} onDelete={onDelete} />
+        <AccountCard account={account} key={account._id} onDelete={onDelete} />
       ))}
     </div>
   );

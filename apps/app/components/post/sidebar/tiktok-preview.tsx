@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { usePost, useSelectedSocialProviders } from '@/store/post';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Icon } from '@delulu/design-system/providers/icon';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add01Icon,
   BookmarkIcon,
@@ -14,9 +13,10 @@ import {
   Search01Icon,
   ShareIcon,
   UserIcon,
-} from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex-helpers/react/cache';
-import Image from 'next/image';
+} from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
+import Image from "next/image";
+import { usePost, useSelectedSocialProviders } from "@/store/post";
 
 export function TikTokPreview() {
   const post = usePost();
@@ -25,7 +25,7 @@ export function TikTokPreview() {
 
   // Find the selected TikTok provider ID
   const selectedTikTokProvider = selectedProviders.find(
-    (provider) => provider.socialType === 'TIKTOK'
+    (provider) => provider.socialType === "TIKTOK"
   );
 
   // Get the full TikTok provider data from connected accounts
@@ -41,13 +41,13 @@ export function TikTokPreview() {
 
   // Get video or image from media
   const media = content.media?.[0];
-  const hasVideo = media?.mediaType === 'VIDEO';
-  const hasImage = media?.mediaType === 'IMAGE';
+  const hasVideo = media?.mediaType === "VIDEO";
+  const hasImage = media?.mediaType === "IMAGE";
 
   // Format numbers for display
   const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1_000_000) {
+      return `${(num / 1_000_000).toFixed(1)}M`;
     }
     if (num >= 1000) {
       return `${(num / 1000).toFixed(1)}K`;
@@ -62,7 +62,7 @@ export function TikTokPreview() {
         {/* Phone Frame */}
         <div className="relative rounded-[20px] border-8 border-black bg-black shadow-2xl">
           {/* Notch */}
-          <div className="-translate-x-1/2 absolute top-0 left-1/2 z-10 h-5 w-28 rounded-b-xl bg-black" />
+          <div className="absolute top-0 left-1/2 z-10 h-5 w-28 -translate-x-1/2 rounded-b-xl bg-black" />
 
           {/* Screen */}
           <div className="relative h-[600px] overflow-hidden rounded-[8px] bg-black">
@@ -83,7 +83,7 @@ export function TikTokPreview() {
                 <span className="font-semibold text-white/60">Following</span>
                 <span className="relative font-semibold">
                   For You
-                  <span className="-bottom-1 absolute left-0 h-[2px] w-full bg-white" />
+                  <span className="absolute -bottom-1 left-0 h-[2px] w-full bg-white" />
                 </span>
               </div>
               <div className="h-6 w-6 rounded-full bg-white/10" />
@@ -95,19 +95,19 @@ export function TikTokPreview() {
                 <div className="relative h-full w-full">
                   {hasVideo ? (
                     <video
-                      src={media.url}
+                      autoPlay
                       className="h-full w-full rounded-none object-cover"
                       loop
                       muted
-                      autoPlay
                       playsInline
+                      src={media.url}
                     />
                   ) : (
                     <Image
-                      src={media.url}
                       alt="Preview"
-                      fill
                       className="rounded-none object-cover"
+                      fill
+                      src={media.url}
                     />
                   )}
                 </div>
@@ -126,24 +126,24 @@ export function TikTokPreview() {
                 <div className="mb-3 flex items-center gap-2">
                   {tiktokProvider?.profileImage ? (
                     <Image
-                      src={tiktokProvider.profileImage}
                       alt="Profile"
-                      width={32}
-                      height={32}
                       className="rounded-full ring-1 ring-white/20"
+                      height={32}
+                      src={tiktokProvider.profileImage}
+                      width={32}
                     />
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-white/10" />
                   )}
                   <span className="font-semibold text-white">
-                    @{tiktokProvider?.username || 'username'}
+                    @{tiktokProvider?.username || "username"}
                   </span>
                 </div>
 
                 {/* Caption */}
                 <div className="mb-3 text-white">
                   <p className="line-clamp-3 text-[13px] leading-relaxed">
-                    {content.text || 'Add your caption here...'}
+                    {content.text || "Add your caption here..."}
                   </p>
                 </div>
 
@@ -163,20 +163,20 @@ export function TikTokPreview() {
                   {tiktokProvider?.profileImage ? (
                     <>
                       <Image
-                        src={tiktokProvider.profileImage}
                         alt="Profile"
-                        width={48}
-                        height={48}
                         className="rounded-full ring-2 ring-white"
+                        height={48}
+                        src={tiktokProvider.profileImage}
+                        width={48}
                       />
-                      <div className="-bottom-1 -translate-x-1/2 absolute left-1/2 h-5 w-5 rounded-full bg-white/90 text-center text-black text-xs leading-5">
+                      <div className="absolute -bottom-1 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full bg-white/90 text-center text-black text-xs leading-5">
                         +
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="h-12 w-12 rounded-full bg-white/10 ring-2 ring-white" />
-                      <div className="-bottom-1 -translate-x-1/2 absolute left-1/2 h-5 w-5 rounded-full bg-white/90 text-center text-black text-xs leading-5">
+                      <div className="absolute -bottom-1 left-1/2 h-5 w-5 -translate-x-1/2 rounded-full bg-white/90 text-center text-black text-xs leading-5">
                         +
                       </div>
                     </>
@@ -186,18 +186,18 @@ export function TikTokPreview() {
                 {/* Like */}
                 <div className="flex flex-col items-center">
                   <Icon
+                    className="text-white"
                     icon={FavouriteCircleIcon}
                     size={32}
-                    className="text-white"
                   />
                   <span className="text-white/80 text-xs">
-                    {formatNumber(12300)}
+                    {formatNumber(12_300)}
                   </span>
                 </div>
 
                 {/* Comment */}
                 <div className="flex flex-col items-center">
-                  <Icon icon={MessageIcon} size={32} className="text-white" />
+                  <Icon className="text-white" icon={MessageIcon} size={32} />
                   <span className="text-white/80 text-xs">
                     {formatNumber(234)}
                   </span>
@@ -205,7 +205,7 @@ export function TikTokPreview() {
 
                 {/* Bookmark */}
                 <div className="flex flex-col items-center">
-                  <Icon icon={BookmarkIcon} size={32} className="text-white" />
+                  <Icon className="text-white" icon={BookmarkIcon} size={32} />
                   <span className="text-white/80 text-xs">
                     {formatNumber(1234)}
                   </span>
@@ -213,7 +213,7 @@ export function TikTokPreview() {
 
                 {/* Share */}
                 <div className="flex flex-col items-center">
-                  <Icon icon={ShareIcon} size={32} className="text-white" />
+                  <Icon className="text-white" icon={ShareIcon} size={32} />
                   <span className="text-white/80 text-xs">
                     {formatNumber(567)}
                   </span>
@@ -237,9 +237,9 @@ export function TikTokPreview() {
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white">
                   <Icon
+                    className="-translate-y-[1px]"
                     icon={Add01Icon}
                     size={20}
-                    className="-translate-y-[1px]"
                   />
                 </div>
                 <div className="flex flex-col items-center text-white/70">
@@ -256,9 +256,9 @@ export function TikTokPreview() {
         </div>
 
         {/* Side Buttons */}
-        <div className="-right-3 absolute top-32 h-8 w-1 rounded-r bg-black" />
-        <div className="-right-3 absolute top-48 h-16 w-1 rounded-r bg-black" />
-        <div className="-left-3 absolute top-48 h-16 w-1 rounded-l bg-black" />
+        <div className="absolute top-32 -right-3 h-8 w-1 rounded-r bg-black" />
+        <div className="absolute top-48 -right-3 h-16 w-1 rounded-r bg-black" />
+        <div className="absolute top-48 -left-3 h-16 w-1 rounded-l bg-black" />
       </div>
     </div>
   );

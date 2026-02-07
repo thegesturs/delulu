@@ -1,11 +1,13 @@
-'use client';
-import { SignInButton } from '@delulu/auth';
-import { Authenticated, Unauthenticated, useConvexAuth } from 'convex/react';
-import type React from 'react';
-import { FaSpinner } from 'react-icons/fa';
+"use client";
+import { SignInButton } from "@delulu/auth";
+import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
+import type React from "react";
+import { FaSpinner } from "react-icons/fa";
 export default function ConvexAuthProvider({
   children,
-}: { children: React.ReactNode }) {
+}: {
+  children: React.ReactNode;
+}) {
   const { isLoading: convexLoading, isAuthenticated } = useConvexAuth();
 
   // Show loading state while either Clerk or Convex are initializing

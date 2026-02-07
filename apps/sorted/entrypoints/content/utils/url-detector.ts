@@ -2,7 +2,7 @@
  * Utilities for detecting Instagram reels tab URLs and handling SPA navigation
  */
 
-import { INSTAGRAM_PATTERNS } from '../../shared/constants';
+import { INSTAGRAM_PATTERNS } from "../../shared/constants";
 
 /**
  * Check if current URL is an Instagram reels tab
@@ -33,7 +33,7 @@ export function extractUsername(
   url: string = window.location.href
 ): string | null {
   const match = url.match(/instagram\.com\/([^/?]+)/);
-  if (!match || match[1] === 'reel' || match[1] === 'p') {
+  if (!match || match[1] === "reel" || match[1] === "p") {
     return null;
   }
   return match[1];
@@ -91,13 +91,13 @@ export function monitorUrlChanges(callback: UrlChangeCallback): () => void {
     callback(currentUrl, oldUrl);
   };
 
-  window.addEventListener('popstate', popstateHandler);
+  window.addEventListener("popstate", popstateHandler);
 
   // Cleanup function
   return () => {
     history.pushState = originalPushState;
     history.replaceState = originalReplaceState;
-    window.removeEventListener('popstate', popstateHandler);
+    window.removeEventListener("popstate", popstateHandler);
   };
 }
 
@@ -122,7 +122,7 @@ export async function waitForPageLoad(timeout = 5000): Promise<void> {
 
       // Check timeout
       if (Date.now() - startTime > timeout) {
-        reject(new Error('Page load timeout'));
+        reject(new Error("Page load timeout"));
         return;
       }
 
@@ -140,7 +140,7 @@ export async function waitForPageLoad(timeout = 5000): Promise<void> {
 export function createReelsTabUrl(profileUrl: string): string {
   const username = extractUsername(profileUrl);
   if (!username) {
-    throw new Error('Invalid profile URL');
+    throw new Error("Invalid profile URL");
   }
   return `https://www.instagram.com/${username}/reels/`;
 }
@@ -156,7 +156,7 @@ export function navigateToReelsTab(): boolean {
 
   const username = extractUsername();
   if (!username) {
-    throw new Error('Not on an Instagram profile page');
+    throw new Error("Not on an Instagram profile page");
   }
 
   const reelsUrl = createReelsTabUrl(window.location.href);

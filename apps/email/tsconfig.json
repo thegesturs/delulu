@@ -1,9 +1,7 @@
 {
   "extends": "@delulu/typescript-config/nextjs.json",
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": [
-    "node_modules"
-  ],
+  "exclude": ["node_modules"],
   "compilerOptions": {
     "strictNullChecks": true
   }

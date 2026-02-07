@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { ScrollArea } from '@delulu/design-system/components/ui/scroll-area';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { ScrollArea } from "@delulu/design-system/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from '@delulu/design-system/components/ui/sheet';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Delete02Icon } from '@hugeicons-pro/core-solid-rounded';
-import { ConditionPanel } from './panels/condition-panel';
-import { SendDmPanel } from './panels/send-dm-panel';
-import { TriggerPanel } from './panels/trigger-panel';
+} from "@delulu/design-system/components/ui/sheet";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
+import { ConditionPanel } from "./panels/condition-panel";
+import { SendDmPanel } from "./panels/send-dm-panel";
+import { TriggerPanel } from "./panels/trigger-panel";
 import type {
   AutomationStep,
   ConditionStep,
   SendDmStep,
   TriggerStep,
-} from './utils/flow-types';
+} from "./utils/flow-types";
 
 interface SocialProvider {
   _id: string;
@@ -62,7 +62,7 @@ export function FlowSidebarPanel({
   const trigger = triggers.find((t) => t.id === selectedId);
   if (trigger) {
     return (
-      <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <Sheet onOpenChange={(o) => !o && onClose()} open>
         <SheetContent className="w-[400px] p-0 sm:max-w-[400px]">
           <SheetHeader className="border-border border-b px-6 py-4">
             <SheetTitle>Trigger Configuration</SheetTitle>
@@ -70,11 +70,11 @@ export function FlowSidebarPanel({
           <ScrollArea className="h-[calc(100vh-73px)]">
             <div className="px-6 py-5">
               <TriggerPanel
-                trigger={trigger}
-                socialProviderId={socialProviderId}
                 instagramProviders={instagramProviders}
-                onSocialProviderChange={onSocialProviderChange}
                 onChange={(updated) => onUpdateTrigger(trigger.id, updated)}
+                onSocialProviderChange={onSocialProviderChange}
+                socialProviderId={socialProviderId}
+                trigger={trigger}
               />
             </div>
           </ScrollArea>
@@ -89,38 +89,38 @@ export function FlowSidebarPanel({
     return null;
   }
 
-  const panelTitle = step.type === 'condition' ? 'Condition' : 'Send DM';
+  const panelTitle = step.type === "condition" ? "Condition" : "Send DM";
 
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()}>
+    <Sheet onOpenChange={(o) => !o && onClose()} open>
       <SheetContent className="w-[400px] p-0 sm:max-w-[400px]">
         <SheetHeader className="border-border border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <SheetTitle>{panelTitle}</SheetTitle>
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteStep(step.id)}
               className="text-destructive hover:text-destructive"
+              onClick={() => onDeleteStep(step.id)}
+              size="sm"
+              variant="ghost"
             >
-              <Icon icon={Delete02Icon} size={14} className="mr-1" />
+              <Icon className="mr-1" icon={Delete02Icon} size={14} />
               Delete
             </Button>
           </div>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-73px)]">
           <div className="px-6 py-5">
-            {step.type === 'condition' && (
+            {step.type === "condition" && (
               <ConditionPanel
-                step={step as ConditionStep}
                 onChange={(updated) => onUpdateStep(step.id, updated)}
+                step={step as ConditionStep}
               />
             )}
-            {step.type === 'send_dm' && (
+            {step.type === "send_dm" && (
               <SendDmPanel
-                step={step as SendDmStep}
                 isFreePlan={isFreePlan}
                 onChange={(updated) => onUpdateStep(step.id, updated)}
+                step={step as SendDmStep}
               />
             )}
           </div>

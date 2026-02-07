@@ -1,18 +1,18 @@
-import { ModeToggle } from '@delulu/design-system/components/mode-toggle';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { CommandIcon } from '@hugeicons-pro/core-solid-rounded';
-import type { ReactNode } from 'react';
+import { ModeToggle } from "@delulu/design-system/components/mode-toggle";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { CommandIcon } from "@hugeicons-pro/core-solid-rounded";
+import type { ReactNode } from "react";
 
-type AuthLayoutProps = {
+interface AuthLayoutProps {
   readonly children: ReactNode;
-};
+}
 
 const AuthLayout = ({ children }: AuthLayoutProps) => (
   <div className="container relative grid h-dvh max-w-none grid-cols-1 flex-col items-center justify-center md:grid-cols-2 lg:px-0">
     <div className="relative hidden h-full flex-col bg-muted p-10 text-white md:flex dark:border-r">
       <div className="absolute inset-0 bg-zinc-900" />
       <div className="relative z-20 flex items-center font-medium text-lg">
-        <Icon icon={CommandIcon} size={24} className="mr-2 " />
+        <Icon className="mr-2" icon={CommandIcon} size={24} />
         Delulu Inc
       </div>
       <div className="absolute top-4 right-4">

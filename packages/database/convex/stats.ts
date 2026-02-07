@@ -1,10 +1,10 @@
-import { TableAggregate } from '@convex-dev/aggregate';
-import { v } from 'convex/values';
-import { components } from './_generated/api';
-import type { DataModel, Doc, Id } from './_generated/dataModel';
-import { internalMutation, mutation, query } from './_generated/server';
-import { getCurrentUser } from './users';
-import { getCurrentTimestamp } from './utils';
+import { TableAggregate } from "@convex-dev/aggregate";
+import { v } from "convex/values";
+import { components } from "./_generated/api";
+import type { DataModel, Doc, Id } from "./_generated/dataModel";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { getCurrentUser } from "./users";
+import { getCurrentTimestamp } from "./utils";
 
 // ============================================================================
 // STREAK CALCULATION FUNCTIONS
@@ -24,7 +24,7 @@ export function calculateStreak(publishDates: number[] = []): {
     new Set(
       publishDates.map((timestamp) => {
         const date = new Date(timestamp);
-        return date.toISOString().split('T')[0]; // Get YYYY-MM-DD
+        return date.toISOString().split("T")[0]; // Get YYYY-MM-DD
       })
     )
   ).sort(); // Sort chronologically
@@ -37,10 +37,10 @@ export function calculateStreak(publishDates: number[] = []): {
   let longestStreak = 1;
   let tempStreak = 1;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString()
-    .split('T')[0];
+    .split("T")[0];
 
   // Calculate longest streak by checking consecutive dates
   for (let i = 1; i < uniqueDates.length; i++) {
@@ -92,24 +92,24 @@ export function calculateStreak(publishDates: number[] = []): {
 // Mutation to add a publish date to user's streak array
 export const addPublishDate = mutation({
   args: {
-    userId: v.id('users'),
+    userId: v.id("users"),
     publishDate: v.optional(v.number()), // Optional, defaults to now
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const publishDate = args.publishDate || Date.now();
-    const dateStr = new Date(publishDate).toISOString().split('T')[0];
+    const dateStr = new Date(publishDate).toISOString().split("T")[0];
 
     // Get existing publish dates or initialize empty array
     const existingDates = user.stats?.publishDates || [];
 
     // Check if this date already exists (convert to date strings for comparison)
     const existingDateStrs = existingDates.map(
-      (timestamp) => new Date(timestamp).toISOString().split('T')[0]
+      (timestamp) => new Date(timestamp).toISOString().split("T")[0]
     );
 
     if (!existingDateStrs.includes(dateStr)) {
@@ -130,24 +130,24 @@ export const addPublishDate = mutation({
 // Internal mutation to add a publish date to user's streak array
 export const addPublishDateInternal = internalMutation({
   args: {
-    userId: v.id('users'),
+    userId: v.id("users"),
     publishDate: v.optional(v.number()), // Optional, defaults to now
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     const publishDate = args.publishDate || Date.now();
-    const dateStr = new Date(publishDate).toISOString().split('T')[0];
+    const dateStr = new Date(publishDate).toISOString().split("T")[0];
 
     // Get existing publish dates or initialize empty array
     const existingDates = user.stats?.publishDates || [];
 
     // Check if this date already exists (convert to date strings for comparison)
     const existingDateStrs = existingDates.map(
-      (timestamp) => new Date(timestamp).toISOString().split('T')[0]
+      (timestamp) => new Date(timestamp).toISOString().split("T")[0]
     );
 
     if (!existingDateStrs.includes(dateStr)) {
@@ -167,9 +167,9 @@ export const addPublishDateInternal = internalMutation({
 
 // Query to get user's streak stats
 export const getUserStreakStats = query({
-  args: { userId: v.optional(v.id('users')) },
+  args: { userId: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
-    let user: Doc<'users'> | null = null;
+    let user: Doc<"users"> | null = null;
 
     if (args.userId) {
       user = await ctx.db.get(args.userId);
@@ -192,9 +192,9 @@ export const getUserStreakStats = query({
 
 // Aggregate for posts by user and status - enables user-specific status filtering
 export const postsByUserStatus = new TableAggregate<{
-  Key: [Id<'users'> | null, string]; // [userId, status]
+  Key: [Id<"users"> | null, string]; // [userId, status]
   DataModel: DataModel;
-  TableName: 'posts';
+  TableName: "posts";
 }>(components.postsByUserStatus, {
   sortKey: (doc) => [doc.userId ?? null, doc.status],
 });
@@ -232,23 +232,23 @@ export const getDashboardStats = query({
 
     // Get counts by specific status using aggregator
     const publishedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, 'PUBLISHED'] },
+      bounds: { prefix: [user._id, "PUBLISHED"] },
     });
 
     const scheduledCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, 'SCHEDULED'] },
+      bounds: { prefix: [user._id, "SCHEDULED"] },
     });
 
     const failedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, 'FAILED'] },
+      bounds: { prefix: [user._id, "FAILED"] },
     });
 
     const savedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, 'SAVED'] },
+      bounds: { prefix: [user._id, "SAVED"] },
     });
 
     const processingCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, 'PROCESSING'] },
+      bounds: { prefix: [user._id, "PROCESSING"] },
     });
 
     // Calculate time ranges
@@ -259,14 +259,14 @@ export const getDashboardStats = query({
 
     // Get upcoming scheduled posts using direct query (more accurate than aggregator)
     const upcomingScheduledPosts = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .filter((q) =>
         q.and(
-          q.eq(q.field('status'), 'SCHEDULED'),
-          q.eq(q.field('isDeleted'), false),
-          q.gte(q.field('scheduledAt'), now),
-          q.lte(q.field('scheduledAt'), nextWeek)
+          q.eq(q.field("status"), "SCHEDULED"),
+          q.eq(q.field("isDeleted"), false),
+          q.gte(q.field("scheduledAt"), now),
+          q.lte(q.field("scheduledAt"), nextWeek)
         )
       )
       .collect();
@@ -274,26 +274,26 @@ export const getDashboardStats = query({
 
     // Get weekly trends using direct queries
     const thisWeekPostsResult = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .filter((q) =>
         q.and(
-          q.eq(q.field('isDeleted'), false),
-          q.gte(q.field('createdAt'), thisWeekStart),
-          q.lte(q.field('createdAt'), now)
+          q.eq(q.field("isDeleted"), false),
+          q.gte(q.field("createdAt"), thisWeekStart),
+          q.lte(q.field("createdAt"), now)
         )
       )
       .collect();
     const thisWeekPosts = thisWeekPostsResult.length;
 
     const lastWeekPostsResult = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .filter((q) =>
         q.and(
-          q.eq(q.field('isDeleted'), false),
-          q.gte(q.field('createdAt'), lastWeekStart),
-          q.lt(q.field('createdAt'), thisWeekStart)
+          q.eq(q.field("isDeleted"), false),
+          q.gte(q.field("createdAt"), lastWeekStart),
+          q.lt(q.field("createdAt"), thisWeekStart)
         )
       )
       .collect();
@@ -308,9 +308,9 @@ export const getDashboardStats = query({
 
     // Get connected accounts count
     const socialProviders = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-      .filter((q) => q.eq(q.field('isActive'), true))
+      .query("socialProviders")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     // Count expired tokens
@@ -355,14 +355,14 @@ export const getUpcomingPosts = query({
     const futureDate = now + daysAhead * 24 * 60 * 60 * 1000;
 
     const upcomingPosts = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .filter((q) =>
         q.and(
-          q.eq(q.field('status'), 'SCHEDULED'),
-          q.eq(q.field('isDeleted'), false),
-          q.gte(q.field('scheduledAt'), now),
-          q.lte(q.field('scheduledAt'), futureDate)
+          q.eq(q.field("status"), "SCHEDULED"),
+          q.eq(q.field("isDeleted"), false),
+          q.gte(q.field("scheduledAt"), now),
+          q.lte(q.field("scheduledAt"), futureDate)
         )
       )
       .collect();
@@ -398,9 +398,9 @@ export const getFailedPosts = query({
     }
 
     const failedPosts = await ctx.db
-      .query('posts')
-      .withIndex('by_user_status', (q) =>
-        q.eq('userId', user._id).eq('status', 'FAILED').eq('isDeleted', false)
+      .query("posts")
+      .withIndex("by_user_status", (q) =>
+        q.eq("userId", user._id).eq("status", "FAILED").eq("isDeleted", false)
       )
       .collect();
 
@@ -436,9 +436,9 @@ export const getPlatformStats = query({
     }
 
     const socialProviders = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-      .filter((q) => q.eq(q.field('isActive'), true))
+      .query("socialProviders")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     const platformCounts = socialProviders.reduce(

@@ -1,41 +1,41 @@
-'use client';
+"use client";
 
-import { Header } from '@/components/layout/header';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   ArrowLeft01Icon,
   Comment01Icon,
   Loading03Icon,
   MailSend01Icon,
   TickDouble01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex-helpers/react/cache';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+} from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Header } from "@/components/layout/header";
 
 function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 }
 
 export default function AutomationAnalyticsPage() {
   const params = useParams();
-  const automationId = params.id as Id<'automations'>;
+  const automationId = params.id as Id<"automations">;
 
   const automation = useQuery(api.automations.getAutomation, {
     id: automationId,
@@ -49,12 +49,12 @@ export default function AutomationAnalyticsPage() {
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
-          <Header pages={['Automations']} page="Loading..." />
+          <Header page="Loading..." pages={["Automations"]} />
           <div className="flex h-64 items-center justify-center">
             <Icon
+              className="animate-spin text-muted-foreground"
               icon={Loading03Icon}
               size={24}
-              className="animate-spin text-muted-foreground"
             />
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function AutomationAnalyticsPage() {
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
-          <Header pages={['Automations']} page="Not Found" />
+          <Header page="Not Found" pages={["Automations"]} />
           <div className="flex h-64 flex-col items-center justify-center">
             <p className="text-muted-foreground">Automation not found</p>
             <Link href="/automations">
@@ -84,7 +84,7 @@ export default function AutomationAnalyticsPage() {
         {/* Header */}
         <div className="mb-6 flex items-center gap-4">
           <Link href="/automations">
-            <Button variant="ghost" size="icon">
+            <Button size="icon" variant="ghost">
               <Icon icon={ArrowLeft01Icon} size={20} />
             </Button>
           </Link>
@@ -102,9 +102,9 @@ export default function AutomationAnalyticsPage() {
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                 <Icon
+                  className="text-blue-600 dark:text-blue-400"
                   icon={Comment01Icon}
                   size={20}
-                  className="text-blue-600 dark:text-blue-400"
                 />
               </div>
               <div>
@@ -120,9 +120,9 @@ export default function AutomationAnalyticsPage() {
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
                 <Icon
+                  className="text-green-600 dark:text-green-400"
                   icon={MailSend01Icon}
                   size={20}
-                  className="text-green-600 dark:text-green-400"
                 />
               </div>
               <div>
@@ -138,9 +138,9 @@ export default function AutomationAnalyticsPage() {
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
                 <Icon
+                  className="text-purple-600 dark:text-purple-400"
                   icon={TickDouble01Icon}
                   size={20}
-                  className="text-purple-600 dark:text-purple-400"
                 />
               </div>
               <div>
@@ -169,8 +169,8 @@ export default function AutomationAnalyticsPage() {
               <div className="space-y-3">
                 {logs.map((log) => (
                   <div
-                    key={log._id}
                     className="flex items-start gap-4 rounded-lg border border-border bg-card/50 p-4"
+                    key={log._id}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
@@ -196,9 +196,9 @@ export default function AutomationAnalyticsPage() {
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="mb-4 rounded-full bg-muted/50 p-4">
                   <Icon
+                    className="text-muted-foreground"
                     icon={Comment01Icon}
                     size={24}
-                    className="text-muted-foreground"
                   />
                 </div>
                 <p className="text-muted-foreground">No activity yet</p>

@@ -1,4 +1,4 @@
-import type { ContentType, SocialProviderType } from '@delulu/validators/post';
+import type { ContentType, SocialProviderType } from "@delulu/validators/post";
 
 interface UploadMediaResult {
   bucketKey: string;
@@ -13,9 +13,9 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
 
   // Step 1: Get presigned URL
   const presignedStart = Date.now();
-  const presignedResponse = await fetch('/api/upload/presigned', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const presignedResponse = await fetch("/api/upload/presigned", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
@@ -27,7 +27,7 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   );
 
   if (!presignedResponse.ok) {
-    throw new Error('Failed to get presigned URL');
+    throw new Error("Failed to get presigned URL");
   }
 
   const { uploadUrl, key } = (await presignedResponse.json()) as {
@@ -38,16 +38,16 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
   // Step 2: Upload directly to R2 using presigned URL
   const uploadStart = Date.now();
   const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
+    method: "PUT",
     body: file,
     headers: {
-      'Content-Type': file.type,
+      "Content-Type": file.type,
     },
   });
   console.log(`[CLIENT] Direct R2 upload took ${Date.now() - uploadStart}ms`);
 
   if (!uploadResponse.ok) {
-    throw new Error('Failed to upload to R2');
+    throw new Error("Failed to upload to R2");
   }
 
   // Step 3: Get download URL
@@ -63,7 +63,7 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
 async function getDownloadUrl(key: string): Promise<string> {
   const response = await fetch(`/api/upload?key=${encodeURIComponent(key)}`);
   if (!response.ok) {
-    throw new Error('Failed to get download URL');
+    throw new Error("Failed to get download URL");
   }
   const { downloadUrl } = (await response.json()) as {
     downloadUrl: string;

@@ -1,8 +1,8 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { fetchMutation, fetchQuery } from '@delulu/database/server';
-import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { fetchMutation, fetchQuery } from "@delulu/database/server";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const mediaRouter = createTRPCRouter({
   // Get media by ID
@@ -12,7 +12,7 @@ export const mediaRouter = createTRPCRouter({
       const media = await fetchQuery(
         api.media.getMediaById,
         {
-          id: input.id as Id<'media'>,
+          id: input.id as Id<"media">,
         },
         {
           token: ctx.token,
@@ -20,7 +20,7 @@ export const mediaRouter = createTRPCRouter({
       );
 
       if (!media || media.userId !== ctx.userId) {
-        throw new Error('Media not found');
+        throw new Error("Media not found");
       }
 
       return media;
@@ -41,7 +41,7 @@ export const mediaRouter = createTRPCRouter({
       );
 
       if (!media || media.userId !== ctx.userId) {
-        throw new Error('Media not found');
+        throw new Error("Media not found");
       }
 
       return media;
@@ -53,7 +53,7 @@ export const mediaRouter = createTRPCRouter({
       z.object({
         bucketKey: z.string(),
         url: z.string(),
-        mediaType: z.enum(['IMAGE', 'VIDEO']),
+        mediaType: z.enum(["IMAGE", "VIDEO"]),
         originalFilename: z.string().optional(),
         size: z.number().optional(),
         extension: z.string().optional(),
@@ -85,7 +85,7 @@ export const mediaRouter = createTRPCRouter({
       const existingMedia = await fetchQuery(
         api.media.getMediaById,
         {
-          id: id as Id<'media'>,
+          id: id as Id<"media">,
         },
         {
           token: ctx.token,
@@ -93,13 +93,13 @@ export const mediaRouter = createTRPCRouter({
       );
 
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
-        throw new Error('Media not found');
+        throw new Error("Media not found");
       }
 
       return await fetchMutation(
         api.media.updateMedia,
         {
-          id: id as Id<'media'>,
+          id: id as Id<"media">,
           ...updates,
         },
         {
@@ -116,7 +116,7 @@ export const mediaRouter = createTRPCRouter({
       const existingMedia = await fetchQuery(
         api.media.getMediaById,
         {
-          id: input.id as Id<'media'>,
+          id: input.id as Id<"media">,
         },
         {
           token: ctx.token,
@@ -124,13 +124,13 @@ export const mediaRouter = createTRPCRouter({
       );
 
       if (!existingMedia || existingMedia.userId !== ctx.userId) {
-        throw new Error('Media not found');
+        throw new Error("Media not found");
       }
 
       return await fetchMutation(
         api.media.deleteMedia,
         {
-          id: input.id as Id<'media'>,
+          id: input.id as Id<"media">,
         },
         {
           token: ctx.token,

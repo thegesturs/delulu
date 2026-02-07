@@ -1,16 +1,16 @@
-import { useUsageLimit } from '@/hooks/use-usage-limits';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useUsageLimit } from "@/hooks/use-usage-limits";
 import {
   getProviderSettingsForConvex,
   useDateTime,
   usePost,
   useSelectedSocialProviders,
-} from '@/store/post';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { useMutation, useQuery } from 'convex/react';
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+} from "@/store/post";
 
 export function usePostActions() {
   const { date } = useDateTime();
@@ -25,14 +25,15 @@ export function usePostActions() {
 
   const user = useQuery(api.users.current);
   const monthlyPostsCount = user?.usage?.generatedPosts || 0;
-  const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
-  const isAtPostLimit =
-    !monthlyPostsLimit.isUnlimited && !monthlyPostsLimit.allowed;
+  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
+  const isAtPostLimit = !(
+    monthlyPostsLimit.isUnlimited || monthlyPostsLimit.allowed
+  );
 
   const handlePostNow = async () => {
     if (isAtPostLimit) {
       toast.error(
-        'You have reached your monthly post limit. Please upgrade your plan.'
+        "You have reached your monthly post limit. Please upgrade your plan."
       );
       return;
     }
@@ -40,23 +41,23 @@ export function usePostActions() {
     try {
       setIsProcessing(true);
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         providerSettings: providerSettingsForConvex,
-        status: 'PROCESSING',
+        status: "PROCESSING",
       });
-      toast.success('Post sent for processing, will be published shortly.');
-      router.push('/posts?status=PROCESSING');
+      toast.success("Post sent for processing, will be published shortly.");
+      router.push("/posts?status=PROCESSING");
     } catch {
-      toast.error('Failed to publish post');
+      toast.error("Failed to publish post");
     } finally {
       setIsProcessing(false);
     }
@@ -68,7 +69,7 @@ export function usePostActions() {
     }
     if (isAtPostLimit) {
       toast.error(
-        'You have reached your monthly post limit. Please upgrade your plan.'
+        "You have reached your monthly post limit. Please upgrade your plan."
       );
       return;
     }
@@ -76,24 +77,24 @@ export function usePostActions() {
     try {
       setIsProcessing(true);
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         providerSettings: providerSettingsForConvex,
         scheduledAt: date.getTime(),
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
       });
-      toast.success('Post scheduled successfully');
-      router.push('/posts?status=SCHEDULED');
+      toast.success("Post scheduled successfully");
+      router.push("/posts?status=SCHEDULED");
     } catch {
-      toast.error('Failed to schedule post');
+      toast.error("Failed to schedule post");
     } finally {
       setIsProcessing(false);
     }
@@ -103,25 +104,25 @@ export function usePostActions() {
     try {
       setIsProcessing(true);
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         providerSettings: providerSettingsForConvex,
-        status: 'SAVED',
+        status: "SAVED",
       });
       toast.success(
-        postId ? 'Post updated successfully' : 'Post saved successfully'
+        postId ? "Post updated successfully" : "Post saved successfully"
       );
-      router.push('/posts?status=SAVED');
+      router.push("/posts?status=SAVED");
     } catch {
-      toast.error(postId ? 'Failed to update post' : 'Failed to save post');
+      toast.error(postId ? "Failed to update post" : "Failed to save post");
     } finally {
       setIsProcessing(false);
     }

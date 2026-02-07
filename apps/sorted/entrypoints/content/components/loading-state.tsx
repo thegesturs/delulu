@@ -2,7 +2,7 @@
  * Loading state component
  */
 
-import type { ScrapingProgress } from '../../shared/types';
+import type { ScrapingProgress } from "../../shared/types";
 
 interface LoadingStateProps {
   progress: ScrapingProgress;
@@ -22,8 +22,8 @@ export function LoadingState({ progress }: LoadingStateProps) {
             className="sorted-spinner-path"
             cx="25"
             cy="25"
-            r="20"
             fill="none"
+            r="20"
             strokeWidth="4"
           />
         </svg>
@@ -31,7 +31,7 @@ export function LoadingState({ progress }: LoadingStateProps) {
 
       <div className="sorted-loading-text">
         <h3>
-          {progress.status === 'scraping' ? 'Scraping Reels...' : 'Sorting...'}
+          {progress.status === "scraping" ? "Scraping Reels..." : "Sorting..."}
         </h3>
         {progress.message && (
           <p className="sorted-loading-message">{progress.message}</p>

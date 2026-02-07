@@ -1,32 +1,32 @@
-'use client';
+"use client";
 
-import { useSubscription } from '@/hooks/use-subscription';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Icon } from '@delulu/design-system/providers/icon';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Comment01Icon,
   FilterIcon,
   Loading03Icon,
   MailSend01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
-import { ReactFlowProvider } from '@xyflow/react';
-import { useQuery } from 'convex-helpers/react/cache';
-import { useMutation } from 'convex/react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { FlowCanvas } from './flow-canvas';
-import { FlowSidebarPanel } from './flow-sidebar-panel';
-import { FlowToolbar } from './flow-toolbar';
-import { useAutomationState } from './hooks/use-automation-state';
-import { TriggerWizard } from './trigger-wizard/trigger-wizard';
-import { stepsToFlow } from './utils/auto-layout';
-import type { AutomationStep, TriggerStep } from './utils/flow-types';
-import { validateFlow } from './utils/flow-validation';
-import { createConditionStep, createSendDmStep } from './utils/step-helpers';
+} from "@hugeicons-pro/core-solid-rounded";
+import { ReactFlowProvider } from "@xyflow/react";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useSubscription } from "@/hooks/use-subscription";
+import { FlowCanvas } from "./flow-canvas";
+import { FlowSidebarPanel } from "./flow-sidebar-panel";
+import { FlowToolbar } from "./flow-toolbar";
+import { useAutomationState } from "./hooks/use-automation-state";
+import { TriggerWizard } from "./trigger-wizard/trigger-wizard";
+import { stepsToFlow } from "./utils/auto-layout";
+import type { AutomationStep, TriggerStep } from "./utils/flow-types";
+import { validateFlow } from "./utils/flow-validation";
+import { createConditionStep, createSendDmStep } from "./utils/step-helpers";
 
 interface FlowBuilderProps {
   automationId?: string;
@@ -42,7 +42,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
 
   const automation = useQuery(
     api.automations.getAutomation,
-    automationId ? { id: automationId as Id<'automations'> } : 'skip'
+    automationId ? { id: automationId as Id<"automations"> } : "skip"
   );
   const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
   const createAutomation = useMutation(api.automations.createAutomation);
@@ -52,7 +52,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     if (!socialProviders) {
       return [];
     }
-    return socialProviders.filter((p) => p.socialType === 'INSTAGRAM');
+    return socialProviders.filter((p) => p.socialType === "INSTAGRAM");
   }, [socialProviders]);
 
   const state = useAutomationState();
@@ -86,7 +86,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
 
     setAutomationMeta({
       name: automation.name,
-      description: automation.description || '',
+      description: automation.description || "",
       isActive: automation.isActive,
       socialProviderId: automation.socialProviderId,
     });
@@ -132,7 +132,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       if (lastTrigger.nextStepId) {
         addStepAfterSync(
           findLastStepId(lastTrigger.nextStepId, steps),
-          'next',
+          "next",
           newStep
         );
       } else {
@@ -160,7 +160,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       if (lastTrigger.nextStepId) {
         addStepAfterSync(
           findLastStepId(lastTrigger.nextStepId, steps),
-          'next',
+          "next",
           newStep
         );
       } else {
@@ -205,17 +205,17 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
 
   const handleSave = useCallback(async () => {
     if (!automationMeta.name.trim()) {
-      toast.error('Please enter an automation name');
+      toast.error("Please enter an automation name");
       return;
     }
 
     if (!automationMeta.socialProviderId) {
-      toast.error('Please select an Instagram account');
+      toast.error("Please select an Instagram account");
       return;
     }
 
     if (triggers.length === 0) {
-      toast.error('Please add at least one trigger');
+      toast.error("Please add at least one trigger");
       return;
     }
 
@@ -226,28 +226,28 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
           name: automationMeta.name.trim(),
           description: automationMeta.description.trim() || undefined,
           socialProviderId:
-            automationMeta.socialProviderId as Id<'socialProviders'>,
+            automationMeta.socialProviderId as Id<"socialProviders">,
           isActive: automationMeta.isActive,
           triggers,
           steps,
         });
-        toast.success('Automation created');
+        toast.success("Automation created");
         router.push(`/automations/${id}`);
       } else {
         await updateAutomation({
-          id: automationId as Id<'automations'>,
+          id: automationId as Id<"automations">,
           name: automationMeta.name.trim(),
           description: automationMeta.description.trim() || undefined,
           isActive: automationMeta.isActive,
           triggers,
           steps,
         });
-        toast.success('Automation saved');
+        toast.success("Automation saved");
         resetDirty(triggers, steps);
       }
     } catch (error) {
-      console.error('Failed to save automation:', error);
-      toast.error('Failed to save automation');
+      console.error("Failed to save automation:", error);
+      toast.error("Failed to save automation");
     } finally {
       setIsSaving(false);
     }
@@ -296,9 +296,9 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Icon
+          className="animate-spin text-muted-foreground"
           icon={Loading03Icon}
           size={24}
-          className="animate-spin text-muted-foreground"
         />
       </div>
     );
@@ -319,52 +319,52 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     <div className="flex h-screen flex-col bg-background">
       <FlowToolbar
         automationMeta={automationMeta}
-        onMetaChange={handleMetaChange}
         isDirty={isDirty}
         isSaving={isSaving}
+        onMetaChange={handleMetaChange}
         onSave={handleSave}
         onToggleActive={handleToggleActive}
       />
       <div className="relative flex-1">
-        <FlowCanvas nodes={nodes} edges={edges} onNodeClick={handleNodeClick} />
+        <FlowCanvas edges={edges} nodes={nodes} onNodeClick={handleNodeClick} />
 
         {/* Action cards at bottom */}
-        <div className="-translate-x-1/2 absolute bottom-4 left-1/2 flex items-center gap-2">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTriggerWizard(true)}
             className="gap-1.5 shadow-md"
+            onClick={() => setShowTriggerWizard(true)}
+            size="sm"
+            variant="outline"
           >
             <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-purple-500 to-pink-500">
-              <Icon icon={Comment01Icon} size={12} className="text-white" />
+              <Icon className="text-white" icon={Comment01Icon} size={12} />
             </div>
             Add Trigger
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAddCondition}
-            disabled={triggers.length === 0}
             className="gap-1.5 shadow-md"
+            disabled={triggers.length === 0}
+            onClick={handleAddCondition}
+            size="sm"
+            variant="outline"
           >
             <div className="flex h-5 w-5 items-center justify-center rounded bg-amber-500/15">
-              <Icon icon={FilterIcon} size={12} className="text-amber-600" />
+              <Icon className="text-amber-600" icon={FilterIcon} size={12} />
             </div>
             Add Condition
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAddSendDm}
-            disabled={triggers.length === 0}
             className="gap-1.5 shadow-md"
+            disabled={triggers.length === 0}
+            onClick={handleAddSendDm}
+            size="sm"
+            variant="outline"
           >
             <div className="flex h-5 w-5 items-center justify-center rounded bg-green-500/15">
               <Icon
+                className="text-green-600"
                 icon={MailSend01Icon}
                 size={12}
-                className="text-green-600"
               />
             </div>
             Add Send DM
@@ -372,29 +372,29 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         </div>
 
         <FlowSidebarPanel
-          selectedId={selectedStepId}
-          triggers={triggers}
-          steps={steps}
-          socialProviderId={automationMeta.socialProviderId}
           instagramProviders={instagramProviders}
           isFreePlan={isFreePlan}
+          onClose={() => setSelectedStepId(null)}
+          onDeleteStep={handleDeleteStep}
           onSocialProviderChange={(id) => {
             setAutomationMeta((prev) => ({ ...prev, socialProviderId: id }));
             markDirty();
           }}
-          onClose={() => setSelectedStepId(null)}
-          onUpdateTrigger={handleUpdateTrigger}
           onUpdateStep={handleUpdateStep}
-          onDeleteStep={handleDeleteStep}
+          onUpdateTrigger={handleUpdateTrigger}
+          selectedId={selectedStepId}
+          socialProviderId={automationMeta.socialProviderId}
+          steps={steps}
+          triggers={triggers}
         />
       </div>
 
       <TriggerWizard
-        open={showTriggerWizard}
+        currentSocialProviderId={automationMeta.socialProviderId || undefined}
+        instagramProviders={instagramProviders}
         onClose={() => setShowTriggerWizard(false)}
         onComplete={handleTriggerWizardComplete}
-        instagramProviders={instagramProviders}
-        currentSocialProviderId={automationMeta.socialProviderId || undefined}
+        open={showTriggerWizard}
       />
     </div>
   );
@@ -424,9 +424,9 @@ function findLastStepId(startId: string, steps: AutomationStep[]): string {
     }
 
     let nextId: string | undefined;
-    if (step.type === 'condition') {
+    if (step.type === "condition") {
       nextId = step.yesStepId;
-    } else if (step.type === 'send_dm') {
+    } else if (step.type === "send_dm") {
       nextId = step.nextStepId;
     }
 

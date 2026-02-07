@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { cn } from '@delulu/design-system/lib/utils';
-import { motion } from 'motion/react';
-import React from 'react';
+import { cn } from "@delulu/design-system/lib/utils";
+import { motion } from "motion/react";
+import React from "react";
 import {
   FaDiscord,
   FaFacebook,
@@ -15,14 +15,14 @@ import {
   FaTwitch,
   FaTwitter,
   FaYoutube,
-} from 'react-icons/fa';
-import { LogoIcon } from '../logo';
+} from "react-icons/fa";
+import { LogoIcon } from "../logo";
 
 export function Features2() {
   return (
     <div
-      id="product"
       className="mx-auto w-full max-w-7xl px-4 py-4 md:my-20 md:px-8 md:py-20"
+      id="product"
     >
       <div className="mb-16 text-center">
         <h2 className="mb-4 font-bold text-4xl text-foreground md:text-6xl">
@@ -107,7 +107,7 @@ const CardSkeletonBody = ({
   className?: string;
 }) => {
   return (
-    <div className={cn('relative h-full w-full overflow-hidden', className)}>
+    <div className={cn("relative h-full w-full overflow-hidden", className)}>
       {children}
     </div>
   );
@@ -120,7 +120,7 @@ const CardContent = ({
   children: React.ReactNode;
   className?: string;
 }) => {
-  return <div className={cn('p-6', className)}>{children}</div>;
+  return <div className={cn("p-6", className)}>{children}</div>;
 };
 
 const CardTitle = ({
@@ -133,7 +133,7 @@ const CardTitle = ({
   return (
     <h3
       className={cn(
-        'inline-block font-[500] text-[22px] text-foreground leading-[31px]',
+        "inline-block font-[500] text-[22px] text-foreground leading-[31px]",
         className
       )}
     >
@@ -151,7 +151,7 @@ const CardDescription = ({
   return (
     <p
       className={cn(
-        'mt-2 max-w-sm text-muted-foreground text-sm tracking-tight',
+        "mt-2 max-w-sm text-muted-foreground text-sm tracking-tight",
         className
       )}
     >
@@ -169,13 +169,13 @@ const Card = ({
 }) => {
   return (
     <motion.div
-      whileHover="animate"
       className={cn(
-        'group relative isolate flex flex-col overflow-hidden rounded-2xl',
-        'border border-border bg-card/50',
-        'shadow-sm transition-all duration-300 hover:shadow-xl',
+        "group relative isolate flex flex-col overflow-hidden rounded-2xl",
+        "border border-border bg-card/50",
+        "shadow-sm transition-all duration-300 hover:shadow-xl",
         className
       )}
+      whileHover="animate"
     >
       {children}
     </motion.div>
@@ -184,21 +184,21 @@ const Card = ({
 
 const MapView = () => {
   const platforms = [
-    { icon: FaTwitter, name: 'Twitter', x: '15%', y: '10%' },
-    { icon: FaFacebook, name: 'Facebook', x: '75%', y: '10%' },
-    { icon: FaLinkedin, name: 'LinkedIn', x: '20%', y: '20%' },
-    { icon: FaYoutube, name: 'YouTube', x: '80%', y: '20%' },
-    { icon: FaReddit, name: 'Reddit', x: '10%', y: '30%' },
-    { icon: FaInstagram, name: 'Instagram', x: '90%', y: '30%' },
+    { icon: FaTwitter, name: "Twitter", x: "15%", y: "10%" },
+    { icon: FaFacebook, name: "Facebook", x: "75%", y: "10%" },
+    { icon: FaLinkedin, name: "LinkedIn", x: "20%", y: "20%" },
+    { icon: FaYoutube, name: "YouTube", x: "80%", y: "20%" },
+    { icon: FaReddit, name: "Reddit", x: "10%", y: "30%" },
+    { icon: FaInstagram, name: "Instagram", x: "90%", y: "30%" },
   ];
 
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-card">
       {/* Central Hub */}
       <motion.div
+        animate={{ scale: 1 }}
         className="absolute flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary bg-primary/20"
         initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
         <LogoIcon className="h-8 w-8 text-primary" />
@@ -208,30 +208,30 @@ const MapView = () => {
       {platforms.map((platform, index) => (
         <React.Fragment key={platform.name}>
           <motion.svg
+            animate={{ opacity: 1 }}
             className="absolute inset-0 z-0"
-            width="100%"
             height="100%"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
             transition={{ delay: 0.5 + index * 0.1, duration: 0.5 }}
+            width="100%"
           >
             <line
-              x1="50%"
-              y1="50%"
-              x2={platform.x}
-              y2={platform.y}
               className="stroke-border"
               strokeWidth="1"
+              x1="50%"
+              x2={platform.x}
+              y1="50%"
+              y2={platform.y}
             />
           </motion.svg>
           <motion.div
+            animate={{ scale: 1, opacity: 1 }}
             className="absolute z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background shadow-md"
+            initial={{ scale: 0, opacity: 0 }}
             style={{
               left: `calc(${platform.x} - 20px)`,
               top: `calc(${platform.y} - 20px)`,
             }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.7 + index * 0.1, duration: 0.3 }}
           >
             <platform.icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
@@ -256,100 +256,100 @@ const Chart = () => {
     chartHeight - yPadding - (value / 100) * (chartHeight - 2 * yPadding); // Assuming peakData values are percentages
 
   const linePath = peakData
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${getX(i)},${getY(p)}`)
-    .join(' ');
+    .map((p, i) => `${i === 0 ? "M" : "L"}${getX(i)},${getY(p)}`)
+    .join(" ");
   const areaPath = `${linePath} L${getX(peakData.length - 1)},${chartHeight - yPadding} L${getX(0)},${chartHeight - yPadding} Z`;
 
   return (
     // Added subtle card-like styling back for better visual separation
-    <div className="m-4 mx-auto flex h-full w-full max-w-[290px] flex-col items-center justify-center rounded-lg border border-border/30 bg-card/30 p-4 ">
+    <div className="m-4 mx-auto flex h-full w-full max-w-[290px] flex-col items-center justify-center rounded-lg border border-border/30 bg-card/30 p-4">
       {/* Chart Container */}
       <div className="relative h-[180px] w-full">
-        {' '}
+        {" "}
         {/* Increased height slightly for axes */}
         <svg
-          width="100%"
           height="100%"
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
           preserveAspectRatio="none"
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          width="100%"
         >
           <defs>
-            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="areaGradient" x1="0%" x2="0%" y1="0%" y2="100%">
               <stop
-                offset="0%"
                 className="stop-primary/30 dark:stop-primary/20"
+                offset="0%"
               />
-              <stop offset="100%" className="stop-primary/0" />
+              <stop className="stop-primary/0" offset="100%" />
             </linearGradient>
           </defs>
 
           {/* Subtle Y-Axis Line */}
           <line
-            x1={xPadding}
-            y1={yPadding}
-            x2={xPadding}
-            y2={chartHeight - yPadding}
             className="stroke-border/50"
             strokeWidth="1"
+            x1={xPadding}
+            x2={xPadding}
+            y1={yPadding}
+            y2={chartHeight - yPadding}
           />
           {/* Subtle X-Axis Line */}
           <line
-            x1={xPadding}
-            y1={chartHeight - yPadding}
-            x2={chartWidth - xPadding}
-            y2={chartHeight - yPadding}
             className="stroke-border/50"
             strokeWidth="1"
+            x1={xPadding}
+            x2={chartWidth - xPadding}
+            y1={chartHeight - yPadding}
+            y2={chartHeight - yPadding}
           />
 
           {/* Grid Lines (optional, can be removed if too cluttered) */}
           {[25, 50, 75].map((val) => (
             <line
-              key={`grid-${val}`}
-              x1={xPadding}
-              y1={getY(val)}
-              x2={chartWidth - xPadding}
-              y2={getY(val)}
               className="stroke-border/30"
-              strokeWidth="0.5"
+              key={`grid-${val}`}
               strokeDasharray="2,2"
+              strokeWidth="0.5"
+              x1={xPadding}
+              x2={chartWidth - xPadding}
+              y1={getY(val)}
+              y2={getY(val)}
             />
           ))}
 
           {/* Area Path under the line */}
           <motion.path
-            d={areaPath}
-            className="fill-[url(#areaGradient)]"
-            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.2, ease: 'easeInOut' }}
+            className="fill-[url(#areaGradient)]"
+            d={areaPath}
+            initial={{ opacity: 0 }}
+            transition={{ duration: 1, delay: 0.2, ease: "easeInOut" }}
           />
 
           {/* Line Path */}
           <motion.path
-            d={linePath}
+            animate={{ pathLength: 1, opacity: 1 }}
             className="fill-transparent stroke-primary"
-            strokeWidth="2.5" // Slightly thicker line
+            d={linePath} // Slightly thicker line
+            initial={{ pathLength: 0, opacity: 0 }}
             strokeLinecap="round"
             strokeLinejoin="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 1, ease: 'easeInOut' }}
+            strokeWidth="2.5"
+            transition={{ duration: 1, ease: "easeInOut" }}
           />
 
           {/* Peak Point Highlight */}
           <motion.circle
-            cx={getX(peakTimeIndex)}
-            cy={getY(peakData[peakTimeIndex])}
-            r="5" // Slightly larger radius
-            className="fill-primary stroke-background"
-            strokeWidth="2.5"
-            initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
+            className="fill-primary stroke-background"
+            cx={getX(peakTimeIndex)} // Slightly larger radius
+            cy={getY(peakData[peakTimeIndex])}
+            initial={{ scale: 0, opacity: 0 }}
+            r="5"
+            strokeWidth="2.5"
             transition={{
               delay: 0.8,
               duration: 0.5,
-              type: 'spring',
+              type: "spring",
               stiffness: 300,
             }}
           />
@@ -369,7 +369,7 @@ const OrbitingIcons = ({
     icons: React.ReactNode[];
     radius?: number;
     speed?: number;
-    rotationDirection?: 'clockwise' | 'anticlockwise';
+    rotationDirection?: "clockwise" | "anticlockwise";
     className?: string;
   }>;
   className?: string;
@@ -384,7 +384,7 @@ const OrbitingIcons = ({
 
       const iconData = angles.map((angle) => {
         const rotationAngle =
-          orbit.rotationDirection === 'clockwise'
+          orbit.rotationDirection === "clockwise"
             ? [angle, angle - 360]
             : [angle, angle + 360];
         return {
@@ -407,7 +407,7 @@ const OrbitingIcons = ({
               initial: { rotate: -angle },
               animate: {
                 rotate:
-                  orbit.rotationDirection === 'clockwise'
+                  orbit.rotationDirection === "clockwise"
                     ? [-angle, -angle + 360]
                     : [-angle, -angle - 360],
               },
@@ -426,55 +426,55 @@ const OrbitingIcons = ({
   }, [orbits]);
 
   return (
-    <div className={cn('relative h-[200px] w-[200px]', className)}>
+    <div className={cn("relative h-[200px] w-[200px]", className)}>
       {centerIcon && (
-        <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-10">
+        <div className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
           {centerIcon}
         </div>
       )}
       {orbitData.map((orbit, orbitIndex) => (
         <div
-          key={orbitIndex}
           className="absolute top-0 left-0 h-full w-full"
+          key={orbitIndex}
           style={{ zIndex: orbits.length - orbitIndex }}
         >
           <div
             className={cn(
-              '-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 rounded-full',
+              "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full",
               orbit.className
             )}
             style={{
-              width: orbit.radius * 2 + 'px',
-              height: orbit.radius * 2 + 'px',
+              width: orbit.radius * 2 + "px",
+              height: orbit.radius * 2 + "px",
             }}
           />
           {orbit.iconData.map((icon, iconIndex) => (
             <motion.div
-              key={iconIndex}
-              className="absolute"
-              style={{
-                width: '40px',
-                height: '40px',
-                left: 'calc(50% - 20px)',
-                top: 'calc(50% - 20px)',
-                transformOrigin: 'center center',
-              }}
-              initial={icon.animation.initial}
               animate={icon.animation.animate}
+              className="absolute"
+              initial={icon.animation.initial}
+              key={iconIndex}
+              style={{
+                width: "40px",
+                height: "40px",
+                left: "calc(50% - 20px)",
+                top: "calc(50% - 20px)",
+                transformOrigin: "center center",
+              }}
               transition={icon.animation.transition}
             >
               <div
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   left: `${orbit.radius}px`,
-                  transformOrigin: 'center center',
+                  transformOrigin: "center center",
                 }}
               >
                 <motion.div
-                  initial={icon.animation.counterRotation.initial}
                   animate={icon.animation.counterRotation.animate}
-                  transition={icon.animation.counterRotation.transition}
                   className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background p-1 shadow-md"
+                  initial={icon.animation.counterRotation.initial}
+                  transition={icon.animation.counterRotation.transition}
                 >
                   {orbits[orbitIndex].icons[iconIndex]}
                 </motion.div>
@@ -489,19 +489,19 @@ const OrbitingIcons = ({
 
 const LogoOrbit = () => {
   const iconClassName =
-    'h-full w-full text-muted-foreground transition-colors group-hover:text-primary'; // Order: size, text color, transition, pseudo-state
+    "h-full w-full text-muted-foreground transition-colors group-hover:text-primary"; // Order: size, text color, transition, pseudo-state
 
   const orbit1Icons = [
-    <FaTwitter key="twitter" className={iconClassName} />,
-    <FaFacebook key="facebook" className={iconClassName} />,
-    <FaLinkedin key="linkedin" className={iconClassName} />,
+    <FaTwitter className={iconClassName} key="twitter" />,
+    <FaFacebook className={iconClassName} key="facebook" />,
+    <FaLinkedin className={iconClassName} key="linkedin" />,
   ];
 
   const orbit2Icons = [
-    <FaYoutube key="youtube" className={iconClassName} />,
-    <FaTwitch key="twitch" className={iconClassName} />,
-    <FaReddit key="reddit" className={iconClassName} />,
-    <FaDiscord key="discord" className={iconClassName} />,
+    <FaYoutube className={iconClassName} key="youtube" />,
+    <FaTwitch className={iconClassName} key="twitch" />,
+    <FaReddit className={iconClassName} key="reddit" />,
+    <FaDiscord className={iconClassName} key="discord" />,
   ];
 
   return (
@@ -510,24 +510,24 @@ const LogoOrbit = () => {
       orbits={[
         {
           icons: orbit1Icons,
-          rotationDirection: 'anticlockwise',
+          rotationDirection: "anticlockwise",
           radius: 60,
           speed: 9,
-          className: 'bg-border/30',
+          className: "bg-border/30",
         },
         {
           icons: orbit2Icons,
-          rotationDirection: 'anticlockwise',
+          rotationDirection: "anticlockwise",
           radius: 100,
           speed: 15,
-          className: 'bg-primary/10',
+          className: "bg-primary/10",
         },
         {
           icons: orbit1Icons.slice(0, 2),
-          rotationDirection: 'clockwise',
+          rotationDirection: "clockwise",
           radius: 140,
           speed: 7,
-          className: 'bg-border/20',
+          className: "bg-border/20",
         },
       ]}
     />
@@ -537,36 +537,36 @@ const LogoOrbit = () => {
 const DashboardCard = () => {
   // Mock data for a content queue
   const contentQueue = [
-    { id: 1, title: 'New Blog Post Idea', type: 'Blog', status: 'Draft' },
-    { id: 2, title: 'Video Teaser Clip', type: 'Video', status: 'Scheduled' },
-    { id: 3, title: 'Image Carousel', type: 'Image', status: 'Scheduled' },
+    { id: 1, title: "New Blog Post Idea", type: "Blog", status: "Draft" },
+    { id: 2, title: "Video Teaser Clip", type: "Video", status: "Scheduled" },
+    { id: 3, title: "Image Carousel", type: "Image", status: "Scheduled" },
     {
       id: 4,
-      title: 'Product Update Announcement',
-      type: 'Text',
-      status: 'Needs Approval',
+      title: "Product Update Announcement",
+      type: "Text",
+      status: "Needs Approval",
     },
-    { id: 5, title: 'Shorts Montage', type: 'Video', status: 'Draft' },
+    { id: 5, title: "Shorts Montage", type: "Video", status: "Draft" },
   ];
 
   const getStatusColor = (status: string) => {
-    if (status === 'Scheduled') {
-      return 'bg-green-500/20 text-green-700 dark:text-green-400';
+    if (status === "Scheduled") {
+      return "bg-green-500/20 text-green-700 dark:text-green-400";
     }
-    if (status === 'Needs Approval') {
-      return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400';
+    if (status === "Needs Approval") {
+      return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400";
     }
-    return 'bg-muted-foreground/10 text-muted-foreground'; // Draft or other
+    return "bg-muted-foreground/10 text-muted-foreground"; // Draft or other
   };
 
   const getTypeIcon = (type: string) => {
-    if (type === 'Video') {
+    if (type === "Video") {
       return <FaYoutube className="mr-2 h-4 w-4 text-red-500" />;
     }
-    if (type === 'Image') {
+    if (type === "Image") {
       return <FaImage className="mr-2 h-4 w-4 text-blue-500" />;
     }
-    if (type === 'Blog') {
+    if (type === "Blog") {
       return <FaFileAlt className="mr-2 h-4 w-4 text-purple-500" />;
     }
     return <FaRegFileAlt className="mr-2 h-4 w-4 text-gray-500" />; // Replaced FaFileLines
@@ -576,11 +576,11 @@ const DashboardCard = () => {
     <div className="flex h-full w-full flex-col rounded-lg border border-border bg-card p-4 shadow-sm">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
         className="mb-3 flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        viewport={{ once: true }}
+        whileInView={{ opacity: 1, y: 0 }}
       >
         <h4 className="font-semibold text-foreground">Content Queue</h4>
         <div className="flex gap-1.5">
@@ -594,17 +594,17 @@ const DashboardCard = () => {
       <motion.div
         className="space-y-2 overflow-y-auto pr-1"
         initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
         viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+        whileInView={{ opacity: 1 }}
       >
         {contentQueue.map((item, index) => (
           <motion.div
-            key={item.id}
-            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
             className="flex items-center justify-between rounded-md border border-border/70 bg-background p-2.5 shadow-xs transition-shadow hover:shadow-md"
+            initial={{ opacity: 0, x: -10 }}
+            key={item.id}
+            transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
           >
             <div className="flex items-center overflow-hidden">
               {getTypeIcon(item.type)}
@@ -614,7 +614,7 @@ const DashboardCard = () => {
             </div>
             <span
               className={cn(
-                'ml-2 whitespace-nowrap rounded-full px-2 py-0.5 font-medium text-[10px]',
+                "ml-2 whitespace-nowrap rounded-full px-2 py-0.5 font-medium text-[10px]",
                 getStatusColor(item.status)
               )}
             >

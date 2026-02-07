@@ -1,38 +1,38 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
 import {
-  type ProviderSetting,
-  type TikTokSettings,
   getValidMediaUrls,
+  type ProviderSetting,
   promotionContentTypes,
-} from '@delulu/validators/post';
-import axios from 'axios';
-import { nanoid } from 'nanoid';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
-import { keys } from '../key';
+  type TikTokSettings,
+} from "@delulu/validators/post";
+import axios from "axios";
+import { nanoid } from "nanoid";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { keys } from "../key";
 
 import type {
   PostContent,
   PostPublishResult,
   TikTokProfile,
   TikTokVideoUploadResponse,
-} from './common-types';
+} from "./common-types";
 import {
+  createAPIError,
   InvalidMediaError,
   ProfileNotFoundError,
   type SocialProviderError,
   TikTokError,
   TokenRefreshError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Get fresh access token using refresh token (following YouTube pattern)
 const getFreshAccessToken = (
   refreshToken: string
 ): ResultAsync<string, SocialProviderError> => {
-  console.log('[TikTok] Getting fresh access token using client:', {
+  console.log("[TikTok] Getting fresh access token using client:", {
     clientId: keys().TIKTOK_CLIENT_ID,
     hasClientSecret: !!keys().TIKTOK_CLIENT_SECRET,
   });
@@ -40,29 +40,29 @@ const getFreshAccessToken = (
   const refreshData = new URLSearchParams({
     client_key: keys().TIKTOK_CLIENT_ID,
     client_secret: keys().TIKTOK_CLIENT_SECRET,
-    grant_type: 'refresh_token',
+    grant_type: "refresh_token",
     refresh_token: refreshToken,
   });
 
   return ResultAsync.fromPromise(
-    axios.post('https://open.tiktokapis.com/v2/oauth/token/', refreshData, {
+    axios.post("https://open.tiktokapis.com/v2/oauth/token/", refreshData, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "Content-Type": "application/x-www-form-urlencoded",
       },
     }),
     (error) => {
-      console.error('[TikTok] Failed to get fresh access token:', error);
+      console.error("[TikTok] Failed to get fresh access token:", error);
       return new TokenRefreshError(
-        'TikTok',
-        'Failed to get fresh access token'
+        "TikTok",
+        "Failed to get fresh access token"
       );
     }
   ).andThen((response) => {
     const accessToken = response.data.access_token;
     if (!accessToken) {
-      return err(new TokenRefreshError('TikTok', 'No access token received'));
+      return err(new TokenRefreshError("TikTok", "No access token received"));
     }
-    console.log('[TikTok] Fresh access token obtained successfully');
+    console.log("[TikTok] Fresh access token obtained successfully");
     return ok(accessToken);
   });
 };
@@ -73,12 +73,12 @@ const getProfile = (
 ): ResultAsync<TikTokProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new TikTokError('Database query failed')
+    () => new TikTokError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile?.refreshToken) {
-      return err(new ProfileNotFoundError('TikTok'));
+    if (!(profile?.accessToken && profile?.refreshToken)) {
+      return err(new ProfileNotFoundError("TikTok"));
     }
     return ok({
       id: profile._id,
@@ -99,34 +99,34 @@ const checkPostStatus = (
   { status: string; fail_reason?: string },
   SocialProviderError
 > => {
-  console.log('[TikTok] Checking post status for:', publishId);
+  console.log("[TikTok] Checking post status for:", publishId);
   return ResultAsync.fromPromise(
     axios.post(
-      'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+      "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
       {
         publish_id: publishId,
       },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json; charset=UTF-8',
+          "Content-Type": "application/json; charset=UTF-8",
         },
       }
     ),
     (error) => {
-      console.error('[TikTok] Failed to check post status:', error);
-      return createAPIError('TikTok', error);
+      console.error("[TikTok] Failed to check post status:", error);
+      return createAPIError("TikTok", error);
     }
   ).andThen((response) => {
     const data = response.data;
     if (!data.data) {
-      console.error('[TikTok] Invalid status response:', data);
+      console.error("[TikTok] Invalid status response:", data);
       return err(
-        new TikTokError('Failed to get post status from TikTok response')
+        new TikTokError("Failed to get post status from TikTok response")
       );
     }
 
-    console.log('[TikTok] Status check result:', {
+    console.log("[TikTok] Status check result:", {
       status: data.data.status,
       fail_reason: data.data.fail_reason,
     });
@@ -153,27 +153,27 @@ const getRecentVideoId = (
     // Add delay before first attempt to let video propagate to list API
     if (attempt === 0) {
       console.log(
-        '[TikTok] Waiting 3 seconds for video to appear in list API...'
+        "[TikTok] Waiting 3 seconds for video to appear in list API..."
       );
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     const response = await axios.post(
-      'https://open.tiktokapis.com/v2/video/list/?fields=id,create_time',
+      "https://open.tiktokapis.com/v2/video/list/?fields=id,create_time",
       {
         max_count: 10, // Increased from 5 to 10 for better coverage
       },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json; charset=UTF-8',
+          "Content-Type": "application/json; charset=UTF-8",
         },
       }
     );
 
     const videos = response.data?.data?.videos;
     if (!videos || videos.length === 0) {
-      console.log('[TikTok] No videos found in list');
+      console.log("[TikTok] No videos found in list");
 
       if (attempt < maxRetries - 1) {
         console.log(`[TikTok] Retrying in ${retryDelay / 1000} seconds...`);
@@ -188,7 +188,7 @@ const getRecentVideoId = (
     const now = Date.now() / 1000;
     const maxAge = maxAgeMinutes * 60;
 
-    console.log('[TikTok] Found videos:', videos.length);
+    console.log("[TikTok] Found videos:", videos.length);
 
     for (const video of videos) {
       const videoAge = now - video.create_time;
@@ -197,7 +197,7 @@ const getRecentVideoId = (
       );
 
       if (videoAge <= maxAge) {
-        console.log('[TikTok] ✅ Found recent video:', {
+        console.log("[TikTok] ✅ Found recent video:", {
           id: video.id,
           ageSeconds: videoAge.toFixed(0),
         });
@@ -205,7 +205,7 @@ const getRecentVideoId = (
       }
     }
 
-    console.log('[TikTok] No videos found within age limit');
+    console.log("[TikTok] No videos found within age limit");
 
     if (attempt < maxRetries - 1) {
       console.log(`[TikTok] Retrying in ${retryDelay / 1000} seconds...`);
@@ -217,7 +217,7 @@ const getRecentVideoId = (
   };
 
   return ResultAsync.fromPromise(attemptFetch(0), (error) =>
-    createAPIError('TikTok', error)
+    createAPIError("TikTok", error)
   ).map((videoId) => videoId);
 };
 
@@ -226,35 +226,35 @@ const waitForPostCompletion = (
   accessToken: string,
   publishId: string,
   maxAttempts = 30,
-  interval = 10000
+  interval = 10_000
 ): ResultAsync<void, SocialProviderError> => {
   const poll = async (attempts: number): Promise<void> => {
     console.log(`[TikTok] Polling attempt ${attempts + 1}/${maxAttempts}`);
 
     if (attempts >= maxAttempts) {
-      console.error('[TikTok] Polling timeout - exceeded maximum attempts');
+      console.error("[TikTok] Polling timeout - exceeded maximum attempts");
       throw new TikTokError(
-        'Post processing timeout - exceeded maximum attempts'
+        "Post processing timeout - exceeded maximum attempts"
       );
     }
 
     const statusResult = await checkPostStatus(accessToken, publishId);
     if (statusResult.isErr()) {
-      console.error('[TikTok] Status check failed:', statusResult.error);
+      console.error("[TikTok] Status check failed:", statusResult.error);
       throw statusResult.error;
     }
 
     const { status, fail_reason } = statusResult.value;
 
     // TikTok API returns 'PUBLISH_COMPLETE' when successful
-    if (status === 'PUBLISH_COMPLETE') {
-      console.log('[TikTok] Video successfully published!');
+    if (status === "PUBLISH_COMPLETE") {
+      console.log("[TikTok] Video successfully published!");
       return; // Success
     }
 
-    if (status === 'FAILED') {
-      console.error('[TikTok] Video publishing failed:', fail_reason);
-      throw new TikTokError(`Post failed: ${fail_reason || 'Unknown error'}`);
+    if (status === "FAILED") {
+      console.error("[TikTok] Video publishing failed:", fail_reason);
+      throw new TikTokError(`Post failed: ${fail_reason || "Unknown error"}`);
     }
 
     // Status is still 'Processing', continue polling
@@ -285,7 +285,7 @@ const uploadVideo = (
     ? Math.floor(media.thumbnailTimestamp * 1000)
     : 1000;
 
-  console.log('[TikTok] Video cover timestamp:', {
+  console.log("[TikTok] Video cover timestamp:", {
     timestampMs: thumbnailTimestampMs,
     timestampSeconds: (thumbnailTimestampMs / 1000).toFixed(2),
     fromUserSelection: !!media.thumbnailTimestamp,
@@ -294,8 +294,8 @@ const uploadVideo = (
   // Build post_info with user settings or defaults
   // biome-ignore lint/suspicious/noExplicitAny: <Dont want to declare the type>
   const postInfo: any = {
-    title: caption.slice(0, 150) || 'TikTok Video',
-    privacy_level: settings?.privacy || 'PUBLIC_TO_EVERYONE',
+    title: caption.slice(0, 150) || "TikTok Video",
+    privacy_level: settings?.privacy || "PUBLIC_TO_EVERYONE",
     disable_duet: settings?.allowDuet === false,
     disable_comment: settings?.allowComments === false,
     disable_stitch: settings?.allowStitch === false,
@@ -323,25 +323,25 @@ const uploadVideo = (
 
   const uploadData = {
     source_info: {
-      source: 'PULL_FROM_URL',
+      source: "PULL_FROM_URL",
       video_url: videoUrl,
     },
     post_info: postInfo,
   };
 
-  console.log('[TikTok] Uploading video with data:', {
+  console.log("[TikTok] Uploading video with data:", {
     videoUrl,
     postInfo,
   });
 
   return ResultAsync.fromPromise(
     axios.post(
-      'https://open.tiktokapis.com/v2/post/publish/video/init/',
+      "https://open.tiktokapis.com/v2/post/publish/video/init/",
       uploadData,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json; charset=UTF-8',
+          "Content-Type": "application/json; charset=UTF-8",
         },
       }
     ),
@@ -349,27 +349,27 @@ const uploadVideo = (
       const axiosError = error as {
         response?: { data?: unknown; status?: number };
       };
-      console.error('[TikTok] Upload failed:', {
+      console.error("[TikTok] Upload failed:", {
         status: axiosError?.response?.status,
         data: JSON.stringify(axiosError?.response?.data, null, 2),
         message: (error as Error).message,
         requestData: uploadData,
       });
-      return createAPIError('TikTok', error);
+      return createAPIError("TikTok", error);
     }
   ).andThen((response) => {
     const data = response.data;
-    console.log('[TikTok] Upload response:', data);
+    console.log("[TikTok] Upload response:", data);
 
     if (!data.data?.publish_id) {
-      console.error('[TikTok] No publish_id in response:', data);
+      console.error("[TikTok] No publish_id in response:", data);
       return err(
-        new TikTokError('Failed to get publish ID from TikTok response')
+        new TikTokError("Failed to get publish ID from TikTok response")
       );
     }
 
     console.log(
-      '[TikTok] Upload successful, publish_id:',
+      "[TikTok] Upload successful, publish_id:",
       data.data.publish_id
     );
     return ok({
@@ -392,31 +392,31 @@ const publishContent = (
   const firstContent = content.content[0];
 
   if (!firstContent) {
-    return errAsync(new InvalidMediaError('TikTok', 'No content to publish'));
+    return errAsync(new InvalidMediaError("TikTok", "No content to publish"));
   }
 
   // TikTok requires video content
   const validMedia = getValidMediaUrls(firstContent.media);
   const videoMedia = validMedia.find(
-    (media) => media.mediaType === 'VIDEO' && media.url
+    (media) => media.mediaType === "VIDEO" && media.url
   );
 
   if (!videoMedia?.url) {
     return errAsync(
-      new InvalidMediaError('TikTok', 'TikTok requires exactly one video file')
+      new InvalidMediaError("TikTok", "TikTok requires exactly one video file")
     );
   }
 
   // Use text content as TikTok caption (what users see on the video)
-  const caption = firstContent.text || 'TikTok Video';
+  const caption = firstContent.text || "TikTok Video";
 
   // Extract TikTok settings from provider settings
   const tiktokSettings =
-    content.providerSettings?.type === 'TIKTOK'
+    content.providerSettings?.type === "TIKTOK"
       ? content.providerSettings.settings
       : undefined;
 
-  console.log('[TikTok] Starting publish flow:', {
+  console.log("[TikTok] Starting publish flow:", {
     videoUrl: videoMedia.url,
     caption: caption.substring(0, 50),
     hasSettings: !!tiktokSettings,
@@ -426,7 +426,7 @@ const publishContent = (
   // Get fresh access token and upload (validation is done in frontend)
   return getFreshAccessToken(profile.refreshToken)
     .andThen((freshAccessToken) => {
-      console.log('[TikTok] About to upload video');
+      console.log("[TikTok] About to upload video");
       return uploadVideo(
         freshAccessToken,
         videoMedia.url!,
@@ -435,16 +435,16 @@ const publishContent = (
         tiktokSettings
       ).andThen((uploadResponse) => {
         console.log(
-          '[TikTok] Video uploaded, publish_id:',
+          "[TikTok] Video uploaded, publish_id:",
           uploadResponse.data.publish_id
         );
-        console.log('[TikTok] Starting polling for completion...');
+        console.log("[TikTok] Starting polling for completion...");
         // Poll for completion as required by TikTok guidelines
         return waitForPostCompletion(
           freshAccessToken,
           uploadResponse.data.publish_id
         ).andThen(() => {
-          console.log('[TikTok] Polling completed successfully');
+          console.log("[TikTok] Polling completed successfully");
           // Get real video ID from video list API with retry logic
           return getRecentVideoId(freshAccessToken).map((itemId) => ({
             uploadResponse,
@@ -454,19 +454,19 @@ const publishContent = (
       });
     })
     .map(({ uploadResponse, itemId }) => {
-      console.log('[TikTok] Creating final result');
+      console.log("[TikTok] Creating final result");
 
       // Use real item_id if available, fallback to publish_id
       const videoId = itemId || uploadResponse.data.publish_id;
 
       if (itemId) {
         console.log(
-          '[TikTok] ✅ Using correct video URL with item_id:',
+          "[TikTok] ✅ Using correct video URL with item_id:",
           itemId
         );
       } else {
         console.warn(
-          '[TikTok] ⚠️ Could not retrieve real video ID, using publish_id as fallback (may result in broken link)'
+          "[TikTok] ⚠️ Could not retrieve real video ID, using publish_id as fallback (may result in broken link)"
         );
       }
 
@@ -490,21 +490,21 @@ export const tiktokProvider: SocialProvider = {
   },
 
   connectUrl: () => {
-    console.log('[TikTok] Generating connect URL');
+    console.log("[TikTok] Generating connect URL");
 
     const params = new URLSearchParams({
-      response_type: 'code',
+      response_type: "code",
       client_key: keys().TIKTOK_CLIENT_ID,
       redirect_uri: keys().TIKTOK_CALLBACK_URL,
-      scope: 'user.info.basic,video.publish,video.upload,user.info.profile',
+      scope: "user.info.basic,video.publish,video.upload,user.info.profile",
       state: nanoid(10),
     });
 
     const connectUrl = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
 
-    console.log('[TikTok] Connect URL generated:', {
+    console.log("[TikTok] Connect URL generated:", {
       url: connectUrl,
-      clientId: keys().TIKTOK_CLIENT_ID ? 'present' : 'missing',
+      clientId: keys().TIKTOK_CLIENT_ID ? "present" : "missing",
       redirectUri: keys().TIKTOK_CALLBACK_URL,
     });
 

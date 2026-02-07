@@ -1,16 +1,16 @@
-import { env } from '@/env';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { createMetadata } from '@delulu/seo/metadata';
-import { Check, Minus, MoveRight, PhoneCall } from 'lucide-react';
-import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { createMetadata } from "@delulu/seo/metadata";
+import { Check, Minus, MoveRight, PhoneCall } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { env } from "@/env";
 
 export const metadata: Metadata = createMetadata({
-  title: 'Pricing',
+  title: "Pricing",
   description:
-    'Simple, transparent pricing for social media management. Choose the perfect plan for your business - from startups to enterprises. No hidden fees, cancel anytime.',
+    "Simple, transparent pricing for social media management. Choose the perfect plan for your business - from startups to enterprises. No hidden fees, cancel anytime.",
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://delulu.social'}/pricing`,
+    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social"}/pricing`,
   },
 });
 
@@ -38,7 +38,7 @@ const Pricing = () => (
               <span className="text-4xl">$40</span>
               <span className="text-muted-foreground text-sm"> / month</span>
             </p>
-            <Button variant="outline" className="mt-8 gap-4" asChild>
+            <Button asChild className="mt-8 gap-4" variant="outline">
               <Link href={env.NEXT_PUBLIC_APP_URL}>
                 Try it <MoveRight className="h-4 w-4" />
               </Link>
@@ -54,7 +54,7 @@ const Pricing = () => (
               <span className="text-4xl">$40</span>
               <span className="text-muted-foreground text-sm"> / month</span>
             </p>
-            <Button className="mt-8 gap-4" asChild>
+            <Button asChild className="mt-8 gap-4">
               <Link href={env.NEXT_PUBLIC_APP_URL}>
                 Try it <MoveRight className="h-4 w-4" />
               </Link>
@@ -70,7 +70,7 @@ const Pricing = () => (
               <span className="text-4xl">$40</span>
               <span className="text-muted-foreground text-sm"> / month</span>
             </p>
-            <Button variant="outline" className="mt-8 gap-4" asChild>
+            <Button asChild className="mt-8 gap-4" variant="outline">
               <Link href="/contact">
                 Contact us <PhoneCall className="h-4 w-4" />
               </Link>

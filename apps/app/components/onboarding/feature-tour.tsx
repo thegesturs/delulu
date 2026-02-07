@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useUser } from '@delulu/auth';
-import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
-import { useOnboarding } from '@/hooks/use-onboarding';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useUser } from "@delulu/auth";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useOnboarding } from "@/hooks/use-onboarding";
 
 export function FeatureTour() {
   const { user } = useUser();
@@ -33,70 +33,70 @@ export function FeatureTour() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [user]);
+  }, [user, startTour]);
 
   const startTour = () => {
     let currentStepIndex = 0;
 
     const driverObj = driver({
       showProgress: true,
-      showButtons: ['next', 'previous', 'close'],
+      showButtons: ["next", "previous", "close"],
       steps: [
         {
           element: '[data-tour="dashboard-stats"]',
           popover: {
-            title: 'Dashboard Overview',
+            title: "Dashboard Overview",
             description:
-              'Track your social media performance at a glance. See total posts, published content, scheduled items, and more.',
-            side: 'bottom',
-            align: 'center',
+              "Track your social media performance at a glance. See total posts, published content, scheduled items, and more.",
+            side: "bottom",
+            align: "center",
           },
         },
         {
           element: '[data-tour="create-post"]',
           popover: {
-            title: 'Create Post Button',
+            title: "Create Post Button",
             description:
-              'Start creating content for multiple platforms at once. Save time by posting to all your accounts simultaneously.',
-            side: 'right',
-            align: 'start',
+              "Start creating content for multiple platforms at once. Save time by posting to all your accounts simultaneously.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="posts-nav"]',
           popover: {
-            title: 'Posts Management',
+            title: "Posts Management",
             description:
-              'View, edit, and manage all your posts in one place. See drafts, scheduled posts, and published content.',
-            side: 'right',
-            align: 'start',
+              "View, edit, and manage all your posts in one place. See drafts, scheduled posts, and published content.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="calendar-nav"]',
           popover: {
-            title: 'Calendar View',
+            title: "Calendar View",
             description:
-              'Visualize your content schedule and plan ahead. See when posts are going live across all platforms.',
-            side: 'right',
-            align: 'start',
+              "Visualize your content schedule and plan ahead. See when posts are going live across all platforms.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="accounts-nav"]',
           popover: {
-            title: 'Connected Accounts',
+            title: "Connected Accounts",
             description:
-              'Manage your connected social media accounts and access tokens. Add or remove platforms anytime.',
-            side: 'right',
-            align: 'start',
+              "Manage your connected social media accounts and access tokens. Add or remove platforms anytime.",
+            side: "right",
+            align: "start",
           },
         },
         {
           popover: {
             title: "You're All Set!",
             description:
-              'Ready to start creating amazing content? Click the button below to create your first post.',
+              "Ready to start creating amazing content? Click the button below to create your first post.",
           },
         },
       ],
@@ -112,7 +112,7 @@ export function FeatureTour() {
         if (currentStepIndex >= 5) {
           // Tour was completed
           handleCompleteTour(false);
-          router.push('/post');
+          router.push("/post");
         } else {
           // Tour was dismissed
           handleCompleteTour(true);
@@ -137,58 +137,58 @@ export function useFeatureTour() {
 
     const driverObj = driver({
       showProgress: true,
-      showButtons: ['next', 'previous', 'close'],
+      showButtons: ["next", "previous", "close"],
       steps: [
         {
           element: '[data-tour="dashboard-stats"]',
           popover: {
-            title: 'Dashboard Overview',
-            description: 'Track your social media performance at a glance.',
-            side: 'bottom',
-            align: 'center',
+            title: "Dashboard Overview",
+            description: "Track your social media performance at a glance.",
+            side: "bottom",
+            align: "center",
           },
         },
         {
           element: '[data-tour="create-post"]',
           popover: {
-            title: 'Create Post Button',
+            title: "Create Post Button",
             description:
-              'Start creating content for multiple platforms at once.',
-            side: 'right',
-            align: 'start',
+              "Start creating content for multiple platforms at once.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="posts-nav"]',
           popover: {
-            title: 'Posts Management',
-            description: 'View, edit, and manage all your posts in one place.',
-            side: 'right',
-            align: 'start',
+            title: "Posts Management",
+            description: "View, edit, and manage all your posts in one place.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="calendar-nav"]',
           popover: {
-            title: 'Calendar View',
-            description: 'Visualize your content schedule and plan ahead.',
-            side: 'right',
-            align: 'start',
+            title: "Calendar View",
+            description: "Visualize your content schedule and plan ahead.",
+            side: "right",
+            align: "start",
           },
         },
         {
           element: '[data-tour="accounts-nav"]',
           popover: {
-            title: 'Connected Accounts',
-            description: 'Manage your connected social media accounts.',
-            side: 'right',
-            align: 'start',
+            title: "Connected Accounts",
+            description: "Manage your connected social media accounts.",
+            side: "right",
+            align: "start",
           },
         },
         {
           popover: {
             title: "You're All Set!",
-            description: 'Ready to start creating amazing content?',
+            description: "Ready to start creating amazing content?",
           },
         },
       ],
@@ -202,7 +202,7 @@ export function useFeatureTour() {
       },
       onDestroyStarted: () => {
         if (currentStepIndex >= 5) {
-          router.push('/post');
+          router.push("/post");
         }
         driverObj.destroy();
       },

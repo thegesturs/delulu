@@ -2,38 +2,38 @@
  * Content script for Instagram integration
  */
 
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { LoadingOverlay } from './content/components/loading-overlay';
-import { SortPanel } from './content/components/sort-panel';
-import { SortedGrid } from './content/components/sorted-grid';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { LoadingOverlay } from "./content/components/loading-overlay";
+import { SortPanel } from "./content/components/sort-panel";
+import { SortedGrid } from "./content/components/sorted-grid";
 // Import styles inline to ensure they are injected
-import overlayStyles from './content/styles/overlay.css?inline';
-import { initializeGraphQLInterceptor } from './content/utils/graphql-interceptor';
+import overlayStyles from "./content/styles/overlay.css?inline";
+import { initializeGraphQLInterceptor } from "./content/utils/graphql-interceptor";
 import {
   createCancelToken,
   scrollAndLoadReels,
-} from './content/utils/infinite-scroll';
-import { validateScrapingCapability } from './content/utils/instagram-scraper';
-import { isReelsTab, monitorUrlChanges } from './content/utils/url-detector';
-import type { ReelData, SortMetric } from './shared/types';
+} from "./content/utils/infinite-scroll";
+import { validateScrapingCapability } from "./content/utils/instagram-scraper";
+import { isReelsTab, monitorUrlChanges } from "./content/utils/url-detector";
+import type { ReelData, SortMetric } from "./shared/types";
 
 export default defineContentScript({
-  matches: ['*://www.instagram.com/*', '*://instagram.com/*'],
-  runAt: 'document_start', // Run EARLY to hook XHR before Instagram
+  matches: ["*://www.instagram.com/*", "*://instagram.com/*"],
+  runAt: "document_start", // Run EARLY to hook XHR before Instagram
 
   main() {
     // Inject styles immediately
-    const styleSheet = document.createElement('style');
+    const styleSheet = document.createElement("style");
     styleSheet.textContent = overlayStyles;
-    styleSheet.id = 'sorted-styles';
+    styleSheet.id = "sorted-styles";
     (document.head || document.documentElement).appendChild(styleSheet);
 
     // Inject external interceptor script (bypasses CSP)
-    const interceptorScript = document.createElement('script');
-    interceptorScript.src = browser.runtime.getURL('/interceptor.js');
+    const interceptorScript = document.createElement("script");
+    interceptorScript.src = browser.runtime.getURL("/interceptor.js");
     interceptorScript.onerror = () =>
-      console.error('[Sorted] Failed to load interceptor');
+      console.error("[Sorted] Failed to load interceptor");
     (document.head || document.documentElement).prepend(interceptorScript);
 
     // Initialize GraphQL interceptor FIRST (before Instagram makes API calls)
@@ -54,19 +54,19 @@ export default defineContentScript({
     let isActive = false;
     let isCancelled = false;
     let currentReels: ReelData[] = [];
-    let currentMetric: SortMetric = 'views';
+    let currentMetric: SortMetric = "views";
     let currentQuantity: number = 25;
 
     /**
      * Show loading overlay
      */
     function showLoadingOverlay(
-      message: string = 'Analyzing reels...',
+      message: string = "Analyzing reels...",
       progress?: string
     ) {
       if (!loadingContainer) {
-        loadingContainer = document.createElement('div');
-        loadingContainer.id = 'sorted-loading';
+        loadingContainer = document.createElement("div");
+        loadingContainer.id = "sorted-loading";
         document.body.appendChild(loadingContainer);
         loadingRoot = createRoot(loadingContainer);
       }
@@ -95,7 +95,7 @@ export default defineContentScript({
      */
     function sortReels(reels: ReelData[], metric: SortMetric): ReelData[] {
       // For "oldest", just reverse the Instagram order (newest first → oldest first)
-      if (metric === 'oldest') {
+      if (metric === "oldest") {
         return [...reels].reverse();
       }
 
@@ -137,8 +137,8 @@ export default defineContentScript({
 
       // Fallback: try specific selectors
       const selectors = [
-        'main > div > div > div > div', // Common Instagram structure
-        'article',
+        "main > div > div > div > div", // Common Instagram structure
+        "article",
         '[style*="display: grid"]',
         '[style*="display:grid"]',
       ];
@@ -174,8 +174,8 @@ export default defineContentScript({
       }
 
       // Create panel container
-      panelContainer = document.createElement('div');
-      panelContainer.id = 'sorted-panel';
+      panelContainer = document.createElement("div");
+      panelContainer.id = "sorted-panel";
       // No inline styles here, managed by CSS class
 
       // Insert before reels container
@@ -189,9 +189,9 @@ export default defineContentScript({
       panelRoot.render(
         React.createElement(SortPanel, {
           onSort: handleSort,
-          isSorting: isSorting,
+          isSorting,
           onReset: handleReset,
-          isActive: isActive,
+          isActive,
         })
       );
     }
@@ -226,17 +226,17 @@ export default defineContentScript({
         updatePanel();
 
         // Show loading overlay
-        showLoadingOverlay('Loading reels...', 'Scrolling through profile');
+        showLoadingOverlay("Loading reels...", "Scrolling through profile");
 
         // Scroll aggressively to trigger Instagram to load ALL data with metrics
         for (let i = 0; i < 3; i++) {
           if (isCancelled) {
             return; // Check if operation was cancelled
           }
-          showLoadingOverlay('Loading reels...', `Scroll ${i + 1}/3`);
+          showLoadingOverlay("Loading reels...", `Scroll ${i + 1}/3`);
           window.scrollTo({
             top: document.body.scrollHeight,
-            behavior: 'smooth',
+            behavior: "smooth",
           });
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
@@ -246,8 +246,8 @@ export default defineContentScript({
         }
 
         // Scroll back to top
-        showLoadingOverlay('Processing reels...', 'Analyzing metrics');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showLoadingOverlay("Processing reels...", "Analyzing metrics");
+        window.scrollTo({ top: 0, behavior: "smooth" });
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
         if (isCancelled) {
@@ -282,12 +282,12 @@ export default defineContentScript({
         }
 
         if (reels.length === 0) {
-          alert('No reels found');
+          alert("No reels found");
           return;
         }
 
         // Sort reels
-        showLoadingOverlay('Sorting reels...', `By ${metric}`);
+        showLoadingOverlay("Sorting reels...", `By ${metric}`);
         const sorted = sortReels(reels, metric);
         currentReels = sorted.slice(0, quantity);
 
@@ -298,7 +298,7 @@ export default defineContentScript({
         // Replace Instagram grid with sorted grid
         const gridReplaced = replaceGrid();
         if (!gridReplaced) {
-          alert('Failed to replace grid. Reels container not found.');
+          alert("Failed to replace grid. Reels container not found.");
           return;
         }
         isActive = true;
@@ -306,8 +306,8 @@ export default defineContentScript({
         // Hide loading overlay after a brief moment to show completion
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
-        console.error('[Sorted] Sort failed:', error);
-        alert('Failed to sort reels. Please try again.');
+        console.error("[Sorted] Sort failed:", error);
+        alert("Failed to sort reels. Please try again.");
       } finally {
         hideLoadingOverlay();
         isSorting = false;
@@ -329,12 +329,12 @@ export default defineContentScript({
       if (!originalGrid) {
         originalGrid = reelsContainer;
       }
-      originalGrid.style.display = 'none';
+      originalGrid.style.display = "none";
 
       // Create our grid container if it doesn't exist
       if (!gridContainer) {
-        gridContainer = document.createElement('div');
-        gridContainer.id = 'sorted-grid';
+        gridContainer = document.createElement("div");
+        gridContainer.id = "sorted-grid";
         originalGrid.parentElement?.insertBefore(
           gridContainer,
           originalGrid.nextSibling
@@ -362,7 +362,7 @@ export default defineContentScript({
      */
     function handleReset() {
       if (originalGrid) {
-        originalGrid.style.display = '';
+        originalGrid.style.display = "";
       }
 
       if (gridRoot) {
@@ -388,9 +388,9 @@ export default defineContentScript({
         panelRoot.render(
           React.createElement(SortPanel, {
             onSort: handleSort,
-            isSorting: isSorting,
+            isSorting,
             onReset: handleReset,
-            isActive: isActive,
+            isActive,
           })
         );
       }
@@ -432,6 +432,6 @@ export default defineContentScript({
     initialize();
 
     // Cleanup on page unload
-    window.addEventListener('beforeunload', cleanup);
+    window.addEventListener("beforeunload", cleanup);
   },
 });

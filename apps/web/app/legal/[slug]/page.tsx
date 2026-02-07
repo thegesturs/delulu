@@ -1,16 +1,16 @@
-import { BlogLayout } from '@/components/blog/blog-layout';
-import CTA from '@/components/home/cta';
-import { components } from '@/components/home/mdx-components';
-import { env } from '@/env';
-import { JsonLd, createArticleSchema } from '@delulu/seo/json-ld';
-import { createMetadata } from '@delulu/seo/metadata';
-import { allLegals } from 'content-collections';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { remark } from 'remark';
-import remarkGfm from 'remark-gfm';
-import remarkMdx from 'remark-mdx';
-import { MdastToJsx } from 'safe-mdx';
+import { createArticleSchema, JsonLd } from "@delulu/seo/json-ld";
+import { createMetadata } from "@delulu/seo/metadata";
+import { allLegals } from "content-collections";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkMdx from "remark-mdx";
+import { MdastToJsx } from "safe-mdx";
+import { BlogLayout } from "@/components/blog/blog-layout";
+import CTA from "@/components/home/cta";
+import { components } from "@/components/home/mdx-components";
+import { env } from "@/env";
 
 const parser = remark()
   .use(remarkMdx)
@@ -48,12 +48,12 @@ export const generateMetadata = async ({
   });
 };
 
-type PageProps = {
+interface PageProps {
   params: Promise<{
     slug: string;
     locale: string;
   }>;
-};
+}
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
@@ -65,7 +65,7 @@ export default async function Page({ params }: PageProps) {
 
   const legalWithType = {
     ...legal,
-    type: 'legal' as const,
+    type: "legal" as const,
   };
 
   const pageUrl = new URL(`/legal/${slug}`, url).href;

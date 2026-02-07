@@ -4,12 +4,12 @@
  */
 
 export default defineContentScript({
-  matches: ['*://www.instagram.com/*', '*://instagram.com/*'],
-  world: 'MAIN', // Run in page context, not isolated world
-  runAt: 'document_start', // Run as early as possible
+  matches: ["*://www.instagram.com/*", "*://instagram.com/*"],
+  world: "MAIN", // Run in page context, not isolated world
+  runAt: "document_start", // Run as early as possible
 
   main() {
-    console.log('[Sorted] Main world interceptor loaded');
+    console.log("[Sorted] Main world interceptor loaded");
 
     // Cache for metrics by reel ID
     const metricsCache = new Map();
@@ -32,18 +32,18 @@ export default defineContentScript({
     XMLHttpRequest.prototype.send = function (
       _body?: Document | XMLHttpRequestBodyInit | null
     ) {
-      this.addEventListener('load', function () {
+      this.addEventListener("load", function () {
         const url = (this as any)._url;
 
         // Log all XHR for debugging
         if (url) {
-          console.log('[Sorted] XHR:', url.substring(0, 150));
+          console.log("[Sorted] XHR:", url.substring(0, 150));
         }
 
-        if (url?.includes('/graphql/query')) {
-          console.log('[Sorted] 🎯 Found GraphQL XHR!');
+        if (url?.includes("/graphql/query")) {
+          console.log("[Sorted] 🎯 Found GraphQL XHR!");
           try {
-            if (this.responseType === '' || this.responseType === 'text') {
+            if (this.responseType === "" || this.responseType === "text") {
               const data = JSON.parse(this.responseText);
 
               // Check for reels
@@ -51,9 +51,9 @@ export default defineContentScript({
                 const edges =
                   data.data.xdt_api__v1__clips__user__connection_v2.edges;
                 console.log(
-                  '[Sorted] ✅ Found',
+                  "[Sorted] ✅ Found",
                   edges.length,
-                  'REELS in GraphQL response!'
+                  "REELS in GraphQL response!"
                 );
 
                 edges.forEach((edge: any) => {
@@ -68,7 +68,7 @@ export default defineContentScript({
                     if (media.code) {
                       metricsCache.set(media.code, metrics);
                       console.log(
-                        '[Sorted] 📊 Cached metrics for',
+                        "[Sorted] 📊 Cached metrics for",
                         media.code,
                         metrics
                       );
@@ -88,9 +88,9 @@ export default defineContentScript({
                   data.data.xdt_api__v1__feed__user_timeline_graphql_connection
                     .edges;
                 console.log(
-                  '[Sorted] ✅ Found',
+                  "[Sorted] ✅ Found",
                   edges.length,
-                  'POSTS in GraphQL response!'
+                  "POSTS in GraphQL response!"
                 );
 
                 edges.forEach((edge: any) => {
@@ -104,7 +104,7 @@ export default defineContentScript({
                   if (node.code) {
                     metricsCache.set(node.code, metrics);
                     console.log(
-                      '[Sorted] 📊 Cached metrics for',
+                      "[Sorted] 📊 Cached metrics for",
                       node.code,
                       metrics
                     );
@@ -116,7 +116,7 @@ export default defineContentScript({
               }
             }
           } catch (e) {
-            console.debug('[Sorted] Parse error:', e);
+            console.debug("[Sorted] Parse error:", e);
           }
         }
       });
@@ -124,6 +124,6 @@ export default defineContentScript({
       return originalSend.apply(this, arguments as any);
     };
 
-    console.log('[Sorted] ✅ XHR interceptor hooked in main world!');
+    console.log("[Sorted] ✅ XHR interceptor hooked in main world!");
   },
 });

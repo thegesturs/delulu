@@ -1,12 +1,12 @@
-import type { ReactNode } from 'react';
-import { GoogleAnalytics } from './google';
-import { keys } from './keys';
-import { PostHogProvider } from './posthog/client';
-import { VercelAnalytics } from './vercel';
+import type { ReactNode } from "react";
+import { GoogleAnalytics } from "./google";
+import { keys } from "./keys";
+import { PostHogProvider } from "./posthog/client";
+import { VercelAnalytics } from "./vercel";
 
-type AnalyticsProviderProps = {
+interface AnalyticsProviderProps {
   readonly children: ReactNode;
-};
+}
 
 const { NEXT_PUBLIC_GA_MEASUREMENT_ID } = keys();
 

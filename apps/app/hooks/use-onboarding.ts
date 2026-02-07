@@ -1,13 +1,13 @@
+import { posthog } from "@delulu/analytics/posthog/client";
+import { useUser } from "@delulu/auth";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   completeOnboarding,
   completeTour,
   updateOnboardingStep,
-} from '@/app/onboarding/_actions';
-import { useOnboardingStore } from '@/store/onboarding';
-import { posthog } from '@delulu/analytics/posthog/client';
-import { useUser } from '@delulu/auth';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+} from "@/app/onboarding/_actions";
+import { useOnboardingStore } from "@/store/onboarding";
 
 export function useOnboarding() {
   const { user } = useUser();
@@ -48,7 +48,7 @@ export function useOnboarding() {
 
     try {
       // Track step completion
-      posthog.capture('onboarding_step_completed', {
+      posthog.capture("onboarding_step_completed", {
         step: currentStep,
         stepName,
         accountsConnected,
@@ -74,12 +74,12 @@ export function useOnboarding() {
       } else {
         // Show error if server update failed
         toast.error(
-          result.error || 'Failed to save progress. Please try again.'
+          result.error || "Failed to save progress. Please try again."
         );
       }
     } catch (error) {
-      console.error('Error in handleNextStep:', error);
-      toast.error('Failed to save progress. Please try again.');
+      console.error("Error in handleNextStep:", error);
+      toast.error("Failed to save progress. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +92,7 @@ export function useOnboarding() {
 
     try {
       // Track skip event
-      posthog.capture('onboarding_step_skipped', {
+      posthog.capture("onboarding_step_skipped", {
         step: currentStep,
         stepName,
       });
@@ -112,12 +112,12 @@ export function useOnboarding() {
         nextStep();
       } else {
         toast.error(
-          result.error || 'Failed to save progress. Please try again.'
+          result.error || "Failed to save progress. Please try again."
         );
       }
     } catch (error) {
-      console.error('Error in handleSkipStep:', error);
-      toast.error('Failed to save progress. Please try again.');
+      console.error("Error in handleSkipStep:", error);
+      toast.error("Failed to save progress. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -143,11 +143,11 @@ export function useOnboarding() {
           await user?.reload();
           previousStep();
         } else {
-          toast.error(result.error || 'Failed to update progress.');
+          toast.error(result.error || "Failed to update progress.");
         }
       } catch (error) {
-        console.error('Error in handlePreviousStep:', error);
-        toast.error('Failed to update progress.');
+        console.error("Error in handlePreviousStep:", error);
+        toast.error("Failed to update progress.");
       } finally {
         setIsLoading(false);
       }
@@ -161,14 +161,14 @@ export function useOnboarding() {
     try {
       // Track the final step completion
       const currentStepName = getStepName(currentStep);
-      posthog.capture('onboarding_step_completed', {
+      posthog.capture("onboarding_step_completed", {
         step: currentStep,
         stepName: currentStepName,
         accountsConnected,
       });
 
       // Track overall completion
-      posthog.capture('onboarding_completed', {
+      posthog.capture("onboarding_completed", {
         stepsSkipped: skippedSteps,
         duration:
           Date.now() -
@@ -187,19 +187,19 @@ export function useOnboarding() {
       if (result.success) {
         // Reload user data to get updated metadata
         await user?.reload();
-        toast.success('Welcome to Delulu Social! 🎉');
+        toast.success("Welcome to Delulu Social! 🎉");
         return { success: true };
       }
 
       // Show error if completion failed
       toast.error(
-        result.error || 'Failed to complete onboarding. Please try again.'
+        result.error || "Failed to complete onboarding. Please try again."
       );
       return { error: result.error };
     } catch (error) {
-      console.error('Error completing onboarding:', error);
-      toast.error('Failed to complete onboarding. Please try again.');
-      return { error: 'Failed to complete onboarding' };
+      console.error("Error completing onboarding:", error);
+      toast.error("Failed to complete onboarding. Please try again.");
+      return { error: "Failed to complete onboarding" };
     } finally {
       setIsLoading(false);
     }
@@ -208,8 +208,8 @@ export function useOnboarding() {
   // Complete or dismiss tour
   const handleCompleteTour = async (dismissed = false) => {
     const eventName = dismissed
-      ? 'onboarding_tour_dismissed'
-      : 'onboarding_tour_completed';
+      ? "onboarding_tour_dismissed"
+      : "onboarding_tour_completed";
 
     posthog.capture(eventName, {
       lastStep: currentStep,
@@ -247,9 +247,9 @@ export function useOnboarding() {
 // Helper function to get step name
 function getStepName(step: number): string {
   const stepNames = {
-    1: 'welcome',
-    2: 'connect',
-    3: 'pricing',
+    1: "welcome",
+    2: "connect",
+    3: "pricing",
   };
-  return stepNames[step as keyof typeof stepNames] || 'unknown';
+  return stepNames[step as keyof typeof stepNames] || "unknown";
 }

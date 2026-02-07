@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Input } from '@delulu/design-system/components/ui/input';
-import { Label } from '@delulu/design-system/components/ui/label';
-import { Switch } from '@delulu/design-system/components/ui/switch';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-solid-rounded';
-import type { CommentReply } from '../utils/flow-types';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { Label } from "@delulu/design-system/components/ui/label";
+import { Switch } from "@delulu/design-system/components/ui/switch";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Add01Icon, Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
+import type { CommentReply } from "../utils/flow-types";
 
 interface CommentReplyEditorProps {
   commentReply: CommentReply | undefined;
@@ -14,9 +14,9 @@ interface CommentReplyEditorProps {
 }
 
 const DEFAULT_REPLIES = [
-  'Check your DMs! \ud83d\udce9',
-  'DM sent! \ud83c\udf89',
-  'Sent you a message \u2709\ufe0f',
+  "Check your DMs! \ud83d\udce9",
+  "DM sent! \ud83c\udf89",
+  "Sent you a message \u2709\ufe0f",
 ];
 
 export function CommentReplyEditor({
@@ -34,7 +34,7 @@ export function CommentReplyEditor({
   };
 
   const addReply = () => {
-    onChange({ enabled, replies: [...replies, ''] });
+    onChange({ enabled, replies: [...replies, ""] });
   };
 
   const updateReply = (index: number, value: string) => {
@@ -65,35 +65,35 @@ export function CommentReplyEditor({
             One reply is picked randomly from this list:
           </p>
           {replies.map((reply, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div className="flex items-center gap-2" key={i}>
               <Input
+                className="flex-1"
+                onChange={(e) => updateReply(i, e.target.value)}
                 placeholder="e.g. Check your DMs!"
                 value={reply}
-                onChange={(e) => updateReply(i, e.target.value)}
-                className="flex-1"
               />
               <Button
-                variant="ghost"
-                size="icon"
                 className="h-8 w-8 shrink-0"
-                onClick={() => removeReply(i)}
                 disabled={replies.length <= 1}
+                onClick={() => removeReply(i)}
+                size="icon"
+                variant="ghost"
               >
                 <Icon
+                  className="text-destructive"
                   icon={Delete02Icon}
                   size={14}
-                  className="text-destructive"
                 />
               </Button>
             </div>
           ))}
           <Button
-            variant="outline"
-            size="sm"
-            onClick={addReply}
             className="w-full"
+            onClick={addReply}
+            size="sm"
+            variant="outline"
           >
-            <Icon icon={Add01Icon} size={14} className="mr-1" />
+            <Icon className="mr-1" icon={Add01Icon} size={14} />
             Add Reply Option
           </Button>
         </div>

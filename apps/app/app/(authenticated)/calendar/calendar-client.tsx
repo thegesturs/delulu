@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { PostPreviewDialog } from '@/components/posts/post-preview-dialog';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import type { CalendarEvent } from "@delulu/design-system/components/event-calendar";
+import { EventCalendar } from "@delulu/design-system/components/event-calendar";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { CalendarPlus } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { PostPreviewDialog } from "@/components/posts/post-preview-dialog";
 import {
   calendarEventToPostUpdate,
   postsToCalendarEvents,
-} from '@/lib/calendar-utils';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { EventCalendar } from '@delulu/design-system/components/event-calendar';
-import type { CalendarEvent } from '@delulu/design-system/components/event-calendar';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { CalendarPlus } from '@hugeicons-pro/core-solid-rounded';
-import { useMutation, useQuery } from 'convex/react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+} from "@/lib/calendar-utils";
 
 export function CalendarClient() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export function CalendarClient() {
   // Fetch selected post details for preview
   const selectedPost = useQuery(
     api.posts.getPostById,
-    selectedPostId ? { id: selectedPostId as Id<'posts'> } : 'skip'
+    selectedPostId ? { id: selectedPostId as Id<"posts"> } : "skip"
   );
 
   // Mutations
@@ -64,14 +64,14 @@ export function CalendarClient() {
       try {
         const updateData = calendarEventToPostUpdate(event);
         await updatePostScheduledTime({
-          id: updateData.id as Id<'posts'>,
+          id: updateData.id as Id<"posts">,
           scheduledAt: updateData.scheduledAt,
         });
       } catch (error) {
-        console.error('Failed to reschedule post:', error);
-        toast.error('Failed to reschedule post', {
+        console.error("Failed to reschedule post:", error);
+        toast.error("Failed to reschedule post", {
           description:
-            error instanceof Error ? error.message : 'Please try again',
+            error instanceof Error ? error.message : "Please try again",
         });
       }
     },
@@ -83,15 +83,15 @@ export function CalendarClient() {
     async (eventId: string) => {
       try {
         await softDeletePost({
-          id: eventId as Id<'posts'>,
+          id: eventId as Id<"posts">,
         });
 
-        toast.success('Post deleted');
+        toast.success("Post deleted");
         setIsPreviewOpen(false);
         setSelectedPostId(null);
       } catch (error) {
-        console.error('Failed to delete post:', error);
-        toast.error('Failed to delete post');
+        console.error("Failed to delete post:", error);
+        toast.error("Failed to delete post");
       }
     },
     [softDeletePost]
@@ -99,7 +99,7 @@ export function CalendarClient() {
 
   // Navigate to post creation page
   const handleCreatePost = useCallback(() => {
-    router.push('/post');
+    router.push("/post");
   }, [router]);
 
   // Handle slot click - redirect to post with scheduledAt param
@@ -138,7 +138,7 @@ export function CalendarClient() {
           </p>
         </div>
         <Button onClick={handleCreatePost} size="lg">
-          <Icon icon={CalendarPlus} size={20} className="mr-2 " />
+          <Icon className="mr-2" icon={CalendarPlus} size={20} />
           Create Post
         </Button>
       </div>
@@ -147,25 +147,25 @@ export function CalendarClient() {
       <div className="flex-1 overflow-y-auto">
         <EventCalendar
           events={events}
-          onEventUpdate={handleEventUpdate}
-          onEventDelete={handleEventDelete}
-          onEventCreate={handleEventCreate}
-          onEventSelect={handleEventSelect}
           initialView="week"
+          onEventCreate={handleEventCreate}
+          onEventDelete={handleEventDelete}
+          onEventSelect={handleEventSelect}
+          onEventUpdate={handleEventUpdate}
         />
       </div>
 
       {/* Post Preview Dialog */}
       {selectedPost && (
         <PostPreviewDialog
-          post={selectedPost}
-          open={isPreviewOpen}
           onOpenChange={(open) => {
             setIsPreviewOpen(open);
             if (!open) {
               setSelectedPostId(null);
             }
           }}
+          open={isPreviewOpen}
+          post={selectedPost}
         />
       )}
     </div>

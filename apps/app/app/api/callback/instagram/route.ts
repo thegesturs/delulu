@@ -1,10 +1,10 @@
-import { env } from '@/env';
-import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchMutation } from '@delulu/database/server';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchMutation } from "@delulu/database/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { env } from "@/env";
+import { fetchWithTimeout } from "@/lib/utils";
 
 interface InstagramTokenResponse {
   access_token: string;
@@ -34,34 +34,34 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=instagram',
+            "/socials?error=auth_required&code=AUTH_001&provider=instagram",
         },
       });
     }
 
-    const token = await getToken({ template: 'convex' });
+    const token = await getToken({ template: "convex" });
     if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=instagram',
+            "/socials?error=auth_required&code=AUTH_001&provider=instagram",
         },
       });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const errorReason = searchParams.get('error_reason');
+    const code = searchParams.get("code");
+    const error = searchParams.get("error");
+    const errorReason = searchParams.get("error_reason");
 
     // Handle user denying access
-    if (error === 'access_denied' && errorReason === 'user_denied') {
+    if (error === "access_denied" && errorReason === "user_denied") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_denied&code=INSTAGRAM_001&provider=instagram',
+            "/socials?error=user_denied&code=INSTAGRAM_001&provider=instagram",
         },
       });
     }
@@ -71,23 +71,23 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=invalid_request&code=PARAM_001&provider=instagram',
+            "/socials?error=invalid_request&code=PARAM_001&provider=instagram",
         },
       });
     }
 
     // Exchange code for access token
     const tokenResponse = await fetchWithTimeout(
-      'https://api.instagram.com/oauth/access_token',
+      "https://api.instagram.com/oauth/access_token",
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
           client_id: env.INSTAGRAM_CLIENT_ID,
           client_secret: env.INSTAGRAM_CLIENT_SECRET,
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           redirect_uri: env.INSTAGRAM_CALLBACK_URL,
           code,
         }).toString(),
@@ -96,14 +96,14 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       console.error(
-        'Instagram token exchange failed:',
+        "Instagram token exchange failed:",
         await tokenResponse.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=INSTAGRAM_002&provider=instagram',
+            "/socials?error=token_invalid&code=INSTAGRAM_002&provider=instagram",
         },
       });
     }
@@ -116,20 +116,20 @@ export async function GET(request: NextRequest) {
         env.INSTAGRAM_CLIENT_SECRET
       }&access_token=${tokenData.access_token}`,
       {
-        method: 'GET',
+        method: "GET",
       }
     );
 
     if (!longLivedTokenResponse.ok) {
       console.error(
-        'Instagram long-lived token exchange failed:',
+        "Instagram long-lived token exchange failed:",
         await longLivedTokenResponse.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=INSTAGRAM_003&provider=instagram',
+            "/socials?error=token_invalid&code=INSTAGRAM_003&provider=instagram",
         },
       });
     }
@@ -143,17 +143,17 @@ export async function GET(request: NextRequest) {
     const userResponse = await fetchWithTimeout(
       `https://graph.instagram.com/v23.0/me?fields=id,user_id,name,username,account_type,profile_picture_url&access_token=${longLivedTokenData.access_token}`,
       {
-        method: 'GET',
+        method: "GET",
       }
     );
 
     if (!userResponse.ok) {
-      console.error('Instagram user fetch failed:', await userResponse.text());
+      console.error("Instagram user fetch failed:", await userResponse.text());
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_fetch_failed&code=INSTAGRAM_004&provider=instagram',
+            "/socials?error=user_fetch_failed&code=INSTAGRAM_004&provider=instagram",
         },
       });
     }
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
-        socialType: 'INSTAGRAM',
+        socialType: "INSTAGRAM",
         accessToken: longLivedTokenData.access_token,
         expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
         refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
@@ -179,12 +179,12 @@ export async function GET(request: NextRequest) {
     );
 
     // Handle different response statuses
-    if (status === 'account_transferred') {
+    if (status === "account_transferred") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?notification=account_transferred&platform=instagram',
+            "/socials?notification=account_transferred&platform=instagram",
         },
       });
     }
@@ -193,16 +193,16 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, {
       status: 302,
       headers: {
-        Location: '/socials?success=true&provider=instagram',
+        Location: "/socials?success=true&provider=instagram",
       },
     });
   } catch (error) {
-    console.error('Instagram callback error:', error);
+    console.error("Instagram callback error:", error);
     return new NextResponse(null, {
       status: 302,
       headers: {
         Location:
-          '/socials?error=server_error&code=INSTAGRAM_500&provider=instagram',
+          "/socials?error=server_error&code=INSTAGRAM_500&provider=instagram",
       },
     });
   }

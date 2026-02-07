@@ -1,19 +1,18 @@
-'use client';
+"use client";
 
-import { PostsView } from '@/components/posts/posts-view';
-import type { Post } from '@/types/convex';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Icon } from '@delulu/design-system/providers/icon';
-
-import { Plus } from '@hugeicons-pro/core-solid-rounded';
-import { useRouter } from 'next/navigation';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Plus } from "@hugeicons-pro/core-solid-rounded";
+import { useRouter } from "next/navigation";
+import { PostsView } from "@/components/posts/posts-view";
+import type { Post } from "@/types/convex";
 
 interface RecentPostsSectionProps {
   posts: Post[];
@@ -34,7 +33,7 @@ export function RecentPostsSection({
       </CardHeader>
       <CardContent>
         {posts.length > 0 ? (
-          <PostsView posts={posts} layout="grid" />
+          <PostsView layout="grid" posts={posts} />
         ) : isLoading ? (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">Loading recent posts...</p>
@@ -45,11 +44,11 @@ export function RecentPostsSection({
               No posts yet. Create your first post to get started!
             </p>
             <Button
-              onClick={() => router.push('/post')}
               className="mt-4"
+              onClick={() => router.push("/post")}
               variant="outline"
             >
-              <Icon icon={Plus} size={16} className="mr-2 " />
+              <Icon className="mr-2" icon={Plus} size={16} />
               Create Post
             </Button>
           </div>

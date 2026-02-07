@@ -1,12 +1,12 @@
-import { type Blog, type Legal, allBlogs } from 'content-collections';
-import { format } from 'date-fns';
-import Image from 'next/image';
-import Link from 'next/link';
-import { FaArrowLeft } from 'react-icons/fa';
-import { BlogCardVertical } from './blog-card';
+import { allBlogs, type Blog, type Legal } from "content-collections";
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa";
+import { BlogCardVertical } from "./blog-card";
 
-type BlogWithType = Blog & { type: 'blog' };
-type LegalWithType = Legal & { type: 'legal' };
+type BlogWithType = Blog & { type: "blog" };
+type LegalWithType = Legal & { type: "legal" };
 type ContentType = BlogWithType | LegalWithType;
 
 export async function BlogLayout({
@@ -16,39 +16,39 @@ export async function BlogLayout({
   blog: ContentType;
   children: React.ReactNode;
 }) {
-  const relatedBlogs = blog.type === 'blog' ? allBlogs.slice(0, 3) : [];
+  const relatedBlogs = blog.type === "blog" ? allBlogs.slice(0, 3) : [];
 
   return (
     <div className="mx-auto mt-16 max-w-6xl px-4 lg:mt-14">
       <div className="flex items-center justify-between px-2 py-8">
         <Link
-          href={blog.type === 'blog' ? '/blogs' : '/'}
           className="flex items-center space-x-2"
+          href={blog.type === "blog" ? "/blogs" : "/"}
         >
           <FaArrowLeft className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground text-sm">Back</span>
         </Link>
       </div>
-      {blog.type === 'blog' && blog.image ? (
+      {blog.type === "blog" && blog.image ? (
         <div className="mx-auto w-full">
           <Image
-            src={blog.image}
-            height="800"
-            width="800"
-            className="aspect-square h-40 w-full rounded-3xl object-cover md:h-96"
             alt={blog.title}
+            className="aspect-square h-40 w-full rounded-3xl object-cover md:h-96"
+            height="800"
+            src={blog.image}
+            width="800"
           />
         </div>
       ) : null}
       <div className="xl:relative">
         <div className="mx-auto max-w-2xl">
           <article className="pt-8 pb-8">
-            {blog.type === 'blog' && blog.categories && (
+            {blog.type === "blog" && blog.categories && (
               <div className="flex flex-wrap gap-4">
                 {blog.categories.map((category, idx) => (
                   <p
-                    key={`category-${idx}`}
                     className="rounded-full bg-muted px-2 py-1 font-bold text-muted-foreground text-xs capitalize"
+                    key={`category-${idx}`}
                   >
                     {category}
                   </p>
@@ -64,16 +64,16 @@ export async function BlogLayout({
               {children}
             </div>
             <div className="mt-12 flex items-center space-x-2 border-gray-200 border-t pt-12">
-              {blog.type === 'blog' && (
+              {blog.type === "blog" && (
                 <>
                   <div className="flex items-center space-x-2">
                     {blog.authorAvatar && (
                       <Image
-                        src={blog.authorAvatar}
                         alt={blog.author}
-                        width={20}
-                        height={20}
                         className="h-5 w-5 rounded-full"
+                        height={20}
+                        src={blog.authorAvatar}
+                        width={20}
                       />
                     )}
                     <p className="font-normal text-muted-foreground text-sm">
@@ -84,25 +84,25 @@ export async function BlogLayout({
                 </>
               )}
               <time
-                dateTime={blog.date}
                 className="flex items-center text-base"
+                dateTime={blog.date}
               >
                 <span className="text-muted-foreground text-sm">
-                  {format(new Date(blog.date), 'MMMM dd, yyyy')}
+                  {format(new Date(blog.date), "MMMM dd, yyyy")}
                 </span>
               </time>
             </div>
           </article>
         </div>
       </div>
-      {blog.type === 'blog' && relatedBlogs.length > 0 && (
+      {blog.type === "blog" && relatedBlogs.length > 0 && (
         <div className="mt-12 pb-20">
           <h2 className="mb-10 font-bold text-2xl text-foreground">
             Related Blogs
           </h2>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
             {relatedBlogs.map((blog) => (
-              <BlogCardVertical key={blog.slug} blog={blog} />
+              <BlogCardVertical blog={blog} key={blog.slug} />
             ))}
           </div>
         </div>

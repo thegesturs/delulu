@@ -2,9 +2,9 @@
  * Utilities for handling Instagram's infinite scroll to load more reels
  */
 
-import { SCRAPING_CONFIG } from '../../shared/constants';
-import type { Quantity, ReelData } from '../../shared/types';
-import { scrapeVisibleReels, waitForLoad } from './instagram-scraper';
+import { SCRAPING_CONFIG } from "../../shared/constants";
+import type { Quantity, ReelData } from "../../shared/types";
+import { scrapeVisibleReels, waitForLoad } from "./instagram-scraper";
 
 /**
  * Progress callback for scroll operations
@@ -35,7 +35,7 @@ export function createCancelToken(): CancelToken {
 function scrollToBottom(): void {
   window.scrollTo({
     top: document.body.scrollHeight,
-    behavior: 'smooth',
+    behavior: "smooth",
   });
 }
 
@@ -47,12 +47,12 @@ function hasReachedEnd(): boolean {
   // Look for end-of-content indicators
   const endIndicators = [
     "You've seen all",
-    'No more posts',
+    "No more posts",
     "You're all caught up",
-    'End of posts',
+    "End of posts",
   ];
 
-  const bodyText = document.body.textContent || '';
+  const bodyText = document.body.textContent || "";
 
   return endIndicators.some((indicator) =>
     bodyText.toLowerCase().includes(indicator.toLowerCase())
@@ -103,7 +103,7 @@ async function waitForNewContent(
  * Calculate target count based on quantity option
  */
 function getTargetCount(quantity: Quantity): number {
-  if (quantity === 'all') {
+  if (quantity === "all") {
     return SCRAPING_CONFIG.MAX_ALL_REELS;
   }
   return quantity;
@@ -137,7 +137,7 @@ export async function scrollAndLoadReels(
 
   // Check if we need to scroll
   if (allReels.size >= targetCount) {
-    onProgress?.(allReels.size, targetCount, 'Done!');
+    onProgress?.(allReels.size, targetCount, "Done!");
     return Array.from(allReels.values());
   }
 
@@ -149,7 +149,7 @@ export async function scrollAndLoadReels(
   ) {
     // Check for cancellation
     if (cancelToken?.cancelled) {
-      onProgress?.(allReels.size, targetCount, 'Cancelled');
+      onProgress?.(allReels.size, targetCount, "Cancelled");
       break;
     }
 
@@ -161,7 +161,7 @@ export async function scrollAndLoadReels(
     onProgress?.(
       allReels.size,
       targetCount,
-      `Scrolling... (${allReels.size}/${quantity === 'all' ? 'all' : targetCount})`
+      `Scrolling... (${allReels.size}/${quantity === "all" ? "all" : targetCount})`
     );
 
     // Wait for scroll delay
@@ -173,7 +173,7 @@ export async function scrollAndLoadReels(
     try {
       await waitForLoad(3000);
     } catch (_error) {
-      console.warn('Wait for load timeout, continuing anyway');
+      console.warn("Wait for load timeout, continuing anyway");
     }
 
     // Wait for new content to appear
@@ -202,7 +202,7 @@ export async function scrollAndLoadReels(
     }
 
     // If we're loading "all" and haven't found new content, we're done
-    if (quantity === 'all' && allReels.size === previousCount) {
+    if (quantity === "all" && allReels.size === previousCount) {
       break;
     }
   }
@@ -215,7 +215,7 @@ export async function scrollAndLoadReels(
       `Reached maximum scroll attempts (${allReels.size} reels found)`
     );
   } else if (cancelToken?.cancelled) {
-    onProgress?.(allReels.size, targetCount, 'Cancelled');
+    onProgress?.(allReels.size, targetCount, "Cancelled");
   } else {
     onProgress?.(
       allReels.size,
@@ -233,7 +233,7 @@ export async function scrollAndLoadReels(
 export function scrollToTop(): void {
   window.scrollTo({
     top: 0,
-    behavior: 'smooth',
+    behavior: "smooth",
   });
 }
 
@@ -250,6 +250,6 @@ export function getScrollPosition(): number {
 export function setScrollPosition(position: number): void {
   window.scrollTo({
     top: position,
-    behavior: 'auto',
+    behavior: "auto",
   });
 }

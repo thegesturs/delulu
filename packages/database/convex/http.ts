@@ -1,27 +1,27 @@
-import type { WebhookEvent } from '@clerk/backend';
-import { createDodoWebhookHandler } from '@dodopayments/convex';
-import { httpRouter } from 'convex/server';
-import { Webhook } from 'svix';
-import { internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import { httpAction } from './_generated/server';
+import type { WebhookEvent } from "@clerk/backend";
+import { createDodoWebhookHandler } from "@dodopayments/convex";
+import { httpRouter } from "convex/server";
+import { Webhook } from "svix";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
 
 /**
  * Type for CallMeLater publish post request body
  */
-type PublishPostRequestBody = {
+interface PublishPostRequestBody {
   postId: string;
-};
+}
 
 /**
  * HTTP endpoint to receive scheduled post publishing requests from CallMeLater
  * This endpoint is called by CallMeLater at the scheduled time
  */
 http.route({
-  path: '/publishPost',
-  method: 'POST',
+  path: "/publishPost",
+  method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {
       const body = (await request.json()) as PublishPostRequestBody;
@@ -29,34 +29,34 @@ http.route({
 
       if (!postId) {
         return new Response(
-          JSON.stringify({ error: 'Missing postId in request body' }),
+          JSON.stringify({ error: "Missing postId in request body" }),
           {
             status: 400,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { "Content-Type": "application/json" },
           }
         );
       }
 
       // Call the existing internal action to publish the post
       await ctx.runAction(internal.posts.publishScheduledPost, {
-        postId: postId as Id<'posts'>,
+        postId: postId as Id<"posts">,
       });
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error('Error in publishPost HTTP endpoint:', error);
+      console.error("Error in publishPost HTTP endpoint:", error);
 
       return new Response(
         JSON.stringify({
-          error: 'Failed to publish post',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          error: "Failed to publish post",
+          message: error instanceof Error ? error.message : "Unknown error",
         }),
         {
           status: 500,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { "Content-Type": "application/json" },
         }
       );
     }
@@ -64,23 +64,23 @@ http.route({
 });
 
 http.route({
-  path: '/clerk-users-webhook',
-  method: 'POST',
+  path: "/clerk-users-webhook",
+  method: "POST",
   handler: httpAction(async (ctx, request) => {
     const event = await validateRequest(request);
     if (!event) {
-      return new Response('Error occurred', { status: 400 });
+      return new Response("Error occurred", { status: 400 });
     }
 
     switch (event.type) {
-      case 'user.created': // intentional fallthrough
-      case 'user.updated':
+      case "user.created": // intentional fallthrough
+      case "user.updated":
         await ctx.runMutation(internal.users.upsertFromClerk, {
           data: event.data,
         });
         break;
 
-      case 'user.deleted': {
+      case "user.deleted": {
         const clerkUserId = event.data.id!;
         await ctx.runMutation(internal.users.deleteFromClerk, { clerkUserId });
         break;
@@ -97,9 +97,9 @@ http.route({
 async function validateRequest(req: Request): Promise<WebhookEvent | null> {
   const payloadString = await req.text();
   const svixHeaders = {
-    'svix-id': req.headers.get('svix-id')!,
-    'svix-timestamp': req.headers.get('svix-timestamp')!,
-    'svix-signature': req.headers.get('svix-signature')!,
+    "svix-id": req.headers.get("svix-id")!,
+    "svix-timestamp": req.headers.get("svix-timestamp")!,
+    "svix-signature": req.headers.get("svix-signature")!,
   };
   const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!);
   try {
@@ -115,17 +115,17 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
  * Handles events from Dodo Payments for subscriptions and payments
  */
 http.route({
-  path: '/dodo-webhook',
-  method: 'POST',
+  path: "/dodo-webhook",
+  method: "POST",
   handler: createDodoWebhookHandler({
     // Handle successful payments
     onPaymentSucceeded: async (ctx, payload) => {
-      console.log('[Dodo Webhook] Payment succeeded:', payload.data.payment_id);
+      console.log("[Dodo Webhook] Payment succeeded:", payload.data.payment_id);
 
       // Skip webhook if no subscription_id (one-off payment)
       if (!payload.data.subscription_id) {
         console.log(
-          '[Dodo Webhook] Skipping payment without subscription_id (one-off charge)'
+          "[Dodo Webhook] Skipping payment without subscription_id (one-off charge)"
         );
         return;
       }
@@ -133,13 +133,13 @@ http.route({
       await ctx.runMutation(internal.webhooks.handlePaymentSucceeded, {
         paymentId: payload.data.payment_id,
         businessId: payload.business_id,
-        customerEmail: payload.data.customer?.email || '',
+        customerEmail: payload.data.customer?.email || "",
         customerId: payload.data.customer.customer_id,
         amount: payload.data.total_amount,
         currency: payload.data.currency,
-        status: payload.data.status ?? 'pending',
+        status: payload.data.status ?? "pending",
         subscriptionId: payload.data.subscription_id,
-        productId: payload.data.product_cart?.[0]?.product_id ?? '',
+        productId: payload.data.product_cart?.[0]?.product_id ?? "",
         webhookPayload: JSON.stringify(payload),
       });
     },
@@ -147,7 +147,7 @@ http.route({
     // Handle subscription activation
     onSubscriptionActive: async (ctx, payload) => {
       console.log(
-        '[Dodo Webhook] Subscription activated:',
+        "[Dodo Webhook] Subscription activated:",
         payload.data.subscription_id
       );
 
@@ -168,10 +168,10 @@ http.route({
         subscriptionId: payload.data.subscription_id,
         businessId: payload.business_id,
         customerId: payload.data.customer.customer_id,
-        customerEmail: payload.data.customer?.email || '',
-        status: payload.data.status ?? 'active',
+        customerEmail: payload.data.customer?.email || "",
+        status: payload.data.status ?? "active",
         productId: payload.data.product_id,
-        priceId: '', // Price ID not available in subscription schema
+        priceId: "", // Price ID not available in subscription schema
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
         webhookPayload: JSON.stringify(payload),
@@ -181,7 +181,7 @@ http.route({
     // Handle subscription cancellation
     onSubscriptionCancelled: async (ctx, payload) => {
       console.log(
-        '[Dodo Webhook] Subscription cancelled:',
+        "[Dodo Webhook] Subscription cancelled:",
         payload.data.subscription_id
       );
 
@@ -194,13 +194,13 @@ http.route({
 
     // Handle payment failure
     onPaymentFailed: async (ctx, payload) => {
-      console.log('[Dodo Webhook] Payment failed:', payload.data.payment_id);
+      console.log("[Dodo Webhook] Payment failed:", payload.data.payment_id);
 
       await ctx.runMutation(internal.webhooks.handlePaymentFailed, {
         paymentId: payload.data.payment_id,
         customerId: payload.data.customer.customer_id,
         customerEmail: payload.data.customer?.email,
-        failureReason: payload.data.error_message || 'Unknown error',
+        failureReason: payload.data.error_message || "Unknown error",
         amount: payload.data.total_amount,
         currency: payload.data.currency,
       });

@@ -4,15 +4,15 @@
  * Checks usage limits for the current user's plan
  */
 
-import { api } from '@delulu/database/convex/_generated/api';
-import type { PlanType } from '@delulu/payments';
-import { useQuery } from 'convex-helpers/react/cache';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { PlanType } from "@delulu/payments";
+import { useQuery } from "convex-helpers/react/cache";
 
 export type LimitType =
-  | 'socialAccounts'
-  | 'monthlyPosts'
-  | 'mediaStorage'
-  | 'teamMembers';
+  | "socialAccounts"
+  | "monthlyPosts"
+  | "mediaStorage"
+  | "teamMembers";
 
 export interface UseUsageLimitReturn {
   allowed: boolean;
@@ -48,7 +48,7 @@ export function useUsageLimit(
     allowed: limitCheck?.allowed ?? false,
     limit,
     remaining,
-    planType: limitCheck?.planType || 'FREE',
+    planType: limitCheck?.planType || "FREE",
     isLoading,
     isUnlimited,
     percentageUsed,
@@ -79,26 +79,26 @@ export function useMultipleUsageLimits(
  * Helper hook for social accounts limit
  */
 export function useSocialAccountsLimit(currentCount: number) {
-  return useUsageLimit('socialAccounts', currentCount);
+  return useUsageLimit("socialAccounts", currentCount);
 }
 
 /**
  * Helper hook for monthly posts limit
  */
 export function useMonthlyPostsLimit(currentCount: number) {
-  return useUsageLimit('monthlyPosts', currentCount);
+  return useUsageLimit("monthlyPosts", currentCount);
 }
 
 /**
  * Helper hook for media storage limit
  */
 export function useMediaStorageLimit(currentUsageMB: number) {
-  return useUsageLimit('mediaStorage', currentUsageMB);
+  return useUsageLimit("mediaStorage", currentUsageMB);
 }
 
 /**
  * Helper hook for team members limit
  */
 export function useTeamMembersLimit(currentCount: number) {
-  return useUsageLimit('teamMembers', currentCount);
+  return useUsageLimit("teamMembers", currentCount);
 }

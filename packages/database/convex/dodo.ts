@@ -8,8 +8,8 @@
  * - Webhooks
  */
 
-import { DodoPayments } from '@dodopayments/convex';
-import { components, internal } from './_generated/api';
+import { DodoPayments } from "@dodopayments/convex";
+import { components, internal } from "./_generated/api";
 
 /**
  * Initialize Dodo Payments with customer identification
@@ -26,7 +26,7 @@ export const dodo: InstanceType<typeof DodoPayments> = new DodoPayments(
       const identity = await ctx.auth.getUserIdentity();
 
       if (!identity) {
-        console.log('[Dodo] No authenticated user found');
+        console.log("[Dodo] No authenticated user found");
         return null; // User is not logged in
       }
 
@@ -37,11 +37,11 @@ export const dodo: InstanceType<typeof DodoPayments> = new DodoPayments(
       });
 
       if (!user) {
-        console.log('[Dodo] User not found in database:', identity.subject);
+        console.log("[Dodo] User not found in database:", identity.subject);
         return null; // User not found in database
       }
 
-      console.log('[Dodo] Identified user:', user._id, user.email);
+      console.log("[Dodo] Identified user:", user._id, user.email);
 
       // Return customer identification for Dodo Payments
       // If user already has a Dodo customer ID, return it
@@ -60,8 +60,8 @@ export const dodo: InstanceType<typeof DodoPayments> = new DodoPayments(
     // These should be set in the Convex dashboard
     apiKey: process.env.DODO_PAYMENTS_API_KEY!,
     environment: process.env.DODO_PAYMENTS_ENVIRONMENT as
-      | 'test_mode'
-      | 'live_mode',
+      | "test_mode"
+      | "live_mode",
   }
 );
 

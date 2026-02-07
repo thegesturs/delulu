@@ -1,7 +1,7 @@
-import { PostCreator } from '@/components/post/post-creator';
-import { Suspense } from 'react';
+import { Suspense } from "react";
+import { PostCreator } from "@/components/post/post-creator";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function PostPage() {
   return (

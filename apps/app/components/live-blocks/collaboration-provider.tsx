@@ -1,8 +1,8 @@
-'use client';
-import { createLiveblocksClient } from '@delulu/collaboration/config';
-import { Room } from '@delulu/collaboration/room';
-import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+"use client";
+import { createLiveblocksClient } from "@delulu/collaboration/config";
+import { Room } from "@delulu/collaboration/room";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
 
 export const CollaborationProvider = ({
   orgId,
@@ -15,11 +15,11 @@ export const CollaborationProvider = ({
 
   return (
     <Room
-      id={`${orgId}:presence`}
       authEndpoint="/api/collaboration/auth"
       fallback={
         <div className="px-3 text-muted-foreground text-xs">Loading...</div>
       }
+      id={`${orgId}:presence`}
       {...client}
     >
       {children}

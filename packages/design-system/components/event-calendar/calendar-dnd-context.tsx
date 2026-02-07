@@ -1,5 +1,11 @@
-'use client';
+"use client";
 
+import {
+  type CalendarEvent,
+  EventItem,
+} from "@delulu/design-system/components/event-calendar";
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event";
+import { SocialPostEvent } from "@delulu/design-system/components/event-calendar/social-post-event";
 import {
   DndContext,
   type DragEndEvent,
@@ -12,37 +18,30 @@ import {
   type UniqueIdentifier,
   useSensor,
   useSensors,
-} from '@dnd-kit/core';
-import { addMinutes, differenceInMinutes } from 'date-fns';
+} from "@dnd-kit/core";
+import { addMinutes, differenceInMinutes } from "date-fns";
 import {
-  type ReactNode,
   createContext,
+  type ReactNode,
   useContext,
   useId,
   useRef,
   useState,
-} from 'react';
-import { toast } from 'sonner';
-
-import {
-  type CalendarEvent,
-  EventItem,
-} from '@delulu/design-system/components/event-calendar';
-import { SocialPostEvent } from '@delulu/design-system/components/event-calendar/social-post-event';
-import type { SocialPostEventData } from '@delulu/design-system/components/event-calendar/social-post-event';
+} from "react";
+import { toast } from "sonner";
 
 // Type guard to check if an event is a SocialCalendarEvent
 function isSocialEvent(
   event: CalendarEvent
 ): event is CalendarEvent & { postData: SocialPostEventData } {
-  return 'postData' in event && event.postData !== undefined;
+  return "postData" in event && event.postData !== undefined;
 }
 
 // Define the context type
-type CalendarDndContextType = {
+interface CalendarDndContextType {
   activeEvent: CalendarEvent | null;
   activeId: UniqueIdentifier | null;
-  activeView: 'month' | 'week' | 'day' | null;
+  activeView: "month" | "week" | "day" | null;
   currentTime: Date | null;
   eventHeight: number | null;
   isMultiDay: boolean;
@@ -55,7 +54,7 @@ type CalendarDndContextType = {
       isLastDay?: boolean;
     };
   } | null;
-};
+}
 
 // Create the context
 const CalendarDndContext = createContext<CalendarDndContextType>({
@@ -84,7 +83,7 @@ export function CalendarDndProvider({
 }: CalendarDndProviderProps) {
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [activeView, setActiveView] = useState<'month' | 'week' | 'day' | null>(
+  const [activeView, setActiveView] = useState<"month" | "week" | "day" | null>(
     null
   );
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -134,7 +133,7 @@ export function CalendarDndProvider({
 
     // Add safety check for data.current
     if (!active.data.current) {
-      console.error('Missing data in drag start event', event);
+      console.error("Missing data in drag start event", event);
       return;
     }
 
@@ -147,7 +146,7 @@ export function CalendarDndProvider({
       dragHandlePosition: eventDragHandlePosition,
     } = active.data.current as {
       event: CalendarEvent;
-      view: 'month' | 'week' | 'day';
+      view: "month" | "week" | "day";
       height?: number;
       isMultiDay?: boolean;
       multiDayWidth?: number;
@@ -165,7 +164,7 @@ export function CalendarDndProvider({
     setActiveId(active.id);
     setActiveView(view);
     setCurrentTime(new Date(calendarEvent.start));
-    setIsMultiDay(eventIsMultiDay || false);
+    setIsMultiDay(eventIsMultiDay);
     setMultiDayWidth(eventMultiDayWidth || null);
     setDragHandlePosition(eventDragHandlePosition || null);
 
@@ -183,7 +182,7 @@ export function CalendarDndProvider({
       const { date, time } = over.data.current as { date: Date; time?: number };
 
       // Update time for week/day views
-      if (time !== undefined && activeView !== 'month') {
+      if (time !== undefined && activeView !== "month") {
         const newTime = new Date(date);
 
         // Calculate hours and minutes with 15-minute precision
@@ -215,7 +214,7 @@ export function CalendarDndProvider({
         ) {
           setCurrentTime(newTime);
         }
-      } else if (activeView === 'month') {
+      } else if (activeView === "month") {
         // For month view, just update the date but preserve time
         const newTime = new Date(date);
         if (currentTime) {
@@ -244,7 +243,7 @@ export function CalendarDndProvider({
     const { active, over } = event;
 
     // Add robust error checking
-    if (!over || !activeEvent || !currentTime) {
+    if (!(over && activeEvent && currentTime)) {
       // Reset state and exit early
       setActiveEvent(null);
       setActiveId(null);
@@ -259,8 +258,8 @@ export function CalendarDndProvider({
 
     try {
       // Safely access data with checks
-      if (!active.data.current || !over.data.current) {
-        throw new Error('Missing data in drag event');
+      if (!(active.data.current && over.data.current)) {
+        throw new Error("Missing data in drag event");
       }
 
       const activeData = active.data.current as {
@@ -270,8 +269,8 @@ export function CalendarDndProvider({
       const overData = over.data.current as { date?: Date; time?: number };
 
       // Verify we have all required data
-      if (!activeData.event || !overData.date) {
-        throw new Error('Missing required event data');
+      if (!(activeData.event && overData.date)) {
+        throw new Error("Missing required event data");
       }
 
       const calendarEvent = activeData.event;
@@ -312,9 +311,9 @@ export function CalendarDndProvider({
       // Validate: Cannot schedule in the past (minimum 30 minutes from now)
       const minimumTime = addMinutes(new Date(), 30);
       if (newStart < minimumTime) {
-        toast.error('Invalid scheduling time', {
+        toast.error("Invalid scheduling time", {
           description:
-            'Posts must be scheduled at least 30 minutes in the future',
+            "Posts must be scheduled at least 30 minutes in the future",
         });
         return;
       }
@@ -342,7 +341,7 @@ export function CalendarDndProvider({
         });
       }
     } catch (error) {
-      console.error('Error in drag end handler:', error);
+      console.error("Error in drag end handler:", error);
     } finally {
       // Always reset state
       setActiveEvent(null);
@@ -359,10 +358,10 @@ export function CalendarDndProvider({
   return (
     <DndContext
       id={dndContextId}
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragStart={handleDragStart}
+      sensors={sensors}
     >
       <CalendarDndContext.Provider
         value={{
@@ -382,26 +381,26 @@ export function CalendarDndProvider({
           {activeEvent && activeView && (
             <div
               style={{
-                height: eventHeight ? `${eventHeight}px` : 'auto',
+                height: eventHeight ? `${eventHeight}px` : "auto",
                 width:
-                  isMultiDay && multiDayWidth ? `${multiDayWidth}%` : '100%',
+                  isMultiDay && multiDayWidth ? `${multiDayWidth}%` : "100%",
                 // Remove the transform that was causing the shift
               }}
             >
               {isSocialEvent(activeEvent) ? (
                 <SocialPostEvent
-                  event={activeEvent.postData}
                   className="h-full"
+                  event={activeEvent.postData}
                 />
               ) : (
                 <EventItem
-                  event={activeEvent}
-                  view={activeView}
-                  isDragging={true}
-                  showTime={activeView !== 'month'}
                   currentTime={currentTime || undefined}
+                  event={activeEvent}
+                  isDragging={true}
                   isFirstDay={dragHandlePosition?.data?.isFirstDay !== false}
                   isLastDay={dragHandlePosition?.data?.isLastDay !== false}
+                  showTime={activeView !== "month"}
+                  view={activeView}
                 />
               )}
             </div>

@@ -1,5 +1,5 @@
-import { cn } from '@delulu/design-system/lib/utils';
-import { motion } from 'motion/react';
+import { cn } from "@delulu/design-system/lib/utils";
+import { motion } from "motion/react";
 
 interface OnboardingProgressProps {
   currentStep: number;
@@ -19,23 +19,23 @@ export function OnboardingProgress({
 
         return (
           <motion.div
-            key={step}
-            initial={false}
             animate={{
               scale: isActive ? 1.2 : 1,
               opacity: isActive || isCompleted ? 1 : 0.3,
             }}
+            aria-current={isActive ? "step" : undefined}
+            aria-label={`Step ${step} of ${totalSteps}`}
+            className={cn(
+              "h-2.5 w-2.5 rounded-full",
+              isActive || isCompleted ? "bg-primary" : "bg-foreground"
+            )}
+            initial={false}
+            key={step}
             transition={{
-              type: 'spring',
+              type: "spring",
               stiffness: 400,
               damping: 30,
             }}
-            className={cn(
-              'h-2.5 w-2.5 rounded-full',
-              isActive || isCompleted ? 'bg-primary' : 'bg-foreground'
-            )}
-            aria-label={`Step ${step} of ${totalSteps}`}
-            aria-current={isActive ? 'step' : undefined}
           />
         );
       })}

@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { Input } from '@delulu/design-system/components/ui/input';
-import { Label } from '@delulu/design-system/components/ui/label';
+import { Input } from "@delulu/design-system/components/ui/input";
+import { Label } from "@delulu/design-system/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@delulu/design-system/components/ui/select';
-import { Switch } from '@delulu/design-system/components/ui/switch';
+} from "@delulu/design-system/components/ui/select";
+import { Switch } from "@delulu/design-system/components/ui/switch";
 import type {
   AutomationConditionOperator,
   ConditionStep,
-} from '../utils/flow-types';
+} from "../utils/flow-types";
 
 const OPERATORS = [
-  { value: 'always', label: 'Always (any comment)' },
-  { value: 'contains', label: 'Contains keyword' },
-  { value: 'not_contains', label: 'Does not contain' },
-  { value: 'equals', label: 'Equals exactly' },
-  { value: 'starts_with', label: 'Starts with' },
-  { value: 'ends_with', label: 'Ends with' },
-  { value: 'regex', label: 'Matches regex' },
+  { value: "always", label: "Always (any comment)" },
+  { value: "contains", label: "Contains keyword" },
+  { value: "not_contains", label: "Does not contain" },
+  { value: "equals", label: "Equals exactly" },
+  { value: "starts_with", label: "Starts with" },
+  { value: "ends_with", label: "Ends with" },
+  { value: "regex", label: "Matches regex" },
 ];
 
 interface ConditionPanelProps {
@@ -43,14 +43,14 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
       <div className="space-y-2">
         <Label>Operator</Label>
         <Select
-          value={step.operator}
           onValueChange={(value) =>
             onChange({
               ...step,
               operator: value as AutomationConditionOperator,
-              value: value === 'always' ? undefined : step.value,
+              value: value === "always" ? undefined : step.value,
             })
           }
+          value={step.operator}
         >
           <SelectTrigger>
             <SelectValue />
@@ -65,23 +65,23 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
         </Select>
       </div>
 
-      {step.operator !== 'always' && (
+      {step.operator !== "always" && (
         <div className="space-y-2">
           <Label>Value</Label>
           <Input
-            placeholder="Enter keyword or pattern..."
-            value={step.value || ''}
             onChange={(e) => onChange({ ...step, value: e.target.value })}
+            placeholder="Enter keyword or pattern..."
+            value={step.value || ""}
           />
         </div>
       )}
 
-      {step.operator !== 'always' && (
+      {step.operator !== "always" && (
         <div className="flex items-center justify-between">
           <Label htmlFor="case-sensitive">Case sensitive</Label>
           <Switch
+            checked={step.caseSensitive}
             id="case-sensitive"
-            checked={step.caseSensitive || false}
             onCheckedChange={(checked) =>
               onChange({ ...step, caseSensitive: checked })
             }
@@ -92,7 +92,7 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
       <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-muted-foreground text-xs">
           The <span className="font-medium text-green-600">Yes</span> path runs
-          when the condition matches. The{' '}
+          when the condition matches. The{" "}
           <span className="font-medium text-red-600">No</span> path runs
           otherwise.
         </p>

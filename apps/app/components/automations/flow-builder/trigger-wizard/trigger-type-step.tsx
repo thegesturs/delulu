@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AtIcon,
   Comment01Icon,
   UserStoryIcon,
-} from '@hugeicons-pro/core-solid-rounded';
-import type { AutomationTriggerType } from '../utils/flow-types';
+} from "@hugeicons-pro/core-solid-rounded";
+import type { AutomationTriggerType } from "../utils/flow-types";
 
 interface TriggerOption {
   type: AutomationTriggerType;
@@ -20,23 +20,23 @@ interface TriggerOption {
 
 const TRIGGER_OPTIONS: TriggerOption[] = [
   {
-    type: 'COMMENT',
-    title: 'Post or Reel Comments',
-    description: 'User comments on your Post or Reel',
+    type: "COMMENT",
+    title: "Post or Reel Comments",
+    description: "User comments on your Post or Reel",
     icon: Comment01Icon,
     enabled: true,
   },
   {
-    type: 'MENTION',
-    title: 'Mentions',
-    description: 'User mentions you in their post or story',
+    type: "MENTION",
+    title: "Mentions",
+    description: "User mentions you in their post or story",
     icon: AtIcon,
     enabled: false,
   },
   {
-    type: 'STORY_REPLY',
-    title: 'Story Replies',
-    description: 'User replies to your Instagram story',
+    type: "STORY_REPLY",
+    title: "Story Replies",
+    description: "User replies to your Instagram story",
     icon: UserStoryIcon,
     enabled: false,
   },
@@ -62,28 +62,28 @@ export function TriggerTypeStep({
       <div className="grid gap-3">
         {TRIGGER_OPTIONS.map((option) => (
           <button
-            key={option.type}
-            type="button"
-            disabled={!option.enabled}
-            onClick={() => option.enabled && onSelect(option.type)}
             className={cn(
-              'flex items-center gap-4 rounded-xl border p-4 text-left transition-all',
-              !option.enabled && 'cursor-not-allowed opacity-60',
+              "flex items-center gap-4 rounded-xl border p-4 text-left transition-all",
+              !option.enabled && "cursor-not-allowed opacity-60",
               option.enabled && selectedType === option.type
-                ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                 : option.enabled
-                  ? 'border-border hover:border-primary/50'
-                  : 'border-border'
+                  ? "border-border hover:border-primary/50"
+                  : "border-border"
             )}
+            disabled={!option.enabled}
+            key={option.type}
+            onClick={() => option.enabled && onSelect(option.type)}
+            type="button"
           >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400">
-              <Icon icon={option.icon} size={22} className="text-white" />
+              <Icon className="text-white" icon={option.icon} size={22} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="font-medium text-sm">{option.title}</p>
                 {!option.enabled && (
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge className="text-[10px]" variant="secondary">
                     COMING SOON
                   </Badge>
                 )}

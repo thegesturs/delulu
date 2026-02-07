@@ -11,12 +11,12 @@
   };
 
   XMLHttpRequest.prototype.send = function (_body) {
-    this.addEventListener('load', function () {
+    this.addEventListener("load", function () {
       const url = this._sortedUrl;
 
-      if (url?.includes('/graphql/query')) {
+      if (url?.includes("/graphql/query")) {
         try {
-          if (this.responseType === '' || this.responseType === 'text') {
+          if (this.responseType === "" || this.responseType === "text") {
             const data = JSON.parse(this.responseText);
 
             if (data.data?.xdt_api__v1__clips__user__connection_v2) {
@@ -38,11 +38,11 @@
                     // Send message to content script (CRITICAL for cross-world communication)
                     window.postMessage(
                       {
-                        type: 'SORTED_METRICS_CACHED',
+                        type: "SORTED_METRICS_CACHED",
                         reelId: media.code,
-                        metrics: metrics,
+                        metrics,
                       },
-                      '*'
+                      "*"
                     );
                   }
                   if (media.pk) {
@@ -51,11 +51,11 @@
                     // Also send for pk
                     window.postMessage(
                       {
-                        type: 'SORTED_METRICS_CACHED',
+                        type: "SORTED_METRICS_CACHED",
                         reelId: media.pk,
-                        metrics: metrics,
+                        metrics,
                       },
-                      '*'
+                      "*"
                     );
                   }
                 }

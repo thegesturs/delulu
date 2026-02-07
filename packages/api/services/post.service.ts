@@ -1,13 +1,14 @@
-import { keys } from '@api/keys';
-import type { GetPostByIdSchema } from '@delulu/database/convex/schemas';
-import { SocialTypes } from '@delulu/validators/post';
+import { keys } from "@api/keys";
+import type { GetPostByIdSchema } from "@delulu/database/convex/schemas";
+import { SocialTypes } from "@delulu/validators/post";
+
 // import { processMessage } from '@delulu/worker/client';
 
 const LAMBDA_URL =
-  'https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/';
+  "https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/";
 
 export const createPostInQueue = async (post: GetPostByIdSchema) => {
-  console.log('[PostService] createPostInQueue called with post:', {
+  console.log("[PostService] createPostInQueue called with post:", {
     postId: post._id,
     hasProviderSettings: !!post.providerSettings,
     providerSettingsLength: post.providerSettings?.length,
@@ -29,22 +30,22 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
     const contentToPost = alternativeContent?.content ?? post.content;
 
     // Debug: Check if providerSettings exists
-    console.log('[PostService] Post providerSettings:', post.providerSettings);
-    console.log('[PostService] Provider ID:', provider._id);
+    console.log("[PostService] Post providerSettings:", post.providerSettings);
+    console.log("[PostService] Provider ID:", provider._id);
 
     // Find provider-specific settings for this provider
     const providerSettings = post.providerSettings?.find(
       (setting) => setting.socialProviderId === provider._id
     );
 
-    console.log('[PostService] Found settings for provider:', providerSettings);
+    console.log("[PostService] Found settings for provider:", providerSettings);
 
     // Fire and forget - just queue it
     const response = await fetch(LAMBDA_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': keys().POSTING_SECRET_KEY,
+        "Content-Type": "application/json",
+        "x-api-key": keys().POSTING_SECRET_KEY,
       },
       body: JSON.stringify({
         socialType: provider.socialType,
@@ -77,6 +78,6 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
       );
     }
 
-    console.log('Response', response);
+    console.log("Response", response);
   }
 };

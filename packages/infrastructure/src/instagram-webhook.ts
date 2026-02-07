@@ -1,8 +1,8 @@
-import { createHmac } from 'node:crypto';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { ConvexHttpClient } from 'convex/browser';
-import { Resource } from 'sst';
+import { createHmac } from "node:crypto";
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { ConvexHttpClient } from "convex/browser";
+import { Resource } from "sst";
 
 // ============================================================================
 // Types
@@ -44,20 +44,20 @@ interface CommentEvent {
 
 interface Condition {
   operator:
-    | 'contains'
-    | 'not_contains'
-    | 'equals'
-    | 'starts_with'
-    | 'ends_with'
-    | 'regex'
-    | 'always';
+    | "contains"
+    | "not_contains"
+    | "equals"
+    | "starts_with"
+    | "ends_with"
+    | "regex"
+    | "always";
   value?: string;
   caseSensitive?: boolean;
 }
 
 interface TriggerStep {
   id: string;
-  type: 'trigger';
+  type: "trigger";
   triggerType: string;
   targetPostIds: string[];
   nextStepId?: string;
@@ -65,8 +65,8 @@ interface TriggerStep {
 
 interface ConditionStep {
   id: string;
-  type: 'condition';
-  operator: Condition['operator'];
+  type: "condition";
+  operator: Condition["operator"];
   value?: string;
   caseSensitive?: boolean;
   yesStepId?: string;
@@ -74,7 +74,7 @@ interface ConditionStep {
 }
 
 interface DmButton {
-  type: 'quick_reply' | 'url';
+  type: "quick_reply" | "url";
   title: string;
   payload?: string;
   url?: string;
@@ -87,7 +87,7 @@ interface CommentReply {
 
 interface SendDmStep {
   id: string;
-  type: 'send_dm';
+  type: "send_dm";
   messageTemplate: string;
   buttons?: DmButton[];
   commentReply?: CommentReply;
@@ -98,19 +98,19 @@ type AutomationStep = ConditionStep | SendDmStep;
 
 interface WebhookData {
   automations: Array<{
-    _id: Id<'automations'>;
+    _id: Id<"automations">;
     triggers: TriggerStep[];
     steps: AutomationStep[];
   }>;
   accessToken: string;
   profileId: string;
-  userId: Id<'users'>;
-  planType: 'FREE' | 'VIBE' | 'ECHO';
+  userId: Id<"users">;
+  planType: "FREE" | "VIBE" | "ECHO";
   dmsSent: number;
   dmLimit: number;
 }
 
-const FREE_WATERMARK = '\n\n- - -\nSent via @delulu.social';
+const FREE_WATERMARK = "\n\n- - -\nSent via @delulu.social";
 
 // ============================================================================
 // Signature Validation
@@ -124,7 +124,7 @@ function validateSignature(
   if (!signature) {
     return false;
   }
-  const expected = `sha256=${createHmac('sha256', appSecret).update(payload).digest('hex')}`;
+  const expected = `sha256=${createHmac("sha256", appSecret).update(payload).digest("hex")}`;
   return signature === expected;
 }
 
@@ -135,27 +135,27 @@ function validateSignature(
 function evaluateCondition(text: string, condition: Condition): boolean {
   const compareText = condition.caseSensitive ? text : text.toLowerCase();
   const compareValue = condition.caseSensitive
-    ? condition.value || ''
-    : (condition.value || '').toLowerCase();
+    ? condition.value || ""
+    : (condition.value || "").toLowerCase();
 
   switch (condition.operator) {
-    case 'always':
+    case "always":
       return true;
-    case 'contains':
+    case "contains":
       return compareText.includes(compareValue);
-    case 'not_contains':
+    case "not_contains":
       return !compareText.includes(compareValue);
-    case 'equals':
+    case "equals":
       return compareText === compareValue;
-    case 'starts_with':
+    case "starts_with":
       return compareText.startsWith(compareValue);
-    case 'ends_with':
+    case "ends_with":
       return compareText.endsWith(compareValue);
-    case 'regex':
+    case "regex":
       try {
         return new RegExp(
-          condition.value || '',
-          condition.caseSensitive ? '' : 'i'
+          condition.value || "",
+          condition.caseSensitive ? "" : "i"
         ).test(text);
       } catch {
         return false;
@@ -213,7 +213,7 @@ function executeStepFlow(
       break;
     }
 
-    if (step.type === 'send_dm') {
+    if (step.type === "send_dm") {
       return {
         message: renderTemplate(step.messageTemplate, variables),
         buttons: step.buttons,
@@ -221,7 +221,7 @@ function executeStepFlow(
       };
     }
 
-    if (step.type === 'condition') {
+    if (step.type === "condition") {
       const match = evaluateCondition(commentText, {
         operator: step.operator,
         value: step.value,
@@ -251,12 +251,12 @@ function extractCommentEvents(
       continue;
     }
     for (const change of entry.changes) {
-      if (change.field !== 'comments') {
+      if (change.field !== "comments") {
         continue;
       }
       events.push({
         commentId: change.value.id,
-        commentText: change.value.text || '',
+        commentText: change.value.text || "",
         username: change.value.from.username,
         mediaId: change.value.media?.id,
         instagramAccountId: entry.id,
@@ -285,24 +285,24 @@ async function sendPrivateReply(
   };
 
   // Add quick reply buttons
-  const quickReplies = buttons?.filter((b) => b.type === 'quick_reply') ?? [];
-  const urlButtons = buttons?.filter((b) => b.type === 'url') ?? [];
+  const quickReplies = buttons?.filter((b) => b.type === "quick_reply") ?? [];
+  const urlButtons = buttons?.filter((b) => b.type === "url") ?? [];
 
   if (quickReplies.length > 0) {
     body.message.quick_replies = quickReplies.slice(0, 13).map((b) => ({
-      content_type: 'text',
+      content_type: "text",
       title: b.title,
       payload: b.payload || b.title,
     }));
   } else if (urlButtons.length > 0) {
     body.message = {
       attachment: {
-        type: 'template',
+        type: "template",
         payload: {
-          template_type: 'button',
+          template_type: "button",
           text: message,
           buttons: urlButtons.slice(0, 3).map((b) => ({
-            type: 'web_url',
+            type: "web_url",
             url: b.url,
             title: b.title,
           })),
@@ -314,9 +314,9 @@ async function sendPrivateReply(
   const response = await fetch(
     `https://graph.instagram.com/v24.0/${profileId}/messages`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify(body),
@@ -325,7 +325,7 @@ async function sendPrivateReply(
 
   if (!response.ok) {
     const data = (await response.json()) as { error?: { message?: string } };
-    console.error('Instagram API error:', data.error?.message);
+    console.error("Instagram API error:", data.error?.message);
     return false;
   }
 
@@ -343,16 +343,16 @@ async function replyToComment(
 ): Promise<void> {
   const url = `https://graph.instagram.com/v24.0/${commentId}/replies`;
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ message }),
   });
 
   if (!response.ok) {
-    console.error('[reply] Failed to reply to comment:', commentId);
+    console.error("[reply] Failed to reply to comment:", commentId);
   }
 }
 
@@ -397,7 +397,7 @@ async function processComment(
 
   // 2. Execute step-based flow, find first match
   const variables = {
-    username: event.username || 'there',
+    username: event.username || "there",
     comment_text: event.commentText,
   };
 
@@ -416,7 +416,7 @@ async function processComment(
 
     // Append watermark for free plan users
     const message =
-      data.planType === 'FREE'
+      data.planType === "FREE"
         ? result.message + FREE_WATERMARK
         : result.message;
 
@@ -470,7 +470,7 @@ async function processComment(
 
 const json = (statusCode: number, body: Record<string, string>) => ({
   statusCode,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
 
@@ -478,44 +478,44 @@ export async function handler(event: LambdaEvent) {
   const method = event.requestContext.http.method;
 
   // GET: Webhook verification challenge
-  if (method === 'GET') {
+  if (method === "GET") {
     const params = event.queryStringParameters || {};
     if (
-      params['hub.mode'] === 'subscribe' &&
-      params['hub.verify_token'] ===
+      params["hub.mode"] === "subscribe" &&
+      params["hub.verify_token"] ===
         Resource.INSTAGRAM_WEBHOOK_VERIFY_TOKEN.value
     ) {
-      return { statusCode: 200, body: params['hub.challenge'] || '' };
+      return { statusCode: 200, body: params["hub.challenge"] || "" };
     }
-    return json(403, { error: 'Forbidden' });
+    return json(403, { error: "Forbidden" });
   }
 
   // POST: Webhook event processing
-  if (method === 'POST') {
+  if (method === "POST") {
     const body = event.isBase64Encoded
-      ? Buffer.from(event.body || '', 'base64').toString()
-      : event.body || '';
+      ? Buffer.from(event.body || "", "base64").toString()
+      : event.body || "";
 
-    const signature = event.headers['x-hub-signature-256'];
+    const signature = event.headers["x-hub-signature-256"];
 
     if (
       !validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)
     ) {
-      console.warn('[webhook] Invalid signature, ignoring');
-      return json(200, { status: 'received' });
+      console.warn("[webhook] Invalid signature, ignoring");
+      return json(200, { status: "received" });
     }
 
     let payload: InstagramWebhookPayload;
     try {
       payload = JSON.parse(body);
     } catch {
-      console.warn('[webhook] Invalid JSON body');
-      return json(200, { status: 'received' });
+      console.warn("[webhook] Invalid JSON body");
+      return json(200, { status: "received" });
     }
 
-    if (payload.object !== 'instagram') {
+    if (payload.object !== "instagram") {
       console.log(`[webhook] Ignoring non-instagram event: ${payload.object}`);
-      return json(200, { status: 'received' });
+      return json(200, { status: "received" });
     }
 
     // Process comments (Lambda waits for completion, no waitUntil needed)
@@ -533,15 +533,15 @@ export async function handler(event: LambdaEvent) {
         );
       } catch (error) {
         console.error(
-          'Error processing comment:',
+          "Error processing comment:",
           commentEvent.commentId,
           error
         );
       }
     }
 
-    return json(200, { status: 'received' });
+    return json(200, { status: "received" });
   }
 
-  return json(405, { error: 'Method not allowed' });
+  return json(405, { error: "Method not allowed" });
 }

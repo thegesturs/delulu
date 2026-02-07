@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   CreditCard,
@@ -6,39 +6,39 @@ import {
   Home,
   Network,
   Pencil,
-} from '@delulu/design-system/icons';
-import { cn } from '@delulu/design-system/lib/utils';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+} from "@delulu/design-system/icons";
+import { cn } from "@delulu/design-system/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function MobileBottomTabs() {
   const pathname = usePathname();
 
   const tabs = [
     {
-      title: 'Home',
-      url: '/',
+      title: "Home",
+      url: "/",
       icon: Home,
     },
     {
-      title: 'Posts',
-      url: '/posts',
+      title: "Posts",
+      url: "/posts",
       icon: Draft,
     },
     {
-      title: 'Create',
-      url: '/post',
+      title: "Create",
+      url: "/post",
       icon: Pencil,
       isPrimary: true,
     },
     {
-      title: 'Billing',
-      url: '/billing',
+      title: "Billing",
+      url: "/billing",
       icon: CreditCard,
     },
     {
-      title: 'Accounts',
-      url: '/socials',
+      title: "Accounts",
+      url: "/socials",
       icon: Network,
     },
   ];
@@ -48,14 +48,14 @@ export function MobileBottomTabs() {
       {tabs.map((item) => {
         const isActive =
           pathname === item.url ||
-          (item.url !== '/' && pathname?.startsWith(item.url));
+          (item.url !== "/" && pathname?.startsWith(item.url));
 
         if (item.isPrimary) {
           return (
             <Link
-              key={item.url}
+              className="relative -top-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
               href={item.url}
-              className="-top-6 relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
+              key={item.url}
             >
               <item.icon className="h-6 w-6" />
               <span className="sr-only">{item.title}</span>
@@ -65,14 +65,14 @@ export function MobileBottomTabs() {
 
         return (
           <Link
-            key={item.url}
-            href={item.url}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 font-medium text-[10px] transition-colors',
+              "flex flex-col items-center justify-center gap-1 font-medium text-[10px] transition-colors",
               isActive
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-primary'
+                ? "text-primary"
+                : "text-muted-foreground hover:text-primary"
             )}
+            href={item.url}
+            key={item.url}
           >
             <item.icon className="h-5 w-5" />
             <span>{item.title}</span>

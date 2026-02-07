@@ -1,13 +1,7 @@
-'use client';
+"use client";
 
-import {
-  postActions,
-  useSelectedSocialProviders,
-  useStore,
-} from '@/store/post';
-import { api as trpcApi } from '@/trpc/react';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,26 +11,32 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@delulu/design-system/components/ui/alert-dialog';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
-import type { SocialType } from '@delulu/validators/post';
-import { Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex-helpers/react/cache';
+} from "@delulu/design-system/components/ui/alert-dialog";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
+import type { SocialType } from "@delulu/validators/post";
+import { Settings01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
 import {
   AnimatePresence,
   LayoutGroup,
   MotionConfig,
   motion,
-} from 'motion/react';
-import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { IoCheckmarkCircle } from 'react-icons/io5';
-import { toast } from 'sonner';
-import { PlatformSettingsDialog } from './platform-settings-dialog';
-import { SocialIcon } from './social-icon';
+} from "motion/react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { IoCheckmarkCircle } from "react-icons/io5";
+import { toast } from "sonner";
+import {
+  postActions,
+  useSelectedSocialProviders,
+  useStore,
+} from "@/store/post";
+import { api as trpcApi } from "@/trpc/react";
+import { PlatformSettingsDialog } from "./platform-settings-dialog";
+import { SocialIcon } from "./social-icon";
 
 interface SocialSelectorItemProps {
   socialProvider: SocialType;
@@ -56,7 +56,7 @@ export default function SocialSelector() {
 
     const validIds = new Set(socialProviders.map((p) => p._id));
     const valid = selectedProviders.filter((p) =>
-      validIds.has(p.socialId as Id<'socialProviders'>)
+      validIds.has(p.socialId as Id<"socialProviders">)
     );
 
     // Clean up if mismatch detected
@@ -79,7 +79,7 @@ export default function SocialSelector() {
       selectedProviders.length - validatedSelectedProviders.length;
     if (removed > 0) {
       toast.error(
-        `${removed} social account${removed > 1 ? 's were' : ' was'} disconnected and removed from this post.`
+        `${removed} social account${removed > 1 ? "s were" : " was"} disconnected and removed from this post.`
       );
     }
   }, [
@@ -94,7 +94,7 @@ export default function SocialSelector() {
       <MotionConfig
         transition={{
           duration: 0.4,
-          type: 'spring',
+          type: "spring",
           bounce: 0.2,
         }}
       >
@@ -104,9 +104,9 @@ export default function SocialSelector() {
               {socialProviders?.map((account) => (
                 <SocialSelectorItem
                   key={account._id}
-                  socialProvider={account.socialType}
                   name={account.fullName ?? account.username}
                   socialId={account._id}
+                  socialProvider={account.socialType}
                 />
               ))}
             </AnimatePresence>
@@ -119,7 +119,7 @@ export default function SocialSelector() {
 
 // Helper function to determine which platforms have settings
 function hasSettings(platform: SocialType): boolean {
-  return platform === 'TIKTOK';
+  return platform === "TIKTOK";
 }
 
 function SocialSelectorItem({
@@ -154,7 +154,7 @@ function SocialSelectorItem({
       }
     } else {
       // Prefetch TikTok creator info when selected
-      if (socialProvider === 'TIKTOK') {
+      if (socialProvider === "TIKTOK") {
         utils.socialProvider.getTikTokCreatorInfo.prefetch({
           socialProviderId: socialId,
         });
@@ -167,13 +167,13 @@ function SocialSelectorItem({
       });
 
       // Auto-initialize default settings for platforms that require them
-      if (socialProvider === 'TIKTOK') {
+      if (socialProvider === "TIKTOK") {
         // Only set defaults if no settings exist for this provider
         const existingSettings = getProviderSettings(socialId);
         if (!existingSettings) {
           setProviderSettings(socialId, {
             socialProviderId: socialId,
-            type: 'TIKTOK',
+            type: "TIKTOK",
             settings: DEFAULT_TIKTOK_SETTINGS,
           });
         }
@@ -189,7 +189,7 @@ function SocialSelectorItem({
 
   return (
     <>
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Social Network</AlertDialogTitle>
@@ -213,39 +213,39 @@ function SocialSelectorItem({
       </AlertDialog>
 
       <motion.div
-        layout="position"
-        initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        layout="position"
       >
         <motion.div layout>
           <Badge
-            size="lg"
-            variant={isSelected ? 'blue' : 'outline'}
-            onClick={handleSelect}
             className="w-full cursor-pointer text-xs transition-colors duration-200"
+            onClick={handleSelect}
+            size="lg"
+            variant={isSelected ? "blue" : "outline"}
           >
-            <motion.div layout className="flex w-full items-center gap-2">
+            <motion.div className="flex w-full items-center gap-2" layout>
               <SocialIcon type={socialProvider} />
-              <motion.span layout className="flex-1 text-left">
+              <motion.span className="flex-1 text-left" layout>
                 {name}
               </motion.span>
               <div className="flex items-center gap-1">
                 {isSelected && hasSettings(socialProvider) && (
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleSettingsClick}
                     className="h-6 w-6 hover:bg-white/20"
+                    onClick={handleSettingsClick}
+                    size="icon"
+                    variant="ghost"
                   >
                     <Icon icon={Settings01Icon} size={12} />
                   </Button>
                 )}
                 {isSelected && (
                   <motion.span
-                    initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     className="ml-1"
+                    initial={{ scale: 0 }}
                   >
                     <IoCheckmarkCircle className="h-4 w-4" />
                   </motion.span>
@@ -257,11 +257,11 @@ function SocialSelectorItem({
       </motion.div>
 
       <PlatformSettingsDialog
-        platform={socialProvider}
-        socialId={socialId}
-        platformName={name}
         isOpen={showSettingsDialog}
         onClose={() => setShowSettingsDialog(false)}
+        platform={socialProvider}
+        platformName={name}
+        socialId={socialId}
       />
     </>
   );

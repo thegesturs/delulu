@@ -1,8 +1,6 @@
-'use client';
-import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
-import { api } from '@/trpc/react';
-import { api as ConvexApi } from '@delulu/database/convex/_generated/api';
-import { Button } from '@delulu/design-system/components/ui/button';
+"use client";
+import { api as ConvexApi } from "@delulu/database/convex/_generated/api";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,53 +8,56 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@delulu/design-system/components/ui/dialog';
-import { SocialIcon } from '@delulu/design-system/components/ui/social-icon';
+} from "@delulu/design-system/components/ui/dialog";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import {
   type SupportedSocialPlatform,
   socialBackgroundColors,
   socialDescriptions,
   socialDisplayNames,
-} from '@delulu/design-system/lib/social-config';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { useQuery } from 'convex-helpers/react/cache';
-
-import { Plus } from '@hugeicons-pro/core-solid-rounded';
-import Link from 'next/link';
+} from "@delulu/design-system/lib/social-config";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Plus } from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
+import Link from "next/link";
+import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { api } from "@/trpc/react";
 
 const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'TWITTER',
-  'LINKEDIN',
-  'TIKTOK',
-  'INSTAGRAM',
-  'THREADS',
-  'FACEBOOK',
+  "LINKEDIN",
+  "TIKTOK",
+  "INSTAGRAM",
+  "THREADS",
+  "FACEBOOK",
   // 'PINTEREST',
   // 'FARCASTER',
-  'YOUTUBE',
+  "YOUTUBE",
 ];
 
 function ConnectPlatformButton({
   platform,
-}: { platform: SupportedSocialPlatform }) {
+}: {
+  platform: SupportedSocialPlatform;
+}) {
   const { data: connectUrl, isLoading } =
     api.socialProvider.getSocialProviderConnectUrl.useQuery({
       provider: platform,
     });
 
-  if (platform === 'FARCASTER') {
+  if (platform === "FARCASTER") {
     return (
       <Button
         className="flex h-14 items-center justify-start space-x-4 px-4"
-        variant="outline"
         disabled
+        variant="outline"
       >
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon type={platform} size="md" className="text-white" />
+          <SocialIcon className="text-white" size="md" type={platform} />
         </div>
         <div className="flex flex-col items-start">
           <span className="font-medium">{socialDisplayNames[platform]}</span>
@@ -72,15 +73,15 @@ function ConnectPlatformButton({
     return (
       <Button
         className="flex h-14 items-center justify-start space-x-4 px-4"
-        variant="outline"
         disabled
+        variant="outline"
       >
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon type={platform} size="md" className="text-white" />
+          <SocialIcon className="text-white" size="md" type={platform} />
         </div>
         <div className="flex flex-col items-start">
           <span className="font-medium">{socialDisplayNames[platform]}</span>
@@ -104,7 +105,7 @@ function ConnectPlatformButton({
             socialBackgroundColors[platform]
           } shadow-sm`}
         >
-          <SocialIcon type={platform} size="md" className="text-white" />
+          <SocialIcon className="text-white" size="md" type={platform} />
         </div>
         <div className="flex flex-col items-start">
           <span className="font-medium">{socialDisplayNames[platform]}</span>
@@ -137,7 +138,7 @@ export function ConnectedAccountsHeader() {
         <Dialog>
           <DialogTrigger asChild>
             <Button disabled={isAtLimit}>
-              <Icon icon={Plus} size={16} className="mr-2 " />
+              <Icon className="mr-2" icon={Plus} size={16} />
               Connect Account
             </Button>
           </DialogTrigger>
@@ -147,7 +148,7 @@ export function ConnectedAccountsHeader() {
               <DialogDescription>
                 {isAtLimit
                   ? `You've reached your ${limitCheck?.planType} plan limit of ${limitCheck?.limit} social accounts`
-                  : 'Choose a social media platform to connect with your account'}
+                  : "Choose a social media platform to connect with your account"}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 py-4">

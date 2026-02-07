@@ -3,12 +3,12 @@ import {
   type ThreeEvent,
   useFrame,
   useThree,
-} from '@react-three/fiber';
-import { EffectComposer, wrapEffect } from '@react-three/postprocessing';
-import { Effect } from 'postprocessing';
+} from "@react-three/fiber";
+import { EffectComposer, wrapEffect } from "@react-three/postprocessing";
+import { Effect } from "postprocessing";
 /* eslint-disable react/no-unknown-property */
-import { forwardRef, useEffect, useRef } from 'react';
-import * as THREE from 'three';
+import { forwardRef, useEffect, useRef } from "react";
+import * as THREE from "three";
 
 const waveVertexShader = `
 precision highp float;
@@ -144,23 +144,23 @@ class RetroEffectImpl extends Effect {
   constructor() {
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     const uniforms = new Map<string, THREE.Uniform<any>>([
-      ['colorNum', new THREE.Uniform(4.0)],
-      ['pixelSize', new THREE.Uniform(2.0)],
+      ["colorNum", new THREE.Uniform(4.0)],
+      ["pixelSize", new THREE.Uniform(2.0)],
     ]);
-    super('RetroEffect', ditherFragmentShader, { uniforms });
+    super("RetroEffect", ditherFragmentShader, { uniforms });
     this.uniforms = uniforms;
   }
   set colorNum(value: number) {
-    this.uniforms.get('colorNum')!.value = value;
+    this.uniforms.get("colorNum")!.value = value;
   }
   get colorNum(): number {
-    return this.uniforms.get('colorNum')!.value;
+    return this.uniforms.get("colorNum")!.value;
   }
   set pixelSize(value: number) {
-    this.uniforms.get('pixelSize')!.value = value;
+    this.uniforms.get("pixelSize")!.value = value;
   }
   get pixelSize(): number {
-    return this.uniforms.get('pixelSize')!.value;
+    return this.uniforms.get("pixelSize")!.value;
   }
 }
 
@@ -171,11 +171,11 @@ const RetroEffect = forwardRef<
   const { colorNum, pixelSize } = props;
   const WrappedRetroEffect = wrapEffect(RetroEffectImpl);
   return (
-    <WrappedRetroEffect ref={ref} colorNum={colorNum} pixelSize={pixelSize} />
+    <WrappedRetroEffect colorNum={colorNum} pixelSize={pixelSize} ref={ref} />
   );
 });
 
-RetroEffect.displayName = 'RetroEffect';
+RetroEffect.displayName = "RetroEffect";
 
 interface WaveUniforms {
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -288,9 +288,9 @@ function DitheredWaves({
       <mesh ref={mesh} scale={[viewport.width, viewport.height, 1]}>
         <planeGeometry args={[1, 1]} />
         <shaderMaterial
-          vertexShader={waveVertexShader}
           fragmentShader={waveFragmentShader}
           uniforms={waveUniformsRef.current}
+          vertexShader={waveVertexShader}
         />
       </mesh>
 
@@ -305,7 +305,7 @@ function DitheredWaves({
         visible={false}
       >
         <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial transparent opacity={0} />
+        <meshBasicMaterial opacity={0} transparent />
       </mesh>
     </>
   );
@@ -334,26 +334,26 @@ export default function Dither({
   enableMouseInteraction = true,
   mouseRadius = 1,
 }: DitherProps) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
   return (
     <Canvas
-      className="relative h-full w-full"
       camera={{ position: [0, 0, 6] }}
+      className="relative h-full w-full"
       dpr={window.devicePixelRatio}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
     >
       <DitheredWaves
-        waveSpeed={waveSpeed}
-        waveFrequency={waveFrequency}
-        waveAmplitude={waveAmplitude}
-        waveColor={waveColor}
         colorNum={colorNum}
-        pixelSize={pixelSize}
         disableAnimation={disableAnimation}
         enableMouseInteraction={enableMouseInteraction}
         mouseRadius={mouseRadius}
+        pixelSize={pixelSize}
+        waveAmplitude={waveAmplitude}
+        waveColor={waveColor}
+        waveFrequency={waveFrequency}
+        waveSpeed={waveSpeed}
       />
     </Canvas>
   );

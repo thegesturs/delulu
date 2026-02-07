@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useStore } from '@/store/post';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import type { ProviderSetting } from '@delulu/validators/post';
-import { useQuery } from 'convex/react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import type { ProviderSetting } from "@delulu/validators/post";
+import { useQuery } from "convex/react";
+import { type ReactNode, useEffect, useState } from "react";
+import { useStore } from "@/store/post";
 
 interface StoreProviderProps {
   children: ReactNode;
@@ -36,14 +36,14 @@ export function StoreProvider({ children }: StoreProviderProps) {
     // Filter out deleted providers from selectedSocialProviders
     const validSelectedProviders = state.selectedSocialProviders.filter(
       (provider) =>
-        validProviderIds.has(provider.socialId as Id<'socialProviders'>)
+        validProviderIds.has(provider.socialId as Id<"socialProviders">)
     );
 
     // Filter out deleted providers from alternative content
     const validAlternativeContent = state.post.alternativeContent.filter(
       (alt) =>
         validProviderIds.has(
-          alt.socialProvider.socialId as Id<'socialProviders'>
+          alt.socialProvider.socialId as Id<"socialProviders">
         )
     );
 
@@ -52,7 +52,7 @@ export function StoreProvider({ children }: StoreProviderProps) {
     for (const [providerId, setting] of Object.entries(
       state.providerSettings
     )) {
-      if (validProviderIds.has(providerId as Id<'socialProviders'>)) {
+      if (validProviderIds.has(providerId as Id<"socialProviders">)) {
         validProviderSettings[providerId] = setting;
       }
     }
@@ -65,7 +65,7 @@ export function StoreProvider({ children }: StoreProviderProps) {
         Object.keys(state.providerSettings).length;
 
     if (hasChanges) {
-      console.warn('[StoreProvider] Cleaned up stale provider references:', {
+      console.warn("[StoreProvider] Cleaned up stale provider references:", {
         removedProviders:
           state.selectedSocialProviders.length - validSelectedProviders.length,
         removedAlternativeContent:

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 
 // Define the store's state types
 interface OnboardingState {
@@ -28,7 +28,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       ...initialState,
 
       setCurrentStep: (step: number) =>
-        set({ currentStep: step }, false, 'onboarding/setCurrentStep'),
+        set({ currentStep: step }, false, "onboarding/setCurrentStep"),
 
       nextStep: () =>
         set(
@@ -36,7 +36,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
             currentStep: Math.min(state.currentStep + 1, 3),
           }),
           false,
-          'onboarding/nextStep'
+          "onboarding/nextStep"
         ),
 
       previousStep: () =>
@@ -45,18 +45,18 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
             currentStep: Math.max(state.currentStep - 1, 1),
           }),
           false,
-          'onboarding/previousStep'
+          "onboarding/previousStep"
         ),
 
       setAccountsConnected: (count: number) =>
         set(
           { accountsConnected: count },
           false,
-          'onboarding/setAccountsConnected'
+          "onboarding/setAccountsConnected"
         ),
 
-      reset: () => set(initialState, false, 'onboarding/reset'),
+      reset: () => set(initialState, false, "onboarding/reset"),
     }),
-    { name: 'onboarding-store' }
+    { name: "onboarding-store" }
   )
 );

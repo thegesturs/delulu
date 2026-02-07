@@ -1,10 +1,10 @@
-import { nanoid } from 'nanoid';
+import { nanoid } from "nanoid";
 import type {
   AutomationStep,
   ConditionStep,
   SendDmStep,
   TriggerStep,
-} from './flow-types';
+} from "./flow-types";
 
 export function createId() {
   return nanoid(10);
@@ -13,8 +13,8 @@ export function createId() {
 export function createTrigger(overrides?: Partial<TriggerStep>): TriggerStep {
   return {
     id: createId(),
-    type: 'trigger',
-    triggerType: 'COMMENT',
+    type: "trigger",
+    triggerType: "COMMENT",
     targetPostIds: [],
     ...overrides,
   };
@@ -25,9 +25,9 @@ export function createConditionStep(
 ): ConditionStep {
   return {
     id: createId(),
-    type: 'condition',
-    operator: 'contains',
-    value: '',
+    type: "condition",
+    operator: "contains",
+    value: "",
     ...overrides,
   };
 }
@@ -35,8 +35,8 @@ export function createConditionStep(
 export function createSendDmStep(overrides?: Partial<SendDmStep>): SendDmStep {
   return {
     id: createId(),
-    type: 'send_dm',
-    messageTemplate: '',
+    type: "send_dm",
+    messageTemplate: "",
     ...overrides,
   };
 }
@@ -74,14 +74,14 @@ export function removeStep(
   return steps
     .filter((s) => s.id !== id)
     .map((s) => {
-      if (s.type === 'condition') {
+      if (s.type === "condition") {
         return {
           ...s,
           yesStepId: s.yesStepId === id ? undefined : s.yesStepId,
           noStepId: s.noStepId === id ? undefined : s.noStepId,
         };
       }
-      if (s.type === 'send_dm') {
+      if (s.type === "send_dm") {
         return {
           ...s,
           nextStepId: s.nextStepId === id ? undefined : s.nextStepId,
@@ -113,7 +113,7 @@ export function insertStepAfter(
   triggers: TriggerStep[],
   steps: AutomationStep[],
   parentId: string,
-  parentBranch: 'next' | 'yes' | 'no',
+  parentBranch: "next" | "yes" | "no",
   newStep: AutomationStep
 ): { triggers: TriggerStep[]; steps: AutomationStep[] } {
   let oldChildId: string | undefined;
@@ -131,18 +131,18 @@ export function insertStepAfter(
     if (s.id !== parentId) {
       return s;
     }
-    if (s.type === 'condition') {
-      if (parentBranch === 'yes' || parentBranch === 'next') {
+    if (s.type === "condition") {
+      if (parentBranch === "yes" || parentBranch === "next") {
         // 'next' defaults to 'yes' branch for conditions
         oldChildId = s.yesStepId;
         return { ...s, yesStepId: newStep.id };
       }
-      if (parentBranch === 'no') {
+      if (parentBranch === "no") {
         oldChildId = s.noStepId;
         return { ...s, noStepId: newStep.id };
       }
     }
-    if (s.type === 'send_dm') {
+    if (s.type === "send_dm") {
       oldChildId = s.nextStepId;
       return { ...s, nextStepId: newStep.id };
     }
@@ -151,9 +151,9 @@ export function insertStepAfter(
 
   // Link new step to old child
   const linkedNewStep = { ...newStep } as AutomationStep;
-  if (linkedNewStep.type === 'condition') {
+  if (linkedNewStep.type === "condition") {
     linkedNewStep.yesStepId = oldChildId;
-  } else if (linkedNewStep.type === 'send_dm') {
+  } else if (linkedNewStep.type === "send_dm") {
     linkedNewStep.nextStepId = oldChildId;
   }
 

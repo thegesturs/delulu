@@ -1,34 +1,32 @@
-'use client';
+"use client";
 
-import { api } from '@/trpc/react';
-import type { SocialProvider } from '@/types/convex';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from '@delulu/design-system/components/ui/avatar';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent } from '@delulu/design-system/components/ui/card';
+} from "@delulu/design-system/components/ui/avatar";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@delulu/design-system/components/ui/dropdown-menu';
+} from "@delulu/design-system/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
-import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
+} from "@delulu/design-system/components/ui/tooltip";
 import {
   socialBackgroundColors,
   socialIcons,
-} from '@delulu/design-system/lib/social-config';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/lib/social-config";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Alert01Icon,
   ClockIcon,
@@ -36,21 +34,23 @@ import {
   MoreHorizontalIcon,
   Reload,
   TickDouble01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
-import Link from 'next/link';
-import { useState } from 'react';
-import DeleteAlertDialog from '../alerts/delete-post';
+} from "@hugeicons-pro/core-solid-rounded";
+import Link from "next/link";
+import { useState } from "react";
+import { api } from "@/trpc/react";
+import type { SocialProvider } from "@/types/convex";
+import DeleteAlertDialog from "../alerts/delete-post";
 
 function formatTimeAgo(timestamp: number | null | undefined): string {
   if (!timestamp) {
-    return 'Never';
+    return "Never";
   }
 
   const now = Date.now();
   const diffInMinutes = Math.floor((now - timestamp) / (1000 * 60));
 
   if (diffInMinutes < 1) {
-    return 'Just now';
+    return "Just now";
   }
   if (diffInMinutes < 60) {
     return `${diffInMinutes}m ago`;
@@ -89,14 +89,14 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
         provider: socialType as any,
       },
       {
-        enabled: socialType !== 'LENS' && socialType !== 'DEFAULT',
+        enabled: socialType !== "LENS" && socialType !== "DEFAULT",
       }
     );
 
-  if (!connectUrl || socialType === 'LENS' || socialType === 'DEFAULT') {
+  if (!connectUrl || socialType === "LENS" || socialType === "DEFAULT") {
     return (
-      <DropdownMenuItem disabled className="cursor-not-allowed">
-        <Icon icon={Reload} size={16} className="mr-2 " />
+      <DropdownMenuItem className="cursor-not-allowed" disabled>
+        <Icon className="mr-2" icon={Reload} size={16} />
         Reconnect
       </DropdownMenuItem>
     );
@@ -105,7 +105,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
   return (
     <DropdownMenuItem asChild className="cursor-pointer">
       <Link href={connectUrl}>
-        <Icon icon={Reload} size={16} className="mr-2 " />
+        <Icon className="mr-2" icon={Reload} size={16} />
         Reconnect
       </Link>
     </DropdownMenuItem>
@@ -114,7 +114,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
 
 interface AccountCardProps {
   account: SocialProvider;
-  onDelete: (socialId: Id<'socialProviders'>) => void;
+  onDelete: (socialId: Id<"socialProviders">) => void;
 }
 
 export function AccountCard({ account, onDelete }: AccountCardProps) {
@@ -126,7 +126,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
   const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
 
   return (
-    <Card className="group hover:-translate-y-0.5 background-blue-sm background-blur shadow-sm transition-all duration-300 hover:bg-card/80 hover:shadow-md">
+    <Card className="group background-blue-sm background-blur shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/80 hover:shadow-md">
       <CardContent className="p-4 py-2">
         <div className="flex items-center gap-3">
           {/* Social Platform Icon */}
@@ -141,11 +141,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
               <SocialIcon className="h-5 w-5 text-white" />
             </div>
             {isAccountExpired && (
-              <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-destructive">
+              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive">
                 <Icon
+                  className="text-destructive-foreground"
                   icon={Alert01Icon}
                   size={10}
-                  className="text-destructive-foreground"
                 />
               </div>
             )}
@@ -155,14 +155,14 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Avatar className="size-12 border-2 border-background shadow-sm">
               <AvatarImage
-                src={account.profileImage || '/placeholder.svg'}
-                alt={account.fullName || ''}
+                alt={account.fullName || ""}
+                src={account.profileImage || "/placeholder.svg"}
               />
               <AvatarFallback className="bg-muted text-xs">
                 {account.fullName
-                  ?.split(' ')
+                  ?.split(" ")
                   .map((n) => n[0])
-                  .join('') || '?'}
+                  .join("") || "?"}
               </AvatarFallback>
             </Avatar>
 
@@ -176,17 +176,17 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                     <Tooltip>
                       <TooltipTrigger>
                         <Icon
+                          className="flex-shrink-0 text-green-600 dark:text-green-400"
                           icon={TickDouble01Icon}
                           size={14}
-                          className="flex-shrink-0 text-green-600 dark:text-green-400"
                         />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
-                          Last synced{' '}
+                          Last synced{" "}
                           {formatTimeAgo(
                             account.lastSyncedAt ?? account.updatedAt
-                          )}{' '}
+                          )}{" "}
                           and is active
                         </p>
                       </TooltipContent>
@@ -194,9 +194,9 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   </TooltipProvider>
                 ) : (
                   <Icon
+                    className="flex-shrink-0 text-muted-foreground"
                     icon={ClockIcon}
                     size={14}
-                    className="flex-shrink-0 text-muted-foreground"
                   />
                 )}
               </div>
@@ -210,7 +210,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
           <div className="flex items-center gap-2">
             <div className="text-right">
               {isAccountExpired ? (
-                <Badge variant="destructive" className="px-2 py-0.5 text-xs">
+                <Badge className="px-2 py-0.5 text-xs" variant="destructive">
                   Expired
                 </Badge>
               ) : isAccountExpiringSoon ? (
@@ -222,7 +222,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   Active
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="px-2 py-0.5 text-xs">
+                <Badge className="px-2 py-0.5 text-xs" variant="secondary">
                   Inactive
                 </Badge>
               )}
@@ -235,11 +235,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
                   className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-foreground/80 group-hover:opacity-100"
+                  size="icon"
+                  variant="ghost"
                 >
-                  <Icon icon={MoreHorizontalIcon} size={16} className="" />
+                  <Icon className="" icon={MoreHorizontalIcon} size={16} />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -247,10 +247,10 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                 <ReconnectMenuItem socialType={account.socialType} />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => setDeleteDialogOpen(true)}
                   className="cursor-pointer text-destructive focus:text-destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
                 >
-                  <Icon icon={Delete01Icon} size={16} className="mr-2 " />
+                  <Icon className="mr-2" icon={Delete01Icon} size={16} />
                   Delete Account
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -259,15 +259,15 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
         </div>
       </CardContent>
       <DeleteAlertDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        description="Are you sure you want to delete this account? This action cannot be undone."
+        isLoading={isDeleting}
         onConfirm={() => {
           setIsDeleting(true);
           onDelete(account._id);
         }}
+        onOpenChange={setDeleteDialogOpen}
+        open={deleteDialogOpen}
         title="Delete Account"
-        description="Are you sure you want to delete this account? This action cannot be undone."
-        isLoading={isDeleting}
       />
     </Card>
   );

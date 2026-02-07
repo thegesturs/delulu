@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Background,
@@ -9,11 +9,11 @@ import {
   type Node,
   type NodeTypes,
   ReactFlow,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { ConditionNode } from './nodes/condition-node';
-import { SendDmNode } from './nodes/send-dm-node';
-import { TriggerNode } from './nodes/trigger-node';
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { ConditionNode } from "./nodes/condition-node";
+import { SendDmNode } from "./nodes/send-dm-node";
+import { TriggerNode } from "./nodes/trigger-node";
 
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
@@ -30,22 +30,22 @@ interface FlowCanvasProps {
 export function FlowCanvas({ nodes, edges, onNodeClick }: FlowCanvasProps) {
   return (
     <ReactFlow
-      nodes={nodes}
       edges={edges}
-      nodeTypes={nodeTypes}
-      onNodeClick={(_, node) => onNodeClick(node.id)}
-      nodesDraggable={false}
-      nodesConnectable={false}
       elementsSelectable={true}
       fitView
       fitViewOptions={{ padding: 0.3 }}
-      minZoom={0.3}
       maxZoom={1.5}
+      minZoom={0.3}
+      nodes={nodes}
+      nodesConnectable={false}
+      nodesDraggable={false}
+      nodeTypes={nodeTypes}
+      onNodeClick={(_, node) => onNodeClick(node.id)}
       proOptions={{ hideAttribution: true }}
     >
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+      <Background gap={20} size={1} variant={BackgroundVariant.Dots} />
       <Controls showInteractive={false} />
-      <MiniMap nodeStrokeWidth={3} className="!bg-background !border-border" />
+      <MiniMap className="!bg-background !border-border" nodeStrokeWidth={3} />
     </ReactFlow>
   );
 }

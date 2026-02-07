@@ -1,25 +1,25 @@
-'use client';
-import { cn } from '@delulu/design-system/lib/utils';
-import Image from 'next/image';
-import Balancer from 'react-wrap-balancer';
+"use client";
+import { cn } from "@delulu/design-system/lib/utils";
+import Image from "next/image";
+import Balancer from "react-wrap-balancer";
 
 export function LogoCloud() {
   const logos = [
     {
-      name: 'Aceternity UI',
-      src: 'https://assets.aceternity.com/pro/logos/aceternity-ui.png',
+      name: "Aceternity UI",
+      src: "https://assets.aceternity.com/pro/logos/aceternity-ui.png",
     },
     {
-      name: 'Gamity',
-      src: 'https://assets.aceternity.com/pro/logos/gamity.png',
+      name: "Gamity",
+      src: "https://assets.aceternity.com/pro/logos/gamity.png",
     },
     {
-      name: 'Host it',
-      src: 'https://assets.aceternity.com/pro/logos/hostit.png',
+      name: "Host it",
+      src: "https://assets.aceternity.com/pro/logos/hostit.png",
     },
     {
-      name: 'Asteroid Kit',
-      src: 'https://assets.aceternity.com/pro/logos/asteroid-kit.png',
+      name: "Asteroid Kit",
+      src: "https://assets.aceternity.com/pro/logos/asteroid-kit.png",
     },
   ];
 
@@ -29,7 +29,7 @@ export function LogoCloud() {
         <Balancer>
           <h2
             className={cn(
-              'inline-block text-center font-inter font-semibold text-[#3D3D3D] text-[22px]'
+              "inline-block text-center font-inter font-semibold text-[#3D3D3D] text-[22px]"
             )}
           >
             Trusted by Industry Leaders
@@ -39,16 +39,16 @@ export function LogoCloud() {
       <div className="relative mx-auto grid w-full max-w-3xl grid-cols-2 gap-6 px-4 sm:grid-cols-4 md:grid-cols-4 md:gap-10">
         {logos.map((logo, idx) => (
           <div
-            key={logo.src + idx}
             className="flex items-center justify-center"
+            key={logo.src + idx}
           >
             <Image
-              src={logo.src}
               alt={logo.name}
-              width={300}
-              height={300}
               className="w-full max-w-[200px] select-none object-contain"
               draggable={false}
+              height={300}
+              src={logo.src}
+              width={300}
             />
           </div>
         ))}

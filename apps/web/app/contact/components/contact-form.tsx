@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Input } from '@delulu/design-system/components/ui/input';
-import { Label } from '@delulu/design-system/components/ui/label';
-import { Textarea } from '@delulu/design-system/components/ui/textarea';
-import { Check, MoveRight } from 'lucide-react';
-import { useState } from 'react';
-import { contact } from '../actions/contact';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { Label } from "@delulu/design-system/components/ui/label";
+import { Textarea } from "@delulu/design-system/components/ui/textarea";
+import { Check, MoveRight } from "lucide-react";
+import { useState } from "react";
+import { contact } from "../actions/contact";
 
 export const ContactForm = () => {
   const [_isLoading, setIsLoading] = useState(false);
@@ -40,17 +40,17 @@ export const ContactForm = () => {
             </div>
             {[
               {
-                title: 'Quick Response',
-                description: 'We respond to all inquiries within 24 hours',
+                title: "Quick Response",
+                description: "We respond to all inquiries within 24 hours",
               },
               {
-                title: 'Expert Support',
-                description: 'Get help from social media management experts',
+                title: "Expert Support",
+                description: "Get help from social media management experts",
               },
               {
-                title: 'Partnership Opportunities',
+                title: "Partnership Opportunities",
                 description:
-                  'Explore collaboration and integration possibilities',
+                  "Explore collaboration and integration possibilities",
               },
             ].map((benefit, index) => (
               <div
@@ -68,7 +68,7 @@ export const ContactForm = () => {
             ))}
           </div>
 
-          <div className="flex w-[350px] items-center justify-center sm:w-[450px] lg:w-[550px] ">
+          <div className="flex w-[350px] items-center justify-center sm:w-[450px] lg:w-[550px]">
             <form
               className="flex w-full flex-col gap-4 rounded-md border p-8"
               onSubmit={handleSubmit}
@@ -77,15 +77,15 @@ export const ContactForm = () => {
 
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="firstname">First Name</Label>
-                <Input id="firstname" name="firstname" type="text" required />
+                <Input id="firstname" name="firstname" required type="text" />
               </div>
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="lastname">Last Name</Label>
-                <Input id="lastname" name="lastname" type="text" required />
+                <Input id="lastname" name="lastname" required type="text" />
               </div>
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required />
+                <Input id="email" name="email" required type="email" />
               </div>
               <div className="grid w-full items-center gap-1">
                 <Label htmlFor="message">Message</Label>
@@ -94,8 +94,8 @@ export const ContactForm = () => {
 
               <Button
                 className="w-full gap-4"
-                type="submit"
                 onClick={() => setIsLoading(true)}
+                type="submit"
               >
                 Send Message <MoveRight className="h-4 w-4" />
               </Button>

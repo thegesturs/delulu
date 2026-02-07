@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { api } from '@/trpc/react';
-import { Checkbox } from '@delulu/design-system/components/ui/checkbox';
-import { Label } from '@delulu/design-system/components/ui/label';
-import { Skeleton } from '@delulu/design-system/components/ui/skeleton';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
+import { Checkbox } from "@delulu/design-system/components/ui/checkbox";
+import { Label } from "@delulu/design-system/components/ui/label";
+import { Skeleton } from "@delulu/design-system/components/ui/skeleton";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   CheckmarkSquare02Icon,
   GridIcon,
   Image02Icon,
   Video02Icon,
-} from '@hugeicons-pro/core-solid-rounded';
+} from "@hugeicons-pro/core-solid-rounded";
+import { api } from "@/trpc/react";
 
 interface PostSelectorProps {
   socialProviderId: string | null;
@@ -71,7 +71,7 @@ export function PostSelector({
         <Skeleton className="h-10 w-full" />
         <div className="grid grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-square rounded-lg" />
+            <Skeleton className="aspect-square rounded-lg" key={i} />
           ))}
         </div>
       </div>
@@ -103,24 +103,24 @@ export function PostSelector({
       {/* All Posts Option */}
       <div
         className={cn(
-          'flex items-center gap-3 rounded-lg border p-3 transition-colors',
+          "flex items-center gap-3 rounded-lg border p-3 transition-colors",
           allPostsSelected
-            ? 'border-primary bg-primary/5'
-            : 'border-border hover:border-muted-foreground/50'
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-muted-foreground/50"
         )}
       >
         <Checkbox
-          id="all-posts"
           checked={allPostsSelected}
+          id="all-posts"
           onCheckedChange={handleAllPostsToggle}
         />
         <div className="flex flex-1 items-center gap-2">
           <Icon
+            className="text-muted-foreground"
             icon={CheckmarkSquare02Icon}
             size={18}
-            className="text-muted-foreground"
           />
-          <Label htmlFor="all-posts" className="cursor-pointer font-medium">
+          <Label className="cursor-pointer font-medium" htmlFor="all-posts">
             All Posts
           </Label>
         </div>
@@ -143,75 +143,75 @@ export function PostSelector({
         {posts.map((post) => {
           const isSelected = selectedPostIds.includes(post.id);
           const MediaIcon =
-            post.mediaType === 'VIDEO'
+            post.mediaType === "VIDEO"
               ? Video02Icon
-              : post.mediaType === 'CAROUSEL_ALBUM'
+              : post.mediaType === "CAROUSEL_ALBUM"
                 ? GridIcon
                 : Image02Icon;
 
           return (
             <button
-              key={post.id}
-              type="button"
-              onClick={() => handlePostToggle(post.id, !isSelected)}
               className={cn(
-                'group relative aspect-square overflow-hidden rounded-lg border transition-all',
+                "group relative aspect-square overflow-hidden rounded-lg border transition-all",
                 isSelected
-                  ? 'border-primary ring-2 ring-primary/30'
-                  : 'border-border hover:border-muted-foreground/50'
+                  ? "border-primary ring-2 ring-primary/30"
+                  : "border-border hover:border-muted-foreground/50"
               )}
+              key={post.id}
+              onClick={() => handlePostToggle(post.id, !isSelected)}
+              type="button"
             >
               {/* Thumbnail */}
               {post.thumbnailUrl ? (
                 <img
-                  src={post.thumbnailUrl}
-                  alt={post.caption || 'Instagram post'}
+                  alt={post.caption || "Instagram post"}
                   className="h-full w-full object-cover"
+                  src={post.thumbnailUrl}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-muted">
                   <Icon
+                    className="text-muted-foreground"
                     icon={MediaIcon}
                     size={24}
-                    className="text-muted-foreground"
                   />
                 </div>
               )}
 
               {/* Media Type Badge */}
               <div className="absolute top-2 right-2 rounded bg-black/60 p-1">
-                <Icon icon={MediaIcon} size={14} className="text-white" />
+                <Icon className="text-white" icon={MediaIcon} size={14} />
               </div>
 
               {/* Selection Overlay */}
               <div
                 className={cn(
-                  'absolute inset-0 flex items-center justify-center transition-opacity',
+                  "absolute inset-0 flex items-center justify-center transition-opacity",
                   isSelected
-                    ? 'bg-primary/20 opacity-100'
-                    : 'bg-black/0 opacity-0 group-hover:bg-black/10 group-hover:opacity-100'
+                    ? "bg-primary/20 opacity-100"
+                    : "bg-black/0 opacity-0 group-hover:bg-black/10 group-hover:opacity-100"
                 )}
               >
                 <div
                   className={cn(
-                    'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
+                    "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
                     isSelected
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-white bg-black/30'
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-white bg-black/30"
                   )}
                 >
                   {isSelected && (
                     <svg
                       className="h-3 w-3"
                       fill="none"
-                      viewBox="0 0 24 24"
                       stroke="currentColor"
                       strokeWidth={3}
+                      viewBox="0 0 24 24"
                     >
                       <path
+                        d="M5 13l4 4L19 7"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
                       />
                     </svg>
                   )}
@@ -234,7 +234,7 @@ export function PostSelector({
       {/* Selection Summary */}
       {!allPostsSelected && selectedPostIds.length > 0 && (
         <p className="text-center text-muted-foreground text-sm">
-          {selectedPostIds.length} post{selectedPostIds.length !== 1 ? 's' : ''}{' '}
+          {selectedPostIds.length} post{selectedPostIds.length !== 1 ? "s" : ""}{" "}
           selected
         </p>
       )}

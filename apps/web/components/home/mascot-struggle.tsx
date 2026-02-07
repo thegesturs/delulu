@@ -1,31 +1,31 @@
-'use client';
-import LineSvg from '@/components/ui/line-svg';
+"use client";
 import {
   Card,
   CardContent,
   CardHeader,
-} from '@delulu/design-system/components/ui/card';
-import Image from 'next/image';
-import React from 'react';
-import Balancer from 'react-wrap-balancer';
+} from "@delulu/design-system/components/ui/card";
+import Image from "next/image";
+import React from "react";
+import Balancer from "react-wrap-balancer";
+import LineSvg from "@/components/ui/line-svg";
 
 export function MascotStruggle() {
   const struggles = [
     {
-      image: '/images/delulu/drowing-in-tabs.png',
-      title: 'Six logins, zero patience',
+      image: "/images/delulu/drowing-in-tabs.png",
+      title: "Six logins, zero patience",
       description:
-        'Facebook, Instagram, LinkedIn, TikTok, Twitter, Pinterest... each with their own special upload flow. And you wonder why you never post.',
+        "Facebook, Instagram, LinkedIn, TikTok, Twitter, Pinterest... each with their own special upload flow. And you wonder why you never post.",
     },
     {
-      image: '/images/delulu/socials.png',
-      title: 'Post here. Post there. Post everywhere. Cry a little.',
+      image: "/images/delulu/socials.png",
+      title: "Post here. Post there. Post everywhere. Cry a little.",
       description:
-        'Same content, different sizes, different captions, different hashtags. Your afternoon just disappeared into the content creation void.',
+        "Same content, different sizes, different captions, different hashtags. Your afternoon just disappeared into the content creation void.",
     },
     {
-      image: '/images/delulu/laptop.png',
-      title: 'Forgot to post. Again.',
+      image: "/images/delulu/laptop.png",
+      title: "Forgot to post. Again.",
       description:
         "Your brilliant content sits in drafts while your audience forgets you exist. Consistency? What's that? Your algorithm ranking is crying.",
     },
@@ -35,10 +35,10 @@ export function MascotStruggle() {
     <section className="relative flex w-full flex-col items-center justify-center">
       <div className="relative mx-14 border-border border-x border-dashed">
         {/* Left diagonal pattern */}
-        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -left-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-left-14 md:w-14" />
 
         {/* Right diagonal pattern */}
-        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -right-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-right-14 md:w-14" />
         {/* Content */}
         <div className="h-full w-full border-border border-b py-10">
           {/* Section Header */}
@@ -67,12 +67,12 @@ export function MascotStruggle() {
                   {/* Mascot Image */}
                   <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center">
                     <Image
+                      alt={struggle.title}
+                      className="h-full w-full object-contain dark:invert"
+                      height={300}
                       key={struggle.title}
                       src={struggle.image}
-                      alt={struggle.title}
                       width={300}
-                      height={300}
-                      className="h-full w-full object-contain dark:invert"
                     />
                   </CardHeader>
 
@@ -95,8 +95,8 @@ export function MascotStruggle() {
 
                     {/* Desktop: vertical line between cards - centered in gap */}
                     <LineSvg
+                      className={`absolute -top-2 hidden h-[calc(100%+1rem)] w-px lg:block ${index === 0 ? "left-[calc(33.333%+1px)]" : "left-[calc(66.666%-2px)]"}`}
                       direction="vertical"
-                      className={`-top-2 absolute hidden h-[calc(100%+1rem)] w-px lg:block ${index === 0 ? 'left-[calc(33.333%+1px)]' : 'left-[calc(66.666%-2px)]'}`}
                     />
                   </>
                 )}

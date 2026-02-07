@@ -1,27 +1,27 @@
-'use client';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Calendar, Pencil, Share2 } from 'lucide-react';
-import { motion } from 'motion/react';
-import Link from 'next/link';
-import type React from 'react';
-import { useState } from 'react';
+"use client";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { NaturalDatePicker } from "@delulu/design-system/components/ui/natural-date-picker";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Calendar, Pencil, Share2 } from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import type React from "react";
+import { useState } from "react";
 
 // Message type definition
-type Message = {
-  role: 'assistant' | 'user';
+interface Message {
+  role: "assistant" | "user";
   content: string;
-};
+}
 
 // Card type definition
-type Card = {
+interface Card {
   id: number;
   name: string;
   designation: string;
   content: string;
   gradient: string;
-};
+}
 
 // Reusable components
 const GradientTitle = ({ children }: { children: React.ReactNode }) => (
@@ -43,7 +43,7 @@ const ContentBox = ({
 }) => (
   <div
     className={cn(
-      'h-[320px] space-y-4 rounded-xl border border-[#E1E1E1] bg-white p-4',
+      "h-[320px] space-y-4 rounded-xl border border-[#E1E1E1] bg-white p-4",
       className
     )}
   >
@@ -60,15 +60,15 @@ const SectionTitle = ({
 }) => (
   <>
     <motion.h3
-      whileHover={{ scale: 1.05 }}
       className="mt-6 mb-2 font-bold text-xl"
+      whileHover={{ scale: 1.05 }}
     >
       {title}
     </motion.h3>
     <motion.p
+      className="text-gray-500 text-sm leading-relaxed"
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
-      className="text-gray-500 text-sm leading-relaxed"
     >
       {description}
     </motion.p>
@@ -380,16 +380,16 @@ const SectionTitle = ({
 
 // Create Post Section
 const CreatePostSection = () => {
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [isPreview, setIsPreview] = useState(false);
 
   return (
     <SectionWrapper>
       <ContentBox>
         <motion.div
+          className="flex h-full flex-col"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          className="flex h-full flex-col"
         >
           <div className="mb-4 flex items-center gap-2">
             <Pencil className="h-5 w-5 text-primary" />
@@ -404,45 +404,45 @@ const CreatePostSection = () => {
           >
             <div
               className={cn(
-                'h-full w-full transition-opacity duration-500',
-                isPreview ? 'opacity-0' : 'opacity-100'
+                "h-full w-full transition-opacity duration-500",
+                isPreview ? "opacity-0" : "opacity-100"
               )}
             >
               <textarea
-                value={content}
+                className="h-full w-full resize-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your post here..."
-                className="h-full w-full resize-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+                value={content}
               />
             </div>
             <div
               className={cn(
-                'absolute inset-0 h-full w-full p-4 [backface-visibility:hidden] [transform:rotateY(180deg)]',
-                isPreview ? 'opacity-100' : 'opacity-0'
+                "absolute inset-0 h-full w-full p-4 [backface-visibility:hidden] [transform:rotateY(180deg)]",
+                isPreview ? "opacity-100" : "opacity-0"
               )}
             >
               <div className="prose prose-sm h-full overflow-auto">
-                {content || 'Nothing to preview yet...'}
+                {content || "Nothing to preview yet..."}
               </div>
             </div>
           </motion.div>
           <motion.div
-            whileHover={{ scale: 1.02 }}
             className="mt-4 flex justify-end"
+            whileHover={{ scale: 1.02 }}
           >
             <Button
-              variant="outline"
-              size="sm"
               onClick={() => setIsPreview(!isPreview)}
+              size="sm"
+              variant="outline"
             >
-              {isPreview ? 'Edit Post' : 'Preview Post'}
+              {isPreview ? "Edit Post" : "Preview Post"}
             </Button>
           </motion.div>
         </motion.div>
       </ContentBox>
       <SectionTitle
-        title="Create Your Post"
         description="Write once, customize for each platform's unique style and requirements."
+        title="Create Your Post"
       />
     </SectionWrapper>
   );
@@ -451,10 +451,10 @@ const CreatePostSection = () => {
 // Platform Selection Section
 const PlatformSection = () => {
   const [platforms, setPlatforms] = useState([
-    { name: 'Twitter', active: true, icon: '𝕏' },
-    { name: 'LinkedIn', active: true, icon: 'in' },
-    { name: 'Instagram', active: false, icon: '📸' },
-    { name: 'Facebook', active: true, icon: 'f' },
+    { name: "Twitter", active: true, icon: "𝕏" },
+    { name: "LinkedIn", active: true, icon: "in" },
+    { name: "Instagram", active: false, icon: "📸" },
+    { name: "Facebook", active: true, icon: "f" },
   ]);
 
   const togglePlatform = (index: number) => {
@@ -467,9 +467,9 @@ const PlatformSection = () => {
     <SectionWrapper>
       <ContentBox>
         <motion.div
+          className="flex h-full flex-col"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          className="flex h-full flex-col"
         >
           <div className="mb-4 flex items-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />
@@ -478,18 +478,18 @@ const PlatformSection = () => {
           <div className="space-y-3">
             {platforms.map((platform, index) => (
               <motion.button
-                key={platform.name}
-                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-lg border p-3",
+                  platform.active
+                    ? "border-primary/20 bg-primary/5"
+                    : "border-border bg-card/50"
+                )}
+                initial={{ opacity: 0, x: -20 }}
+                key={platform.name}
+                onClick={() => togglePlatform(index)}
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ scale: 1.02 }}
-                onClick={() => togglePlatform(index)}
-                className={cn(
-                  'flex w-full items-center justify-between rounded-lg border p-3',
-                  platform.active
-                    ? 'border-primary/20 bg-primary/5'
-                    : 'border-border bg-card/50'
-                )}
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 font-medium">
@@ -498,8 +498,8 @@ const PlatformSection = () => {
                   <span
                     className={
                       platform.active
-                        ? 'text-foreground'
-                        : 'text-muted-foreground'
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                     }
                   >
                     {platform.name}
@@ -511,8 +511,8 @@ const PlatformSection = () => {
                     opacity: platform.active ? 1 : 0.5,
                   }}
                   className={cn(
-                    'h-3 w-3 rounded-full',
-                    platform.active ? 'bg-primary' : 'bg-muted'
+                    "h-3 w-3 rounded-full",
+                    platform.active ? "bg-primary" : "bg-muted"
                   )}
                 />
               </motion.button>
@@ -521,8 +521,8 @@ const PlatformSection = () => {
         </motion.div>
       </ContentBox>
       <SectionTitle
-        title="Pick Your Platforms"
         description="Choose where you want your content to appear, each optimized for the platform."
+        title="Pick Your Platforms"
       />
     </SectionWrapper>
   );
@@ -545,9 +545,9 @@ const ScheduleSection = () => {
     <SectionWrapper>
       <ContentBox>
         <motion.div
+          className="flex h-full flex-col"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          className="flex h-full flex-col"
         >
           <div className="mb-4 flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
@@ -555,24 +555,24 @@ const ScheduleSection = () => {
           </div>
           <div className="relative flex-grow rounded-lg border border-border bg-card/50 p-4">
             <NaturalDatePicker
-              value={selectedDate}
-              onChange={handleDateSelect}
-              placeholder="Tomorrow or next sunday at 2pm..."
               className="w-full"
               customSuggestions={[
-                { label: 'Best time today', value: 'today at 5pm' },
-                { label: 'Best time tomorrow', value: 'tomorrow at 10am' },
-                { label: 'This weekend', value: 'saturday at 12pm' },
-                { label: 'Next week', value: 'next monday at 9am' },
+                { label: "Best time today", value: "today at 5pm" },
+                { label: "Best time tomorrow", value: "tomorrow at 10am" },
+                { label: "This weekend", value: "saturday at 12pm" },
+                { label: "Next week", value: "next monday at 9am" },
               ]}
+              onChange={handleDateSelect}
+              placeholder="Tomorrow or next sunday at 2pm..."
+              value={selectedDate}
             />
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
               animate={{
                 opacity: showConfirmation ? 1 : 0,
                 y: showConfirmation ? 0 : 10,
               }}
-              className="-translate-x-1/2 absolute bottom-4 left-1/2 rounded-full bg-primary px-4 py-2 text-primary-foreground text-sm"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-2 text-primary-foreground text-sm"
+              initial={{ opacity: 0, y: 10 }}
             >
               Schedule set! ✨
             </motion.div>
@@ -580,8 +580,8 @@ const ScheduleSection = () => {
         </motion.div>
       </ContentBox>
       <SectionTitle
-        title="Schedule & Forget"
         description="Set it and forget it - we'll handle the posting at the perfect time."
+        title="Schedule & Forget"
       />
     </SectionWrapper>
   );
@@ -608,8 +608,8 @@ const Features3 = () => {
         </div>
         <div className="mt-8 text-center">
           <Link
-            href="https://solulu.delulu.social/sign-in"
             className="inline-flex items-center font-medium text-primary hover:text-primary/90"
+            href="https://solulu.delulu.social/sign-in"
           >
             Try Scheduling Now →
           </Link>

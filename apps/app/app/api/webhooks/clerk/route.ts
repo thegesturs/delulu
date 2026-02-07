@@ -323,5 +323,5 @@
 // };
 
 export const POST = () => {
-  return new Response('Just a test', { status: 201 });
+  return new Response("Just a test", { status: 201 });
 };

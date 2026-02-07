@@ -1,16 +1,15 @@
-'use client';
-
-import { endOfWeek, isSameDay, isWithinInterval, startOfWeek } from 'date-fns';
-import { useEffect, useState } from 'react';
+"use client";
 
 import {
   EndHour,
   StartHour,
-} from '@delulu/design-system/components/event-calendar/constants';
+} from "@delulu/design-system/components/event-calendar/constants";
+import { endOfWeek, isSameDay, isWithinInterval, startOfWeek } from "date-fns";
+import { useEffect, useState } from "react";
 
 export function useCurrentTimeIndicator(
   currentDate: Date,
-  view: 'day' | 'week'
+  view: "day" | "week"
 ) {
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
   const [currentTimeVisible, setCurrentTimeVisible] = useState<boolean>(false);
@@ -32,9 +31,9 @@ export function useCurrentTimeIndicator(
       // Check if current day is in view based on the calendar view
       let isCurrentTimeVisible = false;
 
-      if (view === 'day') {
+      if (view === "day") {
         isCurrentTimeVisible = isSameDay(now, currentDate);
-      } else if (view === 'week') {
+      } else if (view === "week") {
         const startOfWeekDate = startOfWeek(currentDate, { weekStartsOn: 0 });
         const endOfWeekDate = endOfWeek(currentDate, { weekStartsOn: 0 });
         isCurrentTimeVisible = isWithinInterval(now, {
@@ -51,7 +50,7 @@ export function useCurrentTimeIndicator(
     calculateTimePosition();
 
     // Update every minute
-    const interval = setInterval(calculateTimePosition, 60000);
+    const interval = setInterval(calculateTimePosition, 60_000);
 
     return () => clearInterval(interval);
   }, [currentDate, view]);

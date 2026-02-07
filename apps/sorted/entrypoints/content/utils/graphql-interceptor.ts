@@ -4,7 +4,7 @@
  * Based on SortFeed's approach
  */
 
-import type { ReelMetrics } from '../../shared/types';
+import type { ReelMetrics } from "../../shared/types";
 
 interface GraphQLReelData {
   pk?: string;
@@ -109,12 +109,12 @@ function processGraphQLResponse(response: GraphQLResponse): void {
  */
 export function initializeGraphQLInterceptor(): void {
   // Listen for metrics from the MAIN world interceptor
-  window.addEventListener('message', (event) => {
+  window.addEventListener("message", (event) => {
     if (event.source !== window) {
       return;
     }
 
-    if (event.data.type === 'SORTED_METRICS_CACHED') {
+    if (event.data.type === "SORTED_METRICS_CACHED") {
       const { reelId, metrics } = event.data;
       metricsCache.set(reelId, metrics);
     }
@@ -124,7 +124,7 @@ export function initializeGraphQLInterceptor(): void {
   const originalFetch = window.fetch;
 
   window.fetch = async function (...args) {
-    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+    const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
 
     // Call original fetch
     const response = await originalFetch.apply(this, args);
@@ -133,7 +133,7 @@ export function initializeGraphQLInterceptor(): void {
     const clonedResponse = response.clone();
 
     // Only process GraphQL requests
-    if (url?.includes('/graphql/query')) {
+    if (url?.includes("/graphql/query")) {
       try {
         const data = (await clonedResponse.json()) as GraphQLResponse;
 
@@ -175,14 +175,14 @@ export function initializeGraphQLInterceptor(): void {
     _body?: Document | XMLHttpRequestBodyInit | null
   ) {
     // Add load listener to process response
-    this.addEventListener('load', function () {
+    this.addEventListener("load", function () {
       const url = (this as any)._url;
 
       // Only process GraphQL requests
-      if (url?.includes('/graphql/query')) {
+      if (url?.includes("/graphql/query")) {
         try {
           // Only process text/json responses
-          if (this.responseType === '' || this.responseType === 'text') {
+          if (this.responseType === "" || this.responseType === "text") {
             const response = JSON.parse(this.responseText) as GraphQLResponse;
 
             // Check if this response contains reel data

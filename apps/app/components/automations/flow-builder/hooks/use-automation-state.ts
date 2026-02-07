@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from "react";
 import type {
   AutomationMeta,
   AutomationStep,
   TriggerStep,
-} from '../utils/flow-types';
+} from "../utils/flow-types";
 import {
   insertStepAfter,
   removeStep,
   removeStepFromTriggers,
   updateStep,
-} from '../utils/step-helpers';
+} from "../utils/step-helpers";
 
 export function useAutomationState() {
   const [triggers, setTriggers] = useState<TriggerStep[]>([]);
@@ -19,13 +19,13 @@ export function useAutomationState() {
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [automationMeta, setAutomationMeta] = useState<AutomationMeta>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     isActive: true,
-    socialProviderId: '',
+    socialProviderId: "",
   });
 
-  const initialStateRef = useRef<string>('');
+  const initialStateRef = useRef<string>("");
 
   const markDirty = useCallback(() => setIsDirty(true), []);
 
@@ -71,7 +71,7 @@ export function useAutomationState() {
   const _addStepAfter = useCallback(
     (
       parentId: string,
-      branch: 'next' | 'yes' | 'no',
+      branch: "next" | "yes" | "no",
       newStep: AutomationStep
     ) => {
       setTriggers((prevTriggers) => {
@@ -105,7 +105,7 @@ export function useAutomationState() {
   const addStepAfterSync = useCallback(
     (
       parentId: string,
-      branch: 'next' | 'yes' | 'no',
+      branch: "next" | "yes" | "no",
       newStep: AutomationStep
     ) => {
       const result = insertStepAfter(

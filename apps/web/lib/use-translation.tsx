@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useIntl } from 'react-intl';
+import { useIntl } from "react-intl";
 
 export const useTranslation = () => {
   const intl = useIntl();

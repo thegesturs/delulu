@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { MailSend01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { Handle, type NodeProps, Position } from '@xyflow/react';
-import type { SendDmStep } from '../utils/flow-types';
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { MailSend01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
+import type { SendDmStep } from "../utils/flow-types";
 
 export function SendDmNode({ data, selected }: NodeProps) {
   const step = data.step as SendDmStep;
@@ -17,46 +17,46 @@ export function SendDmNode({ data, selected }: NodeProps) {
     <div
       className={`rounded-xl border px-4 py-3 shadow-sm transition-all ${
         selected
-          ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500/30'
-          : 'border-border bg-card hover:border-green-400/50'
+          ? "border-green-500 bg-green-500/10 ring-1 ring-green-500/30"
+          : "border-border bg-card hover:border-green-400/50"
       }`}
       style={{ minWidth: 240 }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-green-500" />
+      <Handle className="!bg-green-500" position={Position.Top} type="target" />
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-500/15">
-          <Icon icon={MailSend01Icon} size={18} className="text-green-500" />
+          <Icon className="text-green-500" icon={MailSend01Icon} size={18} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm">Send DM</p>
           <p className="truncate text-muted-foreground text-xs">
             {hasMessage
               ? step.messageTemplate.slice(0, 40) +
-                (step.messageTemplate.length > 40 ? '...' : '')
-              : 'No message set'}
+                (step.messageTemplate.length > 40 ? "..." : "")
+              : "No message set"}
           </p>
         </div>
       </div>
       {(hasButtons || hasReply) && (
         <div className="mt-2 flex gap-1.5 pl-12">
           {hasButtons && (
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge className="text-[10px]" variant="secondary">
               {step.buttons!.length} button
-              {step.buttons!.length !== 1 ? 's' : ''}
+              {step.buttons!.length !== 1 ? "s" : ""}
             </Badge>
           )}
           {hasReply && (
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge className="text-[10px]" variant="secondary">
               + Reply
             </Badge>
           )}
         </div>
       )}
       <Handle
-        type="source"
-        position={Position.Bottom}
-        id="default"
         className="!bg-green-500"
+        id="default"
+        position={Position.Bottom}
+        type="source"
       />
     </div>
   );

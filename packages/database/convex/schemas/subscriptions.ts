@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
 // ============================================================================
 // SUBSCRIPTION SCHEMAS
@@ -6,34 +6,34 @@ import { v } from 'convex/values';
 
 // Plan types enum
 export const planTypes = v.union(
-  v.literal('FREE'),
-  v.literal('VIBE'),
-  v.literal('ECHO')
+  v.literal("FREE"),
+  v.literal("VIBE"),
+  v.literal("ECHO")
 );
 
 // Subscription status enum
 export const subscriptionStatus = v.union(
-  v.literal('ACTIVE'),
-  v.literal('PAST_DUE'),
-  v.literal('CANCELLED'),
-  v.literal('UNPAID'),
-  v.literal('TRIALING')
+  v.literal("ACTIVE"),
+  v.literal("PAST_DUE"),
+  v.literal("CANCELLED"),
+  v.literal("UNPAID"),
+  v.literal("TRIALING")
 );
 
 // Billing period enum
-export const billingPeriod = v.union(v.literal('MONTHLY'), v.literal('YEARLY'));
+export const billingPeriod = v.union(v.literal("MONTHLY"), v.literal("YEARLY"));
 
 // Transaction status enum
 export const transactionStatus = v.union(
-  v.literal('SUCCEEDED'),
-  v.literal('PENDING'),
-  v.literal('FAILED'),
-  v.literal('REFUNDED')
+  v.literal("SUCCEEDED"),
+  v.literal("PENDING"),
+  v.literal("FAILED"),
+  v.literal("REFUNDED")
 );
 
 // Base subscription schema
 export const baseSubscriptionSchema = v.object({
-  userId: v.id('users'),
+  userId: v.id("users"),
   dodoCustomerId: v.string(), // Dodo Payments customer ID
   dodoSubscriptionId: v.optional(v.string()), // Dodo Payments subscription ID (optional for free plans)
   planType: planTypes,
@@ -56,14 +56,14 @@ export const baseSubscriptionSchema = v.object({
 
 // Subscription schema with system fields
 export const subscriptionSchema = v.object({
-  _id: v.id('subscriptions'),
+  _id: v.id("subscriptions"),
   _creationTime: v.number(),
   ...baseSubscriptionSchema.fields,
 });
 
 // Subscription creation schema
 export const subscriptionCreateSchema = v.object({
-  userId: v.id('users'),
+  userId: v.id("users"),
   dodoCustomerId: v.string(),
   dodoSubscriptionId: v.optional(v.string()),
   planType: planTypes,
@@ -108,8 +108,8 @@ export const subscriptionUpdateSchema = v.object({
 
 // Base transaction schema for payment history
 export const baseTransactionSchema = v.object({
-  userId: v.id('users'),
-  subscriptionId: v.optional(v.id('subscriptions')), // Link to subscription
+  userId: v.id("users"),
+  subscriptionId: v.optional(v.id("subscriptions")), // Link to subscription
   dodoPaymentId: v.string(), // Dodo Payments payment/transaction ID
   dodoCustomerId: v.string(),
   amount: v.number(), // Amount in cents
@@ -132,15 +132,15 @@ export const baseTransactionSchema = v.object({
 
 // Transaction schema with system fields
 export const transactionSchema = v.object({
-  _id: v.id('transactions'),
+  _id: v.id("transactions"),
   _creationTime: v.number(),
   ...baseTransactionSchema.fields,
 });
 
 // Transaction creation schema
 export const transactionCreateSchema = v.object({
-  userId: v.id('users'),
-  subscriptionId: v.optional(v.id('subscriptions')),
+  userId: v.id("users"),
+  subscriptionId: v.optional(v.id("subscriptions")),
   dodoPaymentId: v.string(),
   dodoCustomerId: v.string(),
   amount: v.number(),

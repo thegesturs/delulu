@@ -2,7 +2,7 @@
  * Loading Overlay - Indigo vignette effect during sorting
  */
 
-import './loading-overlay.css';
+import "./loading-overlay.css";
 
 interface LoadingOverlayProps {
   message?: string;
@@ -10,7 +10,7 @@ interface LoadingOverlayProps {
 }
 
 export function LoadingOverlay({
-  message = 'Analyzing reels...',
+  message = "Analyzing reels...",
   progress,
 }: LoadingOverlayProps) {
   return (

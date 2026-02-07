@@ -7,7 +7,7 @@ import type {
   DmButton,
   SendDmStep,
   TriggerStep,
-} from '@delulu/database/convex/schemas/automations';
+} from "@delulu/database/convex/schemas/automations";
 
 // Re-export for convenience
 export type {

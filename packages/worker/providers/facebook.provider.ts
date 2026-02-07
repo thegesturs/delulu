@@ -1,12 +1,12 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import type { MediaType } from '@delulu/validators/post';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { nanoid } from 'nanoid';
-import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
-import { keys } from '../key';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import type { MediaType } from "@delulu/validators/post";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { nanoid } from "nanoid";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
+import { keys } from "../key";
 
 import type {
   BaseProviderProfile,
@@ -17,8 +17,9 @@ import type {
   FacebookVideoStatus,
   PostContent,
   PostPublishResult,
-} from './common-types';
+} from "./common-types";
 import {
+  createAPIError,
   FacebookError,
   InvalidMediaError,
   MediaProcessingError,
@@ -27,28 +28,27 @@ import {
   ProfileNotFoundError,
   PublishError,
   type SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 const createPhotoUploadParams = (
   profile: BaseProviderProfile,
   mediaUrl: string
 ): URLSearchParams => {
-  console.log('[Facebook] Creating photo upload params:', {
+  console.log("[Facebook] Creating photo upload params:", {
     mediaUrl,
     profileId: profile.profileId,
   });
   return new URLSearchParams({
     access_token: profile.accessToken,
     url: mediaUrl,
-    published: 'false',
-    temporary: 'false', // Changed from 'true' to 'false'
+    published: "false",
+    temporary: "false", // Changed from 'true' to 'false'
   });
 };
 
 const createVideoInitParams = (accessToken: string) => ({
-  upload_phase: 'start',
+  upload_phase: "start",
   access_token: accessToken,
 });
 
@@ -57,7 +57,7 @@ const createFeedPostData = (
   message: string,
   mediaIds: string[]
 ) => {
-  console.log('[Facebook] Creating feed post data:', {
+  console.log("[Facebook] Creating feed post data:", {
     message,
     mediaIds,
     profileId: profile.profileId,
@@ -66,13 +66,13 @@ const createFeedPostData = (
   const data: Record<string, string | { media_fbid: string }[]> = {
     access_token: profile.accessToken,
     message,
-    published: '1', // Make post public
+    published: "1", // Make post public
   };
 
   // Add attached_media in the correct format for Facebook API
   if (mediaIds.length > 0) {
     data.attached_media = mediaIds.map((id) => ({ media_fbid: id }));
-    console.log('[Facebook] Adding attached media:', data.attached_media);
+    console.log("[Facebook] Adding attached media:", data.attached_media);
   }
 
   return data;
@@ -84,12 +84,12 @@ const getProfile = (
 ): ResultAsync<BaseProviderProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new FacebookError('Database query failed')
+    () => new FacebookError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.profileId) {
-      return err(new ProfileNotFoundError('Facebook'));
+    if (!(profile?.accessToken && profile.profileId)) {
+      return err(new ProfileNotFoundError("Facebook"));
     }
     return ok({
       id: profile._id,
@@ -105,23 +105,23 @@ const uploadPhoto = (
   profile: BaseProviderProfile
 ): ResultAsync<string, SocialProviderError> => {
   if (!media.url) {
-    console.error('[Facebook] Photo upload failed: Media URL is required');
-    return errAsync(new InvalidMediaError('Facebook', 'Media URL is required'));
+    console.error("[Facebook] Photo upload failed: Media URL is required");
+    return errAsync(new InvalidMediaError("Facebook", "Media URL is required"));
   }
 
   const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/photos`;
   const params = createPhotoUploadParams(profile, media.url);
 
-  console.log('[Facebook] Uploading photo:', { endpoint, mediaUrl: media.url });
+  console.log("[Facebook] Uploading photo:", { endpoint, mediaUrl: media.url });
 
   return ResultAsync.fromPromise(
     axios.post<FacebookMediaUploadResponse>(`${endpoint}?${params.toString()}`),
     (error) => {
-      console.error('[Facebook] Photo upload error:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Photo upload error:", error);
+      return createAPIError("Facebook", error);
     }
   ).map((response) => {
-    console.log('[Facebook] Photo upload success:', response.data);
+    console.log("[Facebook] Photo upload success:", response.data);
     return response.data.id;
   });
 };
@@ -131,7 +131,7 @@ const initializeReelUpload = (
 ): ResultAsync<FacebookVideoInitResponse, SocialProviderError> => {
   const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/video_reels`;
 
-  console.log('[Facebook] Initializing reel upload:', {
+  console.log("[Facebook] Initializing reel upload:", {
     endpoint,
     profileId: profile.profileId,
   });
@@ -139,17 +139,17 @@ const initializeReelUpload = (
   return ResultAsync.fromPromise(
     axios.post(endpoint, createVideoInitParams(profile.accessToken)),
     (error) => {
-      console.error('[Facebook] Reel initialization error:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Reel initialization error:", error);
+      return createAPIError("Facebook", error);
     }
   ).andThen((response) => {
-    console.log('[Facebook] Reel initialization response:', response.data);
+    console.log("[Facebook] Reel initialization response:", response.data);
     const { video_id: videoId, upload_url: uploadUrl } = response.data;
-    if (!videoId || !uploadUrl) {
+    if (!(videoId && uploadUrl)) {
       console.error(
-        '[Facebook] Reel initialization failed: missing video_id or upload_url'
+        "[Facebook] Reel initialization failed: missing video_id or upload_url"
       );
-      return err(new MediaUploadError('Facebook', 'VIDEO'));
+      return err(new MediaUploadError("Facebook", "VIDEO"));
     }
     return ok({ videoId, uploadUrl });
   });
@@ -160,40 +160,40 @@ const uploadReelContent = (
   videoUrl: string,
   accessToken: string
 ): ResultAsync<void, SocialProviderError> => {
-  console.log('[Facebook] Uploading reel content:', { uploadUrl, videoUrl });
+  console.log("[Facebook] Uploading reel content:", { uploadUrl, videoUrl });
 
   // First fetch the video from the URL, then upload it to Facebook
   return ResultAsync.fromPromise(
-    axios.get(videoUrl, { responseType: 'arraybuffer' }),
+    axios.get(videoUrl, { responseType: "arraybuffer" }),
     (error) => {
-      console.error('[Facebook] Failed to fetch video from URL:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Failed to fetch video from URL:", error);
+      return createAPIError("Facebook", error);
     }
   ).andThen((response) => {
-    console.log('[Facebook] Video fetched, uploading to Facebook...');
+    console.log("[Facebook] Video fetched, uploading to Facebook...");
     const videoBuffer = Buffer.from(response.data);
 
     return ResultAsync.fromPromise(
       axios.post(uploadUrl, videoBuffer, {
         headers: {
           Authorization: `OAuth ${accessToken}`,
-          'Content-Type': 'application/octet-stream',
+          "Content-Type": "application/octet-stream",
           file_size: videoBuffer.length.toString(),
-          offset: '0',
+          offset: "0",
         },
         maxContentLength: Number.POSITIVE_INFINITY,
         maxBodyLength: Number.POSITIVE_INFINITY,
-        timeout: 300000, // 5 minutes timeout for large videos
+        timeout: 300_000, // 5 minutes timeout for large videos
       }),
       (error) => {
-        return createAPIError('Facebook', error);
+        return createAPIError("Facebook", error);
       }
     ).andThen((uploadResponse) => {
       console.log(
-        '[Facebook] Reel content upload response:',
+        "[Facebook] Reel content upload response:",
         uploadResponse.data
       );
-      console.log('[Facebook] Reel content uploaded successfully');
+      console.log("[Facebook] Reel content uploaded successfully");
       return ok(undefined);
     });
   });
@@ -203,21 +203,21 @@ const checkVideoStatus = (
   videoId: string,
   accessToken: string
 ): ResultAsync<FacebookVideoStatus, SocialProviderError> => {
-  console.log('[Facebook] Checking video status:', { videoId });
+  console.log("[Facebook] Checking video status:", { videoId });
 
   return ResultAsync.fromPromise(
     axios.get(`https://graph.facebook.com/v23.0/${videoId}`, {
       params: {
-        fields: 'status,id,title,description,updated_time',
+        fields: "status,id,title,description,updated_time",
         access_token: accessToken,
       },
     }),
     (error) => {
-      console.error('[Facebook] Video status check error:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Video status check error:", error);
+      return createAPIError("Facebook", error);
     }
   ).map((response) => {
-    console.log('[Facebook] Video status response:', response.data);
+    console.log("[Facebook] Video status response:", response.data);
     return response.data.status;
   });
 };
@@ -229,7 +229,7 @@ const publishReel = (
 ): ResultAsync<string, SocialProviderError> => {
   const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/video_reels`;
 
-  console.log('[Facebook] Publishing reel:', {
+  console.log("[Facebook] Publishing reel:", {
     endpoint,
     videoId,
     description,
@@ -238,22 +238,22 @@ const publishReel = (
   return ResultAsync.fromPromise(
     axios.post(endpoint, {
       video_id: videoId,
-      upload_phase: 'finish',
-      description: description,
+      upload_phase: "finish",
+      description,
       access_token: profile.accessToken,
-      published: '1', // Make reel public
+      published: "1", // Make reel public
     }),
     (error) => {
-      console.error('[Facebook] Reel publish error:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Reel publish error:", error);
+      return createAPIError("Facebook", error);
     }
   ).andThen((response) => {
-    console.log('[Facebook] Reel publish response:', response.data);
+    console.log("[Facebook] Reel publish response:", response.data);
     if (!response.data.success) {
-      console.error('[Facebook] Reel publish failed: success=false');
-      return err(new PublishError('Facebook', 'Reel publish failed'));
+      console.error("[Facebook] Reel publish failed: success=false");
+      return err(new PublishError("Facebook", "Reel publish failed"));
     }
-    console.log('[Facebook] Reel published successfully');
+    console.log("[Facebook] Reel published successfully");
     // Always return video_id - we need to wait for processing to complete
     return ok(videoId);
   });
@@ -264,9 +264,9 @@ const waitForVideoProcessing = (
   videoId: string,
   accessToken: string,
   maxAttempts = 30,
-  interval = 10000
+  interval = 10_000
 ): ResultAsync<void, SocialProviderError> => {
-  console.log('[Facebook] Starting video processing wait:', {
+  console.log("[Facebook] Starting video processing wait:", {
     videoId,
     maxAttempts,
     interval,
@@ -276,48 +276,48 @@ const waitForVideoProcessing = (
     console.log(`[Facebook] Polling attempt ${attempts + 1}/${maxAttempts}`);
 
     if (attempts >= maxAttempts) {
-      console.error('[Facebook] Video processing timeout');
-      return errAsync(new MediaProcessingTimeoutError('Facebook'));
+      console.error("[Facebook] Video processing timeout");
+      return errAsync(new MediaProcessingTimeoutError("Facebook"));
     }
 
     return checkVideoStatus(videoId, accessToken).andThen((status) => {
       console.log(`[Facebook] Video status: ${status.video_status}`);
 
       // Handle error status - stop immediately
-      if (status.video_status === 'error') {
-        console.error('[Facebook] Video processing failed with error status');
+      if (status.video_status === "error") {
+        console.error("[Facebook] Video processing failed with error status");
         if (status.processing_phase?.errors) {
           console.error(
-            '[Facebook] Processing errors:',
+            "[Facebook] Processing errors:",
             status.processing_phase.errors
           );
         }
         return errAsync(
-          new MediaProcessingError('Facebook', 'Video processing failed')
+          new MediaProcessingError("Facebook", "Video processing failed")
         );
       }
 
       // Handle processing phase errors
-      if (status.processing_phase?.status === 'error') {
-        console.error('[Facebook] Video processing phase failed');
+      if (status.processing_phase?.status === "error") {
+        console.error("[Facebook] Video processing phase failed");
         if (status.processing_phase?.errors) {
           console.error(
-            '[Facebook] Processing errors:',
+            "[Facebook] Processing errors:",
             status.processing_phase.errors
           );
         }
         return errAsync(
-          new MediaProcessingError('Facebook', 'Video processing phase failed')
+          new MediaProcessingError("Facebook", "Video processing phase failed")
         );
       }
 
       if (
-        status.video_status === 'ready' ||
-        status.video_status === 'published' ||
-        (status.video_status === 'upload_complete' &&
-          status.processing_phase?.status === 'complete')
+        status.video_status === "ready" ||
+        status.video_status === "published" ||
+        (status.video_status === "upload_complete" &&
+          status.processing_phase?.status === "complete")
       ) {
-        console.log('[Facebook] Video processing completed successfully');
+        console.log("[Facebook] Video processing completed successfully");
         return okAsync(undefined);
       }
 
@@ -326,7 +326,7 @@ const waitForVideoProcessing = (
       );
       return ResultAsync.fromPromise(
         new Promise((resolve) => setTimeout(resolve, interval)),
-        () => new MediaProcessingError('Facebook', 'Timeout error')
+        () => new MediaProcessingError("Facebook", "Timeout error")
       ).andThen(() => poll(attempts + 1));
     });
   };
@@ -343,18 +343,18 @@ const createFeedPost = (
   const endpoint = `https://graph.facebook.com/v23.0/${profile.profileId}/feed`;
   const data = createFeedPostData(profile, message, mediaIds);
 
-  console.log('[Facebook] Creating feed post:', { endpoint, data });
+  console.log("[Facebook] Creating feed post:", { endpoint, data });
 
   return ResultAsync.fromPromise(
     axios.post<FacebookPostResponse>(endpoint, data, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
     }),
     (error) => {
-      console.error('[Facebook] Feed post creation error:', error);
-      return createAPIError('Facebook', error);
+      console.error("[Facebook] Feed post creation error:", error);
+      return createAPIError("Facebook", error);
     }
   ).map((response) => {
-    console.log('[Facebook] Feed post creation success:', response.data);
+    console.log("[Facebook] Feed post creation success:", response.data);
     return response.data;
   });
 };
@@ -369,11 +369,11 @@ const getPostDetails = (
       {
         params: {
           access_token: accessToken,
-          fields: 'id,permalink_url',
+          fields: "id,permalink_url",
         },
       }
     ),
-    (error) => createAPIError('Facebook', error)
+    (error) => createAPIError("Facebook", error)
   ).map((response) => response.data);
 
 // Media processing pipeline
@@ -382,7 +382,7 @@ const processMedia = (
   profile: BaseProviderProfile,
   text: string
 ): ResultAsync<string, SocialProviderError> => {
-  if (media.mediaType === 'VIDEO') {
+  if (media.mediaType === "VIDEO") {
     return processReelMedia(media, profile, text);
   }
   return uploadPhoto(media, profile);
@@ -394,7 +394,7 @@ const processReelMedia = (
   text: string
 ): ResultAsync<string, SocialProviderError> => {
   if (!media.url) {
-    return errAsync(new InvalidMediaError('Facebook', 'Video URL is required'));
+    return errAsync(new InvalidMediaError("Facebook", "Video URL is required"));
   }
 
   return initializeReelUpload(profile).andThen(({ videoId, uploadUrl }) =>
@@ -410,31 +410,31 @@ const publishContent = (
   content: { content: PostContent[]; postId: string },
   profile: BaseProviderProfile
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
-  console.log('[Facebook] Starting content publish:', {
+  console.log("[Facebook] Starting content publish:", {
     contentLength: content.content.length,
     postId: content.postId,
   });
 
   const firstContent = content.content[0];
   if (!firstContent) {
-    console.error('[Facebook] No content to publish');
-    return errAsync(new InvalidMediaError('Facebook', 'No content to publish'));
+    console.error("[Facebook] No content to publish");
+    return errAsync(new InvalidMediaError("Facebook", "No content to publish"));
   }
 
   const validMedia = getValidMediaUrls(firstContent.media);
-  console.log('[Facebook] Valid media found:', validMedia.length);
+  console.log("[Facebook] Valid media found:", validMedia.length);
 
   // Process all media in parallel
   return ResultAsync.combine(
     validMedia.map((media) => processMedia(media, profile, firstContent.text))
   ).andThen((mediaIds) => {
-    console.log('[Facebook] Media processing complete:', { mediaIds });
+    console.log("[Facebook] Media processing complete:", { mediaIds });
 
     // Check if we have videos (reels are standalone)
-    const hasVideos = validMedia.some((media) => media.mediaType === 'VIDEO');
+    const hasVideos = validMedia.some((media) => media.mediaType === "VIDEO");
     console.log(
-      '[Facebook] Content type:',
-      hasVideos ? 'VIDEO/REEL' : 'PHOTO/TEXT'
+      "[Facebook] Content type:",
+      hasVideos ? "VIDEO/REEL" : "PHOTO/TEXT"
     );
 
     if (hasVideos && mediaIds.length > 0) {
@@ -446,14 +446,14 @@ const publishContent = (
         platformPostUrl: `https://www.facebook.com/${profile.profileId}/videos/${mediaIds[0]}`,
         postedAt: new Date(),
       };
-      console.log('[Facebook] Reel publish result:', result);
+      console.log("[Facebook] Reel publish result:", result);
       return okAsync(result);
     }
 
     // Create feed post for photos/text
     return createFeedPost(profile, firstContent.text, mediaIds).andThen(
       (postResponse) => {
-        console.log('[Facebook] Feed post created:', postResponse);
+        console.log("[Facebook] Feed post created:", postResponse);
         return getPostDetails(postResponse.id, profile.accessToken).map(
           (postDetails) => {
             const result = {
@@ -463,7 +463,7 @@ const publishContent = (
               platformPostUrl: postDetails.permalink_url,
               postedAt: new Date(),
             };
-            console.log('[Facebook] Feed post publish result:', result);
+            console.log("[Facebook] Feed post publish result:", result);
             return result;
           }
         );
@@ -485,14 +485,14 @@ export const facebookProvider: SocialProvider = {
     const params = new URLSearchParams({
       client_id: keys().FACEBOOK_CLIENT_ID,
       redirect_uri: keys().FACEBOOK_CALLBACK_URL,
-      response_type: 'code',
+      response_type: "code",
       scope: [
-        'public_profile',
-        'pages_show_list',
-        'pages_manage_posts',
-        'business_management',
-        'publish_video',
-      ].join(','),
+        "public_profile",
+        "pages_show_list",
+        "pages_manage_posts",
+        "business_management",
+        "publish_video",
+      ].join(","),
       state: JSON.stringify({ state: nanoid(10) }),
     });
 

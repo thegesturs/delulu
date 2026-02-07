@@ -1,18 +1,19 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
 import {
-  type MediaType,
   getFileType,
   getValidMediaUrls,
-} from '@delulu/validators/post';
-import axios from 'axios';
-import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
-import { Client, auth } from 'twitter-api-sdk';
-import { keys } from '../key';
-import type { PostContent, PostPublishResult } from './common-types';
+  type MediaType,
+} from "@delulu/validators/post";
+import axios from "axios";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
+import { auth, Client } from "twitter-api-sdk";
+import { keys } from "../key";
+import type { PostContent, PostPublishResult } from "./common-types";
 import {
   APIError,
+  createAPIError,
   MediaProcessingError,
   MediaProcessingTimeoutError,
   MediaUploadError,
@@ -22,9 +23,8 @@ import {
   ProfileNotFoundError,
   type SocialProviderError,
   TwitterError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 /**
  * Interface for a tweet in the thread
@@ -54,12 +54,12 @@ const getProfile = (
 ): ResultAsync<TwitterProfileData, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new TwitterError('Database query failed')
+    () => new TwitterError("Database query failed")
   ).andThen((profile) => {
     if (!profile?.accessToken) {
-      return err(new ProfileNotFoundError('Twitter'));
+      return err(new ProfileNotFoundError("Twitter"));
     }
     return ok({
       id: profile._id,
@@ -76,7 +76,7 @@ const getProfile = (
 const refreshAccessToken = (
   profile: TwitterProfileData
 ): ResultAsync<TwitterProfileData, SocialProviderError> => {
-  if (!profile.expiresIn || !profile.refreshToken) {
+  if (!(profile.expiresIn && profile.refreshToken)) {
     return okAsync(profile);
   }
 
@@ -86,25 +86,25 @@ const refreshAccessToken = (
 
   const bearerToken = Buffer.from(
     `${keys().TWITTER_CLIENT_ID}:${keys().TWITTER_CLIENT_SECRET}`
-  ).toString('base64');
+  ).toString("base64");
 
   return ResultAsync.fromPromise(
-    fetch('https://api.twitter.com/2/oauth2/token', {
-      method: 'POST',
+    fetch("https://api.twitter.com/2/oauth2/token", {
+      method: "POST",
       headers: {
         Authorization: `Basic ${bearerToken}`,
       },
       body: new URLSearchParams({
-        grant_type: 'refresh_token',
+        grant_type: "refresh_token",
         refresh_token: profile.refreshToken,
       }),
     }),
-    (_error) => new NetworkError('Twitter', 'token refresh')
+    (_error) => new NetworkError("Twitter", "token refresh")
   )
     .andThen((response) => {
       if (!response.ok) {
         return errAsync(
-          new APIError('Twitter', response.status, 'Token refresh failed')
+          new APIError("Twitter", response.status, "Token refresh failed")
         );
       }
       return ResultAsync.fromPromise(
@@ -113,7 +113,7 @@ const refreshAccessToken = (
           refresh_token: string;
           expires_in: number;
         }>,
-        (_error) => new TwitterError('Failed to parse token response')
+        (_error) => new TwitterError("Failed to parse token response")
       );
     })
     .andThen((data) => {
@@ -126,12 +126,12 @@ const refreshAccessToken = (
 
       return ResultAsync.fromPromise(
         convex.mutation(api.social_providers.updateSocialProvider, {
-          id: profile.id as Id<'socialProviders'>,
+          id: profile.id as Id<"socialProviders">,
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
           expiresIn: Date.now() + data.expires_in * 1000,
         }),
-        () => new TwitterError('Failed to update token in database')
+        () => new TwitterError("Failed to update token in database")
       ).map(() => updatedProfile);
     });
 };
@@ -143,7 +143,7 @@ const validateAndSortTweets = (
   content: PostContent[]
 ): ResultAsync<Tweet[], SocialProviderError> => {
   if (!content.length) {
-    return errAsync(new NoContentError('Twitter'));
+    return errAsync(new NoContentError("Twitter"));
   }
 
   const tweets: Tweet[] = content
@@ -172,11 +172,11 @@ const uploadMediaToTwitter = (
   > =>
     ResultAsync.fromPromise(
       axios({
-        method: 'get',
+        method: "get",
         url: fileUrl,
-        responseType: 'arraybuffer',
+        responseType: "arraybuffer",
       }),
-      (error) => createAPIError('Twitter', error)
+      (error) => createAPIError("Twitter", error)
     ).map((response) => ({
       buffer: Buffer.from(response.data),
       mimeType: getFileType(fileUrl),
@@ -184,13 +184,13 @@ const uploadMediaToTwitter = (
 
   // Get media category based on file type
   const getMediaCategory = (mimeType: string): string => {
-    if (mimeType.startsWith('image/')) {
-      return mimeType === 'image/gif' ? 'tweet_gif' : 'tweet_image';
+    if (mimeType.startsWith("image/")) {
+      return mimeType === "image/gif" ? "tweet_gif" : "tweet_image";
     }
-    if (mimeType.startsWith('video/')) {
-      return 'amplify_video';
+    if (mimeType.startsWith("video/")) {
+      return "amplify_video";
     }
-    return 'tweet_image';
+    return "tweet_image";
   };
 
   // Initialize media upload
@@ -208,35 +208,35 @@ const uploadMediaToTwitter = (
     };
 
     return ResultAsync.fromPromise(
-      fetch('https://api.twitter.com/2/media/upload/initialize', {
-        method: 'POST',
+      fetch("https://api.twitter.com/2/media/upload/initialize", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       }),
-      (_error) => new NetworkError('Twitter', 'media upload initialization')
+      (_error) => new NetworkError("Twitter", "media upload initialization")
     )
       .andThen((response) => {
         if (!response.ok) {
           return errAsync(
             new APIError(
-              'Twitter',
+              "Twitter",
               response.status,
-              'Media upload initialization failed'
+              "Media upload initialization failed"
             )
           );
         }
         return ResultAsync.fromPromise(
           response.json() as Promise<{ data: { id: string } }>,
           (_error) =>
-            new TwitterError('Failed to parse upload initialization response')
+            new TwitterError("Failed to parse upload initialization response")
         );
       })
       .andThen((data) => {
         if (!data.data?.id) {
-          return err(new MediaUploadError('Twitter', 'IMAGE'));
+          return err(new MediaUploadError("Twitter", "IMAGE"));
         }
         return ok({ mediaId: data.data.id });
       });
@@ -259,25 +259,25 @@ const uploadMediaToTwitter = (
       const chunk = fileBuffer.slice(start, end);
 
       const formData = new FormData();
-      formData.append('command', 'APPEND');
-      formData.append('media_id', mediaId);
-      formData.append('segment_index', segmentIndex.toString());
-      formData.append('media', new Blob([chunk], { type: mimeType }));
+      formData.append("command", "APPEND");
+      formData.append("media_id", mediaId);
+      formData.append("segment_index", segmentIndex.toString());
+      formData.append("media", new Blob([chunk], { type: mimeType }));
 
       return ResultAsync.fromPromise(
-        fetch('https://api.x.com/2/media/upload', {
-          method: 'POST',
+        fetch("https://api.x.com/2/media/upload", {
+          method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
           body: formData,
         }),
-        (_error) => new NetworkError('Twitter', 'chunk upload')
+        (_error) => new NetworkError("Twitter", "chunk upload")
       ).andThen((response) => {
         if (!response.ok) {
           return errAsync(
             new APIError(
-              'Twitter',
+              "Twitter",
               response.status,
               `Chunk upload failed for segment ${segmentIndex}`
             )
@@ -307,26 +307,26 @@ const uploadMediaToTwitter = (
     mediaId: string
   ): ResultAsync<{ processingRequired: boolean }, SocialProviderError> => {
     const formData = new FormData();
-    formData.append('command', 'FINALIZE');
-    formData.append('media_id', mediaId);
+    formData.append("command", "FINALIZE");
+    formData.append("media_id", mediaId);
 
     return ResultAsync.fromPromise(
-      fetch('https://api.x.com/2/media/upload', {
-        method: 'POST',
+      fetch("https://api.x.com/2/media/upload", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
         body: formData,
       }),
-      (_error) => new NetworkError('Twitter', 'media finalization')
+      (_error) => new NetworkError("Twitter", "media finalization")
     )
       .andThen((response) => {
         if (!response.ok) {
           return errAsync(
             new APIError(
-              'Twitter',
+              "Twitter",
               response.status,
-              'Media finalization failed'
+              "Media finalization failed"
             )
           );
         }
@@ -334,7 +334,7 @@ const uploadMediaToTwitter = (
           response.json() as Promise<{
             data: { processing_info?: { state: string } };
           }>,
-          (_error) => new TwitterError('Failed to parse finalization response')
+          (_error) => new TwitterError("Failed to parse finalization response")
         );
       })
       .map((data) => ({
@@ -351,23 +351,23 @@ const uploadMediaToTwitter = (
       SocialProviderError
     > => {
       const params = new URLSearchParams({
-        command: 'STATUS',
+        command: "STATUS",
         media_id: mediaId,
       });
 
       return ResultAsync.fromPromise(
         fetch(`https://api.x.com/2/media/upload?${params.toString()}`, {
-          method: 'GET',
+          method: "GET",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         }),
-        (_error) => new NetworkError('Twitter', 'status check')
+        (_error) => new NetworkError("Twitter", "status check")
       )
         .andThen((response) => {
           if (!response.ok) {
             return errAsync(
-              new APIError('Twitter', response.status, 'Status check failed')
+              new APIError("Twitter", response.status, "Status check failed")
             );
           }
           return ResultAsync.fromPromise(
@@ -379,7 +379,7 @@ const uploadMediaToTwitter = (
                 };
               };
             }>,
-            (_error) => new TwitterError('Failed to parse status response')
+            (_error) => new TwitterError("Failed to parse status response")
           );
         })
         .map((data) => {
@@ -389,9 +389,9 @@ const uploadMediaToTwitter = (
           }
 
           switch (processingInfo.state) {
-            case 'succeeded':
+            case "succeeded":
               return { isComplete: true, hasError: false };
-            case 'failed':
+            case "failed":
               return {
                 isComplete: true,
                 hasError: true,
@@ -405,10 +405,10 @@ const uploadMediaToTwitter = (
 
     const poll = async (attempts: number): Promise<void> => {
       const maxAttempts = 30;
-      const interval = 10000; // 10 seconds
+      const interval = 10_000; // 10 seconds
 
       if (attempts >= maxAttempts) {
-        throw new MediaProcessingTimeoutError('Twitter');
+        throw new MediaProcessingTimeoutError("Twitter");
       }
 
       const statusResult = await checkStatus();
@@ -420,7 +420,7 @@ const uploadMediaToTwitter = (
 
       if (status.isComplete) {
         if (status.hasError) {
-          throw new MediaProcessingError('Twitter', status.errorMessage);
+          throw new MediaProcessingError("Twitter", status.errorMessage);
         }
         return;
       }
@@ -489,10 +489,10 @@ const postFirstTweet = (
 
       return ResultAsync.fromPromise(
         client.tweets.createTweet(tweetData),
-        (error) => createAPIError('Twitter', error)
+        (error) => createAPIError("Twitter", error)
       ).andThen((response) => {
         if (!response.data?.id) {
-          return err(new PostCreationError('Twitter'));
+          return err(new PostCreationError("Twitter"));
         }
         return ok({ tweetId: response.data.id });
       });
@@ -535,7 +535,7 @@ const postThreadReplies = (
 
       const replyResult = await ResultAsync.fromPromise(
         client.tweets.createTweet(tweetData),
-        (error) => createAPIError('Twitter', error)
+        (error) => createAPIError("Twitter", error)
       );
 
       if (replyResult.isErr()) {
@@ -571,7 +571,7 @@ const publishTwitterThread = (
       platformPostId: tweetId,
       postId,
       platformId: profile.id,
-      platformPostUrl: `https://x.com/${profile.username ?? 'unknown'}/status/${tweetId}`,
+      platformPostUrl: `https://x.com/${profile.username ?? "unknown"}/status/${tweetId}`,
       postedAt: new Date(),
     }))
   );
@@ -586,18 +586,18 @@ const generateConnectUrl = (): string => {
       client_id: keys().TWITTER_CLIENT_ID,
       client_secret: keys().TWITTER_CLIENT_SECRET,
       callback: keys().TWITTER_CALLBACK_URL,
-      scopes: ['users.read', 'tweet.read', 'offline.access', 'tweet.write'],
+      scopes: ["users.read", "tweet.read", "offline.access", "tweet.write"],
     });
 
     const url = authClient.generateAuthURL({
       state: keys().TWITTER_STATE,
-      code_challenge_method: 'plain',
-      code_challenge: 'challenge',
+      code_challenge_method: "plain",
+      code_challenge: "challenge",
     });
 
     return url;
   } catch {
-    throw new TwitterError('Failed to generate OAuth URL');
+    throw new TwitterError("Failed to generate OAuth URL");
   }
 };
 

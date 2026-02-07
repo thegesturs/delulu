@@ -1,23 +1,23 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 
 import type {
   BaseProviderProfile,
   PostContent,
   PostPublishResult,
-} from './common-types';
+} from "./common-types";
 import {
+  createAPIError,
   MediaUploadError,
   NoContentError,
   ProfileNotFoundError,
   SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Bluesky API types
 interface BlueskyProfile extends BaseProviderProfile {
@@ -49,12 +49,12 @@ interface BlueskyAuthResponse {
 
 // Bluesky-specific error
 class BlueskyError extends SocialProviderError {
-  readonly code = 'BLUESKY_ERROR';
-  readonly provider = 'Bluesky';
+  readonly code = "BLUESKY_ERROR";
+  readonly provider = "Bluesky";
 
   constructor(message: string) {
     super(message);
-    this.name = 'BlueskyError';
+    this.name = "BlueskyError";
   }
 }
 
@@ -64,12 +64,12 @@ const getProfile = (
 ): ResultAsync<BlueskyProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new BlueskyError('Database query failed')
+    () => new BlueskyError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.profileId || !profile.refreshToken) {
-      return err(new ProfileNotFoundError('Bluesky'));
+    if (!(profile?.accessToken && profile.profileId && profile.refreshToken)) {
+      return err(new ProfileNotFoundError("Bluesky"));
     }
     return ok({
       id: profile._id,
@@ -101,30 +101,30 @@ const uploadMediaBlob = (
 ): ResultAsync<BlueskyBlobResponse, SocialProviderError> => {
   return ResultAsync.fromPromise(
     fetch(mediaUrl),
-    () => new MediaUploadError('Bluesky', 'IMAGE')
+    () => new MediaUploadError("Bluesky", "IMAGE")
   )
     .andThen((response) => {
       if (!response.ok) {
-        return errAsync(new MediaUploadError('Bluesky', 'IMAGE'));
+        return errAsync(new MediaUploadError("Bluesky", "IMAGE"));
       }
       return ResultAsync.fromPromise(
         response.arrayBuffer(),
-        () => new MediaUploadError('Bluesky', 'IMAGE')
+        () => new MediaUploadError("Bluesky", "IMAGE")
       );
     })
     .andThen((arrayBuffer) => {
       return ResultAsync.fromPromise(
         axios.post(
-          'https://bsky.social/xrpc/com.atproto.repo.uploadBlob',
+          "https://bsky.social/xrpc/com.atproto.repo.uploadBlob",
           arrayBuffer,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/octet-stream',
+              "Content-Type": "application/octet-stream",
             },
           }
         ),
-        (error) => createAPIError('Bluesky', error)
+        (error) => createAPIError("Bluesky", error)
       );
     })
     .map((response) => response.data);
@@ -137,12 +137,12 @@ interface FacetIndex {
 }
 
 interface LinkFeature {
-  $type: 'app.bsky.richtext.facet#link';
+  $type: "app.bsky.richtext.facet#link";
   uri: string;
 }
 
 interface MentionFeature {
-  $type: 'app.bsky.richtext.facet#mention';
+  $type: "app.bsky.richtext.facet#mention";
   did: string;
 }
 
@@ -179,7 +179,7 @@ const createRichText = (text: string): RichTextResult => {
       },
       features: [
         {
-          $type: 'app.bsky.richtext.facet#link',
+          $type: "app.bsky.richtext.facet#link",
           uri: urlMatch[0],
         },
       ],
@@ -208,7 +208,7 @@ const createRichText = (text: string): RichTextResult => {
       },
       features: [
         {
-          $type: 'app.bsky.richtext.facet#mention',
+          $type: "app.bsky.richtext.facet#mention",
           did: `at://${mentionMatch[0].substring(1)}`, // Remove @ and use as handle
         },
       ],
@@ -224,7 +224,7 @@ const createRichText = (text: string): RichTextResult => {
 
 // AT Protocol post record types
 interface BlueskyImageEmbed {
-  $type: 'app.bsky.embed.images';
+  $type: "app.bsky.embed.images";
   images: Array<{
     alt: string;
     image: {
@@ -242,7 +242,7 @@ interface BlueskyReply {
 }
 
 interface BlueskyPostRecord {
-  $type: 'app.bsky.feed.post';
+  $type: "app.bsky.feed.post";
   text: string;
   createdAt: string;
   facets?: RichTextFacet[];
@@ -268,7 +268,7 @@ const createPost = (
   return ResultAsync.combine(mediaUploadPromises)
     .andThen((mediaBlobs) => {
       const record: BlueskyPostRecord = {
-        $type: 'app.bsky.feed.post',
+        $type: "app.bsky.feed.post",
         text: richText.text,
         createdAt: new Date().toISOString(),
       };
@@ -290,7 +290,7 @@ const createPost = (
       if (mediaBlobs.length > 0) {
         if (mediaBlobs.length === 1) {
           record.embed = {
-            $type: 'app.bsky.embed.images',
+            $type: "app.bsky.embed.images",
             images: [
               {
                 alt: content.text.substring(0, 100), // Use first 100 chars as alt text
@@ -300,7 +300,7 @@ const createPost = (
           };
         } else {
           record.embed = {
-            $type: 'app.bsky.embed.images',
+            $type: "app.bsky.embed.images",
             images: mediaBlobs.map((blob) => ({
               alt: content.text.substring(0, 100),
               image: blob.blob,
@@ -311,20 +311,20 @@ const createPost = (
 
       return ResultAsync.fromPromise(
         axios.post(
-          'https://bsky.social/xrpc/com.atproto.repo.createRecord',
+          "https://bsky.social/xrpc/com.atproto.repo.createRecord",
           {
             repo: authResponse.did,
-            collection: 'app.bsky.feed.post',
+            collection: "app.bsky.feed.post",
             record,
           },
           {
             headers: {
               Authorization: `Bearer ${authResponse.accessJwt}`,
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           }
         ),
-        (error) => createAPIError('Bluesky', error)
+        (error) => createAPIError("Bluesky", error)
       );
     })
     .map((response) => response.data);
@@ -338,7 +338,7 @@ const publishContent = (
   const posts = content.content.sort((a, b) => a.order - b.order);
 
   if (posts.length === 0) {
-    return errAsync(new NoContentError('Bluesky'));
+    return errAsync(new NoContentError("Bluesky"));
   }
 
   return authenticateWithBluesky(profile).andThen((authResponse) => {
@@ -361,8 +361,8 @@ const publishContent = (
 
     return processSequentially(posts).map((postResponse) => {
       // Extract the record key from the AT-URI for the post URL
-      const uriParts = postResponse.uri.split('/');
-      const recordKey = uriParts.at(-1) || '';
+      const uriParts = postResponse.uri.split("/");
+      const recordKey = uriParts.at(-1) || "";
 
       return {
         platformPostId: postResponse.uri,
@@ -387,11 +387,11 @@ export const blueskyProvider: SocialProvider = {
   connectUrl: () => {
     // Bluesky OAuth URL - uses client metadata URL as client_id
     const params = new URLSearchParams({
-      client_id: 'https://delulu.social/oauth/bluesky-client.json', // Client metadata URL
-      redirect_uri: 'https://delulu.social/api/callback/bluesky',
-      response_type: 'code',
-      scope: 'atproto transition:generic',
-      code_challenge_method: 'S256',
+      client_id: "https://delulu.social/oauth/bluesky-client.json", // Client metadata URL
+      redirect_uri: "https://delulu.social/api/callback/bluesky",
+      response_type: "code",
+      scope: "atproto transition:generic",
+      code_challenge_method: "S256",
       // code_challenge would be generated dynamically in real implementation
     });
 

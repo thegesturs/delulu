@@ -2,7 +2,7 @@
  * Individual reel card component
  */
 
-import type { ReelData } from '../../shared/types';
+import type { ReelData } from "../../shared/types";
 
 interface ReelCardProps {
   reel: ReelData;
@@ -11,15 +11,15 @@ interface ReelCardProps {
 
 function formatMetric(value: number | undefined | null): string {
   if (value === undefined || value === null) {
-    return 'N/A';
+    return "N/A";
   }
 
   if (value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M`;
   }
 
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
   }
 
   return value.toString();
@@ -27,7 +27,7 @@ function formatMetric(value: number | undefined | null): string {
 
 export function ReelCard({ reel, rank }: ReelCardProps) {
   const handleClick = () => {
-    window.open(reel.url, '_blank');
+    window.open(reel.url, "_blank");
   };
 
   return (
@@ -40,20 +40,20 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
       {/* Thumbnail */}
       <div className="sorted-reel-thumbnail">
         {reel.thumbnailUrl ? (
-          <img src={reel.thumbnailUrl} alt={`Reel #${rank}`} loading="lazy" />
+          <img alt={`Reel #${rank}`} loading="lazy" src={reel.thumbnailUrl} />
         ) : (
           <div className="sorted-grid-placeholder">
             <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
               fill="none"
+              height="24"
               stroke="currentColor"
-              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="24"
             >
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <rect height="20" rx="5" ry="5" width="20" x="2" y="2" />
               <path d="M12 8v8" />
               <path d="M8 12h8" />
             </svg>
@@ -67,14 +67,14 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
           <div className="sorted-metric">
             <span className="sorted-metric-icon">
               <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
                 fill="none"
+                height="14"
                 stroke="currentColor"
-                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+                width="14"
               >
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
@@ -90,14 +90,14 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
           <div className="sorted-metric">
             <span className="sorted-metric-icon">
               <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
                 fill="none"
+                height="14"
                 stroke="currentColor"
-                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+                width="14"
               >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
@@ -112,14 +112,14 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
           <div className="sorted-metric">
             <span className="sorted-metric-icon">
               <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
                 fill="none"
+                height="14"
                 stroke="currentColor"
-                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+                width="14"
               >
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
               </svg>

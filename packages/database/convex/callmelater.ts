@@ -1,24 +1,24 @@
-'use node';
+"use node";
 
-import { v } from 'convex/values';
-import { internal } from './_generated/api';
-import { internalAction } from './_generated/server';
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
 
-const CALLMELATER_API_URL = 'https://api.callmelater.xyz';
+const CALLMELATER_API_URL = "https://api.callmelater.xyz";
 
 /**
  * CallMeLater API response types
  */
-type CallMeLaterScheduleResponse = {
+interface CallMeLaterScheduleResponse {
   scheduleId: string;
-};
+}
 
 /**
  * Schedule a post to be published at a specific time using CallMeLater API
  */
 export const schedulePostAction = internalAction({
   args: {
-    postId: v.id('posts'),
+    postId: v.id("posts"),
     scheduledAt: v.number(),
   },
   returns: v.null(),
@@ -27,25 +27,25 @@ export const schedulePostAction = internalAction({
     const convexSiteUrl = process.env.CONVEX_SITE_URL;
 
     if (!apiKey) {
-      throw new Error('CALLMELATER_API_KEY environment variable is not set');
+      throw new Error("CALLMELATER_API_KEY environment variable is not set");
     }
 
     if (!convexSiteUrl) {
-      throw new Error('CONVEX_SITE_URL environment variable is not set');
+      throw new Error("CONVEX_SITE_URL environment variable is not set");
     }
 
     try {
       const response = await fetch(`${CALLMELATER_API_URL}/schedule`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           targetUrl: `${convexSiteUrl}/publishPost`,
-          targetMethod: 'POST',
+          targetMethod: "POST",
           targetHeaders: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           targetBody: {
             postId: args.postId,
@@ -70,7 +70,7 @@ export const schedulePostAction = internalAction({
         scheduleId,
       });
     } catch (error) {
-      console.error('Error scheduling post with CallMeLater:', error);
+      console.error("Error scheduling post with CallMeLater:", error);
       throw error;
     }
   },
@@ -88,15 +88,15 @@ export const cancelScheduleAction = internalAction({
     const apiKey = process.env.CALLMELATER_API_KEY;
 
     if (!apiKey) {
-      throw new Error('CALLMELATER_API_KEY environment variable is not set');
+      throw new Error("CALLMELATER_API_KEY environment variable is not set");
     }
 
     try {
       const response = await fetch(`${CALLMELATER_API_URL}/schedule/cancel`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           scheduleId: args.scheduleId,
@@ -114,7 +114,7 @@ export const cancelScheduleAction = internalAction({
 
       return true;
     } catch (error) {
-      console.error('Error canceling schedule with CallMeLater:', error);
+      console.error("Error canceling schedule with CallMeLater:", error);
       // Don't throw error - we want the mutation to continue even if cancel fails
       return false;
     }

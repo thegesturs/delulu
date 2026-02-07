@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex-helpers/react/cache';
-import { useMutation } from 'convex/react';
-import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { AutomationFilters } from './automation-filters';
-import { AutomationList } from './automation-list';
-import { AutomationStats } from './automation-stats';
-import { AutomationsHeader } from './automations-header';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { AutomationFilters } from "./automation-filters";
+import { AutomationList } from "./automation-list";
+import { AutomationStats } from "./automation-stats";
+import { AutomationsHeader } from "./automations-header";
 
 export default function AutomationsClient() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterTrigger, setFilterTrigger] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterTrigger, setFilterTrigger] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   const automations = useQuery(api.automations.getAutomations, {});
   const isLoading = automations === undefined;
@@ -44,12 +44,12 @@ export default function AutomationsClient() {
           .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
-        filterStatus === 'all' ||
-        (filterStatus === 'active' && automation.isActive) ||
-        (filterStatus === 'inactive' && !automation.isActive);
+        filterStatus === "all" ||
+        (filterStatus === "active" && automation.isActive) ||
+        (filterStatus === "inactive" && !automation.isActive);
 
       const matchesTrigger =
-        filterTrigger === 'all' ||
+        filterTrigger === "all" ||
         automation.triggers.some((t) => t.triggerType === filterTrigger);
 
       return matchesSearch && matchesStatus && matchesTrigger;
@@ -75,22 +75,22 @@ export default function AutomationsClient() {
     };
   }, [automations]);
 
-  const handleDelete = async (automationId: Id<'automations'>) => {
+  const handleDelete = async (automationId: Id<"automations">) => {
     try {
       await deleteAutomationMutation({ id: automationId });
-      toast.success('Automation deleted successfully');
+      toast.success("Automation deleted successfully");
     } catch (error) {
-      toast.error('Failed to delete automation');
+      toast.error("Failed to delete automation");
       console.error(error);
     }
   };
 
-  const handleToggle = async (automationId: Id<'automations'>) => {
+  const handleToggle = async (automationId: Id<"automations">) => {
     try {
       const newState = await toggleAutomationMutation({ id: automationId });
-      toast.success(newState ? 'Automation enabled' : 'Automation disabled');
+      toast.success(newState ? "Automation enabled" : "Automation disabled");
     } catch (error) {
-      toast.error('Failed to toggle automation');
+      toast.error("Failed to toggle automation");
       console.error(error);
     }
   };
@@ -100,9 +100,9 @@ export default function AutomationsClient() {
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-2">
           <Icon
+            className="animate-spin text-muted-foreground"
             icon={Loading03Icon}
             size={20}
-            className="animate-spin text-muted-foreground"
           />
           <span className="text-muted-foreground">Loading automations...</span>
         </div>
@@ -114,24 +114,24 @@ export default function AutomationsClient() {
     <div className="h-screen bg-background">
       <div className="mx-auto flex max-w-6xl flex-col space-y-6 p-6">
         <AutomationsHeader
-          onCreateClick={() => router.push('/automations/new')}
+          onCreateClick={() => router.push("/automations/new")}
         />
         <AutomationStats stats={stats} />
         <AutomationFilters
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           filterStatus={filterStatus}
-          setFilterStatus={setFilterStatus}
           filterTrigger={filterTrigger}
+          searchQuery={searchQuery}
+          setFilterStatus={setFilterStatus}
           setFilterTrigger={setFilterTrigger}
-          viewMode={viewMode}
+          setSearchQuery={setSearchQuery}
           setViewMode={setViewMode}
+          viewMode={viewMode}
         />
         <AutomationList
           automations={filteredAutomations}
-          viewMode={viewMode}
           onDelete={handleDelete}
           onToggle={handleToggle}
+          viewMode={viewMode}
         />
       </div>
     </div>

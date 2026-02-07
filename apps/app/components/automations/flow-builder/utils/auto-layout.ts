@@ -1,5 +1,5 @@
-import type { Edge, Node } from '@xyflow/react';
-import type { AutomationStep, TriggerStep } from './flow-types';
+import type { Edge, Node } from "@xyflow/react";
+import type { AutomationStep, TriggerStep } from "./flow-types";
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 80;
@@ -13,7 +13,7 @@ interface LayoutNode {
   width: number;
   height: number;
   children: LayoutNode[];
-  branch?: 'yes' | 'no';
+  branch?: "yes" | "no";
 }
 
 /**
@@ -37,7 +37,7 @@ export function stepsToFlow(
     const trigger = triggers[i];
     nodes.push({
       id: trigger.id,
-      type: 'trigger',
+      type: "trigger",
       position: {
         x: triggerStartX + i * (NODE_WIDTH + HORIZONTAL_GAP),
         y: TRIGGER_SECTION_Y,
@@ -60,7 +60,7 @@ export function stepsToFlow(
         id: `edge-${trigger.id}-${trigger.nextStepId}`,
         source: trigger.id,
         target: trigger.nextStepId,
-        type: 'smoothstep',
+        type: "smoothstep",
       });
     }
   }
@@ -102,22 +102,22 @@ function buildLayoutTree(
     children: [],
   };
 
-  if (step.type === 'condition') {
+  if (step.type === "condition") {
     if (step.yesStepId) {
       const yesChild = buildLayoutTree(step.yesStepId, stepMap, visited);
       if (yesChild) {
-        yesChild.branch = 'yes';
+        yesChild.branch = "yes";
         node.children.push(yesChild);
       }
     }
     if (step.noStepId) {
       const noChild = buildLayoutTree(step.noStepId, stepMap, visited);
       if (noChild) {
-        noChild.branch = 'no';
+        noChild.branch = "no";
         node.children.push(noChild);
       }
     }
-  } else if (step.type === 'send_dm' && step.nextStepId) {
+  } else if (step.type === "send_dm" && step.nextStepId) {
     const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
     if (nextChild) {
       node.children.push(nextChild);
@@ -162,7 +162,7 @@ function layoutStepTree(
       return;
     }
 
-    const nodeType = step.type === 'condition' ? 'condition' : 'send_dm';
+    const nodeType = step.type === "condition" ? "condition" : "send_dm";
     nodes.push({
       id: step.id,
       type: nodeType,
@@ -170,15 +170,15 @@ function layoutStepTree(
       data: { step },
     });
 
-    if (step.type === 'condition') {
+    if (step.type === "condition") {
       if (step.yesStepId) {
         edges.push({
           id: `edge-${step.id}-yes-${step.yesStepId}`,
           source: step.id,
           target: step.yesStepId,
-          sourceHandle: 'yes',
-          type: 'smoothstep',
-          label: 'Yes',
+          sourceHandle: "yes",
+          type: "smoothstep",
+          label: "Yes",
         });
         walk(step.yesStepId, visited);
       }
@@ -187,18 +187,18 @@ function layoutStepTree(
           id: `edge-${step.id}-no-${step.noStepId}`,
           source: step.id,
           target: step.noStepId,
-          sourceHandle: 'no',
-          type: 'smoothstep',
-          label: 'No',
+          sourceHandle: "no",
+          type: "smoothstep",
+          label: "No",
         });
         walk(step.noStepId, visited);
       }
-    } else if (step.type === 'send_dm' && step.nextStepId) {
+    } else if (step.type === "send_dm" && step.nextStepId) {
       edges.push({
         id: `edge-${step.id}-${step.nextStepId}`,
         source: step.id,
         target: step.nextStepId,
-        type: 'smoothstep',
+        type: "smoothstep",
       });
       walk(step.nextStepId, visited);
     }
@@ -237,7 +237,7 @@ function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
     node.position = { x, y: currentY };
     const step = node.data.step as AutomationStep;
 
-    if (step.type === 'condition') {
+    if (step.type === "condition") {
       const nextY = currentY + NODE_HEIGHT + VERTICAL_GAP;
       const hasYes = step.yesStepId && nodeMap.has(step.yesStepId);
       const hasNo = step.noStepId && nodeMap.has(step.noStepId);
@@ -259,7 +259,7 @@ function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
     }
 
     if (
-      step.type === 'send_dm' &&
+      step.type === "send_dm" &&
       step.nextStepId &&
       nodeMap.has(step.nextStepId)
     ) {

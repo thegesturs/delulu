@@ -1,13 +1,13 @@
 //@ts-nocheck
 
-'use client';
+"use client";
 
-import { cn } from '@delulu/design-system/lib/utils';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import type React from 'react';
-import { useCallback, useMemo, useRef } from 'react';
-import * as THREE from 'three';
-import '@react-three/fiber';
+import { cn } from "@delulu/design-system/lib/utils";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import type React from "react";
+import { useCallback, useMemo, useRef } from "react";
+import * as THREE from "three";
+import "@react-three/fiber";
 
 export const CanvasRevealEffect = ({
   animationSpeed = 0.4,
@@ -26,10 +26,11 @@ export const CanvasRevealEffect = ({
 }) => {
   return (
     <div
-      className={cn('relative h-full w-full bg-background', containerClassName)}
+      className={cn("relative h-full w-full bg-background", containerClassName)}
     >
       <div className="h-full w-full">
         <DotMatrix
+          center={["x", "y"]}
           colors={colors ?? [[0, 255, 255]]}
           dotSize={dotSize ?? 3}
           opacities={
@@ -41,7 +42,6 @@ export const CanvasRevealEffect = ({
               opacity *= step(intro_offset, u_time * animation_speed_factor);
               opacity *= clamp((1.0 - step(intro_offset + 0.1, u_time * animation_speed_factor)) * 1.25, 1.0, 1.25);
             `}
-          center={['x', 'y']}
         />
       </div>
       {showGradient && (
@@ -57,7 +57,7 @@ interface DotMatrixProps {
   totalSize?: number;
   dotSize?: number;
   shader?: string;
-  center?: ('x' | 'y')[];
+  center?: ("x" | "y")[];
 }
 
 const DotMatrix: React.FC<DotMatrixProps> = ({
@@ -65,8 +65,8 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   opacities = [0.04, 0.04, 0.04, 0.04, 0.04, 0.08, 0.08, 0.08, 0.08, 0.14],
   totalSize = 4,
   dotSize = 2,
-  shader = '',
-  center = ['x', 'y'],
+  shader = "",
+  center = ["x", "y"],
 }) => {
   const uniforms = useMemo(() => {
     let colorsArray = new Array(6).fill(colors[0]);
@@ -86,16 +86,17 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
     return {
       u_colors: {
         value: colorsArray.map((color) => color.map((c: number) => c / 255)),
-        type: 'uniform3fv',
+        type: "uniform3fv",
       },
-      u_opacities: { value: opacities, type: 'uniform1fv' },
-      u_total_size: { value: totalSize, type: 'uniform1f' },
-      u_dot_size: { value: dotSize, type: 'uniform1f' },
+      u_opacities: { value: opacities, type: "uniform1fv" },
+      u_total_size: { value: totalSize, type: "uniform1f" },
+      u_dot_size: { value: dotSize, type: "uniform1f" },
     };
   }, [colors, opacities, totalSize, dotSize]);
 
   return (
     <Shader
+      maxFps={60}
       source={`
         precision mediump float;
         in vec2 fragCoord;
@@ -116,8 +117,8 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
         }
         void main() {
             vec2 st = fragCoord.xy;
-            ${center.includes('x') ? 'st.x -= abs(floor((mod(u_resolution.x, u_total_size) - u_dot_size) * 0.5));' : ''}
-            ${center.includes('y') ? 'st.y -= abs(floor((mod(u_resolution.y, u_total_size) - u_dot_size) * 0.5));' : ''}
+            ${center.includes("x") ? "st.x -= abs(floor((mod(u_resolution.x, u_total_size) - u_dot_size) * 0.5));" : ""}
+            ${center.includes("y") ? "st.y -= abs(floor((mod(u_resolution.y, u_total_size) - u_dot_size) * 0.5));" : ""}
       float opacity = step(0.0, st.x);
       opacity *= step(0.0, st.y);
 
@@ -138,17 +139,16 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
       fragColor.rgb *= fragColor.a;
         }`}
       uniforms={uniforms}
-      maxFps={60}
     />
   );
 };
 
-type Uniforms = {
+interface Uniforms {
   [key: string]: {
     value: number[] | number[][] | number;
     type: string;
   };
-};
+}
 
 const ShaderMaterial = ({
   source,
@@ -194,25 +194,25 @@ const ShaderMaterial = ({
 
     for (const [uniformName, uniform] of Object.entries(uniforms)) {
       switch (uniform.type) {
-        case 'uniform1f':
+        case "uniform1f":
           preparedUniforms[uniformName] = { value: uniform.value };
           break;
-        case 'uniform3f':
+        case "uniform3f":
           preparedUniforms[uniformName] = {
             value: new THREE.Vector3().fromArray(uniform.value as number[]),
           };
           break;
-        case 'uniform1fv':
+        case "uniform1fv":
           preparedUniforms[uniformName] = { value: uniform.value };
           break;
-        case 'uniform3fv':
+        case "uniform3fv":
           preparedUniforms[uniformName] = {
             value: (uniform.value as number[][]).map((v) =>
               new THREE.Vector3().fromArray(v)
             ),
           };
           break;
-        case 'uniform2f':
+        case "uniform2f":
           preparedUniforms[uniformName] = {
             value: new THREE.Vector2().fromArray(uniform.value as number[]),
           };
@@ -254,7 +254,7 @@ const ShaderMaterial = ({
   return (
     <mesh ref={ref}>
       <planeGeometry args={[2, 2]} />
-      <primitive object={material} attach="material" />
+      <primitive attach="material" object={material} />
     </mesh>
   );
 };
@@ -268,7 +268,7 @@ interface ShaderProps {
 const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
   return (
     <Canvas className="absolute inset-0 h-full w-full">
-      <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
+      <ShaderMaterial maxFps={maxFps} source={source} uniforms={uniforms} />
     </Canvas>
   );
 };

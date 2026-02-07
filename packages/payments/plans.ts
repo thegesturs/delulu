@@ -9,7 +9,7 @@
  * Note: Pricing matches production environment ($9.90/$99.0 for VIBE)
  */
 
-export type PlanType = 'FREE' | 'VIBE' | 'ECHO';
+export type PlanType = "FREE" | "VIBE" | "ECHO";
 
 export interface PlanLimits {
   socialAccounts: number; // Number of connected social media accounts
@@ -47,9 +47,9 @@ export interface Plan {
  */
 export const PLANS: Record<PlanType, Plan> = {
   FREE: {
-    id: 'FREE',
-    name: 'Free',
-    description: 'Perfect for getting started with social media management',
+    id: "FREE",
+    name: "Free",
+    description: "Perfect for getting started with social media management",
     price: {
       monthly: 0,
       yearly: 0,
@@ -72,9 +72,9 @@ export const PLANS: Record<PlanType, Plan> = {
     },
   },
   ECHO: {
-    id: 'ECHO',
-    name: 'Echo',
-    description: 'Great for individuals and small businesses',
+    id: "ECHO",
+    name: "Echo",
+    description: "Great for individuals and small businesses",
     price: {
       monthly: 4.99,
       yearly: 49, // Save 17%
@@ -97,9 +97,9 @@ export const PLANS: Record<PlanType, Plan> = {
     },
   },
   VIBE: {
-    id: 'VIBE',
-    name: 'Vibe',
-    description: 'Unlimited power for professionals and teams',
+    id: "VIBE",
+    name: "Vibe",
+    description: "Unlimited power for professionals and teams",
     price: {
       monthly: 9.99,
       yearly: 99.0, // Save 17%
@@ -187,7 +187,7 @@ export function getRemainingLimit(
  * Get the next tier up from current plan
  */
 export function getNextTier(currentPlan: PlanType): PlanType | null {
-  const tiers: PlanType[] = ['FREE', 'ECHO', 'VIBE'];
+  const tiers: PlanType[] = ["FREE", "ECHO", "VIBE"];
   const currentIndex = tiers.indexOf(currentPlan);
 
   if (currentIndex === -1 || currentIndex === tiers.length - 1) {
@@ -202,7 +202,7 @@ export function getNextTier(currentPlan: PlanType): PlanType | null {
  */
 export function formatPrice(amount: number): string {
   if (amount === 0) {
-    return 'Free';
+    return "Free";
   }
   return `$${amount}`;
 }

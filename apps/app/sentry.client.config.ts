@@ -1,3 +1,3 @@
-import { initializeSentry } from '@delulu/observability/client';
+import { initializeSentry } from "@delulu/observability/client";
 
 initializeSentry();

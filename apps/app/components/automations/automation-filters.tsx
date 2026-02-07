@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Input } from '@delulu/design-system/components/ui/input';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Input } from "@delulu/design-system/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@delulu/design-system/components/ui/select';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/select";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   GridViewIcon,
   Menu01Icon,
   Search01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
+} from "@hugeicons-pro/core-solid-rounded";
 
 interface AutomationFiltersProps {
   searchQuery: string;
@@ -23,8 +23,8 @@ interface AutomationFiltersProps {
   setFilterStatus: (value: string) => void;
   filterTrigger: string;
   setFilterTrigger: (value: string) => void;
-  viewMode: 'grid' | 'list';
-  setViewMode: (value: 'grid' | 'list') => void;
+  viewMode: "grid" | "list";
+  setViewMode: (value: "grid" | "list") => void;
 }
 
 export function AutomationFilters({
@@ -43,20 +43,20 @@ export function AutomationFilters({
         {/* Search */}
         <div className="relative flex-1 sm:max-w-xs">
           <Icon
+            className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
             icon={Search01Icon}
             size={16}
-            className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground"
           />
           <Input
+            className="pl-9"
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search automations..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
           />
         </div>
 
         {/* Status Filter */}
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
+        <Select onValueChange={setFilterStatus} value={filterStatus}>
           <SelectTrigger className="w-full sm:w-32">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -68,7 +68,7 @@ export function AutomationFilters({
         </Select>
 
         {/* Trigger Type Filter */}
-        <Select value={filterTrigger} onValueChange={setFilterTrigger}>
+        <Select onValueChange={setFilterTrigger} value={filterTrigger}>
           <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="Trigger" />
           </SelectTrigger>
@@ -84,18 +84,18 @@ export function AutomationFilters({
       {/* View Mode Toggle */}
       <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
         <Button
-          variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('list')}
           className="h-8 px-3"
+          onClick={() => setViewMode("list")}
+          size="sm"
+          variant={viewMode === "list" ? "secondary" : "ghost"}
         >
           <Icon icon={Menu01Icon} size={16} />
         </Button>
         <Button
-          variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('grid')}
           className="h-8 px-3"
+          onClick={() => setViewMode("grid")}
+          size="sm"
+          variant={viewMode === "grid" ? "secondary" : "ghost"}
         >
           <Icon icon={GridViewIcon} size={16} />
         </Button>

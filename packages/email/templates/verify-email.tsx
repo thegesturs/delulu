@@ -9,11 +9,11 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components';
+} from "@react-email/components";
 
-type VerifyEmailProps = {
+interface VerifyEmailProps {
   readonly url: string;
-};
+}
 
 export const VerifyEmail = ({ url }: VerifyEmailProps) => (
   <Tailwind>

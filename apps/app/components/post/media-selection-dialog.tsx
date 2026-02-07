@@ -1,38 +1,37 @@
-'use client';
+"use client";
 
-import { Icon } from '@delulu/design-system/providers/icon';
-import {
-  Image01Icon,
-  Search01Icon,
-  VideoIcon,
-} from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex/react';
-import { motion } from 'motion/react';
-import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-import {
-  canAddMediaType,
-  getDynamicMediaLimits,
-  getMediaCountInstruction,
-} from '@/lib/platform-rules';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@delulu/design-system/components/ui/dialog';
-import { Input } from '@delulu/design-system/components/ui/input';
-import { cn } from '@delulu/design-system/lib/utils';
-import type { SocialType } from '@delulu/validators/post';
+} from "@delulu/design-system/components/ui/dialog";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { SocialType } from "@delulu/validators/post";
+import {
+  Image01Icon,
+  Search01Icon,
+  VideoIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex/react";
+import { motion } from "motion/react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  canAddMediaType,
+  getDynamicMediaLimits,
+  getMediaCountInstruction,
+} from "@/lib/platform-rules";
 
 interface MediaItem {
   id: string;
   url: string;
   bucketKey: string;
-  mediaType: 'IMAGE' | 'VIDEO';
+  mediaType: "IMAGE" | "VIDEO";
   originalFilename?: string | null;
   size?: number | null;
   extension?: string | null;
@@ -89,39 +88,40 @@ function MediaGrid({
       return;
     }
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
   return (
-    <div ref={containerRef} className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto" ref={containerRef}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {filteredMedia.map((media) => {
           const isSelected = selectedMedia.some((m) => m.id === media.id);
           const canSelect =
             !isSelected &&
-            ((media.mediaType === 'IMAGE' && canSelectImages) ||
-              (media.mediaType === 'VIDEO' && canSelectVideos));
+            ((media.mediaType === "IMAGE" && canSelectImages) ||
+              (media.mediaType === "VIDEO" && canSelectVideos));
 
           return (
             <motion.div
-              key={media.id}
-              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className={cn(
-                'group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted',
+                "group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted",
                 {
-                  'cursor-pointer border-primary': isSelected,
-                  'cursor-pointer border-border hover:border-input':
+                  "cursor-pointer border-primary": isSelected,
+                  "cursor-pointer border-border hover:border-input":
                     canSelect && !isSelected,
-                  'cursor-not-allowed border-border opacity-50':
-                    !canSelect && !isSelected,
+                  "cursor-not-allowed border-border opacity-50": !(
+                    canSelect || isSelected
+                  ),
                 }
               )}
+              initial={{ opacity: 0, scale: 0.9 }}
+              key={media.id}
               onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
               onMouseEnter={(e) => {
-                if (media.mediaType === 'VIDEO') {
-                  const video = e.currentTarget.querySelector('video');
+                if (media.mediaType === "VIDEO") {
+                  const video = e.currentTarget.querySelector("video");
                   if (video) {
                     video.play().catch(() => {
                       // Ignore play errors
@@ -130,8 +130,8 @@ function MediaGrid({
                 }
               }}
               onMouseLeave={(e) => {
-                if (media.mediaType === 'VIDEO') {
-                  const video = e.currentTarget.querySelector('video');
+                if (media.mediaType === "VIDEO") {
+                  const video = e.currentTarget.querySelector("video");
                   if (video) {
                     video.pause();
                     video.currentTime = 0;
@@ -139,27 +139,27 @@ function MediaGrid({
                 }
               }}
             >
-              {media.mediaType === 'IMAGE' ? (
+              {media.mediaType === "IMAGE" ? (
                 <Image
-                  src={media.url}
-                  alt={media.altText || 'Media'}
-                  fill
+                  alt={media.altText || "Media"}
                   className="object-cover"
+                  fill
                   sizes="(max-width: 768px) 25vw, 200px"
+                  src={media.url}
                 />
               ) : (
                 <div className="relative h-full w-full">
                   <video
-                    src={media.url}
                     className="h-full w-full object-cover"
-                    muted
                     loop
+                    muted
                     playsInline
                     preload="metadata"
+                    src={media.url}
                   />
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
                     <div className="rounded-full bg-black bg-opacity-50 p-2">
-                      <Icon icon={VideoIcon} size={16} className="text-white" />
+                      <Icon className="text-white" icon={VideoIcon} size={16} />
                     </div>
                   </div>
                 </div>
@@ -174,9 +174,9 @@ function MediaGrid({
                     viewBox="0 0 20 20"
                   >
                     <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                       clipRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      fillRule="evenodd"
                     />
                   </svg>
                 </div>
@@ -184,7 +184,7 @@ function MediaGrid({
 
               {/* Media type indicator */}
               <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
-                {media.mediaType === 'IMAGE' ? (
+                {media.mediaType === "IMAGE" ? (
                   <Icon icon={Image01Icon} size={12} />
                 ) : (
                   <Icon icon={VideoIcon} size={12} />
@@ -206,7 +206,7 @@ export function MediaSelectionDialog({
   currentMedia,
 }: MediaSelectionDialogProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [cursor, setCursor] = useState<number | null>(null);
   const [accumulatedMedia, setAccumulatedMedia] = useState<MediaItem[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -224,7 +224,7 @@ export function MediaSelectionDialog({
           limit: 50,
           cursor: cursor ?? undefined,
         }
-      : 'skip'
+      : "skip"
   );
 
   const isLoading = mediaQuery === undefined;
@@ -288,10 +288,10 @@ export function MediaSelectionDialog({
   // Filter media based on platform constraints
   const filteredMedia = allMedia.filter((media) => {
     // Filter by what can still be added
-    if (media.mediaType === 'IMAGE' && !canAddImages) {
+    if (media.mediaType === "IMAGE" && !canAddImages) {
       return false;
     }
-    if (media.mediaType === 'VIDEO' && !canAddVideos) {
+    if (media.mediaType === "VIDEO" && !canAddVideos) {
       return false;
     }
 
@@ -356,7 +356,7 @@ export function MediaSelectionDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog onOpenChange={onClose} open={isOpen}>
       <DialogContent className="max-h-[85vh] max-w-6xl">
         <DialogHeader>
           <DialogTitle>Select from Your Media Library</DialogTitle>
@@ -366,15 +366,15 @@ export function MediaSelectionDialog({
           {/* Search */}
           <div className="relative">
             <Icon
+              className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
               icon={Search01Icon}
               size={16}
-              className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground"
             />
             <Input
+              className="pl-10"
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search media..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
             />
           </div>
 
@@ -397,15 +397,15 @@ export function MediaSelectionDialog({
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <Icon
+                    className="mx-auto mb-4 text-muted-foreground"
                     icon={Image01Icon}
                     size={48}
-                    className="mx-auto mb-4 text-muted-foreground"
                   />
                   <p className="text-muted-foreground">No media found</p>
                   <p className="mt-2 text-muted-foreground text-sm">
                     {searchQuery
-                      ? 'Try a different search term'
-                      : 'Upload some media first'}
+                      ? "Try a different search term"
+                      : "Upload some media first"}
                   </p>
                 </div>
               </div>
@@ -413,12 +413,12 @@ export function MediaSelectionDialog({
             {filteredMedia.length > 0 && (
               <>
                 <MediaGrid
-                  filteredMedia={filteredMedia}
-                  selectedMedia={selectedMedia}
                   canSelectImages={canAddImages}
                   canSelectVideos={canAddVideos}
+                  filteredMedia={filteredMedia}
                   onMediaSelect={handleMediaSelect}
                   onScrollEnd={loadMore}
+                  selectedMedia={selectedMedia}
                 />
 
                 {/* Loading indicator for pagination */}
@@ -450,12 +450,12 @@ export function MediaSelectionDialog({
             {selectedMedia.length} of {maxSelectable} selected
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button onClick={onClose} variant="outline">
               Cancel
             </Button>
             <Button
-              onClick={handleConfirm}
               disabled={selectedMedia.length === 0}
+              onClick={handleConfirm}
             >
               Select ({selectedMedia.length})
             </Button>

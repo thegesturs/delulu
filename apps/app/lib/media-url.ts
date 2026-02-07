@@ -9,11 +9,11 @@ export function getMediaUrl(
 ): string {
   // If no bucketKey, use fallback URL or empty string
   if (!bucketKey) {
-    return fallbackUrl || '';
+    return fallbackUrl || "";
   }
 
   // Environment-aware URL generation
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (isProduction) {
     return `https://media.delulu.social/${bucketKey}`;

@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import type { UpcomingPost } from '@/types/convex';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { useRouter } from 'next/navigation';
+} from "@delulu/design-system/components/ui/card";
+import { useRouter } from "next/navigation";
+import type { UpcomingPost } from "@/types/convex";
 
 interface UpcomingScheduleProps {
   upcomingPosts: UpcomingPost[];
@@ -33,21 +33,21 @@ export function UpcomingSchedule({ upcomingPosts }: UpcomingScheduleProps) {
         <div className="space-y-3">
           {upcomingPosts.slice(0, 5).map((post) => (
             <div
-              key={post._id}
               className="flex items-center justify-between rounded bg-muted/50 p-3"
+              key={post._id}
             >
               <div className="flex-1">
                 <div className="mb-1 flex items-center space-x-2">
                   <p className="font-medium text-sm">
-                    {post.content?.[0]?.text?.slice(0, 50) || 'No content'}...
+                    {post.content?.[0]?.text?.slice(0, 50) || "No content"}...
                   </p>
                   <div className="flex space-x-1">
                     {post.socialProviders.slice(0, 3).map((provider) =>
                       provider ? (
                         <Badge
+                          className="text-xs"
                           key={provider._id}
                           variant="secondary"
-                          className="text-xs"
                         >
                           {provider.socialType}
                         </Badge>
@@ -58,13 +58,13 @@ export function UpcomingSchedule({ upcomingPosts }: UpcomingScheduleProps) {
                 <p className="text-muted-foreground text-xs">
                   {post.scheduledAt
                     ? new Date(post.scheduledAt).toLocaleString()
-                    : 'No date set'}
+                    : "No date set"}
                 </p>
               </div>
               <Button
+                onClick={() => router.push(`/post/${post._id}/edit`)}
                 size="sm"
                 variant="ghost"
-                onClick={() => router.push(`/post/${post._id}/edit`)}
               >
                 Edit
               </Button>
@@ -72,9 +72,9 @@ export function UpcomingSchedule({ upcomingPosts }: UpcomingScheduleProps) {
           ))}
           {upcomingPosts.length > 5 && (
             <Button
-              variant="outline"
               className="mt-2 w-full"
-              onClick={() => router.push('/calendar')}
+              onClick={() => router.push("/calendar")}
+              variant="outline"
             >
               View full schedule ({upcomingPosts.length} posts)
             </Button>

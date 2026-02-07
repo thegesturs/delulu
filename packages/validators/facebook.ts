@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Facebook Page Picture Data Schema
@@ -65,7 +65,7 @@ export const FacebookPageConnectionSchema = z.object({
  * Facebook Page Connection Response Schema
  */
 export const FacebookPageConnectionResponseSchema = z.object({
-  status: z.enum(['connected', 'transferred']),
+  status: z.enum(["connected", "transferred"]),
 });
 
 // Export TypeScript types derived from Zod schemas

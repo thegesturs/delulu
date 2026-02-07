@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { PostSelector } from '@/components/automations/post-selector';
+import { PostSelector } from "@/components/automations/post-selector";
 
 interface PostSelectorStepProps {
   socialProviderId: string;
@@ -22,9 +22,9 @@ export function PostSelectorStep({
         </p>
       </div>
       <PostSelector
-        socialProviderId={socialProviderId}
-        selectedPostIds={selectedPostIds}
         onSelectionChange={onSelectionChange}
+        selectedPostIds={selectedPostIds}
+        socialProviderId={socialProviderId}
       />
     </div>
   );

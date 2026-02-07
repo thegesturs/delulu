@@ -2,13 +2,13 @@
  * Popup UI - Status and Info
  */
 
-import { useEffect, useState } from 'react';
-import { isReelsTab } from '../content/utils/url-detector';
-import './App.css';
+import { useEffect, useState } from "react";
+import { isReelsTab } from "../content/utils/url-detector";
+import "./App.css";
 
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [currentUrl, setCurrentUrl] = useState("");
 
   useEffect(() => {
     // Check current tab
@@ -32,8 +32,8 @@ function App() {
           <span>by</span>
           <a
             href="https://delulu.social"
-            target="_blank"
             rel="noopener noreferrer"
+            target="_blank"
           >
             delulu.social
           </a>
@@ -42,7 +42,7 @@ function App() {
 
       {/* Content */}
       <div className="popup-content">
-        <div className={`popup-status ${isOnReelsTab ? 'active' : ''}`}>
+        <div className={`popup-status ${isOnReelsTab ? "active" : ""}`}>
           {isOnReelsTab ? (
             <>
               <div className="popup-status-icon">✅</div>
@@ -80,7 +80,7 @@ function App() {
           <details className="popup-debug">
             <summary>Debug Info</summary>
             <p className="popup-url">{currentUrl}</p>
-            <p>Is Reels Tab: {isOnReelsTab ? 'Yes' : 'No'}</p>
+            <p>Is Reels Tab: {isOnReelsTab ? "Yes" : "No"}</p>
           </details>
         )}
       </div>

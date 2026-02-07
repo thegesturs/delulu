@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/tooltip";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add01Icon,
   InformationCircleIcon,
-} from '@hugeicons-pro/core-solid-rounded';
+} from "@hugeicons-pro/core-solid-rounded";
 
 interface AutomationsHeaderProps {
   onCreateClick: () => void;
@@ -32,11 +32,11 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button className="h-6 w-6" size="icon" variant="ghost">
                 <Icon
+                  className="text-muted-foreground"
                   icon={InformationCircleIcon}
                   size={16}
-                  className="text-muted-foreground"
                 />
               </Button>
             </TooltipTrigger>
@@ -50,7 +50,7 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
           </Tooltip>
         </TooltipProvider>
       </div>
-      <Button onClick={onCreateClick} className="gap-2">
+      <Button className="gap-2" onClick={onCreateClick}>
         <Icon icon={Add01Icon} size={16} />
         Create Automation
       </Button>
