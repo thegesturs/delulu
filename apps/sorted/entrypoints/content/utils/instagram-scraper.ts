@@ -7,14 +7,17 @@
  * The scraper attempts multiple fallback strategies for robustness.
  */
 
-import type { ReelData, ReelMetrics } from '../../shared/types';
-import { INSTAGRAM_SELECTORS, ERROR_MESSAGES } from '../../shared/constants';
-import { getCachedMetrics } from './graphql-interceptor';
+import { ERROR_MESSAGES, INSTAGRAM_SELECTORS } from "../../shared/constants";
+import type { ReelData } from "../../shared/types";
+import { getCachedMetrics } from "./graphql-interceptor";
 
 /**
  * Try multiple selectors until one returns an element
  */
-function trySelectors(container: Element, selectors: readonly string[]): Element | null {
+function trySelectors(
+  container: Element,
+  selectors: readonly string[]
+): Element | null {
   for (const selector of selectors) {
     try {
       const element = container.querySelector(selector);
@@ -32,7 +35,10 @@ function trySelectors(container: Element, selectors: readonly string[]): Element
 /**
  * Try multiple selectors until one returns elements
  */
-function trySelectorsAll(container: Element | Document, selectors: readonly string[]): Element[] {
+function trySelectorsAll(
+  container: Element | Document,
+  selectors: readonly string[]
+): Element[] {
   for (const selector of selectors) {
     try {
       const elements = Array.from(container.querySelectorAll(selector));
@@ -49,11 +55,15 @@ function trySelectorsAll(container: Element | Document, selectors: readonly stri
 
 // DOM metric extraction removed - we now use GraphQL interceptor exclusively
 
+// Top-level regex patterns for performance
+const REEL_ID_REGEX = /\/reel\/([^/?]+)/;
+const URL_MATCH_REGEX = /url\(['"]?([^'"]+)['"]?\)/;
+
 /**
  * Extract reel ID from URL
  */
 function extractReelId(url: string): string | null {
-  const match = url.match(/\/reel\/([^\/\?]+)/);
+  const match = url.match(REEL_ID_REGEX);
   return match ? match[1] : null;
 }
 
@@ -63,44 +73,49 @@ function extractReelId(url: string): string | null {
 export function scrapeReelElement(reelElement: Element): ReelData | null {
   try {
     // Find the link element
-    const linkElement = trySelectors(reelElement, INSTAGRAM_SELECTORS.REEL_LINK);
+    const linkElement = trySelectors(
+      reelElement,
+      INSTAGRAM_SELECTORS.REEL_LINK
+    );
     if (!linkElement) {
-      console.warn('No link found in reel element', reelElement);
+      console.warn("No link found in reel element", reelElement);
       return null;
     }
 
-    const href = linkElement.getAttribute('href');
+    const href = linkElement.getAttribute("href");
     if (!href) {
-      console.warn('Link has no href', linkElement);
+      console.warn("Link has no href", linkElement);
       return null;
     }
 
     // Construct full URL
-    const url = href.startsWith('http')
+    const url = href.startsWith("http")
       ? href
       : `https://www.instagram.com${href}`;
 
     // Extract reel ID
     const id = extractReelId(url);
     if (!id) {
-      console.warn('Could not extract reel ID from URL', url);
+      console.warn("Could not extract reel ID from URL", url);
       return null;
     }
 
     // Find thumbnail - Instagram uses CSS background-image, not <img> tags!
-    let thumbnailUrl = '';
+    let thumbnailUrl = "";
 
     // Strategy 1: Look for background-image in the reel container (primary method)
-    const bgElement = reelElement.querySelector('[style*="background-image"]') as HTMLElement;
+    const bgElement = reelElement.querySelector(
+      '[style*="background-image"]'
+    ) as HTMLElement;
     if (bgElement) {
       const bgImage = bgElement.style.backgroundImage;
-      if (bgImage && bgImage !== 'none') {
-        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+      if (bgImage && bgImage !== "none") {
+        const urlMatch = bgImage.match(URL_MATCH_REGEX);
         if (urlMatch) {
           thumbnailUrl = urlMatch[1];
           // Filter out GIF placeholders (Instagram uses these for loading states)
-          if (thumbnailUrl.startsWith('data:image/gif')) {
-            thumbnailUrl = '';
+          if (thumbnailUrl.startsWith("data:image/gif")) {
+            thumbnailUrl = "";
           }
         }
       }
@@ -109,9 +124,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     // Strategy 2: Check link element for background-image
     if (!thumbnailUrl) {
       const linkBg = (linkElement as HTMLElement).style?.backgroundImage;
-      if (linkBg && linkBg !== 'none') {
-        const urlMatch = linkBg.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+      if (linkBg && linkBg !== "none") {
+        const urlMatch = linkBg.match(URL_MATCH_REGEX);
+        if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }
       }
@@ -119,10 +134,12 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
 
     // Strategy 3: Look for img elements (fallback for posts)
     if (!thumbnailUrl) {
-      const imgElement = reelElement.querySelector('img[src]') as HTMLImageElement;
+      const imgElement = reelElement.querySelector(
+        "img[src]"
+      ) as HTMLImageElement;
       if (imgElement) {
-        const src = imgElement.getAttribute('src') || '';
-        if (src && !src.startsWith('data:image/gif')) {
+        const src = imgElement.getAttribute("src") || "";
+        if (src && !src.startsWith("data:image/gif")) {
           thumbnailUrl = src;
         }
       }
@@ -131,9 +148,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     // Strategy 4: Check computed styles (more expensive, last resort)
     if (!thumbnailUrl && bgElement) {
       const computedBg = window.getComputedStyle(bgElement).backgroundImage;
-      if (computedBg && computedBg !== 'none') {
-        const urlMatch = computedBg.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && !urlMatch[1].startsWith('data:image/gif')) {
+      if (computedBg && computedBg !== "none") {
+        const urlMatch = computedBg.match(URL_MATCH_REGEX);
+        if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }
       }
@@ -155,7 +172,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       scrapedAt: Date.now(),
     };
   } catch (error) {
-    console.error('Error scraping reel element:', error, reelElement);
+    console.error("Error scraping reel element:", error, reelElement);
     return null;
   }
 }
@@ -165,7 +182,10 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
  */
 export function findReelElements(): Element[] {
   // Try to find reel grid container first
-  const gridContainers = trySelectorsAll(document, INSTAGRAM_SELECTORS.REEL_GRID);
+  const gridContainers = trySelectorsAll(
+    document,
+    INSTAGRAM_SELECTORS.REEL_GRID
+  );
 
   if (gridContainers.length > 0) {
     // Find all reel links within the grid
@@ -177,7 +197,9 @@ export function findReelElements(): Element[] {
 
     // Get parent elements of links (usually the article/div containers)
     const reelElements = reelLinks
-      .map(link => link.closest('article') || link.closest('div[class]') || link)
+      .map(
+        (link) => link.closest("article") || link.closest("div[class]") || link
+      )
       .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
     return reelElements;
@@ -188,7 +210,9 @@ export function findReelElements(): Element[] {
 
   // Get parent containers
   const reelElements = reelLinks
-    .map(link => link.closest('article') || link.closest('div[class]') || link)
+    .map(
+      (link) => link.closest("article") || link.closest("div[class]") || link
+    )
     .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
   return reelElements;
@@ -217,7 +241,10 @@ export function scrapeVisibleReels(): ReelData[] {
  * Check if Instagram is currently loading content
  */
 export function isLoading(): boolean {
-  const loadingElements = trySelectorsAll(document, INSTAGRAM_SELECTORS.LOADING_SPINNER);
+  const loadingElements = trySelectorsAll(
+    document,
+    INSTAGRAM_SELECTORS.LOADING_SPINNER
+  );
   return loadingElements.length > 0;
 }
 
@@ -235,7 +262,7 @@ export async function waitForLoad(timeout = 5000): Promise<void> {
       }
 
       if (Date.now() - startTime > timeout) {
-        reject(new Error('Loading timeout'));
+        reject(new Error("Loading timeout"));
         return;
       }
 
@@ -272,7 +299,9 @@ export function validateScrapingCapability(): string | null {
     testReel.metrics.comments !== undefined;
 
   if (!hasAnyMetric) {
-    console.warn('Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view.');
+    console.warn(
+      "Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view."
+    );
     // Don't return error - we can still sort by available metrics
   }
 

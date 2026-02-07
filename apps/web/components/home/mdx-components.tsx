@@ -1,6 +1,6 @@
-import { cn } from '@delulu/design-system/lib/utils';
-import Image, { type ImageProps } from 'next/image';
-import type React from 'react';
+import { cn } from "@delulu/design-system/lib/utils";
+import Image, { type ImageProps } from "next/image";
+import type React from "react";
 
 const components = {
   h1: ({ children }: { children: React.ReactNode }) => (
@@ -10,7 +10,7 @@ const components = {
     <p className="mb-4">{children}</p>
   ),
   a: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href} className="text-blue-500">
+    <a className="text-blue-500" href={href}>
       {children}
     </a>
   ),
@@ -30,30 +30,28 @@ const components = {
   ),
   code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
     <code
-      className={cn('relative rounded px-3 py-2 text-sm', className)}
+      className={cn("relative rounded px-3 py-2 text-sm", className)}
       {...props}
     />
   ),
   pre: ({ className, ...props }: React.HTMLAttributes<HTMLPreElement>) => {
     return (
-      <>
-        <pre
-          className={cn(
-            'mt-6 mb-4 overflow-x-auto rounded-lg border border-bg-gray-900 bg-gray-900 py-4',
-            className
-          )}
-          {...props}
-        />
-      </>
+      <pre
+        className={cn(
+          "mt-6 mb-4 overflow-x-auto rounded-lg border border-bg-gray-900 bg-gray-900 py-4",
+          className
+        )}
+        {...props}
+      />
     );
   },
   img: ({ src, alt, ...props }: { src: string; alt: string } & ImageProps) => (
     <Image
-      src={src}
       alt={alt}
       className="mb-4 h-auto w-full rounded-md"
-      width={1000}
       height={1000}
+      src={src}
+      width={1000}
       {...props}
     />
   ),

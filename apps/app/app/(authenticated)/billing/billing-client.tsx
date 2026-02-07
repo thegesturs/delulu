@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Billing Client Component
@@ -10,21 +10,21 @@
  * - Billing management
  */
 
-import { CurrentPlanCard } from '@/components/billing/current-plan-card';
-import { PricingCards } from '@/components/billing/pricing-cards';
-import { UsageStats } from '@/components/billing/usage-stats';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from '@delulu/design-system/components/ui/alert';
-import type { PlanType } from '@delulu/payments';
-import { getProductIds } from '@delulu/payments/product-ids';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { TickDouble01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
+} from "@delulu/design-system/components/ui/alert";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { PlanType } from "@delulu/payments";
+import { getProductIds } from "@delulu/payments/product-ids";
+import { TickDouble01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { CurrentPlanCard } from "@/components/billing/current-plan-card";
+import { PricingCards } from "@/components/billing/pricing-cards";
+import { UsageStats } from "@/components/billing/usage-stats";
 
 /**
  * Dodo Payments Product IDs
@@ -34,31 +34,31 @@ import { toast } from 'sonner';
  */
 const productIds = getProductIds();
 const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
-  FREE: { monthly: '', yearly: '' }, // Free plan doesn't need IDs
+  FREE: { monthly: "", yearly: "" }, // Free plan doesn't need IDs
   VIBE: productIds.VIBE,
   ECHO: productIds.ECHO,
 };
 
 export default function BillingClient() {
   const searchParams = useSearchParams();
-  const status = searchParams?.get('status'); // Dodo Payments returns 'status' param
-  const subscriptionId = searchParams?.get('subscription_id');
-  const cancelled = searchParams?.get('cancelled');
+  const status = searchParams?.get("status"); // Dodo Payments returns 'status' param
+  const subscriptionId = searchParams?.get("subscription_id");
+  const cancelled = searchParams?.get("cancelled");
 
   // Show success/error messages from checkout redirects
   useEffect(() => {
-    if (status === 'succeeded' || status === 'active') {
-      toast.success('Subscription updated successfully!', {
+    if (status === "succeeded" || status === "active") {
+      toast.success("Subscription updated successfully!", {
         description:
-          'Your payment has been processed. Welcome to your new plan!',
+          "Your payment has been processed. Welcome to your new plan!",
       });
-    } else if (status === 'failed') {
-      toast.error('Payment failed', {
-        description: 'Your payment could not be processed. Please try again.',
+    } else if (status === "failed") {
+      toast.error("Payment failed", {
+        description: "Your payment could not be processed. Please try again.",
       });
-    } else if (cancelled === 'true') {
-      toast.error('Checkout cancelled', {
-        description: 'You can upgrade anytime from this page.',
+    } else if (cancelled === "true") {
+      toast.error("Checkout cancelled", {
+        description: "You can upgrade anytime from this page.",
       });
     }
   }, [status, cancelled]);
@@ -76,9 +76,9 @@ export default function BillingClient() {
       </div>
 
       {/* Success Alert */}
-      {(status === 'succeeded' || status === 'active') && (
+      {(status === "succeeded" || status === "active") && (
         <Alert className="border-green-500/50 bg-green-500/10">
-          <Icon icon={TickDouble01Icon} size={16} className=" text-green-500" />
+          <Icon className="text-green-500" icon={TickDouble01Icon} size={16} />
           <AlertTitle>Subscription Updated!</AlertTitle>
           <AlertDescription>
             Your payment has been processed successfully. You now have access to
@@ -93,7 +93,7 @@ export default function BillingClient() {
       )}
 
       {/* Error Alert */}
-      {status === 'failed' && (
+      {status === "failed" && (
         <Alert className="border-red-500/50 bg-red-500/10">
           <AlertTitle>Payment Failed</AlertTitle>
           <AlertDescription>
@@ -132,10 +132,10 @@ export default function BillingClient() {
         </div>
 
         <PricingCards
-          productIds={PRODUCT_IDS}
           onUpgradeSuccess={() => {
-            toast.success('Redirecting to checkout...');
+            toast.success("Redirecting to checkout...");
           }}
+          productIds={PRODUCT_IDS}
         />
       </div>
 

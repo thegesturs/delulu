@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Usage Stats Component
@@ -6,22 +6,28 @@
  * Displays current usage against plan limits with visual progress bars
  */
 
-import { useSubscription } from '@/hooks/use-subscription';
-import { useUsageLimit } from '@/hooks/use-usage-limits';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Progress } from '@delulu/design-system/components/ui/progress';
-import { useQuery } from 'convex-helpers/react/cache';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { AlertCircleIcon, BarChartIcon, Image01Icon, UserMultipleIcon, FlashIcon } from '@hugeicons-pro/core-solid-rounded';
+} from "@delulu/design-system/components/ui/card";
+import { Progress } from "@delulu/design-system/components/ui/progress";
+import { Icon } from "@delulu/design-system/providers/icon";
+import {
+  AlertCircleIcon,
+  BarChartIcon,
+  FlashIcon,
+  Image01Icon,
+  UserMultipleIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useUsageLimit } from "@/hooks/use-usage-limits";
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -51,16 +57,22 @@ function UsageStatItem({
           <span className="font-medium text-sm">{label}</span>
         </div>
         <div className="flex items-center gap-2">
-          {isAtLimit && <Icon icon={AlertCircleIcon} size={16} className="text-destructive" />}
+          {isAtLimit && (
+            <Icon
+              className="text-destructive"
+              icon={AlertCircleIcon}
+              size={16}
+            />
+          )}
           <span className="font-mono text-sm">
             {isUnlimited ? (
               <>
-                {current}{' '}
+                {current}{" "}
                 <span className="text-muted-foreground">/ Unlimited</span>
               </>
             ) : (
               <>
-                {current}{' '}
+                {current}{" "}
                 <span className="text-muted-foreground">/ {limit}</span>
               </>
             )}
@@ -70,20 +82,20 @@ function UsageStatItem({
       {!isUnlimited && (
         <div className="space-y-1">
           <Progress
-            value={percentageUsed}
             className={`h-2 ${
               isAtLimit
-                ? '[&>div]:bg-destructive'
+                ? "[&>div]:bg-destructive"
                 : isNearLimit
-                  ? '[&>div]:bg-yellow-500'
-                  : ''
+                  ? "[&>div]:bg-yellow-500"
+                  : ""
             }`}
+            value={percentageUsed}
           />
           {isNearLimit && (
             <p className="text-muted-foreground text-xs">
               {isAtLimit
-                ? 'Limit reached - Upgrade to continue'
-                : 'Approaching limit - Consider upgrading'}
+                ? "Limit reached - Upgrade to continue"
+                : "Approaching limit - Consider upgrading"}
             </p>
           )}
         </div>
@@ -106,12 +118,12 @@ export function UsageStats() {
 
   // Get limit checks
   const socialAccountsLimit = useUsageLimit(
-    'socialAccounts',
+    "socialAccounts",
     socialAccountsCount
   );
-  const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
+  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
   // Media storage would need actual calculation
-  const teamMembersLimit = useUsageLimit('teamMembers', 1); // Update with actual team size
+  const teamMembersLimit = useUsageLimit("teamMembers", 1); // Update with actual team size
 
   if (subscription.isLoading) {
     return (
@@ -141,7 +153,7 @@ export function UsageStats() {
           </div>
           {subscription.isPaid && (
             <Badge variant="secondary">
-              <Icon icon={BarChartIcon} size={12} className="mr-1" />
+              <Icon className="mr-1" icon={BarChartIcon} size={12} />
               {subscription.planType}
             </Badge>
           )}
@@ -151,41 +163,65 @@ export function UsageStats() {
       <CardContent className="space-y-6">
         {/* Social Accounts */}
         <UsageStatItem
-          icon={<Icon icon={FlashIcon} size={16} className="text-muted-foreground" />}
-          label="Social Accounts"
           current={socialAccountsCount}
-          limit={socialAccountsLimit.limit}
+          icon={
+            <Icon
+              className="text-muted-foreground"
+              icon={FlashIcon}
+              size={16}
+            />
+          }
           isUnlimited={socialAccountsLimit.isUnlimited}
+          label="Social Accounts"
+          limit={socialAccountsLimit.limit}
           percentageUsed={socialAccountsLimit.percentageUsed}
         />
 
         {/* Monthly Posts */}
         <UsageStatItem
-          icon={<Icon icon={BarChartIcon} size={16} className="text-muted-foreground" />}
-          label="Posts This Month"
           current={monthlyPostsCount}
-          limit={monthlyPostsLimit.limit}
+          icon={
+            <Icon
+              className="text-muted-foreground"
+              icon={BarChartIcon}
+              size={16}
+            />
+          }
           isUnlimited={monthlyPostsLimit.isUnlimited}
+          label="Posts This Month"
+          limit={monthlyPostsLimit.limit}
           percentageUsed={monthlyPostsLimit.percentageUsed}
         />
 
         {/* Media Storage */}
         <UsageStatItem
-          icon={<Icon icon={Image01Icon} size={16} className="text-muted-foreground" />}
-          label="Media Storage"
-          current={0} // TODO: Calculate actual storage usage
-          limit={100} // Placeholder
-          isUnlimited={subscription.isVibe}
+          current={0}
+          icon={
+            <Icon
+              className="text-muted-foreground"
+              icon={Image01Icon}
+              size={16}
+            />
+          }
+          isUnlimited={subscription.isVibe} // TODO: Calculate actual storage usage
+          label="Media Storage" // Placeholder
+          limit={100}
           percentageUsed={0}
         />
 
         {/* Team Members */}
         <UsageStatItem
-          icon={<Icon icon={UserMultipleIcon} size={16} className="text-muted-foreground" />}
-          label="Team Members"
           current={1}
-          limit={teamMembersLimit.limit}
+          icon={
+            <Icon
+              className="text-muted-foreground"
+              icon={UserMultipleIcon}
+              size={16}
+            />
+          }
           isUnlimited={teamMembersLimit.isUnlimited}
+          label="Team Members"
+          limit={teamMembersLimit.limit}
           percentageUsed={teamMembersLimit.percentageUsed}
         />
 
@@ -202,7 +238,7 @@ export function UsageStats() {
             <Button
               className="w-full"
               onClick={() => {
-                window.location.href = '/billing';
+                window.location.href = "/billing";
               }}
             >
               View Upgrade Options
@@ -211,8 +247,7 @@ export function UsageStats() {
         )}
 
         {/* Plan upgrade suggestion for near-limits */}
-        {!hasAnyLimitReached &&
-          !subscription.isVibe &&
+        {!(hasAnyLimitReached || subscription.isVibe) &&
           (socialAccountsLimit.percentageUsed >= 80 ||
             monthlyPostsLimit.percentageUsed >= 80) && (
             <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
@@ -223,12 +258,12 @@ export function UsageStats() {
                 Consider upgrading to avoid interruptions.
               </p>
               <Button
-                variant="outline"
-                size="sm"
                 className="mt-3"
                 onClick={() => {
-                  window.location.href = '/billing';
+                  window.location.href = "/billing";
                 }}
+                size="sm"
+                variant="outline"
               >
                 View Plans
               </Button>
@@ -251,10 +286,10 @@ export function CompactUsageStats() {
   const monthlyPostsCount = user?.usage?.generatedPosts || 0;
 
   const socialAccountsLimit = useUsageLimit(
-    'socialAccounts',
+    "socialAccounts",
     socialAccountsCount
   );
-  const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
+  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
 
   if (subscription.isLoading) {
     return null;
@@ -269,16 +304,16 @@ export function CompactUsageStats() {
               Social Accounts
             </span>
             <span className="font-mono text-sm">
-              {socialAccountsCount}/{' '}
+              {socialAccountsCount}/{" "}
               {socialAccountsLimit.isUnlimited
-                ? '∞'
+                ? "∞"
                 : socialAccountsLimit.limit}
             </span>
           </div>
           {!socialAccountsLimit.isUnlimited && (
             <Progress
-              value={socialAccountsLimit.percentageUsed}
               className="h-2"
+              value={socialAccountsLimit.percentageUsed}
             />
           )}
         </CardContent>
@@ -291,14 +326,14 @@ export function CompactUsageStats() {
               Posts This Month
             </span>
             <span className="font-mono text-sm">
-              {monthlyPostsCount}/{' '}
-              {monthlyPostsLimit.isUnlimited ? '∞' : monthlyPostsLimit.limit}
+              {monthlyPostsCount}/{" "}
+              {monthlyPostsLimit.isUnlimited ? "∞" : monthlyPostsLimit.limit}
             </span>
           </div>
           {!monthlyPostsLimit.isUnlimited && (
             <Progress
-              value={monthlyPostsLimit.percentageUsed}
               className="h-2"
+              value={monthlyPostsLimit.percentageUsed}
             />
           )}
         </CardContent>

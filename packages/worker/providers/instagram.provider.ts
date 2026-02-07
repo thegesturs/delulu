@@ -1,27 +1,26 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { type Result, ResultAsync, err, errAsync, ok } from 'neverthrow';
-import { keys } from '../key';
-
-import { nanoid } from 'nanoid';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { nanoid } from "nanoid";
+import { err, errAsync, ok, type Result, ResultAsync } from "neverthrow";
+import { keys } from "../key";
 import type {
   BaseProviderProfile,
   PostContent,
   PostPublishResult,
-} from './common-types';
+} from "./common-types";
 import {
+  createAPIError,
   InstagramError,
   InvalidMediaError,
   MediaProcessingError,
   MediaProcessingTimeoutError,
   ProfileNotFoundError,
   type SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Instagram API response types
 interface InstagramMediaContainer {
@@ -31,7 +30,7 @@ interface InstagramMediaContainer {
 
 interface InstagramContainerStatus {
   id: string;
-  status_code: 'IN_PROGRESS' | 'FINISHED' | 'ERROR';
+  status_code: "IN_PROGRESS" | "FINISHED" | "ERROR";
 }
 
 interface InstagramMediaPublishResponse {
@@ -49,18 +48,18 @@ const getProfile = (
 ): ResultAsync<BaseProviderProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new InstagramError('Database query failed')
+    () => new InstagramError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.profileId) {
-      return err(new ProfileNotFoundError('Instagram'));
+    if (!(profile?.accessToken && profile.profileId)) {
+      return err(new ProfileNotFoundError("Instagram"));
     }
     return ok({
       id: profile._id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
-      username: profile.username ?? '',
+      username: profile.username ?? "",
     });
   });
 
@@ -68,7 +67,7 @@ const getProfile = (
 const createSingleMediaContainer = (
   media: {
     url: string;
-    mediaType: 'IMAGE' | 'VIDEO';
+    mediaType: "IMAGE" | "VIDEO";
     thumbnailBucketUrl?: string;
     thumbnailTimestamp?: number;
   },
@@ -79,14 +78,14 @@ const createSingleMediaContainer = (
   if (caption.length > 2200) {
     return errAsync(
       new InvalidMediaError(
-        'Instagram',
+        "Instagram",
         "Caption exceeds Instagram's 2200 character limit"
       )
     );
   }
 
   console.log(
-    `[Instagram] Creating ${media.mediaType.toLowerCase()} container${media.mediaType === 'VIDEO' ? ' (Instagram will fetch video from URL)' : ''}`
+    `[Instagram] Creating ${media.mediaType.toLowerCase()} container${media.mediaType === "VIDEO" ? " (Instagram will fetch video from URL)" : ""}`
   );
 
   const endpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
@@ -96,14 +95,14 @@ const createSingleMediaContainer = (
     caption,
   });
 
-  if (media.mediaType === 'VIDEO') {
-    params.append('media_type', 'REELS');
-    params.append('video_url', media.url);
+  if (media.mediaType === "VIDEO") {
+    params.append("media_type", "REELS");
+    params.append("video_url", media.url);
     // Add share_to_feed parameter for REELS
-    params.append('share_to_feed', 'true');
+    params.append("share_to_feed", "true");
 
     // Log thumbnail parameters for debugging
-    console.log('[Instagram] Video cover parameters:', {
+    console.log("[Instagram] Video cover parameters:", {
       hasCustomCover: !!media.thumbnailBucketUrl,
       hasThumbnailTimestamp: media.thumbnailTimestamp !== undefined,
       thumbnailTimestampSeconds: media.thumbnailTimestamp,
@@ -116,19 +115,19 @@ const createSingleMediaContainer = (
     // "If you specify both cover_url and thumb_offset, we use cover_url and ignore thumb_offset"
     if (media.thumbnailBucketUrl) {
       // Custom cover image takes priority
-      params.append('cover_url', media.thumbnailBucketUrl);
+      params.append("cover_url", media.thumbnailBucketUrl);
     } else if (media.thumbnailTimestamp !== undefined) {
       // Convert seconds to milliseconds for thumb_offset
       const thumbOffsetMs = Math.floor(media.thumbnailTimestamp * 1000);
-      params.append('thumb_offset', thumbOffsetMs.toString());
+      params.append("thumb_offset", thumbOffsetMs.toString());
     }
   } else {
-    params.append('image_url', media.url);
+    params.append("image_url", media.url);
   }
 
   return ResultAsync.fromPromise(
     axios.post(`${endpoint}?${params.toString()}`),
-    (error: unknown) => createAPIError('Instagram', error)
+    (error: unknown) => createAPIError("Instagram", error)
   ).map((response) => {
     console.log(
       `[Instagram] Container created successfully: ${response.data.id}`
@@ -153,13 +152,13 @@ const createCarouselContainer = (
         const itemEndpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
         const itemParams = new URLSearchParams({
           image_url: url,
-          is_carousel_item: 'true',
+          is_carousel_item: "true",
           access_token: profile.accessToken,
         });
 
         return ResultAsync.fromPromise(
           axios.post(`${itemEndpoint}?${itemParams.toString()}`),
-          (error: unknown) => createAPIError('Instagram', error)
+          (error: unknown) => createAPIError("Instagram", error)
         ).map((response) => response.data.id);
       })
     );
@@ -168,15 +167,15 @@ const createCarouselContainer = (
   return createCarouselItems().andThen((mediaIds) => {
     const carouselEndpoint = `https://graph.instagram.com/v23.0/${profile.profileId}/media`;
     const carouselParams = new URLSearchParams({
-      media_type: 'CAROUSEL',
-      children: mediaIds.join(','),
+      media_type: "CAROUSEL",
+      children: mediaIds.join(","),
       caption,
       access_token: profile.accessToken,
     });
 
     return ResultAsync.fromPromise(
       axios.post(`${carouselEndpoint}?${carouselParams.toString()}`),
-      (error: unknown) => createAPIError('Instagram', error)
+      (error: unknown) => createAPIError("Instagram", error)
     ).map((response) => response.data);
   });
 };
@@ -201,7 +200,7 @@ const publishMediaContainer = (
       console.log(
         `[Instagram] Publishing failed for container: ${containerId}`
       );
-      return createAPIError('Instagram', error);
+      return createAPIError("Instagram", error);
     }
   ).map((response) => {
     console.log(
@@ -221,7 +220,7 @@ const checkContainerStatus = (
   return ResultAsync.fromPromise(
     axios.get(`https://graph.instagram.com/v23.0/${containerId}`, {
       params: {
-        fields: 'id,status_code',
+        fields: "id,status_code",
         access_token: accessToken,
       },
     }),
@@ -230,7 +229,7 @@ const checkContainerStatus = (
         `[Instagram] ❌ Container status check failed for ${containerId}:`,
         error
       );
-      return createAPIError('Instagram', error);
+      return createAPIError("Instagram", error);
     }
   ).map((response) => {
     console.log(
@@ -246,7 +245,7 @@ const waitForContainerProcessing = (
   containerId: string,
   accessToken: string,
   maxAttempts = 60, // Increased from 30 to 60 (10 minutes total)
-  interval = 10000
+  interval = 10_000
 ): ResultAsync<void, SocialProviderError> => {
   const startTime = Date.now();
   console.log(
@@ -263,7 +262,7 @@ const waitForContainerProcessing = (
       console.log(
         `[Instagram] Container processing timeout after ${maxAttempts} attempts (${elapsedMinutes.toFixed(1)} minutes): ${containerId}`
       );
-      throw new MediaProcessingTimeoutError('Instagram');
+      throw new MediaProcessingTimeoutError("Instagram");
     }
 
     let statusResult: Result<InstagramContainerStatus, SocialProviderError>;
@@ -290,7 +289,7 @@ const waitForContainerProcessing = (
     const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
 
     // Log warning if processing is taking longer than expected
-    if (attempts > 10 && status.status_code === 'IN_PROGRESS') {
+    if (attempts > 10 && status.status_code === "IN_PROGRESS") {
       console.log(
         `[Instagram] ⚠️  Container still processing after ${elapsedMinutes.toFixed(1)} minutes (attempt ${attempts + 1}): ${containerId}`
       );
@@ -300,7 +299,7 @@ const waitForContainerProcessing = (
       );
     }
 
-    if (status.status_code === 'FINISHED') {
+    if (status.status_code === "FINISHED") {
       const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
       console.log(
         `[Instagram] Container processing completed after ${elapsedMinutes.toFixed(1)} minutes: ${containerId}`
@@ -308,18 +307,18 @@ const waitForContainerProcessing = (
       return;
     }
 
-    if (status.status_code === 'ERROR') {
+    if (status.status_code === "ERROR") {
       const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
       console.log(
         `[Instagram] Container processing error after ${elapsedMinutes.toFixed(1)} minutes for ${containerId}`
       );
       throw new MediaProcessingError(
-        'Instagram',
+        "Instagram",
         `Container processing failed (failed after ${elapsedMinutes.toFixed(1)} minutes)`
       );
     }
 
-    if (status.status_code === 'IN_PROGRESS') {
+    if (status.status_code === "IN_PROGRESS") {
       await new Promise((resolve) => setTimeout(resolve, interval));
       return poll(attempts + 1);
     }
@@ -338,9 +337,9 @@ const waitForContainerProcessing = (
       return error;
     }
     const errorMessage =
-      error instanceof Error ? error.message : 'Unknown polling error';
+      error instanceof Error ? error.message : "Unknown polling error";
     return new MediaProcessingError(
-      'Instagram',
+      "Instagram",
       `Container processing failed: ${errorMessage}`
     );
   }).map((result) => {
@@ -359,11 +358,11 @@ const getMediaDetails = (
   return ResultAsync.fromPromise(
     axios.get(`https://graph.instagram.com/v23.0/${mediaId}`, {
       params: {
-        fields: 'id,permalink',
+        fields: "id,permalink",
         access_token: accessToken,
       },
     }),
-    (error: unknown) => createAPIError('Instagram', error)
+    (error: unknown) => createAPIError("Instagram", error)
   ).map((response) => response.data);
 };
 
@@ -376,7 +375,7 @@ const publishContent = (
 
   if (!firstContent) {
     return errAsync(
-      new InvalidMediaError('Instagram', 'No content to publish')
+      new InvalidMediaError("Instagram", "No content to publish")
     );
   }
 
@@ -385,25 +384,25 @@ const publishContent = (
   if (validMedia.length === 0) {
     return errAsync(
       new InvalidMediaError(
-        'Instagram',
-        'Instagram requires at least one image or video'
+        "Instagram",
+        "Instagram requires at least one image or video"
       )
     );
   }
 
   // Check for videos - Instagram supports only ONE video (Reels)
   const videoMedia = validMedia.filter(
-    (media) => media.mediaType === 'VIDEO' && media.url
+    (media) => media.mediaType === "VIDEO" && media.url
   );
   const imageMedia = validMedia.filter(
-    (media) => media.mediaType === 'IMAGE' && media.url
+    (media) => media.mediaType === "IMAGE" && media.url
   );
 
   if (videoMedia.length > 1) {
     return errAsync(
       new InvalidMediaError(
-        'Instagram',
-        'Instagram supports only one video per post'
+        "Instagram",
+        "Instagram supports only one video per post"
       )
     );
   }
@@ -411,8 +410,8 @@ const publishContent = (
   if (videoMedia.length > 0 && imageMedia.length > 0) {
     return errAsync(
       new InvalidMediaError(
-        'Instagram',
-        'Instagram does not support mixing videos and images'
+        "Instagram",
+        "Instagram does not support mixing videos and images"
       )
     );
   }
@@ -427,7 +426,7 @@ const publishContent = (
     containerPromise = createSingleMediaContainer(
       {
         url: videoMedia[0].url!,
-        mediaType: 'VIDEO',
+        mediaType: "VIDEO",
         thumbnailBucketUrl: videoMedia[0].thumbnailBucketUrl,
         thumbnailTimestamp: videoMedia[0].thumbnailTimestamp,
       },
@@ -437,7 +436,7 @@ const publishContent = (
   } else if (imageMedia.length === 1) {
     // Single image
     containerPromise = createSingleMediaContainer(
-      { url: imageMedia[0].url!, mediaType: 'IMAGE' },
+      { url: imageMedia[0].url!, mediaType: "IMAGE" },
       profile,
       firstContent.text
     );
@@ -510,11 +509,11 @@ export const instagramProvider: SocialProvider = {
     const params = new URLSearchParams({
       client_id: keys().INSTAGRAM_CLIENT_ID,
       redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
-      response_type: 'code',
+      response_type: "code",
       scope: [
-        'instagram_business_basic',
-        'instagram_business_content_publish',
-      ].join(','),
+        "instagram_business_basic",
+        "instagram_business_content_publish",
+      ].join(","),
       state: nanoid(),
     });
 

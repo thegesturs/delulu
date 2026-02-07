@@ -1,11 +1,11 @@
-import { BlurImage } from '@/components/blog/blur-image';
-import { Logo } from '@/components/logo';
-import { truncate } from '@/lib/utils';
-import type { Blog } from 'content-collections';
-import { format } from 'date-fns';
-import Image from 'next/image';
-import Link from 'next/link';
-import Balancer from 'react-wrap-balancer';
+import type { Blog } from "content-collections";
+import { format } from "date-fns";
+import Image from "next/image";
+import Link from "next/link";
+import Balancer from "react-wrap-balancer";
+import { BlurImage } from "@/components/blog/blur-image";
+import { Logo } from "@/components/logo";
+import { truncate } from "@/lib/utils";
 
 export const BlogCard = ({ blog }: { blog: Blog }) => {
   return (
@@ -16,11 +16,11 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
       <div className="">
         {blog.image ? (
           <BlurImage
-            src={blog.image || ''}
             alt={blog.title}
-            height="800"
-            width="800"
             className="h-full max-h-96 w-full rounded-3xl object-cover object-top"
+            height="800"
+            src={blog.image || ""}
+            width="800"
           />
         ) : (
           <div className="flex h-full items-center justify-center group-hover:bg-gray-50">
@@ -33,8 +33,8 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
           <div className="mb-4 flex flex-wrap gap-4">
             {blog.categories?.map((category, idx) => (
               <p
-                key={`category-${idx}`}
                 className="rounded-full bg-muted px-4 py-2 font-bold text-muted-foreground text-xs capitalize"
+                key={`category-${idx}`}
               >
                 {category}
               </p>
@@ -50,11 +50,11 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
         <div className="mt-6 flex items-center space-x-2">
           {blog.authorAvatar && (
             <Image
-              src={blog.authorAvatar}
               alt={blog.author}
-              width={20}
-              height={20}
               className="h-5 w-5 rounded-full"
+              height={20}
+              src={blog.authorAvatar}
+              width={20}
             />
           )}
           <p className="font-normal text-muted-foreground text-sm">
@@ -62,7 +62,7 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
           </p>
           <div className="h-1 w-1 rounded-full bg-border" />
           <p className="max-w-xl text-muted-foreground text-sm transition duration-200 group-hover:text-foreground">
-            {format(new Date(blog.date), 'MMMM dd, yyyy')}
+            {format(new Date(blog.date), "MMMM dd, yyyy")}
           </p>
         </div>
       </div>
@@ -79,11 +79,11 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
       <div className="">
         {blog.image ? (
           <BlurImage
-            src={blog.image || ''}
             alt={blog.title}
-            height="800"
-            width="800"
             className="h-64 w-full rounded-3xl object-cover object-top md:h-96"
+            height="800"
+            src={blog.image || ""}
+            width="800"
           />
         ) : (
           <div className="flex h-64 items-center justify-center group-hover:bg-gray-50 md:h-96">
@@ -96,8 +96,8 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
           <div className="mb-4 flex flex-wrap gap-4">
             {blog.categories?.map((category, idx) => (
               <p
-                key={`category-${idx}`}
                 className="rounded-full bg-muted px-4 py-2 font-bold text-muted-foreground text-xs capitalize"
+                key={`category-${idx}`}
               >
                 {category}
               </p>
@@ -113,11 +113,11 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
         <div className="mt-6 flex items-center space-x-2">
           {blog.authorAvatar && (
             <Image
-              src={blog.authorAvatar}
               alt={blog.author}
-              width={20}
-              height={20}
               className="h-5 w-5 rounded-full"
+              height={20}
+              src={blog.authorAvatar}
+              width={20}
             />
           )}
           <p className="font-normal text-muted-foreground text-sm">
@@ -125,7 +125,7 @@ export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
           </p>
           <div className="h-1 w-1 rounded-full bg-border" />
           <p className="max-w-xl text-muted-foreground text-sm transition duration-200 group-hover:text-foreground">
-            {format(new Date(blog.date), 'MMMM dd, yyyy')}
+            {format(new Date(blog.date), "MMMM dd, yyyy")}
           </p>
         </div>
       </div>

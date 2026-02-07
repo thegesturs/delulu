@@ -2,13 +2,13 @@
  * Popup UI - Status and Info
  */
 
-import { useState, useEffect } from 'react';
-import { isReelsTab } from '../content/utils/url-detector';
-import './App.css';
+import { useEffect, useState } from "react";
+import { isReelsTab } from "../content/utils/url-detector";
+import "./App.css";
 
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [currentUrl, setCurrentUrl] = useState("");
 
   useEffect(() => {
     // Check current tab
@@ -30,7 +30,11 @@ function App() {
         <p className="popup-subtitle">Instagram Reel Sorter</p>
         <div className="popup-branding">
           <span>by</span>
-          <a href="https://delulu.social" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://delulu.social"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
             delulu.social
           </a>
         </div>
@@ -38,19 +42,24 @@ function App() {
 
       {/* Content */}
       <div className="popup-content">
-        <div className={`popup-status ${isOnReelsTab ? 'active' : ''}`}>
+        <div className={`popup-status ${isOnReelsTab ? "active" : ""}`}>
           {isOnReelsTab ? (
             <>
               <div className="popup-status-icon">✅</div>
               <h3>Active on Reels Tab</h3>
-              <p>The sorting panel should appear above the reels grid on the Instagram page.</p>
+              <p>
+                The sorting panel should appear above the reels grid on the
+                Instagram page.
+              </p>
             </>
           ) : (
             <>
               <div className="popup-status-icon">ℹ️</div>
               <h3>Navigate to Reels Tab</h3>
               <p>Visit any Instagram profile's reels tab to use Sorted.</p>
-              <p className="popup-example">Example: instagram.com/natgeo/reels/</p>
+              <p className="popup-example">
+                Example: instagram.com/natgeo/reels/
+              </p>
             </>
           )}
         </div>
@@ -71,7 +80,7 @@ function App() {
           <details className="popup-debug">
             <summary>Debug Info</summary>
             <p className="popup-url">{currentUrl}</p>
-            <p>Is Reels Tab: {isOnReelsTab ? 'Yes' : 'No'}</p>
+            <p>Is Reels Tab: {isOnReelsTab ? "Yes" : "No"}</p>
           </details>
         )}
       </div>

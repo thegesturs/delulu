@@ -1,33 +1,33 @@
-'use client';
-import { useTheme } from '@delulu/design-system';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { motion } from 'motion/react';
-import Image from 'next/image';
-import Link from 'next/link';
-import type React from 'react';
-import { useRef } from 'react';
-import Balancer from 'react-wrap-balancer';
-import { DesktopMockup } from './desktop-mockup';
-import { GradientBars } from './gradient-bars';
+"use client";
+import { useTheme } from "@delulu/design-system";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { motion } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import type React from "react";
+import { useRef } from "react";
+import Balancer from "react-wrap-balancer";
+import { DesktopMockup } from "./desktop-mockup";
+import { GradientBars } from "./gradient-bars";
 
 export function Hero() {
   const parentRef = useRef<HTMLDivElement>(
     null
   ) as React.RefObject<HTMLDivElement>;
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const image = isDark ? '/images/app-dark.png' : '/images/app-light.png';
+  const isDark = theme === "dark";
+  const image = isDark ? "/images/app-dark.png" : "/images/app-light.png";
 
   return (
     <div
-      ref={parentRef}
       className="relative mx-auto flex max-w-7xl flex-col items-center justify-center overflow-hidden px-4 pt-40 md:px-8"
+      ref={parentRef}
     >
       {/* Shader Background */}
       <div className="absolute inset-0">
         <GradientBars
           bars={20}
-          colors={[theme === 'dark' ? '#818cf8' : '#4338ca', 'transparent']}
+          colors={[theme === "dark" ? "#818cf8" : "#4338ca", "transparent"]}
         />
       </div>
 
@@ -35,20 +35,20 @@ export function Hero() {
       <div className="relative z-20 mx-auto max-w-4xl text-center">
         {/* Main Heading */}
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Balancer>Posting everywhere sucks. We fixed it.</Balancer>
         </motion.h1>
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
           className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
         >
           <Balancer>
             You know the drill: copy → paste → resize → upload → repeat.
@@ -60,27 +60,27 @@ export function Hero() {
 
         {/* CTA Buttons */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
           className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
         >
           <Button asChild size="lg">
             <Link href="https://solulu.delulu.social/sign-in">
               👉 Fine, save me the headache
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild size="lg" variant="outline">
             <Link href="#features">Naah, bro show me more</Link>
           </Button>
         </motion.div>
 
         {/* Tiny Reassurance */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
           className="mx-auto mb-16 max-w-md text-sm text-zinc-500"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
         >
           <Balancer>
             Chill. We don't spam. We don't sell your data. We don't even want
@@ -91,27 +91,27 @@ export function Hero() {
 
       {/* App Preview */}
       <motion.div
-        initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
         className="relative z-10 mb-[-100px] w-full max-w-5xl"
+        initial={{ y: 60, opacity: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
       >
         <DesktopMockup>
           <Image
-            src={image}
             alt="Delulu Social Dashboard"
-            width={1200}
-            height={800}
             className="h-full w-full object-contain object-top"
+            height={800}
             priority
+            src={image}
+            width={1200}
           />
           {/* Sarcastic Text Overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
               className="rounded-lg bg-black/80 px-6 py-3 text-center text-white backdrop-blur-sm"
+              initial={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
             >
               <p className="font-medium text-lg">Look, mom, one click.</p>
             </motion.div>

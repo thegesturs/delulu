@@ -1,18 +1,18 @@
-import { UserJot } from '@/components/analytics/userjot';
-import { ConvexClientProvider } from '@/components/providers/clerk-convex';
-import './styles.css';
-import { TRPCReactProvider } from '@/trpc/react';
-import { DesignSystemProvider } from '@delulu/design-system';
-import { fonts } from '@delulu/design-system/lib/fonts';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import type { ReactNode } from 'react';
+import { UserJot } from "@/components/analytics/userjot";
+import { ConvexClientProvider } from "@/components/providers/clerk-convex";
+import "./styles.css";
+import { DesignSystemProvider } from "@delulu/design-system";
+import { fonts } from "@delulu/design-system/lib/fonts";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import type { ReactNode } from "react";
+import { TRPCReactProvider } from "@/trpc/react";
 
-type RootLayoutProperties = {
+interface RootLayoutProperties {
   readonly children: ReactNode;
-};
+}
 
 const RootLayout = ({ children }: RootLayoutProperties) => (
-  <html lang="en" className={fonts} suppressHydrationWarning>
+  <html className={fonts} lang="en" suppressHydrationWarning>
     <body>
       <DesignSystemProvider
         privacyUrl="https://delulu.social/legal/privacy-policy"

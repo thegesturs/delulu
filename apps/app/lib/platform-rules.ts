@@ -3,9 +3,12 @@
  * Combines media requirements, character limits, layout rules, and video validation
  */
 
-import type { FullPostType, SocialProviderType } from '@delulu/validators/post';
-import { SocialTypes } from '@delulu/validators/post';
-import type { SocialType } from '@delulu/validators/post';
+import type {
+  FullPostType,
+  SocialProviderType,
+  SocialType,
+} from "@delulu/validators/post";
+import { SocialTypes } from "@delulu/validators/post";
 
 // ============================================================================
 // MEDIA REQUIREMENTS
@@ -118,7 +121,7 @@ export const PLATFORM_CHARACTER_LIMITS: Record<SocialType, number | undefined> =
     [SocialTypes.TIKTOK]: 2200,
     [SocialTypes.YOUTUBE]: 5000,
     [SocialTypes.LINKEDIN]: 3000,
-    [SocialTypes.FACEBOOK]: 63206,
+    [SocialTypes.FACEBOOK]: 63_206,
     [SocialTypes.PINTEREST]: 500,
     [SocialTypes.FARCASTER]: 320,
     [SocialTypes.BLUESKY]: 300,
@@ -150,18 +153,18 @@ export const PLATFORM_IMAGE_LIMITS: Record<SocialType, number> = {
 // ============================================================================
 
 const PLATFORM_DISPLAY_NAMES: Record<SocialType, string> = {
-  [SocialTypes.TIKTOK]: 'TikTok',
-  [SocialTypes.YOUTUBE]: 'YouTube Shorts',
-  [SocialTypes.INSTAGRAM]: 'Instagram Reels',
-  [SocialTypes.THREADS]: 'Threads',
-  [SocialTypes.TWITTER]: 'X (Twitter)',
-  [SocialTypes.LINKEDIN]: 'LinkedIn',
-  [SocialTypes.FACEBOOK]: 'Facebook',
-  [SocialTypes.PINTEREST]: 'Pinterest',
-  [SocialTypes.FARCASTER]: 'Farcaster',
-  [SocialTypes.BLUESKY]: 'Bluesky',
-  [SocialTypes.LENS]: 'Lens',
-  [SocialTypes.DEFAULT]: 'Default',
+  [SocialTypes.TIKTOK]: "TikTok",
+  [SocialTypes.YOUTUBE]: "YouTube Shorts",
+  [SocialTypes.INSTAGRAM]: "Instagram Reels",
+  [SocialTypes.THREADS]: "Threads",
+  [SocialTypes.TWITTER]: "X (Twitter)",
+  [SocialTypes.LINKEDIN]: "LinkedIn",
+  [SocialTypes.FACEBOOK]: "Facebook",
+  [SocialTypes.PINTEREST]: "Pinterest",
+  [SocialTypes.FARCASTER]: "Farcaster",
+  [SocialTypes.BLUESKY]: "Bluesky",
+  [SocialTypes.LENS]: "Lens",
+  [SocialTypes.DEFAULT]: "Default",
 };
 
 // ============================================================================
@@ -174,7 +177,7 @@ const PLATFORM_DISPLAY_NAMES: Record<SocialType, string> = {
  */
 export function getPlatformsInDefault(
   selectedProviders: SocialProviderType[],
-  alternativeContent: FullPostType['alternativeContent']
+  alternativeContent: FullPostType["alternativeContent"]
 ): SocialType[] {
   const alternativeProviderIds = new Set(
     alternativeContent.map((alt) => alt.socialProvider.socialId)
@@ -191,7 +194,7 @@ export function getPlatformsInDefault(
  */
 export function getSingleProviderInDefault(
   selectedProviders: SocialProviderType[],
-  alternativeContent: FullPostType['alternativeContent']
+  alternativeContent: FullPostType["alternativeContent"]
 ): SocialProviderType | null {
   // Guard against undefined during hydration
   if (!alternativeContent) {
@@ -307,16 +310,16 @@ export function getDefaultPlaceholder(
 
   const placeholders: Record<SocialType, string> = {
     [SocialTypes.TWITTER]: "What's happening?",
-    [SocialTypes.TIKTOK]: 'Write a catchy caption for your TikTok...',
-    [SocialTypes.YOUTUBE]: 'Describe your YouTube Short...',
-    [SocialTypes.INSTAGRAM]: 'Write a caption for your post...',
-    [SocialTypes.LINKEDIN]: 'Share your professional update...',
+    [SocialTypes.TIKTOK]: "Write a catchy caption for your TikTok...",
+    [SocialTypes.YOUTUBE]: "Describe your YouTube Short...",
+    [SocialTypes.INSTAGRAM]: "Write a caption for your post...",
+    [SocialTypes.LINKEDIN]: "Share your professional update...",
     [SocialTypes.FACEBOOK]: "What's on your mind?",
     [SocialTypes.THREADS]: "What's on your mind?",
-    [SocialTypes.PINTEREST]: 'Describe your pin...',
-    [SocialTypes.FARCASTER]: 'Share your thoughts...',
+    [SocialTypes.PINTEREST]: "Describe your pin...",
+    [SocialTypes.FARCASTER]: "Share your thoughts...",
     [SocialTypes.BLUESKY]: "What's up?",
-    [SocialTypes.LENS]: 'Share with your community...',
+    [SocialTypes.LENS]: "Share with your community...",
     [SocialTypes.DEFAULT]: "What's on your mind?",
   };
 
@@ -352,13 +355,13 @@ export interface ValidationResult {
  */
 export function validatePlatformMedia(
   socialType: SocialType,
-  media: { mediaType: 'IMAGE' | 'VIDEO' }[]
+  media: { mediaType: "IMAGE" | "VIDEO" }[]
 ): ValidationResult {
   const rules = PLATFORM_MEDIA_RULES[socialType];
   const errors: string[] = [];
 
-  const videoCount = media.filter((m) => m.mediaType === 'VIDEO').length;
-  const imageCount = media.filter((m) => m.mediaType === 'IMAGE').length;
+  const videoCount = media.filter((m) => m.mediaType === "VIDEO").length;
+  const imageCount = media.filter((m) => m.mediaType === "IMAGE").length;
 
   if (rules.requiresVideo && videoCount === 0) {
     const platformName = getPlatformDisplayName(socialType);
@@ -443,7 +446,7 @@ export const PLATFORM_VIDEO_RULES = {
     minDuration: 15,
     maxDuration: 600, // 10 minutes
     maxFileSize: 500 * 1024 * 1024, // 500MB
-    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'] as const,
+    allowedFormats: ["video/mp4", "video/quicktime", "video/webm"] as const,
     minWidth: 480,
     minHeight: 640,
   },
@@ -451,13 +454,13 @@ export const PLATFORM_VIDEO_RULES = {
     minDuration: 3,
     maxDuration: 90,
     maxFileSize: 100 * 1024 * 1024, // 100MB
-    allowedFormats: ['video/mp4', 'video/quicktime'] as const,
+    allowedFormats: ["video/mp4", "video/quicktime"] as const,
   },
   YOUTUBE: {
     minDuration: 1,
-    maxDuration: 43200, // 12 hours
+    maxDuration: 43_200, // 12 hours
     maxFileSize: 2 * 1024 * 1024 * 1024, // 2GB
-    allowedFormats: ['video/mp4', 'video/quicktime', 'video/webm'] as const,
+    allowedFormats: ["video/mp4", "video/quicktime", "video/webm"] as const,
   },
 };
 
@@ -473,7 +476,7 @@ export async function validateVideo(
   try {
     if (!rules.allowedFormats.includes(file.type)) {
       errors.push(
-        `Unsupported video format. Allowed formats: ${rules.allowedFormats.join(', ')}`
+        `Unsupported video format. Allowed formats: ${rules.allowedFormats.join(", ")}`
       );
     }
 
@@ -518,7 +521,7 @@ export async function validateVideo(
     return {
       isValid: false,
       errors: [
-        `Failed to validate video: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to validate video: ${error instanceof Error ? error.message : "Unknown error"}`,
       ],
     };
   }
@@ -536,10 +539,10 @@ async function getVideoMetadata(file: File): Promise<{
   fileName: string;
 }> {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
+    const video = document.createElement("video");
     const objectUrl = URL.createObjectURL(file);
 
-    video.addEventListener('loadedmetadata', () => {
+    video.addEventListener("loadedmetadata", () => {
       URL.revokeObjectURL(objectUrl);
 
       resolve({
@@ -552,15 +555,15 @@ async function getVideoMetadata(file: File): Promise<{
       });
     });
 
-    video.addEventListener('error', () => {
+    video.addEventListener("error", () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Failed to load video metadata'));
+      reject(new Error("Failed to load video metadata"));
     });
 
     setTimeout(() => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error('Video metadata loading timeout'));
-    }, 10000);
+      reject(new Error("Video metadata loading timeout"));
+    }, 10_000);
 
     video.src = objectUrl;
     video.load();
@@ -585,14 +588,14 @@ export async function validateTikTokVideo(
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) {
-    return '0 Bytes';
+    return "0 Bytes";
   }
 
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return Number.parseFloat((bytes / k ** i).toFixed(2)) + ' ' + sizes[i];
+  return Number.parseFloat((bytes / k ** i).toFixed(2)) + " " + sizes[i];
 }
 
 /**
@@ -604,10 +607,10 @@ export function formatDuration(seconds: number): string {
   const secs = Math.floor(seconds % 60);
 
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 // ============================================================================
@@ -652,10 +655,10 @@ export interface MediaAdditionValidation {
  * Calculate current media state from media array
  */
 export function getMediaState(
-  media: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+  media: Array<{ mediaType: "IMAGE" | "VIDEO" }>
 ): MediaState {
-  const images = media.filter((m) => m.mediaType === 'IMAGE').length;
-  const videos = media.filter((m) => m.mediaType === 'VIDEO').length;
+  const images = media.filter((m) => m.mediaType === "IMAGE").length;
+  const videos = media.filter((m) => m.mediaType === "VIDEO").length;
 
   return {
     images,
@@ -670,7 +673,7 @@ export function getMediaState(
  */
 export function getDynamicMediaLimits(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
 ): DynamicMediaLimits {
   const state = getMediaState(currentMedia);
   const platformName = getPlatformDisplayName(socialType);
@@ -688,12 +691,12 @@ export function getDynamicMediaLimits(
         canAddImages: state.images < 1,
         canAddVideos: false,
         canMixTypes: true,
-        acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         instruction:
           state.images > 0
             ? `${platformName}: Video and thumbnail complete`
             : `${platformName}: Add 1 optional thumbnail image`,
-        platformHint: 'Video uploaded',
+        platformHint: "Video uploaded",
       };
     }
 
@@ -707,12 +710,12 @@ export function getDynamicMediaLimits(
         canAddImages: false,
         canAddVideos: state.videos < 1,
         canMixTypes: true,
-        acceptedMimeTypes: ['video/mp4', 'video/quicktime', 'video/webm'],
+        acceptedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
         instruction:
           state.videos > 0
             ? `${platformName}: Video and thumbnail complete`
             : `${platformName}: Add 1 vertical video (9:16)`,
-        platformHint: 'Thumbnail uploaded',
+        platformHint: "Thumbnail uploaded",
       };
     }
 
@@ -726,13 +729,13 @@ export function getDynamicMediaLimits(
       canAddVideos: true,
       canMixTypes: true,
       acceptedMimeTypes: [
-        'image/*',
-        'video/mp4',
-        'video/quicktime',
-        'video/webm',
+        "image/*",
+        "video/mp4",
+        "video/quicktime",
+        "video/webm",
       ],
       instruction: `${platformName}: Upload 1 vertical video (9:16) and 1 optional thumbnail`,
-      platformHint: 'Video required',
+      platformHint: "Video required",
     };
   }
 
@@ -749,8 +752,8 @@ export function getDynamicMediaLimits(
         canAddVideos: false,
         canMixTypes: false,
         acceptedMimeTypes: [],
-        instruction: 'Instagram Reels: 1 video only',
-        platformHint: 'Reels mode',
+        instruction: "Instagram Reels: 1 video only",
+        platformHint: "Reels mode",
       };
     }
 
@@ -765,12 +768,12 @@ export function getDynamicMediaLimits(
         canAddImages: remaining > 0,
         canAddVideos: false,
         canMixTypes: false,
-        acceptedMimeTypes: remaining > 0 ? ['image/*'] : [],
+        acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
         instruction:
           remaining > 0
-            ? `Instagram Carousel: Add up to ${remaining} more ${remaining === 1 ? 'image' : 'images'}`
-            : 'Instagram Carousel: Maximum 10 images reached',
-        platformHint: 'Carousel mode',
+            ? `Instagram Carousel: Add up to ${remaining} more ${remaining === 1 ? "image" : "images"}`
+            : "Instagram Carousel: Maximum 10 images reached",
+        platformHint: "Carousel mode",
       };
     }
 
@@ -783,10 +786,10 @@ export function getDynamicMediaLimits(
       canAddImages: true,
       canAddVideos: true,
       canMixTypes: false,
-      acceptedMimeTypes: ['image/*', 'video/mp4', 'video/quicktime'],
+      acceptedMimeTypes: ["image/*", "video/mp4", "video/quicktime"],
       instruction:
-        'Instagram: Up to 10 images (Carousel) OR 1 video (Reels, 9:16 vertical)',
-      platformHint: 'Choose format',
+        "Instagram: Up to 10 images (Carousel) OR 1 video (Reels, 9:16 vertical)",
+      platformHint: "Choose format",
     };
   }
 
@@ -804,7 +807,7 @@ export function getDynamicMediaLimits(
       canMixTypes: false,
       acceptedMimeTypes: [],
       instruction: `${platformName}: Maximum 1 video reached`,
-      platformHint: 'Video mode',
+      platformHint: "Video mode",
     };
   }
 
@@ -819,12 +822,12 @@ export function getDynamicMediaLimits(
       canAddImages: remaining > 0,
       canAddVideos: false,
       canMixTypes: false,
-      acceptedMimeTypes: remaining > 0 ? ['image/*'] : [],
+      acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
       instruction:
         remaining > 0
-          ? `${platformName}: Add up to ${remaining} more ${remaining === 1 ? 'image' : 'images'}`
+          ? `${platformName}: Add up to ${remaining} more ${remaining === 1 ? "image" : "images"}`
           : `${platformName}: Maximum ${baseMaxImages} images reached`,
-      platformHint: 'Image mode',
+      platformHint: "Image mode",
     };
   }
 
@@ -837,9 +840,9 @@ export function getDynamicMediaLimits(
     canAddImages: true,
     canAddVideos: true,
     canMixTypes: false,
-    acceptedMimeTypes: ['image/*', 'video/*'],
-    instruction: `${platformName}: Up to ${baseMaxImages} ${baseMaxImages === 1 ? 'image' : 'images'} OR 1 video`,
-    platformHint: 'Choose format',
+    acceptedMimeTypes: ["image/*", "video/*"],
+    instruction: `${platformName}: Up to ${baseMaxImages} ${baseMaxImages === 1 ? "image" : "images"} OR 1 video`,
+    platformHint: "Choose format",
   };
 }
 
@@ -848,13 +851,13 @@ export function getDynamicMediaLimits(
  */
 export function canAddMediaType(
   socialType: SocialType,
-  mediaTypeToAdd: 'IMAGE' | 'VIDEO',
-  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+  mediaTypeToAdd: "IMAGE" | "VIDEO",
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
 ): MediaAdditionValidation {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   const platformName = getPlatformDisplayName(socialType);
 
-  if (mediaTypeToAdd === 'IMAGE') {
+  if (mediaTypeToAdd === "IMAGE") {
     if (!limits.canAddImages) {
       // Generate specific error message based on platform
       const state = getMediaState(currentMedia);
@@ -869,7 +872,7 @@ export function canAddMediaType(
       if (state.images >= limits.maxImages) {
         return {
           canAdd: false,
-          reason: `${platformName} allows maximum ${limits.maxImages} ${limits.maxImages === 1 ? 'image' : 'images'}.`,
+          reason: `${platformName} allows maximum ${limits.maxImages} ${limits.maxImages === 1 ? "image" : "images"}.`,
         };
       }
 
@@ -885,7 +888,7 @@ export function canAddMediaType(
     };
   }
 
-  if (mediaTypeToAdd === 'VIDEO') {
+  if (mediaTypeToAdd === "VIDEO") {
     if (!limits.canAddVideos) {
       const state = getMediaState(currentMedia);
 
@@ -917,7 +920,7 @@ export function canAddMediaType(
 
   return {
     canAdd: false,
-    reason: 'Unknown media type',
+    reason: "Unknown media type",
   };
 }
 
@@ -926,7 +929,7 @@ export function canAddMediaType(
  */
 export function getMediaCountInstruction(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
 ): string {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   return limits.instruction;
@@ -937,7 +940,7 @@ export function getMediaCountInstruction(
  */
 export function canUploadMore(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: 'IMAGE' | 'VIDEO' }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
 ): boolean {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   return limits.canAddImages || limits.canAddVideos;

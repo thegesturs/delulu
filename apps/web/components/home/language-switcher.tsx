@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { LOCALES, type Locale, useLocale } from '@/lib/i18n';
-import { Globe } from 'lucide-react';
-import { useState } from 'react';
+import { Globe } from "lucide-react";
+import { useState } from "react";
+import { LOCALES, type Locale, useLocale } from "@/lib/i18n";
 
 export const LanguageSwitcher = () => {
   const { locale, setLocale } = useLocale();
@@ -16,10 +16,10 @@ export const LanguageSwitcher = () => {
   return (
     <div className="relative">
       <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-gray-700 text-sm hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         aria-label="Choose language"
+        className="flex items-center gap-2 rounded-md px-3 py-2 font-medium text-gray-700 text-sm hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
       >
         <Globe className="h-4 w-4" />
         <span className="uppercase">{locale}</span>
@@ -28,12 +28,13 @@ export const LanguageSwitcher = () => {
       {isOpen && (
         <>
           {/* Backdrop */}
-          {/* biome-ignore lint/nursery/noStaticElementInteractions: <explanation> */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click handler */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: backdrop click handler */}
           <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 setIsOpen(false);
               }
             }}
@@ -44,14 +45,14 @@ export const LanguageSwitcher = () => {
             <div className="max-h-60 overflow-y-auto py-1">
               {Object.entries(LOCALES).map(([code, name]) => (
                 <button
-                  type="button"
-                  key={code}
-                  onClick={() => handleLocaleChange(code as Locale)}
                   className={`${
                     locale === code
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50"
                   } block w-full px-4 py-2 text-left text-sm transition-colors`}
+                  key={code}
+                  onClick={() => handleLocaleChange(code as Locale)}
+                  type="button"
                 >
                   <span className="mr-3 font-medium uppercase">{code}</span>
                   {name}

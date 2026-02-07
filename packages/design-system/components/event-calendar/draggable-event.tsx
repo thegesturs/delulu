@@ -1,19 +1,18 @@
-'use client';
-
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { differenceInDays } from 'date-fns';
-import { useRef, useState } from 'react';
+"use client";
 
 import {
   type CalendarEvent,
   EventItem,
   useCalendarDnd,
-} from '@delulu/design-system/components/event-calendar';
+} from "@delulu/design-system/components/event-calendar";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { differenceInDays } from "date-fns";
+import { useRef, useState } from "react";
 
 interface DraggableEventProps {
   event: CalendarEvent;
-  view: 'month' | 'week' | 'day';
+  view: "month" | "week" | "day";
   showTime?: boolean;
   onClick?: (e: React.MouseEvent) => void;
   height?: number;
@@ -21,7 +20,7 @@ interface DraggableEventProps {
   multiDayWidth?: number;
   isFirstDay?: boolean;
   isLastDay?: boolean;
-  'aria-hidden'?: boolean | 'true' | 'false';
+  "aria-hidden"?: boolean | "true" | "false";
 }
 
 export function DraggableEvent({
@@ -34,7 +33,7 @@ export function DraggableEvent({
   multiDayWidth,
   isFirstDay = true,
   isLastDay = true,
-  'aria-hidden': ariaHidden,
+  "aria-hidden": ariaHidden,
 }: DraggableEventProps) {
   const { activeId } = useCalendarDnd();
   const elementRef = useRef<HTMLDivElement>(null);
@@ -57,7 +56,7 @@ export function DraggableEvent({
         view,
         height: height || elementRef.current?.offsetHeight || null,
         isMultiDay: isMultiDayEvent,
-        multiDayWidth: multiDayWidth,
+        multiDayWidth,
         dragHandlePosition,
         isFirstDay,
         isLastDay,
@@ -79,9 +78,9 @@ export function DraggableEvent({
   if (isDragging || activeId === `${event.id}-${view}`) {
     return (
       <div
-        ref={setNodeRef}
         className="opacity-0"
-        style={{ height: height || 'auto' }}
+        ref={setNodeRef}
+        style={{ height: height || "auto" }}
       />
     );
   }
@@ -89,12 +88,12 @@ export function DraggableEvent({
   const style = transform
     ? {
         transform: CSS.Translate.toString(transform),
-        height: height || 'auto',
+        height: height || "auto",
         width:
           isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
       }
     : {
-        height: height || 'auto',
+        height: height || "auto",
         width:
           isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
       };
@@ -115,6 +114,7 @@ export function DraggableEvent({
 
   return (
     <div
+      className="touch-none"
       ref={(node) => {
         setNodeRef(node);
         if (elementRef) {
@@ -122,21 +122,20 @@ export function DraggableEvent({
         }
       }}
       style={style}
-      className="touch-none"
     >
       <EventItem
+        aria-hidden={ariaHidden}
+        dndAttributes={attributes}
+        dndListeners={listeners}
         event={event}
-        view={view}
-        showTime={showTime}
+        isDragging={isDragging}
         isFirstDay={isFirstDay}
         isLastDay={isLastDay}
-        isDragging={isDragging}
         onClick={onClick}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        dndListeners={listeners}
-        dndAttributes={attributes}
-        aria-hidden={ariaHidden}
+        showTime={showTime}
+        view={view}
       />
     </div>
   );

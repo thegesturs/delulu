@@ -1,14 +1,13 @@
-'use client';
-
-import { format, isSameDay } from 'date-fns';
-import { Icon } from '../../providers/icon';
-import { Cancel01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useEffect, useMemo, useRef } from 'react';
+"use client";
 
 import {
   type CalendarEvent,
   EventItem,
-} from '@delulu/design-system/components/event-calendar';
+} from "@delulu/design-system/components/event-calendar";
+import { Cancel01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { format, isSameDay } from "date-fns";
+import { useEffect, useMemo, useRef } from "react";
+import { Icon } from "../../providers/icon";
 
 interface EventsPopupProps {
   date: Date;
@@ -38,23 +37,23 @@ export function EventsPopup({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [onClose]);
 
   // Handle escape key to close popup
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscKey);
+    document.addEventListener("keydown", handleEscKey);
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
+      document.removeEventListener("keydown", handleEscKey);
     };
   }, [onClose]);
 
@@ -89,20 +88,20 @@ export function EventsPopup({
 
   return (
     <div
-      ref={popupRef}
       className="absolute z-50 max-h-96 w-80 overflow-auto rounded-md border bg-background shadow-lg"
+      ref={popupRef}
       style={{
         top: `${adjustedPosition.top}px`,
         left: `${adjustedPosition.left}px`,
       }}
     >
       <div className="sticky top-0 flex items-center justify-between border-b bg-background p-3">
-        <h3 className="font-medium">{format(date, 'd MMMM yyyy')}</h3>
+        <h3 className="font-medium">{format(date, "d MMMM yyyy")}</h3>
         <button
-          type="submit"
-          onClick={onClose}
-          className="rounded-full p-1 hover:bg-muted"
           aria-label="Close"
+          className="rounded-full p-1 hover:bg-muted"
+          onClick={onClose}
+          type="submit"
         >
           <Icon icon={Cancel01Icon} size={16} />
         </button>
@@ -119,18 +118,19 @@ export function EventsPopup({
             const isLastDay = isSameDay(date, eventEnd);
 
             return (
-              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+              // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
               <div
-                key={event.id}
-                onKeyDown={(e) => e.stopPropagation()}
                 className="cursor-pointer"
+                key={event.id}
                 onClick={() => handleEventClick(event)}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 <EventItem
                   event={event}
-                  view="agenda"
                   isFirstDay={isFirstDay}
                   isLastDay={isLastDay}
+                  view="agenda"
                 />
               </div>
             );

@@ -1,10 +1,10 @@
-import { env } from '@/env';
-import { fetchWithTimeout } from '@/lib/utils';
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchMutation } from '@delulu/database/server';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchMutation } from "@delulu/database/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { env } from "@/env";
+import { fetchWithTimeout } from "@/lib/utils";
 
 interface ThreadsTokenResponse {
   access_token: string;
@@ -32,34 +32,34 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=threads',
+            "/socials?error=auth_required&code=AUTH_001&provider=threads",
         },
       });
     }
 
-    const token = await getToken({ template: 'convex' });
+    const token = await getToken({ template: "convex" });
     if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=threads',
+            "/socials?error=auth_required&code=AUTH_001&provider=threads",
         },
       });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const errorReason = searchParams.get('error_reason');
-    const _errorDescription = searchParams.get('error_description');
+    const code = searchParams.get("code");
+    const error = searchParams.get("error");
+    const errorReason = searchParams.get("error_reason");
+    const _errorDescription = searchParams.get("error_description");
 
-    if (error === 'access_denied' && errorReason === 'user_denied') {
+    if (error === "access_denied" && errorReason === "user_denied") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_denied&code=THREADS_001&provider=threads',
+            "/socials?error=user_denied&code=THREADS_001&provider=threads",
         },
       });
     }
@@ -69,22 +69,22 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=invalid_request&code=PARAM_001&provider=threads',
+            "/socials?error=invalid_request&code=PARAM_001&provider=threads",
         },
       });
     }
 
     const tokenResponse = await fetchWithTimeout(
-      'https://graph.threads.net/oauth/access_token',
+      "https://graph.threads.net/oauth/access_token",
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
           client_id: env.THREADS_CLIENT_ID,
           client_secret: env.THREADS_CLIENT_SECRET,
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           redirect_uri: env.THREADS_CALLBACK_URL,
           code,
         }).toString(),
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=THREADS_002&provider=threads',
+            "/socials?error=token_invalid&code=THREADS_002&provider=threads",
         },
       });
     }
@@ -108,20 +108,20 @@ export async function GET(request: NextRequest) {
         env.THREADS_CLIENT_SECRET
       }&access_token=${tokenData.access_token}`,
       {
-        method: 'GET',
+        method: "GET",
       }
     );
 
     if (!longLivedTokenResponse.ok) {
       console.error(
-        'Threads long-lived token exchange failed:',
+        "Threads long-lived token exchange failed:",
         await longLivedTokenResponse.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=THREADS_003&provider=threads',
+            "/socials?error=token_invalid&code=THREADS_003&provider=threads",
         },
       });
     }
@@ -132,17 +132,17 @@ export async function GET(request: NextRequest) {
     const userResponse = await fetchWithTimeout(
       `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url&access_token=${longLivedTokenData.access_token}`,
       {
-        method: 'GET',
+        method: "GET",
       }
     );
 
     if (!userResponse.ok) {
-      console.error('Threads user fetch failed:', await userResponse.text());
+      console.error("Threads user fetch failed:", await userResponse.text());
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_fetch_failed&code=THREADS_004&provider=threads',
+            "/socials?error=user_fetch_failed&code=THREADS_004&provider=threads",
         },
       });
     }
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
-        socialType: 'THREADS',
+        socialType: "THREADS",
         accessToken: longLivedTokenData.access_token,
         expiresIn: Date.now() + longLivedTokenData.expires_in * 1000,
         refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
@@ -167,12 +167,12 @@ export async function GET(request: NextRequest) {
     );
 
     // Handle different response statuses
-    if (status === 'account_transferred') {
+    if (status === "account_transferred") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?notification=account_transferred&platform=threads',
+            "/socials?notification=account_transferred&platform=threads",
         },
       });
     }
@@ -180,16 +180,16 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, {
       status: 302,
       headers: {
-        Location: '/socials?success=true&provider=threads',
+        Location: "/socials?success=true&provider=threads",
       },
     });
   } catch (error) {
-    console.error('Threads callback error:', error);
+    console.error("Threads callback error:", error);
     return new NextResponse(null, {
       status: 302,
       headers: {
         Location:
-          '/socials?error=server_error&code=THREADS_500&provider=threads',
+          "/socials?error=server_error&code=THREADS_500&provider=threads",
       },
     });
   }

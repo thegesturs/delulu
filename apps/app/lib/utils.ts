@@ -17,8 +17,8 @@ export async function fetchWithTimeout(
   } catch (error) {
     clearTimeout(id);
     // Check if the error is due to abort signal (timeout)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timed out');
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out");
     }
     // Re-throw the original error to preserve other error details
     throw error;

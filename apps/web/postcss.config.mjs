@@ -1,1 +1,1 @@
-export { default } from '@delulu/design-system/postcss.config.mjs';
+export { default } from "@delulu/design-system/postcss.config.mjs";

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useIntl } from 'react-intl';
+import { useIntl } from "react-intl";
 
 export const useTranslation = () => {
   const intl = useIntl();
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: i18n values are dynamic
   const t = (key: string, values?: Record<string, any>) => {
     try {
       return intl.formatMessage({ id: key }, values);

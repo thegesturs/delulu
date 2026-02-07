@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Upgrade Prompt Component
@@ -7,21 +7,25 @@
  * Displays the required plan and upgrade button
  */
 
-import { api } from '@delulu/database/convex/_generated/api';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { PLANS, type PlanType } from '@delulu/payments';
-import { useAction } from 'convex/react';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { ArrowRight01Icon, LockIcon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
-import { useState } from 'react';
-import { toast } from 'sonner';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { PLANS, type PlanType } from "@delulu/payments";
+import {
+  ArrowRight01Icon,
+  LockIcon,
+  SparklesIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useAction } from "convex/react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface UpgradePromptProps {
   feature: string;
@@ -35,7 +39,7 @@ interface UpgradePromptProps {
 
 export function UpgradePrompt({
   feature,
-  requiredPlan = 'ECHO',
+  requiredPlan = "ECHO",
   currentUsage,
   limit,
   description,
@@ -50,7 +54,7 @@ export function UpgradePrompt({
   const handleUpgrade = async () => {
     if (!productId) {
       // Redirect to billing page if no product ID
-      window.location.href = '/billing';
+      window.location.href = "/billing";
       return;
     }
 
@@ -62,8 +66,8 @@ export function UpgradePrompt({
       });
       window.location.href = checkout_url;
     } catch (error) {
-      console.error('Failed to create checkout:', error);
-      toast.error('Failed to start upgrade. Please try again.');
+      console.error("Failed to create checkout:", error);
+      toast.error("Failed to start upgrade. Please try again.");
       setIsUpgrading(false);
     }
   };
@@ -72,7 +76,7 @@ export function UpgradePrompt({
     <Card className={className}>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Icon icon={LockIcon} size={20} className="text-muted-foreground" />
+          <Icon className="text-muted-foreground" icon={LockIcon} size={20} />
           <CardTitle className="text-xl">{feature} Requires Upgrade</CardTitle>
         </div>
         <CardDescription>
@@ -85,18 +89,18 @@ export function UpgradePrompt({
         {currentUsage !== undefined && limit !== undefined && (
           <div className="rounded-lg bg-muted p-4">
             <p className="text-muted-foreground text-sm">
-              You've reached your limit:{' '}
+              You've reached your limit:{" "}
               <strong>
                 {currentUsage}/{limit}
               </strong>
             </p>
             <p className="mt-1 text-muted-foreground text-sm">
-              Upgrade to {plan.name} for{' '}
+              Upgrade to {plan.name} for{" "}
               <strong>
                 {plan.limits.socialAccounts === -1
-                  ? 'unlimited'
+                  ? "unlimited"
                   : `up to ${plan.limits.socialAccounts}`}
-              </strong>{' '}
+              </strong>{" "}
               accounts
             </p>
           </div>
@@ -108,33 +112,33 @@ export function UpgradePrompt({
           <ul className="space-y-1 text-muted-foreground text-sm">
             {plan.features.aiContentGeneration && (
               <li className="flex items-center gap-2">
-                <Icon icon={SparklesIcon} size={16} className="text-primary" />
+                <Icon className="text-primary" icon={SparklesIcon} size={16} />
                 AI Content Generation
               </li>
             )}
             {plan.features.analytics && (
               <li className="flex items-center gap-2">
-                <Icon icon={SparklesIcon} size={16} className="text-primary" />
+                <Icon className="text-primary" icon={SparklesIcon} size={16} />
                 Advanced Analytics
               </li>
             )}
             {plan.features.advancedScheduling && (
               <li className="flex items-center gap-2">
-                <Icon icon={SparklesIcon} size={16} className="text-primary" />
+                <Icon className="text-primary" icon={SparklesIcon} size={16} />
                 Advanced Scheduling
               </li>
             )}
             {plan.features.collaboration && (
               <li className="flex items-center gap-2">
-                <Icon icon={SparklesIcon} size={16} className="text-primary" />
+                <Icon className="text-primary" icon={SparklesIcon} size={16} />
                 Team Collaboration
               </li>
             )}
             <li className="flex items-center gap-2">
-              <Icon icon={SparklesIcon} size={16} className="text-primary" />
+              <Icon className="text-primary" icon={SparklesIcon} size={16} />
               {plan.limits.monthlyPosts === -1
-                ? 'Unlimited'
-                : `${plan.limits.monthlyPosts}`}{' '}
+                ? "Unlimited"
+                : `${plan.limits.monthlyPosts}`}{" "}
               posts per month
             </li>
           </ul>
@@ -155,17 +159,17 @@ export function UpgradePrompt({
 
         {/* CTA Button */}
         <Button
-          onClick={handleUpgrade}
-          disabled={isUpgrading}
           className="w-full"
+          disabled={isUpgrading}
+          onClick={handleUpgrade}
           size="lg"
         >
           {isUpgrading ? (
-            'Redirecting...'
+            "Redirecting..."
           ) : (
             <>
               Upgrade to {plan.name}
-              <Icon icon={ArrowRight01Icon} size={16} className="ml-2" />
+              <Icon className="ml-2" icon={ArrowRight01Icon} size={16} />
             </>
           )}
         </Button>
@@ -183,9 +187,9 @@ export function UpgradePrompt({
  */
 export function InlineUpgradePrompt({
   feature,
-  requiredPlan = 'ECHO',
+  requiredPlan = "ECHO",
   productId,
-}: Pick<UpgradePromptProps, 'feature' | 'requiredPlan' | 'productId'>) {
+}: Pick<UpgradePromptProps, "feature" | "requiredPlan" | "productId">) {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
 
@@ -193,7 +197,7 @@ export function InlineUpgradePrompt({
 
   const handleUpgrade = async () => {
     if (!productId) {
-      window.location.href = '/billing';
+      window.location.href = "/billing";
       return;
     }
 
@@ -205,8 +209,8 @@ export function InlineUpgradePrompt({
       });
       window.location.href = checkout_url;
     } catch (error) {
-      console.error('Failed to create checkout:', error);
-      toast.error('Failed to start upgrade. Please try again.');
+      console.error("Failed to create checkout:", error);
+      toast.error("Failed to start upgrade. Please try again.");
       setIsUpgrading(false);
     }
   };
@@ -214,7 +218,7 @@ export function InlineUpgradePrompt({
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4">
       <div className="flex items-center gap-3">
-        <Icon icon={LockIcon} size={20} className="text-muted-foreground" />
+        <Icon className="text-muted-foreground" icon={LockIcon} size={20} />
         <div>
           <p className="font-medium">
             {feature} requires {plan.name}
@@ -224,8 +228,8 @@ export function InlineUpgradePrompt({
           </p>
         </div>
       </div>
-      <Button onClick={handleUpgrade} disabled={isUpgrading}>
-        {isUpgrading ? 'Loading...' : 'Upgrade'}
+      <Button disabled={isUpgrading} onClick={handleUpgrade}>
+        {isUpgrading ? "Loading..." : "Upgrade"}
       </Button>
     </div>
   );

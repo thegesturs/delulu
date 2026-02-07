@@ -1,22 +1,21 @@
-'use client';
-
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { differenceInDays } from 'date-fns';
-import { useRef, useState } from 'react';
+"use client";
 
 import {
   type CalendarEvent,
   useCalendarDnd,
-} from '@delulu/design-system/components/event-calendar';
+} from "@delulu/design-system/components/event-calendar";
 import {
   SocialPostEvent,
   type SocialPostEventData,
-} from '@delulu/design-system/components/event-calendar/social-post-event';
+} from "@delulu/design-system/components/event-calendar/social-post-event";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { differenceInDays } from "date-fns";
+import { useRef, useState } from "react";
 
 interface DraggableSocialPostEventProps {
   event: CalendarEvent & { postData: SocialPostEventData };
-  view: 'month' | 'week' | 'day';
+  view: "month" | "week" | "day";
   onClick?: () => void;
   height?: number;
   className?: string;
@@ -58,7 +57,7 @@ export function DraggableSocialPostEvent({
         view,
         height: height || elementRef.current?.offsetHeight || null,
         isMultiDay: isMultiDayEvent,
-        multiDayWidth: multiDayWidth,
+        multiDayWidth,
         dragHandlePosition,
         isFirstDay,
         isLastDay,
@@ -94,9 +93,9 @@ export function DraggableSocialPostEvent({
   if (isDragging || activeId === `${event.id}-${view}`) {
     return (
       <div
-        ref={setNodeRef}
         className="opacity-0"
-        style={{ height: height || 'auto' }}
+        ref={setNodeRef}
+        style={{ height: height || "auto" }}
       />
     );
   }
@@ -104,18 +103,23 @@ export function DraggableSocialPostEvent({
   const style = transform
     ? {
         transform: CSS.Translate.toString(transform),
-        height: height || 'auto',
+        height: height || "auto",
         width:
           isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
       }
     : {
-        height: height || 'auto',
+        height: height || "auto",
         width:
           isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
       };
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: draggable component requires mouse handlers
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: draggable component requires mouse handlers
     <div
+      className="h-full touch-none"
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       ref={(node) => {
         setNodeRef(node);
         if (elementRef) {
@@ -123,16 +127,13 @@ export function DraggableSocialPostEvent({
         }
       }}
       style={style}
-      className="h-full touch-none"
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
       {...listeners}
       {...attributes}
     >
       <SocialPostEvent
+        className={className}
         event={event.postData}
         onClick={onClick}
-        className={className}
       />
     </div>
   );

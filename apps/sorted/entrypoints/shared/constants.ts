@@ -2,22 +2,22 @@
  * Constants for the Instagram Reel Sorter extension
  */
 
-import type { UserPreferences } from './types';
+import type { UserPreferences } from "./types";
 
 /**
  * Chrome storage keys
  */
 export const STORAGE_KEYS = {
-  PREFERENCES: 'sorted_preferences',
-  CACHE: 'sorted_cache',
-  CACHE_TIMESTAMP: 'sorted_cache_timestamp',
+  PREFERENCES: "sorted_preferences",
+  CACHE: "sorted_cache",
+  CACHE_TIMESTAMP: "sorted_cache_timestamp",
 } as const;
 
 /**
  * Default user preferences
  */
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  sortMetric: 'views',
+  sortMetric: "views",
   quantity: 25,
   autoSort: false,
 };
@@ -31,9 +31,9 @@ export const CACHE_EXPIRATION_MS = 60 * 60 * 1000;
  * Instagram URL patterns
  */
 export const INSTAGRAM_PATTERNS = {
-  REELS_TAB: /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/reels\/?(?:\?.*)?$/,
-  PROFILE: /^https?:\/\/(www\.)?instagram\.com\/[^\/]+\/?$/,
-  REEL: /^https?:\/\/(www\.)?instagram\.com\/reel\/[^\/]+\/?$/,
+  REELS_TAB: /^https?:\/\/(www\.)?instagram\.com\/[^/]+\/reels\/?(?:\?.*)?$/,
+  PROFILE: /^https?:\/\/(www\.)?instagram\.com\/[^/]+\/?$/,
+  REEL: /^https?:\/\/(www\.)?instagram\.com\/reel\/[^/]+\/?$/,
 } as const;
 
 /**
@@ -55,10 +55,7 @@ export const INSTAGRAM_SELECTORS = {
   ],
 
   // Reel thumbnail images
-  REEL_THUMBNAIL: [
-    'img[alt]',
-    'img[src]',
-  ],
+  REEL_THUMBNAIL: ["img[alt]", "img[src]"],
 
   // View count (usually visible on grid)
   VIEW_COUNT: [
@@ -82,10 +79,7 @@ export const INSTAGRAM_SELECTORS = {
   ],
 
   // Loading indicator
-  LOADING_SPINNER: [
-    'svg[aria-label="Loading..."]',
-    'div[role="progressbar"]',
-  ],
+  LOADING_SPINNER: ['svg[aria-label="Loading..."]', 'div[role="progressbar"]'],
 } as const;
 
 /**
@@ -114,14 +108,14 @@ export const SCRAPING_CONFIG = {
 export const UI_CONFIG = {
   // FAB (Floating Action Button) position
   FAB_POSITION: {
-    bottom: '24px',
-    right: '24px',
+    bottom: "24px",
+    right: "24px",
   },
 
   // Overlay dimensions
-  OVERLAY_WIDTH: '90vw',
-  OVERLAY_MAX_WIDTH: '1200px',
-  OVERLAY_HEIGHT: '85vh',
+  OVERLAY_WIDTH: "90vw",
+  OVERLAY_MAX_WIDTH: "1200px",
+  OVERLAY_HEIGHT: "85vh",
 
   // Animation durations (ms)
   FADE_DURATION: 300,
@@ -139,19 +133,22 @@ export const UI_CONFIG = {
  * Error messages
  */
 export const ERROR_MESSAGES = {
-  NOT_REELS_TAB: 'Please navigate to a profile\'s reels tab to use this extension.',
-  NO_REELS_FOUND: 'No reels found on this profile.',
-  SCRAPING_FAILED: 'Failed to scrape reels. Please try again.',
-  TIMEOUT: 'Scraping timed out. The profile may have too many reels.',
-  RATE_LIMITED: 'Instagram is rate limiting requests. Please wait and try again.',
-  NETWORK_ERROR: 'Network error occurred. Please check your connection.',
-  INVALID_SELECTORS: 'Instagram\'s page structure has changed. Extension may need an update.',
+  NOT_REELS_TAB:
+    "Please navigate to a profile's reels tab to use this extension.",
+  NO_REELS_FOUND: "No reels found on this profile.",
+  SCRAPING_FAILED: "Failed to scrape reels. Please try again.",
+  TIMEOUT: "Scraping timed out. The profile may have too many reels.",
+  RATE_LIMITED:
+    "Instagram is rate limiting requests. Please wait and try again.",
+  NETWORK_ERROR: "Network error occurred. Please check your connection.",
+  INVALID_SELECTORS:
+    "Instagram's page structure has changed. Extension may need an update.",
 } as const;
 
 /**
  * Success messages
  */
 export const SUCCESS_MESSAGES = {
-  PREFERENCES_SAVED: 'Preferences saved successfully!',
-  SCRAPING_COMPLETE: 'Reels sorted successfully!',
+  PREFERENCES_SAVED: "Preferences saved successfully!",
+  SCRAPING_COMPLETE: "Reels sorted successfully!",
 } as const;

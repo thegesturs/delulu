@@ -2,8 +2,8 @@
  * Sort controls component for selecting metric and quantity
  */
 
-import { useState } from 'react';
-import type { SortMetric, Quantity } from '../../shared/types';
+import { useState } from "react";
+import type { Quantity, SortMetric } from "../../shared/types";
 
 interface SortControlsProps {
   onSort: (metric: SortMetric, quantity: Quantity) => void;
@@ -12,8 +12,13 @@ interface SortControlsProps {
   isScaping?: boolean;
 }
 
-export function SortControls({ onSort, onCancel, disabled, isScaping }: SortControlsProps) {
-  const [sortMetric, setSortMetric] = useState<SortMetric>('views');
+export function SortControls({
+  onSort,
+  onCancel,
+  disabled,
+  isScaping,
+}: SortControlsProps) {
+  const [sortMetric, setSortMetric] = useState<SortMetric>("views");
   const [quantity, setQuantity] = useState<Quantity>(25);
 
   const handleSort = () => {
@@ -23,40 +28,40 @@ export function SortControls({ onSort, onCancel, disabled, isScaping }: SortCont
   return (
     <div className="sorted-controls">
       <div className="sorted-control-section">
-        <label className="sorted-label">Sort by:</label>
+        <span className="sorted-label">Sort by:</span>
         <div className="sorted-radio-group">
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="metric"
-              value="views"
-              checked={sortMetric === 'views'}
-              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              checked={sortMetric === "views"}
               disabled={disabled}
+              name="metric"
+              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              type="radio"
+              value="views"
             />
             <span>Views</span>
           </label>
 
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="metric"
-              value="likes"
-              checked={sortMetric === 'likes'}
-              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              checked={sortMetric === "likes"}
               disabled={disabled}
+              name="metric"
+              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              type="radio"
+              value="likes"
             />
             <span>Likes</span>
           </label>
 
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="metric"
-              value="comments"
-              checked={sortMetric === 'comments'}
-              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              checked={sortMetric === "comments"}
               disabled={disabled}
+              name="metric"
+              onChange={(e) => setSortMetric(e.target.value as SortMetric)}
+              type="radio"
+              value="comments"
             />
             <span>Comments</span>
           </label>
@@ -64,40 +69,40 @@ export function SortControls({ onSort, onCancel, disabled, isScaping }: SortCont
       </div>
 
       <div className="sorted-control-section">
-        <label className="sorted-label">Quantity:</label>
+        <span className="sorted-label">Quantity:</span>
         <div className="sorted-radio-group">
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="quantity"
-              value="25"
               checked={quantity === 25}
-              onChange={() => setQuantity(25)}
               disabled={disabled}
+              name="quantity"
+              onChange={() => setQuantity(25)}
+              type="radio"
+              value="25"
             />
             <span>25 reels</span>
           </label>
 
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="quantity"
-              value="50"
               checked={quantity === 50}
-              onChange={() => setQuantity(50)}
               disabled={disabled}
+              name="quantity"
+              onChange={() => setQuantity(50)}
+              type="radio"
+              value="50"
             />
             <span>50 reels</span>
           </label>
 
           <label className="sorted-radio">
             <input
-              type="radio"
-              name="quantity"
-              value="all"
-              checked={quantity === 'all'}
-              onChange={() => setQuantity('all')}
+              checked={quantity === "all"}
               disabled={disabled}
+              name="quantity"
+              onChange={() => setQuantity("all")}
+              type="radio"
+              value="all"
             />
             <span>All reels</span>
           </label>
@@ -107,18 +112,18 @@ export function SortControls({ onSort, onCancel, disabled, isScaping }: SortCont
       <div className="sorted-control-actions">
         {isScaping && onCancel ? (
           <button
-            type="button"
             className="sorted-button sorted-button-secondary"
             onClick={onCancel}
+            type="button"
           >
             Cancel
           </button>
         ) : (
           <button
-            type="button"
             className="sorted-button sorted-button-primary"
-            onClick={handleSort}
             disabled={disabled}
+            onClick={handleSort}
+            type="button"
           >
             Sort Reels
           </button>

@@ -1,6 +1,6 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import { useMutation } from 'convex/react';
-import { uploadSingleFile } from './use-upload-media';
+import { api } from "@delulu/database/convex/_generated/api";
+import { useMutation } from "convex/react";
+import { uploadSingleFile } from "./use-upload-media";
 
 interface MediaUploadResult {
   bucketKey: string;
@@ -17,18 +17,18 @@ export function useMediaStorage() {
 
     try {
       // Then save media details to database
-      const extension = file.name.split('.').pop() || '';
+      const extension = file.name.split(".").pop() || "";
       const mediaData = {
         bucketKey: uploadResult.bucketKey,
         url: uploadResult.url,
-        mediaType: file.type.startsWith('image/')
-          ? ('IMAGE' as const)
-          : ('VIDEO' as const),
+        mediaType: file.type.startsWith("image/")
+          ? ("IMAGE" as const)
+          : ("VIDEO" as const),
         originalFilename: file.name,
         size: file.size,
         extension,
       };
-      console.log('mediaData', mediaData);
+      console.log("mediaData", mediaData);
 
       const savedMedia = await createMedia(mediaData);
 

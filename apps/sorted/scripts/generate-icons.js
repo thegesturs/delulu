@@ -5,10 +5,10 @@
  * Run: pnpm generate-icons
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,21 +23,24 @@ const svgContent = `<svg width="512" height="512" viewBox="0 0 512 512" fill="no
 const sizes = [16, 32, 48, 96, 128];
 
 async function generateIcons() {
-  console.log('🎨 Generating Delulu extension icons...\n');
+  console.log("🎨 Generating Delulu extension icons...\n");
 
   try {
     // Check if sharp is installed
     let sharp;
     try {
-      sharp = (await import('sharp')).default;
-    } catch (error) {
-      console.log('📦 Installing sharp...');
-      execSync('pnpm add -D sharp', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-      sharp = (await import('sharp')).default;
-      console.log('✓ Sharp installed\n');
+      sharp = (await import("sharp")).default;
+    } catch (_error) {
+      console.log("📦 Installing sharp...");
+      execSync("pnpm add -D sharp", {
+        stdio: "inherit",
+        cwd: path.join(__dirname, ".."),
+      });
+      sharp = (await import("sharp")).default;
+      console.log("✓ Sharp installed\n");
     }
 
-    const iconDir = path.join(__dirname, '../public/icon');
+    const iconDir = path.join(__dirname, "../public/icon");
 
     // Ensure icon directory exists
     if (!fs.existsSync(iconDir)) {
@@ -53,14 +56,17 @@ async function generateIcons() {
         .png()
         .toFile(outputPath);
 
-      console.log(`✓ Generated ${size}x${size} → ${path.relative(process.cwd(), outputPath)}`);
+      console.log(
+        `✓ Generated ${size}x${size} → ${path.relative(process.cwd(), outputPath)}`
+      );
     }
 
-    console.log('\n✨ All icons generated successfully!');
-    console.log('📦 Run "pnpm build" to rebuild the extension with the new icons.');
-
+    console.log("\n✨ All icons generated successfully!");
+    console.log(
+      '📦 Run "pnpm build" to rebuild the extension with the new icons.'
+    );
   } catch (error) {
-    console.error('❌ Error generating icons:', error.message);
+    console.error("❌ Error generating icons:", error.message);
     process.exit(1);
   }
 }

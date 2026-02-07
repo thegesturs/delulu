@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { processMessageTestOnly } from '../test-client';
-import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from './test-data';
+import { describe, expect, it } from "vitest";
+import { processMessageTestOnly } from "../test-client";
+import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from "./test-data";
 
 const facebookProvider = SOCIAL_PROVIDER_DATA.find(
-  (p) => p.socialType === 'FACEBOOK'
+  (p) => p.socialType === "FACEBOOK"
 )!;
 
-describe('Facebook Provider Tests', () => {
-  it('should execute real Facebook provider with single image', async () => {
+describe("Facebook Provider Tests", () => {
+  it("should execute real Facebook provider with single image", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,
@@ -23,7 +23,7 @@ describe('Facebook Provider Tests', () => {
     expect(result?.isOk?.() === true).toBe(true);
   });
 
-  it('should call processMessage for carousel', async () => {
+  it("should call processMessage for carousel", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,
@@ -39,7 +39,7 @@ describe('Facebook Provider Tests', () => {
     expect(result?.isOk?.() === true).toBe(true);
   });
 
-  it('should call processMessage for video', async () => {
+  it("should call processMessage for video", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: facebookProvider.socialType,

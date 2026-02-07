@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { FacebookPageSelect } from '@/components/socials/facebook-page-select';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from '@delulu/design-system/components/ui/alert';
-import { Button } from '@delulu/design-system/components/ui/button';
-import type { FacebookPagesPublic } from '@delulu/validators/facebook';
-import { useQuery } from '@tanstack/react-query';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Alert01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+} from "@delulu/design-system/components/ui/alert";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { FacebookPagesPublic } from "@delulu/validators/facebook";
+import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { FacebookPageSelect } from "@/components/socials/facebook-page-select";
 
 function FacebookPageSelectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const key = searchParams.get('key');
-  const code = searchParams.get('code');
+  const key = searchParams.get("key");
+  const code = searchParams.get("code");
 
   const {
     data: pages,
@@ -26,14 +26,14 @@ function FacebookPageSelectContent() {
     refetch,
     isLoading,
   } = useQuery<FacebookPagesPublic>({
-    queryKey: ['facebook-pages', key],
+    queryKey: ["facebook-pages", key],
     queryFn: async () => {
       if (!key) {
         return [];
       }
-      const response = await fetch('/api/facebook/pages?key=' + key);
+      const response = await fetch("/api/facebook/pages?key=" + key);
       if (!response.ok) {
-        throw new Error('Failed to fetch page data');
+        throw new Error("Failed to fetch page data");
       }
       return response.json();
     },
@@ -57,16 +57,16 @@ function FacebookPageSelectContent() {
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              onClick={() => refetch()}
-              disabled={isLoading}
               className="flex-1"
+              disabled={isLoading}
+              onClick={() => refetch()}
             >
-              {isLoading ? 'Retrying...' : 'Try Again'}
+              {isLoading ? "Retrying..." : "Try Again"}
             </Button>
             <Button
-              variant="outline"
-              onClick={() => router.push('/socials')}
               className="flex-1"
+              onClick={() => router.push("/socials")}
+              variant="outline"
             >
               Back to Social Accounts
             </Button>
@@ -74,11 +74,11 @@ function FacebookPageSelectContent() {
 
           <div className="text-center">
             <p className="text-muted-foreground text-sm">
-              If the problem persists, you may need to{' '}
+              If the problem persists, you may need to{" "}
               <Button
-                variant="link"
                 className="h-auto p-0 text-sm underline"
-                onClick={() => router.push('/socials')}
+                onClick={() => router.push("/socials")}
+                variant="link"
               >
                 reconnect your Facebook account
               </Button>
@@ -89,11 +89,11 @@ function FacebookPageSelectContent() {
     );
   }
 
-  if (!key || !code || !pages?.length) {
+  if (!(key && code && pages?.length)) {
     return null;
   }
 
-  return <FacebookPageSelect pages={pages} code={code} />;
+  return <FacebookPageSelect code={code} pages={pages} />;
 }
 
 export default function FacebookPageSelectPage() {

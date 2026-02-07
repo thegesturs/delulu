@@ -1,5 +1,5 @@
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import { Resource } from 'sst';
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { Resource } from "sst";
 
 const sqs = new SQSClient({});
 
@@ -7,11 +7,11 @@ export async function handler(event: {
   headers: Record<string, string>;
   body: string;
 }) {
-  const authHeader = event.headers['x-api-key'] ?? event.headers['X-Api-Key'];
+  const authHeader = event.headers["x-api-key"] ?? event.headers["X-Api-Key"];
   if (authHeader !== Resource.LAMBDA_SECRET_KEY.value) {
     return {
       statusCode: 401,
-      body: JSON.stringify({ error: 'Unauthorized' }),
+      body: JSON.stringify({ error: "Unauthorized" }),
     };
   }
 
@@ -21,7 +21,7 @@ export async function handler(event: {
     if (!messageBody) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Missing request body' }),
+        body: JSON.stringify({ error: "Missing request body" }),
       };
     }
 
@@ -32,17 +32,17 @@ export async function handler(event: {
         MessageBody: messageBody,
       })
     );
-    console.log('Message sent to queue successfully', result);
+    console.log("Message sent to queue successfully", result);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Message sent to queue successfully' }),
+      body: JSON.stringify({ message: "Message sent to queue successfully" }),
     };
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error("Error processing request:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' }),
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 }

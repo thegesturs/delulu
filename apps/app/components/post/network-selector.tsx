@@ -1,26 +1,25 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@delulu/design-system/components/ui/dropdown-menu';
+} from "@delulu/design-system/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
-import type { SocialType } from '@delulu/validators/post';
-
-import { getPlatformsInDefault } from '@/lib/platform-rules';
-import { useSelectedSocialProviders, useStore } from '@/store/post';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { ArrowDown01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useShallow } from 'zustand/shallow';
-import { SocialIcon } from './sidebar/social-icon';
+} from "@delulu/design-system/components/ui/tooltip";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { SocialType } from "@delulu/validators/post";
+import { ArrowDown01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useShallow } from "zustand/shallow";
+import { getPlatformsInDefault } from "@/lib/platform-rules";
+import { useSelectedSocialProviders, useStore } from "@/store/post";
+import { SocialIcon } from "./sidebar/social-icon";
 
 export function AlternativeContentSelector() {
   const { post, setPost } = useStore(
@@ -79,7 +78,7 @@ export function AlternativeContentSelector() {
           {
             socialProvider: provider,
             content: post.content.map((contentItem, index) => ({
-              id: '',
+              id: "",
               order: index,
               name: provider.name,
               // Deep copy media to prevent reference sharing
@@ -110,11 +109,11 @@ export function AlternativeContentSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" className="size-7 rounded-md">
+        <Button className="size-7 rounded-md" size="icon">
           <Icon icon={ArrowDown01Icon} size={12} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="start">
+      <DropdownMenuContent align="start" className="w-56">
         {socialProviders.map((provider) => {
           const isSelected = post.alternativeContent.some(
             (content) => content.socialProvider.socialId === provider.socialId
@@ -123,14 +122,14 @@ export function AlternativeContentSelector() {
 
           const menuItem = (
             <DropdownMenuCheckboxItem
-              key={provider.socialId}
               checked={isSelected}
+              className={isDisabled ? "cursor-not-allowed opacity-50" : ""}
               disabled={isDisabled}
+              key={provider.socialId}
               onCheckedChange={() => handleProviderToggle(provider)}
-              className={isDisabled ? 'cursor-not-allowed opacity-50' : ''}
             >
               <div className="flex items-center gap-2">
-                <SocialIcon type={provider.socialType} size="sm" />
+                <SocialIcon size="sm" type={provider.socialType} />
                 <span>{provider.name}</span>
               </div>
             </DropdownMenuCheckboxItem>

@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
 // ============================================================================
 // USER SCHEMAS
@@ -16,6 +16,7 @@ const usageSchema = v.object({
   generatedPosts: v.number(),
   drafts: v.number(),
   organization: v.number(),
+  dmsSent: v.optional(v.number()),
 });
 
 // Base user schema without system fields
@@ -29,13 +30,13 @@ export const baseUserSchema = v.object({
   image: v.optional(v.string()),
   // Subscription-related fields
   dodoCustomerId: v.optional(v.string()), // Dodo Payments customer ID
-  subscriptionId: v.optional(v.id('subscriptions')), // Link to current subscription
+  subscriptionId: v.optional(v.id("subscriptions")), // Link to current subscription
   updatedAt: v.number(),
 });
 
 // User schema with system fields (for returns)
 export const userSchema = v.object({
-  _id: v.id('users'),
+  _id: v.id("users"),
   _creationTime: v.number(),
   ...baseUserSchema.fields,
 });
@@ -49,7 +50,7 @@ export const userCreateSchema = v.object({
   usage: v.optional(usageSchema),
   image: v.optional(v.string()),
   dodoCustomerId: v.optional(v.string()),
-  subscriptionId: v.optional(v.id('subscriptions')),
+  subscriptionId: v.optional(v.id("subscriptions")),
 });
 
 // User update schema (partial)
@@ -61,6 +62,6 @@ export const userUpdateSchema = v.object({
   usage: v.optional(usageSchema),
   image: v.optional(v.string()),
   dodoCustomerId: v.optional(v.string()),
-  subscriptionId: v.optional(v.id('subscriptions')),
+  subscriptionId: v.optional(v.id("subscriptions")),
   updatedAt: v.optional(v.number()),
 });

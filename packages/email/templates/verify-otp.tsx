@@ -8,11 +8,11 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components';
+} from "@react-email/components";
 
-type VerifyOTPProps = {
+interface VerifyOTPProps {
   readonly code: string;
-};
+}
 
 export const VerifyOTP = ({ code }: VerifyOTPProps) => (
   <Tailwind>

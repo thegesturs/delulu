@@ -1,18 +1,18 @@
-import type { PostLayout } from '@/components/posts/types';
-import { Skeleton } from '@delulu/design-system/components/ui/skeleton';
+import { Skeleton } from "@delulu/design-system/components/ui/skeleton";
+import type { PostLayout } from "@/components/posts/types";
 
 interface PostLoadingProps {
   layout?: PostLayout;
 }
 
-export default function PostLoading({ layout = 'grid' }: PostLoadingProps) {
-  if (layout === 'list') {
+export default function PostLoading({ layout = "grid" }: PostLoadingProps) {
+  if (layout === "list") {
     return (
       <div className="flex flex-col">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 8 }, (_, i) => i).map((i) => (
           <div
-            key={i}
             className="flex items-center gap-x-4 border-b px-3 py-1.5 last:border-b-0"
+            key={`list-skeleton-${i}`}
           >
             <Skeleton className="h-5 w-20 flex-shrink-0" />
             <Skeleton className="h-4 flex-1" />
@@ -34,8 +34,8 @@ export default function PostLoading({ layout = 'grid' }: PostLoadingProps) {
 
   return (
     <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="space-y-3 px-3 py-1.5">
+      {Array.from({ length: 8 }, (_, i) => i).map((i) => (
+        <div className="space-y-3 px-3 py-1.5" key={`grid-skeleton-${i}`}>
           <Skeleton className="aspect-video w-full rounded-lg" />
           <div className="space-y-2">
             <div className="flex items-center justify-between">

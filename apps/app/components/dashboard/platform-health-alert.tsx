@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Alert01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useRouter } from 'next/navigation';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useRouter } from "next/navigation";
 
 interface PlatformHealthAlertProps {
   expiredTokens: number;
@@ -29,14 +29,18 @@ export function PlatformHealthAlert({
     <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <Icon icon={Alert01Icon} size={20} className="text-amber-600 dark:text-amber-400" />
+          <Icon
+            className="text-amber-600 dark:text-amber-400"
+            icon={Alert01Icon}
+            size={20}
+          />
           <CardTitle className="text-amber-800 dark:text-amber-200">
             Platform Connection Issues
           </CardTitle>
         </div>
         <CardDescription className="text-amber-700 dark:text-amber-300">
           {expiredTokens} social account
-          {expiredTokens > 1 ? 's need' : ' needs'} to be reconnected
+          {expiredTokens > 1 ? "s need" : " needs"} to be reconnected
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -46,9 +50,9 @@ export function PlatformHealthAlert({
             tokens. Posts may fail to publish until these are reconnected.
           </p>
           <Button
-            onClick={() => router.push('/socials')}
-            size="sm"
             className="ml-4"
+            onClick={() => router.push("/socials")}
+            size="sm"
           >
             Fix Now
           </Button>

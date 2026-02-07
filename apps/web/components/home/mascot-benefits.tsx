@@ -1,46 +1,46 @@
-import LineSvg from '@/components/ui/line-svg';
 import {
   Card,
   CardContent,
   CardHeader,
-} from '@delulu/design-system/components/ui/card';
-import Image from 'next/image';
-import React from 'react';
-import Balancer from 'react-wrap-balancer';
+} from "@delulu/design-system/components/ui/card";
+import Image from "next/image";
+import React from "react";
+import Balancer from "react-wrap-balancer";
+import LineSvg from "@/components/ui/line-svg";
 
 export function MascotBenefits() {
   const benefits = [
     {
-      image: '/images/delulu/calendar.png',
-      title: 'Time thief, arrested.',
-      subtitle: 'Write once. Post everywhere. Done.',
+      image: "/images/delulu/calendar.png",
+      title: "Time thief, arrested.",
+      subtitle: "Write once. Post everywhere. Done.",
       description:
         "No more tab-hopping Olympics. Create your content once, and we'll format it perfectly for every platform. Your sanity will thank you.",
-      badge: 'Efficiency Era',
+      badge: "Efficiency Era",
     },
     {
-      image: '/images/delulu/happy.png',
-      title: 'Consistency without crying.',
+      image: "/images/delulu/happy.png",
+      title: "Consistency without crying.",
       subtitle: "Schedule ahead. Pretend you're organized.",
       description:
         "Queue up a week's worth of posts in 15 minutes. Your audience thinks you're a posting machine. Win-win.",
-      badge: 'Main Character',
+      badge: "Main Character",
     },
     {
-      image: '/images/delulu/shill.png',
-      title: 'More sleep. Less doomscroll guilt.',
-      subtitle: 'Auto-posting while you actually live your life.',
+      image: "/images/delulu/shill.png",
+      title: "More sleep. Less doomscroll guilt.",
+      subtitle: "Auto-posting while you actually live your life.",
       description:
         'Because posting at midnight just to hit "optimal time" is so 2022. Set it, forget it, touch grass.',
-      badge: 'Self Care Win',
+      badge: "Self Care Win",
     },
     {
-      image: '/images/delulu/win.png',
-      title: 'All your chaos, one dashboard.',
-      subtitle: 'Instagram, TikTok, LinkedIn, YouTube, Threads...',
+      image: "/images/delulu/win.png",
+      title: "All your chaos, one dashboard.",
+      subtitle: "Instagram, TikTok, LinkedIn, YouTube, Threads...",
       description:
-        'All tucked in like messy little kids in one bed. One login, one interface, zero headaches.',
-      badge: 'CEO Mode',
+        "All tucked in like messy little kids in one bed. One login, one interface, zero headaches.",
+      badge: "CEO Mode",
     },
   ];
 
@@ -48,10 +48,10 @@ export function MascotBenefits() {
     <section className="relative flex w-full flex-col items-center justify-center">
       <div className="relative mx-14 border-border border-x border-dashed">
         {/* Left diagonal pattern */}
-        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -left-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-left-14 md:w-14" />
 
         {/* Right diagonal pattern */}
-        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -right-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-right-14 md:w-14" />
 
         {/* Content */}
         <div className="h-full w-full border-border border-b py-10">
@@ -76,17 +76,17 @@ export function MascotBenefits() {
             {benefits.map((benefit, index) => (
               <React.Fragment key={benefit.title}>
                 <Card
-                  key={benefit.title}
                   className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+                  key={benefit.title}
                 >
                   {/* Mascot Image */}
                   <CardHeader className="relative mx-auto mb-6 flex size-60 items-center justify-center lg:mx-0">
                     <Image
-                      src={benefit.image}
                       alt={benefit.title}
-                      width={128}
-                      height={128}
                       className="h-full w-full object-contain dark:invert"
+                      height={128}
+                      src={benefit.image}
+                      width={128}
                     />
                   </CardHeader>
 
@@ -123,8 +123,8 @@ export function MascotBenefits() {
                 {/* Desktop: vertical line between columns (after cards 0,2) */}
                 {(index === 0 || index === 2) && (
                   <LineSvg
+                    className="absolute -top-2 left-1/2 hidden h-[calc(100%+1rem)] w-px lg:block"
                     direction="vertical"
-                    className="-top-2 absolute left-1/2 hidden h-[calc(100%+1rem)] w-px lg:block"
                   />
                 )}
 

@@ -1,4 +1,4 @@
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
+import type { MediaType, PostReturnType } from "@delulu/validators/post";
 
 // Common provider profile interface
 export interface BaseProviderProfile {
@@ -134,7 +134,7 @@ export interface YouTubeVideoMetadata {
     defaultLanguage?: string;
   };
   status: {
-    privacyStatus: 'public' | 'private' | 'unlisted';
+    privacyStatus: "public" | "private" | "unlisted";
   };
 }
 

@@ -1,17 +1,16 @@
-import { BlogLayout } from '@/components/blog/blog-layout';
-import CTA from '@/components/home/cta';
-import { components } from '@/components/home/mdx-components';
-import { env } from '@/env';
-import { JsonLd, createBlogPostingSchema } from '@delulu/seo/json-ld';
-import { createMetadata } from '@delulu/seo/metadata';
-import { allBlogs } from 'content-collections';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-
-import { remark } from 'remark';
-import remarkGfm from 'remark-gfm';
-import remarkMdx from 'remark-mdx';
-import { MdastToJsx } from 'safe-mdx';
+import { createBlogPostingSchema, JsonLd } from "@delulu/seo/json-ld";
+import { createMetadata } from "@delulu/seo/metadata";
+import { allBlogs } from "content-collections";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkMdx from "remark-mdx";
+import { MdastToJsx } from "safe-mdx";
+import { BlogLayout } from "@/components/blog/blog-layout";
+import CTA from "@/components/home/cta";
+import { components } from "@/components/home/mdx-components";
+import { env } from "@/env";
 
 const parser = remark()
   .use(remarkMdx)
@@ -48,28 +47,28 @@ export const generateMetadata = async ({
       },
     ],
     openGraph: {
-      type: 'article',
+      type: "article",
       publishedTime: blog.date,
       authors: [blog.author],
       tags: blog.categories,
-      siteName: 'Delulu Blog',
-      locale: locale,
+      siteName: "Delulu Blog",
+      locale,
       url: canonicalUrl,
     },
     robots: {
       index: true,
       follow: true,
     },
-    category: blog.categories[0] ?? 'Blog',
-    applicationName: 'Delulu Social',
+    category: blog.categories[0] ?? "Blog",
+    applicationName: "Delulu Social",
     abstract: blog.description,
     creator: blog.author,
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       creator: blog.author,
       images: [
         {
-          url: blog.image ?? '',
+          url: blog.image ?? "",
           alt: blog.title,
           width: 1200,
           height: 630,
@@ -82,12 +81,12 @@ export const generateMetadata = async ({
   });
 };
 
-type PageProps = {
+interface PageProps {
   params: Promise<{
     slug: string;
     locale: string;
   }>;
-};
+}
 
 export default async function Page({ params }: PageProps) {
   const { slug, locale } = await params;
@@ -98,7 +97,7 @@ export default async function Page({ params }: PageProps) {
 
   const blogWithType = {
     ...blog,
-    type: 'blog' as const,
+    type: "blog" as const,
   };
 
   const pageUrl = new URL(`/blog/${slug}`, url).href;

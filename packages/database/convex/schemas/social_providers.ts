@@ -1,5 +1,5 @@
-import { v } from 'convex/values';
-import { socialTypeSchema } from './enums';
+import { v } from "convex/values";
+import { socialTypeSchema } from "./enums";
 
 // ============================================================================
 // SOCIAL PROVIDER SCHEMAS
@@ -8,7 +8,7 @@ import { socialTypeSchema } from './enums';
 // Base social provider schema without system fields
 export const baseSocialProviderSchema = v.object({
   organizationId: v.optional(v.string()),
-  userId: v.optional(v.id('users')),
+  userId: v.optional(v.id("users")),
   accessToken: v.string(),
   refreshToken: v.optional(v.string()),
   expiresIn: v.number(),
@@ -25,7 +25,7 @@ export const baseSocialProviderSchema = v.object({
 
 // Social provider schema with system fields (for returns)
 export const socialProviderSchema = v.object({
-  _id: v.id('socialProviders'),
+  _id: v.id("socialProviders"),
   _creationTime: v.number(),
   ...baseSocialProviderSchema.fields,
 });
@@ -33,7 +33,7 @@ export const socialProviderSchema = v.object({
 // Social provider creation schema
 export const socialProviderCreateSchema = v.object({
   organizationId: v.optional(v.string()),
-  userId: v.optional(v.id('users')),
+  userId: v.optional(v.id("users")),
   accessToken: v.string(),
   refreshToken: v.optional(v.string()),
   expiresIn: v.number(),

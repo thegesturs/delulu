@@ -1,7 +1,29 @@
-'use client';
+"use client";
 
-import { InlineUpgradePrompt } from '@/components/billing/upgrade-prompt';
-import { useUsageLimit } from '@/hooks/use-usage-limits';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import {
+  Alert,
+  AlertDescription,
+} from "@delulu/design-system/components/ui/alert";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { CardContent } from "@delulu/design-system/components/ui/card";
+import { NaturalDatePicker } from "@delulu/design-system/components/ui/natural-date-picker";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { promotionContentTypes } from "@delulu/validators/post";
+import {
+  AlertCircleIcon,
+  Loading03Icon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useMutation } from "convex/react";
+import { useQuery } from "convex-helpers/react/cache";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { FaBookmark } from "react-icons/fa";
+import { PiPaperPlaneTiltFill } from "react-icons/pi";
+import { toast } from "sonner";
+import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { useUsageLimit } from "@/hooks/use-usage-limits";
 import {
   getProviderSettingsForConvex,
   useDateTime,
@@ -9,31 +31,9 @@ import {
   usePost,
   useSelectedSocialProviders,
   useStore,
-} from '@/store/post';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import {
-  Alert,
-  AlertDescription,
-} from '@delulu/design-system/components/ui/alert';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { CardContent } from '@delulu/design-system/components/ui/card';
-import { NaturalDatePicker } from '@delulu/design-system/components/ui/natural-date-picker';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { promotionContentTypes } from '@delulu/validators/post';
-import {
-  AlertCircleIcon,
-  Loading03Icon,
-} from '@hugeicons-pro/core-solid-rounded';
-import { useQuery } from 'convex-helpers/react/cache';
-import { useMutation } from 'convex/react';
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { FaBookmark } from 'react-icons/fa';
-import { PiPaperPlaneTiltFill } from 'react-icons/pi';
-import { toast } from 'sonner';
-import SocialSelector from './social-selector';
-import { TikTokConsentBanner } from './tiktok-consent-banner';
+} from "@/store/post";
+import SocialSelector from "./social-selector";
+import { TikTokConsentBanner } from "./tiktok-consent-banner";
 
 export function BasicSettings() {
   const { date } = useDateTime();
@@ -48,7 +48,7 @@ export function BasicSettings() {
 
   // Get all TikTok providers from selected social providers
   const tiktokProviders = socialProviders.filter(
-    (sp) => sp.socialType === 'TIKTOK'
+    (sp) => sp.socialType === "TIKTOK"
   );
 
   // Single unified mutation for all operations
@@ -60,15 +60,16 @@ export function BasicSettings() {
   const monthlyPostsCount = user?.usage?.generatedPosts || 0;
 
   // Check monthly post limit
-  const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
-  const isAtPostLimit =
-    !monthlyPostsLimit.isUnlimited && !monthlyPostsLimit.allowed;
+  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
+  const isAtPostLimit = !(
+    monthlyPostsLimit.isUnlimited || monthlyPostsLimit.allowed
+  );
 
   const handlePostNow = async () => {
     // Check post limit before publishing
     if (isAtPostLimit) {
       toast.error(
-        'You have reached your monthly post limit. Please upgrade your plan.'
+        "You have reached your monthly post limit. Please upgrade your plan."
       );
       return;
     }
@@ -77,27 +78,27 @@ export function BasicSettings() {
       setIsProcessing(true);
 
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         // Include provider-specific settings
         providerSettings: providerSettingsForConvex,
         // No scheduledAt - immediate publishing via existing tRPC flow
-        status: 'PROCESSING',
+        status: "PROCESSING",
       });
       toast.success(
-        'Post sent for processing, will be published shortly. You can close this window now.'
+        "Post sent for processing, will be published shortly. You can close this window now."
       );
-      router.push('/posts?status=PROCESSING');
+      router.push("/posts?status=PROCESSING");
     } catch {
-      toast.error('Failed to publish post');
+      toast.error("Failed to publish post");
     } finally {
       setIsProcessing(false);
     }
@@ -112,7 +113,7 @@ export function BasicSettings() {
     // Check post limit before scheduling
     if (isAtPostLimit) {
       toast.error(
-        'You have reached your monthly post limit. Please upgrade your plan.'
+        "You have reached your monthly post limit. Please upgrade your plan."
       );
       return;
     }
@@ -121,25 +122,25 @@ export function BasicSettings() {
       setIsProcessing(true);
 
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         // Include provider-specific settings
         providerSettings: providerSettingsForConvex,
         scheduledAt: date.getTime(), // Future scheduling
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
       });
-      toast.success('Post scheduled successfully');
-      router.push('/posts?status=SCHEDULED');
+      toast.success("Post scheduled successfully");
+      router.push("/posts?status=SCHEDULED");
     } catch {
-      toast.error('Failed to schedule post');
+      toast.error("Failed to schedule post");
     } finally {
       setIsProcessing(false);
     }
@@ -151,26 +152,26 @@ export function BasicSettings() {
       setIsProcessing(true);
 
       await upsertPostMutation({
-        ...(postId && { id: postId as Id<'posts'> }),
+        ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
           socialProviderId: alt.socialProvider
-            .socialId as Id<'socialProviders'>,
+            .socialId as Id<"socialProviders">,
           content: alt.content,
         })),
         socialProviderIds: socialProviders.map(
-          (sp) => sp.socialId as Id<'socialProviders'>
+          (sp) => sp.socialId as Id<"socialProviders">
         ),
         // Include provider-specific settings (save even in drafts)
         providerSettings: providerSettingsForConvex,
-        status: 'SAVED',
+        status: "SAVED",
       });
       toast.success(
-        postId ? 'Post updated successfully' : 'Post saved successfully'
+        postId ? "Post updated successfully" : "Post saved successfully"
       );
-      router.push('/posts?status=SAVED');
+      router.push("/posts?status=SAVED");
     } catch {
-      toast.error(postId ? 'Failed to update post' : 'Failed to save post');
+      toast.error(postId ? "Failed to update post" : "Failed to save post");
     } finally {
       setIsProcessing(false);
     }
@@ -187,9 +188,9 @@ export function BasicSettings() {
             <div className="flex gap-3">
               <NaturalDatePicker
                 className="w-full"
-                value={date}
                 onChange={setDateAlongWithTime}
                 placeholder="Select date and time..."
+                value={date}
               />
             </div>
           </div>
@@ -206,7 +207,7 @@ export function BasicSettings() {
               <Alert>
                 <Icon icon={AlertCircleIcon} size={16} />
                 <AlertDescription>
-                  You've used {monthlyPostsCount} of {monthlyPostsLimit.limit}{' '}
+                  You've used {monthlyPostsCount} of {monthlyPostsLimit.limit}{" "}
                   posts this month. Consider upgrading to avoid interruptions.
                 </AlertDescription>
               </Alert>
@@ -216,29 +217,29 @@ export function BasicSettings() {
 
       <CardContent className="flex flex-row gap-3 pt-4">
         <Button
-          className="flex-1 justify-center gap-2"
-          onClick={date ? handleSchedulePost : handlePostNow}
-          disabled={isProcessing || isMediaUploading || isAtPostLimit}
           aria-busy={isProcessing || isMediaUploading}
-          title={isAtPostLimit ? 'Monthly post limit reached' : undefined}
+          className="flex-1 justify-center gap-2"
+          disabled={isProcessing || isMediaUploading || isAtPostLimit}
+          onClick={date ? handleSchedulePost : handlePostNow}
+          title={isAtPostLimit ? "Monthly post limit reached" : undefined}
         >
-          {date ? 'Schedule Post' : 'Post Now'}
+          {date ? "Schedule Post" : "Post Now"}
           {isProcessing ? (
-            <Icon icon={Loading03Icon} size={16} className="animate-spin" />
+            <Icon className="animate-spin" icon={Loading03Icon} size={16} />
           ) : (
             <PiPaperPlaneTiltFill className="size-4" />
           )}
         </Button>
         <Button
-          className="flex-1 justify-center gap-2"
-          variant="secondary"
-          onClick={handleSaveAsDraft}
-          disabled={isProcessing || isMediaUploading}
           aria-busy={isProcessing || isMediaUploading}
+          className="flex-1 justify-center gap-2"
+          disabled={isProcessing || isMediaUploading}
+          onClick={handleSaveAsDraft}
+          variant="secondary"
         >
-          {postId ? 'Update Post' : 'Save Post'}
+          {postId ? "Update Post" : "Save Post"}
           {isProcessing ? (
-            <Icon icon={Loading03Icon} size={16} className="animate-spin" />
+            <Icon className="animate-spin" icon={Loading03Icon} size={16} />
           ) : (
             <FaBookmark className="size-4" />
           )}
@@ -252,7 +253,7 @@ export function BasicSettings() {
             {tiktokProviders.map((provider) => {
               const providerSetting = getProviderSettings(provider.socialId);
               const tiktokSettings =
-                providerSetting?.type === 'TIKTOK'
+                providerSetting?.type === "TIKTOK"
                   ? providerSetting.settings
                   : null;
 

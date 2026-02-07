@@ -1,9 +1,9 @@
-'use server';
+"use server";
 
-import { env } from '@/env';
-import { resend } from '@delulu/email';
-import { ContactTemplate } from '@delulu/email/templates/contact';
-import { parseError } from '@delulu/observability/error';
+import { resend } from "@delulu/email";
+import { ContactTemplate } from "@delulu/email/templates/contact";
+import { parseError } from "@delulu/observability/error";
+import { env } from "@/env";
 // import { createRateLimiter, slidingWindow } from '@delulu/rate-limit';
 // import { headers } from 'next/headers';
 
@@ -31,16 +31,16 @@ export const contact = async (
     //   }
     // }
 
-    if (!env.RESEND_FROM || !env.RESEND_TOKEN) {
-      throw new Error('Email service not configured');
+    if (!(env.RESEND_FROM && env.RESEND_TOKEN)) {
+      throw new Error("Email service not configured");
     }
 
     await resend.emails.send({
       from: env.RESEND_FROM,
       to: env.RESEND_FROM,
-      subject: 'Contact form submission',
+      subject: "Contact form submission",
       replyTo: email,
-      react: <ContactTemplate name={name} email={email} message={message} />,
+      react: <ContactTemplate email={email} message={message} name={name} />,
     });
 
     return {};

@@ -1,17 +1,21 @@
-'use client';
+"use client";
 
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Input } from '@delulu/design-system/components/ui/input';
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Input } from "@delulu/design-system/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@delulu/design-system/components/ui/select';
-import { Icon } from '@delulu/design-system/providers/icon';
+} from "@delulu/design-system/components/ui/select";
+import { Icon } from "@delulu/design-system/providers/icon";
 
-import { GridViewIcon, Menu01Icon, Search01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  GridViewIcon,
+  Menu01Icon,
+  Search01Icon,
+} from "@hugeicons-pro/core-solid-rounded";
 
 interface AccountFiltersProps {
   searchQuery: string;
@@ -20,8 +24,8 @@ interface AccountFiltersProps {
   setFilterPlatform: (platform: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
-  viewMode: 'grid' | 'list';
-  setViewMode: (mode: 'grid' | 'list') => void;
+  viewMode: "grid" | "list";
+  setViewMode: (mode: "grid" | "list") => void;
 }
 
 export function AccountFilters({
@@ -39,16 +43,20 @@ export function AccountFilters({
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
           <div className="relative max-w-sm flex-1">
-            <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3  transform text-muted-foreground" />
+            <Icon
+              className="absolute top-1/2 left-3 -translate-y-1/2 transform text-muted-foreground"
+              icon={Search01Icon}
+              size={16}
+            />
             <Input
+              className="border-input bg-background/80 pl-10"
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search accounts..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-input bg-background/80 pl-10"
             />
           </div>
 
-          <Select value={filterPlatform} onValueChange={setFilterPlatform}>
+          <Select onValueChange={setFilterPlatform} value={filterPlatform}>
             <SelectTrigger className="w-full border-input bg-background/80 sm:w-40">
               <SelectValue placeholder="Platform" />
             </SelectTrigger>
@@ -59,7 +67,7 @@ export function AccountFilters({
             </SelectContent>
           </Select>
 
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select onValueChange={setFilterStatus} value={filterStatus}>
             <SelectTrigger className="w-full border-input bg-background/80 sm:w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -75,20 +83,20 @@ export function AccountFilters({
 
         <div className="flex items-center gap-2">
           <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
             className="h-9 w-9 p-0"
+            onClick={() => setViewMode("list")}
+            size="sm"
+            variant={viewMode === "list" ? "default" : "outline"}
           >
-            <Icon icon={Menu01Icon} size={16} className="" />
+            <Icon className="" icon={Menu01Icon} size={16} />
           </Button>
           <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
             className="h-9 w-9 p-0"
+            onClick={() => setViewMode("grid")}
+            size="sm"
+            variant={viewMode === "grid" ? "default" : "outline"}
           >
-            <Icon icon={GridViewIcon} size={16} className="" />
+            <Icon className="" icon={GridViewIcon} size={16} />
           </Button>
         </div>
       </div>

@@ -1,5 +1,5 @@
-'use client';
-import type React from 'react';
+"use client";
+import type React from "react";
 
 interface DesktopMockupProps {
   children?: React.ReactNode;
@@ -9,7 +9,7 @@ interface DesktopMockupProps {
 export function DesktopMockup({ children, className }: DesktopMockupProps) {
   return (
     <div
-      className={`mx-auto aspect-video w-full rounded-t-lg bg-secondary shadow-2xl ${className ?? ''}`}
+      className={`mx-auto aspect-video w-full rounded-t-lg bg-secondary shadow-2xl ${className ?? ""}`}
     >
       {/* Browser top bar */}
       <div className="flex h-10 items-center space-x-2 rounded-t-lg bg-card px-4">

@@ -1,32 +1,32 @@
-import { v } from 'convex/values';
+import { v } from "convex/values";
 
 // ID generation utilities
 export const UniqueIdsSchema = v.union(
-  v.literal('user'),
-  v.literal('org'),
-  v.literal('post'),
-  v.literal('orgUser'),
-  v.literal('orgInvite'),
-  v.literal('social'),
-  v.literal('media'),
-  v.literal('session'),
-  v.literal('account'),
-  v.literal('verification'),
-  v.literal('alt_post')
+  v.literal("user"),
+  v.literal("org"),
+  v.literal("post"),
+  v.literal("orgUser"),
+  v.literal("orgInvite"),
+  v.literal("social"),
+  v.literal("media"),
+  v.literal("session"),
+  v.literal("account"),
+  v.literal("verification"),
+  v.literal("alt_post")
 );
 
 export type UniqueIdsType =
-  | 'user'
-  | 'org'
-  | 'post'
-  | 'orgUser'
-  | 'orgInvite'
-  | 'social'
-  | 'media'
-  | 'session'
-  | 'account'
-  | 'verification'
-  | 'alt_post';
+  | "user"
+  | "org"
+  | "post"
+  | "orgUser"
+  | "orgInvite"
+  | "social"
+  | "media"
+  | "session"
+  | "account"
+  | "verification"
+  | "alt_post";
 
 /**
  * Converts a string to an ArrayBuffer
@@ -49,7 +49,7 @@ function ab2str(buf: ArrayBuffer): string {
  */
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
@@ -73,24 +73,24 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
  */
 async function getKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     str2ab(password),
-    { name: 'PBKDF2' },
+    { name: "PBKDF2" },
     false,
-    ['deriveKey']
+    ["deriveKey"]
   );
 
   return crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: "PBKDF2",
       salt,
-      iterations: 100000,
-      hash: 'SHA-256',
+      iterations: 100_000,
+      hash: "SHA-256",
     },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"]
   );
 }
 
@@ -107,7 +107,7 @@ export async function encryptData(data: string): Promise<string> {
   // Encrypt the data
   const encryptedData = await crypto.subtle.encrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv,
     },
     key,
@@ -143,7 +143,7 @@ export async function decryptData(encryptedData: string): Promise<string> {
 
   const decryptedData = await crypto.subtle.decrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv,
     },
     key,
@@ -154,31 +154,31 @@ export async function decryptData(encryptedData: string): Promise<string> {
 }
 
 export type SocialType =
-  | 'TWITTER'
-  | 'LINKEDIN'
-  | 'LENS'
-  | 'YOUTUBE'
-  | 'INSTAGRAM'
-  | 'FACEBOOK'
-  | 'TIKTOK'
-  | 'THREADS'
-  | 'PINTEREST'
-  | 'FARCASTER'
-  | 'BLUESKY'
-  | 'DEFAULT';
+  | "TWITTER"
+  | "LINKEDIN"
+  | "LENS"
+  | "YOUTUBE"
+  | "INSTAGRAM"
+  | "FACEBOOK"
+  | "TIKTOK"
+  | "THREADS"
+  | "PINTEREST"
+  | "FARCASTER"
+  | "BLUESKY"
+  | "DEFAULT";
 
 export type PostStatus =
-  | 'SAVED'
-  | 'PUBLISHED'
-  | 'SCHEDULED'
-  | 'DELETED'
-  | 'FAILED';
+  | "SAVED"
+  | "PUBLISHED"
+  | "SCHEDULED"
+  | "DELETED"
+  | "FAILED";
 
-export type PostReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type PostReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-export type PrivacyStatus = 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+export type PrivacyStatus = "PUBLIC" | "PRIVATE" | "UNLISTED";
 
-export type MediaType = 'IMAGE' | 'VIDEO';
+export type MediaType = "IMAGE" | "VIDEO";
 
 // Helper function to convert timestamps
 export function timestampToNumber(timestamp: Date): number {
@@ -189,10 +189,12 @@ export function numberToTimestamp(num: number): Date {
   return new Date(num);
 }
 
+// Top-level regex for email validation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Validation helper for email
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return EMAIL_REGEX.test(email);
 }
 
 // Helper to check if a string is a valid URL

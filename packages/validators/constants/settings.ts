@@ -9,8 +9,8 @@ import type {
   TikTokSettings,
   TwitterSettings,
   YouTubeSettings,
-} from '../post';
-import { promotionContentTypes, tikTokPrivacyLevels } from '../post';
+} from "../post";
+import { promotionContentTypes, tikTokPrivacyLevels } from "../post";
 
 /**
  * Default settings for TikTok platform
@@ -36,7 +36,7 @@ export const DEFAULT_TIKTOK_SETTINGS: TikTokSettings = {
  * - No age restriction
  */
 export const DEFAULT_YOUTUBE_SETTINGS: YouTubeSettings = {
-  privacy: 'PUBLIC',
+  privacy: "PUBLIC",
   madeForKids: false,
   ageRestriction: false,
 };
@@ -57,7 +57,7 @@ export const DEFAULT_INSTAGRAM_SETTINGS: InstagramSettings = {
  * - Public visibility
  */
 export const DEFAULT_FACEBOOK_SETTINGS: FacebookSettings = {
-  privacy: 'PUBLIC',
+  privacy: "PUBLIC",
 };
 
 /**
@@ -65,7 +65,7 @@ export const DEFAULT_FACEBOOK_SETTINGS: FacebookSettings = {
  * - Everyone can reply
  */
 export const DEFAULT_TWITTER_SETTINGS: TwitterSettings = {
-  replyRestriction: 'everyone',
+  replyRestriction: "everyone",
 };
 
 /**
@@ -73,7 +73,7 @@ export const DEFAULT_TWITTER_SETTINGS: TwitterSettings = {
  * - Public visibility
  */
 export const DEFAULT_LINKEDIN_SETTINGS: LinkedInSettings = {
-  visibility: 'PUBLIC',
+  visibility: "PUBLIC",
 };
 
 /**
@@ -81,7 +81,7 @@ export const DEFAULT_LINKEDIN_SETTINGS: LinkedInSettings = {
  * - Everyone can reply
  */
 export const DEFAULT_THREADS_SETTINGS: ThreadsSettings = {
-  replyControl: 'everyone',
+  replyControl: "everyone",
 };
 
 /**
@@ -129,6 +129,6 @@ export const PLATFORM_DEFAULT_SETTINGS = {
  * Platforms that require settings to be configured before posting
  */
 export const PLATFORMS_WITH_REQUIRED_SETTINGS = [
-  'TIKTOK',
+  "TIKTOK",
   // Add more platforms here as needed
 ] as const;

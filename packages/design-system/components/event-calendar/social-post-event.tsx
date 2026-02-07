@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import {
   socialBackgroundColors,
   socialIcons,
-} from '@delulu/design-system/lib/social-config';
-import type { SupportedSocialPlatform } from '@delulu/design-system/lib/social-config';
-import { cn } from '@delulu/design-system/lib/utils';
-import { format } from 'date-fns';
-import { Icon } from '../../providers/icon';
-import { ClockIcon } from '@hugeicons-pro/core-solid-rounded';
-import type React from 'react';
+} from "@delulu/design-system/lib/social-config";
+import { cn } from "@delulu/design-system/lib/utils";
+import { ClockIcon } from "@hugeicons-pro/core-solid-rounded";
+import { format } from "date-fns";
+import type React from "react";
+import { Icon } from "../../providers/icon";
 
 export interface SocialPostEventData {
   id: string;
@@ -21,7 +21,7 @@ export interface SocialPostEventData {
   }>;
   contentPreview?: string;
   mediaThumbnail?: string;
-  status: 'scheduled' | 'processing' | 'failed';
+  status: "scheduled" | "processing" | "failed";
   failureMessage?: string;
 }
 
@@ -48,22 +48,23 @@ export function SocialPostEvent({
   };
 
   return (
-    // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by parent
     <div
-      onClick={handleClick}
       className={cn(
-        'group relative flex flex-col gap-2 rounded-sm border bg-card p-3 transition-all duration-200',
-        'cursor-pointer hover:shadow-md',
-        'hover:border-primary/20',
-        event.status === 'failed' && 'border-destructive/50 bg-destructive/5',
+        "group relative flex flex-col gap-2 rounded-sm border bg-card p-3 transition-all duration-200",
+        "cursor-pointer hover:shadow-md",
+        "hover:border-primary/20",
+        event.status === "failed" && "border-destructive/50 bg-destructive/5",
         className
       )}
+      onClick={handleClick}
     >
       {/* Time Badge - 12 hour format */}
       <div className="flex items-center gap-1 font-semibold text-foreground text-xs">
         <Icon icon={ClockIcon} size={14} />
-        <span>{format(event.scheduledTime, 'h:mm a')}</span>
+        <span>{format(event.scheduledTime, "h:mm a")}</span>
       </div>
 
       {/* Platform Icon with counter */}
@@ -72,14 +73,14 @@ export function SocialPostEvent({
           <div className="relative flex-shrink-0">
             <div
               className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full shadow-sm',
+                "flex h-7 w-7 items-center justify-center rounded-full shadow-sm",
                 socialBackgroundColors[primaryPlatform.type]
               )}
             >
               <PrimaryIcon className="h-4 w-4 text-white" />
             </div>
             {additionalPlatformCount > 0 && (
-              <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full border border-border bg-muted font-semibold text-[9px]">
+              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-muted font-semibold text-[9px]">
                 +{additionalPlatformCount}
               </div>
             )}
@@ -95,12 +96,12 @@ export function SocialPostEvent({
       {/* Media Thumbnail */}
       {event.mediaThumbnail && (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
-          {/* biome-ignore lint/nursery/noImgElement: Media thumbnail preview in calendar */}
+          {/* biome-ignore lint/performance/noImgElement: Media thumbnail preview in calendar */}
           <img
-            src={event.mediaThumbnail}
             alt="Post media"
             className="h-full w-full object-cover"
             loading="lazy"
+            src={event.mediaThumbnail}
           />
         </div>
       )}
@@ -113,9 +114,9 @@ export function SocialPostEvent({
       )}
 
       {/* Status Badge */}
-      {event.status !== 'scheduled' && (
+      {event.status !== "scheduled" && (
         <div className="absolute top-2 right-2">
-          {event.status === 'processing' && (
+          {event.status === "processing" && (
             <div className="flex h-5 items-center gap-1 rounded-full bg-amber-100 px-2 dark:bg-amber-900/30">
               <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-600 dark:bg-amber-500" />
               <span className="font-medium text-[10px] text-amber-700 dark:text-amber-400">
@@ -123,7 +124,7 @@ export function SocialPostEvent({
               </span>
             </div>
           )}
-          {event.status === 'failed' && (
+          {event.status === "failed" && (
             <div className="flex h-5 items-center gap-1 rounded-full bg-destructive/10 px-2">
               <span className="font-medium text-[10px] text-destructive">
                 Failed

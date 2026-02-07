@@ -1,51 +1,48 @@
-import { keys } from '@api/keys';
-import { createPostInQueue } from '@api/services/post.service';
-import { getCloudflareEnv } from '@delulu/cloudflare-types';
+import { keys } from "@api/keys";
+import { createPostInQueue } from "@api/services/post.service";
+import { getCloudflareEnv } from "@delulu/cloudflare-types";
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { decryptData } from "@delulu/database/convex/utils";
+import { fetchMutation, fetchQuery } from "@delulu/database/server";
+import { log } from "@delulu/observability/log";
 import {
   FacebookPageConnectionSchema,
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
-} from '@delulu/validators/facebook';
-
-import { api } from '@delulu/database/convex/_generated/api';
-import { decryptData } from '@delulu/database/convex/utils';
-import { log } from '@delulu/observability/log';
-import { SocialTypeSchema } from '@delulu/validators/post';
-import { TRPCError, type TRPCRouterRecord } from '@trpc/server';
-import { z } from 'zod';
-import { connectUrlRegistry } from '../services/connect-url.service';
-import { protectedProcedure } from '../trpc';
-
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { fetchMutation } from '@delulu/database/server';
-import { fetchQuery } from '@delulu/database/server';
+} from "@delulu/validators/facebook";
+import { SocialTypeSchema } from "@delulu/validators/post";
+import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import { z } from "zod";
+import { connectUrlRegistry } from "../services/connect-url.service";
+import { protectedProcedure } from "../trpc";
 
 export const socialProviderRouter = {
-	getSocialProviderConnectUrl: protectedProcedure
-		.input(
-			z.object({
-				provider: SocialTypeSchema.exclude(['DEFAULT', 'LENS']),
-			}),
-		)
-		.query(async ({ input, ctx }) => {
-			// Check if user has reached their social account limit (single efficient query)
-			const limitCheck = await fetchQuery(
-				api.subscriptions.checkSocialAccountLimit,
-				{},
-				{ token: ctx.token },
-			);
+  getSocialProviderConnectUrl: protectedProcedure
+    .input(
+      z.object({
+        provider: SocialTypeSchema.exclude(["DEFAULT", "LENS"]),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Check if user has reached their social account limit (single efficient query)
+      const limitCheck = await fetchQuery(
+        api.subscriptions.checkSocialAccountLimit,
+        {},
+        { token: ctx.token }
+      );
 
-			if (!limitCheck.allowed) {
-				throw new TRPCError({
-					code: 'FORBIDDEN',
-					message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
-				});
-			}
+      if (!limitCheck.allowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
+        });
+      }
 
-			// Generate connect URL only if within limit
-			const link = connectUrlRegistry[input.provider].connectUrl();
-			return link;
-		}),
+      // Generate connect URL only if within limit
+      const link = connectUrlRegistry[input.provider].connectUrl();
+      return link;
+    }),
   // createPost: protectedProcedure
   //   .input(savePostInputSchema)
   //   .mutation(async ({ input, ctx }) => {
@@ -127,19 +124,19 @@ export const socialProviderRouter = {
       const post = await fetchQuery(
         api.posts.getPostById,
         {
-          id: input.postId as Id<'posts'>,
+          id: input.postId as Id<"posts">,
         },
         {
           token: ctx.token,
         }
       );
       if (!post) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found' });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
       }
       if (!post.userId) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Post not found',
+          code: "NOT_FOUND",
+          message: "Post not found",
         });
       }
 
@@ -158,24 +155,24 @@ export const socialProviderRouter = {
       const limitCheck = await fetchQuery(
         api.subscriptions.checkSocialAccountLimit,
         {},
-        { token: ctx.token },
+        { token: ctx.token }
       );
 
       // Check if this specific page is already connected (update/transfer case)
       const currentAccounts = await fetchQuery(
         api.social_providers.getConnectedAccounts,
         {},
-        { token: ctx.token },
+        { token: ctx.token }
       );
 
       const isExistingPage = currentAccounts.some(
-        (acc) => acc.profileId === input.pageId,
+        (acc) => acc.profileId === input.pageId
       );
 
       // Only validate limit if creating NEW connection
-      if (!isExistingPage && !limitCheck.allowed) {
+      if (!(isExistingPage || limitCheck.allowed)) {
         throw new TRPCError({
-          code: 'FORBIDDEN',
+          code: "FORBIDDEN",
           message: `LIMIT_EXCEEDED: You have reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts. Upgrade to connect more accounts.`,
         });
       }
@@ -191,8 +188,8 @@ export const socialProviderRouter = {
         const encryptedData = await facebookPagesKV.get(key);
         if (!encryptedData) {
           throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Facebook pages data not found or expired',
+            code: "NOT_FOUND",
+            message: "Facebook pages data not found or expired",
           });
         }
 
@@ -204,8 +201,8 @@ export const socialProviderRouter = {
           FacebookPagesWithTokenSchema.safeParse(rawPages);
         if (!pagesValidationResult.success) {
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Invalid Facebook pages data structure',
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Invalid Facebook pages data structure",
           });
         }
 
@@ -214,8 +211,8 @@ export const socialProviderRouter = {
         const selectedPage = pages.find((page) => page.id === input.pageId);
         if (!selectedPage?.access_token) {
           throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Selected Facebook page not found',
+            code: "NOT_FOUND",
+            message: "Selected Facebook page not found",
           });
         }
 
@@ -228,8 +225,8 @@ export const socialProviderRouter = {
           throw error;
         }
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to retrieve Facebook page data',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to retrieve Facebook page data",
         });
       }
 
@@ -247,7 +244,7 @@ export const socialProviderRouter = {
         }
       );
 
-      return { status: 'connected' };
+      return { status: "connected" };
     }),
   getTikTokCreatorInfo: protectedProcedure
     .input(
@@ -260,7 +257,7 @@ export const socialProviderRouter = {
       let socialProvider = await fetchQuery(
         api.social_providers.getSocialProviderWithDecryptedTokens,
         {
-          id: input.socialProviderId as Id<'socialProviders'>,
+          id: input.socialProviderId as Id<"socialProviders">,
         },
         {
           token: ctx.token,
@@ -269,8 +266,8 @@ export const socialProviderRouter = {
 
       if (!socialProvider?.accessToken) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'TikTok account not found or access token missing',
+          code: "NOT_FOUND",
+          message: "TikTok account not found or access token missing",
         });
       }
 
@@ -284,17 +281,17 @@ export const socialProviderRouter = {
         try {
           // Refresh the access token
           const refreshResponse = await fetch(
-            'https://open.tiktokapis.com/v2/oauth/token/',
+            "https://open.tiktokapis.com/v2/oauth/token/",
             {
-              method: 'POST',
+              method: "POST",
               headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Cache-Control': 'no-cache',
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cache-Control": "no-cache",
               },
               body: new URLSearchParams({
                 client_key: keys().TIKTOK_CLIENT_ID,
                 client_secret: keys().TIKTOK_CLIENT_SECRET,
-                grant_type: 'refresh_token',
+                grant_type: "refresh_token",
                 refresh_token: socialProvider.refreshToken,
               }),
             }
@@ -312,7 +309,7 @@ export const socialProviderRouter = {
             await fetchMutation(
               api.social_providers.updateSocialProvider,
               {
-                id: input.socialProviderId as Id<'socialProviders'>,
+                id: input.socialProviderId as Id<"socialProviders">,
                 accessToken: access_token,
                 refreshToken: refresh_token,
                 expiresIn: Date.now() + expires_in * 1000,
@@ -337,25 +334,25 @@ export const socialProviderRouter = {
 
       try {
         const response = await fetch(
-          'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+          "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
           {
-            method: 'POST',
+            method: "POST",
             headers: {
               Authorization: `Bearer ${socialProvider.accessToken}`,
-              'Content-Type': 'application/json; charset=UTF-8',
+              "Content-Type": "application/json; charset=UTF-8",
             },
           }
         );
 
         if (!response.ok) {
           const errorBody = await response.text().catch(() => undefined);
-          log.error('TikTok creator_info/query failed', {
+          log.error("TikTok creator_info/query failed", {
             status: response.status,
             statusText: response.statusText,
             body: errorBody,
           });
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
+            code: "INTERNAL_SERVER_ERROR",
             message: `TikTok API error: ${response.status}`,
           });
         }
@@ -380,35 +377,35 @@ export const socialProviderRouter = {
         console.log(data.data?.privacy_level_options);
 
         // Check for specific error codes that require user action
-        if (data.error?.code && data.error.code !== 'ok') {
-          if (data.error.code === 'spam_risk_too_many_posts') {
+        if (data.error?.code && data.error.code !== "ok") {
+          if (data.error.code === "spam_risk_too_many_posts") {
             throw new TRPCError({
-              code: 'TOO_MANY_REQUESTS',
-              message: 'Daily post limit reached. Please try again tomorrow.',
+              code: "TOO_MANY_REQUESTS",
+              message: "Daily post limit reached. Please try again tomorrow.",
             });
           }
-          if (data.error.code === 'spam_risk_user_banned_from_posting') {
+          if (data.error.code === "spam_risk_user_banned_from_posting") {
             throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: 'Your TikTok account is banned from posting.',
+              code: "FORBIDDEN",
+              message: "Your TikTok account is banned from posting.",
             });
           }
-          if (data.error.code === 'reached_active_user_cap') {
+          if (data.error.code === "reached_active_user_cap") {
             throw new TRPCError({
-              code: 'TOO_MANY_REQUESTS',
-              message: 'Daily quota limit reached. Please try again later.',
+              code: "TOO_MANY_REQUESTS",
+              message: "Daily quota limit reached. Please try again later.",
             });
           }
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: data.error.message || 'Failed to get creator info',
+            code: "INTERNAL_SERVER_ERROR",
+            message: data.error.message || "Failed to get creator info",
           });
         }
 
         if (!data.data?.creator_username) {
           throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to get creator info from TikTok response',
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to get creator info from TikTok response",
           });
         }
 
@@ -417,9 +414,9 @@ export const socialProviderRouter = {
           creator_nickname: data.data.creator_nickname,
           creator_avatar_url: data.data.creator_avatar_url,
           privacy_level_options: data.data.privacy_level_options || [],
-          comment_disabled: data.data.comment_disabled || false,
-          duet_disabled: data.data.duet_disabled || false,
-          stitch_disabled: data.data.stitch_disabled || false,
+          comment_disabled: data.data.comment_disabled,
+          duet_disabled: data.data.duet_disabled,
+          stitch_disabled: data.data.stitch_disabled,
           max_video_post_duration_sec:
             data.data.max_video_post_duration_sec || 60,
         };
@@ -428,8 +425,95 @@ export const socialProviderRouter = {
           throw error;
         }
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to fetch TikTok creator info',
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch TikTok creator info",
+        });
+      }
+    }),
+  getInstagramPosts: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+        limit: z.number().min(1).max(50).optional().default(25),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      // Get social provider with decrypted tokens
+      const provider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        { id: input.socialProviderId as Id<"socialProviders"> },
+        { token: ctx.token }
+      );
+
+      if (!(provider?.accessToken && provider.profileId)) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Instagram account not found or access token missing",
+        });
+      }
+
+      if (provider.socialType !== "INSTAGRAM") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This endpoint only supports Instagram accounts",
+        });
+      }
+
+      try {
+        const response = await fetch(
+          `https://graph.instagram.com/v24.0/${provider.profileId}/media?fields=id,caption,media_type,timestamp,permalink,thumbnail_url,media_url&limit=${input.limit}&access_token=${provider.accessToken}`
+        );
+
+        if (!response.ok) {
+          const errorBody = await response.text().catch(() => undefined);
+          log.error("Instagram media fetch failed", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody,
+          });
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Instagram API error: ${response.status}`,
+          });
+        }
+
+        const data = (await response.json()) as {
+          data?: Array<{
+            id: string;
+            caption?: string;
+            media_type: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
+            timestamp: string;
+            permalink: string;
+            thumbnail_url?: string;
+            media_url?: string;
+          }>;
+          error?: { message: string };
+        };
+
+        if (data.error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: data.error.message || "Failed to fetch Instagram posts",
+          });
+        }
+
+        const posts = data.data || [];
+
+        return posts.map((p) => ({
+          id: p.id,
+          caption: p.caption || "",
+          mediaType: p.media_type,
+          thumbnailUrl: p.thumbnail_url || p.media_url || "",
+          permalink: p.permalink,
+          timestamp: p.timestamp,
+        }));
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch Instagram posts",
         });
       }
     }),
@@ -444,7 +528,7 @@ export const socialProviderRouter = {
       const socialProvider = await fetchQuery(
         api.social_providers.getSocialProviderWithDecryptedTokens,
         {
-          id: input.socialProviderId as Id<'socialProviders'>,
+          id: input.socialProviderId as Id<"socialProviders">,
         },
         {
           token: ctx.token,
@@ -453,32 +537,35 @@ export const socialProviderRouter = {
 
       if (!socialProvider) {
         throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Social account not found',
+          code: "NOT_FOUND",
+          message: "Social account not found",
         });
       }
 
       // Verify ownership (check that the social provider belongs to the current user)
       if (socialProvider.userId !== ctx.userId) {
         throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have permission to delete this account',
+          code: "FORBIDDEN",
+          message: "You do not have permission to delete this account",
         });
       }
 
       // If TikTok, revoke the access token before deletion
-      if (socialProvider.socialType === 'TIKTOK' && socialProvider.accessToken) {
+      if (
+        socialProvider.socialType === "TIKTOK" &&
+        socialProvider.accessToken
+      ) {
         try {
-          log.info('Revoking TikTok access token', {
+          log.info("Revoking TikTok access token", {
             socialProviderId: input.socialProviderId,
           });
 
           const revokeResponse = await fetch(
-            'https://open.tiktokapis.com/v2/oauth/revoke/',
+            "https://open.tiktokapis.com/v2/oauth/revoke/",
             {
-              method: 'POST',
+              method: "POST",
               headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                "Content-Type": "application/x-www-form-urlencoded",
               },
               body: new URLSearchParams({
                 client_key: keys().TIKTOK_CLIENT_ID,
@@ -489,23 +576,31 @@ export const socialProviderRouter = {
           );
 
           if (revokeResponse.ok) {
-            log.info('Successfully revoked TikTok access token', {
+            log.info("Successfully revoked TikTok access token", {
               socialProviderId: input.socialProviderId,
             });
           } else {
-            const errorBody = await revokeResponse.text().catch(() => undefined);
-            log.warn('Failed to revoke TikTok token (continuing with deletion)', {
-              socialProviderId: input.socialProviderId,
-              status: revokeResponse.status,
-              body: errorBody,
-            });
+            const errorBody = await revokeResponse
+              .text()
+              .catch(() => undefined);
+            log.warn(
+              "Failed to revoke TikTok token (continuing with deletion)",
+              {
+                socialProviderId: input.socialProviderId,
+                status: revokeResponse.status,
+                body: errorBody,
+              }
+            );
             // Continue with deletion even if revocation failed
           }
         } catch (error) {
-          log.error('Error during TikTok token revocation (continuing with deletion)', {
-            socialProviderId: input.socialProviderId,
-            error,
-          });
+          log.error(
+            "Error during TikTok token revocation (continuing with deletion)",
+            {
+              socialProviderId: input.socialProviderId,
+              error,
+            }
+          );
           // Continue with deletion even if revocation threw an error
         }
       }
@@ -514,7 +609,7 @@ export const socialProviderRouter = {
       await fetchMutation(
         api.social_providers.deleteSocial,
         {
-          socialId: input.socialProviderId as Id<'socialProviders'>,
+          socialId: input.socialProviderId as Id<"socialProviders">,
         },
         {
           token: ctx.token,

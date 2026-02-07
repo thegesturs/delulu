@@ -1,10 +1,10 @@
-import { Toaster } from '@delulu/design-system/components/ui/sonner';
-import { TooltipProvider } from '@delulu/design-system/components/ui/tooltip';
-import { ThemeProvider } from '@delulu/design-system/providers/theme';
-import { withThemeByClassName } from '@storybook/addon-themes';
-import type { Preview } from '@storybook/react';
+import { Toaster } from "@delulu/design-system/components/ui/sonner";
+import { TooltipProvider } from "@delulu/design-system/components/ui/tooltip";
+import { ThemeProvider } from "@delulu/design-system/providers/theme";
+import { withThemeByClassName } from "@storybook/addon-themes";
+import type { Preview } from "@storybook/react";
 
-import '@delulu/design-system/styles/globals.css';
+import "@delulu/design-system/styles/globals.css";
 
 const preview: Preview = {
   parameters: {
@@ -17,12 +17,12 @@ const preview: Preview = {
     chromatic: {
       modes: {
         light: {
-          theme: 'light',
-          className: 'light',
+          theme: "light",
+          className: "light",
         },
         dark: {
-          theme: 'dark',
-          className: 'dark',
+          theme: "dark",
+          className: "dark",
         },
       },
     },
@@ -30,10 +30,10 @@ const preview: Preview = {
   decorators: [
     withThemeByClassName({
       themes: {
-        light: 'light',
-        dark: 'dark',
+        light: "light",
+        dark: "dark",
       },
-      defaultTheme: 'light',
+      defaultTheme: "light",
     }),
     (Story) => {
       return (

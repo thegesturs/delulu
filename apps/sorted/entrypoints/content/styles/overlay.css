@@ -6,25 +6,28 @@
 :root {
   /* iOS System Colors */
   --sorted-system-blue: #6366f1;
-  --sorted-system-gray: #8E8E93;
+  --sorted-system-gray: #8e8e93;
   --sorted-system-background: rgba(255, 255, 255, 0.85);
-  --sorted-system-grouped-background: #F2F2F7;
+  --sorted-system-grouped-background: #f2f2f7;
   --sorted-separator: rgba(60, 60, 67, 0.36);
-  
+
   /* Text Colors */
   --sorted-text-primary: #000000;
   --sorted-text-secondary: rgba(60, 60, 67, 0.6);
   --sorted-text-tertiary: rgba(60, 60, 67, 0.3);
 
   /* Shadows */
-  --sorted-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --sorted-shadow-md: 0 4px 12px rgba(0,0,0,0.12);
-  --sorted-shadow-lg: 0 12px 32px rgba(0,0,0,0.2);
+  --sorted-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --sorted-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --sorted-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.2);
 }
 
 /* Base Font Setup */
-.sorted-overlay, .sorted-panel-compact {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+.sorted-overlay,
+.sorted-panel-compact {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -198,12 +201,20 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Results Grid Updates */
@@ -242,7 +253,7 @@
 .sorted-reel-card {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 9/16; /* Vertical video aspect ratio */
+  aspect-ratio: 9 / 16; /* Vertical video aspect ratio */
   background: rgba(0, 0, 0, 0.05);
   cursor: pointer;
   border-radius: 4px; /* Subtle roundedness */
@@ -312,7 +323,7 @@
   font-size: 13px;
   font-weight: 700;
   z-index: 2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sorted-metric {
@@ -322,7 +333,7 @@
   color: white;
   font-size: 16px;
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .sorted-metric-icon {
@@ -336,14 +347,14 @@
     --sorted-system-background: rgba(30, 30, 30, 0.85);
     --sorted-system-grouped-background: #000000;
     --sorted-separator: rgba(84, 84, 88, 0.65);
-    
-    --sorted-text-primary: #FFFFFF;
+
+    --sorted-text-primary: #ffffff;
     --sorted-text-secondary: rgba(235, 235, 245, 0.6);
     --sorted-text-tertiary: rgba(235, 235, 245, 0.3);
-    
-    --sorted-shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-    --sorted-shadow-md: 0 4px 12px rgba(0,0,0,0.3);
-    --sorted-shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+
+    --sorted-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --sorted-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --sorted-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
   }
 
   .sorted-panel-compact {
@@ -355,7 +366,7 @@
     background: rgba(99, 99, 102, 1);
     color: white;
   }
-  
+
   .sorted-compact-radio input:not(:checked):hover + span {
     background: rgba(99, 99, 102, 0.5);
   }

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from "react";
 
 // Import shaders as raw text
 const vertexShader = `attribute vec2 position;
@@ -102,7 +102,7 @@ function compileShader(
   gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+    console.error("Shader compilation error:", gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
@@ -119,7 +119,7 @@ function setupWebGLProgram(gl: WebGLRenderingContext): WebGLContext | null {
   const vShader = compileShader(gl, gl.VERTEX_SHADER, vertexShader);
   const fShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
 
-  if (!vShader || !fShader) {
+  if (!(vShader && fShader)) {
     return null;
   }
 
@@ -128,15 +128,15 @@ function setupWebGLProgram(gl: WebGLRenderingContext): WebGLContext | null {
   gl.linkProgram(program);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error('Program linking error:', gl.getProgramInfoLog(program));
+    console.error("Program linking error:", gl.getProgramInfoLog(program));
     gl.deleteProgram(program);
     return null;
   }
 
   // Set up attributes and uniforms
-  const positionLocation = gl.getAttribLocation(program, 'position');
-  const resolutionLocation = gl.getUniformLocation(program, 'resolution');
-  const timeLocation = gl.getUniformLocation(program, 'time');
+  const positionLocation = gl.getAttribLocation(program, "position");
+  const resolutionLocation = gl.getUniformLocation(program, "resolution");
+  const timeLocation = gl.getUniformLocation(program, "time");
 
   return {
     gl,
@@ -174,7 +174,7 @@ function renderWebGLFrame(
   time: number
 ): void {
   const { gl, program, locations } = context;
-  // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
+  // biome-ignore lint/correctness/useHookAtTopLevel: WebGL context setup function
   gl.useProgram(program);
   gl.uniform2f(locations.resolution, canvas.width, canvas.height);
   gl.uniform1f(locations.time, time);
@@ -192,7 +192,7 @@ export default function LiquidDots() {
     const canvas = canvasRef.current;
     const context = contextRef.current;
 
-    if (!isAnimatingRef.current || !context || !canvas) {
+    if (!(isAnimatingRef.current && context && canvas)) {
       return;
     }
 
@@ -208,7 +208,7 @@ export default function LiquidDots() {
     }
 
     // Initialize WebGL
-    const gl = canvas.getContext('webgl', { antialias: true });
+    const gl = canvas.getContext("webgl", { antialias: true });
     if (!gl) {
       return;
     }
@@ -240,7 +240,7 @@ export default function LiquidDots() {
         resizeCanvas(canvas, contextRef.current.gl);
       }
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     // Start animation
     updateFrame();
@@ -251,16 +251,16 @@ export default function LiquidDots() {
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current);
       }
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, [updateFrame]);
 
   return (
     <div className="relative h-[95vh] w-full overflow-hidden">
       <canvas
-        ref={canvasRef}
         className="h-full w-full"
-        style={{ background: '#000' }}
+        ref={canvasRef}
+        style={{ background: "#000" }}
       />
     </div>
   );

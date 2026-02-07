@@ -1,9 +1,9 @@
-import { keys } from '@delulu/api/keys';
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchMutation } from '@delulu/database/server';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { keys } from "@delulu/api/keys";
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchMutation } from "@delulu/database/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const TIMEOUT_MS = 8000;
 
@@ -37,7 +37,7 @@ async function fetchWithTimeout(
     return response;
   } catch (_error) {
     clearTimeout(id);
-    throw new Error('Request timed out');
+    throw new Error("Request timed out");
   }
 }
 
@@ -49,34 +49,34 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
+            "/socials?error=auth_required&code=AUTH_001&provider=pinterest",
         },
       });
     }
 
-    const token = await getToken({ template: 'convex' });
+    const token = await getToken({ template: "convex" });
     if (!token) {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=auth_required&code=AUTH_001&provider=pinterest',
+            "/socials?error=auth_required&code=AUTH_001&provider=pinterest",
         },
       });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-    const _state = searchParams.get('state');
+    const code = searchParams.get("code");
+    const error = searchParams.get("error");
+    const _state = searchParams.get("state");
 
     // Handle user denying access
-    if (error === 'access_denied') {
+    if (error === "access_denied") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_denied&code=PINTEREST_001&provider=pinterest',
+            "/socials?error=user_denied&code=PINTEREST_001&provider=pinterest",
         },
       });
     }
@@ -86,21 +86,21 @@ export async function GET(request: NextRequest) {
         status: 302,
         headers: {
           Location:
-            '/socials?error=invalid_request&code=PARAM_001&provider=pinterest',
+            "/socials?error=invalid_request&code=PARAM_001&provider=pinterest",
         },
       });
     }
 
     // Exchange code for access token
     const tokenResponse = await fetchWithTimeout(
-      'https://api.pinterest.com/v5/oauth/token',
+      "https://api.pinterest.com/v5/oauth/token",
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           client_id: keys().PINTEREST_CLIENT_ID,
           client_secret: keys().PINTEREST_CLIENT_SECRET,
           redirect_uri: keys().PINTEREST_CALLBACK_URL,
@@ -111,14 +111,14 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       console.error(
-        'Pinterest token exchange failed:',
+        "Pinterest token exchange failed:",
         await tokenResponse.text()
       );
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=token_invalid&code=PINTEREST_002&provider=pinterest',
+            "/socials?error=token_invalid&code=PINTEREST_002&provider=pinterest",
         },
       });
     }
@@ -127,9 +127,9 @@ export async function GET(request: NextRequest) {
 
     // Get user profile information
     const userResponse = await fetchWithTimeout(
-      'https://api.pinterest.com/v5/user_account',
+      "https://api.pinterest.com/v5/user_account",
       {
-        method: 'GET',
+        method: "GET",
         headers: {
           Authorization: `Bearer ${tokenData.access_token}`,
         },
@@ -137,12 +137,12 @@ export async function GET(request: NextRequest) {
     );
 
     if (!userResponse.ok) {
-      console.error('Pinterest user fetch failed:', await userResponse.text());
+      console.error("Pinterest user fetch failed:", await userResponse.text());
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?error=user_fetch_failed&code=PINTEREST_003&provider=pinterest',
+            "/socials?error=user_fetch_failed&code=PINTEREST_003&provider=pinterest",
         },
       });
     }
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
-        socialType: 'PINTEREST',
+        socialType: "PINTEREST",
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         expiresIn: Date.now() + 3600 * 1000,
@@ -167,12 +167,12 @@ export async function GET(request: NextRequest) {
     );
 
     // Handle different response statuses
-    if (status === 'account_transferred') {
+    if (status === "account_transferred") {
       return new NextResponse(null, {
         status: 302,
         headers: {
           Location:
-            '/socials?notification=account_transferred&platform=pinterest',
+            "/socials?notification=account_transferred&platform=pinterest",
         },
       });
     }
@@ -181,16 +181,16 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, {
       status: 302,
       headers: {
-        Location: '/socials?success=true&provider=pinterest',
+        Location: "/socials?success=true&provider=pinterest",
       },
     });
   } catch (error) {
-    console.error('Pinterest callback error:', error);
+    console.error("Pinterest callback error:", error);
     return new NextResponse(null, {
       status: 302,
       headers: {
         Location:
-          '/socials?error=server_error&code=PINTEREST_500&provider=pinterest',
+          "/socials?error=server_error&code=PINTEREST_500&provider=pinterest",
       },
     });
   }

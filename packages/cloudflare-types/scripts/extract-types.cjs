@@ -1,25 +1,27 @@
-#!/usr/bin/env node'use strict';'use strict';'use strict';
+#!/usr/bin/env node'use strict';'use strict';'use strict';'use strict';'use strict';
+"use strict";
 
-const fs = require('node:fs');
-const path = require('node:path');
+const fs = require("node:fs");
+const path = require("node:path");
 
-const GENERATED_FILE = path.join(__dirname, '../cloudflare-env.d.ts');
-const TYPES_FILE = path.join(__dirname, '../types.ts');
+const GENERATED_FILE = path.join(__dirname, "../cloudflare-env.d.ts");
+const TYPES_FILE = path.join(__dirname, "../types.ts");
 
 function extractEnvInterface() {
   if (!fs.existsSync(GENERATED_FILE)) {
     console.error(
-      'Generated cloudflare-env.d.ts file not found. Run cf-typegen first.'
+      "Generated cloudflare-env.d.ts file not found. Run cf-typegen first."
     );
     process.exit(1);
   }
 
-  const content = fs.readFileSync(GENERATED_FILE, 'utf8');
+  const content = fs.readFileSync(GENERATED_FILE, "utf8");
 
   // Extract the Env interface
+  // biome-ignore lint/performance/useTopLevelRegex: script file, regex used once
   const envMatch = content.match(/interface Env \{([\s\S]*?)\}/);
   if (!envMatch) {
-    console.error('Could not find Env interface in generated file');
+    console.error("Could not find Env interface in generated file");
     process.exit(1);
   }
 
@@ -27,14 +29,15 @@ function extractEnvInterface() {
 
   // Parse the properties
   const properties = [];
-  const lines = envContent.split('\n');
+  const lines = envContent.split("\n");
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('/*')) {
+    if (trimmed && !trimmed.startsWith("//") && !trimmed.startsWith("/*")) {
       // Clean up the property line
-      const cleaned = trimmed.replace(/\t/g, '  ').replace(/;$/, ';');
-      if (cleaned.includes(':')) {
+      // biome-ignore lint/performance/useTopLevelRegex: script file, regex used in loop
+      const cleaned = trimmed.replace(/\t/g, "  ").replace(/;$/, ";");
+      if (cleaned.includes(":")) {
         properties.push(`  ${cleaned}`);
       }
     }
@@ -48,13 +51,13 @@ function extractEnvInterface() {
 import type { KVNamespace, Fetcher } from "@cloudflare/workers-types";
 
 export interface CloudflareEnv {
-${properties.join('\n')}
+${properties.join("\n")}
 }`;
 
   // Write the new types.ts file
   fs.writeFileSync(TYPES_FILE, newContent);
   console.log(
-    '✅ Successfully updated types.ts with latest CloudflareEnv interface'
+    "✅ Successfully updated types.ts with latest CloudflareEnv interface"
   );
 }
 

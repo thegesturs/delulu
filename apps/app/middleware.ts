@@ -1,27 +1,27 @@
-import { clerkMiddleware, createRouteMatcher } from '@delulu/auth/server';
+import { clerkMiddleware, createRouteMatcher } from "@delulu/auth/server";
 import {
   noseconeMiddleware,
   noseconeOptions,
-} from '@delulu/security/middleware';
-import { NextResponse } from 'next/server';
+} from "@delulu/security/middleware";
+import { NextResponse } from "next/server";
 
 const publicRoutes = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/verify-email(.*)',
-  '/api/trpc(.*)',
-  '/api/callback(.*)', // Add this line - OAuth callbacks must be public
-  '/api/transcribe(.*)',
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/webhooks(.*)",
+  "/verify-email(.*)",
+  "/api/trpc(.*)",
+  "/api/callback(.*)", // Add this line - OAuth callbacks must be public
+  "/api/transcribe(.*)",
 ]);
 
 const authRoutes = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/verify-email(.*)',
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/verify-email(.*)",
 ]);
 
-const onboardingRoute = createRouteMatcher(['/onboarding(.*)']);
+const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 
 // Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
@@ -33,7 +33,7 @@ export default clerkMiddleware(async (auth, req) => {
   // Get auth state
   const { userId, redirectToSignIn, sessionClaims } = await auth();
 
-  console.log('userId', userId, req.url);
+  console.log("userId", userId, req.url);
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {
@@ -41,7 +41,7 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // If the user isn't signed in and the route is private, redirect to sign-in
-  if (!userId && !publicRoutes(req)) {
+  if (!(userId || publicRoutes(req))) {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
 
@@ -52,8 +52,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
-    
-    const homeUrl = new URL('/', req.nextUrl.origin);
+    const homeUrl = new URL("/", req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
   }
 
@@ -63,11 +62,11 @@ export default clerkMiddleware(async (auth, req) => {
     | { onboardingComplete?: boolean }
     | undefined;
   if (userId && !metadata?.onboardingComplete) {
-    const onboardingUrl = new URL('/onboarding', req.url);
+    const onboardingUrl = new URL("/onboarding", req.url);
     return NextResponse.redirect(onboardingUrl);
   }
 
-  console.log('continuing with security headers');
+  console.log("continuing with security headers");
 
   // For all other routes, continue with security headers
   return NextResponse.next();
@@ -76,8 +75,8 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/(api|trpc)(.*)",
   ],
 };

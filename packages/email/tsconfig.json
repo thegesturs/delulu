@@ -12,7 +12,8 @@
     "paths": {
       "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": ["./*.ts", "./*.tsx", "templates/**/*"],
   "exclude": ["node_modules"]

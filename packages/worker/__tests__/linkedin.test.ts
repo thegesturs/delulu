@@ -1,17 +1,17 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { processMessageTestOnly } from '../test-client';
-import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from './test-data';
+import { beforeEach, describe, expect, it } from "vitest";
+import { processMessageTestOnly } from "../test-client";
+import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from "./test-data";
 
 const linkedinProvider = SOCIAL_PROVIDER_DATA.find(
-  (p) => p.socialType === 'LINKEDIN'
+  (p) => p.socialType === "LINKEDIN"
 )!;
 
-describe('LinkedIn Provider Tests', () => {
+describe("LinkedIn Provider Tests", () => {
   beforeEach(() => {
     // Clear any state if needed
   });
 
-  it('should call processMessage for single image', async () => {
+  it("should call processMessage for single image", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: linkedinProvider.socialType,
@@ -27,7 +27,7 @@ describe('LinkedIn Provider Tests', () => {
     expect(result?.isOk?.() === true).toBe(true);
   });
 
-  it('should call processMessage for multi-image', async () => {
+  it("should call processMessage for multi-image", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: linkedinProvider.socialType,
@@ -43,7 +43,7 @@ describe('LinkedIn Provider Tests', () => {
     expect(result?.isOk?.() === true).toBe(true);
   });
 
-  it('should call processMessage for video', async () => {
+  it("should call processMessage for video", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({
         socialType: linkedinProvider.socialType,

@@ -1,23 +1,27 @@
-'use client';
+"use client";
 
-import { getMediaUrlFromObject } from '@/lib/media-url';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
-import { Card } from '@delulu/design-system/components/ui/card';
-import { Input } from '@delulu/design-system/components/ui/input';
-import { Label } from '@delulu/design-system/components/ui/label';
-import { Textarea } from '@delulu/design-system/components/ui/textarea';
-import { cn } from '@delulu/design-system/lib/utils';
-import type { SocialType } from '@delulu/validators/post';
-import { SocialTypes } from '@delulu/validators/post';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { PencilEdit01Icon, Image01Icon, Delete01Icon } from '@hugeicons-pro/core-solid-rounded';
-import { useCallback, useState } from 'react';
-import { MediaUploader } from './media-uploader';
-import { VideoThumbnailSelector } from './video-thumbnail-selector';
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Card } from "@delulu/design-system/components/ui/card";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { Label } from "@delulu/design-system/components/ui/label";
+import { Textarea } from "@delulu/design-system/components/ui/textarea";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
+import type { SocialType } from "@delulu/validators/post";
+import { SocialTypes } from "@delulu/validators/post";
+import {
+  Delete01Icon,
+  Image01Icon,
+  PencilEdit01Icon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useCallback, useState } from "react";
+import { getMediaUrlFromObject } from "@/lib/media-url";
+import { MediaUploader } from "./media-uploader";
+import { VideoThumbnailSelector } from "./video-thumbnail-selector";
 
 interface VideoMedia {
-  mediaType: 'VIDEO';
+  mediaType: "VIDEO";
   url?: string;
   bucketKey?: string;
   bucketUrl?: string;
@@ -51,54 +55,54 @@ function getPlatformConfig(socialType: SocialType) {
   switch (socialType) {
     case SocialTypes.TIKTOK:
       return {
-        captionLabel: 'Caption',
-        captionPlaceholder: 'Write a catchy caption for your TikTok...',
+        captionLabel: "Caption",
+        captionPlaceholder: "Write a catchy caption for your TikTok...",
         maxLength: 2200,
         showTitle: false,
         showCharCount: true,
-        requirements: 'Max 2,200 characters, vertical 9:16 video',
+        requirements: "Max 2,200 characters, vertical 9:16 video",
         isVertical: true,
       };
     case SocialTypes.YOUTUBE:
       return {
-        captionLabel: 'Description',
-        captionPlaceholder: 'Describe your video...',
+        captionLabel: "Description",
+        captionPlaceholder: "Describe your video...",
         maxLength: 5000,
         showTitle: true,
-        titlePlaceholder: 'YouTube Shorts title (max 100 characters)',
+        titlePlaceholder: "YouTube Shorts title (max 100 characters)",
         titleMaxLength: 100,
         showCharCount: true,
-        requirements: 'YouTube Shorts: 9:16 vertical video, max 60 seconds',
+        requirements: "YouTube Shorts: 9:16 vertical video, max 60 seconds",
         isVertical: true,
       };
     case SocialTypes.THREADS:
       return {
-        captionLabel: 'Post',
+        captionLabel: "Post",
         captionPlaceholder: "What's on your mind?",
         maxLength: 500,
         showTitle: false,
         showCharCount: true,
-        requirements: 'Max 500 characters',
+        requirements: "Max 500 characters",
         isVertical: false,
       };
     case SocialTypes.INSTAGRAM:
       return {
-        captionLabel: 'Caption',
-        captionPlaceholder: 'Write a caption for your Reel...',
+        captionLabel: "Caption",
+        captionPlaceholder: "Write a caption for your Reel...",
         maxLength: 2200,
         showTitle: false,
         showCharCount: true,
-        requirements: 'Instagram Reels: 9:16 vertical video, max 90 seconds',
+        requirements: "Instagram Reels: 9:16 vertical video, max 90 seconds",
         isVertical: true,
       };
     default:
       return {
-        captionLabel: 'Caption',
-        captionPlaceholder: 'Write a caption...',
+        captionLabel: "Caption",
+        captionPlaceholder: "Write a caption...",
         maxLength: undefined,
         showTitle: false,
         showCharCount: false,
-        requirements: '',
+        requirements: "",
         isVertical: false,
       };
   }
@@ -108,7 +112,7 @@ export function VideoContentLayout({
   socialType,
   videoMedia,
   text,
-  title = '',
+  title = "",
   onTextChange,
   onTitleChange,
   onThumbnailUpdate,
@@ -148,7 +152,7 @@ export function VideoContentLayout({
     ? config.titleMaxLength - title.length
     : 0;
 
-  const videoUrl = videoMedia ? getMediaUrlFromObject(videoMedia) : '';
+  const videoUrl = videoMedia ? getMediaUrlFromObject(videoMedia) : "";
   const hasThumbnail = videoMedia
     ? videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey
     : false;
@@ -160,7 +164,7 @@ export function VideoContentLayout({
         })
       : null;
 
-  const videoAspectClass = config.isVertical ? 'aspect-[9/16]' : 'aspect-video';
+  const videoAspectClass = config.isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
     <Card className="mt-4 border-none p-4 shadow-sm">
@@ -173,38 +177,38 @@ export function VideoContentLayout({
                 <Label className="text-sm">Thumbnail Preview</Label>
                 <div className="flex items-center gap-2">
                   {hasThumbnail && (
-                    <Badge variant="secondary" className="gap-1">
+                    <Badge className="gap-1" variant="secondary">
                       <Icon icon={Image01Icon} size={12} />
                       Set
                     </Badge>
                   )}
                   <Button
+                    className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onRemoveVideo}
+                    size="sm"
                     type="button"
                     variant="ghost"
-                    size="sm"
-                    onClick={onRemoveVideo}
-                    className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Icon icon={Delete01Icon} size={14} />
                   </Button>
                 </div>
               </div>
               <button
-                type="button"
-                onClick={() => setIsThumbnailDialogOpen(true)}
                 className={cn(
-                  'group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all hover:border-primary',
+                  "group relative mx-auto block w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed transition-all hover:border-primary",
                   videoAspectClass,
-                  'border-border bg-black'
+                  "border-border bg-black"
                 )}
+                onClick={() => setIsThumbnailDialogOpen(true)}
+                type="button"
               >
                 {hasThumbnail ? (
                   <>
                     {/* Show thumbnail */}
                     <img
-                      src={thumbnailUrl!}
                       alt="Video thumbnail"
                       className="h-full w-full object-cover"
+                      src={thumbnailUrl!}
                     />
                     {/* Edit overlay on hover */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
@@ -222,10 +226,10 @@ export function VideoContentLayout({
                   <>
                     {/* Show video when no thumbnail is set */}
                     <video
-                      src={videoUrl}
                       className="h-full w-full object-cover"
                       muted
                       playsInline
+                      src={videoUrl}
                     >
                       <track kind="captions" />
                     </video>
@@ -246,13 +250,13 @@ export function VideoContentLayout({
 
               {/* Thumbnail button below preview */}
               <Button
+                className="w-full"
+                onClick={() => setIsThumbnailDialogOpen(true)}
                 type="button"
                 variant="outline"
-                onClick={() => setIsThumbnailDialogOpen(true)}
-                className="w-full"
               >
-                <Icon icon={Image01Icon} size={16} className="mr-2" />
-                {hasThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
+                <Icon className="mr-2" icon={Image01Icon} size={16} />
+                {hasThumbnail ? "Change Thumbnail" : "Select Thumbnail"}
               </Button>
             </div>
           ) : (
@@ -260,9 +264,9 @@ export function VideoContentLayout({
               {/* Show MediaUploader when no video */}
               <Label className="text-sm">Upload Video</Label>
               <MediaUploader
-                socialType={socialType}
-                socialId={socialId}
                 orderId={orderId}
+                socialId={socialId}
+                socialType={socialType}
               />
             </>
           )}
@@ -283,16 +287,16 @@ export function VideoContentLayout({
           {(config.showTitle || showYouTubeTitle) && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="video-title" className="text-sm">
-                  Title {config.titleMaxLength && '*'}
+                <Label className="text-sm" htmlFor="video-title">
+                  Title {config.titleMaxLength && "*"}
                 </Label>
                 {showYouTubeTitle && platformsInDefault.length > 1 && (
-                  <Badge variant="outline" className="gap-1 text-xs">
+                  <Badge className="gap-1 text-xs" variant="outline">
                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
                       className="h-3 w-3 text-red-600"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
                     >
                       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                     </svg>
@@ -302,20 +306,20 @@ export function VideoContentLayout({
               </div>
               <div className="relative">
                 <Input
+                  className="pr-16"
                   id="video-title"
-                  value={title}
                   onChange={handleTitleChange}
                   placeholder={config.titlePlaceholder}
-                  className="pr-16"
                   required={config.titleMaxLength !== undefined}
+                  value={title}
                 />
                 {config.titleMaxLength && (
                   <div
                     className={cn(
-                      '-translate-y-1/2 absolute top-1/2 right-3 text-xs',
+                      "absolute top-1/2 right-3 -translate-y-1/2 text-xs",
                       titleCharsRemaining < 0
-                        ? 'text-destructive'
-                        : 'text-muted-foreground'
+                        ? "text-destructive"
+                        : "text-muted-foreground"
                     )}
                   >
                     {titleCharsRemaining}
@@ -327,24 +331,24 @@ export function VideoContentLayout({
 
           {/* Caption/Description Textarea */}
           <div className="space-y-2">
-            <Label htmlFor="video-caption" className="text-sm">
+            <Label className="text-sm" htmlFor="video-caption">
               {config.captionLabel}
             </Label>
             <div className="relative">
               <Textarea
+                className="min-h-[300px] resize-none border-border pr-16 shadow-none focus-visible:ring-1"
                 id="video-caption"
-                value={text}
                 onChange={handleTextChange}
                 placeholder={config.captionPlaceholder}
-                className="min-h-[300px] resize-none border-border pr-16 shadow-none focus-visible:ring-1"
+                value={text}
               />
               {config.showCharCount && config.maxLength && (
                 <div
                   className={cn(
-                    'absolute top-2 right-2 text-xs',
+                    "absolute top-2 right-2 text-xs",
                     charsRemaining < 0
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'
+                      ? "text-destructive"
+                      : "text-muted-foreground"
                   )}
                 >
                   {charsRemaining}
@@ -365,16 +369,16 @@ export function VideoContentLayout({
       {/* Thumbnail Selector Dialog */}
       {videoUrl && (
         <VideoThumbnailSelector
-          videoUrl={videoUrl}
           currentThumbnail={{
             url: videoMedia?.thumbnailBucketUrl,
             bucketKey: videoMedia?.thumbnailBucketKey,
             thumbnailTimestamp: videoMedia?.thumbnailTimestamp,
           }}
-          onThumbnailUpdate={onThumbnailUpdate}
           isOpen={isThumbnailDialogOpen}
-          onClose={() => setIsThumbnailDialogOpen(false)}
           isVertical={config.isVertical}
+          onClose={() => setIsThumbnailDialogOpen(false)}
+          onThumbnailUpdate={onThumbnailUpdate}
+          videoUrl={videoUrl}
         />
       )}
     </Card>

@@ -1,9 +1,9 @@
-import { env } from '@/env';
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchMutation } from '@delulu/database/server';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchMutation } from "@delulu/database/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { env } from "@/env";
 
 interface LinkedInResponse {
   access_token: string;
@@ -15,7 +15,7 @@ interface LinkedInUserResponse {
   localizedFirstName: string;
   localizedLastName: string;
   profilePicture?: {
-    'displayImage~': {
+    "displayImage~": {
       elements: Array<{
         identifiers: Array<{
           identifier: string;
@@ -29,8 +29,8 @@ interface LinkedInUserResponse {
  * Sanitizes and creates a safe username from first and last names
  */
 function sanitizeText(text: string): string {
-  if (!text || typeof text !== 'string') {
-    return '';
+  if (!text || typeof text !== "string") {
+    return "";
   }
 
   return (
@@ -38,9 +38,9 @@ function sanitizeText(text: string): string {
       .toLowerCase()
       .trim()
       // Remove or replace special characters and spaces
-      .replace(/[^a-z0-9]/g, '')
+      .replace(/[^a-z0-9]/g, "")
       // Remove consecutive spaces that became empty
-      .replace(/\s+/g, '')
+      .replace(/\s+/g, "")
       // Limit length to prevent overly long usernames
       .substring(0, 20)
   );
@@ -71,7 +71,7 @@ function generateUniqueUsername(firstName: string, lastName: string): string {
     const baseUsername = sanitizedLast;
     return baseUsername;
   }
-  return 'user';
+  return "user";
 }
 
 export async function GET(request: NextRequest) {
@@ -80,29 +80,29 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.redirect(
         new URL(
-          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          "/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN",
           env.NEXT_PUBLIC_APP_URL
         )
       );
     }
-    const token = await getToken({ template: 'convex' });
+    const token = await getToken({ template: "convex" });
 
     if (!token) {
       return NextResponse.redirect(
         new URL(
-          '/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN',
+          "/socials?error=auth_required&code=AUTH_001&provider=LINKEDIN",
           env.NEXT_PUBLIC_APP_URL
         )
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const code = searchParams.get('code');
+    const code = searchParams.get("code");
 
     if (!code) {
       return NextResponse.redirect(
         new URL(
-          '/socials?error=invalid_request&code=PARAM_001&provider=LINKEDIN',
+          "/socials?error=invalid_request&code=PARAM_001&provider=LINKEDIN",
           env.NEXT_PUBLIC_APP_URL
         )
       );
@@ -110,14 +110,14 @@ export async function GET(request: NextRequest) {
 
     // Get LinkedIn access token
     const tokenResponse = await fetch(
-      'https://www.linkedin.com/oauth/v2/accessToken',
+      "https://www.linkedin.com/oauth/v2/accessToken",
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           code,
           redirect_uri: env.LINKEDIN_CALLBACK_URL,
           client_id: env.LINKEDIN_CLIENT_ID,
@@ -125,12 +125,12 @@ export async function GET(request: NextRequest) {
         }),
       }
     ).catch((error) => {
-      console.error('LinkedIn token fetch error:', error);
-      throw new Error('linkedin_auth_failed');
+      console.error("LinkedIn token fetch error:", error);
+      throw new Error("linkedin_auth_failed");
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('linkedin_token_invalid');
+      throw new Error("linkedin_token_invalid");
     }
 
     const { access_token, expires_in } =
@@ -138,18 +138,18 @@ export async function GET(request: NextRequest) {
 
     // Get LinkedIn user profile
     const userResponse = await fetch(
-      'https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))',
+      "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))",
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
-          'X-Restli-Protocol-Version': '2.0.0',
-          'LinkedIn-Version': '202507',
+          "X-Restli-Protocol-Version": "2.0.0",
+          "LinkedIn-Version": "202507",
         },
       }
     );
 
     if (!userResponse.ok) {
-      throw new Error('linkedin_user_fetch_failed');
+      throw new Error("linkedin_user_fetch_failed");
     }
 
     const userObject = (await userResponse.json()) as LinkedInUserResponse;
@@ -162,40 +162,40 @@ export async function GET(request: NextRequest) {
 
     // Get profile image URL from the complex response structure
     const profileImage =
-      userObject.profilePicture?.['displayImage~']?.elements[0]?.identifiers[0]
+      userObject.profilePicture?.["displayImage~"]?.elements[0]?.identifiers[0]
         ?.identifier;
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
-        socialType: 'LINKEDIN',
+        socialType: "LINKEDIN",
         accessToken: access_token,
         expiresIn: Date.now() + expires_in * 1000,
         refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
         profileId: userObject.id,
-        username: username,
+        username,
         fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-        profileImage: profileImage ?? '/images/user.png',
+        profileImage: profileImage ?? "/images/user.png",
         isActive: true,
       },
       { token }
     );
 
     // Handle different response statuses
-    if (status === 'account_transferred') {
+    if (status === "account_transferred") {
       return NextResponse.redirect(
         new URL(
-          '/socials?notification=account_transferred&platform=linkedin',
+          "/socials?notification=account_transferred&platform=linkedin",
           env.NEXT_PUBLIC_APP_URL
         )
       );
     }
 
-    return NextResponse.redirect(new URL('/socials', env.NEXT_PUBLIC_APP_URL));
+    return NextResponse.redirect(new URL("/socials", env.NEXT_PUBLIC_APP_URL));
   } catch (error) {
-    console.error('LinkedIn callback error:', error);
-    const errorType = error instanceof Error ? error.message : 'internal_error';
+    console.error("LinkedIn callback error:", error);
+    const errorType = error instanceof Error ? error.message : "internal_error";
     return NextResponse.redirect(
       new URL(
         `/socials?error=${errorType}&code=LINKEDIN_ERR&provider=LINKEDIN`,

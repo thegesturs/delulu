@@ -1,13 +1,13 @@
-import { blueskyProvider } from './bluesky.provider';
-import { facebookProvider } from './facebook.provider';
-import { farcasterProvider } from './farcaster.provider';
-import { instagramProvider } from './instagram.provider';
-import { linkedinProvider } from './linkedin.provider';
-import { pinterestProvider } from './pinterest.provider';
-import { threadsProvider } from './threads.provider';
-import { tiktokProvider } from './tiktok.provider';
-import { twitterProvider } from './twitter.provider';
-import { youtubeProvider } from './youtube.provider';
+import { blueskyProvider } from "./bluesky.provider";
+import { facebookProvider } from "./facebook.provider";
+import { farcasterProvider } from "./farcaster.provider";
+import { instagramProvider } from "./instagram.provider";
+import { linkedinProvider } from "./linkedin.provider";
+import { pinterestProvider } from "./pinterest.provider";
+import { threadsProvider } from "./threads.provider";
+import { tiktokProvider } from "./tiktok.provider";
+import { twitterProvider } from "./twitter.provider";
+import { youtubeProvider } from "./youtube.provider";
 
 export const providerRegistry = {
   TWITTER: twitterProvider,

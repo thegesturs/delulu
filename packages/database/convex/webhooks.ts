@@ -4,11 +4,11 @@
  * This file contains mutation handlers for Dodo Payments webhook events
  */
 
-import { getPlanFromProductId } from '@delulu/payments/product-ids';
-import { v } from 'convex/values';
-import { internal } from './_generated/api';
-import { internalMutation } from './_generated/server';
-import { getCurrentTimestamp } from './utils';
+import { getPlanFromProductId } from "@delulu/payments/product-ids";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { internalMutation } from "./_generated/server";
+import { getCurrentTimestamp } from "./utils";
 
 /**
  * Handle payment succeeded event
@@ -28,16 +28,16 @@ export const handlePaymentSucceeded = internalMutation({
     webhookPayload: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    console.log('[Webhook] Payment succeeded:', args.paymentId);
+    console.log("[Webhook] Payment succeeded:", args.paymentId);
 
     // Find user by email using index
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
       .first();
 
     if (!user) {
-      console.error('[Webhook] User not found for email:', args.customerEmail);
+      console.error("[Webhook] User not found for email:", args.customerEmail);
       throw new Error(
         `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
       );
@@ -48,18 +48,18 @@ export const handlePaymentSucceeded = internalMutation({
       await ctx.db.patch(user._id, {
         dodoCustomerId: args.customerId,
       });
-      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      console.log("[Webhook] Updated user with Dodo customer ID:", user._id);
     }
 
     // Create transaction record
-    await ctx.db.insert('transactions', {
+    await ctx.db.insert("transactions", {
       userId: user._id,
       subscriptionId: user.subscriptionId,
       dodoPaymentId: args.paymentId,
       dodoCustomerId: args.customerId,
       amount: args.amount,
       currency: args.currency,
-      status: 'SUCCEEDED',
+      status: "SUCCEEDED",
       paidAt: getCurrentTimestamp(),
       metadata: {
         productId: args.productId,
@@ -68,7 +68,7 @@ export const handlePaymentSucceeded = internalMutation({
       updatedAt: getCurrentTimestamp(),
     });
 
-    console.log('[Webhook] Transaction recorded for user:', user._id);
+    console.log("[Webhook] Transaction recorded for user:", user._id);
   },
 });
 
@@ -90,16 +90,16 @@ export const handleSubscriptionActivated = internalMutation({
     webhookPayload: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    console.log('[Webhook] Subscription activated:', args.subscriptionId);
+    console.log("[Webhook] Subscription activated:", args.subscriptionId);
 
     // Find user by email using index
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
       .first();
 
     if (!user) {
-      console.error('[Webhook] User not found for email:', args.customerEmail);
+      console.error("[Webhook] User not found for email:", args.customerEmail);
       throw new Error(
         `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
       );
@@ -110,7 +110,7 @@ export const handleSubscriptionActivated = internalMutation({
       await ctx.db.patch(user._id, {
         dodoCustomerId: args.customerId,
       });
-      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      console.log("[Webhook] Updated user with Dodo customer ID:", user._id);
     }
 
     // Determine plan type and billing period based on product ID
@@ -118,7 +118,7 @@ export const handleSubscriptionActivated = internalMutation({
     const planInfo = getPlanFromProductId(args.productId);
 
     if (!planInfo) {
-      console.error('[Webhook] Unknown product ID:', args.productId);
+      console.error("[Webhook] Unknown product ID:", args.productId);
       throw new Error(
         `Unknown product ID: ${args.productId}. Please add this product ID to the product-ids.ts configuration.`
       );
@@ -128,9 +128,9 @@ export const handleSubscriptionActivated = internalMutation({
 
     // Check if subscription already exists
     const existingSubscription = await ctx.db
-      .query('subscriptions')
-      .withIndex('by_dodo_subscription_id', (q) =>
-        q.eq('dodoSubscriptionId', args.subscriptionId)
+      .query("subscriptions")
+      .withIndex("by_dodo_subscription_id", (q) =>
+        q.eq("dodoSubscriptionId", args.subscriptionId)
       )
       .first();
 
@@ -138,7 +138,7 @@ export const handleSubscriptionActivated = internalMutation({
       // Update existing subscription
       await ctx.runMutation(internal.subscriptions.updateSubscription, {
         id: existingSubscription._id,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         planType,
         billingPeriod,
         currentPeriodStart: args.currentPeriodStart,
@@ -148,7 +148,7 @@ export const handleSubscriptionActivated = internalMutation({
           priceId: args.priceId,
         },
       });
-      console.log('[Webhook] Subscription updated:', existingSubscription._id);
+      console.log("[Webhook] Subscription updated:", existingSubscription._id);
     } else {
       // Create new subscription
       const newSubscriptionId = await ctx.runMutation(
@@ -159,7 +159,7 @@ export const handleSubscriptionActivated = internalMutation({
           dodoSubscriptionId: args.subscriptionId,
           planType,
           billingPeriod,
-          status: 'ACTIVE',
+          status: "ACTIVE",
           currentPeriodStart: args.currentPeriodStart,
           currentPeriodEnd: args.currentPeriodEnd,
           metadata: {
@@ -168,7 +168,7 @@ export const handleSubscriptionActivated = internalMutation({
           },
         }
       );
-      console.log('[Webhook] Subscription created:', newSubscriptionId);
+      console.log("[Webhook] Subscription created:", newSubscriptionId);
     }
   },
 });
@@ -184,18 +184,18 @@ export const handleSubscriptionCancelled = internalMutation({
     cancellationReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    console.log('[Webhook] Subscription cancelled:', args.subscriptionId);
+    console.log("[Webhook] Subscription cancelled:", args.subscriptionId);
 
     // Find subscription
     const subscription = await ctx.db
-      .query('subscriptions')
-      .withIndex('by_dodo_subscription_id', (q) =>
-        q.eq('dodoSubscriptionId', args.subscriptionId)
+      .query("subscriptions")
+      .withIndex("by_dodo_subscription_id", (q) =>
+        q.eq("dodoSubscriptionId", args.subscriptionId)
       )
       .first();
 
     if (!subscription) {
-      console.error('[Webhook] Subscription not found:', args.subscriptionId);
+      console.error("[Webhook] Subscription not found:", args.subscriptionId);
       throw new Error(
         `Subscription not found: ${args.subscriptionId}. Webhook will be retried by Dodo.`
       );
@@ -204,13 +204,13 @@ export const handleSubscriptionCancelled = internalMutation({
     // Update subscription status
     await ctx.runMutation(internal.subscriptions.updateSubscription, {
       id: subscription._id,
-      status: 'CANCELLED',
+      status: "CANCELLED",
       metadata: {
         cancelReason: args.cancellationReason,
       },
     });
 
-    console.log('[Webhook] Subscription status updated to CANCELLED');
+    console.log("[Webhook] Subscription status updated to CANCELLED");
   },
 });
 
@@ -229,19 +229,19 @@ export const handlePaymentFailed = internalMutation({
   },
   handler: async (ctx, args) => {
     console.log(
-      '[Webhook] Payment failed:',
+      "[Webhook] Payment failed:",
       args.paymentId,
       args.failureReason
     );
 
     // Find user by email using index
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_email', (q) => q.eq('email', args.customerEmail))
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
       .first();
 
     if (!user) {
-      console.error('[Webhook] User not found for email:', args.customerEmail);
+      console.error("[Webhook] User not found for email:", args.customerEmail);
       throw new Error(
         `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
       );
@@ -252,18 +252,18 @@ export const handlePaymentFailed = internalMutation({
       await ctx.db.patch(user._id, {
         dodoCustomerId: args.customerId,
       });
-      console.log('[Webhook] Updated user with Dodo customer ID:', user._id);
+      console.log("[Webhook] Updated user with Dodo customer ID:", user._id);
     }
 
     // Create failed transaction record
-    await ctx.db.insert('transactions', {
+    await ctx.db.insert("transactions", {
       userId: user._id,
       subscriptionId: user.subscriptionId,
       dodoPaymentId: args.paymentId,
       dodoCustomerId: args.customerId,
       amount: args.amount,
       currency: args.currency,
-      status: 'FAILED',
+      status: "FAILED",
       failureReason: args.failureReason,
       updatedAt: getCurrentTimestamp(),
     });
@@ -271,14 +271,14 @@ export const handlePaymentFailed = internalMutation({
     // If user has an active subscription, mark it as past due
     if (user.subscriptionId) {
       const subscription = await ctx.db.get(user.subscriptionId);
-      if (subscription && subscription.status === 'ACTIVE') {
+      if (subscription && subscription.status === "ACTIVE") {
         await ctx.runMutation(internal.subscriptions.updateSubscription, {
           id: subscription._id,
-          status: 'PAST_DUE',
+          status: "PAST_DUE",
         });
       }
     }
 
-    console.log('[Webhook] Failed payment recorded for user:', user._id);
+    console.log("[Webhook] Failed payment recorded for user:", user._id);
   },
 });

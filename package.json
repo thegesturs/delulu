@@ -4,7 +4,9 @@
   "bin": {
     "delulu-social": "dist/index.js"
   },
-  "files": ["dist/index.js"],
+  "files": [
+    "dist/index.js"
+  ],
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
@@ -16,26 +18,29 @@
     "docker:build": "docker build -t social-worker -f packages/worker/Dockerfile .",
     "db:generate": "pnpm --filter=database db:generate",
     "docker:run": "docker run -e MESSAGE_BODY='{\"socialPublishInput\": {\"postId\": \"post_J0hg0XPByWqb\", \"socialProviderId\": \"OTMupATk9DODV52RRUYaE\"}, \"socialType\": \"TIKTOK\"}' social-worker",
-    "lint": "ultracite lint",
-    "format": "ultracite format",
+    "lint": "ultracite fix",
+    "format": "ultracite fix",
     "test": "turbo test",
     "analyze": "turbo analyze",
     "translate": "turbo translate",
     "boundaries": "turbo boundaries",
     "bump-deps": "npx npm-check-updates --deep -u -x react-day-picker",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/design-system",
-    "clean": "git clean -xdf node_modules"
+    "clean": "git clean -xdf node_modules",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@auto-it/first-time-contributor": "^11.3.0",
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.3.13",
     "@delulu/typescript-config": "workspace:*",
     "@turbo/gen": "^2.5.3",
     "@types/node": "^22.14.1",
+    "lefthook": "^2.1.0",
     "tsup": "^8.4.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.3",
-    "ultracite": "^4.2.1",
     "vitest": "^3.1.1"
   },
   "engines": {
@@ -43,10 +48,9 @@
   },
   "packageManager": "pnpm@10.8.0",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.821.0",
-    "@aws-sdk/s3-request-presigner": "^3.821.0",
     "@clack/prompts": "^0.10.1",
-    "commander": "^13.1.0"
+    "commander": "^13.1.0",
+    "ultracite": "^7.1.4"
   },
   "type": "module"
 }

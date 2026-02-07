@@ -1,35 +1,35 @@
-'use client';
+"use client";
 
-import { useStore } from '@/store/post';
-import { api } from '@/trpc/react';
 import {
   Alert,
   AlertDescription,
-} from '@delulu/design-system/components/ui/alert';
-import { Label } from '@delulu/design-system/components/ui/label';
+} from "@delulu/design-system/components/ui/alert";
+import { Label } from "@delulu/design-system/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@delulu/design-system/components/ui/select';
-import { Switch } from '@delulu/design-system/components/ui/switch';
-import { cn } from '@delulu/design-system/lib/utils';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
+} from "@delulu/design-system/components/ui/select";
+import { Switch } from "@delulu/design-system/components/ui/switch";
+import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
 import {
   type PromotionContentType,
+  promotionContentTypes,
   type TikTokSettings,
   type TiktokPrivacyLevels,
-  promotionContentTypes,
   tikTokPrivacyLevels,
-} from '@delulu/validators/post';
-import { InformationCircleIcon } from '@hugeicons-pro/core-solid-rounded';
-import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { TikTokConsentBanner } from './tiktok-consent-banner';
+} from "@delulu/validators/post";
+import { InformationCircleIcon } from "@hugeicons-pro/core-solid-rounded";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useStore } from "@/store/post";
+import { api } from "@/trpc/react";
+import { TikTokConsentBanner } from "./tiktok-consent-banner";
 
 interface TikTokSettingsProps {
   hasVideo: boolean;
@@ -43,7 +43,7 @@ export function TikTokSettingsDisplay({
   const { setProviderSettings, getProviderSettings } = useStore();
   const providerSetting = getProviderSettings(providerId);
   const tiktokSettings =
-    providerSetting?.type === 'TIKTOK' ? providerSetting.settings : undefined;
+    providerSetting?.type === "TIKTOK" ? providerSetting.settings : undefined;
 
   // Track if settings have been initialized
   const isInitialized = useRef(false);
@@ -167,13 +167,13 @@ export function TikTokSettingsDisplay({
           tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
         // Notify user about the automatic correction
         toast.info(
-          'Privacy changed to Public - Branded content cannot be set to private'
+          "Privacy changed to Public - Branded content cannot be set to private"
         );
       }
 
       setProviderSettings(providerId, {
         socialProviderId: providerId,
-        type: 'TIKTOK',
+        type: "TIKTOK",
         settings: newSettings,
       });
     },
@@ -182,7 +182,7 @@ export function TikTokSettingsDisplay({
 
   // Initialize settings only once when we have creator data
   useEffect(() => {
-    if (!isInitialized.current && !tiktokSettings && creatorInfo.data) {
+    if (!(isInitialized.current || tiktokSettings) && creatorInfo.data) {
       isInitialized.current = true;
       const defaultPrivacy =
         (creatorInfo.data.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
@@ -231,7 +231,7 @@ export function TikTokSettingsDisplay({
       updateTikTokSettings({ privacy: defaultPrivacy });
       // Notify user about the automatic correction
       toast.info(
-        'Privacy changed to Public - Branded content cannot be set to private'
+        "Privacy changed to Public - Branded content cannot be set to private"
       );
     }
   }, [tiktokSettings, creatorInfo.data, updateTikTokSettings]);
@@ -288,7 +288,7 @@ export function TikTokSettingsDisplay({
         });
         // Notify user about the privacy change
         toast.info(
-          'Privacy changed to Public - Branded content cannot be set to private'
+          "Privacy changed to Public - Branded content cannot be set to private"
         );
       } else {
         updateTikTokSettings({ promotionContent: newPromotionContent });
@@ -320,11 +320,11 @@ export function TikTokSettingsDisplay({
           <div className="flex items-center gap-3 rounded-lg bg-muted/30 p-3">
             {creatorInfo.data.creator_avatar_url && (
               <Image
-                src={creatorInfo.data.creator_avatar_url}
-                alt={creatorInfo.data.creator_nickname ?? 'creator avatar'}
-                width={32}
-                height={32}
+                alt={creatorInfo.data.creator_nickname ?? "creator avatar"}
                 className="h-8 w-8 rounded-full"
+                height={32}
+                src={creatorInfo.data.creator_avatar_url}
+                width={32}
               />
             )}
             <div className="min-w-0 flex-1">
@@ -345,12 +345,12 @@ export function TikTokSettingsDisplay({
       <div className="flex justify-between space-y-2">
         <Label htmlFor="tiktok-privacy">Privacy Level</Label>
         <Select
+          onValueChange={handlePrivacyChange}
           value={
             tiktokSettings?.privacy ||
             creatorInfo.data?.privacy_level_options?.[0] ||
             tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
           }
-          onValueChange={handlePrivacyChange}
         >
           <SelectTrigger id="tiktok-privacy">
             <SelectValue placeholder="Select privacy level" />
@@ -375,19 +375,19 @@ export function TikTokSettingsDisplay({
 
               return (
                 <SelectItem
+                  className={cn(isSelfOnlyDisabled && "opacity-50")}
+                  disabled={isSelfOnlyDisabled}
                   key={option}
                   value={option}
-                  disabled={isSelfOnlyDisabled}
-                  className={cn(isSelfOnlyDisabled && 'opacity-50')}
                 >
                   <div className="flex w-full items-center justify-between">
                     <span>
                       {option === tikTokPrivacyLevels.PUBLIC_TO_EVERYONE &&
-                        'Everyone'}
+                        "Everyone"}
                       {option === tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS &&
-                        'Friends'}
-                      {option === tikTokPrivacyLevels.SELF_ONLY && 'Only me'}
-                      {option === 'FOLLOWER_OF_CREATOR' && 'Followers'}
+                        "Friends"}
+                      {option === tikTokPrivacyLevels.SELF_ONLY && "Only me"}
+                      {option === "FOLLOWER_OF_CREATOR" && "Followers"}
                     </span>
                     {isSelfOnlyDisabled && (
                       <span className="ml-2 text-muted-foreground text-xs">
@@ -408,16 +408,16 @@ export function TikTokSettingsDisplay({
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
             <Switch
-              id="disable-comments"
               checked={!(tiktokSettings?.allowComments ?? true)}
               disabled={creatorInfo.data?.comment_disabled}
+              id="disable-comments"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowComments: !checked })
               }
             />
             <Label
-              htmlFor="disable-comments"
               className="cursor-pointer font-normal text-sm"
+              htmlFor="disable-comments"
             >
               Disable Comments
             </Label>
@@ -425,19 +425,19 @@ export function TikTokSettingsDisplay({
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="disable-duet"
               checked={!(tiktokSettings?.allowDuet ?? true)}
               disabled={!hasVideo || creatorInfo.data?.duet_disabled}
+              id="disable-duet"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowDuet: !checked })
               }
             />
             <Label
-              htmlFor="disable-duet"
               className={cn(
-                'cursor-pointer font-normal text-sm',
-                !hasVideo && 'cursor-not-allowed opacity-50'
+                "cursor-pointer font-normal text-sm",
+                !hasVideo && "cursor-not-allowed opacity-50"
               )}
+              htmlFor="disable-duet"
             >
               Disable Duet
               {!hasVideo && (
@@ -450,19 +450,19 @@ export function TikTokSettingsDisplay({
 
           <div className="flex items-center space-x-2">
             <Switch
-              id="disable-stitch"
               checked={!(tiktokSettings?.allowStitch ?? true)}
               disabled={!hasVideo || creatorInfo.data?.stitch_disabled}
+              id="disable-stitch"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowStitch: !checked })
               }
             />
             <Label
-              htmlFor="disable-stitch"
               className={cn(
-                'cursor-pointer font-normal text-sm',
-                !hasVideo && 'cursor-not-allowed opacity-50'
+                "cursor-pointer font-normal text-sm",
+                !hasVideo && "cursor-not-allowed opacity-50"
               )}
+              htmlFor="disable-stitch"
             >
               Disable Stitch
               {!hasVideo && (
@@ -488,13 +488,13 @@ export function TikTokSettingsDisplay({
         {/* Main Toggle */}
         <div className="flex items-center space-x-2">
           <Switch
-            id="commercial-content-toggle"
             checked={commercialContentState.hasCommercialContent}
+            id="commercial-content-toggle"
             onCheckedChange={handleCommercialContentToggle}
           />
           <Label
-            htmlFor="commercial-content-toggle"
             className="cursor-pointer font-normal text-sm"
+            htmlFor="commercial-content-toggle"
           >
             Content Disclosure Setting
           </Label>
@@ -506,15 +506,15 @@ export function TikTokSettingsDisplay({
             commercialContentState.brandedContent) && (
             <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
               <Icon
+                className="text-blue-600 dark:text-blue-400"
                 icon={InformationCircleIcon}
                 size={16}
-                className="text-blue-600 dark:text-blue-400"
               />
               <AlertDescription className="text-blue-800 dark:text-blue-300">
                 Your video will be labeled "
                 {commercialContentState.brandedContent
-                  ? 'Paid partnership'
-                  : 'Promotional content'}
+                  ? "Paid partnership"
+                  : "Promotional content"}
                 ". This cannot be changed once your video is posted.
               </AlertDescription>
             </Alert>
@@ -526,8 +526,8 @@ export function TikTokSettingsDisplay({
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label
-                  htmlFor="your-brand"
                   className="cursor-pointer font-normal text-sm"
+                  htmlFor="your-brand"
                 >
                   Your brand
                 </Label>
@@ -536,8 +536,8 @@ export function TikTokSettingsDisplay({
                 </p>
               </div>
               <Switch
-                id="your-brand"
                 checked={commercialContentState.yourBrand}
+                id="your-brand"
                 onCheckedChange={handleYourBrandChange}
               />
             </div>
@@ -545,8 +545,8 @@ export function TikTokSettingsDisplay({
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label
-                  htmlFor="branded-content"
                   className="cursor-pointer font-normal text-sm"
+                  htmlFor="branded-content"
                 >
                   Branded content
                 </Label>
@@ -560,12 +560,12 @@ export function TikTokSettingsDisplay({
                 )}
               </div>
               <Switch
-                id="branded-content"
                 checked={commercialContentState.brandedContent}
-                onCheckedChange={handleBrandedContentChange}
                 disabled={
                   tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
                 }
+                id="branded-content"
+                onCheckedChange={handleBrandedContentChange}
               />
             </div>
 

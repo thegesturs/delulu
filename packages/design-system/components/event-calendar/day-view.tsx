@@ -1,5 +1,21 @@
-'use client';
+"use client";
 
+import {
+  type CalendarEvent,
+  DraggableEvent,
+  DroppableCell,
+  EventItem,
+  isMultiDayEvent,
+  useCurrentTimeIndicator,
+  WeekCellsHeight,
+} from "@delulu/design-system/components/event-calendar";
+import {
+  EndHour,
+  StartHour,
+} from "@delulu/design-system/components/event-calendar/constants";
+import { DraggableSocialPostEvent } from "@delulu/design-system/components/event-calendar/draggable-social-post-event";
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event";
+import { cn } from "@delulu/design-system/lib/utils";
 import {
   addHours,
   areIntervalsOverlapping,
@@ -10,32 +26,15 @@ import {
   getMinutes,
   isSameDay,
   startOfDay,
-} from 'date-fns';
-import type React from 'react';
-import { useMemo } from 'react';
-
-import {
-  type CalendarEvent,
-  DraggableEvent,
-  DroppableCell,
-  EventItem,
-  WeekCellsHeight,
-  isMultiDayEvent,
-  useCurrentTimeIndicator,
-} from '@delulu/design-system/components/event-calendar';
-import {
-  EndHour,
-  StartHour,
-} from '@delulu/design-system/components/event-calendar/constants';
-import { DraggableSocialPostEvent } from '@delulu/design-system/components/event-calendar/draggable-social-post-event';
-import type { SocialPostEventData } from '@delulu/design-system/components/event-calendar/social-post-event';
-import { cn } from '@delulu/design-system/lib/utils';
+} from "date-fns";
+import type React from "react";
+import { useMemo } from "react";
 
 // Type guard to check if an event is a SocialCalendarEvent
 function isSocialEvent(
   event: CalendarEvent
 ): event is CalendarEvent & { postData: SocialPostEventData } {
-  return 'postData' in event && event.postData !== undefined;
+  return "postData" in event && event.postData !== undefined;
 }
 
 interface DayViewProps {
@@ -96,7 +95,7 @@ export function DayView({
   const timeEvents = useMemo(() => {
     return dayEvents.filter((event) => {
       // Exclude all-day events and multi-day events
-      return !event.allDay && !isMultiDayEvent(event);
+      return !(event.allDay || isMultiDayEvent(event));
     });
   }, [dayEvents]);
 
@@ -202,11 +201,11 @@ export function DayView({
   const showAllDaySection = allDayEvents.length > 0;
   const { currentTimePosition, currentTimeVisible } = useCurrentTimeIndicator(
     currentDate,
-    'day'
+    "day"
   );
 
   return (
-    <div data-slot="day-view" className="contents">
+    <div className="contents" data-slot="day-view">
       {showAllDaySection && (
         <div className="border-border/70 border-t bg-muted/50">
           <div className="grid grid-cols-[3rem_1fr] sm:grid-cols-[4rem_1fr]">
@@ -224,12 +223,12 @@ export function DayView({
 
                 return (
                   <EventItem
-                    key={`spanning-${event.id}`}
-                    onClick={(e) => handleEventClick(event, e)}
                     event={event}
-                    view="month"
                     isFirstDay={isFirstDay}
                     isLastDay={isLastDay}
+                    key={`spanning-${event.id}`}
+                    onClick={(e) => handleEventClick(event, e)}
+                    view="month"
                   >
                     {/* Always show the title in day view for better usability */}
                     <div>{event.title}</div>
@@ -245,12 +244,12 @@ export function DayView({
         <div>
           {hours.map((hour, index) => (
             <div
-              key={hour.toString()}
               className="relative h-[var(--week-cells-height)] border-border/70 border-b last:border-b-0"
+              key={hour.toString()}
             >
               {index > 0 && (
-                <span className="-top-3 absolute left-0 flex h-6 w-16 max-w-full items-center justify-end bg-background pe-2 text-[10px] text-muted-foreground/70 sm:pe-4 sm:text-xs">
-                  {format(hour, 'h a')}
+                <span className="absolute -top-3 left-0 flex h-6 w-16 max-w-full items-center justify-end bg-background pe-2 text-[10px] text-muted-foreground/70 sm:pe-4 sm:text-xs">
+                  {format(hour, "h a")}
                 </span>
               )}
             </div>
@@ -263,11 +262,13 @@ export function DayView({
             const isSocial = isSocialEvent(positionedEvent.event);
 
             return (
-              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+              // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
               <div
-                key={positionedEvent.event.id}
-                onKeyDown={(e) => e.stopPropagation()}
                 className="absolute z-10 px-0.5"
+                key={positionedEvent.event.id}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 style={{
                   top: `${positionedEvent.top}px`,
                   height: `${positionedEvent.height}px`,
@@ -275,27 +276,26 @@ export function DayView({
                   width: `${positionedEvent.width * 100}%`,
                   zIndex: positionedEvent.zIndex,
                 }}
-                onClick={(e) => e.stopPropagation()}
               >
                 {isSocial ? (
                   <DraggableSocialPostEvent
+                    className="h-full"
                     event={
                       positionedEvent.event as CalendarEvent & {
                         postData: SocialPostEventData;
                       }
                     }
-                    view="day"
-                    onClick={() => handleEventClick(positionedEvent.event)}
                     height={positionedEvent.height}
-                    className="h-full"
+                    onClick={() => handleEventClick(positionedEvent.event)}
+                    view="day"
                   />
                 ) : (
                   <DraggableEvent
                     event={positionedEvent.event}
-                    view="day"
+                    height={positionedEvent.height}
                     onClick={(e) => handleEventClick(positionedEvent.event, e)}
                     showTime
-                    height={positionedEvent.height}
+                    view="day"
                   />
                 )}
               </div>
@@ -309,7 +309,7 @@ export function DayView({
               style={{ top: `${currentTimePosition}%` }}
             >
               <div className="relative flex items-center">
-                <div className="-left-1 absolute h-2 w-2 rounded-full bg-primary" />
+                <div className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
                 <div className="h-[2px] w-full bg-primary" />
               </div>
             </div>
@@ -320,34 +320,34 @@ export function DayView({
             const hourValue = getHours(hour);
             return (
               <div
-                key={hour.toString()}
                 className="relative h-[var(--week-cells-height)] border-border/70 border-b last:border-b-0"
+                key={hour.toString()}
               >
                 {/* Quarter-hour intervals */}
                 {[0, 1, 2, 3].map((quarter) => {
                   const quarterHourTime = hourValue + quarter * 0.25;
                   return (
                     <DroppableCell
-                      key={`${hour.toString()}-${quarter}`}
-                      id={`day-cell-${currentDate.toISOString()}-${quarterHourTime}`}
-                      date={currentDate}
-                      time={quarterHourTime}
                       className={cn(
-                        'absolute h-[calc(var(--week-cells-height)/4)] w-full',
-                        quarter === 0 && 'top-0',
+                        "absolute h-[calc(var(--week-cells-height)/4)] w-full",
+                        quarter === 0 && "top-0",
                         quarter === 1 &&
-                          'top-[calc(var(--week-cells-height)/4)]',
+                          "top-[calc(var(--week-cells-height)/4)]",
                         quarter === 2 &&
-                          'top-[calc(var(--week-cells-height)/4*2)]',
+                          "top-[calc(var(--week-cells-height)/4*2)]",
                         quarter === 3 &&
-                          'top-[calc(var(--week-cells-height)/4*3)]'
+                          "top-[calc(var(--week-cells-height)/4*3)]"
                       )}
+                      date={currentDate}
+                      id={`day-cell-${currentDate.toISOString()}-${quarterHourTime}`}
+                      key={`${hour.toString()}-${quarter}`}
                       onClick={() => {
                         const startTime = new Date(currentDate);
                         startTime.setHours(hourValue);
                         startTime.setMinutes(quarter * 15);
                         onEventCreate(startTime);
                       }}
+                      time={quarterHourTime}
                     />
                   );
                 })}

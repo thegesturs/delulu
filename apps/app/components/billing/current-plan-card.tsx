@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Current Plan Card Component
@@ -6,10 +6,9 @@
  * Displays the user's active subscription plan with details and management options
  */
 
-import { useSubscription } from '@/hooks/use-subscription';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,14 +16,20 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { PLANS } from '@delulu/payments';
-import { useAction } from 'convex/react';
-import { format } from 'date-fns';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Calendar01Icon, CreditCardIcon, Link01Icon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
-import { useState } from 'react';
-import { toast } from 'sonner';
+} from "@delulu/design-system/components/ui/card";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { PLANS } from "@delulu/payments";
+import {
+  Calendar01Icon,
+  CreditCardIcon,
+  Link01Icon,
+  SparklesIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useAction } from "convex/react";
+import { format } from "date-fns";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export function CurrentPlanCard() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
@@ -39,8 +44,8 @@ export function CurrentPlanCard() {
       const { portal_url } = await getPortal();
       window.location.href = portal_url;
     } catch (error) {
-      console.error('Failed to open customer portal:', error);
-      toast.error('Failed to open billing portal. Please try again.');
+      console.error("Failed to open customer portal:", error);
+      toast.error("Failed to open billing portal. Please try again.");
       setIsLoadingPortal(false);
     }
   };
@@ -65,7 +70,7 @@ export function CurrentPlanCard() {
               {plan.name} Plan
               {subscription.isPaid && (
                 <Badge variant="default">
-                  <Icon icon={SparklesIcon} size={12} className="mr-1" />
+                  <Icon className="mr-1" icon={SparklesIcon} size={12} />
                   Active
                 </Badge>
               )}
@@ -80,13 +85,13 @@ export function CurrentPlanCard() {
           </div>
           {subscription.isPaid && (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManageSubscription}
               disabled={isLoadingPortal}
+              onClick={handleManageSubscription}
+              size="sm"
+              variant="outline"
             >
-              {isLoadingPortal ? 'Loading...' : 'Manage'}
-              <Icon icon={Link01Icon} size={12} className="ml-2" />
+              {isLoadingPortal ? "Loading..." : "Manage"}
+              <Icon className="ml-2" icon={Link01Icon} size={12} />
             </Button>
           )}
         </div>
@@ -97,7 +102,7 @@ export function CurrentPlanCard() {
         <div>
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-3xl">
-              {plan.price.monthly === 0 ? 'Free' : `$${plan.price.monthly}`}
+              {plan.price.monthly === 0 ? "Free" : `$${plan.price.monthly}`}
             </span>
             {plan.price.monthly > 0 && (
               <span className="text-muted-foreground">/month</span>
@@ -108,13 +113,13 @@ export function CurrentPlanCard() {
               <Icon icon={Calendar01Icon} size={16} />
               {subscription.cancelAtPeriodEnd ? (
                 <span>
-                  Expires on{' '}
-                  {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
+                  Expires on{" "}
+                  {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
                 </span>
               ) : (
                 <span>
-                  Renews on{' '}
-                  {format(subscription.currentPeriodEnd, 'MMM dd, yyyy')}
+                  Renews on{" "}
+                  {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
                 </span>
               )}
             </div>
@@ -129,7 +134,7 @@ export function CurrentPlanCard() {
               <span className="text-muted-foreground">Social Accounts</span>
               <span className="font-medium">
                 {plan.limits.socialAccounts === -1
-                  ? 'Unlimited'
+                  ? "Unlimited"
                   : plan.limits.socialAccounts}
               </span>
             </li>
@@ -137,7 +142,7 @@ export function CurrentPlanCard() {
               <span className="text-muted-foreground">Monthly Posts</span>
               <span className="font-medium">
                 {plan.limits.monthlyPosts === -1
-                  ? 'Unlimited'
+                  ? "Unlimited"
                   : plan.limits.monthlyPosts}
               </span>
             </li>
@@ -145,7 +150,7 @@ export function CurrentPlanCard() {
               <span className="text-muted-foreground">Media Storage</span>
               <span className="font-medium">
                 {plan.limits.mediaStorage === -1
-                  ? 'Unlimited'
+                  ? "Unlimited"
                   : `${plan.limits.mediaStorage}MB`}
               </span>
             </li>
@@ -153,7 +158,7 @@ export function CurrentPlanCard() {
               <span className="text-muted-foreground">Team Members</span>
               <span className="font-medium">
                 {plan.limits.teamMembers === -1
-                  ? 'Unlimited'
+                  ? "Unlimited"
                   : plan.limits.teamMembers}
               </span>
             </li>
@@ -167,7 +172,7 @@ export function CurrentPlanCard() {
             <div className="flex flex-wrap gap-2">
               {plan.features.aiContentGeneration && (
                 <Badge variant="secondary">
-                  <Icon icon={SparklesIcon} size={12} className="mr-1" />
+                  <Icon className="mr-1" icon={SparklesIcon} size={12} />
                   AI Generation
                 </Badge>
               )}
@@ -200,9 +205,9 @@ export function CurrentPlanCard() {
         {subscription.cancelAtPeriodEnd && (
           <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
             <p className="font-medium text-destructive text-sm">
-              Your subscription will end on{' '}
+              Your subscription will end on{" "}
               {subscription.currentPeriodEnd &&
-                format(subscription.currentPeriodEnd, 'MMMM dd, yyyy')}
+                format(subscription.currentPeriodEnd, "MMMM dd, yyyy")}
             </p>
             <p className="mt-1 text-muted-foreground text-sm">
               You'll have access to all features until then.
@@ -215,32 +220,32 @@ export function CurrentPlanCard() {
         {subscription.isFree ? (
           <Button
             className="w-full"
-            size="lg"
             onClick={() => {
-              window.location.href = '/billing';
+              window.location.href = "/billing";
             }}
+            size="lg"
           >
-            <Icon icon={SparklesIcon} size={16} className="mr-2" />
+            <Icon className="mr-2" icon={SparklesIcon} size={16} />
             Upgrade Plan
           </Button>
         ) : (
           <>
             <Button
-              variant="outline"
               className="flex-1"
-              onClick={handleManageSubscription}
               disabled={isLoadingPortal}
+              onClick={handleManageSubscription}
+              variant="outline"
             >
-              <Icon icon={CreditCardIcon} size={16} className="mr-2" />
-              {isLoadingPortal ? 'Loading...' : 'Billing Portal'}
+              <Icon className="mr-2" icon={CreditCardIcon} size={16} />
+              {isLoadingPortal ? "Loading..." : "Billing Portal"}
             </Button>
             {!subscription.cancelAtPeriodEnd && (
               <Button
-                variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  window.location.href = '/billing';
+                  window.location.href = "/billing";
                 }}
+                variant="outline"
               >
                 Change Plan
               </Button>

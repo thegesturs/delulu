@@ -2,14 +2,17 @@
  * Loading Overlay - Indigo vignette effect during sorting
  */
 
-import './loading-overlay.css';
+import "./loading-overlay.css";
 
 interface LoadingOverlayProps {
   message?: string;
   progress?: string;
 }
 
-export function LoadingOverlay({ message = 'Analyzing reels...', progress }: LoadingOverlayProps) {
+export function LoadingOverlay({
+  message = "Analyzing reels...",
+  progress,
+}: LoadingOverlayProps) {
   return (
     <div className="sorted-loading-overlay">
       {/* Vignette effect - indigo at corners, subtle black in center */}

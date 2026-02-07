@@ -1,11 +1,11 @@
-import { Card } from '@delulu/design-system/components/ui/card';
-import Link from 'next/link';
-import { FaLinkedin, FaTwitter } from 'react-icons/fa';
-import { Logo } from '../logo';
+import { Card } from "@delulu/design-system/components/ui/card";
+import Link from "next/link";
+import { FaLinkedin, FaTwitter } from "react-icons/fa";
+import { Logo } from "../logo";
 
 export function Footer() {
   const pages = [
-    { title: 'Home', href: '/' },
+    { title: "Home", href: "/" },
     // { title: 'Blogs', href: '/blogs' },
     // { title: 'Pricing', href: '/pricing' },
     // { title: 'Blog', href: '/blogs' },
@@ -15,17 +15,17 @@ export function Footer() {
   const socials = [
     // { title: 'Facebook', href: 'https://www.facebook.com/delulu.social' },
     // { title: 'Instagram', href: 'https://www.instagram.com/delulu.social' },
-    { title: 'Twitter', href: 'https://x.com/delulusocial' },
+    { title: "Twitter", href: "https://x.com/delulusocial" },
     {
-      title: 'LinkedIn',
-      href: 'https://www.linkedin.com/company/delulu-social',
+      title: "LinkedIn",
+      href: "https://www.linkedin.com/company/delulu-social",
     },
   ];
 
   const legal = [
-    { title: 'Privacy Policy', href: '/legal/privacy-policy' },
-    { title: 'Terms of Service', href: '/legal/terms-of-service' },
-    { title: 'Cookie Policy', href: '/legal/cookie-policy' },
+    { title: "Privacy Policy", href: "/legal/privacy-policy" },
+    { title: "Terms of Service", href: "/legal/terms-of-service" },
+    { title: "Cookie Policy", href: "/legal/cookie-policy" },
   ];
 
   return (
@@ -47,8 +47,8 @@ export function Footer() {
                 {pages.map((item, idx) => (
                   <li key={idx}>
                     <Link
-                      href={item.href}
                       className="text-muted-foreground hover:text-foreground"
+                      href={item.href}
                     >
                       {item.title}
                     </Link>
@@ -63,8 +63,8 @@ export function Footer() {
                 {socials.map((item, idx) => (
                   <li key={idx}>
                     <Link
-                      href={item.href}
                       className="text-muted-foreground hover:text-foreground"
+                      href={item.href}
                     >
                       {item.title}
                     </Link>
@@ -79,8 +79,8 @@ export function Footer() {
                 {legal.map((item, idx) => (
                   <li key={idx}>
                     <Link
-                      href={item.href}
                       className="text-muted-foreground hover:text-foreground"
+                      href={item.href}
                     >
                       {item.title}
                     </Link>
@@ -95,14 +95,14 @@ export function Footer() {
           <p className="text-muted-foreground text-sm">© Delulu Social</p>
           <div className="mt-4 flex gap-4 md:mt-0">
             <Link
-              href="https://x.com/delulusocial"
               className="text-muted-foreground hover:text-foreground"
+              href="https://x.com/delulusocial"
             >
               <FaTwitter size={20} />
             </Link>
             <Link
-              href="https://www.linkedin.com/company/delulu-social"
               className="text-muted-foreground hover:text-foreground"
+              href="https://www.linkedin.com/company/delulu-social"
             >
               <FaLinkedin size={20} />
             </Link>

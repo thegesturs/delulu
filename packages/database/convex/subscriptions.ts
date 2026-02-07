@@ -9,17 +9,17 @@
  * - Check feature access and usage limits
  */
 
-import { PLANS } from '@delulu/payments/plans';
-import { v } from 'convex/values';
-import { action, internalMutation, query } from './_generated/server';
-import { checkout, customerPortal } from './dodo';
+import { PLANS } from "@delulu/payments/plans";
+import { v } from "convex/values";
+import { action, internalMutation, query } from "./_generated/server";
+import { checkout, customerPortal } from "./dodo";
 import {
   billingPeriod,
   planTypes,
   subscriptionSchema,
   subscriptionStatus,
-} from './schemas';
-import { getCurrentTimestamp } from './utils';
+} from "./schemas";
+import { getCurrentTimestamp } from "./utils";
 
 // ============================================================================
 // QUERIES
@@ -38,11 +38,11 @@ export const getCurrentSubscription = query({
     }
 
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
       .unique();
 
-    if (!user || !user.subscriptionId) {
+    if (!user?.subscriptionId) {
       return null;
     }
 
@@ -55,13 +55,13 @@ export const getCurrentSubscription = query({
  * Get subscription by user ID
  */
 export const getSubscriptionByUserId = query({
-  args: { userId: v.id('users') },
+  args: { userId: v.id("users") },
   returns: v.union(subscriptionSchema, v.null()),
   handler: async (ctx, args) => {
     const subscription = await ctx.db
-      .query('subscriptions')
-      .withIndex('by_user_id', (q) => q.eq('userId', args.userId))
-      .filter((q) => q.eq(q.field('status'), 'ACTIVE'))
+      .query("subscriptions")
+      .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "ACTIVE"))
       .first();
 
     return subscription;
@@ -72,7 +72,7 @@ export const getSubscriptionByUserId = query({
  * Get subscription by ID
  */
 export const getSubscriptionById = query({
-  args: { id: v.id('subscriptions') },
+  args: { id: v.id("subscriptions") },
   returns: v.union(subscriptionSchema, v.null()),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
@@ -89,14 +89,14 @@ export const getSubscriptionById = query({
 export const checkFeatureAccess = query({
   args: {
     feature: v.union(
-      v.literal('aiContentGeneration'),
-      v.literal('analytics'),
-      v.literal('collaboration'),
-      v.literal('whiteLabel'),
-      v.literal('prioritySupport'),
-      v.literal('customBranding'),
-      v.literal('advancedScheduling'),
-      v.literal('bulkUpload')
+      v.literal("aiContentGeneration"),
+      v.literal("analytics"),
+      v.literal("collaboration"),
+      v.literal("whiteLabel"),
+      v.literal("prioritySupport"),
+      v.literal("customBranding"),
+      v.literal("advancedScheduling"),
+      v.literal("bulkUpload")
     ),
   },
   returns: v.object({
@@ -106,13 +106,13 @@ export const checkFeatureAccess = query({
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
+    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
 
     if (identity) {
       const user = await ctx.db
-        .query('users')
-        .withIndex('by_external_id', (q) =>
-          q.eq('externalId', identity.subject)
+        .query("users")
+        .withIndex("by_external_id", (q) =>
+          q.eq("externalId", identity.subject)
         )
         .unique();
 
@@ -126,7 +126,7 @@ export const checkFeatureAccess = query({
 
     // Get plan features from single source of truth
     const plan = PLANS[planType];
-    const hasAccess = plan.features[args.feature] || false;
+    const hasAccess = plan.features[args.feature];
 
     return {
       hasAccess,
@@ -142,10 +142,10 @@ export const checkFeatureAccess = query({
 export const checkUsageLimit = query({
   args: {
     limitType: v.union(
-      v.literal('socialAccounts'),
-      v.literal('monthlyPosts'),
-      v.literal('mediaStorage'),
-      v.literal('teamMembers')
+      v.literal("socialAccounts"),
+      v.literal("monthlyPosts"),
+      v.literal("mediaStorage"),
+      v.literal("teamMembers")
     ),
     currentValue: v.number(),
   },
@@ -157,13 +157,13 @@ export const checkUsageLimit = query({
   }),
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
+    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
 
     if (identity) {
       const user = await ctx.db
-        .query('users')
-        .withIndex('by_external_id', (q) =>
-          q.eq('externalId', identity.subject)
+        .query("users")
+        .withIndex("by_external_id", (q) =>
+          q.eq("externalId", identity.subject)
         )
         .unique();
 
@@ -211,14 +211,14 @@ export const checkSocialAccountLimit = query({
         currentCount: 0,
         limit: 1, // FREE plan default
         allowed: true,
-        planType: 'FREE' as const,
+        planType: "FREE" as const,
         remaining: 1,
       };
     }
 
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
       .unique();
 
     if (!user) {
@@ -226,13 +226,13 @@ export const checkSocialAccountLimit = query({
         currentCount: 0,
         limit: 1,
         allowed: true,
-        planType: 'FREE' as const,
+        planType: "FREE" as const,
         remaining: 1,
       };
     }
 
     // Get plan type
-    let planType: 'FREE' | 'ECHO' | 'VIBE' = 'FREE';
+    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
     if (user.subscriptionId) {
       const subscription = await ctx.db.get(user.subscriptionId);
       if (subscription) {
@@ -242,9 +242,9 @@ export const checkSocialAccountLimit = query({
 
     // Count current social accounts in ONE query
     const currentAccounts = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-      .filter((q) => q.eq(q.field('isActive'), true))
+      .query("socialProviders")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     const currentCount = currentAccounts.length;
@@ -287,8 +287,8 @@ export const getUserUsage = query({
     }
 
     const user = await ctx.db
-      .query('users')
-      .withIndex('by_external_id', (q) => q.eq('externalId', identity.subject))
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
       .unique();
 
     if (!user) {
@@ -302,9 +302,9 @@ export const getUserUsage = query({
 
     // Count social accounts
     const socialAccounts = await ctx.db
-      .query('socialProviders')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
-      .filter((q) => q.eq(q.field('isActive'), true))
+      .query("socialProviders")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+      .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
     // Count posts created this month
@@ -316,20 +316,20 @@ export const getUserUsage = query({
     ).getTime();
 
     const postsThisMonth = await ctx.db
-      .query('posts')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("posts")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .filter((q) =>
         q.and(
-          q.gte(q.field('createdAt'), monthStart),
-          q.eq(q.field('isDeleted'), false)
+          q.gte(q.field("createdAt"), monthStart),
+          q.eq(q.field("isDeleted"), false)
         )
       )
       .collect();
 
     // Calculate media storage (sum of all media file sizes in MB)
     const mediaFiles = await ctx.db
-      .query('media')
-      .withIndex('by_user_id', (q) => q.eq('userId', user._id))
+      .query("media")
+      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
       .collect();
 
     const totalStorageMB =
@@ -354,7 +354,7 @@ export const getUserUsage = query({
  */
 export const createSubscription = internalMutation({
   args: {
-    userId: v.id('users'),
+    userId: v.id("users"),
     dodoCustomerId: v.string(),
     dodoSubscriptionId: v.optional(v.string()),
     planType: planTypes,
@@ -369,9 +369,9 @@ export const createSubscription = internalMutation({
       })
     ),
   },
-  returns: v.id('subscriptions'),
+  returns: v.id("subscriptions"),
   handler: async (ctx, args) => {
-    const subscriptionId = await ctx.db.insert('subscriptions', {
+    const subscriptionId = await ctx.db.insert("subscriptions", {
       ...args,
       updatedAt: getCurrentTimestamp(),
     });
@@ -395,7 +395,7 @@ export const createSubscription = internalMutation({
  */
 export const updateSubscription = internalMutation({
   args: {
-    id: v.id('subscriptions'),
+    id: v.id("subscriptions"),
     planType: v.optional(planTypes),
     status: v.optional(subscriptionStatus),
     currentPeriodStart: v.optional(v.number()),
@@ -410,7 +410,7 @@ export const updateSubscription = internalMutation({
       })
     ),
   },
-  returns: v.id('subscriptions'),
+  returns: v.id("subscriptions"),
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
 
@@ -446,7 +446,7 @@ export const createCheckoutSession = action({
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
         throw new Error(
-          'User must be authenticated to create checkout session'
+          "User must be authenticated to create checkout session"
         );
       }
 
@@ -454,7 +454,7 @@ export const createCheckoutSession = action({
       const userEmail = identity.email;
       const userName = identity.name || identity.givenName || identity.nickname;
 
-      console.log('[Dodo] Creating checkout session with:', {
+      console.log("[Dodo] Creating checkout session with:", {
         productId: args.productId,
         quantity: args.quantity || 1,
         returnUrl: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
@@ -476,34 +476,34 @@ export const createCheckoutSession = action({
             name: userName,
           },
           return_url: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
-          billing_currency: 'USD',
+          billing_currency: "USD",
           feature_flags: {
             allow_discount_code: true,
           },
         },
       });
 
-      console.log('[Dodo] Checkout session response:', {
+      console.log("[Dodo] Checkout session response:", {
         hasSession: !!session,
         hasCheckoutUrl: !!session?.checkout_url,
         sessionKeys: session ? Object.keys(session) : [],
       });
 
       if (!session) {
-        throw new Error('Checkout API returned null or undefined response');
+        throw new Error("Checkout API returned null or undefined response");
       }
 
       if (!session.checkout_url) {
-        console.error('[Dodo] Session object:', JSON.stringify(session));
+        console.error("[Dodo] Session object:", JSON.stringify(session));
         throw new Error(
-          'Checkout session did not return a checkout_url. Check if product ID is valid in Dodo dashboard.'
+          "Checkout session did not return a checkout_url. Check if product ID is valid in Dodo dashboard."
         );
       }
 
-      console.log('[Dodo] Checkout session created successfully');
+      console.log("[Dodo] Checkout session created successfully");
       return { checkout_url: session.checkout_url };
     } catch (error) {
-      console.error('[Dodo] Failed to create checkout session:', {
+      console.error("[Dodo] Failed to create checkout session:", {
         error: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
         productId: args.productId,
@@ -512,24 +512,24 @@ export const createCheckoutSession = action({
 
       // Provide more specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('product')) {
+        if (error.message.includes("product")) {
           throw new Error(
             `Invalid product ID: ${args.productId}. Please check your Dodo Payments dashboard.`
           );
         }
         if (
-          error.message.includes('authentication') ||
-          error.message.includes('unauthorized')
+          error.message.includes("authentication") ||
+          error.message.includes("unauthorized")
         ) {
           throw new Error(
-            'Dodo Payments authentication failed. Check DODO_PAYMENTS_API_KEY in Convex dashboard.'
+            "Dodo Payments authentication failed. Check DODO_PAYMENTS_API_KEY in Convex dashboard."
           );
         }
         throw new Error(`Checkout failed: ${error.message}`);
       }
 
       throw new Error(
-        'Failed to create checkout session. Check Convex logs for details.'
+        "Failed to create checkout session. Check Convex logs for details."
       );
     }
   },
@@ -550,13 +550,13 @@ export const getCustomerPortal = action({
       });
 
       if (!portal?.portal_url) {
-        throw new Error('Customer portal did not return a portal_url');
+        throw new Error("Customer portal did not return a portal_url");
       }
 
       return { portal_url: portal.portal_url };
     } catch (error) {
-      console.error('[Dodo] Failed to get customer portal:', error);
-      throw new Error('Failed to get customer portal');
+      console.error("[Dodo] Failed to get customer portal:", error);
+      throw new Error("Failed to get customer portal");
     }
   },
 });

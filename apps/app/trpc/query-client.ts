@@ -1,8 +1,8 @@
-import { superjson } from '@delulu/api/client';
+import { superjson } from "@delulu/api/client";
 import {
-  QueryClient,
   defaultShouldDehydrateQuery,
-} from '@tanstack/react-query';
+  QueryClient,
+} from "@tanstack/react-query";
 
 export const createQueryClient = () =>
   new QueryClient({
@@ -16,7 +16,7 @@ export const createQueryClient = () =>
         serializeData: superjson.serialize,
         shouldDehydrateQuery: (query) =>
           defaultShouldDehydrateQuery(query) ||
-          query.state.status === 'pending',
+          query.state.status === "pending",
         shouldRedactErrors: () => {
           // We should not catch Next.js server errors
           // as that's how Next.js detects dynamic pages

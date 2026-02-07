@@ -2,7 +2,7 @@
 // This file contains the CloudflareEnv interface for type-safe environment access
 // Auto-generated from wrangler types - DO NOT EDIT MANUALLY
 
-import type { Fetcher, KVNamespace, R2Bucket } from '@cloudflare/workers-types';
+import type { Fetcher, KVNamespace, R2Bucket } from "@cloudflare/workers-types";
 
 export interface CloudflareEnv {
   DELULU_FACEBOOK_PAGES: KVNamespace;

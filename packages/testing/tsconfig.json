@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    "strictNullChecks": true
   },
   "include": ["./*.js", "./*.ts", "./*.tsx"],
   "exclude": ["node_modules"]

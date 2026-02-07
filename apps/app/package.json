@@ -37,6 +37,8 @@
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "@trpc/tanstack-react-query": "catalog:",
+
+    "@xyflow/react": "^12.10.0",
     "axios": "^1.9.0",
     "convex": "^1.25.4",
     "convex-helpers": "^0.1.104",

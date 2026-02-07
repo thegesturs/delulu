@@ -9,17 +9,17 @@ import type {
   Thing,
   WebSite,
   WithContext,
-} from 'schema-dts';
+} from "schema-dts";
 
-type JsonLdProps = {
+interface JsonLdProps {
   code: WithContext<Thing>;
-};
+}
 
 export const JsonLd = ({ code }: JsonLdProps) => (
   <script
-    type="application/ld+json"
-    // biome-ignore lint/security/noDangerouslySetInnerHtml: "This is a JSON-LD script, not user-generated content."
     dangerouslySetInnerHTML={{ __html: JSON.stringify(code) }}
+    // biome-ignore lint/security/noDangerouslySetInnerHtml: "This is a JSON-LD script, not user-generated content."
+    type="application/ld+json"
   />
 );
 
@@ -27,40 +27,40 @@ export const JsonLd = ({ code }: JsonLdProps) => (
 export const createOrganizationSchema = (
   url: string
 ): WithContext<Organization> => ({
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'Delulu Social',
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Delulu Social",
   url,
   logo: `${url}/images/logo.png`,
   description:
-    'Social media management platform for creating and publishing content across multiple social networks',
+    "Social media management platform for creating and publishing content across multiple social networks",
   sameAs: [
-    'https://twitter.com/delulusocial',
-    'https://linkedin.com/company/delulu-social',
+    "https://twitter.com/delulusocial",
+    "https://linkedin.com/company/delulu-social",
   ],
   contactPoint: {
-    '@type': 'ContactPoint',
-    contactType: 'customer service',
+    "@type": "ContactPoint",
+    contactType: "customer service",
     url: `${url}/contact`,
   },
 });
 
 // Website schema
 export const createWebSiteSchema = (url: string): WithContext<WebSite> => ({
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Delulu Social',
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Delulu Social",
   url,
   description:
-    'Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.',
+    "Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.",
   potentialAction: {
-    '@type': 'SearchAction',
+    "@type": "SearchAction",
     target: {
-      '@type': 'EntryPoint',
+      "@type": "EntryPoint",
       urlTemplate: `${url}/search?q={search_term_string}`,
     },
-    'query-input': 'required name=search_term_string',
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    "query-input": "required name=search_term_string",
+    // biome-ignore lint/suspicious/noExplicitAny: JSON-LD schema requires flexible typing
   } as any,
 });
 
@@ -68,27 +68,27 @@ export const createWebSiteSchema = (url: string): WithContext<WebSite> => ({
 export const createSoftwareApplicationSchema = (
   url: string
 ): WithContext<SoftwareApplication> => ({
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'Delulu Social',
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Delulu Social",
   description:
-    'Social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.',
+    "Social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.",
   url,
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web Browser',
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web Browser",
   offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-    priceValidUntil: '2025-12-31',
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    priceValidUntil: "2025-12-31",
   },
   featureList: [
-    'Multi-platform social media posting',
-    'Content creation and editing',
-    'Social media scheduling',
-    'Analytics and insights',
-    'Team collaboration',
-    'Content calendar management',
+    "Multi-platform social media posting",
+    "Content creation and editing",
+    "Social media scheduling",
+    "Analytics and insights",
+    "Team collaboration",
+    "Content calendar management",
   ],
   screenshot: `${url}/images/app-light.png`,
 });
@@ -113,8 +113,8 @@ export const createBlogPostingSchema = ({
   authorName?: string;
   authorUrl?: string;
 }): WithContext<BlogPosting> => ({
-  '@context': 'https://schema.org',
-  '@type': 'BlogPosting',
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
   headline: title,
   description,
   url,
@@ -122,23 +122,23 @@ export const createBlogPostingSchema = ({
   datePublished,
   dateModified: dateModified || datePublished,
   author: {
-    '@type': 'Person',
-    name: authorName || 'Delulu Social',
+    "@type": "Person",
+    name: authorName || "Delulu Social",
     url: authorUrl || url,
   },
   publisher: {
-    '@type': 'Organization',
-    name: 'Delulu Social',
+    "@type": "Organization",
+    name: "Delulu Social",
     logo: {
-      '@type': 'ImageObject',
+      "@type": "ImageObject",
       url: `${url}/images/logo.png`,
     },
   },
   mainEntityOfPage: {
-    '@type': 'WebPage',
-    '@id': url,
+    "@type": "WebPage",
+    "@id": url,
   },
-  inLanguage: 'en-US',
+  inLanguage: "en-US",
   isAccessibleForFree: true,
 });
 
@@ -159,53 +159,54 @@ export const createBlogSchema = ({
     author?: string;
   }>;
 }): WithContext<Blog> => ({
-  '@context': 'https://schema.org',
-  '@type': 'Blog',
+  "@context": "https://schema.org",
+  "@type": "Blog",
   name: title,
   description,
   url,
   publisher: {
-    '@type': 'Organization',
-    name: 'Delulu Social',
+    "@type": "Organization",
+    name: "Delulu Social",
     logo: {
-      '@type': 'ImageObject',
-      url: `${url.replace(/\/blogs.*/, '')}/images/logo.png`,
+      "@type": "ImageObject",
+      // biome-ignore lint/performance/useTopLevelRegex: URL manipulation, regex used once
+      url: `${url.replace(/\/blogs.*/, "")}/images/logo.png`,
     },
   },
   mainEntityOfPage: {
-    '@type': 'WebPage',
-    '@id': url,
+    "@type": "WebPage",
+    "@id": url,
   },
-  inLanguage: 'en-US',
+  inLanguage: "en-US",
   isAccessibleForFree: true,
   about: [
     {
-      '@type': 'Thing',
-      name: 'Social Media Management',
+      "@type": "Thing",
+      name: "Social Media Management",
       description:
-        'Tips and strategies for managing multiple social media accounts effectively',
+        "Tips and strategies for managing multiple social media accounts effectively",
     },
     {
-      '@type': 'Thing',
-      name: 'Content Creation',
+      "@type": "Thing",
+      name: "Content Creation",
       description:
-        'Creative techniques for producing engaging social media content',
+        "Creative techniques for producing engaging social media content",
     },
     {
-      '@type': 'Thing',
-      name: 'Digital Marketing',
-      description: 'Modern marketing strategies for social media platforms',
+      "@type": "Thing",
+      name: "Digital Marketing",
+      description: "Modern marketing strategies for social media platforms",
     },
   ],
   ...(posts.length > 0 && {
     blogPost: posts.map((post) => ({
-      '@type': 'BlogPosting',
+      "@type": "BlogPosting",
       headline: post.title,
       url: post.url,
       datePublished: post.datePublished,
       author: {
-        '@type': 'Person',
-        name: post.author || 'Delulu Social',
+        "@type": "Person",
+        name: post.author || "Delulu Social",
       },
     })),
   }),
@@ -225,30 +226,30 @@ export const createArticleSchema = ({
   datePublished: string;
   dateModified?: string;
 }): WithContext<Article> => ({
-  '@context': 'https://schema.org',
-  '@type': 'Article',
+  "@context": "https://schema.org",
+  "@type": "Article",
   headline: title,
   description,
   url,
   datePublished,
   dateModified: dateModified || datePublished,
   author: {
-    '@type': 'Organization',
-    name: 'Delulu Social',
+    "@type": "Organization",
+    name: "Delulu Social",
   },
   publisher: {
-    '@type': 'Organization',
-    name: 'Delulu Social',
+    "@type": "Organization",
+    name: "Delulu Social",
     logo: {
-      '@type': 'ImageObject',
+      "@type": "ImageObject",
       url: `${url}/images/logo.png`,
     },
   },
   mainEntityOfPage: {
-    '@type': 'WebPage',
-    '@id': url,
+    "@type": "WebPage",
+    "@id": url,
   },
-  inLanguage: 'en-US',
+  inLanguage: "en-US",
 });
 
 // FAQ Page schema for AI chatbots (they love Q&A format)
@@ -261,15 +262,15 @@ export const createFAQPageSchema = ({
   url: string;
   questions: Array<{ question: string; answer: string }>;
 }): WithContext<FAQPage> => ({
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
   name: title,
   url,
   mainEntity: questions.map(({ question, answer }) => ({
-    '@type': 'Question',
+    "@type": "Question",
     name: question,
     acceptedAnswer: {
-      '@type': 'Answer',
+      "@type": "Answer",
       text: answer,
     },
   })),
@@ -289,14 +290,14 @@ export const createHowToSchema = ({
   image?: string;
   steps: Array<{ name: string; text: string; image?: string }>;
 }): WithContext<HowTo> => ({
-  '@context': 'https://schema.org',
-  '@type': 'HowTo',
+  "@context": "https://schema.org",
+  "@type": "HowTo",
   name: title,
   description,
   url,
   image: image || `${url}/api/og?title=${encodeURIComponent(title)}`,
   step: steps.map((step, index) => ({
-    '@type': 'HowToStep',
+    "@type": "HowToStep",
     position: index + 1,
     name: step.name,
     text: step.text,
@@ -308,73 +309,73 @@ export const createHowToSchema = ({
 export const createAISoftwareApplicationSchema = (
   url: string
 ): WithContext<SoftwareApplication> => ({
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'Delulu Social',
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Delulu Social",
   description:
-    'AI-powered social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.',
+    "AI-powered social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.",
   url,
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web Browser',
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web Browser",
   offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-    priceValidUntil: '2025-12-31',
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    priceValidUntil: "2025-12-31",
   },
   featureList: [
-    'Multi-platform social media posting to 8+ networks',
-    'AI-powered content creation and optimization',
-    'Social media scheduling and automation',
-    'Advanced analytics and performance insights',
-    'Team collaboration and workflow management',
-    'Content calendar and planning tools',
-    'Real-time collaboration features',
-    'Cross-platform content synchronization',
+    "Multi-platform social media posting to 8+ networks",
+    "AI-powered content creation and optimization",
+    "Social media scheduling and automation",
+    "Advanced analytics and performance insights",
+    "Team collaboration and workflow management",
+    "Content calendar and planning tools",
+    "Real-time collaboration features",
+    "Cross-platform content synchronization",
   ],
   screenshot: `${url}/images/app-light.png`,
   // AI-friendly conversational features
   about: [
     {
-      '@type': 'Thing',
-      name: 'social media management',
+      "@type": "Thing",
+      name: "social media management",
       description:
-        'Comprehensive platform for managing multiple social media accounts',
+        "Comprehensive platform for managing multiple social media accounts",
     },
     {
-      '@type': 'Thing',
-      name: 'content creation',
-      description: 'Tools for creating engaging social media content',
+      "@type": "Thing",
+      name: "content creation",
+      description: "Tools for creating engaging social media content",
     },
     {
-      '@type': 'Thing',
-      name: 'multi-platform posting',
+      "@type": "Thing",
+      name: "multi-platform posting",
       description:
-        'Publish content simultaneously across all major social networks',
+        "Publish content simultaneously across all major social networks",
     },
   ],
   // Common questions AI might ask
   potentialAction: [
     {
-      '@type': 'SearchAction',
+      "@type": "SearchAction",
       target: {
-        '@type': 'EntryPoint',
+        "@type": "EntryPoint",
         urlTemplate: `${url}/search?q={search_term_string}`,
       },
-      'query-input': 'required name=search_term_string',
+      "query-input": "required name=search_term_string",
     },
     {
-      '@type': 'ViewAction',
+      "@type": "ViewAction",
       target: `${url}/pricing`,
-      name: 'View Pricing Plans',
+      name: "View Pricing Plans",
     },
     {
-      '@type': 'RegisterAction',
+      "@type": "RegisterAction",
       target: `${url}/sign-up`,
-      name: 'Sign Up for Free',
+      name: "Sign Up for Free",
     },
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: JSON-LD schema requires flexible typing
   ] as any,
 });
 
-export * from 'schema-dts';
+export * from "schema-dts";

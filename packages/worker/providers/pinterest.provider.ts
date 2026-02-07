@@ -1,22 +1,21 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import type { MediaType, PostReturnType } from '@delulu/validators/post';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
-import { keys } from '../key';
-
-import { nanoid } from 'nanoid';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import type { MediaType, PostReturnType } from "@delulu/validators/post";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { nanoid } from "nanoid";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { keys } from "../key";
 import {
+  createAPIError,
   InvalidMediaError,
   PinterestError,
   ProfileNotFoundError,
   PublishError,
   type SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Types
 interface PinterestProfile {
@@ -40,12 +39,12 @@ const getProfile = (
 ): ResultAsync<PinterestProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new PinterestError('Database query failed')
+    () => new PinterestError("Database query failed")
   ).andThen((profile) => {
     if (!profile?.accessToken) {
-      return err(new ProfileNotFoundError('Pinterest'));
+      return err(new ProfileNotFoundError("Pinterest"));
     }
     return ok({
       id: profile._id,
@@ -58,12 +57,12 @@ const getUserBoards = (
   accessToken: string
 ): ResultAsync<PinterestBoardResponse[], SocialProviderError> =>
   ResultAsync.fromPromise(
-    axios.get('https://api.pinterest.com/v5/boards', {
+    axios.get("https://api.pinterest.com/v5/boards", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
     }),
-    (error) => createAPIError('Pinterest', error)
+    (error) => createAPIError("Pinterest", error)
   ).map((response) => response.data.items || []);
 
 // Create pin
@@ -75,29 +74,29 @@ const createPin = (
 ): ResultAsync<PinterestPinResponse, SocialProviderError> => {
   if (!media.url) {
     return errAsync(
-      new InvalidMediaError('Pinterest', 'Media URL is required')
+      new InvalidMediaError("Pinterest", "Media URL is required")
     );
   }
 
   const pinData = {
     link: media.url,
-    title: text.slice(0, 100) || 'Pin',
-    description: text || '',
+    title: text.slice(0, 100) || "Pin",
+    description: text || "",
     board_id: boardId,
     media_source: {
-      source_type: 'image_url',
+      source_type: "image_url",
       url: media.url,
     },
   };
 
   return ResultAsync.fromPromise(
-    axios.post('https://api.pinterest.com/v5/pins', pinData, {
+    axios.post("https://api.pinterest.com/v5/pins", pinData, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     }),
-    (error) => createAPIError('Pinterest', error)
+    (error) => createAPIError("Pinterest", error)
   ).map((response) => response.data);
 };
 
@@ -113,25 +112,25 @@ const publishContent = (
 
   if (!firstContent) {
     return errAsync(
-      new InvalidMediaError('Pinterest', 'No content to publish')
+      new InvalidMediaError("Pinterest", "No content to publish")
     );
   }
 
   const validMedia = getValidMediaUrls(firstContent.media);
   const imageMedia = validMedia.find(
-    (media) => media.mediaType === 'IMAGE' && media.url
+    (media) => media.mediaType === "IMAGE" && media.url
   );
 
   if (!imageMedia) {
     return errAsync(
-      new InvalidMediaError('Pinterest', 'Pinterest requires an image')
+      new InvalidMediaError("Pinterest", "Pinterest requires an image")
     );
   }
 
   return getUserBoards(profile.accessToken)
     .andThen((boards) => {
       if (boards.length === 0) {
-        return err(new PublishError('Pinterest', 'No boards available'));
+        return err(new PublishError("Pinterest", "No boards available"));
       }
 
       // Use the first available board
@@ -165,8 +164,8 @@ export const pinterestProvider: SocialProvider = {
     const params = new URLSearchParams({
       client_id: keys().PINTEREST_CLIENT_ID,
       redirect_uri: keys().PINTEREST_CALLBACK_URL,
-      response_type: 'code',
-      scope: 'boards:read,pins:write',
+      response_type: "code",
+      scope: "boards:read,pins:write",
       state: nanoid(),
     });
 

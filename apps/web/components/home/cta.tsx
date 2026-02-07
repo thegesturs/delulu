@@ -1,45 +1,45 @@
-'use client';
+"use client";
 
-import { CanvasRevealEffect } from '@/components/ui/canvas-reveal-effect';
-import LineSvg from '@/components/ui/line-svg';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
-} from '@delulu/design-system/components/ui/card';
-import Image from 'next/image';
-import Link from 'next/link';
-import Balancer from 'react-wrap-balancer';
+} from "@delulu/design-system/components/ui/card";
+import Image from "next/image";
+import Link from "next/link";
+import Balancer from "react-wrap-balancer";
+import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
+import LineSvg from "@/components/ui/line-svg";
 
 // Example: You can export this data to use elsewhere
 export const ctaBenefitsData = [
   {
-    id: 'time-value',
-    image: '/images/delulu/coin-flip.png',
-    alt: 'Delulu flipping a coin',
-    title: 'Your Time is Valuable',
+    id: "time-value",
+    image: "/images/delulu/coin-flip.png",
+    alt: "Delulu flipping a coin",
+    title: "Your Time is Valuable",
     description:
-      'Save 5+ hours every month with automated scheduling and cross-platform posting.',
-    imageWidth: 'w-24 md:w-28',
+      "Save 5+ hours every month with automated scheduling and cross-platform posting.",
+    imageWidth: "w-24 md:w-28",
   },
   {
-    id: 'user-control',
-    image: '/images/delulu/control.png',
-    alt: 'Delulu with checklist',
-    title: 'You Call the Shots',
+    id: "user-control",
+    image: "/images/delulu/control.png",
+    alt: "Delulu with checklist",
+    title: "You Call the Shots",
     description:
-      'Your feedback shapes our roadmap. We\'re constantly improving based on real user needs.',
-    imageWidth: 'w-40',
+      "Your feedback shapes our roadmap. We're constantly improving based on real user needs.",
+    imageWidth: "w-40",
   },
   {
-    id: 'one-click',
-    image: '/images/delulu/coffee.png',
-    alt: 'Happy delulu with coffee',
-    title: 'Zero Chaos, One Click',
+    id: "one-click",
+    image: "/images/delulu/coffee.png",
+    alt: "Happy delulu with coffee",
+    title: "Zero Chaos, One Click",
     description:
-      'Scheduling everywhere with one click = no more tab-hopping, no more missed posts, no more forehead dents from facepalming at your laptop.',
-    imageWidth: 'w-24 md:w-28',
+      "Scheduling everywhere with one click = no more tab-hopping, no more missed posts, no more forehead dents from facepalming at your laptop.",
+    imageWidth: "w-24 md:w-28",
   },
 ];
 
@@ -49,12 +49,12 @@ const CTA = () => {
 
   return (
     <section className="relative flex w-full flex-col items-center justify-center border-t">
-      <div className="relative mx-14 border-border border-x border-dashed ">
+      <div className="relative mx-14 border-border border-x border-dashed">
         {/* Left diagonal pattern */}
-        <div className="-left-4 md:-left-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -left-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-left-14 md:w-14" />
 
         {/* Right diagonal pattern */}
-        <div className="-right-4 md:-right-14 absolute top-0 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:w-14" />
+        <div className="absolute top-0 -right-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-right-14 md:w-14" />
 
         {/* Content */}
         <div className="relative h-full w-full border-border border-b py-10">
@@ -62,7 +62,8 @@ const CTA = () => {
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
-                Join Thousands of Content Creators Simplifying Their Social Media
+                Join Thousands of Content Creators Simplifying Their Social
+                Media
               </Balancer>
             </h2>
 
@@ -91,16 +92,16 @@ const CTA = () => {
           <div className="relative mx-auto grid gap-2 px-2 md:grid-cols-3">
             {benefits.map((benefit, _index) => (
               <Card
-                key={benefit.id}
                 className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
+                key={benefit.id}
               >
                 <CardHeader className="relative mx-auto mb-2 flex size-30 items-center justify-center">
                   <Image
-                    src={benefit.image}
                     alt={benefit.alt}
-                    width={120}
-                    height={120}
                     className={`h-auto ${benefit.imageWidth} dark:invert`}
+                    height={120}
+                    src={benefit.image}
+                    width={120}
                   />
                 </CardHeader>
                 <CardContent className="text-center">
@@ -129,9 +130,9 @@ const CTA = () => {
                   viewBox="0 0 20 20"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
                     clipRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    fillRule="evenodd"
                   />
                 </svg>
                 <span className="font-medium text-foreground text-xs">
@@ -139,7 +140,7 @@ const CTA = () => {
                 </span>
               </div>
 
-              <Button size="lg" className="h-14 px-8 text-lg" asChild>
+              <Button asChild className="h-14 px-8 text-lg" size="lg">
                 <Link href="https://solulu.delulu.social/sign-in">
                   Get Started Free
                 </Link>
@@ -152,11 +153,11 @@ const CTA = () => {
           </div>
 
           {/* Canvas Effect */}
-          <div className="-translate-x-1/2 -z-10 absolute bottom-0 left-1/2 mx-auto flex w-full max-w-3xl items-center justify-center rounded-full">
+          <div className="absolute bottom-0 left-1/2 -z-10 mx-auto flex w-full max-w-3xl -translate-x-1/2 items-center justify-center rounded-full">
             <CanvasRevealEffect
+              animationSpeed={1}
               colors={[[255, 107, 43]]}
               dotSize={3}
-              animationSpeed={1}
             />
             <div className="absolute inset-0 h-full bg-radial/[in_oklch] from-background/80 via-background/90 to-background" />
           </div>

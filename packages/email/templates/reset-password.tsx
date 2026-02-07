@@ -9,11 +9,11 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components';
+} from "@react-email/components";
 
-type ResetPasswordEmailProps = {
+interface ResetPasswordEmailProps {
   readonly url: string;
-};
+}
 
 export const ResetPasswordEmail = ({ url }: ResetPasswordEmailProps) => (
   <Tailwind>

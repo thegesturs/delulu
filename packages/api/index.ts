@@ -1,13 +1,9 @@
-import 'server-only';
+import "server-only";
 
-import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-
-import type { AppRouter } from './root';
-import { appRouter } from './root';
-import { createCallerFactory, createTRPCContext } from './trpc';
-
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import superjson from 'superjson';
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import type { AppRouter } from "./root";
+import { appRouter } from "./root";
+import { createCallerFactory } from "./trpc";
 
 /**
  * Create a server-side caller for the tRPC API
@@ -23,7 +19,7 @@ const createCaller = createCallerFactory(appRouter);
  * @example
  * type PostByIdInput = RouterInputs['post']['byId']
  *      ^? { id: number }
- **/
+ */
 type RouterInputs = inferRouterInputs<AppRouter>;
 
 /**
@@ -31,14 +27,13 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  * @example
  * type AllPostsOutput = RouterOutputs['post']['all']
  *      ^? Post[]
- **/
+ */
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export {
-  createTRPCContext,
-  appRouter,
-  createCaller,
-  superjson,
-  fetchRequestHandler,
-};
-export type { AppRouter, RouterInputs, RouterOutputs };
+export { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+export * as superjson from "superjson";
+export { appRouter } from "./root";
+export { createTRPCContext } from "./trpc";
+export { createCaller };
+export type { AppRouter } from "./root";
+export type { RouterInputs, RouterOutputs };

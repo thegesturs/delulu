@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { type ReactNode, createContext, useContext } from 'react';
-import { IntlProvider } from 'react-intl';
+import { createContext, type ReactNode, useContext } from "react";
+import { IntlProvider } from "react-intl";
 
 // Supported locales
 export const LOCALES = {
-  en: 'English',
-  es: 'Español',
-  fr: 'Français',
-  de: 'Deutsch',
-  ja: '日本語',
-  zh: '中文',
-  pt: 'Português',
-  it: 'Italiano',
-  ru: 'Русский',
-  ko: '한국어',
-  ar: 'العربية',
+  en: "English",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  ja: "日本語",
+  zh: "中文",
+  pt: "Português",
+  it: "Italiano",
+  ru: "Русский",
+  ko: "한국어",
+  ar: "العربية",
 } as const;
 
 export type Locale = keyof typeof LOCALES;
@@ -31,7 +31,7 @@ const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 export const useLocale = () => {
   const context = useContext(LocaleContext);
   if (!context) {
-    throw new Error('useLocale must be used within a LocaleProvider');
+    throw new Error("useLocale must be used within a LocaleProvider");
   }
   return context;
 };
@@ -39,7 +39,7 @@ export const useLocale = () => {
 interface LocaleProviderProps {
   children: ReactNode;
   locale: Locale;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: i18n messages are dynamic
   messages: Record<string, any>;
   onLocaleChange?: (locale: Locale) => void;
 }
@@ -57,9 +57,10 @@ export const LocaleProvider = ({
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
       <IntlProvider
+        defaultLocale="en"
         locale={locale}
         messages={messages}
-        defaultLocale="en"
+        // biome-ignore lint/suspicious/noEmptyBlockStatements: intentionally suppress translation warnings
         onError={() => {}} // Suppress missing translation warnings in production
       >
         {children}
@@ -71,7 +72,7 @@ export const LocaleProvider = ({
 // Utility function to load messages
 export const loadMessages = async (
   locale: Locale
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: i18n messages are dynamic
 ): Promise<Record<string, any>> => {
   try {
     const messages = await import(`../locales/${locale}.json`);
@@ -80,36 +81,36 @@ export const loadMessages = async (
     console.warn(
       `Failed to load messages for locale: ${locale}, falling back to English`
     );
-    const fallback = await import('../locales/en.json');
+    const fallback = await import("../locales/en.json");
     return fallback.default || fallback;
   }
 };
 
 // Get browser locale or default to English
 export const getBrowserLocale = (): Locale => {
-  if (typeof window === 'undefined') {
-    return 'en';
+  if (typeof window === "undefined") {
+    return "en";
   }
 
-  const browserLocale = navigator.language.split('-')[0] as Locale;
-  return Object.keys(LOCALES).includes(browserLocale) ? browserLocale : 'en';
+  const browserLocale = navigator.language.split("-")[0] as Locale;
+  return Object.keys(LOCALES).includes(browserLocale) ? browserLocale : "en";
 };
 
 // Get locale from URL or browser
 export const getInitialLocale = (): Locale => {
-  if (typeof window === 'undefined') {
-    return 'en';
+  if (typeof window === "undefined") {
+    return "en";
   }
 
   // Check URL params first
   const urlParams = new URLSearchParams(window.location.search);
-  const urlLocale = urlParams.get('lang') as Locale;
+  const urlLocale = urlParams.get("lang") as Locale;
   if (urlLocale && Object.keys(LOCALES).includes(urlLocale)) {
     return urlLocale;
   }
 
   // Check localStorage
-  const savedLocale = localStorage.getItem('locale') as Locale;
+  const savedLocale = localStorage.getItem("locale") as Locale;
   if (savedLocale && Object.keys(LOCALES).includes(savedLocale)) {
     return savedLocale;
   }

@@ -3,18 +3,18 @@
  * Icon wrapper components for navigation and layout
  */
 
-import type { ComponentType } from 'react';
-import { Icon } from '../providers/icon';
 import {
-  Home as HomeIcon,
+  AiChat02Icon,
   Calendar as CalendarIcon,
-  File as FileIcon,
-  Network as NetworkIcon,
-  Settings as SettingsIcon,
-  CreditCard as CreditCardIcon,
-  Pencil as PencilIcon,
   ConnectIcon,
-} from '@hugeicons-pro/core-solid-rounded';
+  CreditCard as CreditCardIcon,
+  File as FileIcon,
+  Home as HomeIcon,
+  Pencil as PencilIcon,
+  Settings as SettingsIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import type { ComponentType } from "react";
+import { Icon } from "../providers/icon";
 
 // Create wrapped components for navigation icons
 export const Home: ComponentType<{ className?: string }> = (props) => (
@@ -43,4 +43,8 @@ export const CreditCard: ComponentType<{ className?: string }> = (props) => (
 
 export const Pencil: ComponentType<{ className?: string }> = (props) => (
   <Icon icon={PencilIcon} size={14} {...props} />
+);
+
+export const Robot: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={AiChat02Icon} size={14} {...props} />
 );

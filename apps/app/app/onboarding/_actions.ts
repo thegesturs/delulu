@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import { auth, clerkClient } from '@delulu/auth/server';
+import { auth, clerkClient } from "@delulu/auth/server";
 
 export const updateOnboardingStep = async (data: {
   currentStep: number;
@@ -10,17 +10,17 @@ export const updateOnboardingStep = async (data: {
   const { userId } = await auth();
 
   if (!userId) {
-    return { error: 'Not authenticated' };
+    return { error: "Not authenticated" };
   }
 
   // VALIDATION: Check step bounds
   if (data.currentStep < 1 || data.currentStep > 3) {
-    return { error: 'Invalid step number' };
+    return { error: "Invalid step number" };
   }
 
   // VALIDATION: Ensure arrays are valid
   if (!Array.isArray(data.stepsCompleted)) {
-    return { error: 'Invalid stepsCompleted format' };
+    return { error: "Invalid stepsCompleted format" };
   }
 
   const client = await clerkClient();
@@ -55,9 +55,11 @@ export const updateOnboardingStep = async (data: {
 
     return { success: true };
   } catch (error) {
-    console.error('Error updating onboarding step:', error);
+    console.error("Error updating onboarding step:", error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to update onboarding progress';
+      error instanceof Error
+        ? error.message
+        : "Failed to update onboarding progress";
     return { error: errorMessage };
   }
 };
@@ -66,7 +68,7 @@ export const completeOnboarding = async () => {
   const { userId } = await auth();
 
   if (!userId) {
-    return { error: 'Not authenticated' };
+    return { error: "Not authenticated" };
   }
 
   const client = await clerkClient();
@@ -90,9 +92,11 @@ export const completeOnboarding = async () => {
 
     // Get current step data and ensure final step is marked as completed
     const currentStep = (cleanMetadata.currentStep as number) || 3;
-    const currentStepsCompleted = (cleanMetadata.stepsCompleted as string[]) || [];
-    const stepNames = { 1: 'welcome', 2: 'connect', 3: 'pricing' };
-    const finalStepName = stepNames[currentStep as keyof typeof stepNames] || 'pricing';
+    const currentStepsCompleted =
+      (cleanMetadata.stepsCompleted as string[]) || [];
+    const stepNames = { 1: "welcome", 2: "connect", 3: "pricing" };
+    const finalStepName =
+      stepNames[currentStep as keyof typeof stepNames] || "pricing";
 
     // Add final step to completed steps if not already there
     const allStepsCompleted = Array.from(
@@ -106,7 +110,7 @@ export const completeOnboarding = async () => {
         onboardingComplete: true,
         completedAt: Date.now(),
         // Keep step tracking for analytics
-        currentStep: currentStep,
+        currentStep,
         stepsCompleted: allStepsCompleted,
         skippedSteps: cleanMetadata.skippedSteps || [],
       },
@@ -114,9 +118,9 @@ export const completeOnboarding = async () => {
 
     return { success: true, publicMetadata: result.publicMetadata };
   } catch (error) {
-    console.error('Error completing onboarding:', error);
+    console.error("Error completing onboarding:", error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to complete onboarding';
+      error instanceof Error ? error.message : "Failed to complete onboarding";
     return { error: errorMessage };
   }
 };
@@ -125,7 +129,7 @@ export const completeTour = async (dismissed = false) => {
   const { userId } = await auth();
 
   if (!userId) {
-    return { error: 'Not authenticated' };
+    return { error: "Not authenticated" };
   }
 
   const client = await clerkClient();
@@ -158,8 +162,8 @@ export const completeTour = async (dismissed = false) => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error updating tour status:', error);
-    return { error: 'Failed to update tour status' };
+    console.error("Error updating tour status:", error);
+    return { error: "Failed to update tour status" };
   }
 };
 
@@ -167,7 +171,7 @@ export const resetOnboarding = async () => {
   const { userId } = await auth();
 
   if (!userId) {
-    return { error: 'Not authenticated' };
+    return { error: "Not authenticated" };
   }
 
   const client = await clerkClient();
@@ -186,7 +190,7 @@ export const resetOnboarding = async () => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error resetting onboarding:', error);
-    return { error: 'Failed to reset onboarding' };
+    console.error("Error resetting onboarding:", error);
+    return { error: "Failed to reset onboarding" };
   }
 };

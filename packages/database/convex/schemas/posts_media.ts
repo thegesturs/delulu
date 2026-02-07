@@ -1,4 +1,4 @@
-import { type Infer, v } from 'convex/values';
+import { type Infer, v } from "convex/values";
 import {
   alternativeContentSchema,
   contentSchema,
@@ -7,15 +7,15 @@ import {
   postStatusSchema,
   privacyStatusSchema,
   tikTokSettingsSchema,
-} from './enums';
-import { socialProviderSchema } from './social_providers';
+} from "./enums";
+import { socialProviderSchema } from "./social_providers";
 
 // ============================================================================
 // PLATFORM POSTS SCHEMAS (Embedded in Posts)
 // ============================================================================
 
 export const embeddedPlatformPostSchema = v.object({
-  socialProviderId: v.id('socialProviders'),
+  socialProviderId: v.id("socialProviders"),
   platformPostId: v.optional(v.string()),
   platformPostUrl: v.optional(v.string()),
   postedAt: v.optional(v.number()),
@@ -30,7 +30,7 @@ export const embeddedPlatformPostSchema = v.object({
 
 // Base post schema without system fields
 export const basePostSchema = v.object({
-  userId: v.optional(v.id('users')),
+  userId: v.optional(v.id("users")),
   status: postStatusSchema,
   scheduledAt: v.optional(v.number()),
   callMeLaterScheduleId: v.optional(v.string()),
@@ -41,12 +41,12 @@ export const basePostSchema = v.object({
   privacyStatus: privacyStatusSchema,
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.array(v.id('socialProviders')),
+  socialProviderIds: v.array(v.id("socialProviders")),
   tiktokSettings: v.optional(tikTokSettingsSchema), // @deprecated - use providerSettings
   providerSettings: v.optional(
     v.array(
       v.object({
-        socialProviderId: v.id('socialProviders'),
+        socialProviderId: v.id("socialProviders"),
         type: v.string(),
         settings: v.any(), // Provider-specific settings
       })
@@ -63,7 +63,7 @@ export const basePostSchema = v.object({
 
 // Post schema with system fields (for returns)
 export const postSchema = v.object({
-  _id: v.id('posts'),
+  _id: v.id("posts"),
   _creationTime: v.number(),
   ...basePostSchema.fields,
 });
@@ -83,7 +83,7 @@ export type GetPostByIdSchema = Infer<typeof getPostByIdSchema>;
 
 // Post creation schema (subset for mutations)
 export const postCreateSchema = v.object({
-  userId: v.optional(v.id('users')),
+  userId: v.optional(v.id("users")),
   organizationId: v.optional(v.string()),
   status: postStatusSchema,
   scheduledAt: v.optional(v.number()),
@@ -91,12 +91,12 @@ export const postCreateSchema = v.object({
   privacyStatus: v.optional(privacyStatusSchema),
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.array(v.id('socialProviders')),
+  socialProviderIds: v.array(v.id("socialProviders")),
   tiktokSettings: v.optional(tikTokSettingsSchema), // @deprecated - use providerSettings
   providerSettings: v.optional(
     v.array(
       v.object({
-        socialProviderId: v.id('socialProviders'),
+        socialProviderId: v.id("socialProviders"),
         type: v.string(),
         settings: v.any(), // Provider-specific settings
       })
@@ -112,12 +112,12 @@ export const postUpdateSchema = v.object({
   privacyStatus: v.optional(privacyStatusSchema),
   content: v.optional(v.array(contentSchema)),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.optional(v.array(v.id('socialProviders'))),
+  socialProviderIds: v.optional(v.array(v.id("socialProviders"))),
   tiktokSettings: v.optional(tikTokSettingsSchema), // @deprecated - use providerSettings
   providerSettings: v.optional(
     v.array(
       v.object({
-        socialProviderId: v.id('socialProviders'),
+        socialProviderId: v.id("socialProviders"),
         type: v.string(),
         settings: v.any(), // Provider-specific settings
       })
@@ -131,8 +131,8 @@ export const postUpdateSchema = v.object({
 
 // Post upsert schema (create or update)
 export const postUpsertSchema = v.object({
-  id: v.optional(v.id('posts')), // If provided, update; if not, create
-  userId: v.optional(v.id('users')),
+  id: v.optional(v.id("posts")), // If provided, update; if not, create
+  userId: v.optional(v.id("users")),
   organizationId: v.optional(v.string()),
   status: v.optional(postStatusSchema),
   scheduledAt: v.optional(v.number()),
@@ -140,12 +140,12 @@ export const postUpsertSchema = v.object({
   privacyStatus: v.optional(privacyStatusSchema),
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
-  socialProviderIds: v.array(v.id('socialProviders')),
+  socialProviderIds: v.array(v.id("socialProviders")),
   tiktokSettings: v.optional(tikTokSettingsSchema), // @deprecated - use providerSettings
   providerSettings: v.optional(
     v.array(
       v.object({
-        socialProviderId: v.id('socialProviders'),
+        socialProviderId: v.id("socialProviders"),
         type: v.string(),
         settings: v.any(), // Provider-specific settings
       })
@@ -163,7 +163,7 @@ export const postUpsertSchema = v.object({
 
 // Base media table schema without system fields
 export const baseMediaTableSchema = v.object({
-  userId: v.id('users'),
+  userId: v.id("users"),
   organizationId: v.optional(v.string()),
   bucketKey: v.string(),
   url: v.string(),
@@ -182,7 +182,7 @@ export const baseMediaTableSchema = v.object({
 
 // Media table schema with system fields (for returns)
 export const mediaTableSchema = v.object({
-  _id: v.id('media'),
+  _id: v.id("media"),
   _creationTime: v.number(),
   ...baseMediaTableSchema.fields,
 });

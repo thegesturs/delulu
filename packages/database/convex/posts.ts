@@ -1,52 +1,53 @@
-import { type PaginationResult, paginationOptsValidator } from 'convex/server';
-import { v } from 'convex/values';
-import { api, internal } from './_generated/api';
-import type { Doc, Id } from './_generated/dataModel';
+import { type PaginationResult, paginationOptsValidator } from "convex/server";
+import { v } from "convex/values";
+import { api, internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
-  type MutationCtx,
-  type QueryCtx,
   internalAction,
   internalMutation,
+  type MutationCtx,
   mutation,
+  type QueryCtx,
   query,
-} from './_generated/server';
-import { postsByUserStatus } from './stats';
+} from "./_generated/server";
+import { postsByUserStatus } from "./stats";
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
-  content: Doc<'posts'>['content'],
-  alternativeContent?: Doc<'posts'>['alternativeContent']
+  content: Doc<"posts">["content"],
+  alternativeContent?: Doc<"posts">["alternativeContent"]
 ): string {
-  const mainText = content.map((c) => c.text || '').filter(Boolean);
+  const mainText = content.map((c) => c.text || "").filter(Boolean);
   const altText =
     alternativeContent
-      ?.flatMap((alt) => alt.content?.map((c) => c.text || '') || [])
+      ?.flatMap((alt) => alt.content?.map((c) => c.text || "") || [])
       .filter(Boolean) || [];
 
-  return [...mainText, ...altText].join(' ').trim();
+  return [...mainText, ...altText].join(" ").trim();
 }
+
 import {
   getPostByIdSchema,
   postCreateSchema,
   postFiltersSchema,
   postUpdateSchema,
   postUpsertSchema,
-} from './schemas';
-import { getCurrentUser } from './users';
-import { getCurrentTimestamp } from './utils';
+} from "./schemas";
+import { getCurrentUser } from "./users";
+import { getCurrentTimestamp } from "./utils";
 
 // Helper function to get a post by ID
 const findPostById = async (
   ctx: MutationCtx | QueryCtx,
-  postId: Id<'posts'>
-): Promise<Doc<'posts'>> => {
+  postId: Id<"posts">
+): Promise<Doc<"posts">> => {
   const post = await ctx.db
-    .query('posts')
-    .withIndex('by_id', (q) => q.eq('_id', postId))
+    .query("posts")
+    .withIndex("by_id", (q) => q.eq("_id", postId))
     .unique();
 
   if (!post) {
-    throw new Error('Post not found');
+    throw new Error("Post not found");
   }
 
   return post;
@@ -54,12 +55,12 @@ const findPostById = async (
 
 // Post queries
 export const getPostById = query({
-  args: { id: v.id('posts') },
+  args: { id: v.id("posts") },
   returns: v.union(getPostByIdSchema, v.null()),
   handler: async (ctx, args) => {
     const post = await ctx.db
-      .query('posts')
-      .withIndex('by_id', (q) => q.eq('_id', args.id))
+      .query("posts")
+      .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
     if (!post) {
@@ -113,31 +114,31 @@ export const getPostById = query({
 
 export const createPost = mutation({
   args: postCreateSchema.fields,
-  returns: v.id('posts'),
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
 
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= now) {
-      throw new Error('Scheduled date must be in the future');
+      throw new Error("Scheduled date must be in the future");
     }
 
     // Determine status based on whether scheduling is requested
-    const postStatus = args.scheduledAt ? 'SCHEDULED' : args.status || 'SAVED';
+    const postStatus = args.scheduledAt ? "SCHEDULED" : args.status || "SAVED";
 
-    const newPostId = await ctx.db.insert('posts', {
+    const newPostId = await ctx.db.insert("posts", {
       userId: user._id,
       organizationId: args.organizationId,
       status: postStatus,
       scheduledAt: args.scheduledAt,
-      reviewStatus: args.reviewStatus || 'PENDING',
+      reviewStatus: args.reviewStatus || "PENDING",
       isDeleted: false,
-      privacyStatus: args.privacyStatus || 'UNLISTED',
+      privacyStatus: args.privacyStatus || "UNLISTED",
       content: args.content,
       alternativeContent: args.alternativeContent,
       socialProviderIds: args.socialProviderIds,
@@ -171,7 +172,7 @@ export const createPost = mutation({
 
 export const updatePost = mutation({
   args: {
-    id: v.id('posts'),
+    id: v.id("posts"),
     ...postUpdateSchema.fields,
   },
   returns: v.boolean(),
@@ -180,17 +181,17 @@ export const updatePost = mutation({
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= getCurrentTimestamp()) {
-      throw new Error('Scheduled date must be in the future');
+      throw new Error("Scheduled date must be in the future");
     }
 
     // Handle status changes for scheduling
     let newStatus = args.status;
     if (args.scheduledAt && !newStatus) {
       // If scheduledAt is provided but no status, set to SCHEDULED
-      newStatus = 'SCHEDULED';
-    } else if (!args.scheduledAt && oldPost.status === 'SCHEDULED') {
+      newStatus = "SCHEDULED";
+    } else if (!args.scheduledAt && oldPost.status === "SCHEDULED") {
       // If removing scheduledAt from a scheduled post, set to SAVED
-      newStatus = 'SAVED';
+      newStatus = "SAVED";
     }
 
     // Patch with args and include updatedAt
@@ -233,7 +234,7 @@ export const updatePost = mutation({
 // Simple mutation to update only the scheduled time (for drag-and-drop in calendar)
 export const updatePostScheduledTime = mutation({
   args: {
-    id: v.id('posts'),
+    id: v.id("posts"),
     scheduledAt: v.number(),
   },
   returns: v.boolean(),
@@ -244,14 +245,14 @@ export const updatePostScheduledTime = mutation({
     const minimumTime = getCurrentTimestamp() + 30 * 60 * 1000; // 30 minutes in ms
     if (args.scheduledAt < minimumTime) {
       throw new Error(
-        'Scheduled date must be at least 30 minutes in the future'
+        "Scheduled date must be at least 30 minutes in the future"
       );
     }
 
     // Update the post with new scheduled time
     await ctx.db.patch(args.id, {
       scheduledAt: args.scheduledAt,
-      status: 'SCHEDULED',
+      status: "SCHEDULED",
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -285,27 +286,27 @@ export const updatePostScheduledTime = mutation({
 // Unified upsert mutation (create or update)
 export const upsertPost = mutation({
   args: postUpsertSchema.fields,
-  returns: v.id('posts'),
+  returns: v.id("posts"),
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
     const user = await getCurrentUser(ctx);
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= now) {
-      throw new Error('Scheduled date must be in the future');
+      throw new Error("Scheduled date must be in the future");
     }
 
     // Determine status based on scheduling
     const finalStatus =
-      args.status || (args.scheduledAt ? 'SCHEDULED' : 'SAVED');
+      args.status || (args.scheduledAt ? "SCHEDULED" : "SAVED");
 
     const { id, ...postData } = args;
 
-    let postId: Id<'posts'>;
+    let postId: Id<"posts">;
 
     if (id) {
       // Update existing post
@@ -330,13 +331,13 @@ export const upsertPost = mutation({
       postId = id;
     } else {
       // Create new post
-      postId = await ctx.db.insert('posts', {
+      postId = await ctx.db.insert("posts", {
         ...postData,
         userId: user._id,
         status: finalStatus,
-        reviewStatus: postData.reviewStatus || 'PENDING',
+        reviewStatus: postData.reviewStatus || "PENDING",
         isDeleted: false,
-        privacyStatus: postData.privacyStatus || 'UNLISTED',
+        privacyStatus: postData.privacyStatus || "UNLISTED",
         searchableText: extractSearchableText(
           postData.content,
           postData.alternativeContent
@@ -353,12 +354,12 @@ export const upsertPost = mutation({
       }
     }
 
-    if (finalStatus === 'PROCESSING') {
+    if (finalStatus === "PROCESSING") {
       // PROCESSING: Publish immediately without CallMeLater to avoid unnecessary delay
       await ctx.scheduler.runAfter(0, internal.posts.publishScheduledPost, {
         postId,
       });
-    } else if (finalStatus === 'SCHEDULED') {
+    } else if (finalStatus === "SCHEDULED") {
       // SCHEDULED: Use CallMeLater for future publishing
       await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
         postId,
@@ -371,14 +372,14 @@ export const upsertPost = mutation({
 });
 
 export const softDeletePost = mutation({
-  args: { id: v.id('posts') },
+  args: { id: v.id("posts") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const oldPost = await findPostById(ctx, args.id);
 
     await ctx.db.patch(oldPost._id, {
       isDeleted: true,
-      status: 'DELETED',
+      status: "DELETED",
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -393,7 +394,7 @@ export const softDeletePost = mutation({
 });
 
 export const hardDeletePost = mutation({
-  args: { id: v.id('posts') },
+  args: { id: v.id("posts") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const post = await findPostById(ctx, args.id);
@@ -425,29 +426,29 @@ export const getPosts = query({
       return {
         page: [],
         isDone: true,
-        continueCursor: '',
+        continueCursor: "",
       };
     }
 
     const userId = user._id;
 
-    let paginationResult: PaginationResult<Doc<'posts'>>;
+    let paginationResult: PaginationResult<Doc<"posts">>;
 
     // Use search index when search term is provided
     if (args.searchTerm) {
       let searchQuery = ctx.db
-        .query('posts')
-        .withSearchIndex('search_content', (q) => {
+        .query("posts")
+        .withSearchIndex("search_content", (q) => {
           let sq = q
-            .search('searchableText', args.searchTerm!)
-            .eq('userId', userId)
-            .eq('isDeleted', args.isDeleted ?? false);
+            .search("searchableText", args.searchTerm!)
+            .eq("userId", userId)
+            .eq("isDeleted", args.isDeleted ?? false);
 
           if (args.status) {
-            sq = sq.eq('status', args.status);
+            sq = sq.eq("status", args.status);
           }
           if (args.organizationId) {
-            sq = sq.eq('organizationId', args.organizationId);
+            sq = sq.eq("organizationId", args.organizationId);
           }
 
           return sq;
@@ -456,12 +457,12 @@ export const getPosts = query({
       // Apply additional filters not in search index
       if (args.privacyStatus) {
         searchQuery = searchQuery.filter((q) =>
-          q.eq(q.field('privacyStatus'), args.privacyStatus)
+          q.eq(q.field("privacyStatus"), args.privacyStatus)
         );
       }
       if (args.reviewStatus) {
         searchQuery = searchQuery.filter((q) =>
-          q.eq(q.field('reviewStatus'), args.reviewStatus)
+          q.eq(q.field("reviewStatus"), args.reviewStatus)
         );
       }
 
@@ -469,58 +470,58 @@ export const getPosts = query({
     } else {
       // Use regular index when no search term
       let query = ctx.db
-        .query('posts')
-        .withIndex('by_user_created', (q) => q.eq('userId', userId));
+        .query("posts")
+        .withIndex("by_user_created", (q) => q.eq("userId", userId));
 
       // If we have both status and org filters, switch to the compound index
       if (args.status && args.organizationId) {
         const status = args.status;
-        query = ctx.db.query('posts').withIndex('by_organization_status', (q) =>
+        query = ctx.db.query("posts").withIndex("by_organization_status", (q) =>
           q
-            .eq('organizationId', args.organizationId)
-            .eq('status', status)
-            .eq('isDeleted', args.isDeleted ?? false)
+            .eq("organizationId", args.organizationId)
+            .eq("status", status)
+            .eq("isDeleted", args.isDeleted ?? false)
         );
       } else {
         // Apply filters individually
         if (args.status) {
-          query = query.filter((q) => q.eq(q.field('status'), args.status));
+          query = query.filter((q) => q.eq(q.field("status"), args.status));
         }
         if (args.organizationId) {
           query = query.filter((q) =>
-            q.eq(q.field('organizationId'), args.organizationId)
+            q.eq(q.field("organizationId"), args.organizationId)
           );
         }
         if (args.isDeleted !== undefined) {
           query = query.filter((q) =>
-            q.eq(q.field('isDeleted'), args.isDeleted)
+            q.eq(q.field("isDeleted"), args.isDeleted)
           );
         } else {
-          query = query.filter((q) => q.eq(q.field('isDeleted'), false));
+          query = query.filter((q) => q.eq(q.field("isDeleted"), false));
         }
       }
 
       // Apply remaining filters that aren't part of any index
       if (args.privacyStatus) {
         query = query.filter((q) =>
-          q.eq(q.field('privacyStatus'), args.privacyStatus)
+          q.eq(q.field("privacyStatus"), args.privacyStatus)
         );
       }
       if (args.reviewStatus) {
         query = query.filter((q) =>
-          q.eq(q.field('reviewStatus'), args.reviewStatus)
+          q.eq(q.field("reviewStatus"), args.reviewStatus)
         );
       }
 
       // Order by creation date (newest first) and paginate
       paginationResult = await query
-        .order('desc')
+        .order("desc")
         .paginate(args.paginationOpts);
     }
 
     // Enrich each post with social providers and alternative content
     const enrichedPosts = await Promise.all(
-      paginationResult.page.map(async (post: Doc<'posts'>) => {
+      paginationResult.page.map(async (post: Doc<"posts">) => {
         // Get social providers for the post
         const socialProviders = await Promise.all(
           post.socialProviderIds.map(async (id) => {
@@ -577,7 +578,7 @@ export const getPosts = query({
 // Delete post by string ID (used by components)
 export const deletePost = mutation({
   args: {
-    postId: v.id('posts'),
+    postId: v.id("posts"),
   },
   returns: v.object({
     success: v.boolean(),
@@ -585,13 +586,13 @@ export const deletePost = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
-      throw new Error('Unauthorized');
+      throw new Error("Unauthorized");
     }
 
     // Verify ownership
     const oldPost = await findPostById(ctx, args.postId);
     if (!oldPost || oldPost.userId !== user._id) {
-      throw new Error('Post not found or access denied');
+      throw new Error("Post not found or access denied");
     }
 
     // Cancel scheduled post if it exists
@@ -608,7 +609,7 @@ export const deletePost = mutation({
     // Soft delete the post
     await ctx.db.patch(oldPost._id, {
       isDeleted: true,
-      status: 'DELETED',
+      status: "DELETED",
       updatedAt: getCurrentTimestamp(),
     });
 
@@ -624,15 +625,15 @@ export const deletePost = mutation({
 
 export const updatePostPublishStatus = mutation({
   args: {
-    postId: v.id('posts'),
-    status: v.union(v.literal('PUBLISHED'), v.literal('FAILED')),
+    postId: v.id("posts"),
+    status: v.union(v.literal("PUBLISHED"), v.literal("FAILED")),
     platformPostData: v.object({
       platformPostId: v.optional(v.string()),
       platformPostUrl: v.optional(v.string()),
       failureReason: v.optional(v.string()),
-      socialProviderId: v.id('socialProviders'),
+      socialProviderId: v.id("socialProviders"),
       postedAt: v.number(),
-      postId: v.id('posts'),
+      postId: v.id("posts"),
     }),
   },
   returns: v.boolean(),
@@ -667,7 +668,7 @@ export const updatePostPublishStatus = mutation({
       status: args.status,
       platformPosts,
       updatedAt: now,
-      ...(args.status === 'PUBLISHED'
+      ...(args.status === "PUBLISHED"
         ? { publishedAt: now }
         : { lastFailedAt: now }),
     });
@@ -678,7 +679,7 @@ export const updatePostPublishStatus = mutation({
       await postsByUserStatus.replace(ctx, oldPost, newPost);
 
       // If post was published successfully, update the user's streak
-      if (args.status === 'PUBLISHED' && post.userId) {
+      if (args.status === "PUBLISHED" && post.userId) {
         await ctx.runMutation(internal.stats.addPublishDateInternal, {
           userId: post.userId,
           publishDate: now,
@@ -692,7 +693,7 @@ export const updatePostPublishStatus = mutation({
 
 // Internal action to publish a scheduled post
 export const publishScheduledPost = internalAction({
-  args: { postId: v.id('posts') },
+  args: { postId: v.id("posts") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     try {
@@ -707,7 +708,7 @@ export const publishScheduledPost = internalAction({
       }
 
       // Verify it's still scheduled and ready to publish
-      if (post.status !== 'SCHEDULED' && post.status !== 'PROCESSING') {
+      if (post.status !== "SCHEDULED" && post.status !== "PROCESSING") {
         console.warn(
           `Post ${args.postId} is no longer scheduled (status: ${post.status})`
         );
@@ -718,16 +719,16 @@ export const publishScheduledPost = internalAction({
       const LAMBDA_URL = process.env.POSTING_LAMBDA_URL;
       const POSTING_SECRET_KEY = process.env.POSTING_SECRET_KEY;
 
-      if (!LAMBDA_URL || !POSTING_SECRET_KEY) {
+      if (!(LAMBDA_URL && POSTING_SECRET_KEY)) {
         throw new Error(
-          'POSTING_SECRET_KEY or POSTING_LAMBDA_URL environment variable not set'
+          "POSTING_SECRET_KEY or POSTING_LAMBDA_URL environment variable not set"
         );
       }
 
       // Process each social provider
       for (const provider of post.socialProviders) {
         // Skip providers that are not implemented (like LENS)
-        if (provider.socialType === 'LENS') {
+        if (provider.socialType === "LENS") {
           continue;
         }
 
@@ -746,10 +747,10 @@ export const publishScheduledPost = internalAction({
 
         // Make HTTP request to publish
         const response = await fetch(LAMBDA_URL, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': POSTING_SECRET_KEY,
+            "Content-Type": "application/json",
+            "x-api-key": POSTING_SECRET_KEY,
           },
           body: JSON.stringify({
             socialType: provider.socialType,
@@ -763,7 +764,7 @@ export const publishScheduledPost = internalAction({
           }),
         });
 
-        console.log('>>> Response', await response.json());
+        console.log(">>> Response", await response.json());
 
         if (!response.ok) {
           throw new Error(
@@ -779,9 +780,9 @@ export const publishScheduledPost = internalAction({
       // Update post status to FAILED with error message
       await ctx.runMutation(internal.posts.updatePostStatus, {
         postId: args.postId,
-        status: 'FAILED',
+        status: "FAILED",
         failureReason:
-          error instanceof Error ? error.message : 'Unknown error occurred',
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
 
       return false;
@@ -792,11 +793,11 @@ export const publishScheduledPost = internalAction({
 // Helper internal mutation to update post status
 export const updatePostStatus = internalMutation({
   args: {
-    postId: v.id('posts'),
+    postId: v.id("posts"),
     status: v.union(
-      v.literal('PUBLISHED'),
-      v.literal('FAILED'),
-      v.literal('SCHEDULED')
+      v.literal("PUBLISHED"),
+      v.literal("FAILED"),
+      v.literal("SCHEDULED")
     ),
     failureReason: v.optional(v.string()),
   },
@@ -807,7 +808,7 @@ export const updatePostStatus = internalMutation({
     await ctx.db.patch(args.postId, {
       status: args.status,
       ...(args.failureReason && { postFailureReason: args.failureReason }),
-      ...(args.status === 'FAILED' && { lastFailedAt: now }),
+      ...(args.status === "FAILED" && { lastFailedAt: now }),
       updatedAt: now,
     });
 
@@ -818,7 +819,7 @@ export const updatePostStatus = internalMutation({
 // Helper internal mutation to save CallMeLater schedule ID
 export const saveCallMeLaterScheduleId = internalMutation({
   args: {
-    postId: v.id('posts'),
+    postId: v.id("posts"),
     scheduleId: v.string(),
   },
   returns: v.null(),
@@ -846,26 +847,26 @@ export const getScheduledPostsByDateRange = query({
 
     // Query posts by user and filter by scheduled date range
     const query = ctx.db
-      .query('posts')
-      .withIndex('by_user_status', (q) =>
+      .query("posts")
+      .withIndex("by_user_status", (q) =>
         q
-          .eq('userId', user._id)
-          .eq('status', 'SCHEDULED')
-          .eq('isDeleted', false)
+          .eq("userId", user._id)
+          .eq("status", "SCHEDULED")
+          .eq("isDeleted", false)
       );
 
     // Filter by date range and organization
     const posts = await query
       .filter((q) => {
         let filter = q.and(
-          q.gte(q.field('scheduledAt'), args.startDate),
-          q.lte(q.field('scheduledAt'), args.endDate)
+          q.gte(q.field("scheduledAt"), args.startDate),
+          q.lte(q.field("scheduledAt"), args.endDate)
         );
 
         if (args.organizationId) {
           filter = q.and(
             filter,
-            q.eq(q.field('organizationId'), args.organizationId)
+            q.eq(q.field("organizationId"), args.organizationId)
           );
         }
 

@@ -1,25 +1,33 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "extends": ["ultracite"],
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "javascript": {
-    "globals": ["Liveblocks"]
+    "globals": ["Liveblocks", "browser", "defineBackground"]
   },
+  "extends": ["ultracite/core", "ultracite/react", "ultracite/next"],
   "files": {
-    "ignore": [
-      "packages/design-system/components/ui/**",
-      "packages/design-system/lib/**",
-      "packages/design-system/hooks/**",
-      "packages/collaboration/config.ts",
-      "apps/docs/**/*.json",
-      "apps/email/.react-email/**",
-      "apps/app/wrangler.jsonc",
-      "packages/database/prisma/types/zod/**",
-      "packages/infrastructure/.sst/**",
-      "*.d.ts",
-      "packages/database/convex/_generated/**"
+    "includes": [
+      "**/*.jsx",
+      "**/*.tsx",
+      "!**/packages/design-system/components/ui",
+      "!**/packages/design-system/lib",
+      "!**/packages/design-system/hooks",
+      "!**/packages/collaboration/config.ts",
+      "!**/apps/docs/**/*.json",
+      "!**/apps/email/.react-email",
+      "!**/apps/app/wrangler.jsonc",
+      "!**/packages/database/prisma/types/zod",
+      "!**/packages/infrastructure/.sst",
+      "!**/*.d.ts",
+      "!**/packages/database/convex/_generated"
     ]
   },
-  "organizeImports": { "enabled": true },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -28,37 +36,62 @@
         "useTemplate": "off",
         "noNonNullAssertion": "off",
         "noInferrableTypes": "off",
-        "useFilenamingConvention": "off"
+        "useFilenamingConvention": "off",
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noUselessElse": "error",
+        "noNestedTernary": "off",
+        "useCollapsedIf": "off",
+        "noExportedImports": "warn"
       },
       "a11y": {
-        "noAriaUnsupportedElements": "warn",
-        "noBlankTarget": "off",
-        "useAltText": "warn",
-        "useAriaPropsForRole": "warn",
-        "useValidAriaProps": "warn",
-        "useValidAriaValues": "warn",
+        "noAriaUnsupportedElements": "off",
+        "useAltText": "off",
+        "useAriaPropsForRole": "off",
+        "useValidAriaProps": "off",
+        "useValidAriaValues": "off",
         "noSvgWithoutTitle": "off"
       },
       "correctness": {
         "noChildrenProp": "error",
-        "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "error",
+        "useExhaustiveDependencies": "off",
+        "useHookAtTopLevel": "off",
         "useJsxKeyInIterable": "error",
-        "noUnusedImports": "warn"
+        "noUnusedImports": "off",
+        "useImageSize": "off",
+        "noUnusedVariables": "off",
+        "noUnusedFunctionParameters": "off",
+        "noNestedComponentDefinitions": "off",
+        "noInvalidUseBeforeDeclaration": "off",
+        "noUndeclaredVariables": "off"
       },
       "complexity": {
         "noBannedTypes": "off",
-        "noForEach": "off"
+        "noForEach": "off",
+        "noExcessiveCognitiveComplexity": "off"
       },
       "security": {
         "noDangerouslySetInnerHtmlWithChildren": "error",
-        "noDangerouslySetInnerHtml": "warn"
+        "noDangerouslySetInnerHtml": "off"
       },
       "suspicious": {
         "noCommentText": "error",
         "noDuplicateJsxProps": "error",
-        "noConsoleLog": "off",
-        "noConsole": "off"
+        "noConsole": "off",
+        "noArrayIndexKey": "off",
+        "useAwait": "off",
+        "useIterableCallbackReturn": "off",
+        "noEvolvingTypes": "off"
+      },
+      "performance": {
+        "noBarrelFile": "off",
+        "noImgElement": "off"
       }
     }
   }

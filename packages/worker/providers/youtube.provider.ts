@@ -1,21 +1,21 @@
-import type { IncomingMessage } from 'node:http';
-import https from 'node:https';
-import type { Readable } from 'node:stream';
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import { google } from 'googleapis';
-import { nanoid } from 'nanoid';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
-import { keys } from '../key';
+import type { IncomingMessage } from "node:http";
+import https from "node:https";
+import type { Readable } from "node:stream";
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import { google } from "googleapis";
+import { nanoid } from "nanoid";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
+import { keys } from "../key";
 
 import type {
   PostContent,
   PostPublishResult,
   YouTubeVideoMetadata,
   YouTubeVideoUploadResponse,
-} from './common-types';
+} from "./common-types";
 
 interface YouTubeProfile {
   id: string;
@@ -24,14 +24,15 @@ interface YouTubeProfile {
   refreshToken: string;
   username: string;
 }
+
 import {
+  createAPIError,
   InvalidMediaError,
   ProfileNotFoundError,
   type SocialProviderError,
   YouTubeError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Constants for file size limits (100MB)
 const MAX_FILE_SIZE = 300 * 1024 * 1024;
@@ -42,19 +43,19 @@ const getProfile = (
 ): ResultAsync<YouTubeProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new YouTubeError('Database query failed')
+    () => new YouTubeError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile?.refreshToken) {
-      return err(new ProfileNotFoundError('YouTube'));
+    if (!(profile?.accessToken && profile?.refreshToken)) {
+      return err(new ProfileNotFoundError("YouTube"));
     }
     return ok({
       id: profile._id,
       profileId: profile.profileId,
       accessToken: profile.accessToken,
       refreshToken: profile.refreshToken,
-      username: profile.username ?? '',
+      username: profile.username ?? "",
     });
   });
 
@@ -62,7 +63,7 @@ const getProfile = (
 const getFreshAccessToken = (
   refreshToken: string
 ): ResultAsync<string, SocialProviderError> => {
-  console.log('[YouTube] Getting fresh access token');
+  console.log("[YouTube] Getting fresh access token");
 
   return ResultAsync.fromPromise(
     (async () => {
@@ -78,14 +79,14 @@ const getFreshAccessToken = (
       return response.token;
     })(),
     (error) => {
-      console.log('[YouTube] Failed to get fresh access token:', error);
-      return new YouTubeError('Failed to get fresh access token');
+      console.log("[YouTube] Failed to get fresh access token:", error);
+      return new YouTubeError("Failed to get fresh access token");
     }
   ).andThen((accessToken) => {
     if (!accessToken) {
-      return err(new YouTubeError('No access token received'));
+      return err(new YouTubeError("No access token received"));
     }
-    console.log('[YouTube] Fresh access token obtained successfully');
+    console.log("[YouTube] Fresh access token obtained successfully");
     return ok(accessToken);
   });
 };
@@ -108,7 +109,7 @@ const getVideoStreamWithMimeType = (
           }
 
           const contentLength = Number.parseInt(
-            response.headers['content-length'] ?? '0',
+            response.headers["content-length"] ?? "0",
             10
           );
           if (contentLength > MAX_FILE_SIZE) {
@@ -121,7 +122,7 @@ const getVideoStreamWithMimeType = (
           }
 
           // Get MIME type from Content-Type header
-          const contentType = response.headers['content-type'] || 'video/mp4';
+          const contentType = response.headers["content-type"] || "video/mp4";
           console.log(
             `[YouTube] Video Content-Type: ${contentType}, Size: ${contentLength} bytes`
           );
@@ -131,12 +132,12 @@ const getVideoStreamWithMimeType = (
             mimeType: contentType,
           });
         })
-        .on('error', reject);
+        .on("error", reject);
     }),
     (error) =>
       error instanceof Error
-        ? new InvalidMediaError('YouTube', error.message)
-        : createAPIError('YouTube', error)
+        ? new InvalidMediaError("YouTube", error.message)
+        : createAPIError("YouTube", error)
   );
 
 // Video upload to YouTube with streaming
@@ -149,11 +150,11 @@ const uploadVideoToYouTube = (
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
 
-  const youtube = google.youtube({ version: 'v3', auth });
+  const youtube = google.youtube({ version: "v3", auth });
 
   return ResultAsync.fromPromise(
     youtube.videos.insert({
-      part: ['snippet', 'status'],
+      part: ["snippet", "status"],
       requestBody: {
         snippet: {
           ...metadata.snippet,
@@ -166,18 +167,18 @@ const uploadVideoToYouTube = (
       },
       media: {
         body: videoStream,
-        mimeType: mimeType,
+        mimeType,
       },
     }),
     (error): SocialProviderError => {
-      console.log('[YouTube] Upload failed:', error);
-      return createAPIError('YouTube', error);
+      console.log("[YouTube] Upload failed:", error);
+      return createAPIError("YouTube", error);
     }
   ).andThen((response) => {
     const data = response.data;
     if (!data.id) {
       return err(
-        new YouTubeError('Failed to get video ID from YouTube response')
+        new YouTubeError("Failed to get video ID from YouTube response")
       );
     }
 
@@ -194,10 +195,10 @@ const uploadVideoToYouTube = (
           data.snippet?.defaultLanguage ?? metadata.snippet.defaultLanguage,
       },
       status: {
-        uploadStatus: 'processed', // YouTube API doesn't return this directly
+        uploadStatus: "processed", // YouTube API doesn't return this directly
         privacyStatus:
           data.status?.privacyStatus ?? metadata.status.privacyStatus,
-        license: 'youtube', // Default YouTube license
+        license: "youtube", // Default YouTube license
         embeddable: true,
         publicStatsViewable: true,
       },
@@ -228,10 +229,10 @@ const getImageStream = (
                     return;
                   }
                   const contentType =
-                    redirectResponse.headers['content-type'] || 'image/jpeg';
+                    redirectResponse.headers["content-type"] || "image/jpeg";
                   resolve({ stream: redirectResponse, mimeType: contentType });
                 })
-                .on('error', reject);
+                .on("error", reject);
               return;
             }
           }
@@ -245,16 +246,19 @@ const getImageStream = (
             return;
           }
 
-          const contentType = response.headers['content-type'] || 'image/jpeg';
+          const contentType = response.headers["content-type"] || "image/jpeg";
           console.log(`[YouTube] Thumbnail Content-Type: ${contentType}`);
           resolve({ stream: response, mimeType: contentType });
         })
-        .on('error', reject);
+        .on("error", reject);
     }),
     (error) =>
       error instanceof Error
-        ? new InvalidMediaError('YouTube', `Thumbnail fetch failed: ${error.message}`)
-        : createAPIError('YouTube', error)
+        ? new InvalidMediaError(
+            "YouTube",
+            `Thumbnail fetch failed: ${error.message}`
+          )
+        : createAPIError("YouTube", error)
   );
 
 // Set custom thumbnail for a video
@@ -270,34 +274,34 @@ const setVideoThumbnail = (
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
 
-    const youtube = google.youtube({ version: 'v3', auth });
+    const youtube = google.youtube({ version: "v3", auth });
 
     return ResultAsync.fromPromise(
       youtube.thumbnails.set({
-        videoId: videoId,
+        videoId,
         media: {
           body: stream,
-          mimeType: mimeType,
+          mimeType,
         },
       }),
       (error): SocialProviderError => {
-        console.log('[YouTube] Thumbnail upload failed:', error);
+        console.log("[YouTube] Thumbnail upload failed:", error);
         // Check if it's a verification error
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         if (
-          errorMessage.includes('forbidden') ||
-          errorMessage.includes('verify')
+          errorMessage.includes("forbidden") ||
+          errorMessage.includes("verify")
         ) {
           return new YouTubeError(
-            'Custom thumbnails require a verified YouTube channel'
+            "Custom thumbnails require a verified YouTube channel"
           );
         }
-        return createAPIError('YouTube', error);
+        return createAPIError("YouTube", error);
       }
     ).map((response) => {
       console.log(
-        '[YouTube] Custom thumbnail set successfully:',
+        "[YouTube] Custom thumbnail set successfully:",
         response.data
       );
     });
@@ -312,29 +316,29 @@ const publishContent = (
   const firstContent = content.content[0];
 
   if (!firstContent) {
-    return errAsync(new InvalidMediaError('YouTube', 'No content to publish'));
+    return errAsync(new InvalidMediaError("YouTube", "No content to publish"));
   }
 
   // YouTube Shorts requires video content
   const validMedia = getValidMediaUrls(firstContent.media);
   const videoMedia = validMedia.find(
-    (media) => media.mediaType === 'VIDEO' && media.url
+    (media) => media.mediaType === "VIDEO" && media.url
   );
 
   if (!videoMedia?.url) {
     return errAsync(
-      new InvalidMediaError('YouTube', 'YouTube Shorts requires a video file')
+      new InvalidMediaError("YouTube", "YouTube Shorts requires a video file")
     );
   }
 
   // Check for custom thumbnail (YouTube only supports custom images, not timestamps)
   const customThumbnailUrl = videoMedia.thumbnailBucketUrl;
   if (customThumbnailUrl) {
-    console.log('[YouTube] Custom thumbnail URL provided:', customThumbnailUrl);
+    console.log("[YouTube] Custom thumbnail URL provided:", customThumbnailUrl);
   }
   if (videoMedia.thumbnailTimestamp !== undefined) {
     console.log(
-      '[YouTube] Note: YouTube does not support timestamp-based thumbnails. Ignoring thumbnailTimestamp:',
+      "[YouTube] Note: YouTube does not support timestamp-based thumbnails. Ignoring thumbnailTimestamp:",
       videoMedia.thumbnailTimestamp
     );
   }
@@ -349,20 +353,20 @@ const publishContent = (
           // Prepare metadata for YouTube Shorts
           const metadata: YouTubeVideoMetadata = {
             snippet: {
-              title: firstContent.text.slice(0, 100) || 'YouTube Short',
-              description: firstContent.text || '',
+              title: firstContent.text.slice(0, 100) || "YouTube Short",
+              description: firstContent.text || "",
               tags: firstContent.tags || [],
-              categoryId: '24', // Entertainment
-              defaultLanguage: 'en',
+              categoryId: "24", // Entertainment
+              defaultLanguage: "en",
             },
             status: {
-              privacyStatus: 'public',
+              privacyStatus: "public",
             },
           };
 
           // Add #Shorts to description to help YouTube identify it as a Short
-          if (!metadata.snippet.description.includes('#Shorts')) {
-            metadata.snippet.description += '\n\n#Shorts';
+          if (!metadata.snippet.description.includes("#Shorts")) {
+            metadata.snippet.description += "\n\n#Shorts";
           }
 
           return uploadVideoToYouTube(
@@ -410,18 +414,18 @@ export const youtubeProvider: SocialProvider = {
   },
 
   connectUrl: () => {
-    const baseUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+    const baseUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     const params = new URLSearchParams({
       client_id: keys().GOOGLE_CLIENT_ID,
       redirect_uri: keys().YOUTUBE_CALLBACK_URL,
-      response_type: 'code',
+      response_type: "code",
       scope: [
-        'https://www.googleapis.com/auth/youtube.upload',
-        'https://www.googleapis.com/auth/youtube.readonly',
-        'https://www.googleapis.com/auth/userinfo.profile',
-      ].join(' '),
-      access_type: 'offline',
-      prompt: 'consent',
+        "https://www.googleapis.com/auth/youtube.upload",
+        "https://www.googleapis.com/auth/youtube.readonly",
+        "https://www.googleapis.com/auth/userinfo.profile",
+      ].join(" "),
+      access_type: "offline",
+      prompt: "consent",
       state: nanoid(),
     });
 

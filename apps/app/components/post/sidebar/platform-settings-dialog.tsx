@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@delulu/design-system/components/ui/dialog';
-import type { SocialType } from '@delulu/validators/post';
-import { TikTokSettingsDisplay } from './tiktok-settings';
-
-import { usePost } from '@/store/post';
+} from "@delulu/design-system/components/ui/dialog";
+import type { SocialType } from "@delulu/validators/post";
+import { usePost } from "@/store/post";
+import { TikTokSettingsDisplay } from "./tiktok-settings";
 
 interface PlatformSettingsDialogProps {
   platform: SocialType;
@@ -29,13 +28,13 @@ export function PlatformSettingsDialog({
   const post = usePost();
   // Check if we have video content
   const hasVideo = post.content.some((content) =>
-    content.media?.some((media) => media.mediaType === 'VIDEO')
+    content.media?.some((media) => media.mediaType === "VIDEO")
   );
   const renderSettings = () => {
     switch (platform) {
-      case 'TIKTOK':
+      case "TIKTOK":
         return (
-          <TikTokSettingsDisplay providerId={socialId} hasVideo={hasVideo} />
+          <TikTokSettingsDisplay hasVideo={hasVideo} providerId={socialId} />
         );
       default:
         return (
@@ -47,7 +46,7 @@ export function PlatformSettingsDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog onOpenChange={onClose} open={isOpen}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{platformName} Settings</DialogTitle>

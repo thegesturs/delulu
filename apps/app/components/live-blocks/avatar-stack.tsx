@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import { useOthers, useSelf } from '@delulu/collaboration/hooks';
+import { useOthers, useSelf } from "@delulu/collaboration/hooks";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from '@delulu/design-system/components/ui/avatar';
+} from "@delulu/design-system/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@delulu/design-system/components/ui/tooltip';
+} from "@delulu/design-system/components/ui/tooltip";
 
-type PresenceAvatarProps = {
-  info?: Liveblocks['UserMeta']['info'];
-};
+interface PresenceAvatarProps {
+  info?: Liveblocks["UserMeta"]["info"];
+}
 
 const PresenceAvatar = ({ info }: PresenceAvatarProps) => (
   <Tooltip delayDuration={0}>
     <TooltipTrigger>
       <Avatar className="h-7 w-7 bg-secondary ring-1 ring-background">
-        <AvatarImage src={info?.avatar} alt={info?.name} />
+        <AvatarImage alt={info?.name} src={info?.avatar} />
         <AvatarFallback className="text-xs">
           {info?.name?.slice(0, 2)}
         </AvatarFallback>
       </Avatar>
     </TooltipTrigger>
     <TooltipContent collisionPadding={4}>
-      <p>{info?.name ?? 'Unknown'}</p>
+      <p>{info?.name ?? "Unknown"}</p>
     </TooltipContent>
   </Tooltip>
 );
@@ -38,16 +38,16 @@ export const AvatarStack = () => {
   const hasMoreUsers = others.length > 3;
 
   return (
-    <div className="-space-x-1 flex items-center px-4">
+    <div className="flex items-center -space-x-1 px-4">
       {others.slice(0, 3).map(({ connectionId, info }) => (
-        <PresenceAvatar key={connectionId} info={info} />
+        <PresenceAvatar info={info} key={connectionId} />
       ))}
 
       {hasMoreUsers && (
         <PresenceAvatar
           info={{
             name: `+${others.length - 3}`,
-            color: 'var(--color-muted-foreground)',
+            color: "var(--color-muted-foreground)",
           }}
         />
       )}

@@ -1,11 +1,10 @@
-'use client';
+"use client";
 
-import { useDroppable } from '@dnd-kit/core';
-import { format } from 'date-fns';
-import type React from 'react';
-
-import { useCalendarDnd } from '@delulu/design-system/components/event-calendar';
-import { cn } from '@delulu/design-system/lib/utils';
+import { useCalendarDnd } from "@delulu/design-system/components/event-calendar";
+import { cn } from "@delulu/design-system/lib/utils";
+import { useDroppable } from "@dnd-kit/core";
+import { format } from "date-fns";
+import type React from "react";
 
 interface DroppableCellProps {
   id: string;
@@ -42,22 +41,23 @@ export function DroppableCell({
           const minutes = Math.round((time - hours) * 60);
           const cellDateTime = new Date(date);
           cellDateTime.setHours(hours, minutes, 0, 0);
-          return format(cellDateTime, 'h:mm a');
+          return format(cellDateTime, "h:mm a");
         })()
-      : format(date, 'MMM d');
+      : format(date, "MMM d");
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: This is a droppable cell with onClick for calendar interaction
-    // biome-ignore lint/nursery/noStaticElementInteractions: Droppable cell requires onClick for calendar functionality
+    // biome-ignore lint/a11y/noStaticElementInteractions: Droppable cell requires onClick for calendar functionality
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Droppable cell requires onClick for calendar functionality
     <div
-      ref={setNodeRef}
-      onClick={onClick}
       className={cn(
-        'group/cell relative flex h-full flex-col overflow-hidden px-0.5 py-1 transition-all data-dragging:bg-accent sm:px-1',
-        'cursor-pointer rounded-sm hover:border hover:border-primary/50 hover:border-dashed hover:bg-accent/30',
+        "group/cell relative flex h-full flex-col overflow-hidden px-0.5 py-1 transition-all data-dragging:bg-accent sm:px-1",
+        "cursor-pointer rounded-sm hover:border hover:border-primary/50 hover:border-dashed hover:bg-accent/30",
         className
       )}
       data-dragging={isOver && activeEvent ? true : undefined}
+      onClick={onClick}
+      ref={setNodeRef}
     >
       {children}
       {/* Hover indicator with text */}

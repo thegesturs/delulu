@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Pricing Cards Component
@@ -6,10 +6,9 @@
  * Displays all available subscription plans with pricing and features
  */
 
-import { useSubscription } from '@/hooks/use-subscription';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Badge } from '@delulu/design-system/components/ui/badge';
-import { Button } from '@delulu/design-system/components/ui/button';
+import { api } from "@delulu/database/convex/_generated/api";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,14 +16,15 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@delulu/design-system/components/ui/card';
-import { Switch } from '@delulu/design-system/components/ui/switch';
-import { PLANS, type PlanType, getAllPlans } from '@delulu/payments';
-import { useAction } from 'convex/react';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Tick01Icon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
-import { useState } from 'react';
-import { toast } from 'sonner';
+} from "@delulu/design-system/components/ui/card";
+import { Switch } from "@delulu/design-system/components/ui/switch";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { getAllPlans, PLANS, type PlanType } from "@delulu/payments";
+import { SparklesIcon, Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useAction } from "convex/react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useSubscription } from "@/hooks/use-subscription";
 
 interface PricingCardsProps {
   productIds?: Record<PlanType, { monthly: string; yearly: string }>;
@@ -56,14 +56,14 @@ export function PricingCards({
         (COOLDOWN_MS - (now - lastAttemptTime)) / 1000
       );
       toast.error(
-        `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? 's' : ''} before trying again.`
+        `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? "s" : ""} before trying again.`
       );
       return;
     }
 
     // Free plan doesn't need checkout
-    if (planType === 'FREE') {
-      window.location.href = '/billing?plan=free';
+    if (planType === "FREE") {
+      window.location.href = "/billing?plan=free";
       return;
     }
 
@@ -73,7 +73,7 @@ export function PricingCards({
       : productIds?.[planType]?.monthly;
 
     if (!productId) {
-      toast.error('Plan configuration error. Please contact support.');
+      toast.error("Plan configuration error. Please contact support.");
       return;
     }
 
@@ -91,8 +91,8 @@ export function PricingCards({
       // Navigate to checkout (this will leave the page)
       window.location.href = checkout_url;
     } catch (error) {
-      console.error('Failed to create checkout:', error);
-      toast.error('Failed to start checkout. Please try again.');
+      console.error("Failed to create checkout:", error);
+      toast.error("Failed to start checkout. Please try again.");
       setUpgradingPlan(null);
     }
   };
@@ -120,12 +120,12 @@ export function PricingCards({
     }
 
     // Free plan doesn't have billing period
-    if (planType === 'FREE') {
+    if (planType === "FREE") {
       return true;
     }
 
     // For paid plans, check if both plan type and billing period match
-    const selectedPeriod = isAnnual ? 'YEARLY' : 'MONTHLY';
+    const selectedPeriod = isAnnual ? "YEARLY" : "MONTHLY";
     return currentBillingPeriod === selectedPeriod;
   };
 
@@ -134,16 +134,16 @@ export function PricingCards({
       {/* Billing toggle */}
       <div className="flex items-center justify-center gap-2">
         <span
-          className={`text-sm ${isAnnual ? 'text-muted-foreground' : 'font-medium'}`}
+          className={`text-sm ${isAnnual ? "text-muted-foreground" : "font-medium"}`}
         >
           Monthly
         </span>
         <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
         <span
-          className={`text-sm ${isAnnual ? 'font-medium' : 'text-muted-foreground'}`}
+          className={`text-sm ${isAnnual ? "font-medium" : "text-muted-foreground"}`}
         >
           Annual
-          <Badge variant="secondary" className="ml-2">
+          <Badge className="ml-2" variant="secondary">
             Save 17%
           </Badge>
         </span>
@@ -160,32 +160,32 @@ export function PricingCards({
           // Determine button text
           const getButtonText = () => {
             if (isUpgrading) {
-              return 'Loading...';
+              return "Loading...";
             }
             if (isCurrent) {
-              return 'Current Plan';
+              return "Current Plan";
             }
-            if (plan.id === 'FREE') {
-              return 'Get Started';
+            if (plan.id === "FREE") {
+              return "Get Started";
             }
 
             // Same plan type but different billing period
             if (plan.id === currentPlan && !isLoading && !isCurrent) {
-              return isAnnual ? 'Switch to Annual' : 'Switch to Monthly';
+              return isAnnual ? "Switch to Annual" : "Switch to Monthly";
             }
 
-            return 'Upgrade';
+            return "Upgrade";
           };
 
           return (
             <Card
-              key={plan.id}
               className={`relative flex flex-col ${
-                plan.popular ? 'border-primary shadow-lg' : ''
+                plan.popular ? "border-primary shadow-lg" : ""
               }`}
+              key={plan.id}
             >
               {plan.popular && (
-                <div className="-top-3 -translate-x-1/2 absolute left-1/2">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary">Most Popular</Badge>
                 </div>
               )}
@@ -194,7 +194,7 @@ export function PricingCards({
                 <CardTitle className="flex items-center justify-between">
                   {plan.name}
                   {isCurrent && (
-                    <Badge variant="outline" className="ml-2">
+                    <Badge className="ml-2" variant="outline">
                       Current
                     </Badge>
                   )}
@@ -209,11 +209,11 @@ export function PricingCards({
                 <div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-4xl">
-                      {price === 0 ? 'Free' : `$${price}`}
+                      {price === 0 ? "Free" : `$${price}`}
                     </span>
                     {price > 0 && (
                       <span className="text-muted-foreground">
-                        /{isAnnual ? 'year' : 'month'}
+                        /{isAnnual ? "year" : "month"}
                       </span>
                     )}
                   </div>
@@ -227,62 +227,94 @@ export function PricingCards({
                 {/* Features */}
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                    <Icon
+                      className="mt-0.5 flex-shrink-0 text-primary"
+                      icon={Tick01Icon}
+                      size={16}
+                    />
                     <span>
                       {plan.limits.socialAccounts === -1
-                        ? 'Unlimited'
-                        : plan.limits.socialAccounts}{' '}
-                      social{' '}
+                        ? "Unlimited"
+                        : plan.limits.socialAccounts}{" "}
+                      social{" "}
                       {plan.limits.socialAccounts === 1
-                        ? 'account'
-                        : 'accounts'}
+                        ? "account"
+                        : "accounts"}
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                    <Icon
+                      className="mt-0.5 flex-shrink-0 text-primary"
+                      icon={Tick01Icon}
+                      size={16}
+                    />
                     <span>
                       {plan.limits.monthlyPosts === -1
-                        ? 'Unlimited'
-                        : plan.limits.monthlyPosts}{' '}
+                        ? "Unlimited"
+                        : plan.limits.monthlyPosts}{" "}
                       posts per month
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                    <Icon
+                      className="mt-0.5 flex-shrink-0 text-primary"
+                      icon={Tick01Icon}
+                      size={16}
+                    />
                     <span>
                       {plan.limits.mediaStorage === -1
-                        ? 'Unlimited'
-                        : `${plan.limits.mediaStorage}MB`}{' '}
+                        ? "Unlimited"
+                        : `${plan.limits.mediaStorage}MB`}{" "}
                       media storage
                     </span>
                   </li>
                   {plan.features.analytics && (
                     <li className="flex items-start gap-2">
-                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={Tick01Icon}
+                        size={16}
+                      />
                       <span>Advanced analytics</span>
                     </li>
                   )}
                   {plan.features.aiContentGeneration && (
                     <li className="flex items-start gap-2">
-                      <Icon icon={SparklesIcon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={SparklesIcon}
+                        size={16}
+                      />
                       <span>AI content generation</span>
                     </li>
                   )}
                   {plan.features.collaboration && (
                     <li className="flex items-start gap-2">
-                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={Tick01Icon}
+                        size={16}
+                      />
                       <span>Team collaboration</span>
                     </li>
                   )}
                   {plan.features.whiteLabel && (
                     <li className="flex items-start gap-2">
-                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={Tick01Icon}
+                        size={16}
+                      />
                       <span>White-label</span>
                     </li>
                   )}
                   {plan.features.prioritySupport && (
                     <li className="flex items-start gap-2">
-                      <Icon icon={Tick01Icon} size={16} className="mt-0.5 flex-shrink-0 text-primary" />
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={Tick01Icon}
+                        size={16}
+                      />
                       <span>Priority support</span>
                     </li>
                   )}
@@ -291,11 +323,11 @@ export function PricingCards({
 
               <CardFooter>
                 <Button
-                  onClick={() => handleUpgrade(plan.id)}
-                  disabled={isCurrent || isUpgrading || isLoading}
-                  variant={plan.popular ? 'default' : 'outline'}
                   className="w-full"
+                  disabled={isCurrent || isUpgrading || isLoading}
+                  onClick={() => handleUpgrade(plan.id)}
                   size="lg"
+                  variant={plan.popular ? "default" : "outline"}
                 >
                   {getButtonText()}
                 </Button>

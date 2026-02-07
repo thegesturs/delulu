@@ -19,28 +19,28 @@ export async function extractVideoFrame(
   timestamp?: number
 ): Promise<VideoFrameResult> {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
     if (!ctx) {
-      reject(new Error('Failed to get canvas context'));
+      reject(new Error("Failed to get canvas context"));
       return;
     }
 
     const videoUrl =
-      typeof videoFile === 'string'
+      typeof videoFile === "string"
         ? videoFile
         : URL.createObjectURL(videoFile);
 
-    video.addEventListener('loadedmetadata', () => {
+    video.addEventListener("loadedmetadata", () => {
       // Use provided timestamp or middle of video
       const seekTime = timestamp ?? video.duration / 2;
 
       video.currentTime = seekTime;
     });
 
-    video.addEventListener('seeked', () => {
+    video.addEventListener("seeked", () => {
       // Set canvas dimensions to video dimensions
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -51,16 +51,16 @@ export async function extractVideoFrame(
       // Convert canvas to blob
       canvas.toBlob(
         (blob) => {
-          if (typeof videoFile !== 'string') {
+          if (typeof videoFile !== "string") {
             URL.revokeObjectURL(videoUrl);
           }
 
           if (!blob) {
-            reject(new Error('Failed to create blob from canvas'));
+            reject(new Error("Failed to create blob from canvas"));
             return;
           }
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
           resolve({
             blob,
@@ -68,28 +68,28 @@ export async function extractVideoFrame(
             timestamp: video.currentTime,
           });
         },
-        'image/jpeg',
+        "image/jpeg",
         0.9
       );
     });
 
-    video.addEventListener('error', () => {
-      if (typeof videoFile !== 'string') {
+    video.addEventListener("error", () => {
+      if (typeof videoFile !== "string") {
         URL.revokeObjectURL(videoUrl);
       }
-      reject(new Error('Failed to load video'));
+      reject(new Error("Failed to load video"));
     });
 
     // Set a timeout to prevent hanging
     setTimeout(() => {
-      if (typeof videoFile !== 'string') {
+      if (typeof videoFile !== "string") {
         URL.revokeObjectURL(videoUrl);
       }
-      reject(new Error('Video frame extraction timeout'));
-    }, 15000); // 15 second timeout
+      reject(new Error("Video frame extraction timeout"));
+    }, 15_000); // 15 second timeout
 
     // Important: Set CORS mode for external videos
-    video.crossOrigin = 'anonymous';
+    video.crossOrigin = "anonymous";
     video.src = videoUrl;
     video.load();
   });
@@ -106,21 +106,21 @@ export async function generateThumbnailPreviews(
   count = 6
 ): Promise<VideoFrameResult[]> {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
+    const video = document.createElement("video");
     const videoUrl =
-      typeof videoFile === 'string'
+      typeof videoFile === "string"
         ? videoFile
         : URL.createObjectURL(videoFile);
 
     // Set timeout for the entire operation
     const timeoutId = setTimeout(() => {
-      if (typeof videoFile !== 'string') {
+      if (typeof videoFile !== "string") {
         URL.revokeObjectURL(videoUrl);
       }
-      reject(new Error('Thumbnail generation timeout'));
-    }, 30000); // 30 second timeout
+      reject(new Error("Thumbnail generation timeout"));
+    }, 30_000); // 30 second timeout
 
-    video.addEventListener('loadedmetadata', async () => {
+    video.addEventListener("loadedmetadata", async () => {
       const duration = video.duration;
 
       // Check if duration is valid
@@ -130,10 +130,10 @@ export async function generateThumbnailPreviews(
         Number.isNaN(duration)
       ) {
         clearTimeout(timeoutId);
-        if (typeof videoFile !== 'string') {
+        if (typeof videoFile !== "string") {
           URL.revokeObjectURL(videoUrl);
         }
-        reject(new Error('Invalid video duration'));
+        reject(new Error("Invalid video duration"));
         return;
       }
 
@@ -153,30 +153,30 @@ export async function generateThumbnailPreviews(
         }
 
         clearTimeout(timeoutId);
-        if (typeof videoFile !== 'string') {
+        if (typeof videoFile !== "string") {
           URL.revokeObjectURL(videoUrl);
         }
 
         resolve(frames);
       } catch (error) {
         clearTimeout(timeoutId);
-        if (typeof videoFile !== 'string') {
+        if (typeof videoFile !== "string") {
           URL.revokeObjectURL(videoUrl);
         }
         reject(error);
       }
     });
 
-    video.addEventListener('error', (e) => {
+    video.addEventListener("error", (e) => {
       clearTimeout(timeoutId);
-      if (typeof videoFile !== 'string') {
+      if (typeof videoFile !== "string") {
         URL.revokeObjectURL(videoUrl);
       }
       reject(new Error(`Failed to load video for thumbnails: ${e.type}`));
     });
 
     // Important: Set CORS mode for external videos
-    video.crossOrigin = 'anonymous';
+    video.crossOrigin = "anonymous";
     video.src = videoUrl;
     video.load();
   });
@@ -198,5 +198,5 @@ export function blobToFile(blob: Blob, fileName: string): File {
 export function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }

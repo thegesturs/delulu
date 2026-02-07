@@ -1,20 +1,22 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { ResultAsync, err, errAsync, ok, okAsync } from 'neverthrow';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { err, errAsync, ok, okAsync, ResultAsync } from "neverthrow";
 import type {
   BaseProviderProfile,
   PostContent,
   PostPublishResult,
-} from './common-types';
+} from "./common-types";
 
 // LinkedIn-specific profile interface
 interface LinkedInProfile extends BaseProviderProfile {
   profileId: string;
 }
+
 import {
+  createAPIError,
   InvalidMediaError,
   LinkedInError,
   MediaProcessingError,
@@ -22,9 +24,8 @@ import {
   MediaUploadError,
   ProfileNotFoundError,
   type SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 interface LinkedInPostResponse {
   id: string;
@@ -36,12 +37,12 @@ const getProfile = (
 ): ResultAsync<LinkedInProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new LinkedInError('Database query failed')
+    () => new LinkedInError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.profileId) {
-      return err(new ProfileNotFoundError('LinkedIn'));
+    if (!(profile?.accessToken && profile.profileId)) {
+      return err(new ProfileNotFoundError("LinkedIn"));
     }
 
     const linkedinProfile = {
@@ -62,14 +63,14 @@ const uploadImageToLinkedIn = (
 ): ResultAsync<string, SocialProviderError> => {
   // Step 1: Download the image as a buffer
   return ResultAsync.fromPromise(
-    axios.get(imageUrl, { responseType: 'arraybuffer' }),
-    () => new InvalidMediaError('LinkedIn', 'Failed to download image')
+    axios.get(imageUrl, { responseType: "arraybuffer" }),
+    () => new InvalidMediaError("LinkedIn", "Failed to download image")
   ).andThen((response) => {
     const imageBuffer = response.data;
     // Step 2: Register upload with LinkedIn
     return ResultAsync.fromPromise(
       axios.post(
-        'https://api.linkedin.com/rest/images?action=initializeUpload',
+        "https://api.linkedin.com/rest/images?action=initializeUpload",
         {
           initializeUploadRequest: {
             owner: `urn:li:person:${profileId}`,
@@ -78,13 +79,13 @@ const uploadImageToLinkedIn = (
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-            'LinkedIn-Version': '202507', // Current version in YYYYMM format
-            'X-Restli-Protocol-Version': '2.0.0',
+            "Content-Type": "application/json",
+            "LinkedIn-Version": "202507", // Current version in YYYYMM format
+            "X-Restli-Protocol-Version": "2.0.0",
           },
         }
       ),
-      (error) => createAPIError('LinkedIn', error)
+      (error) => createAPIError("LinkedIn", error)
     ).andThen((registerRes) => {
       const uploadUrl = registerRes.data.value.uploadUrl;
       const assetUrn = registerRes.data.value.image;
@@ -93,10 +94,10 @@ const uploadImageToLinkedIn = (
         axios.put(uploadUrl, imageBuffer, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/octet-stream',
+            "Content-Type": "application/octet-stream",
           },
         }),
-        () => new MediaUploadError('LinkedIn', 'IMAGE')
+        () => new MediaUploadError("LinkedIn", "IMAGE")
       ).map(() => assetUrn);
     });
   });
@@ -118,7 +119,7 @@ const validateVideoForLinkedIn = (
   if (fileSizeBytes < minSize) {
     return errAsync(
       new InvalidMediaError(
-        'LinkedIn',
+        "LinkedIn",
         `Video file too small: ${fileSizeBytes} bytes (minimum 75KB)`
       )
     );
@@ -127,7 +128,7 @@ const validateVideoForLinkedIn = (
   if (fileSizeBytes > maxSize) {
     return errAsync(
       new InvalidMediaError(
-        'LinkedIn',
+        "LinkedIn",
         `Video file too large: ${(fileSizeBytes / 1024 / 1024).toFixed(2)}MB (maximum 500MB)`
       )
     );
@@ -157,12 +158,12 @@ const uploadVideoToLinkedIn = (
 
   // Step 1: Download the video as a buffer
   return ResultAsync.fromPromise(
-    axios.get(videoUrl, { responseType: 'arraybuffer' }),
+    axios.get(videoUrl, { responseType: "arraybuffer" }),
     (error: unknown) => {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error ? error.message : "Unknown error";
       return new InvalidMediaError(
-        'LinkedIn',
+        "LinkedIn",
         `Failed to download video from ${videoUrl}: ${errorMessage}`
       );
     }
@@ -192,20 +193,20 @@ const uploadVideoToLinkedIn = (
 
       return ResultAsync.fromPromise(
         axios.post(
-          'https://api.linkedin.com/rest/videos?action=initializeUpload',
+          "https://api.linkedin.com/rest/videos?action=initializeUpload",
           initializeRequest,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'LinkedIn-Version': '202507',
-              'X-Restli-Protocol-Version': '2.0.0',
+              "Content-Type": "application/json",
+              "LinkedIn-Version": "202507",
+              "X-Restli-Protocol-Version": "2.0.0",
             },
           }
         ),
         (error) => {
-          console.log('[LinkedIn Video] Initialize upload failed:', error);
-          return createAPIError('LinkedIn', error);
+          console.log("[LinkedIn Video] Initialize upload failed:", error);
+          return createAPIError("LinkedIn", error);
         }
       ).andThen((registerRes) => {
         const uploadInstructions = registerRes.data.value.uploadInstructions;
@@ -217,7 +218,7 @@ const uploadVideoToLinkedIn = (
         );
 
         if (!uploadInstructions || uploadInstructions.length === 0) {
-          return err(new MediaUploadError('LinkedIn', 'VIDEO'));
+          return err(new MediaUploadError("LinkedIn", "VIDEO"));
         }
 
         // Step 3: Upload video in chunks (4MB each)
@@ -231,7 +232,7 @@ const uploadVideoToLinkedIn = (
           const uploadUrl = uploadInstructions[index]?.uploadUrl;
 
           if (!uploadUrl) {
-            return errAsync(new MediaUploadError('LinkedIn', 'VIDEO'));
+            return errAsync(new MediaUploadError("LinkedIn", "VIDEO"));
           }
 
           console.log(
@@ -242,7 +243,7 @@ const uploadVideoToLinkedIn = (
             axios.put(uploadUrl, chunk, {
               headers: {
                 Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/octet-stream',
+                "Content-Type": "application/octet-stream",
               },
             }),
             (error) => {
@@ -250,7 +251,7 @@ const uploadVideoToLinkedIn = (
                 `[LinkedIn Video] Chunk ${index + 1} upload failed:`,
                 error
               );
-              return new MediaUploadError('LinkedIn', 'VIDEO');
+              return new MediaUploadError("LinkedIn", "VIDEO");
             }
           ).map((uploadResponse) => {
             const etag = uploadResponse.headers.etag;
@@ -269,26 +270,26 @@ const uploadVideoToLinkedIn = (
           // Step 4: Finalize the upload
           return ResultAsync.fromPromise(
             axios.post(
-              'https://api.linkedin.com/rest/videos?action=finalizeUpload',
+              "https://api.linkedin.com/rest/videos?action=finalizeUpload",
               {
                 finalizeUploadRequest: {
                   video: assetUrn,
-                  uploadToken: uploadToken,
-                  uploadedPartIds: uploadedPartIds,
+                  uploadToken,
+                  uploadedPartIds,
                 },
               },
               {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
-                  'Content-Type': 'application/json',
-                  'LinkedIn-Version': '202507',
-                  'X-Restli-Protocol-Version': '2.0.0',
+                  "Content-Type": "application/json",
+                  "LinkedIn-Version": "202507",
+                  "X-Restli-Protocol-Version": "2.0.0",
                 },
               }
             ),
             (error: unknown) => {
-              console.log('[LinkedIn Video] Finalize upload failed:', error);
-              return createAPIError('LinkedIn', error);
+              console.log("[LinkedIn Video] Finalize upload failed:", error);
+              return createAPIError("LinkedIn", error);
             }
           ).map(() => {
             console.log(
@@ -307,7 +308,7 @@ const checkVideoProcessingStatus = (
   videoUrn: string,
   accessToken: string
 ): ResultAsync<
-  'AVAILABLE' | 'PROCESSING' | 'PROCESSING_FAILED' | 'WAITING_UPLOAD',
+  "AVAILABLE" | "PROCESSING" | "PROCESSING_FAILED" | "WAITING_UPLOAD",
   SocialProviderError
 > => {
   const encodedUrn = encodeURIComponent(videoUrn);
@@ -316,8 +317,8 @@ const checkVideoProcessingStatus = (
     axios.get(`https://api.linkedin.com/rest/videos/${encodedUrn}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'LinkedIn-Version': '202507',
-        'X-Restli-Protocol-Version': '2.0.0',
+        "LinkedIn-Version": "202507",
+        "X-Restli-Protocol-Version": "2.0.0",
       },
     }),
     (error: unknown) => {
@@ -325,7 +326,7 @@ const checkVideoProcessingStatus = (
         `[LinkedIn Video] Status check failed for ${videoUrn}:`,
         error
       );
-      return createAPIError('LinkedIn', error);
+      return createAPIError("LinkedIn", error);
     }
   ).map((response) => {
     const status = response.data.status;
@@ -341,7 +342,7 @@ const waitForVideoProcessing = (
   videoUrn: string,
   accessToken: string,
   maxAttempts = 30,
-  interval = 10000
+  interval = 10_000
 ): ResultAsync<void, SocialProviderError> => {
   console.log(
     `[LinkedIn Video] Starting processing wait for ${videoUrn} (max ${maxAttempts} attempts, ${interval / 1000}s intervals)`
@@ -352,32 +353,32 @@ const waitForVideoProcessing = (
       console.log(
         `[LinkedIn Video] Processing timeout after ${maxAttempts} attempts for ${videoUrn}`
       );
-      return errAsync(new MediaProcessingTimeoutError('LinkedIn'));
+      return errAsync(new MediaProcessingTimeoutError("LinkedIn"));
     }
 
     return checkVideoProcessingStatus(videoUrn, accessToken).andThen(
       (status) => {
-        if (status === 'AVAILABLE') {
+        if (status === "AVAILABLE") {
           console.log(
             `[LinkedIn Video] Processing completed successfully for ${videoUrn}`
           );
           return okAsync(undefined);
         }
 
-        if (status === 'PROCESSING_FAILED') {
+        if (status === "PROCESSING_FAILED") {
           console.log(`[LinkedIn Video] Processing failed for ${videoUrn}`);
           return errAsync(
-            new MediaProcessingError('LinkedIn', 'Video processing failed')
+            new MediaProcessingError("LinkedIn", "Video processing failed")
           );
         }
 
-        if (status === 'PROCESSING' || status === 'WAITING_UPLOAD') {
+        if (status === "PROCESSING" || status === "WAITING_UPLOAD") {
           console.log(
             `[LinkedIn Video] Still processing ${videoUrn}, waiting ${interval / 1000}s (attempt ${attempts + 1}/${maxAttempts})`
           );
           return ResultAsync.fromPromise(
             new Promise((resolve) => setTimeout(resolve, interval)),
-            () => new MediaProcessingError('LinkedIn', 'Timeout during wait')
+            () => new MediaProcessingError("LinkedIn", "Timeout during wait")
           ).andThen(() => poll(attempts + 1));
         }
 
@@ -385,7 +386,7 @@ const waitForVideoProcessing = (
           `[LinkedIn Video] Unknown processing status for ${videoUrn}: ${status}`
         );
         return errAsync(
-          new MediaProcessingError('LinkedIn', `Unknown status: ${status}`)
+          new MediaProcessingError("LinkedIn", `Unknown status: ${status}`)
         );
       }
     );
@@ -397,16 +398,16 @@ const waitForVideoProcessing = (
 // Helper: Build LinkedIn post data for any media type
 interface LinkedInMediaAsset {
   assetUrn: string;
-  type: 'IMAGE' | 'VIDEO';
+  type: "IMAGE" | "VIDEO";
   title?: string;
   description?: string;
 }
 
 interface BuildLinkedInPostDataOptions {
-  visibility?: 'PUBLIC' | 'CONNECTIONS';
+  visibility?: "PUBLIC" | "CONNECTIONS";
 }
 
-type PostContentType = 'TEXT_ONLY' | 'SINGLE_IMAGE' | 'MULTI_IMAGE' | 'VIDEO';
+type PostContentType = "TEXT_ONLY" | "SINGLE_IMAGE" | "MULTI_IMAGE" | "VIDEO";
 
 function buildLinkedInPostData(
   authorUrn: string,
@@ -418,51 +419,51 @@ function buildLinkedInPostData(
   const basePost = {
     author: authorUrn,
     commentary: text,
-    visibility: options?.visibility || 'PUBLIC',
+    visibility: options?.visibility || "PUBLIC",
     distribution: {
-      feedDistribution: 'MAIN_FEED',
+      feedDistribution: "MAIN_FEED",
       targetEntities: [],
       thirdPartyDistributionChannels: [],
     },
-    lifecycleState: 'PUBLISHED',
+    lifecycleState: "PUBLISHED",
     isReshareDisabledByAuthor: false,
   };
 
   // Add content based on type
   switch (contentType) {
-    case 'TEXT_ONLY':
+    case "TEXT_ONLY":
       return basePost;
 
-    case 'SINGLE_IMAGE':
+    case "SINGLE_IMAGE":
       return {
         ...basePost,
         content: {
           media: {
-            altText: media[0]?.description || 'Image',
+            altText: media[0]?.description || "Image",
             id: media[0]?.assetUrn,
           },
         },
       };
 
-    case 'MULTI_IMAGE':
+    case "MULTI_IMAGE":
       return {
         ...basePost,
         content: {
           multiImage: {
             images: media.map((m) => ({
-              altText: m.description || 'Image',
+              altText: m.description || "Image",
               id: m.assetUrn,
             })),
           },
         },
       };
 
-    case 'VIDEO':
+    case "VIDEO":
       return {
         ...basePost,
         content: {
           media: {
-            title: media[0]?.title || 'Video',
+            title: media[0]?.title || "Video",
             id: media[0]?.assetUrn,
           },
         },
@@ -487,13 +488,13 @@ const createAndPublishPost = (
   // Determine content type based on media
   let contentType: PostContentType;
   if (mediaAssets.length === 0) {
-    contentType = 'TEXT_ONLY';
-  } else if (mediaAssets[0].type === 'VIDEO') {
-    contentType = 'VIDEO';
+    contentType = "TEXT_ONLY";
+  } else if (mediaAssets[0].type === "VIDEO") {
+    contentType = "VIDEO";
   } else if (mediaAssets.length === 1) {
-    contentType = 'SINGLE_IMAGE';
+    contentType = "SINGLE_IMAGE";
   } else {
-    contentType = 'MULTI_IMAGE';
+    contentType = "MULTI_IMAGE";
   }
 
   const postData = buildLinkedInPostData(
@@ -504,20 +505,20 @@ const createAndPublishPost = (
   );
 
   return ResultAsync.fromPromise(
-    axios.post('https://api.linkedin.com/rest/posts', postData, {
+    axios.post("https://api.linkedin.com/rest/posts", postData, {
       headers: {
         Authorization: `Bearer ${profile.accessToken}`,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202507',
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": "202507",
       },
     }),
     (error: unknown) => {
-      return createAPIError('LinkedIn', error);
+      return createAPIError("LinkedIn", error);
     }
   ).map((response) => {
     // The new API returns the post ID in the x-restli-id header
-    const postId = response.headers['x-restli-id'] || response.data?.id;
+    const postId = response.headers["x-restli-id"] || response.data?.id;
 
     return { id: postId };
   });
@@ -532,20 +533,20 @@ const publishContent = (
   const firstContent = content.content[0];
 
   if (!firstContent) {
-    return errAsync(new InvalidMediaError('LinkedIn', 'No content to publish'));
+    return errAsync(new InvalidMediaError("LinkedIn", "No content to publish"));
   }
 
   const validMedia = getValidMediaUrls(firstContent.media);
   const imageMedia = validMedia.filter(
-    (media) => media.mediaType === 'IMAGE' && media.url
+    (media) => media.mediaType === "IMAGE" && media.url
   );
   const videoMedia = validMedia.filter(
-    (media) => media.mediaType === 'VIDEO' && media.url
+    (media) => media.mediaType === "VIDEO" && media.url
   );
 
   console.log(
-    '[LinkedIn] Processing video media:',
-    videoMedia.length > 0 ? `${videoMedia.length} video(s)` : 'no videos'
+    "[LinkedIn] Processing video media:",
+    videoMedia.length > 0 ? `${videoMedia.length} video(s)` : "no videos"
   );
 
   let uploadPromise: ResultAsync<LinkedInMediaAsset[], SocialProviderError>;
@@ -564,9 +565,9 @@ const publishContent = (
       return waitForVideoProcessing(assetUrn, profile.accessToken).map(() => [
         {
           assetUrn,
-          type: 'VIDEO' as const,
-          title: video.altText || 'Video',
-          description: 'Video description',
+          type: "VIDEO" as const,
+          title: video.altText || "Video",
+          description: "Video description",
         },
       ]);
     });
@@ -579,15 +580,15 @@ const publishContent = (
     ).map((assetUrns) =>
       assetUrns.map((assetUrn) => ({
         assetUrn,
-        type: 'IMAGE',
-        title: 'Image',
-        description: 'Image description',
+        type: "IMAGE",
+        title: "Image",
+        description: "Image description",
       }))
     );
   } else {
     uploadPromise = ResultAsync.fromPromise(
       Promise.resolve([]) as Promise<LinkedInMediaAsset[]>,
-      () => new LinkedInError('Empty media array')
+      () => new LinkedInError("Empty media array")
     );
   }
 

@@ -1,19 +1,19 @@
-import { api } from '@delulu/database/convex/_generated/api';
-import type { Id } from '@delulu/database/convex/_generated/dataModel';
-import { convex } from '@delulu/database/node';
-import { getValidMediaUrls } from '@delulu/validators/post';
-import axios from 'axios';
-import { ResultAsync, err, errAsync, ok } from 'neverthrow';
+import { api } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { convex } from "@delulu/database/node";
+import { getValidMediaUrls } from "@delulu/validators/post";
+import axios from "axios";
+import { err, errAsync, ok, ResultAsync } from "neverthrow";
 
-import type { PostContent, PostPublishResult } from './common-types';
+import type { PostContent, PostPublishResult } from "./common-types";
 import {
+  createAPIError,
   FarcasterError,
   InvalidMediaError,
   ProfileNotFoundError,
   type SocialProviderError,
-  createAPIError,
-} from './errors';
-import type { SocialProvider } from './types';
+} from "./errors";
+import type { SocialProvider } from "./types";
 
 // Farcaster-specific profile interface
 interface FarcasterProfile {
@@ -44,12 +44,12 @@ const getProfile = (
 ): ResultAsync<FarcasterProfile, SocialProviderError> =>
   ResultAsync.fromPromise(
     convex.query(api.social_providers.getSocialProviderWithDecryptedTokens, {
-      id: socialProviderId as Id<'socialProviders'>,
+      id: socialProviderId as Id<"socialProviders">,
     }),
-    () => new FarcasterError('Database query failed')
+    () => new FarcasterError("Database query failed")
   ).andThen((profile) => {
-    if (!profile?.accessToken || !profile.profileId) {
-      return err(new ProfileNotFoundError('Farcaster'));
+    if (!(profile?.accessToken && profile.profileId)) {
+      return err(new ProfileNotFoundError("Farcaster"));
     }
     return ok({
       id: profile._id,
@@ -64,13 +64,13 @@ const submitCast = (
   castData: FarcasterCastRequest
 ): ResultAsync<FarcasterCastResponse, SocialProviderError> => {
   return ResultAsync.fromPromise(
-    axios.post('https://api.warpcast.com/v2/casts', castData, {
+    axios.post("https://api.warpcast.com/v2/casts", castData, {
       headers: {
         Authorization: `Bearer ${profile.signerUuid}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     }),
-    (error) => createAPIError('Farcaster', error)
+    (error) => createAPIError("Farcaster", error)
   ).map((response) => response.data.result.cast);
 };
 
@@ -83,7 +83,7 @@ const publishContent = (
 
   if (!firstContent) {
     return errAsync(
-      new InvalidMediaError('Farcaster', 'No content to publish')
+      new InvalidMediaError("Farcaster", "No content to publish")
     );
   }
 
@@ -119,6 +119,6 @@ export const farcasterProvider: SocialProvider = {
   connectUrl: () => {
     // Farcaster uses a different auth flow through Warpcast
     // This would typically redirect to Warpcast for signer approval
-    return 'https://warpcast.com/~/developers/signed-key-requests';
+    return "https://warpcast.com/~/developers/signed-key-requests";
   },
 };

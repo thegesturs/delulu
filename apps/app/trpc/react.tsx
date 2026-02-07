@@ -1,23 +1,22 @@
-'use client';
+"use client";
 
-import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink, loggerLink } from '@trpc/client';
-import { createTRPCReact } from '@trpc/react-query';
-import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
-import { useState } from 'react';
-import superjson from 'superjson';
-
-import type { AppRouter } from '@delulu/api';
-import { createQueryClient } from './query-client';
+import type { AppRouter } from "@delulu/api";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import { useState } from "react";
+import superjson from "superjson";
+import { createQueryClient } from "./query-client";
 
 let clientQueryClientSingleton: QueryClient | undefined;
 const getQueryClient = () => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     // Server: always make a new query client
     return createQueryClient();
   }
   // Browser: use singleton pattern to keep the same query client
-  // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+  // biome-ignore lint/suspicious/noAssignInExpressions: singleton pattern requires assignment
   return (clientQueryClientSingleton ??= createQueryClient());
 };
 
@@ -44,21 +43,21 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
       links: [
         loggerLink({
           enabled: (op) =>
-            process.env.NODE_ENV === 'development' ||
-            (op.direction === 'down' && op.result instanceof Error),
+            process.env.NODE_ENV === "development" ||
+            (op.direction === "down" && op.result instanceof Error),
         }),
         httpBatchLink({
           transformer: superjson,
-          url: getBaseUrl() + '/api/trpc',
+          url: getBaseUrl() + "/api/trpc",
           headers: () => {
             const headers = new Headers();
-            headers.set('x-trpc-source', 'nextjs-react');
+            headers.set("x-trpc-source", "nextjs-react");
             return headers;
           },
           async fetch(url, options) {
             const response = await fetch(url, {
               ...options,
-              cache: 'no-store',
+              cache: "no-store",
             });
             return response;
           },
@@ -77,7 +76,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 }
 
 function getBaseUrl() {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     return window.location.origin;
   }
   if (process.env.NEXT_PUBLIC_APP_URL) {

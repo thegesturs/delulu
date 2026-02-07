@@ -1,10 +1,10 @@
-import type { Post } from '@/types/convex';
 import type {
   CalendarEvent,
   EventColor,
-} from '@delulu/design-system/components/event-calendar';
-import type { SocialPostEventData } from '@delulu/design-system/components/event-calendar/social-post-event';
-import type { SupportedSocialPlatform } from '@delulu/design-system/lib/social-config';
+} from "@delulu/design-system/components/event-calendar";
+import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event";
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
+import type { Post } from "@/types/convex";
 
 /**
  * Extended calendar event that includes full post data for social media display
@@ -18,9 +18,9 @@ export interface SocialCalendarEvent extends CalendarEvent {
  * Extract post title from content blocks
  * Takes the first text content as the title, or returns a default
  */
-function extractPostTitle(content: Post['content']): string {
+function extractPostTitle(content: Post["content"]): string {
   if (!content || content.length === 0) {
-    return '(Untitled post)';
+    return "(Untitled post)";
   }
 
   // Find first block with text
@@ -37,16 +37,16 @@ function extractPostTitle(content: Post['content']): string {
     (block) => block.media && block.media.length > 0
   );
   if (hasMedia) {
-    return '(Media post)';
+    return "(Media post)";
   }
 
-  return '(Untitled post)';
+  return "(Untitled post)";
 }
 
 /**
  * Extract content preview (first 80 characters of text)
  */
-function extractContentPreview(content: Post['content']): string | undefined {
+function extractContentPreview(content: Post["content"]): string | undefined {
   const firstTextBlock = content.find((block) => block.text?.trim());
 
   if (firstTextBlock?.text) {
@@ -60,7 +60,7 @@ function extractContentPreview(content: Post['content']): string | undefined {
 /**
  * Extract first media URL from post content
  */
-function extractMediaThumbnail(content: Post['content']): string | undefined {
+function extractMediaThumbnail(content: Post["content"]): string | undefined {
   for (const block of content) {
     if (block.media && block.media.length > 0) {
       const firstMedia = block.media[0];
@@ -73,20 +73,20 @@ function extractMediaThumbnail(content: Post['content']): string | undefined {
 /**
  * Get event color based on post status
  */
-function getColorByStatus(status: Post['status']): EventColor {
+function getColorByStatus(status: Post["status"]): EventColor {
   switch (status) {
-    case 'SCHEDULED':
-      return 'sky';
-    case 'PROCESSING':
-      return 'amber';
-    case 'FAILED':
-      return 'rose';
-    case 'PUBLISHED':
-      return 'emerald';
-    case 'SAVED':
-      return 'violet';
+    case "SCHEDULED":
+      return "sky";
+    case "PROCESSING":
+      return "amber";
+    case "FAILED":
+      return "rose";
+    case "PUBLISHED":
+      return "emerald";
+    case "SAVED":
+      return "violet";
     default:
-      return 'sky';
+      return "sky";
   }
 }
 
@@ -101,16 +101,16 @@ export function postToCalendarEvent(post: Post): SocialCalendarEvent | null {
 
   // Only show SCHEDULED, PROCESSING, and FAILED posts on calendar
   if (
-    post.status !== 'SCHEDULED' &&
-    post.status !== 'PROCESSING' &&
-    post.status !== 'FAILED'
+    post.status !== "SCHEDULED" &&
+    post.status !== "PROCESSING" &&
+    post.status !== "FAILED"
   ) {
     return null;
   }
 
   const startDate = new Date(post.scheduledAt);
   // Default duration: 1 hour for calendar display
-  const endDate = new Date(post.scheduledAt + 3600000);
+  const endDate = new Date(post.scheduledAt + 3_600_000);
 
   const title = extractPostTitle(post.content);
   const contentPreview = extractContentPreview(post.content);
@@ -124,11 +124,11 @@ export function postToCalendarEvent(post: Post): SocialCalendarEvent | null {
     })) || [];
 
   // Determine status for display
-  let status: 'scheduled' | 'processing' | 'failed' = 'scheduled';
-  if (post.status === 'PROCESSING') {
-    status = 'processing';
-  } else if (post.status === 'FAILED') {
-    status = 'failed';
+  let status: "scheduled" | "processing" | "failed" = "scheduled";
+  if (post.status === "PROCESSING") {
+    status = "processing";
+  } else if (post.status === "FAILED") {
+    status = "failed";
   }
 
   // Create the post data for social display
@@ -144,12 +144,12 @@ export function postToCalendarEvent(post: Post): SocialCalendarEvent | null {
   };
 
   // Create description with social platforms
-  const platformNames = platforms.map((p) => p.type).join(', ') || '';
+  const platformNames = platforms.map((p) => p.type).join(", ") || "";
 
   return {
     id: post._id,
     title,
-    description: platformNames || 'No platforms selected',
+    description: platformNames || "No platforms selected",
     start: startDate,
     end: endDate,
     allDay: false,

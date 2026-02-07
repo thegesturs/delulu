@@ -4,7 +4,7 @@
  * Based on SortFeed's approach
  */
 
-import type { ReelMetrics } from '../../shared/types';
+import type { ReelMetrics } from "../../shared/types";
 
 interface GraphQLReelData {
   pk?: string;
@@ -85,7 +85,8 @@ function processGraphQLResponse(response: GraphQLResponse): void {
 
   // Check for posts/feed data
   if (response.data?.xdt_api__v1__feed__user_timeline_graphql_connection) {
-    const edges = response.data.xdt_api__v1__feed__user_timeline_graphql_connection.edges;
+    const edges =
+      response.data.xdt_api__v1__feed__user_timeline_graphql_connection.edges;
 
     for (const edge of edges) {
       const node = edge.node;
@@ -108,10 +109,12 @@ function processGraphQLResponse(response: GraphQLResponse): void {
  */
 export function initializeGraphQLInterceptor(): void {
   // Listen for metrics from the MAIN world interceptor
-  window.addEventListener('message', (event) => {
-    if (event.source !== window) return;
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) {
+      return;
+    }
 
-    if (event.data.type === 'SORTED_METRICS_CACHED') {
+    if (event.data.type === "SORTED_METRICS_CACHED") {
       const { reelId, metrics } = event.data;
       metricsCache.set(reelId, metrics);
     }
@@ -120,8 +123,8 @@ export function initializeGraphQLInterceptor(): void {
   // Keep backup fetch interceptor in isolated world
   const originalFetch = window.fetch;
 
-  window.fetch = async function(...args) {
-    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+  window.fetch = async function (...args) {
+    const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
 
     // Call original fetch
     const response = await originalFetch.apply(this, args);
@@ -130,17 +133,19 @@ export function initializeGraphQLInterceptor(): void {
     const clonedResponse = response.clone();
 
     // Only process GraphQL requests
-    if (url && url.includes('/graphql/query')) {
+    if (url?.includes("/graphql/query")) {
       try {
-        const data = await clonedResponse.json() as GraphQLResponse;
+        const data = (await clonedResponse.json()) as GraphQLResponse;
 
         // Check if this response contains reel data
         if (data.data?.xdt_api__v1__clips__user__connection_v2) {
           processGraphQLResponse(data);
-        } else if (data.data?.xdt_api__v1__feed__user_timeline_graphql_connection) {
+        } else if (
+          data.data?.xdt_api__v1__feed__user_timeline_graphql_connection
+        ) {
           processGraphQLResponse(data);
         }
-      } catch (error) {
+      } catch (_error) {
         // Silent fail
       }
     }
@@ -153,44 +158,54 @@ export function initializeGraphQLInterceptor(): void {
   const originalSend = XMLHttpRequest.prototype.send;
 
   // Override open to capture the URL
-  XMLHttpRequest.prototype.open = function(
-    method: string,
+  XMLHttpRequest.prototype.open = function (
+    _method: string,
     url: string | URL,
-    async?: boolean,
-    username?: string | null,
-    password?: string | null
+    _async?: boolean,
+    _username?: string | null,
+    _password?: string | null
   ) {
     // Store URL for later use
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
     (this as any)._url = url.toString();
+    // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires arguments
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
     return originalOpen.apply(this, arguments as any);
   };
 
   // Override send to capture the response
-  XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
+  XMLHttpRequest.prototype.send = function (
+    _body?: Document | XMLHttpRequestBodyInit | null
+  ) {
     // Add load listener to process response
-    this.addEventListener('load', function() {
+    this.addEventListener("load", function () {
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
       const url = (this as any)._url;
 
       // Only process GraphQL requests
-      if (url && url.includes('/graphql/query')) {
+      if (url?.includes("/graphql/query")) {
         try {
           // Only process text/json responses
-          if (this.responseType === '' || this.responseType === 'text') {
+          if (this.responseType === "" || this.responseType === "text") {
             const response = JSON.parse(this.responseText) as GraphQLResponse;
 
             // Check if this response contains reel data
             if (response.data?.xdt_api__v1__clips__user__connection_v2) {
               processGraphQLResponse(response);
-            } else if (response.data?.xdt_api__v1__feed__user_timeline_graphql_connection) {
+            } else if (
+              response.data?.xdt_api__v1__feed__user_timeline_graphql_connection
+            ) {
               processGraphQLResponse(response);
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Silent fail
         }
       }
     });
 
+    // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires arguments
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
     return originalSend.apply(this, arguments as any);
   };
 }

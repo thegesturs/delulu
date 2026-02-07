@@ -5,6 +5,23 @@
 
 declare module "sst" {
   export interface Resource {
+    "CONVEX_URL": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "INSTAGRAM_APP_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "INSTAGRAM_WEBHOOK_VERIFY_TOKEN": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "InstagramWebhook": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
     "LAMBDA_SECRET_KEY": {
       "type": "sst.sst.Secret"
       "value": string

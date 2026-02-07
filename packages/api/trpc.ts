@@ -1,9 +1,9 @@
-import { auth } from '@delulu/auth/server';
-import { api } from '@delulu/database/convex/_generated/api';
-import { fetchQuery } from '@delulu/database/server';
-import { TRPCError, initTRPC } from '@trpc/server';
-import superjson from 'superjson';
-import { ZodError } from 'zod';
+import { auth } from "@delulu/auth/server";
+import { api } from "@delulu/database/convex/_generated/api";
+import { fetchQuery } from "@delulu/database/server";
+import { initTRPC, TRPCError } from "@trpc/server";
+import superjson from "superjson";
+import { ZodError } from "zod";
 
 /**
  * 1. CONTEXT
@@ -24,8 +24,8 @@ interface TRPCContext {
 }
 
 export const createTRPCContext = (opts: TRPCContext) => {
-  const source = opts.headers.get('x-trpc-source') ?? 'unknown';
-  console.log('source', source);
+  const source = opts.headers.get("x-trpc-source") ?? "unknown";
+  console.log("source", source);
   return {};
 };
 
@@ -113,15 +113,15 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   const { userId, getToken } = await auth();
   if (!userId) {
     throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'No token provided',
+      code: "UNAUTHORIZED",
+      message: "No token provided",
     });
   }
-  const token = await getToken({ template: 'convex' });
+  const token = await getToken({ template: "convex" });
   if (!token) {
     throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'No token provided',
+      code: "UNAUTHORIZED",
+      message: "No token provided",
     });
   }
   const user = await fetchQuery(
@@ -133,8 +133,8 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   );
   if (!user?._id) {
     throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'User not found',
+      code: "UNAUTHORIZED",
+      message: "User not found",
     });
   }
   return next({

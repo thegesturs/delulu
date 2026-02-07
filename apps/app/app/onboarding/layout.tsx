@@ -1,5 +1,5 @@
-import { auth } from '@delulu/auth/server';
-import { redirect } from 'next/navigation';
+import { auth } from "@delulu/auth/server";
+import { redirect } from "next/navigation";
 
 export default async function OnboardingLayout({
   children,
@@ -13,7 +13,7 @@ export default async function OnboardingLayout({
     | { onboardingComplete?: boolean }
     | undefined;
   if (metadata?.onboardingComplete === true) {
-    redirect('/');
+    redirect("/");
   }
 
   return <>{children}</>;

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { motion } from 'motion/react';
+import { motion } from "motion/react";
 
 interface GradientBarsProps {
   bars?: number;
@@ -9,9 +9,9 @@ interface GradientBarsProps {
 
 export const GradientBars = ({
   bars = 20,
-  colors = ['#e60a64', 'transparent'],
+  colors = ["#e60a64", "transparent"],
 }: GradientBarsProps) => {
-  const gradientStyle = `linear-gradient(to top, ${colors.join(', ')})`;
+  const gradientStyle = `linear-gradient(to top, ${colors.join(", ")})`;
   return (
     <div className="absolute inset-0 z-0 overflow-hidden">
       <div className="flex h-full w-full">
@@ -23,18 +23,18 @@ export const GradientBars = ({
 
           return (
             <motion.div
-              key={`bg-bar-${index}`}
-              className="flex-1 origin-bottom"
-              style={{ background: gradientStyle }}
               animate={{
                 scaleY: [scale, scale + 0.1, scale],
                 opacity: [1, 0.95, 1],
               }}
+              className="flex-1 origin-bottom"
+              key={`bg-bar-${index}`}
+              style={{ background: gradientStyle }}
               transition={{
                 duration: 3,
-                ease: 'easeInOut',
+                ease: "easeInOut",
                 repeat: Number.POSITIVE_INFINITY,
-                repeatType: 'mirror',
+                repeatType: "mirror",
                 delay: index * 0.5,
               }}
             />

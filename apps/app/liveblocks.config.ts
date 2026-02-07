@@ -1,1 +1,1 @@
-export * from '@delulu/collaboration/config';
+export * from "@delulu/collaboration/config";
