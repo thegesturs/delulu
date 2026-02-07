@@ -105,9 +105,12 @@ interface WebhookData {
   accessToken: string;
   profileId: string;
   userId: Id<'users'>;
+  planType: 'FREE' | 'VIBE' | 'ECHO';
   dmsSent: number;
   dmLimit: number;
 }
+
+const FREE_WATERMARK = '\n\n- - -\nSent via @delulu.social';
 
 // ============================================================================
 // Signature Validation
@@ -399,6 +402,12 @@ async function processComment(
 
     if (!result) continue;
 
+    // Append watermark for free plan users
+    const message =
+      data.planType === 'FREE'
+        ? result.message + FREE_WATERMARK
+        : result.message;
+
     console.log(
       `[dm] Sending DM for automation ${automation._id} to @${event.username}`
     );
@@ -406,7 +415,7 @@ async function processComment(
       data.accessToken,
       data.profileId,
       event.commentId,
-      result.message,
+      message,
       result.buttons
     );
 

@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/use-subscription';
 import { FlowCanvas } from './flow-canvas';
 import { FlowSidebarPanel } from './flow-sidebar-panel';
 import { FlowToolbar } from './flow-toolbar';
@@ -33,6 +34,7 @@ interface FlowBuilderProps {
 
 function FlowBuilderInner({ automationId }: FlowBuilderProps) {
   const router = useRouter();
+  const { isFree: isFreePlan } = useSubscription();
   const isNew = !automationId;
   const [isSaving, setIsSaving] = useState(false);
   const [showTriggerWizard, setShowTriggerWizard] = useState(false);
@@ -346,6 +348,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
           steps={steps}
           socialProviderId={automationMeta.socialProviderId}
           instagramProviders={instagramProviders}
+          isFreePlan={isFreePlan}
           onSocialProviderChange={(id) => {
             setAutomationMeta((prev) => ({ ...prev, socialProviderId: id }));
             markDirty();

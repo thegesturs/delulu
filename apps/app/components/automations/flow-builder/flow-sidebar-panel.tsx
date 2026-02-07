@@ -28,6 +28,7 @@ interface FlowSidebarPanelProps {
   steps: AutomationStep[];
   socialProviderId: string;
   instagramProviders: SocialProvider[];
+  isFreePlan?: boolean;
   onSocialProviderChange: (id: string) => void;
   onClose: () => void;
   onUpdateTrigger: (id: string, trigger: TriggerStep) => void;
@@ -41,6 +42,7 @@ export function FlowSidebarPanel({
   steps,
   socialProviderId,
   instagramProviders,
+  isFreePlan,
   onSocialProviderChange,
   onClose,
   onUpdateTrigger,
@@ -108,6 +110,7 @@ export function FlowSidebarPanel({
             {step.type === 'send_dm' && (
               <SendDmPanel
                 step={step as SendDmStep}
+                isFreePlan={isFreePlan}
                 onChange={(updated) => onUpdateStep(step.id, updated)}
               />
             )}

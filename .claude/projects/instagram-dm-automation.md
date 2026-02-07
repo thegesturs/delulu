@@ -1,12 +1,12 @@
 # Instagram DM Automation (ManyChat Competitor)
 
 **Branch:** `wiz/automate-dms-instagram`
-**Status:** In Progress
+**Status:** In Progress — Flow Builder v2 complete, E2E working
 **Last Updated:** 2026-02-07
 
 ## Overview
 
-Build a production-grade Instagram DM automation system that automatically sends private replies when users comment on Instagram posts.
+Build a production-grade Instagram DM automation system that automatically sends private replies when users comment on Instagram posts. Includes a visual flow builder, DM buttons, comment replies, and multi-trigger support.
 
 ## Architecture
 
@@ -14,139 +14,160 @@ Build a production-grade Instagram DM automation system that automatically sends
 Instagram Comment → Lambda (Function URL)
   1. Validate X-Hub-Signature-256
   2. Query Convex: get automations for this mediaId + access token + usage
-  3. Evaluate conditions in-memory
+  3. Traverse step-based flow tree (conditions → send DM)
   4. No match? → done (1 Convex call total)
-  5. Match + under plan limit? → send DM via Instagram API
-  6. Mutate Convex: increment usage.dmsSent + automation stats + minimal log
+  5. Match + under plan limit? → send DM via Instagram API (with optional buttons)
+  6. Optionally reply to comment publicly (random pick from list)
+  7. Mutate Convex: increment usage.dmsSent + automation stats + minimal log
   Done. (2 Convex calls per DM sent, 1 per non-match)
 ```
 
 ---
 
-## Completed Work
+## Storage Model (v2 — Step-Based)
 
-### 1. Database Schemas (Convex)
+Replaced old flat fields (`triggerType`, `conditions`, `messageTemplate`) and React Flow fields (`flowNodes`, `flowEdges`) with a **step-based tree**:
 
-**Files:**
-- `packages/database/convex/schemas/automations.ts`
-- `packages/database/convex/schemas/users.ts` (added `dmsSent` to usage)
+```ts
+// Automation document shape:
+{
+  triggers: TriggerStep[],   // Multiple triggers, OR logic
+  steps: AutomationStep[],   // Flat array with ID references (condition | send_dm)
+  // ... meta fields
+}
+```
 
-**Tables:**
-- `automations` - Automation rules (trigger type, conditions, message template, target posts)
-- `automationLogs` - Minimal execution history (DM_SENT only)
+### Step Types
 
-**Indexes:**
-- automations: by_user_id, by_social_provider_id, by_is_active, by_trigger_type, by_social_provider_active
-- automationLogs: by_automation_id, by_user_id
+- **TriggerStep**: `{ id, type: 'trigger', triggerType, targetPostIds, nextStepId? }`
+- **ConditionStep**: `{ id, type: 'condition', operator, value?, caseSensitive?, yesStepId?, noStepId? }`
+- **SendDmStep**: `{ id, type: 'send_dm', messageTemplate, buttons?, commentReply?, nextStepId? }`
 
-**DM Plan Limits (in `DM_PLAN_LIMITS`):**
-- FREE → 100 DMs/month
-- VIBE → 5,000 DMs/month
-- ECHO → 50,000 DMs/month
+### Key Design Decisions
+- **No x,y positions stored** — React Flow positions computed at render time via `stepsToFlow()` auto-layout
+- **No legacy support** — this branch is greenfield, no migration code
+- **No flowVersion field** — single format only
+- **Active by default** — new automations created with `isActive: true`
 
 ---
 
-### 2. Lambda Webhook Handler
+## Features
+
+### Multiple Triggers (OR Logic)
+- Each automation can have multiple triggers
+- Any matching trigger fires the flow
+- All triggers share the same step chain
+
+### DM Buttons
+- **Quick Replies**: up to 13, tappable buttons below message
+- **URL Buttons**: up to 3, link buttons using template attachment
+- Cannot mix both types in one message (Instagram limitation)
+- URL validation on frontend (must be valid https:// URL)
+
+### Comment Replies
+- After sending DM, optionally reply to comment publicly
+- Configure list of reply options (e.g. "Check your DMs! 📩")
+- One picked randomly at send time
+- Uses Instagram `/replies` endpoint
+
+### Condition Operators
+`contains`, `not_contains`, `equals`, `starts_with`, `ends_with`, `regex`, `always`
+
+---
+
+## Flow Builder UI
+
+### Component Structure
+
+```
+apps/app/components/automations/flow-builder/
+  flow-builder.tsx              # Main component — state, save, React Flow provider
+  flow-canvas.tsx               # React Flow canvas (display-only, no drag/connect)
+  flow-toolbar.tsx              # Top bar: back, name input, active toggle, save
+  flow-sidebar-panel.tsx        # Sheet panel — routes to trigger/condition/send-dm panels
+
+  nodes/
+    trigger-node.tsx            # React Flow custom node
+    condition-node.tsx
+    send-dm-node.tsx
+
+  panels/
+    trigger-panel.tsx           # Account picker + trigger type + post selector
+    condition-panel.tsx         # Operator, value, case sensitive
+    send-dm-panel.tsx           # Message + variables + IG DM preview + buttons + comment reply
+    button-editor.tsx           # Quick reply / URL button tabs
+    comment-reply-editor.tsx    # Toggle + reply text list
+
+  trigger-wizard/
+    trigger-wizard.tsx          # 3-step dialog for adding triggers
+    account-step.tsx            # Step 1: Pick Instagram account
+    trigger-type-step.tsx       # Step 2: Pick trigger type (rich cards)
+    post-selector-step.tsx      # Step 3: Pick target posts
+
+  hooks/
+    use-automation-state.ts     # State management: triggers[], steps[], meta, dirty tracking
+
+  utils/
+    flow-types.ts               # Re-exports from schema + AutomationMeta interface
+    flow-validation.ts          # Validation (triggers, steps, URLs, reachability)
+    auto-layout.ts              # stepsToFlow() — converts steps → React Flow nodes/edges
+    step-helpers.ts             # CRUD helpers: createId, createTrigger, insertStepAfter, etc.
+```
+
+### UX Details
+- **3 action cards at bottom**: Add Trigger, Add Condition, Add Send DM (disabled until trigger exists)
+- **Trigger wizard**: ManyChat-style 3-step dialog (account → type → posts)
+- **Sidebar panels**: Sheet with proper padding (p-0 on SheetContent, px-6 py-4 header, px-6 py-5 content)
+- **Trigger panel**: Account picker + trigger type cards (COMMENT active, MENTION/STORY_REPLY coming soon) + post selector
+- **Send DM preview**: Dark Instagram DM mockup with chat bubbles, quick reply pills, URL buttons
+- **Flow canvas**: React Flow with `nodesDraggable={false}`, `nodesConnectable={false}` — display only
+
+---
+
+## Completed Work
+
+### 1. Database Schema
+
+**File:** `packages/database/convex/schemas/automations.ts`
+
+Schemas: `triggerStepSchema`, `conditionStepSchema`, `sendDmStepSchema`, `automationStepSchema`, `commentReplySchema`, `dmQuickReplySchema`, `dmUrlButtonSchema`, `dmButtonSchema`, `automationTriggerTypeSchema`, `automationConditionOperatorSchema`
+
+### 2. Convex Functions
+
+**File:** `packages/database/convex/automations.ts`
+
+- `getAutomations` — list user's automations
+- `getAutomation` — get single by ID
+- `getForWebhook` — single query for Lambda (automations + token + usage), auth via `POSTING_SECRET_KEY`
+- `recordDMSent` — increment usage + stats + log, auth via `POSTING_SECRET_KEY`
+- `createAutomation` — defaults `isActive: true`
+- `updateAutomation`, `deleteAutomation`, `toggleAutomation`
+
+### 3. Lambda Webhook Handler
 
 **File:** `packages/infrastructure/src/instagram-webhook.ts`
 
-Single Lambda with Function URL that does everything:
-- GET: Webhook verification challenge
-- POST: Validate signature → query Convex → evaluate conditions → send DM → record
+- `extractCommentEvents` — parse webhook payload
+- `evaluateCondition` — condition matching
+- `executeStepFlow` — traverse step tree from trigger → condition → send_dm
+- `sendPrivateReply` — Instagram DM API with button support
+- `replyToComment` — public comment reply via `/replies` endpoint
+- `processComment` — orchestrates the full flow
+- `handler` — Lambda entry point (GET verification + POST processing)
 
-**SST Secrets (already set):**
-- `LAMBDA_SECRET_KEY` — shared secret for authenticating Convex calls
-- `INSTAGRAM_APP_SECRET` — from Meta App Dashboard
-- `INSTAGRAM_WEBHOOK_VERIFY_TOKEN` — random verify token
-- `CONVEX_URL` — Convex deployment URL
+### 4. Flow Builder UI (all new files listed above)
 
-**SST Config:** `packages/infrastructure/sst.config.ts` — `InstagramWebhook` function
+### 5. Updated Existing Components
 
----
-
-### 3. Convex Functions
-
-**Files:**
-- `packages/database/convex/automations.ts`
-  - `getAutomations` - List user's automations
-  - `getAutomation` - Get single automation
-  - `getForWebhook` - Single query: automations + token + usage (auth via webhookSecret arg vs `LAMBDA_SECRET_KEY` env)
-  - `recordDMSent` - Single mutation: increment usage + stats + log (auth via webhookSecret arg)
-  - `createAutomation` - Create new automation
-  - `updateAutomation` - Update automation
-  - `deleteAutomation` - Delete automation
-  - `toggleAutomation` - Enable/disable
-
-- `packages/database/convex/automationLogs.ts`
-  - `getLogsByAutomation` - Query logs for display
-
----
-
-### 4. Instagram OAuth Scopes
-
-**File:** `packages/api/services/connect-url.service.ts`
-
-**Scopes:**
-- `instagram_business_manage_messages` (for sending DMs)
-- `instagram_business_manage_comments` (for reading comments)
-
----
-
-### 5. UI Components
-
-**Pages:**
-- `apps/app/app/(authenticated)/automations/page.tsx` - Main list page
-- `apps/app/app/(authenticated)/automations/[id]/page.tsx` - Edit automation
-- `apps/app/app/(authenticated)/automations/[id]/analytics/page.tsx` - View stats & logs
-
-**Components:**
-- `apps/app/components/automations/automations-client.tsx` - Main client component
-- `apps/app/components/automations/automations-header.tsx` - Page header with create button
-- `apps/app/components/automations/automation-stats.tsx` - Stats cards
-- `apps/app/components/automations/automation-filters.tsx` - Search, status, trigger filters
-- `apps/app/components/automations/automation-list.tsx` - Grid/list view
-- `apps/app/components/automations/automation-card.tsx` - Individual automation card
-- `apps/app/components/automations/create-automation-dialog.tsx` - Create dialog with tabs
-- `apps/app/components/automations/post-selector.tsx` - Instagram post selection
-
----
-
-## Removed (Simplified Away)
-
-- **Cloudflare Workers package** — moved to single Lambda
-- **AWS SQS + DLQ + processor Lambda** — single Lambda does everything
-- **webhookEvents table** — no longer stored
-- **Per-automation rate limits** (maxDMsPerHour, maxDMsPerDay, cooldownMinutes) — replaced by plan-level limits
-- **Verbose logging** (TRIGGERED, DM_FAILED, RATE_LIMITED, CONDITION_NOT_MET, DUPLICATE) — now only DM_SENT
-- **Convex HTTP /instagram-webhook endpoint** — replaced by Lambda Function URL
-
----
-
-## Pending Work
-
-### 1. Testing & Deployment
-- [ ] `npx convex dev` — schema deploys (new dmsSent field, removed webhookEvents)
-- [ ] `pnpm sst deploy` — Lambda deploys with Function URL
-- [ ] Update Meta webhook URL → Lambda Function URL (from SST output `InstagramWebhookURL`)
-- [ ] Test verification: `curl <lambda-url>?hub.mode=subscribe&hub.verify_token=...&hub.challenge=test`
-- [ ] Test end-to-end: Comment on IG post → DM received → user.usage.dmsSent incremented
-
-### 2. Data Migration
-- [ ] Add `dmsSent: 0` to all existing users' usage objects
-- [ ] Add `targetPostIds: []` to any existing automations with missing field
-
-### 3. Token Refresh
-- [ ] Implement Instagram token refresh logic (60-day expiry)
-
-### 4. Additional Triggers (Future)
-- [ ] Mention trigger
-- [ ] Story reply trigger
+- `automations-client.tsx` — filter uses `automation.triggers.some()` instead of old `automation.triggerType`
+- `automation-card.tsx` — uses helper functions for trigger type/step summary instead of old flat fields
+- `schema.ts` — removed `by_trigger_type` index
 
 ---
 
 ## Environment Variables
 
-### SST Secrets (already configured)
+### SST Secrets
 ```bash
 pnpm sst secret set LAMBDA_SECRET_KEY "..."
 pnpm sst secret set INSTAGRAM_APP_SECRET "..."
@@ -155,11 +176,11 @@ pnpm sst secret set CONVEX_URL "..."
 ```
 
 ### Convex Environment Variables
-- `LAMBDA_SECRET_KEY` — same value as SST secret (set in Convex dashboard)
+- `POSTING_SECRET_KEY` — shared secret for Lambda ↔ Convex auth (set in Convex dashboard)
 
 ### Meta App Dashboard
 - Callback URL: Lambda Function URL from `pnpm sst deploy` output
-- Verify Token: Same as INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+- Verify Token: Same as `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`
 - Subscribe to: `comments` field
 
 ---
@@ -171,11 +192,12 @@ pnpm sst secret set CONVEX_URL "..."
 | Automation schemas | `packages/database/convex/schemas/automations.ts` |
 | User schema (dmsSent) | `packages/database/convex/schemas/users.ts` |
 | Main schema | `packages/database/convex/schema.ts` |
-| Convex automations | `packages/database/convex/automations.ts` |
+| Convex functions | `packages/database/convex/automations.ts` |
 | Convex logs | `packages/database/convex/automationLogs.ts` |
 | Lambda webhook | `packages/infrastructure/src/instagram-webhook.ts` |
 | SST config | `packages/infrastructure/sst.config.ts` |
 | OAuth scopes | `packages/api/services/connect-url.service.ts` |
+| Flow builder | `apps/app/components/automations/flow-builder/` |
 | UI pages | `apps/app/app/(authenticated)/automations/` |
 | UI components | `apps/app/components/automations/` |
 | Types | `apps/app/types/convex.ts` |
@@ -190,3 +212,22 @@ pnpm sst secret set CONVEX_URL "..."
 - ECHO: 50,000 DMs/month
 - Instagram allows only 1 private reply per comment
 - Private replies must be within 7 days of comment
+
+---
+
+## Known Issues / Bugs Fixed
+
+1. **`insertStepAfter` didn't handle `'next'` branch for conditions** — new steps were orphaned (not linked to flow). Fixed: `'next'` maps to `'yes'` for condition steps.
+2. **Secret mismatch** — `getForWebhook` and `recordDMSent` used `LAMBDA_SECRET_KEY` env var but Convex had `POSTING_SECRET_KEY`. Both now use `POSTING_SECRET_KEY`.
+3. **Invalid URL buttons crash DM send** — Instagram API rejects invalid URLs. Added `isValidUrl()` validation in `flow-validation.ts` + inline error on URL input in `button-editor.tsx`.
+
+---
+
+## Pending Work
+
+- [ ] Token refresh logic (Instagram 60-day expiry)
+- [ ] MENTION trigger support
+- [ ] STORY_REPLY trigger support
+- [ ] Analytics page integration with new step-based data
+- [ ] Monthly usage reset for dmsSent
+- [ ] Delete unused `add-step-menu.tsx` file
