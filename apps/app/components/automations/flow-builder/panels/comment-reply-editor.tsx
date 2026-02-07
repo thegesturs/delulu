@@ -65,10 +65,7 @@ export function CommentReplyEditor({
             One reply is picked randomly from this list:
           </p>
           {replies.map((reply, i) => (
-            <div
-              className="flex items-center gap-2"
-              key={`reply-${i}-${reply}`}
-            >
+            <div className="flex items-center gap-2" key={`reply-${i}`}>
               <Input
                 className="flex-1"
                 onChange={(e) => updateReply(i, e.target.value)}

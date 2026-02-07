@@ -68,40 +68,6 @@ export function useAutomationState() {
   );
 
   // Step operations
-  const _addStepAfter = useCallback(
-    (
-      parentId: string,
-      branch: "next" | "yes" | "no",
-      newStep: AutomationStep
-    ) => {
-      setTriggers((prevTriggers) => {
-        setSteps((prevSteps) => {
-          const result = insertStepAfter(
-            prevTriggers,
-            prevSteps,
-            parentId,
-            branch,
-            newStep
-          );
-          // We need to set triggers from within this callback to keep them in sync
-          // Using a ref-based approach instead
-          return result.steps;
-        });
-        // Also update triggers
-        const result = insertStepAfter(
-          prevTriggers,
-          steps,
-          parentId,
-          branch,
-          newStep
-        );
-        return result.triggers;
-      });
-      markDirty();
-    },
-    [steps, markDirty]
-  );
-
   const addStepAfterSync = useCallback(
     (
       parentId: string,

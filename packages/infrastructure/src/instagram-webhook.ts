@@ -1,6 +1,13 @@
 import { createHmac } from "node:crypto";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import type {
+  AutomationStep,
+  CommentReply,
+  ConditionStep,
+  DmButton,
+  TriggerStep,
+} from "@delulu/database/convex/schemas/automations";
 import { ConvexHttpClient } from "convex/browser";
 import { Resource } from "sst";
 
@@ -42,60 +49,6 @@ interface CommentEvent {
   instagramAccountId: string;
 }
 
-interface Condition {
-  operator:
-    | "contains"
-    | "not_contains"
-    | "equals"
-    | "starts_with"
-    | "ends_with"
-    | "regex"
-    | "always";
-  value?: string;
-  caseSensitive?: boolean;
-}
-
-interface TriggerStep {
-  id: string;
-  type: "trigger";
-  triggerType: string;
-  targetPostIds: string[];
-  nextStepId?: string;
-}
-
-interface ConditionStep {
-  id: string;
-  type: "condition";
-  operator: Condition["operator"];
-  value?: string;
-  caseSensitive?: boolean;
-  yesStepId?: string;
-  noStepId?: string;
-}
-
-interface DmButton {
-  type: "quick_reply" | "url";
-  title: string;
-  payload?: string;
-  url?: string;
-}
-
-interface CommentReply {
-  enabled: boolean;
-  replies: string[];
-}
-
-interface SendDmStep {
-  id: string;
-  type: "send_dm";
-  messageTemplate: string;
-  buttons?: DmButton[];
-  commentReply?: CommentReply;
-  nextStepId?: string;
-}
-
-type AutomationStep = ConditionStep | SendDmStep;
-
 interface WebhookData {
   automations: Array<{
     _id: Id<"automations">;
@@ -132,7 +85,10 @@ function validateSignature(
 // Condition Evaluation
 // ============================================================================
 
-function evaluateCondition(text: string, condition: Condition): boolean {
+function evaluateCondition(
+  text: string,
+  condition: Pick<ConditionStep, "operator" | "value" | "caseSensitive">
+): boolean {
   const compareText = condition.caseSensitive ? text : text.toLowerCase();
   const compareValue = condition.caseSensitive
     ? condition.value || ""
@@ -157,7 +113,8 @@ function evaluateCondition(text: string, condition: Condition): boolean {
           condition.value || "",
           condition.caseSensitive ? "" : "i"
         ).test(text);
-      } catch {
+      } catch (e) {
+        console.warn(`[condition] Invalid regex: "${condition.value}"`, e);
         return false;
       }
     default:
@@ -252,6 +209,13 @@ function extractCommentEvents(
     }
     for (const change of entry.changes) {
       if (change.field !== "comments") {
+        continue;
+      }
+      if (!(change.value?.from && change.value?.id)) {
+        console.warn(
+          "[extract] Malformed comment change, skipping:",
+          JSON.stringify(change)
+        );
         continue;
       }
       events.push({
@@ -434,14 +398,21 @@ async function processComment(
     if (success) {
       console.log(`[dm] DM sent successfully for comment ${event.commentId}`);
 
-      // Record DM sent
-      await convex.mutation(api.automations.recordDMSent, {
-        webhookSecret: secretKey,
-        userId: data.userId,
-        automationId: automation._id,
-        instagramCommentId: event.commentId,
-        instagramUsername: event.username,
-      });
+      // Record DM sent (don't let failure block comment reply)
+      try {
+        await convex.mutation(api.automations.recordDMSent, {
+          webhookSecret: secretKey,
+          userId: data.userId,
+          automationId: automation._id,
+          instagramCommentId: event.commentId,
+          instagramUsername: event.username,
+        });
+      } catch (e) {
+        console.error(
+          `[record] Failed to record DM for ${event.commentId}:`,
+          e
+        );
+      }
 
       // Reply to comment if configured
       if (
@@ -501,8 +472,8 @@ export async function handler(event: LambdaEvent) {
     if (
       !validateSignature(body, signature, Resource.INSTAGRAM_APP_SECRET.value)
     ) {
-      console.warn("[webhook] Invalid signature, ignoring");
-      return json(200, { status: "received" });
+      console.warn("[webhook] Invalid signature, rejecting");
+      return json(401, { error: "Invalid signature" });
     }
 
     let payload: InstagramWebhookPayload;

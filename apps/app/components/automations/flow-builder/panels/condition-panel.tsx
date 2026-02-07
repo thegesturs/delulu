@@ -80,7 +80,7 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
         <div className="flex items-center justify-between">
           <Label htmlFor="case-sensitive">Case sensitive</Label>
           <Switch
-            checked={step.caseSensitive}
+            checked={step.caseSensitive ?? false}
             id="case-sensitive"
             onCheckedChange={(checked) =>
               onChange({ ...step, caseSensitive: checked })
