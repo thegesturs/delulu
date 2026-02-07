@@ -9,7 +9,9 @@ export function useFeatureFlag(flag: keyof typeof FEATURE_FLAGS) {
   const enabled =
     !isLoading &&
     user !== null &&
-    FEATURE_FLAGS[flag].allowedEmails.includes(user.email);
+    (FEATURE_FLAGS[flag].allowedEmails as readonly string[]).includes(
+      user.email
+    );
 
   return { enabled, isLoading };
 }
