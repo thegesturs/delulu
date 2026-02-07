@@ -16,10 +16,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
-import { PLANS, type PlanType } from '@delulu/payments';
-import { useAction } from 'convex/react';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { ArrowRight01Icon, LockIcon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
+import { PLANS, type PlanType } from '@delulu/payments';
+import {
+  ArrowRight01Icon,
+  LockIcon,
+  SparklesIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import { useAction } from 'convex/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 

@@ -3,7 +3,10 @@
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { cn } from '@delulu/design-system/lib/utils';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { MailSend01Icon, Cancel01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Cancel01Icon,
+  MailSend01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import type { SendDmStep } from '../utils/flow-types';
 
 interface SendDmStepCardProps {
@@ -21,7 +24,8 @@ export function SendDmStepCard({
 }: SendDmStepCardProps) {
   const hasMessage = step.messageTemplate.trim().length > 0;
   const hasButtons = step.buttons && step.buttons.length > 0;
-  const hasReply = step.commentReply?.enabled && step.commentReply.replies.length > 0;
+  const hasReply =
+    step.commentReply?.enabled && step.commentReply.replies.length > 0;
 
   return (
     <button
@@ -42,7 +46,8 @@ export function SendDmStepCard({
           <p className="font-medium text-sm">Send DM</p>
           <p className="truncate text-muted-foreground text-xs">
             {hasMessage
-              ? step.messageTemplate.slice(0, 50) + (step.messageTemplate.length > 50 ? '...' : '')
+              ? step.messageTemplate.slice(0, 50) +
+                (step.messageTemplate.length > 50 ? '...' : '')
               : 'No message set'}
           </p>
         </div>
@@ -51,7 +56,8 @@ export function SendDmStepCard({
         <div className="mt-2 flex gap-1.5 pl-12">
           {hasButtons && (
             <Badge variant="secondary" className="text-[10px]">
-              {step.buttons!.length} button{step.buttons!.length !== 1 ? 's' : ''}
+              {step.buttons!.length} button
+              {step.buttons!.length !== 1 ? 's' : ''}
             </Badge>
           )}
           {hasReply && (
@@ -67,7 +73,7 @@ export function SendDmStepCard({
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover:opacity-100"
+        className="-top-2 -right-2 absolute flex h-5 w-5 items-center justify-center rounded-full bg-muted opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover:opacity-100"
       >
         <Icon icon={Cancel01Icon} size={10} />
       </button>

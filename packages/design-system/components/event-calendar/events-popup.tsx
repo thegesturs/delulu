@@ -1,9 +1,9 @@
 'use client';
 
-import { format, isSameDay } from 'date-fns';
-import { Icon } from '../../providers/icon';
 import { Cancel01Icon } from '@hugeicons-pro/core-solid-rounded';
+import { format, isSameDay } from 'date-fns';
 import { useEffect, useMemo, useRef } from 'react';
+import { Icon } from '../../providers/icon';
 
 import {
   type CalendarEvent,

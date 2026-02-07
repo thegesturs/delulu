@@ -121,7 +121,9 @@ function validateSignature(
   signature: string | undefined,
   appSecret: string
 ): boolean {
-  if (!signature) return false;
+  if (!signature) {
+    return false;
+  }
   const expected = `sha256=${createHmac('sha256', appSecret).update(payload).digest('hex')}`;
   return signature === expected;
 }
@@ -193,7 +195,9 @@ function executeStepFlow(
 ): FlowResult | null {
   // 1. Find matching trigger (any trigger with this mediaId)
   const trigger = triggers.find((t) => t.targetPostIds.includes(mediaId));
-  if (!trigger) return null;
+  if (!trigger) {
+    return null;
+  }
 
   // 2. Build step map
   const stepMap = new Map(steps.map((s) => [s.id, s]));
@@ -205,7 +209,9 @@ function executeStepFlow(
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
     const step = stepMap.get(currentId);
-    if (!step) break;
+    if (!step) {
+      break;
+    }
 
     if (step.type === 'send_dm') {
       return {
@@ -241,9 +247,13 @@ function extractCommentEvents(
   const events: CommentEvent[] = [];
 
   for (const entry of payload.entry) {
-    if (!entry.changes) continue;
+    if (!entry.changes) {
+      continue;
+    }
     for (const change of entry.changes) {
-      if (change.field !== 'comments') continue;
+      if (change.field !== 'comments') {
+        continue;
+      }
       events.push({
         commentId: change.value.id,
         commentText: change.value.text || '',
@@ -400,7 +410,9 @@ async function processComment(
       variables
     );
 
-    if (!result) continue;
+    if (!result) {
+      continue;
+    }
 
     // Append watermark for free plan users
     const message =

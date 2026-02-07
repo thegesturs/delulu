@@ -2,14 +2,18 @@
  * Utilities for handling Instagram's infinite scroll to load more reels
  */
 
-import type { ReelData, Quantity } from '../../shared/types';
 import { SCRAPING_CONFIG } from '../../shared/constants';
+import type { Quantity, ReelData } from '../../shared/types';
 import { scrapeVisibleReels, waitForLoad } from './instagram-scraper';
 
 /**
  * Progress callback for scroll operations
  */
-export type ScrollProgressCallback = (current: number, total: number, message: string) => void;
+export type ScrollProgressCallback = (
+  current: number,
+  total: number,
+  message: string
+) => void;
 
 /**
  * Cancel token for aborting scroll operations
@@ -42,15 +46,15 @@ function scrollToBottom(): void {
 function hasReachedEnd(): boolean {
   // Look for end-of-content indicators
   const endIndicators = [
-    'You\'ve seen all',
+    "You've seen all",
     'No more posts',
-    'You\'re all caught up',
+    "You're all caught up",
     'End of posts',
   ];
 
   const bodyText = document.body.textContent || '';
 
-  return endIndicators.some(indicator =>
+  return endIndicators.some((indicator) =>
     bodyText.toLowerCase().includes(indicator.toLowerCase())
   );
 }
@@ -61,7 +65,7 @@ function hasReachedEnd(): boolean {
  */
 async function waitForNewContent(
   previousCount: number,
-  timeout: number = SCRAPING_CONFIG.LOAD_WAIT_TIME,
+  timeout: number = SCRAPING_CONFIG.LOAD_WAIT_TIME
 ): Promise<boolean> {
   const startTime = Date.now();
 
@@ -116,7 +120,7 @@ function getTargetCount(quantity: Quantity): number {
 export async function scrollAndLoadReels(
   quantity: Quantity,
   onProgress?: ScrollProgressCallback,
-  cancelToken?: CancelToken,
+  cancelToken?: CancelToken
 ): Promise<ReelData[]> {
   const targetCount = getTargetCount(quantity);
   const allReels = new Map<string, ReelData>(); // Use Map to deduplicate by ID
@@ -157,16 +161,18 @@ export async function scrollAndLoadReels(
     onProgress?.(
       allReels.size,
       targetCount,
-      `Scrolling... (${allReels.size}/${quantity === 'all' ? 'all' : targetCount})`,
+      `Scrolling... (${allReels.size}/${quantity === 'all' ? 'all' : targetCount})`
     );
 
     // Wait for scroll delay
-    await new Promise(resolve => setTimeout(resolve, SCRAPING_CONFIG.SCROLL_DELAY));
+    await new Promise((resolve) =>
+      setTimeout(resolve, SCRAPING_CONFIG.SCROLL_DELAY)
+    );
 
     // Wait for Instagram to load content
     try {
       await waitForLoad(3000);
-    } catch (error) {
+    } catch (_error) {
       console.warn('Wait for load timeout, continuing anyway');
     }
 
@@ -180,11 +186,7 @@ export async function scrollAndLoadReels(
     }
 
     // Update progress
-    onProgress?.(
-      allReels.size,
-      targetCount,
-      `Found ${allReels.size} reels...`,
-    );
+    onProgress?.(allReels.size, targetCount, `Found ${allReels.size} reels...`);
 
     // Check if we got new content
     if (!hasNewContent || allReels.size === previousCount) {
@@ -210,12 +212,16 @@ export async function scrollAndLoadReels(
     onProgress?.(
       allReels.size,
       targetCount,
-      `Reached maximum scroll attempts (${allReels.size} reels found)`,
+      `Reached maximum scroll attempts (${allReels.size} reels found)`
     );
   } else if (cancelToken?.cancelled) {
     onProgress?.(allReels.size, targetCount, 'Cancelled');
   } else {
-    onProgress?.(allReels.size, targetCount, `Done! Found ${allReels.size} reels`);
+    onProgress?.(
+      allReels.size,
+      targetCount,
+      `Done! Found ${allReels.size} reels`
+    );
   }
 
   return Array.from(allReels.values());

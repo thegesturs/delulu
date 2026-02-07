@@ -52,7 +52,6 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
-    
     const homeUrl = new URL('/', req.nextUrl.origin);
     return NextResponse.redirect(homeUrl);
   }

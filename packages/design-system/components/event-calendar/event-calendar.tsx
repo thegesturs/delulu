@@ -1,6 +1,13 @@
 'use client';
 
 import {
+  Add01Icon,
+  CalendarCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from '@hugeicons-pro/core-solid-rounded';
+import {
   addDays,
   addHours,
   addMonths,
@@ -12,16 +19,9 @@ import {
   subMonths,
   subWeeks,
 } from 'date-fns';
-import { Icon } from '../../providers/icon';
-import {
-  CalendarCheck,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Add01Icon,
-} from '@hugeicons-pro/core-solid-rounded';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Icon } from '../../providers/icon';
 
 import {
   AgendaDaysToShow,

@@ -15,18 +15,18 @@ import {
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
+  AnalyticsUpIcon,
+  Cancel01Icon,
   Comment01Icon,
-  MoreHorizontalIcon,
   Delete01Icon,
   Edit01Icon,
-  AnalyticsUpIcon,
   MailSend01Icon,
-  Cancel01Icon,
+  MoreHorizontalIcon,
   TickDouble01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
+import Link from 'next/link';
 import { useState } from 'react';
 import DeleteAlertDialog from '../alerts/delete-post';
-import Link from 'next/link';
 
 interface AutomationCardProps {
   automation: Automation;
@@ -48,7 +48,9 @@ const triggerTypeIcons: Record<string, typeof Comment01Icon> = {
 };
 
 function getPrimaryTriggerType(automation: Automation): string {
-  if (automation.triggers.length === 0) return 'COMMENT';
+  if (automation.triggers.length === 0) {
+    return 'COMMENT';
+  }
   return automation.triggers[0].triggerType;
 }
 
@@ -56,7 +58,9 @@ function formatStepsSummary(automation: Automation): string {
   const conditionSteps = automation.steps.filter((s) => s.type === 'condition');
   const dmSteps = automation.steps.filter((s) => s.type === 'send_dm');
 
-  if (conditionSteps.length === 0 && dmSteps.length === 0) return 'No steps configured';
+  if (conditionSteps.length === 0 && dmSteps.length === 0) {
+    return 'No steps configured';
+  }
 
   const parts: string[] = [];
   if (conditionSteps.length > 0) {
@@ -89,9 +93,14 @@ export function AutomationCard({
 
   const primaryTriggerType = getPrimaryTriggerType(automation);
   const TriggerIcon = triggerTypeIcons[primaryTriggerType] || Comment01Icon;
-  const successRate = automation.totalDMsSent + automation.totalFailed > 0
-    ? Math.round((automation.totalDMsSent / (automation.totalDMsSent + automation.totalFailed)) * 100)
-    : 0;
+  const successRate =
+    automation.totalDMsSent + automation.totalFailed > 0
+      ? Math.round(
+          (automation.totalDMsSent /
+            (automation.totalDMsSent + automation.totalFailed)) *
+            100
+        )
+      : 0;
 
   const handleToggle = async () => {
     setIsToggling(true);
@@ -114,20 +123,28 @@ export function AutomationCard({
           {/* Main Info */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="truncate font-medium text-foreground">{automation.name}</h3>
-              <Badge variant={automation.isActive ? 'default' : 'secondary'} className="text-xs">
+              <h3 className="truncate font-medium text-foreground">
+                {automation.name}
+              </h3>
+              <Badge
+                variant={automation.isActive ? 'default' : 'secondary'}
+                className="text-xs"
+              >
                 {automation.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
             <p className="mt-0.5 truncate text-muted-foreground text-sm">
-              {triggerTypeLabels[primaryTriggerType]} • {formatStepsSummary(automation)}
+              {triggerTypeLabels[primaryTriggerType]} •{' '}
+              {formatStepsSummary(automation)}
             </p>
           </div>
 
           {/* Stats */}
           <div className="hidden items-center gap-6 md:flex">
             <div className="text-center">
-              <p className="font-medium text-foreground">{automation.totalDMsSent}</p>
+              <p className="font-medium text-foreground">
+                {automation.totalDMsSent}
+              </p>
               <p className="text-muted-foreground text-xs">DMs Sent</p>
             </div>
             <div className="text-center">
@@ -195,7 +212,7 @@ export function AutomationCard({
 
   // Grid View
   return (
-    <Card className="group flex h-full flex-col background-blue-sm transition-all duration-200 hover:bg-card/80">
+    <Card className="group background-blue-sm flex h-full flex-col transition-all duration-200 hover:bg-card/80">
       <CardContent className="flex flex-1 flex-col p-4">
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
@@ -203,7 +220,10 @@ export function AutomationCard({
             <Icon icon={TriggerIcon} size={20} className="text-white" />
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={automation.isActive ? 'default' : 'secondary'} className="text-xs">
+            <Badge
+              variant={automation.isActive ? 'default' : 'secondary'}
+              className="text-xs"
+            >
               {automation.isActive ? 'Active' : 'Inactive'}
             </Badge>
             <DropdownMenu>
@@ -240,7 +260,9 @@ export function AutomationCard({
 
         {/* Content */}
         <div className="flex-1">
-          <h3 className="mb-1 font-medium text-foreground">{automation.name}</h3>
+          <h3 className="mb-1 font-medium text-foreground">
+            {automation.name}
+          </h3>
           <p className="mb-2 text-muted-foreground text-sm">
             {triggerTypeLabels[primaryTriggerType]}
           </p>
@@ -253,11 +275,15 @@ export function AutomationCard({
         <div className="mt-4 grid grid-cols-3 gap-2 border-border border-t pt-4">
           <div className="flex items-center gap-1.5">
             <Icon icon={MailSend01Icon} size={14} className="text-green-500" />
-            <span className="text-foreground text-sm">{automation.totalDMsSent}</span>
+            <span className="text-foreground text-sm">
+              {automation.totalDMsSent}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
             <Icon icon={Cancel01Icon} size={14} className="text-red-500" />
-            <span className="text-foreground text-sm">{automation.totalFailed}</span>
+            <span className="text-foreground text-sm">
+              {automation.totalFailed}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
             <Icon icon={TickDouble01Icon} size={14} className="text-blue-500" />

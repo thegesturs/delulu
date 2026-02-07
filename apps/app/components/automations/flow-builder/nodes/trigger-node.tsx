@@ -1,9 +1,8 @@
 'use client';
 
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Icon } from '@delulu/design-system/providers/icon';
 import { Comment01Icon } from '@hugeicons-pro/core-solid-rounded';
+import { Handle, type NodeProps, Position } from '@xyflow/react';
 import type { TriggerStep } from '../utils/flow-types';
 
 const TRIGGER_LABELS: Record<string, string> = {
@@ -40,7 +39,12 @@ export function TriggerNode({ data, selected }: NodeProps) {
           </p>
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} id="default" className="!bg-purple-500" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="default"
+        className="!bg-purple-500"
+      />
     </div>
   );
 }

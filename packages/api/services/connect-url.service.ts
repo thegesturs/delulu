@@ -63,7 +63,8 @@ export const connectUrlRegistry = {
         response_type: 'code',
         client_key: keys().TIKTOK_CLIENT_ID,
         redirect_uri: keys().TIKTOK_CALLBACK_URL,
-        scope: 'user.info.basic,video.publish,video.upload,user.info.profile,video.list',
+        scope:
+          'user.info.basic,video.publish,video.upload,user.info.profile,video.list',
         state: nanoid(10),
       });
 

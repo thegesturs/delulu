@@ -1,8 +1,13 @@
-import { getProviderSettingsForConvex, useDateTime, usePost, useSelectedSocialProviders, useStore } from '@/store/post';
-import { api } from '@delulu/database/convex/_generated/api';
-import { Id } from '@delulu/database/convex/_generated/dataModel';
 import { useUsageLimit } from '@/hooks/use-usage-limits';
-import { useQuery, useMutation } from 'convex/react';
+import {
+  getProviderSettingsForConvex,
+  useDateTime,
+  usePost,
+  useSelectedSocialProviders,
+} from '@/store/post';
+import { api } from '@delulu/database/convex/_generated/api';
+import type { Id } from '@delulu/database/convex/_generated/dataModel';
+import { useMutation, useQuery } from 'convex/react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -21,11 +26,14 @@ export function usePostActions() {
   const user = useQuery(api.users.current);
   const monthlyPostsCount = user?.usage?.generatedPosts || 0;
   const monthlyPostsLimit = useUsageLimit('monthlyPosts', monthlyPostsCount);
-  const isAtPostLimit = !monthlyPostsLimit.isUnlimited && !monthlyPostsLimit.allowed;
+  const isAtPostLimit =
+    !monthlyPostsLimit.isUnlimited && !monthlyPostsLimit.allowed;
 
   const handlePostNow = async () => {
     if (isAtPostLimit) {
-      toast.error('You have reached your monthly post limit. Please upgrade your plan.');
+      toast.error(
+        'You have reached your monthly post limit. Please upgrade your plan.'
+      );
       return;
     }
 
@@ -35,10 +43,13 @@ export function usePostActions() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
-        socialProviderIds: socialProviders.map((sp) => sp.socialId as Id<'socialProviders'>),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
         providerSettings: providerSettingsForConvex,
         status: 'PROCESSING',
       });
@@ -52,9 +63,13 @@ export function usePostActions() {
   };
 
   const handleSchedulePost = async () => {
-    if (!date) return;
+    if (!date) {
+      return;
+    }
     if (isAtPostLimit) {
-      toast.error('You have reached your monthly post limit. Please upgrade your plan.');
+      toast.error(
+        'You have reached your monthly post limit. Please upgrade your plan.'
+      );
       return;
     }
 
@@ -64,10 +79,13 @@ export function usePostActions() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
-        socialProviderIds: socialProviders.map((sp) => sp.socialId as Id<'socialProviders'>),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
         providerSettings: providerSettingsForConvex,
         scheduledAt: date.getTime(),
         status: 'SCHEDULED',
@@ -88,14 +106,19 @@ export function usePostActions() {
         ...(postId && { id: postId as Id<'posts'> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
-          socialProviderId: alt.socialProvider.socialId as Id<'socialProviders'>,
+          socialProviderId: alt.socialProvider
+            .socialId as Id<'socialProviders'>,
           content: alt.content,
         })),
-        socialProviderIds: socialProviders.map((sp) => sp.socialId as Id<'socialProviders'>),
+        socialProviderIds: socialProviders.map(
+          (sp) => sp.socialId as Id<'socialProviders'>
+        ),
         providerSettings: providerSettingsForConvex,
         status: 'SAVED',
       });
-      toast.success(postId ? 'Post updated successfully' : 'Post saved successfully');
+      toast.success(
+        postId ? 'Post updated successfully' : 'Post saved successfully'
+      );
       router.push('/posts?status=SAVED');
     } catch {
       toast.error(postId ? 'Failed to update post' : 'Failed to save post');

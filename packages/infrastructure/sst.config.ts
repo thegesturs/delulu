@@ -27,7 +27,9 @@ export default $config({
 
     const SECRET_KEY = new sst.Secret('LAMBDA_SECRET_KEY');
     const INSTAGRAM_APP_SECRET = new sst.Secret('INSTAGRAM_APP_SECRET');
-    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret('INSTAGRAM_WEBHOOK_VERIFY_TOKEN');
+    const INSTAGRAM_WEBHOOK_VERIFY_TOKEN = new sst.Secret(
+      'INSTAGRAM_WEBHOOK_VERIFY_TOKEN'
+    );
     const CONVEX_URL = new sst.Secret('CONVEX_URL');
 
     const triggerFunction = new sst.aws.Function('TriggerSqsFunction', {
@@ -66,7 +68,12 @@ export default $config({
     const instagramWebhook = new sst.aws.Function('InstagramWebhook', {
       handler: 'src/instagram-webhook.handler',
       url: true,
-      link: [SECRET_KEY, INSTAGRAM_APP_SECRET, INSTAGRAM_WEBHOOK_VERIFY_TOKEN, CONVEX_URL],
+      link: [
+        SECRET_KEY,
+        INSTAGRAM_APP_SECRET,
+        INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
+        CONVEX_URL,
+      ],
       timeout: '30 seconds',
     });
 

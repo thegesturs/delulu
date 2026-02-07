@@ -28,7 +28,11 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
     <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <Icon icon={Alert01Icon} size={20} className="text-red-600 dark:text-red-400" />
+          <Icon
+            icon={Alert01Icon}
+            size={20}
+            className="text-red-600 dark:text-red-400"
+          />
           <CardTitle className="text-red-800 dark:text-red-200">
             Failed Posts Need Attention
           </CardTitle>

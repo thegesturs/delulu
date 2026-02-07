@@ -22,7 +22,9 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
       fileSize: file.size,
     }),
   });
-  console.log(`[CLIENT] Presigned URL request took ${Date.now() - presignedStart}ms`);
+  console.log(
+    `[CLIENT] Presigned URL request took ${Date.now() - presignedStart}ms`
+  );
 
   if (!presignedResponse.ok) {
     throw new Error('Failed to get presigned URL');
@@ -42,9 +44,7 @@ export async function uploadSingleFile(file: File): Promise<UploadMediaResult> {
       'Content-Type': file.type,
     },
   });
-  console.log(
-    `[CLIENT] Direct R2 upload took ${Date.now() - uploadStart}ms`
-  );
+  console.log(`[CLIENT] Direct R2 upload took ${Date.now() - uploadStart}ms`);
 
   if (!uploadResponse.ok) {
     throw new Error('Failed to upload to R2');

@@ -1,5 +1,10 @@
 import { nanoid } from 'nanoid';
-import type { AutomationStep, ConditionStep, SendDmStep, TriggerStep } from './flow-types';
+import type {
+  AutomationStep,
+  ConditionStep,
+  SendDmStep,
+  TriggerStep,
+} from './flow-types';
 
 export function createId() {
   return nanoid(10);
@@ -15,7 +20,9 @@ export function createTrigger(overrides?: Partial<TriggerStep>): TriggerStep {
   };
 }
 
-export function createConditionStep(overrides?: Partial<ConditionStep>): ConditionStep {
+export function createConditionStep(
+  overrides?: Partial<ConditionStep>
+): ConditionStep {
   return {
     id: createId(),
     type: 'condition',
@@ -37,21 +44,33 @@ export function createSendDmStep(overrides?: Partial<SendDmStep>): SendDmStep {
 /**
  * Find a step by ID in the steps array
  */
-export function findStep(steps: AutomationStep[], id: string): AutomationStep | undefined {
+export function findStep(
+  steps: AutomationStep[],
+  id: string
+): AutomationStep | undefined {
   return steps.find((s) => s.id === id);
 }
 
 /**
  * Update a step in the array by ID, returning a new array
  */
-export function updateStep(steps: AutomationStep[], id: string, patch: Partial<AutomationStep>): AutomationStep[] {
-  return steps.map((s) => (s.id === id ? { ...s, ...patch } as AutomationStep : s));
+export function updateStep(
+  steps: AutomationStep[],
+  id: string,
+  patch: Partial<AutomationStep>
+): AutomationStep[] {
+  return steps.map((s) =>
+    s.id === id ? ({ ...s, ...patch } as AutomationStep) : s
+  );
 }
 
 /**
  * Remove a step by ID and clean up references to it in other steps
  */
-export function removeStep(steps: AutomationStep[], id: string): AutomationStep[] {
+export function removeStep(
+  steps: AutomationStep[],
+  id: string
+): AutomationStep[] {
   return steps
     .filter((s) => s.id !== id)
     .map((s) => {
@@ -75,7 +94,10 @@ export function removeStep(steps: AutomationStep[], id: string): AutomationStep[
 /**
  * Remove references to a step from triggers
  */
-export function removeStepFromTriggers(triggers: TriggerStep[], stepId: string): TriggerStep[] {
+export function removeStepFromTriggers(
+  triggers: TriggerStep[],
+  stepId: string
+): TriggerStep[] {
   return triggers.map((t) => ({
     ...t,
     nextStepId: t.nextStepId === stepId ? undefined : t.nextStepId,
@@ -106,7 +128,9 @@ export function insertStepAfter(
   });
 
   const newSteps = steps.map((s) => {
-    if (s.id !== parentId) return s;
+    if (s.id !== parentId) {
+      return s;
+    }
     if (s.type === 'condition') {
       if (parentBranch === 'yes' || parentBranch === 'next') {
         // 'next' defaults to 'yes' branch for conditions

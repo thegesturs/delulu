@@ -23,7 +23,11 @@ export function AccountList({
     return (
       <div className="py-6 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <Icon icon={Search01Icon} size={32} className="text-muted-foreground" />
+          <Icon
+            icon={Search01Icon}
+            size={32}
+            className="text-muted-foreground"
+          />
         </div>
         <p className="mb-2 text-lg text-muted-foreground">No accounts found</p>
         <p className="text-muted-foreground text-sm">

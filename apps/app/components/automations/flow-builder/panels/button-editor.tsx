@@ -25,13 +25,23 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
   const activeTab = urlButtons.length > 0 ? 'url' : 'quick_reply';
 
   const addQuickReply = () => {
-    if (quickReplies.length >= 13) return;
-    onChange([...buttons.filter((b) => b.type === 'quick_reply'), { type: 'quick_reply', title: '' }]);
+    if (quickReplies.length >= 13) {
+      return;
+    }
+    onChange([
+      ...buttons.filter((b) => b.type === 'quick_reply'),
+      { type: 'quick_reply', title: '' },
+    ]);
   };
 
   const addUrlButton = () => {
-    if (urlButtons.length >= 3) return;
-    onChange([...buttons.filter((b) => b.type === 'url'), { type: 'url', title: '', url: '' }]);
+    if (urlButtons.length >= 3) {
+      return;
+    }
+    onChange([
+      ...buttons.filter((b) => b.type === 'url'),
+      { type: 'url', title: '', url: '' },
+    ]);
   };
 
   const updateButton = (index: number, patch: Partial<DmButton>) => {
@@ -48,15 +58,24 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
     <div className="space-y-3">
       <Label>DM Buttons</Label>
       <p className="text-muted-foreground text-xs">
-        Add tappable buttons below your DM message. Cannot mix quick replies and URL buttons.
+        Add tappable buttons below your DM message. Cannot mix quick replies and
+        URL buttons.
       </p>
 
       <Tabs defaultValue={activeTab}>
         <TabsList className="w-full">
-          <TabsTrigger value="quick_reply" className="flex-1" disabled={urlButtons.length > 0}>
+          <TabsTrigger
+            value="quick_reply"
+            className="flex-1"
+            disabled={urlButtons.length > 0}
+          >
             Quick Replies
           </TabsTrigger>
-          <TabsTrigger value="url" className="flex-1" disabled={quickReplies.length > 0}>
+          <TabsTrigger
+            value="url"
+            className="flex-1"
+            disabled={quickReplies.length > 0}
+          >
             URL Buttons
           </TabsTrigger>
         </TabsList>
@@ -77,12 +96,21 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
                 className="h-8 w-8 shrink-0"
                 onClick={() => removeButton(i)}
               >
-                <Icon icon={Delete02Icon} size={14} className="text-destructive" />
+                <Icon
+                  icon={Delete02Icon}
+                  size={14}
+                  className="text-destructive"
+                />
               </Button>
             </div>
           ))}
           {quickReplies.length < 13 && (
-            <Button variant="outline" size="sm" onClick={addQuickReply} className="w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addQuickReply}
+              className="w-full"
+            >
               <Icon icon={Add01Icon} size={14} className="mr-1" />
               Add Quick Reply ({quickReplies.length}/13)
             </Button>
@@ -95,23 +123,32 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
             const urlValue = 'url' in btn ? btn.url : '';
             const showUrlError = urlValue.length > 0 && !isValidUrl(urlValue);
             return (
-              <div key={i} className="space-y-1.5 rounded-lg border border-border p-2">
+              <div
+                key={i}
+                className="space-y-1.5 rounded-lg border border-border p-2"
+              >
                 <Input
                   placeholder="Button title (max 20 chars)"
                   value={btn.title}
                   maxLength={20}
-                  onChange={(e) => updateButton(urlIdx, { title: e.target.value })}
+                  onChange={(e) =>
+                    updateButton(urlIdx, { title: e.target.value })
+                  }
                 />
                 {'url' in btn && (
                   <div className="space-y-1">
                     <Input
                       placeholder="https://example.com"
                       value={btn.url}
-                      onChange={(e) => updateButton(urlIdx, { url: e.target.value } as Partial<DmButton>)}
+                      onChange={(e) =>
+                        updateButton(urlIdx, {
+                          url: e.target.value,
+                        } as Partial<DmButton>)
+                      }
                       className={showUrlError ? 'border-destructive' : ''}
                     />
                     {showUrlError && (
-                      <p className="text-destructive text-[11px]">
+                      <p className="text-[11px] text-destructive">
                         Enter a valid URL starting with https://
                       </p>
                     )}
@@ -130,7 +167,12 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
             );
           })}
           {urlButtons.length < 3 && (
-            <Button variant="outline" size="sm" onClick={addUrlButton} className="w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addUrlButton}
+              className="w-full"
+            >
               <Icon icon={Add01Icon} size={14} className="mr-1" />
               Add URL Button ({urlButtons.length}/3)
             </Button>

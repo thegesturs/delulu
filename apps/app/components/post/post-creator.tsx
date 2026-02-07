@@ -115,7 +115,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 lg:flex-row overflow-y-auto lg:overflow-visible pb-20 lg:pb-0">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pb-20 lg:flex-row lg:overflow-visible lg:pb-0">
       <div className="flex-1">
         {/* Show warning if post is already published */}
         {postData && postData.status === 'PUBLISHED' && (
@@ -131,13 +131,21 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           </div>
         )}
         <div className="hidden lg:block">
-          <Header pages={['Post']} page={postId ? 'Edit Post' : 'Create Post'} />
+          <Header
+            pages={['Post']}
+            page={postId ? 'Edit Post' : 'Create Post'}
+          />
         </div>
         <MobilePostHeader />
-        
+
         <Tabs value={activeModuleId} onValueChange={handleTabChange}>
           <div className="w-full overflow-x-auto pb-2 lg:overflow-visible lg:pb-0">
-            <TabsList className={cn(socialProviders.length < 2 && 'hidden', 'w-max lg:w-full justify-start')}>
+            <TabsList
+              className={cn(
+                socialProviders.length < 2 && 'hidden',
+                'w-max justify-start lg:w-full'
+              )}
+            >
               <TabsTrigger
                 value="global"
                 className={cn(

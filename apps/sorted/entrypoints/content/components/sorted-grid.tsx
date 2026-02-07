@@ -15,7 +15,7 @@ export function SortedGrid({ reels, sortMetric, quantity }: SortedGridProps) {
   return (
     <div className="sorted-grid-container">
       {/* Header removed as it's now in the panel */}
-      
+
       {/* Grid */}
       <div className="sorted-results-grid">
         {reels.map((reel, index) => (

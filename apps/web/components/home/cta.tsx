@@ -29,7 +29,7 @@ export const ctaBenefitsData = [
     alt: 'Delulu with checklist',
     title: 'You Call the Shots',
     description:
-      'Your feedback shapes our roadmap. We\'re constantly improving based on real user needs.',
+      "Your feedback shapes our roadmap. We're constantly improving based on real user needs.",
     imageWidth: 'w-40',
   },
   {
@@ -62,7 +62,8 @@ const CTA = () => {
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
-                Join Thousands of Content Creators Simplifying Their Social Media
+                Join Thousands of Content Creators Simplifying Their Social
+                Media
               </Balancer>
             </h2>
 

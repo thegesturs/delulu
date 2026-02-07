@@ -3,7 +3,9 @@
  */
 
 export default defineBackground(() => {
-  console.log('[Sorted Background] Service worker initialized', { id: browser.runtime.id });
+  console.log('[Sorted Background] Service worker initialized', {
+    id: browser.runtime.id,
+  });
 
   // Handle extension installation
   browser.runtime.onInstalled.addListener((details) => {
@@ -20,8 +22,13 @@ export default defineBackground(() => {
   });
 
   // Handle messages from content scripts or popup
-  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[Sorted Background] Received message:', message, 'from:', sender);
+  browser.runtime.onMessage.addListener((message, sender, _sendResponse) => {
+    console.log(
+      '[Sorted Background] Received message:',
+      message,
+      'from:',
+      sender
+    );
 
     // Handle different message types
     if (message.type === 'OPEN_OVERLAY') {
@@ -36,7 +43,7 @@ export default defineBackground(() => {
   });
 
   // Monitor tab updates to detect Instagram navigation
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  browser.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url) {
       const isInstagram = tab.url.includes('instagram.com');
       if (isInstagram) {

@@ -50,7 +50,9 @@ describe('TikTok Provider Tests', () => {
 
       // Verify URL format: should be https://www.tiktok.com/@username/video/{id}
       // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
-      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/);
+      expect(value.platformPostUrl).toMatch(
+        /https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/
+      );
 
       console.log('✅ Video published successfully with default thumbnail');
     }
@@ -91,12 +93,15 @@ describe('TikTok Provider Tests', () => {
       console.log('Published video:', {
         platformPostId: value.platformPostId,
         platformPostUrl: value.platformPostUrl,
-        thumbnailTimestamp: TEST_CONTENT.videoWithThumbnail[0].media[0].thumbnailTimestamp,
+        thumbnailTimestamp:
+          TEST_CONTENT.videoWithThumbnail[0].media[0].thumbnailTimestamp,
       });
 
       // Verify URL format and that it uses real item_id (not publish_id)
       // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
-      expect(value.platformPostUrl).toMatch(/https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/);
+      expect(value.platformPostUrl).toMatch(
+        /https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/
+      );
 
       // Verify the URL doesn't use the same ID as platformPostId (publish_id)
       const urlVideoId = value.platformPostUrl.split('/video/')[1];
@@ -106,8 +111,12 @@ describe('TikTok Provider Tests', () => {
         areEqual: urlVideoId === value.platformPostId,
       });
 
-      console.log('✅ Video published successfully with custom thumbnail at 5.5 seconds');
-      console.log('⚠️ Please manually verify on TikTok that the thumbnail is at 5.5 seconds, not 1 second');
+      console.log(
+        '✅ Video published successfully with custom thumbnail at 5.5 seconds'
+      );
+      console.log(
+        '⚠️ Please manually verify on TikTok that the thumbnail is at 5.5 seconds, not 1 second'
+      );
     }
   }, 180000); // 3 minute timeout (includes retry delays)
 
@@ -153,15 +162,23 @@ describe('TikTok Provider Tests', () => {
       // The publish_id and item_id should be different
       // If they're the same, it means we're using publish_id (the bug)
       if (urlVideoId === value.platformPostId) {
-        console.warn('⚠️ WARNING: Video URL is using publish_id, not real item_id!');
-        console.warn('This indicates the video list query may have failed or returned no results');
+        console.warn(
+          '⚠️ WARNING: Video URL is using publish_id, not real item_id!'
+        );
+        console.warn(
+          'This indicates the video list query may have failed or returned no results'
+        );
       } else {
-        console.log('✅ Video URL is using real item_id (correct implementation)');
+        console.log(
+          '✅ Video URL is using real item_id (correct implementation)'
+        );
       }
 
       // Verify the URL is accessible
       console.log('Video URL:', value.platformPostUrl);
-      console.log('⚠️ Please manually verify this URL opens correctly in a browser');
+      console.log(
+        '⚠️ Please manually verify this URL opens correctly in a browser'
+      );
     }
   }, 180000); // 3 minute timeout (includes retry delays)
 });

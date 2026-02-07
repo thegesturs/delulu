@@ -5,10 +5,10 @@
  * Run: pnpm generate-icons
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,9 +30,12 @@ async function generateIcons() {
     let sharp;
     try {
       sharp = (await import('sharp')).default;
-    } catch (error) {
+    } catch (_error) {
       console.log('📦 Installing sharp...');
-      execSync('pnpm add -D sharp', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+      execSync('pnpm add -D sharp', {
+        stdio: 'inherit',
+        cwd: path.join(__dirname, '..'),
+      });
       sharp = (await import('sharp')).default;
       console.log('✓ Sharp installed\n');
     }
@@ -53,12 +56,15 @@ async function generateIcons() {
         .png()
         .toFile(outputPath);
 
-      console.log(`✓ Generated ${size}x${size} → ${path.relative(process.cwd(), outputPath)}`);
+      console.log(
+        `✓ Generated ${size}x${size} → ${path.relative(process.cwd(), outputPath)}`
+      );
     }
 
     console.log('\n✨ All icons generated successfully!');
-    console.log('📦 Run "pnpm build" to rebuild the extension with the new icons.');
-
+    console.log(
+      '📦 Run "pnpm build" to rebuild the extension with the new icons.'
+    );
   } catch (error) {
     console.error('❌ Error generating icons:', error.message);
     process.exit(1);

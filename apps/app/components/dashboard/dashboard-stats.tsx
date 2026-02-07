@@ -11,12 +11,12 @@ import {
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
   Calendar01Icon,
-  TickDouble01Icon,
+  CancelCircleIcon,
   ClockIcon,
   DocumentAttachmentIcon,
   FireIcon,
+  TickDouble01Icon,
   UserMultipleIcon,
-  CancelCircleIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 
 interface DashboardStatsClientProps {
@@ -38,7 +38,11 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Total Posts</CardTitle>
-            <Icon icon={DocumentAttachmentIcon} size={16} className="text-muted-foreground" />
+            <Icon
+              icon={DocumentAttachmentIcon}
+              size={16}
+              className="text-muted-foreground"
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -51,7 +55,11 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Published</CardTitle>
-            <Icon icon={TickDouble01Icon} size={16} className="text-green-600 dark:text-green-400" />
+            <Icon
+              icon={TickDouble01Icon}
+              size={16}
+              className="text-green-600 dark:text-green-400"
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -70,7 +78,11 @@ export function DashboardStatsClient({
             <CardTitle className="font-medium text-sm">
               Connected Accounts
             </CardTitle>
-            <Icon icon={UserMultipleIcon} size={16} className="text-muted-foreground" />
+            <Icon
+              icon={UserMultipleIcon}
+              size={16}
+              className="text-muted-foreground"
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -130,7 +142,11 @@ export function DashboardStatsClient({
             <CardTitle className="font-medium text-sm">
               Upcoming Posts
             </CardTitle>
-            <Icon icon={ClockIcon} size={16} className="text-blue-600 dark:text-blue-400" />
+            <Icon
+              icon={ClockIcon}
+              size={16}
+              className="text-blue-600 dark:text-blue-400"
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -145,7 +161,11 @@ export function DashboardStatsClient({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Scheduled</CardTitle>
-            <Icon icon={Calendar01Icon} size={16} className="text-blue-600 dark:text-blue-400" />
+            <Icon
+              icon={Calendar01Icon}
+              size={16}
+              className="text-blue-600 dark:text-blue-400"
+            />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">
@@ -161,7 +181,11 @@ export function DashboardStatsClient({
               <CardTitle className="font-medium text-red-800 text-sm dark:text-red-200">
                 Failed Posts
               </CardTitle>
-              <Icon icon={CancelCircleIcon} size={16} className="text-red-600 dark:text-red-400" />
+              <Icon
+                icon={CancelCircleIcon}
+                size={16}
+                className="text-red-600 dark:text-red-400"
+              />
             </CardHeader>
             <CardContent>
               <div className="font-bold text-2xl text-red-800 dark:text-red-200">

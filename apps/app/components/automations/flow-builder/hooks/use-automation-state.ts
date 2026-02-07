@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import type { AutomationMeta, AutomationStep, TriggerStep } from '../utils/flow-types';
+import type {
+  AutomationMeta,
+  AutomationStep,
+  TriggerStep,
+} from '../utils/flow-types';
 import {
   insertStepAfter,
   removeStep,
@@ -27,7 +31,10 @@ export function useAutomationState() {
 
   const resetDirty = useCallback(
     (currentTriggers: TriggerStep[], currentSteps: AutomationStep[]) => {
-      initialStateRef.current = JSON.stringify({ triggers: currentTriggers, steps: currentSteps });
+      initialStateRef.current = JSON.stringify({
+        triggers: currentTriggers,
+        steps: currentSteps,
+      });
       setIsDirty(false);
     },
     []
@@ -61,17 +68,33 @@ export function useAutomationState() {
   );
 
   // Step operations
-  const addStepAfter = useCallback(
-    (parentId: string, branch: 'next' | 'yes' | 'no', newStep: AutomationStep) => {
+  const _addStepAfter = useCallback(
+    (
+      parentId: string,
+      branch: 'next' | 'yes' | 'no',
+      newStep: AutomationStep
+    ) => {
       setTriggers((prevTriggers) => {
         setSteps((prevSteps) => {
-          const result = insertStepAfter(prevTriggers, prevSteps, parentId, branch, newStep);
+          const result = insertStepAfter(
+            prevTriggers,
+            prevSteps,
+            parentId,
+            branch,
+            newStep
+          );
           // We need to set triggers from within this callback to keep them in sync
           // Using a ref-based approach instead
           return result.steps;
         });
         // Also update triggers
-        const result = insertStepAfter(prevTriggers, steps, parentId, branch, newStep);
+        const result = insertStepAfter(
+          prevTriggers,
+          steps,
+          parentId,
+          branch,
+          newStep
+        );
         return result.triggers;
       });
       markDirty();
@@ -80,8 +103,18 @@ export function useAutomationState() {
   );
 
   const addStepAfterSync = useCallback(
-    (parentId: string, branch: 'next' | 'yes' | 'no', newStep: AutomationStep) => {
-      const result = insertStepAfter(triggers, steps, parentId, branch, newStep);
+    (
+      parentId: string,
+      branch: 'next' | 'yes' | 'no',
+      newStep: AutomationStep
+    ) => {
+      const result = insertStepAfter(
+        triggers,
+        steps,
+        parentId,
+        branch,
+        newStep
+      );
       setTriggers(result.triggers);
       setSteps(result.steps);
       markDirty();
@@ -101,7 +134,9 @@ export function useAutomationState() {
     (id: string) => {
       setSteps((prev) => removeStep(prev, id));
       setTriggers((prev) => removeStepFromTriggers(prev, id));
-      if (selectedStepId === id) setSelectedStepId(null);
+      if (selectedStepId === id) {
+        setSelectedStepId(null);
+      }
       markDirty();
     },
     [selectedStepId, markDirty]

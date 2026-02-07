@@ -4,9 +4,9 @@ import { Card, CardContent } from '@delulu/design-system/components/ui/card';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
   AiChat02Icon,
-  TickDouble01Icon,
   Cancel01Icon,
   MailSend01Icon,
+  TickDouble01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 
 interface AutomationStatsProps {
@@ -61,7 +61,9 @@ export function AutomationStats({ stats }: AutomationStatsProps) {
               <Icon icon={item.icon} size={20} className={item.color} />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-xl">{item.value}</p>
+              <p className="font-semibold text-foreground text-xl">
+                {item.value}
+              </p>
               <p className="text-muted-foreground text-xs">{item.label}</p>
             </div>
           </CardContent>

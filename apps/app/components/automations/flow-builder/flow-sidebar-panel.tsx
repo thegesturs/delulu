@@ -10,10 +10,15 @@ import {
 } from '@delulu/design-system/components/ui/sheet';
 import { Icon } from '@delulu/design-system/providers/icon';
 import { Delete02Icon } from '@hugeicons-pro/core-solid-rounded';
-import type { AutomationStep, ConditionStep, SendDmStep, TriggerStep } from './utils/flow-types';
 import { ConditionPanel } from './panels/condition-panel';
 import { SendDmPanel } from './panels/send-dm-panel';
 import { TriggerPanel } from './panels/trigger-panel';
+import type {
+  AutomationStep,
+  ConditionStep,
+  SendDmStep,
+  TriggerStep,
+} from './utils/flow-types';
 
 interface SocialProvider {
   _id: string;
@@ -49,7 +54,9 @@ export function FlowSidebarPanel({
   onUpdateStep,
   onDeleteStep,
 }: FlowSidebarPanelProps) {
-  if (!selectedId) return null;
+  if (!selectedId) {
+    return null;
+  }
 
   // Check if it's a trigger
   const trigger = triggers.find((t) => t.id === selectedId);
@@ -57,7 +64,7 @@ export function FlowSidebarPanel({
     return (
       <Sheet open onOpenChange={(o) => !o && onClose()}>
         <SheetContent className="w-[400px] p-0 sm:max-w-[400px]">
-          <SheetHeader className="border-b border-border px-6 py-4">
+          <SheetHeader className="border-border border-b px-6 py-4">
             <SheetTitle>Trigger Configuration</SheetTitle>
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-73px)]">
@@ -78,14 +85,16 @@ export function FlowSidebarPanel({
 
   // It's a step
   const step = steps.find((s) => s.id === selectedId);
-  if (!step) return null;
+  if (!step) {
+    return null;
+  }
 
   const panelTitle = step.type === 'condition' ? 'Condition' : 'Send DM';
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-[400px] p-0 sm:max-w-[400px]">
-        <SheetHeader className="border-b border-border px-6 py-4">
+        <SheetHeader className="border-border border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <SheetTitle>{panelTitle}</SheetTitle>
             <Button

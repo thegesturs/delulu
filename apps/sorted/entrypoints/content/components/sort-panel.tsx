@@ -12,7 +12,12 @@ interface SortPanelProps {
   isActive: boolean;
 }
 
-export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelProps) {
+export function SortPanel({
+  onSort,
+  isSorting,
+  onReset,
+  isActive,
+}: SortPanelProps) {
   const [sortMetric, setSortMetric] = useState<SortMetric>('views');
   const [quantity, setQuantity] = useState<number>(25);
 
@@ -45,7 +50,9 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
 
         {/* Metric Selector */}
         <div className="sorted-compact-group">
-          <label className={`sorted-compact-radio ${sortMetric === 'views' ? 'active' : ''}`}>
+          <label
+            className={`sorted-compact-radio ${sortMetric === 'views' ? 'active' : ''}`}
+          >
             <input
               type="radio"
               name="metric"
@@ -56,7 +63,9 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
             />
             <span>Views</span>
           </label>
-          <label className={`sorted-compact-radio ${sortMetric === 'likes' ? 'active' : ''}`}>
+          <label
+            className={`sorted-compact-radio ${sortMetric === 'likes' ? 'active' : ''}`}
+          >
             <input
               type="radio"
               name="metric"
@@ -67,7 +76,9 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
             />
             <span>Likes</span>
           </label>
-          <label className={`sorted-compact-radio ${sortMetric === 'comments' ? 'active' : ''}`}>
+          <label
+            className={`sorted-compact-radio ${sortMetric === 'comments' ? 'active' : ''}`}
+          >
             <input
               type="radio"
               name="metric"
@@ -78,7 +89,9 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
             />
             <span>Comments</span>
           </label>
-          <label className={`sorted-compact-radio ${sortMetric === 'oldest' ? 'active' : ''}`}>
+          <label
+            className={`sorted-compact-radio ${sortMetric === 'oldest' ? 'active' : ''}`}
+          >
             <input
               type="radio"
               name="metric"
@@ -95,7 +108,7 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
 
         {/* Quantity Selector */}
         <div className="sorted-compact-group">
-          <select 
+          <select
             value={quantity}
             onChange={(e) => setQuantity(Number(e.target.value))}
             disabled={isSorting}
@@ -110,13 +123,16 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
 
         {/* Info Text - Moved inside panel */}
         {isActive && (
-          <div className="sorted-info-text" style={{ 
-            marginLeft: 'auto', 
-            marginRight: '16px',
-            fontSize: '13px', 
-            fontWeight: 500,
-            color: 'var(--sorted-text-secondary)'
-          }}>
+          <div
+            className="sorted-info-text"
+            style={{
+              marginLeft: 'auto',
+              marginRight: '16px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--sorted-text-secondary)',
+            }}
+          >
             Latest {quantity} Reels Sorted
           </div>
         )}
@@ -129,11 +145,7 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
           className="sorted-compact-button"
           style={{ marginLeft: isActive ? 0 : 'auto' }}
         >
-          {isSorting ? (
-            <div className="sorted-loading-spinner-sm" />
-          ) : (
-            'Sort'
-          )}
+          {isSorting ? <div className="sorted-loading-spinner-sm" /> : 'Sort'}
         </button>
 
         {isActive && onReset && (
@@ -144,7 +156,19 @@ export function SortPanel({ onSort, isSorting, onReset, isActive }: SortPanelPro
             className="sorted-compact-reset"
             title="Reset to Original"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
           </button>
         )}
       </div>

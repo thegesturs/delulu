@@ -20,9 +20,9 @@ type HeaderProps = {
 export const Header = ({ pages, page, children }: HeaderProps) => (
   <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
     <div className="flex items-center gap-2">
-      <div className="md:hidden font-bold text-lg">Delulu</div>
+      <div className="font-bold text-lg md:hidden">Delulu</div>
       <SidebarTrigger className="-ml-1 hidden md:flex" />
-      <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
+      <Separator orientation="vertical" className="mr-2 hidden h-4 md:block" />
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
           {pages.map((page, index) => (
@@ -48,4 +48,3 @@ export const Header = ({ pages, page, children }: HeaderProps) => (
     </div>
   </header>
 );
-

@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
     // Upload file directly to R2 - in Cloudflare Workers, File is already the right type
     // R2 will handle it efficiently without loading entire file into memory
     const uploadStart = Date.now();
-    const uploadResult = await r2Provider.uploadFileStream(key, file, file.type);
+    const uploadResult = await r2Provider.uploadFileStream(
+      key,
+      file,
+      file.type
+    );
     console.log(
       `[DEBUG] R2 upload took ${Date.now() - uploadStart}ms, total: ${Date.now() - startTime}ms`
     );

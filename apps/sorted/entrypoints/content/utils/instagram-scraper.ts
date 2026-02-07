@@ -7,14 +7,17 @@
  * The scraper attempts multiple fallback strategies for robustness.
  */
 
-import type { ReelData, ReelMetrics } from '../../shared/types';
-import { INSTAGRAM_SELECTORS, ERROR_MESSAGES } from '../../shared/constants';
+import { ERROR_MESSAGES, INSTAGRAM_SELECTORS } from '../../shared/constants';
+import type { ReelData } from '../../shared/types';
 import { getCachedMetrics } from './graphql-interceptor';
 
 /**
  * Try multiple selectors until one returns an element
  */
-function trySelectors(container: Element, selectors: readonly string[]): Element | null {
+function trySelectors(
+  container: Element,
+  selectors: readonly string[]
+): Element | null {
   for (const selector of selectors) {
     try {
       const element = container.querySelector(selector);
@@ -32,7 +35,10 @@ function trySelectors(container: Element, selectors: readonly string[]): Element
 /**
  * Try multiple selectors until one returns elements
  */
-function trySelectorsAll(container: Element | Document, selectors: readonly string[]): Element[] {
+function trySelectorsAll(
+  container: Element | Document,
+  selectors: readonly string[]
+): Element[] {
   for (const selector of selectors) {
     try {
       const elements = Array.from(container.querySelectorAll(selector));
@@ -53,7 +59,7 @@ function trySelectorsAll(container: Element | Document, selectors: readonly stri
  * Extract reel ID from URL
  */
 function extractReelId(url: string): string | null {
-  const match = url.match(/\/reel\/([^\/\?]+)/);
+  const match = url.match(/\/reel\/([^/?]+)/);
   return match ? match[1] : null;
 }
 
@@ -63,7 +69,10 @@ function extractReelId(url: string): string | null {
 export function scrapeReelElement(reelElement: Element): ReelData | null {
   try {
     // Find the link element
-    const linkElement = trySelectors(reelElement, INSTAGRAM_SELECTORS.REEL_LINK);
+    const linkElement = trySelectors(
+      reelElement,
+      INSTAGRAM_SELECTORS.REEL_LINK
+    );
     if (!linkElement) {
       console.warn('No link found in reel element', reelElement);
       return null;
@@ -91,7 +100,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     let thumbnailUrl = '';
 
     // Strategy 1: Look for background-image in the reel container (primary method)
-    const bgElement = reelElement.querySelector('[style*="background-image"]') as HTMLElement;
+    const bgElement = reelElement.querySelector(
+      '[style*="background-image"]'
+    ) as HTMLElement;
     if (bgElement) {
       const bgImage = bgElement.style.backgroundImage;
       if (bgImage && bgImage !== 'none') {
@@ -119,7 +130,9 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
 
     // Strategy 3: Look for img elements (fallback for posts)
     if (!thumbnailUrl) {
-      const imgElement = reelElement.querySelector('img[src]') as HTMLImageElement;
+      const imgElement = reelElement.querySelector(
+        'img[src]'
+      ) as HTMLImageElement;
       if (imgElement) {
         const src = imgElement.getAttribute('src') || '';
         if (src && !src.startsWith('data:image/gif')) {
@@ -165,7 +178,10 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
  */
 export function findReelElements(): Element[] {
   // Try to find reel grid container first
-  const gridContainers = trySelectorsAll(document, INSTAGRAM_SELECTORS.REEL_GRID);
+  const gridContainers = trySelectorsAll(
+    document,
+    INSTAGRAM_SELECTORS.REEL_GRID
+  );
 
   if (gridContainers.length > 0) {
     // Find all reel links within the grid
@@ -177,7 +193,9 @@ export function findReelElements(): Element[] {
 
     // Get parent elements of links (usually the article/div containers)
     const reelElements = reelLinks
-      .map(link => link.closest('article') || link.closest('div[class]') || link)
+      .map(
+        (link) => link.closest('article') || link.closest('div[class]') || link
+      )
       .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
     return reelElements;
@@ -188,7 +206,9 @@ export function findReelElements(): Element[] {
 
   // Get parent containers
   const reelElements = reelLinks
-    .map(link => link.closest('article') || link.closest('div[class]') || link)
+    .map(
+      (link) => link.closest('article') || link.closest('div[class]') || link
+    )
     .filter((el, index, arr) => arr.indexOf(el) === index); // Remove duplicates
 
   return reelElements;
@@ -217,7 +237,10 @@ export function scrapeVisibleReels(): ReelData[] {
  * Check if Instagram is currently loading content
  */
 export function isLoading(): boolean {
-  const loadingElements = trySelectorsAll(document, INSTAGRAM_SELECTORS.LOADING_SPINNER);
+  const loadingElements = trySelectorsAll(
+    document,
+    INSTAGRAM_SELECTORS.LOADING_SPINNER
+  );
   return loadingElements.length > 0;
 }
 
@@ -272,7 +295,9 @@ export function validateScrapingCapability(): string | null {
     testReel.metrics.comments !== undefined;
 
   if (!hasAnyMetric) {
-    console.warn('Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view.');
+    console.warn(
+      'Warning: Could not extract any metrics from test reel. Metrics may not be available in grid view.'
+    );
     // Don't return error - we can still sort by available metrics
   }
 

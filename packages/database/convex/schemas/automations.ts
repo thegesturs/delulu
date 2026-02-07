@@ -108,7 +108,10 @@ export const sendDmStepSchema = v.object({
 export type SendDmStep = Infer<typeof sendDmStepSchema>;
 
 // Union of all non-trigger steps
-export const automationStepSchema = v.union(conditionStepSchema, sendDmStepSchema);
+export const automationStepSchema = v.union(
+  conditionStepSchema,
+  sendDmStepSchema
+);
 
 export type AutomationStep = Infer<typeof automationStepSchema>;
 

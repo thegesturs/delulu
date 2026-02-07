@@ -1,8 +1,8 @@
 'use client';
 
-import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Icon } from '@delulu/design-system/providers/icon';
 import { FilterIcon } from '@hugeicons-pro/core-solid-rounded';
+import { Handle, type NodeProps, Position } from '@xyflow/react';
 import type { ConditionStep } from '../utils/flow-types';
 
 const OPERATOR_LABELS: Record<string, string> = {

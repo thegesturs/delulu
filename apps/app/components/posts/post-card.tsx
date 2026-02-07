@@ -24,9 +24,13 @@ import {
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
 import { cn } from '@delulu/design-system/lib/utils';
-import { useMutation } from 'convex/react';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Calendar01Icon, ViewIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Calendar01Icon,
+  MoreHorizontalIcon,
+  ViewIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import { useMutation } from 'convex/react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React from 'react';

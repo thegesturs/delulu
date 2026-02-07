@@ -18,11 +18,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { PLANS } from '@delulu/payments';
+import {
+  Calendar01Icon,
+  CreditCardIcon,
+  Link01Icon,
+  SparklesIcon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { useAction } from 'convex/react';
 import { format } from 'date-fns';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { Calendar01Icon, CreditCardIcon, Link01Icon, SparklesIcon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 import { toast } from 'sonner';
 

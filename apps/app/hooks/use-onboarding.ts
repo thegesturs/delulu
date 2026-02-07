@@ -73,7 +73,9 @@ export function useOnboarding() {
         nextStep();
       } else {
         // Show error if server update failed
-        toast.error(result.error || 'Failed to save progress. Please try again.');
+        toast.error(
+          result.error || 'Failed to save progress. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error in handleNextStep:', error);
@@ -96,9 +98,7 @@ export function useOnboarding() {
       });
 
       // CRITICAL FIX: Prevent duplicate skipped steps using Set
-      const newSkippedSteps = Array.from(
-        new Set([...skippedSteps, stepName])
-      );
+      const newSkippedSteps = Array.from(new Set([...skippedSteps, stepName]));
 
       // CRITICAL FIX: Validate server response before UI update
       const result = await updateOnboardingStep({
@@ -111,7 +111,9 @@ export function useOnboarding() {
         await user?.reload();
         nextStep();
       } else {
-        toast.error(result.error || 'Failed to save progress. Please try again.');
+        toast.error(
+          result.error || 'Failed to save progress. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error in handleSkipStep:', error);
@@ -190,7 +192,9 @@ export function useOnboarding() {
       }
 
       // Show error if completion failed
-      toast.error(result.error || 'Failed to complete onboarding. Please try again.');
+      toast.error(
+        result.error || 'Failed to complete onboarding. Please try again.'
+      );
       return { error: result.error };
     } catch (error) {
       console.error('Error completing onboarding:', error);

@@ -19,9 +19,15 @@ import {
   CardTitle,
 } from '@delulu/design-system/components/ui/card';
 import { Progress } from '@delulu/design-system/components/ui/progress';
-import { useQuery } from 'convex-helpers/react/cache';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { AlertCircleIcon, BarChartIcon, Image01Icon, UserMultipleIcon, FlashIcon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  AlertCircleIcon,
+  BarChartIcon,
+  FlashIcon,
+  Image01Icon,
+  UserMultipleIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import { useQuery } from 'convex-helpers/react/cache';
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -51,7 +57,13 @@ function UsageStatItem({
           <span className="font-medium text-sm">{label}</span>
         </div>
         <div className="flex items-center gap-2">
-          {isAtLimit && <Icon icon={AlertCircleIcon} size={16} className="text-destructive" />}
+          {isAtLimit && (
+            <Icon
+              icon={AlertCircleIcon}
+              size={16}
+              className="text-destructive"
+            />
+          )}
           <span className="font-mono text-sm">
             {isUnlimited ? (
               <>
@@ -151,7 +163,13 @@ export function UsageStats() {
       <CardContent className="space-y-6">
         {/* Social Accounts */}
         <UsageStatItem
-          icon={<Icon icon={FlashIcon} size={16} className="text-muted-foreground" />}
+          icon={
+            <Icon
+              icon={FlashIcon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          }
           label="Social Accounts"
           current={socialAccountsCount}
           limit={socialAccountsLimit.limit}
@@ -161,7 +179,13 @@ export function UsageStats() {
 
         {/* Monthly Posts */}
         <UsageStatItem
-          icon={<Icon icon={BarChartIcon} size={16} className="text-muted-foreground" />}
+          icon={
+            <Icon
+              icon={BarChartIcon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          }
           label="Posts This Month"
           current={monthlyPostsCount}
           limit={monthlyPostsLimit.limit}
@@ -171,7 +195,13 @@ export function UsageStats() {
 
         {/* Media Storage */}
         <UsageStatItem
-          icon={<Icon icon={Image01Icon} size={16} className="text-muted-foreground" />}
+          icon={
+            <Icon
+              icon={Image01Icon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          }
           label="Media Storage"
           current={0} // TODO: Calculate actual storage usage
           limit={100} // Placeholder
@@ -181,7 +211,13 @@ export function UsageStats() {
 
         {/* Team Members */}
         <UsageStatItem
-          icon={<Icon icon={UserMultipleIcon} size={16} className="text-muted-foreground" />}
+          icon={
+            <Icon
+              icon={UserMultipleIcon}
+              size={16}
+              className="text-muted-foreground"
+            />
+          }
           label="Team Members"
           current={1}
           limit={teamMembersLimit.limit}

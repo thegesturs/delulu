@@ -1,5 +1,6 @@
 'use client';
 
+import { useSubscription } from '@/hooks/use-subscription';
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Button } from '@delulu/design-system/components/ui/button';
@@ -17,15 +18,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useSubscription } from '@/hooks/use-subscription';
 import { FlowCanvas } from './flow-canvas';
 import { FlowSidebarPanel } from './flow-sidebar-panel';
 import { FlowToolbar } from './flow-toolbar';
 import { useAutomationState } from './hooks/use-automation-state';
 import { TriggerWizard } from './trigger-wizard/trigger-wizard';
 import { stepsToFlow } from './utils/auto-layout';
-import { validateFlow } from './utils/flow-validation';
 import type { AutomationStep, TriggerStep } from './utils/flow-types';
+import { validateFlow } from './utils/flow-validation';
 import { createConditionStep, createSendDmStep } from './utils/step-helpers';
 
 interface FlowBuilderProps {
@@ -49,7 +49,9 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
   const updateAutomation = useMutation(api.automations.updateAutomation);
 
   const instagramProviders = useMemo(() => {
-    if (!socialProviders) return [];
+    if (!socialProviders) {
+      return [];
+    }
     return socialProviders.filter((p) => p.socialType === 'INSTAGRAM');
   }, [socialProviders]);
 
@@ -77,7 +79,9 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
 
   // Initialize from existing automation
   useEffect(() => {
-    if (!automation || initializedRef.current) return;
+    if (!automation || initializedRef.current) {
+      return;
+    }
     initializedRef.current = true;
 
     setAutomationMeta({
@@ -125,32 +129,56 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     // Find the last trigger's nextStepId chain — insert at end
     if (triggers.length > 0) {
       const lastTrigger = triggers[0];
-      if (!lastTrigger.nextStepId) {
+      if (lastTrigger.nextStepId) {
+        addStepAfterSync(
+          findLastStepId(lastTrigger.nextStepId, steps),
+          'next',
+          newStep
+        );
+      } else {
         // No steps yet, connect trigger → new condition
         updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
         setSteps((prev) => [...prev, newStep]);
         markDirty();
-      } else {
-        addStepAfterSync(findLastStepId(lastTrigger.nextStepId, steps), 'next', newStep);
       }
     }
     setSelectedStepId(newStep.id);
-  }, [triggers, steps, updateTrigger, setSteps, markDirty, addStepAfterSync, setSelectedStepId]);
+  }, [
+    triggers,
+    steps,
+    updateTrigger,
+    setSteps,
+    markDirty,
+    addStepAfterSync,
+    setSelectedStepId,
+  ]);
 
   const handleAddSendDm = useCallback(() => {
     const newStep = createSendDmStep();
     if (triggers.length > 0) {
       const lastTrigger = triggers[0];
-      if (!lastTrigger.nextStepId) {
+      if (lastTrigger.nextStepId) {
+        addStepAfterSync(
+          findLastStepId(lastTrigger.nextStepId, steps),
+          'next',
+          newStep
+        );
+      } else {
         updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
         setSteps((prev) => [...prev, newStep]);
         markDirty();
-      } else {
-        addStepAfterSync(findLastStepId(lastTrigger.nextStepId, steps), 'next', newStep);
       }
     }
     setSelectedStepId(newStep.id);
-  }, [triggers, steps, updateTrigger, setSteps, markDirty, addStepAfterSync, setSelectedStepId]);
+  }, [
+    triggers,
+    steps,
+    updateTrigger,
+    setSteps,
+    markDirty,
+    addStepAfterSync,
+    setSelectedStepId,
+  ]);
 
   const handleToggleActive = useCallback(
     (active: boolean) => {
@@ -197,7 +225,8 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         const id = await createAutomation({
           name: automationMeta.name.trim(),
           description: automationMeta.description.trim() || undefined,
-          socialProviderId: automationMeta.socialProviderId as Id<'socialProviders'>,
+          socialProviderId:
+            automationMeta.socialProviderId as Id<'socialProviders'>,
           isActive: automationMeta.isActive,
           triggers,
           steps,
@@ -297,14 +326,10 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         onToggleActive={handleToggleActive}
       />
       <div className="relative flex-1">
-        <FlowCanvas
-          nodes={nodes}
-          edges={edges}
-          onNodeClick={handleNodeClick}
-        />
+        <FlowCanvas nodes={nodes} edges={edges} onNodeClick={handleNodeClick} />
 
         {/* Action cards at bottom */}
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
+        <div className="-translate-x-1/2 absolute bottom-4 left-1/2 flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -336,7 +361,11 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
             className="gap-1.5 shadow-md"
           >
             <div className="flex h-5 w-5 items-center justify-center rounded bg-green-500/15">
-              <Icon icon={MailSend01Icon} size={12} className="text-green-600" />
+              <Icon
+                icon={MailSend01Icon}
+                size={12}
+                className="text-green-600"
+              />
             </div>
             Add Send DM
           </Button>
@@ -365,9 +394,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         onClose={() => setShowTriggerWizard(false)}
         onComplete={handleTriggerWizardComplete}
         instagramProviders={instagramProviders}
-        currentSocialProviderId={
-          automationMeta.socialProviderId || undefined
-        }
+        currentSocialProviderId={automationMeta.socialProviderId || undefined}
       />
     </div>
   );
@@ -392,7 +419,9 @@ function findLastStepId(startId: string, steps: AutomationStep[]): string {
   while (!visited.has(currentId)) {
     visited.add(currentId);
     const step = stepMap.get(currentId);
-    if (!step) break;
+    if (!step) {
+      break;
+    }
 
     let nextId: string | undefined;
     if (step.type === 'condition') {
@@ -401,7 +430,9 @@ function findLastStepId(startId: string, steps: AutomationStep[]): string {
       nextId = step.nextStepId;
     }
 
-    if (!nextId) break;
+    if (!nextId) {
+      break;
+    }
     currentId = nextId;
   }
 

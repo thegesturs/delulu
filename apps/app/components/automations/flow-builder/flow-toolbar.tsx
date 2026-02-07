@@ -5,7 +5,10 @@ import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { ArrowLeft01Icon, Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  ArrowLeft01Icon,
+  Loading03Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import Link from 'next/link';
 import type { AutomationMeta } from './utils/flow-types';
 
@@ -27,7 +30,7 @@ export function FlowToolbar({
   onToggleActive,
 }: FlowToolbarProps) {
   return (
-    <div className="flex items-center justify-between border-b border-border bg-background px-4 py-2.5">
+    <div className="flex items-center justify-between border-border border-b bg-background px-4 py-2.5">
       <div className="flex items-center gap-3">
         <Link href="/automations">
           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -64,7 +67,11 @@ export function FlowToolbar({
         >
           {isSaving ? (
             <>
-              <Icon icon={Loading03Icon} size={14} className="mr-1 animate-spin" />
+              <Icon
+                icon={Loading03Icon}
+                size={14}
+                className="mr-1 animate-spin"
+              />
               Saving...
             </>
           ) : (

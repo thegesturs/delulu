@@ -6,8 +6,8 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { Card } from '@delulu/design-system/components/ui/card';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Remove01Icon, Add01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { type SocialType, SocialTypes } from '@delulu/validators/post';
+import { Add01Icon, Remove01Icon } from '@hugeicons-pro/core-solid-rounded';
 
 import {
   getDefaultCharacterLimit,
@@ -45,7 +45,10 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const platformsInDefault = useMemo(
     () =>
       isGlobal
-        ? getPlatformsInDefault(selectedSocialProviders, post.alternativeContent)
+        ? getPlatformsInDefault(
+            selectedSocialProviders,
+            post.alternativeContent
+          )
         : [],
     [isGlobal, selectedSocialProviders, post.alternativeContent]
   );

@@ -1,8 +1,8 @@
+import { MobileBottomTabs } from '@/components/layout/mobile-bottom-tabs';
 import { FeatureTour } from '@/components/onboarding/feature-tour';
 import { StoreProvider } from '@/providers/store-provider';
 import { SidebarProvider } from '@delulu/design-system/components/ui/sidebar';
 import { secure } from '@delulu/security';
-import { MobileBottomTabs } from '@/components/layout/mobile-bottom-tabs';
 import { PostHogIdentifier } from 'components/layout/posthog-identifier';
 import { GlobalSidebar } from 'components/layout/sidebar';
 import { UserJotIdentifier } from 'components/layout/userjot-identifier';

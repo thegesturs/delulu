@@ -7,7 +7,11 @@ import {
   PopoverTrigger,
 } from '@delulu/design-system/components/ui/popover';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Add01Icon, FilterIcon, MailSend01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Add01Icon,
+  FilterIcon,
+  MailSend01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
 
 interface AddStepMenuProps {

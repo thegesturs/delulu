@@ -16,7 +16,11 @@ import {
 } from '@delulu/design-system/lib/social-config';
 import { Icon } from '@delulu/design-system/providers/icon';
 
-import { AlertCircleIcon, Calendar01Icon, Link01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  AlertCircleIcon,
+  Calendar01Icon,
+  Link01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import Image from 'next/image';
 import React from 'react';
 import { type Post, statusColors } from './types';
@@ -187,7 +191,11 @@ export function PostPreviewDialog({
                         </div>
                         {failureReason && (
                           <div className="flex items-start gap-2 text-destructive text-sm">
-                            <Icon icon={AlertCircleIcon} size={12} className="mt-0.5  flex-shrink-0" />
+                            <Icon
+                              icon={AlertCircleIcon}
+                              size={12}
+                              className="mt-0.5 flex-shrink-0"
+                            />
                             <span className="text-xs">{failureReason}</span>
                           </div>
                         )}
@@ -217,7 +225,11 @@ export function PostPreviewDialog({
             {post.postFailureReason && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                 <div className="flex items-start gap-2">
-                  <Icon icon={AlertCircleIcon} size={16} className="mt-0.5  flex-shrink-0 text-destructive" />
+                  <Icon
+                    icon={AlertCircleIcon}
+                    size={16}
+                    className="mt-0.5 flex-shrink-0 text-destructive"
+                  />
                   <div>
                     <p className="font-medium text-destructive text-sm">
                       Post Failed

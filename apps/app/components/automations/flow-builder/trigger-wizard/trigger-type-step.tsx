@@ -4,8 +4,8 @@ import { Badge } from '@delulu/design-system/components/ui/badge';
 import { cn } from '@delulu/design-system/lib/utils';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Comment01Icon,
   AtIcon,
+  Comment01Icon,
   UserStoryIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import type { AutomationTriggerType } from '../utils/flow-types';
@@ -47,7 +47,10 @@ interface TriggerTypeStepProps {
   onSelect: (type: AutomationTriggerType) => void;
 }
 
-export function TriggerTypeStep({ selectedType, onSelect }: TriggerTypeStepProps) {
+export function TriggerTypeStep({
+  selectedType,
+  onSelect,
+}: TriggerTypeStepProps) {
   return (
     <div className="space-y-3">
       <div>
@@ -85,7 +88,9 @@ export function TriggerTypeStep({ selectedType, onSelect }: TriggerTypeStepProps
                   </Badge>
                 )}
               </div>
-              <p className="text-muted-foreground text-xs">{option.description}</p>
+              <p className="text-muted-foreground text-xs">
+                {option.description}
+              </p>
             </div>
           </button>
         ))}

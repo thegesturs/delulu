@@ -20,11 +20,11 @@ import {
 } from '@delulu/design-system/components/ui/alert-dialog';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
+import { Icon } from '@delulu/design-system/providers/icon';
 import { DEFAULT_TIKTOK_SETTINGS } from '@delulu/validators/constants/settings';
 import type { SocialType } from '@delulu/validators/post';
-import { useQuery } from 'convex-helpers/react/cache';
-import { Icon } from '@delulu/design-system/providers/icon';
 import { Settings01Icon } from '@hugeicons-pro/core-solid-rounded';
+import { useQuery } from 'convex-helpers/react/cache';
 import {
   AnimatePresence,
   LayoutGroup,
@@ -50,7 +50,9 @@ export default function SocialSelector() {
 
   // Validate that selected providers still exist in the database
   const validatedSelectedProviders = useMemo(() => {
-    if (!socialProviders) return selectedProviders;
+    if (!socialProviders) {
+      return selectedProviders;
+    }
 
     const validIds = new Set(socialProviders.map((p) => p._id));
     const valid = selectedProviders.filter((p) =>
@@ -69,7 +71,9 @@ export default function SocialSelector() {
 
   // Show warning if providers were removed
   useEffect(() => {
-    if (!socialProviders) return;
+    if (!socialProviders) {
+      return;
+    }
 
     const removed =
       selectedProviders.length - validatedSelectedProviders.length;

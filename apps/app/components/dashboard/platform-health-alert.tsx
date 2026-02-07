@@ -29,7 +29,11 @@ export function PlatformHealthAlert({
     <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <Icon icon={Alert01Icon} size={20} className="text-amber-600 dark:text-amber-400" />
+          <Icon
+            icon={Alert01Icon}
+            size={20}
+            className="text-amber-600 dark:text-amber-400"
+          />
           <CardTitle className="text-amber-800 dark:text-amber-200">
             Platform Connection Issues
           </CardTitle>

@@ -5,14 +5,19 @@ import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Badge } from '@delulu/design-system/components/ui/badge';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@delulu/design-system/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@delulu/design-system/components/ui/card';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Loading03Icon,
   ArrowLeft01Icon,
-  TickDouble01Icon,
-  MailSend01Icon,
   Comment01Icon,
+  Loading03Icon,
+  MailSend01Icon,
+  TickDouble01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { useQuery } from 'convex-helpers/react/cache';
 import Link from 'next/link';
@@ -32,7 +37,9 @@ export default function AutomationAnalyticsPage() {
   const params = useParams();
   const automationId = params.id as Id<'automations'>;
 
-  const automation = useQuery(api.automations.getAutomation, { id: automationId });
+  const automation = useQuery(api.automations.getAutomation, {
+    id: automationId,
+  });
   const logs = useQuery(api.automationLogs.getLogsByAutomation, {
     automationId,
     limit: 50,
@@ -44,7 +51,11 @@ export default function AutomationAnalyticsPage() {
         <div className="flex-1">
           <Header pages={['Automations']} page="Loading..." />
           <div className="flex h-64 items-center justify-center">
-            <Icon icon={Loading03Icon} size={24} className="animate-spin text-muted-foreground" />
+            <Icon
+              icon={Loading03Icon}
+              size={24}
+              className="animate-spin text-muted-foreground"
+            />
           </div>
         </div>
       </div>
@@ -90,10 +101,16 @@ export default function AutomationAnalyticsPage() {
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Icon icon={Comment01Icon} size={20} className="text-blue-600 dark:text-blue-400" />
+                <Icon
+                  icon={Comment01Icon}
+                  size={20}
+                  className="text-blue-600 dark:text-blue-400"
+                />
               </div>
               <div>
-                <p className="font-semibold text-foreground text-xl">{automation.totalTriggered}</p>
+                <p className="font-semibold text-foreground text-xl">
+                  {automation.totalTriggered}
+                </p>
                 <p className="text-muted-foreground text-xs">Total Triggered</p>
               </div>
             </CardContent>
@@ -102,10 +119,16 @@ export default function AutomationAnalyticsPage() {
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Icon icon={MailSend01Icon} size={20} className="text-green-600 dark:text-green-400" />
+                <Icon
+                  icon={MailSend01Icon}
+                  size={20}
+                  className="text-green-600 dark:text-green-400"
+                />
               </div>
               <div>
-                <p className="font-semibold text-foreground text-xl">{automation.totalDMsSent}</p>
+                <p className="font-semibold text-foreground text-xl">
+                  {automation.totalDMsSent}
+                </p>
                 <p className="text-muted-foreground text-xs">DMs Sent</p>
               </div>
             </CardContent>
@@ -114,13 +137,21 @@ export default function AutomationAnalyticsPage() {
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                <Icon icon={TickDouble01Icon} size={20} className="text-purple-600 dark:text-purple-400" />
+                <Icon
+                  icon={TickDouble01Icon}
+                  size={20}
+                  className="text-purple-600 dark:text-purple-400"
+                />
               </div>
               <div>
                 <p className="font-semibold text-foreground text-xl">
                   {automation.totalTriggered > 0
-                    ? Math.round((automation.totalDMsSent / automation.totalTriggered) * 100)
-                    : 0}%
+                    ? Math.round(
+                        (automation.totalDMsSent / automation.totalTriggered) *
+                          100
+                      )
+                    : 0}
+                  %
                 </p>
                 <p className="text-muted-foreground text-xs">Success Rate</p>
               </div>
@@ -141,19 +172,19 @@ export default function AutomationAnalyticsPage() {
                     key={log._id}
                     className="flex items-start gap-4 rounded-lg border border-border bg-card/50 p-4"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                           DM Sent
                         </Badge>
                         {log.instagramUsername && (
-                          <span className="text-foreground text-sm font-medium">
+                          <span className="font-medium text-foreground text-sm">
                             @{log.instagramUsername}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex-shrink-0 text-right">
                       <p className="text-muted-foreground text-xs">
                         {formatDate(log.createdAt)}
                       </p>
@@ -164,7 +195,11 @@ export default function AutomationAnalyticsPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
                 <div className="mb-4 rounded-full bg-muted/50 p-4">
-                  <Icon icon={Comment01Icon} size={24} className="text-muted-foreground" />
+                  <Icon
+                    icon={Comment01Icon}
+                    size={24}
+                    className="text-muted-foreground"
+                  />
                 </div>
                 <p className="text-muted-foreground">No activity yet</p>
                 <p className="text-muted-foreground text-sm">

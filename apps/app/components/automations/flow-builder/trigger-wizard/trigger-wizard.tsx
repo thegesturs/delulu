@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@delulu/design-system/components/ui/button';
 import {
   Dialog,
@@ -9,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@delulu/design-system/components/ui/dialog';
+import { useState } from 'react';
 import type { AutomationTriggerType, TriggerStep } from '../utils/flow-types';
 import { createTrigger } from '../utils/step-helpers';
 import { AccountStep } from './account-step';
@@ -57,7 +57,9 @@ export function TriggerWizard({
     } else if (wizardStep === 'trigger_type') {
       setWizardStep('posts');
     } else if (wizardStep === 'posts') {
-      if (!selectedAccountId || !selectedTriggerType) return;
+      if (!selectedAccountId || !selectedTriggerType) {
+        return;
+      }
       const trigger = createTrigger({
         triggerType: selectedTriggerType,
         targetPostIds: selectedPostIds,
@@ -85,7 +87,15 @@ export function TriggerWizard({
     (wizardStep === 'posts' && selectedPostIds.length > 0);
 
   const stepNumber =
-    wizardStep === 'account' ? 1 : wizardStep === 'trigger_type' ? (skipAccount ? 1 : 2) : (skipAccount ? 2 : 3);
+    wizardStep === 'account'
+      ? 1
+      : wizardStep === 'trigger_type'
+        ? skipAccount
+          ? 1
+          : 2
+        : skipAccount
+          ? 2
+          : 3;
   const totalSteps = skipAccount ? 2 : 3;
 
   return (
@@ -94,7 +104,7 @@ export function TriggerWizard({
         <DialogHeader>
           <DialogTitle>
             Add Trigger
-            <span className="ml-2 text-muted-foreground font-normal text-sm">
+            <span className="ml-2 font-normal text-muted-foreground text-sm">
               Step {stepNumber} of {totalSteps}
             </span>
           </DialogTitle>

@@ -10,7 +10,9 @@ interface LoadingStateProps {
 
 export function LoadingState({ progress }: LoadingStateProps) {
   const percentage =
-    progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+    progress.total > 0
+      ? Math.round((progress.current / progress.total) * 100)
+      : 0;
 
   return (
     <div className="sorted-loading-state">
@@ -28,8 +30,12 @@ export function LoadingState({ progress }: LoadingStateProps) {
       </div>
 
       <div className="sorted-loading-text">
-        <h3>{progress.status === 'scraping' ? 'Scraping Reels...' : 'Sorting...'}</h3>
-        {progress.message && <p className="sorted-loading-message">{progress.message}</p>}
+        <h3>
+          {progress.status === 'scraping' ? 'Scraping Reels...' : 'Sorting...'}
+        </h3>
+        {progress.message && (
+          <p className="sorted-loading-message">{progress.message}</p>
+        )}
       </div>
 
       {progress.total > 0 && (

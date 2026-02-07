@@ -8,9 +8,12 @@
 
 import { api } from '@delulu/database/convex/_generated/api';
 import { Button } from '@delulu/design-system/components/ui/button';
-import { useAction } from 'convex/react';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { ArrowRight01Icon, CreditCardIcon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  ArrowRight01Icon,
+  CreditCardIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import { useAction } from 'convex/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 

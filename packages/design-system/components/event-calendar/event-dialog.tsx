@@ -1,9 +1,12 @@
 'use client';
 
+import {
+  Calendar as CalendarHugeIcon,
+  Delete01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { format, isBefore } from 'date-fns';
-import { Icon } from '../../providers/icon';
-import { Calendar as CalendarHugeIcon, Delete01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useEffect, useMemo, useState } from 'react';
+import { Icon } from '../../providers/icon';
 
 import type {
   CalendarEvent,

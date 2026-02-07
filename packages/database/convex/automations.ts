@@ -1,5 +1,4 @@
 import { v } from 'convex/values';
-import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import {
   DM_PLAN_LIMITS,
@@ -7,8 +6,6 @@ import {
   automationSchema,
   automationStepSchema,
   automationUpdateSchema,
-  commentReplySchema,
-  dmButtonSchema,
   triggerStepSchema,
 } from './schemas/automations';
 import { getCurrentUser } from './users';
@@ -98,7 +95,11 @@ export const getForWebhook = query({
       accessToken: v.string(),
       profileId: v.string(),
       userId: v.id('users'),
-      planType: v.union(v.literal('FREE'), v.literal('VIBE'), v.literal('ECHO')),
+      planType: v.union(
+        v.literal('FREE'),
+        v.literal('VIBE'),
+        v.literal('ECHO')
+      ),
       dmsSent: v.optional(v.number()),
       dmLimit: v.number(),
     }),
@@ -120,7 +121,9 @@ export const getForWebhook = query({
       .first();
 
     if (!provider || provider.socialType !== 'INSTAGRAM') {
-      console.log(`[getForWebhook] No Instagram provider for profileId=${args.instagramAccountId}`);
+      console.log(
+        `[getForWebhook] No Instagram provider for profileId=${args.instagramAccountId}`
+      );
       return null;
     }
 
@@ -132,7 +135,9 @@ export const getForWebhook = query({
       )
       .collect();
 
-    console.log(`[getForWebhook] Provider ${provider._id}, found ${allAutomations.length} active automations`);
+    console.log(
+      `[getForWebhook] Provider ${provider._id}, found ${allAutomations.length} active automations`
+    );
 
     // Filter to automations where any trigger targets this mediaId
     const matchingAutomations = allAutomations.filter((a) =>
@@ -140,9 +145,13 @@ export const getForWebhook = query({
     );
 
     if (matchingAutomations.length === 0) {
-      console.log(`[getForWebhook] No automations target mediaId=${args.mediaId}. Active automations target: ${
-        allAutomations.flatMap((a) => a.triggers.flatMap((t) => t.targetPostIds)).join(', ') || 'none'
-      }`);
+      console.log(
+        `[getForWebhook] No automations target mediaId=${args.mediaId}. Active automations target: ${
+          allAutomations
+            .flatMap((a) => a.triggers.flatMap((t) => t.targetPostIds))
+            .join(', ') || 'none'
+        }`
+      );
       return null;
     }
 

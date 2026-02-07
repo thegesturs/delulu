@@ -2,7 +2,7 @@
  * Popup UI - Status and Info
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { isReelsTab } from '../content/utils/url-detector';
 import './App.css';
 
@@ -30,7 +30,11 @@ function App() {
         <p className="popup-subtitle">Instagram Reel Sorter</p>
         <div className="popup-branding">
           <span>by</span>
-          <a href="https://delulu.social" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://delulu.social"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             delulu.social
           </a>
         </div>
@@ -43,14 +47,19 @@ function App() {
             <>
               <div className="popup-status-icon">✅</div>
               <h3>Active on Reels Tab</h3>
-              <p>The sorting panel should appear above the reels grid on the Instagram page.</p>
+              <p>
+                The sorting panel should appear above the reels grid on the
+                Instagram page.
+              </p>
             </>
           ) : (
             <>
               <div className="popup-status-icon">ℹ️</div>
               <h3>Navigate to Reels Tab</h3>
               <p>Visit any Instagram profile's reels tab to use Sorted.</p>
-              <p className="popup-example">Example: instagram.com/natgeo/reels/</p>
+              <p className="popup-example">
+                Example: instagram.com/natgeo/reels/
+              </p>
             </>
           )}
         </div>

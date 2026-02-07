@@ -18,8 +18,8 @@ import {
   socialDescriptions,
   socialDisplayNames,
 } from '@delulu/design-system/lib/social-config';
-import { useQuery } from 'convex-helpers/react/cache';
 import { Icon } from '@delulu/design-system/providers/icon';
+import { useQuery } from 'convex-helpers/react/cache';
 
 import { Plus } from '@hugeicons-pro/core-solid-rounded';
 import Link from 'next/link';
@@ -121,7 +121,7 @@ export function ConnectedAccountsHeader() {
   // Check limit with single efficient query
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const isAtLimit = !limitCheck?.allowed;
-  const accountCount = limitCheck?.currentCount || 0;
+  const _accountCount = limitCheck?.currentCount || 0;
 
   return (
     <div className="space-y-4">

@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import type { SortMetric, Quantity } from '../../shared/types';
+import type { Quantity, SortMetric } from '../../shared/types';
 
 interface SortControlsProps {
   onSort: (metric: SortMetric, quantity: Quantity) => void;
@@ -12,7 +12,12 @@ interface SortControlsProps {
   isScaping?: boolean;
 }
 
-export function SortControls({ onSort, onCancel, disabled, isScaping }: SortControlsProps) {
+export function SortControls({
+  onSort,
+  onCancel,
+  disabled,
+  isScaping,
+}: SortControlsProps) {
   const [sortMetric, setSortMetric] = useState<SortMetric>('views');
   const [quantity, setQuantity] = useState<Quantity>(25);
 

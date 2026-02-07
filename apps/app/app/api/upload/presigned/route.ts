@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
     };
 
     if (!fileName || !contentType) {
-      return new NextResponse('Missing fileName or contentType', { status: 400 });
+      return new NextResponse('Missing fileName or contentType', {
+        status: 400,
+      });
     }
 
     // Validate file size (optional - adjust limits as needed)

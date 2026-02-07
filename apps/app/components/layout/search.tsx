@@ -2,7 +2,10 @@ import { Button } from '@delulu/design-system/components/ui/button';
 import { Input } from '@delulu/design-system/components/ui/input';
 import { Icon } from '@delulu/design-system/providers/icon';
 
-import { ArrowRight01Icon, Search01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  ArrowRight01Icon,
+  Search01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 
 export const Search = () => (
   <form action="/search" className="flex items-center gap-2 px-4">
@@ -21,7 +24,11 @@ export const Search = () => (
         size="icon"
         className="absolute top-px right-px bottom-px h-8 w-8"
       >
-        <Icon icon={ArrowRight01Icon} size={16} className="text-muted-foreground" />
+        <Icon
+          icon={ArrowRight01Icon}
+          size={16}
+          className="text-muted-foreground"
+        />
       </Button>
     </div>
   </form>

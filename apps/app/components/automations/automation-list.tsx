@@ -19,7 +19,7 @@ export function AutomationList({
 }: AutomationListProps) {
   if (automations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/30 py-16">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-border border-dashed bg-card/30 py-16">
         <div className="mb-4 rounded-full bg-muted/50 p-4">
           <svg
             className="h-8 w-8 text-muted-foreground"
@@ -35,9 +35,12 @@ export function AutomationList({
             />
           </svg>
         </div>
-        <h3 className="mb-1 font-medium text-foreground text-lg">No automations yet</h3>
+        <h3 className="mb-1 font-medium text-foreground text-lg">
+          No automations yet
+        </h3>
         <p className="text-center text-muted-foreground text-sm">
-          Create your first automation to automatically reply to Instagram comments
+          Create your first automation to automatically reply to Instagram
+          comments
         </p>
       </div>
     );

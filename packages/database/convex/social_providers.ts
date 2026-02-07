@@ -425,7 +425,9 @@ export const upsertSocialProviderFromOAuth = mutation({
     // Check if provider exists by profileId
     const existingProvider = await ctx.db
       .query('socialProviders')
-      .withIndex('by_profile_id', (q) => q.eq('profileId', providerData.profileId))
+      .withIndex('by_profile_id', (q) =>
+        q.eq('profileId', providerData.profileId)
+      )
       .unique();
 
     if (existingProvider) {

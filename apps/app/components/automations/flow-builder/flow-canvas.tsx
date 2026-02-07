@@ -2,16 +2,15 @@
 
 import {
   Background,
-  Controls,
-  MiniMap,
-  ReactFlow,
-  type Node,
-  type Edge,
-  type NodeTypes,
   BackgroundVariant,
+  Controls,
+  type Edge,
+  MiniMap,
+  type Node,
+  type NodeTypes,
+  ReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useMemo } from 'react';
 import { ConditionNode } from './nodes/condition-node';
 import { SendDmNode } from './nodes/send-dm-node';
 import { TriggerNode } from './nodes/trigger-node';
@@ -46,10 +45,7 @@ export function FlowCanvas({ nodes, edges, onNodeClick }: FlowCanvasProps) {
     >
       <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
       <Controls showInteractive={false} />
-      <MiniMap
-        nodeStrokeWidth={3}
-        className="!bg-background !border-border"
-      />
+      <MiniMap nodeStrokeWidth={3} className="!bg-background !border-border" />
     </ReactFlow>
   );
 }

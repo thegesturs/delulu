@@ -44,7 +44,12 @@ export interface UserPreferences {
 /**
  * Scraping state
  */
-export type ScrapingStatus = 'idle' | 'scraping' | 'sorting' | 'complete' | 'error';
+export type ScrapingStatus =
+  | 'idle'
+  | 'scraping'
+  | 'sorting'
+  | 'complete'
+  | 'error';
 
 /**
  * Scraping progress information

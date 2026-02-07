@@ -10,7 +10,10 @@ import {
   SelectValue,
 } from '@delulu/design-system/components/ui/select';
 import { Switch } from '@delulu/design-system/components/ui/switch';
-import type { ConditionStep, AutomationConditionOperator } from '../utils/flow-types';
+import type {
+  AutomationConditionOperator,
+  ConditionStep,
+} from '../utils/flow-types';
 
 const OPERATORS = [
   { value: 'always', label: 'Always (any comment)' },
@@ -88,8 +91,10 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
 
       <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-muted-foreground text-xs">
-          The <span className="font-medium text-green-600">Yes</span> path runs when the condition matches.
-          The <span className="font-medium text-red-600">No</span> path runs otherwise.
+          The <span className="font-medium text-green-600">Yes</span> path runs
+          when the condition matches. The{' '}
+          <span className="font-medium text-red-600">No</span> path runs
+          otherwise.
         </p>
       </div>
     </div>

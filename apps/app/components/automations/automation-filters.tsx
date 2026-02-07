@@ -11,9 +11,9 @@ import {
 } from '@delulu/design-system/components/ui/select';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Search01Icon,
   GridViewIcon,
   Menu01Icon,
+  Search01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 
 interface AutomationFiltersProps {

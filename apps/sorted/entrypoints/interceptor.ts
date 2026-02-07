@@ -21,13 +21,18 @@ export default defineContentScript({
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
 
-    XMLHttpRequest.prototype.open = function(method: string, url: string | URL) {
+    XMLHttpRequest.prototype.open = function (
+      _method: string,
+      url: string | URL
+    ) {
       (this as any)._url = url.toString();
       return originalOpen.apply(this, arguments as any);
     };
 
-    XMLHttpRequest.prototype.send = function(body?: Document | XMLHttpRequestBodyInit | null) {
-      this.addEventListener('load', function() {
+    XMLHttpRequest.prototype.send = function (
+      _body?: Document | XMLHttpRequestBodyInit | null
+    ) {
+      this.addEventListener('load', function () {
         const url = (this as any)._url;
 
         // Log all XHR for debugging
@@ -35,7 +40,7 @@ export default defineContentScript({
           console.log('[Sorted] XHR:', url.substring(0, 150));
         }
 
-        if (url && url.includes('/graphql/query')) {
+        if (url?.includes('/graphql/query')) {
           console.log('[Sorted] 🎯 Found GraphQL XHR!');
           try {
             if (this.responseType === '' || this.responseType === 'text') {
@@ -43,8 +48,13 @@ export default defineContentScript({
 
               // Check for reels
               if (data.data?.xdt_api__v1__clips__user__connection_v2) {
-                const edges = data.data.xdt_api__v1__clips__user__connection_v2.edges;
-                console.log('[Sorted] ✅ Found', edges.length, 'REELS in GraphQL response!');
+                const edges =
+                  data.data.xdt_api__v1__clips__user__connection_v2.edges;
+                console.log(
+                  '[Sorted] ✅ Found',
+                  edges.length,
+                  'REELS in GraphQL response!'
+                );
 
                 edges.forEach((edge: any) => {
                   const media = edge.node.media;
@@ -52,12 +62,16 @@ export default defineContentScript({
                     const metrics = {
                       views: media.play_count ?? media.view_count,
                       likes: media.like_count,
-                      comments: media.comment_count
+                      comments: media.comment_count,
                     };
 
                     if (media.code) {
                       metricsCache.set(media.code, metrics);
-                      console.log('[Sorted] 📊 Cached metrics for', media.code, metrics);
+                      console.log(
+                        '[Sorted] 📊 Cached metrics for',
+                        media.code,
+                        metrics
+                      );
                     }
                     if (media.pk) {
                       metricsCache.set(media.pk, metrics);
@@ -67,21 +81,33 @@ export default defineContentScript({
               }
 
               // Check for posts
-              if (data.data?.xdt_api__v1__feed__user_timeline_graphql_connection) {
-                const edges = data.data.xdt_api__v1__feed__user_timeline_graphql_connection.edges;
-                console.log('[Sorted] ✅ Found', edges.length, 'POSTS in GraphQL response!');
+              if (
+                data.data?.xdt_api__v1__feed__user_timeline_graphql_connection
+              ) {
+                const edges =
+                  data.data.xdt_api__v1__feed__user_timeline_graphql_connection
+                    .edges;
+                console.log(
+                  '[Sorted] ✅ Found',
+                  edges.length,
+                  'POSTS in GraphQL response!'
+                );
 
                 edges.forEach((edge: any) => {
                   const node = edge.node;
                   const metrics = {
                     views: node.play_count ?? node.view_count,
                     likes: node.like_count,
-                    comments: node.comment_count
+                    comments: node.comment_count,
                   };
 
                   if (node.code) {
                     metricsCache.set(node.code, metrics);
-                    console.log('[Sorted] 📊 Cached metrics for', node.code, metrics);
+                    console.log(
+                      '[Sorted] 📊 Cached metrics for',
+                      node.code,
+                      metrics
+                    );
                   }
                   if (node.pk) {
                     metricsCache.set(node.pk, metrics);
@@ -99,5 +125,5 @@ export default defineContentScript({
     };
 
     console.log('[Sorted] ✅ XHR interceptor hooked in main world!');
-  }
+  },
 });

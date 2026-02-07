@@ -8,10 +8,14 @@ import { Input } from '@delulu/design-system/components/ui/input';
 import { Label } from '@delulu/design-system/components/ui/label';
 import { Textarea } from '@delulu/design-system/components/ui/textarea';
 import { cn } from '@delulu/design-system/lib/utils';
+import { Icon } from '@delulu/design-system/providers/icon';
 import type { SocialType } from '@delulu/validators/post';
 import { SocialTypes } from '@delulu/validators/post';
-import { Icon } from '@delulu/design-system/providers/icon';
-import { PencilEdit01Icon, Image01Icon, Delete01Icon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Delete01Icon,
+  Image01Icon,
+  PencilEdit01Icon,
+} from '@hugeicons-pro/core-solid-rounded';
 import { useCallback, useState } from 'react';
 import { MediaUploader } from './media-uploader';
 import { VideoThumbnailSelector } from './video-thumbnail-selector';

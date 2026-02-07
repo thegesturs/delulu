@@ -3,16 +3,16 @@
 import { api } from '@delulu/database/convex/_generated/api';
 import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Icon } from '@delulu/design-system/providers/icon';
+import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useQuery } from 'convex-helpers/react/cache';
 import { useMutation } from 'convex/react';
-import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { AutomationsHeader } from './automations-header';
-import { AutomationStats } from './automation-stats';
 import { AutomationFilters } from './automation-filters';
 import { AutomationList } from './automation-list';
+import { AutomationStats } from './automation-stats';
+import { AutomationsHeader } from './automations-header';
 
 export default function AutomationsClient() {
   const router = useRouter();
@@ -24,16 +24,24 @@ export default function AutomationsClient() {
   const automations = useQuery(api.automations.getAutomations, {});
   const isLoading = automations === undefined;
 
-  const deleteAutomationMutation = useMutation(api.automations.deleteAutomation);
-  const toggleAutomationMutation = useMutation(api.automations.toggleAutomation);
+  const deleteAutomationMutation = useMutation(
+    api.automations.deleteAutomation
+  );
+  const toggleAutomationMutation = useMutation(
+    api.automations.toggleAutomation
+  );
 
   const filteredAutomations = useMemo(() => {
-    if (!automations) return [];
+    if (!automations) {
+      return [];
+    }
 
     return automations.filter((automation) => {
       const matchesSearch =
         automation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        automation.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        automation.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         filterStatus === 'all' ||
@@ -54,7 +62,10 @@ export default function AutomationsClient() {
     }
 
     const active = automations.filter((a) => a.isActive).length;
-    const totalDMsSent = automations.reduce((acc, a) => acc + a.totalDMsSent, 0);
+    const totalDMsSent = automations.reduce(
+      (acc, a) => acc + a.totalDMsSent,
+      0
+    );
 
     return {
       total: automations.length,
@@ -102,7 +113,9 @@ export default function AutomationsClient() {
   return (
     <div className="h-screen bg-background">
       <div className="mx-auto flex max-w-6xl flex-col space-y-6 p-6">
-        <AutomationsHeader onCreateClick={() => router.push('/automations/new')} />
+        <AutomationsHeader
+          onCreateClick={() => router.push('/automations/new')}
+        />
         <AutomationStats stats={stats} />
         <AutomationFilters
           searchQuery={searchQuery}

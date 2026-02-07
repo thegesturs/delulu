@@ -29,8 +29,10 @@ export function isReelPage(url: string = window.location.href): boolean {
  * Extract username from Instagram profile URL
  * Returns null if not a valid profile URL
  */
-export function extractUsername(url: string = window.location.href): string | null {
-  const match = url.match(/instagram\.com\/([^\/\?]+)/);
+export function extractUsername(
+  url: string = window.location.href
+): string | null {
+  const match = url.match(/instagram\.com\/([^/?]+)/);
   if (!match || match[1] === 'reel' || match[1] === 'p') {
     return null;
   }
@@ -40,7 +42,9 @@ export function extractUsername(url: string = window.location.href): string | nu
 /**
  * Get the current profile URL (base profile without /reels)
  */
-export function getProfileUrl(url: string = window.location.href): string | null {
+export function getProfileUrl(
+  url: string = window.location.href
+): string | null {
   const username = extractUsername(url);
   if (!username) {
     return null;
@@ -107,7 +111,9 @@ export async function waitForPageLoad(timeout = 5000): Promise<void> {
 
     const checkLoading = () => {
       // Check if there's a loading spinner
-      const loadingSpinner = document.querySelector('svg[aria-label="Loading..."]');
+      const loadingSpinner = document.querySelector(
+        'svg[aria-label="Loading..."]'
+      );
 
       if (!loadingSpinner) {
         resolve();

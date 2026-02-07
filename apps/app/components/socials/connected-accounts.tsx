@@ -5,6 +5,7 @@ import type { Id } from '@delulu/database/convex/_generated/dataModel';
 import { Icon } from '@delulu/design-system/providers/icon';
 import { useQuery } from 'convex-helpers/react/cache';
 
+import { api as TrpcApi } from '@/trpc/react';
 import { Loading03Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -12,7 +13,6 @@ import { AccountFilters } from './account-filter';
 import { AccountList } from './account-list';
 import { AccountStats } from './account-stats';
 import { ConnectedAccountsHeader } from './connect-account-header';
-import { api as TrpcApi } from '@/trpc/react';
 
 // Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
 // For this refactor, assuming they are only used by logic within this main component or passed down
@@ -41,7 +41,8 @@ export default function ConnectedAccounts() {
   const accounts = useQuery(api.social_providers.getConnectedAccounts);
   const isLoadingAccounts = accounts === undefined;
 
-  const deleteSocialMutation = TrpcApi.socialProvider.deleteSocialProvider.useMutation();
+  const deleteSocialMutation =
+    TrpcApi.socialProvider.deleteSocialProvider.useMutation();
 
   const filteredAccounts = useMemo(() => {
     if (!accounts) {

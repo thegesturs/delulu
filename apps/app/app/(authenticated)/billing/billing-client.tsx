@@ -18,9 +18,9 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@delulu/design-system/components/ui/alert';
+import { Icon } from '@delulu/design-system/providers/icon';
 import type { PlanType } from '@delulu/payments';
 import { getProductIds } from '@delulu/payments/product-ids';
-import { Icon } from '@delulu/design-system/providers/icon';
 import { TickDouble01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';

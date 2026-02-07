@@ -1,7 +1,7 @@
 import type { R2Bucket } from '@delulu/cloudflare-types';
 import { ResultAsync, err, ok } from 'neverthrow';
-import { R2DownloadError, R2UploadError } from './r2-errors';
 import { keys } from '../keys';
+import { R2DownloadError, R2UploadError } from './r2-errors';
 
 // Types for R2Provider
 
@@ -297,13 +297,16 @@ export class R2Provider {
     const data = encoder.encode(message);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
    * HMAC SHA256 using Web Crypto API
    */
-  private async hmacSha256(key: ArrayBuffer, message: string): Promise<ArrayBuffer> {
+  private async hmacSha256(
+    key: ArrayBuffer,
+    message: string
+  ): Promise<ArrayBuffer> {
     const encoder = new TextEncoder();
     const cryptoKey = await crypto.subtle.importKey(
       'raw',
@@ -337,9 +340,8 @@ export class R2Provider {
     // Sign the string
     const signature = await this.hmacSha256(key, stringToSign);
     const signatureArray = Array.from(new Uint8Array(signature));
-    return signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return signatureArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
-
 }
 
 export const r2Provider = new R2Provider();

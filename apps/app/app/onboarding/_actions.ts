@@ -57,7 +57,9 @@ export const updateOnboardingStep = async (data: {
   } catch (error) {
     console.error('Error updating onboarding step:', error);
     const errorMessage =
-      error instanceof Error ? error.message : 'Failed to update onboarding progress';
+      error instanceof Error
+        ? error.message
+        : 'Failed to update onboarding progress';
     return { error: errorMessage };
   }
 };
@@ -90,9 +92,11 @@ export const completeOnboarding = async () => {
 
     // Get current step data and ensure final step is marked as completed
     const currentStep = (cleanMetadata.currentStep as number) || 3;
-    const currentStepsCompleted = (cleanMetadata.stepsCompleted as string[]) || [];
+    const currentStepsCompleted =
+      (cleanMetadata.stepsCompleted as string[]) || [];
     const stepNames = { 1: 'welcome', 2: 'connect', 3: 'pricing' };
-    const finalStepName = stepNames[currentStep as keyof typeof stepNames] || 'pricing';
+    const finalStepName =
+      stepNames[currentStep as keyof typeof stepNames] || 'pricing';
 
     // Add final step to completed steps if not already there
     const allStepsCompleted = Array.from(

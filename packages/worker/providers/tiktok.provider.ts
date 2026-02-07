@@ -146,11 +146,15 @@ const getRecentVideoId = (
   retryDelay = 5000 // 5 seconds between retries
 ): ResultAsync<string | null, SocialProviderError> => {
   const attemptFetch = async (attempt: number): Promise<string | null> => {
-    console.log(`[TikTok] Fetching recent video list (attempt ${attempt + 1}/${maxRetries})`);
+    console.log(
+      `[TikTok] Fetching recent video list (attempt ${attempt + 1}/${maxRetries})`
+    );
 
     // Add delay before first attempt to let video propagate to list API
     if (attempt === 0) {
-      console.log('[TikTok] Waiting 3 seconds for video to appear in list API...');
+      console.log(
+        '[TikTok] Waiting 3 seconds for video to appear in list API...'
+      );
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
@@ -188,7 +192,9 @@ const getRecentVideoId = (
 
     for (const video of videos) {
       const videoAge = now - video.create_time;
-      console.log(`[TikTok] Video ${video.id}: age ${videoAge.toFixed(0)}s (limit: ${maxAge}s)`);
+      console.log(
+        `[TikTok] Video ${video.id}: age ${videoAge.toFixed(0)}s (limit: ${maxAge}s)`
+      );
 
       if (videoAge <= maxAge) {
         console.log('[TikTok] ✅ Found recent video:', {
@@ -210,9 +216,8 @@ const getRecentVideoId = (
     return null;
   };
 
-  return ResultAsync.fromPromise(
-    attemptFetch(0),
-    (error) => createAPIError('TikTok', error)
+  return ResultAsync.fromPromise(attemptFetch(0), (error) =>
+    createAPIError('TikTok', error)
   ).map((videoId) => videoId);
 };
 
@@ -455,7 +460,10 @@ const publishContent = (
       const videoId = itemId || uploadResponse.data.publish_id;
 
       if (itemId) {
-        console.log('[TikTok] ✅ Using correct video URL with item_id:', itemId);
+        console.log(
+          '[TikTok] ✅ Using correct video URL with item_id:',
+          itemId
+        );
       } else {
         console.warn(
           '[TikTok] ⚠️ Could not retrieve real video ID, using publish_id as fallback (may result in broken link)'

@@ -2,7 +2,7 @@
 
 import { cn } from '@delulu/design-system/lib/utils';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { FilterIcon, Cancel01Icon } from '@hugeicons-pro/core-solid-rounded';
+import { Cancel01Icon, FilterIcon } from '@hugeicons-pro/core-solid-rounded';
 import type { ConditionStep } from '../utils/flow-types';
 
 const OPERATOR_LABELS: Record<string, string> = {
@@ -60,7 +60,7 @@ export function ConditionStepCard({
           e.stopPropagation();
           onRemove();
         }}
-        className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover:opacity-100"
+        className="-top-2 -right-2 absolute flex h-5 w-5 items-center justify-center rounded-full bg-muted opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover:opacity-100"
       >
         <Icon icon={Cancel01Icon} size={10} />
       </button>

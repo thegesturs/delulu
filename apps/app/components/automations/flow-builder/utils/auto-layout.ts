@@ -85,11 +85,15 @@ function buildLayoutTree(
   stepMap: Map<string, AutomationStep>,
   visited = new Set<string>()
 ): LayoutNode | null {
-  if (visited.has(stepId)) return null;
+  if (visited.has(stepId)) {
+    return null;
+  }
   visited.add(stepId);
 
   const step = stepMap.get(stepId);
-  if (!step) return null;
+  if (!step) {
+    return null;
+  }
 
   const node: LayoutNode = {
     id: step.id,
@@ -113,12 +117,10 @@ function buildLayoutTree(
         node.children.push(noChild);
       }
     }
-  } else if (step.type === 'send_dm') {
-    if (step.nextStepId) {
-      const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
-      if (nextChild) {
-        node.children.push(nextChild);
-      }
+  } else if (step.type === 'send_dm' && step.nextStepId) {
+    const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
+    if (nextChild) {
+      node.children.push(nextChild);
     }
   }
 
@@ -126,8 +128,12 @@ function buildLayoutTree(
 }
 
 function getSubtreeWidth(node: LayoutNode | null): number {
-  if (!node) return 0;
-  if (node.children.length === 0) return NODE_WIDTH;
+  if (!node) {
+    return 0;
+  }
+  if (node.children.length === 0) {
+    return NODE_WIDTH;
+  }
 
   const childrenWidth = node.children.reduce(
     (sum, child) => sum + getSubtreeWidth(child),
@@ -145,15 +151,16 @@ function layoutStepTree(
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  function walk(
-    stepId: string,
-    visited: Set<string>
-  ) {
-    if (visited.has(stepId)) return;
+  function walk(stepId: string, visited: Set<string>) {
+    if (visited.has(stepId)) {
+      return;
+    }
     visited.add(stepId);
 
     const step = stepMap.get(stepId);
-    if (!step) return;
+    if (!step) {
+      return;
+    }
 
     const nodeType = step.type === 'condition' ? 'condition' : 'send_dm';
     nodes.push({
@@ -186,16 +193,14 @@ function layoutStepTree(
         });
         walk(step.noStepId, visited);
       }
-    } else if (step.type === 'send_dm') {
-      if (step.nextStepId) {
-        edges.push({
-          id: `edge-${step.id}-${step.nextStepId}`,
-          source: step.id,
-          target: step.nextStepId,
-          type: 'smoothstep',
-        });
-        walk(step.nextStepId, visited);
-      }
+    } else if (step.type === 'send_dm' && step.nextStepId) {
+      edges.push({
+        id: `edge-${step.id}-${step.nextStepId}`,
+        source: step.id,
+        target: step.nextStepId,
+        type: 'smoothstep',
+      });
+      walk(step.nextStepId, visited);
     }
   }
 
@@ -207,11 +212,7 @@ function layoutStepTree(
  * Position nodes using the layout tree structure.
  * Each node is centered over its subtree.
  */
-function positionLayoutNodes(
-  nodes: Node[],
-  startX: number,
-  startY: number
-) {
+function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   // Build parent→children relationships from edges
@@ -219,15 +220,19 @@ function positionLayoutNodes(
   // For simplicity, do a topological sort based on the nodes array order
   // and position them in a simple vertical chain or branching layout
 
-  let y = startY;
+  const _y = startY;
   const positioned = new Set<string>();
 
   function positionNode(nodeId: string, x: number, currentY: number): number {
-    if (positioned.has(nodeId)) return currentY;
+    if (positioned.has(nodeId)) {
+      return currentY;
+    }
     positioned.add(nodeId);
 
     const node = nodeMap.get(nodeId);
-    if (!node) return currentY;
+    if (!node) {
+      return currentY;
+    }
 
     node.position = { x, y: currentY };
     const step = node.data.step as AutomationStep;
@@ -253,8 +258,16 @@ function positionLayoutNodes(
       return nextY;
     }
 
-    if (step.type === 'send_dm' && step.nextStepId && nodeMap.has(step.nextStepId)) {
-      return positionNode(step.nextStepId, x, currentY + NODE_HEIGHT + VERTICAL_GAP);
+    if (
+      step.type === 'send_dm' &&
+      step.nextStepId &&
+      nodeMap.has(step.nextStepId)
+    ) {
+      return positionNode(
+        step.nextStepId,
+        x,
+        currentY + NODE_HEIGHT + VERTICAL_GAP
+      );
     }
 
     return currentY + NODE_HEIGHT + VERTICAL_GAP;

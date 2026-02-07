@@ -7,10 +7,10 @@ import {
   AlertTitle,
 } from '@delulu/design-system/components/ui/alert';
 import { Button } from '@delulu/design-system/components/ui/button';
-import type { FacebookPagesPublic } from '@delulu/validators/facebook';
-import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@delulu/design-system/providers/icon';
+import type { FacebookPagesPublic } from '@delulu/validators/facebook';
 import { Alert01Icon } from '@hugeicons-pro/core-solid-rounded';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 

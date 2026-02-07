@@ -44,7 +44,9 @@ export default function DeleteAlertDialog({
             disabled={isLoading}
             className="flex items-center gap-2"
           >
-            {isLoading ? <Icon icon={Loader} size={16} className=" animate-spin" /> : null}
+            {isLoading ? (
+              <Icon icon={Loader} size={16} className=" animate-spin" />
+            ) : null}
             Delete
           </Button>
         </AlertDialogFooter>

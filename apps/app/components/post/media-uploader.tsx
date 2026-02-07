@@ -2,12 +2,12 @@
 
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
+  Add01Icon,
+  Cancel01Icon,
   FolderOpen,
   Image01Icon,
-  Add01Icon,
   Upload01Icon,
   VideoIcon,
-  Cancel01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -198,7 +198,11 @@ function UploadZone({
           animate={{ y: isDragOver ? -5 : 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          <Icon icon={Upload01Icon} size={32} className="mx-auto mb-2 text-muted-foreground" />
+          <Icon
+            icon={Upload01Icon}
+            size={32}
+            className="mx-auto mb-2 text-muted-foreground"
+          />
         </motion.div>
         <p className="mb-1 text-muted-foreground text-sm">
           Drag and drop your media here, or{' '}
@@ -698,7 +702,11 @@ export function MediaUploader({
                 )}
                 title={platformHint}
               >
-                <Icon icon={Add01Icon} size={24} className="text-muted-foreground" />
+                <Icon
+                  icon={Add01Icon}
+                  size={24}
+                  className="text-muted-foreground"
+                />
               </motion.button>
             )}
           </motion.div>

@@ -6,10 +6,10 @@ import {
 } from '@delulu/design-system/lib/social-config';
 import type { SupportedSocialPlatform } from '@delulu/design-system/lib/social-config';
 import { cn } from '@delulu/design-system/lib/utils';
-import { format } from 'date-fns';
-import { Icon } from '../../providers/icon';
 import { ClockIcon } from '@hugeicons-pro/core-solid-rounded';
+import { format } from 'date-fns';
 import type React from 'react';
+import { Icon } from '../../providers/icon';
 
 export interface SocialPostEventData {
   id: string;

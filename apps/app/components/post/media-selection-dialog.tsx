@@ -1,8 +1,12 @@
 'use client';
 
-import { useQuery } from 'convex/react';
 import { Icon } from '@delulu/design-system/providers/icon';
-import { Image01Icon, Search01Icon, VideoIcon } from '@hugeicons-pro/core-solid-rounded';
+import {
+  Image01Icon,
+  Search01Icon,
+  VideoIcon,
+} from '@hugeicons-pro/core-solid-rounded';
+import { useQuery } from 'convex/react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -361,7 +365,11 @@ export function MediaSelectionDialog({
         <div className="space-y-4">
           {/* Search */}
           <div className="relative">
-            <Icon icon={Search01Icon} size={16} className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground" />
+            <Icon
+              icon={Search01Icon}
+              size={16}
+              className="-translate-y-1/2 absolute top-1/2 left-3 text-muted-foreground"
+            />
             <Input
               placeholder="Search media..."
               value={searchQuery}
@@ -388,7 +396,11 @@ export function MediaSelectionDialog({
             {!isLoading && filteredMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
-                  <Icon icon={Image01Icon} size={48} className="mx-auto mb-4 text-muted-foreground" />
+                  <Icon
+                    icon={Image01Icon}
+                    size={48}
+                    className="mx-auto mb-4 text-muted-foreground"
+                  />
                   <p className="text-muted-foreground">No media found</p>
                   <p className="mt-2 text-muted-foreground text-sm">
                     {searchQuery

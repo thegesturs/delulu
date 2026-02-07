@@ -3,7 +3,7 @@
 import { Button } from '@delulu/design-system/components/ui/button';
 import { Switch } from '@delulu/design-system/components/ui/switch';
 import { cn } from '@delulu/design-system/lib/utils';
-import { getAllPlans, type Plan, type PlanType } from '@delulu/payments';
+import { type Plan, type PlanType, getAllPlans } from '@delulu/payments';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -70,8 +70,7 @@ const PricingCard = ({
           )}
           {isYearly && !isFree && yearlyPrice && (
             <p className="mt-1 font-medium text-primary text-sm">
-              Save $
-              {((monthlyPrice as number) * 12 - yearlyPrice).toFixed(2)}{' '}
+              Save ${((monthlyPrice as number) * 12 - yearlyPrice).toFixed(2)}{' '}
               yearly
             </p>
           )}
@@ -146,14 +145,30 @@ const getFeatureList = (plan: Plan): string[] => {
   }
 
   // Features
-  if (plan.features.advancedScheduling) features.push('Advanced scheduling');
-  if (plan.features.analytics) features.push('Advanced analytics');
-  if (plan.features.aiContentGeneration) features.push('AI content generation');
-  if (plan.features.collaboration) features.push('Team collaboration');
-  if (plan.features.prioritySupport) features.push('Priority support');
-  if (plan.features.whiteLabel) features.push('White-label branding');
-  if (plan.features.customBranding) features.push('Custom branding');
-  if (plan.features.bulkUpload) features.push('Bulk upload');
+  if (plan.features.advancedScheduling) {
+    features.push('Advanced scheduling');
+  }
+  if (plan.features.analytics) {
+    features.push('Advanced analytics');
+  }
+  if (plan.features.aiContentGeneration) {
+    features.push('AI content generation');
+  }
+  if (plan.features.collaboration) {
+    features.push('Team collaboration');
+  }
+  if (plan.features.prioritySupport) {
+    features.push('Priority support');
+  }
+  if (plan.features.whiteLabel) {
+    features.push('White-label branding');
+  }
+  if (plan.features.customBranding) {
+    features.push('Custom branding');
+  }
+  if (plan.features.bulkUpload) {
+    features.push('Bulk upload');
+  }
 
   return features;
 };

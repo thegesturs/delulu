@@ -65,7 +65,8 @@ export const getMedia = query({
     // Separate actual results from hasMore indicator
     const media = results.slice(0, limit);
     const hasMore = results.length > limit;
-    const nextCursor = hasMore && media.length > 0 ? media.at(-1)?.createdAt ?? null : null;
+    const nextCursor =
+      hasMore && media.length > 0 ? (media.at(-1)?.createdAt ?? null) : null;
 
     return {
       media,

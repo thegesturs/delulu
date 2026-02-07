@@ -6,15 +6,15 @@
 :root {
   /* iOS System Colors */
   --system-blue: #6366f1;
-  --system-gray: #8E8E93;
-  --system-gray-2: #AEAEB2;
-  --system-gray-3: #C7C7CC;
-  --system-gray-4: #D1D1D6;
-  --system-gray-5: #E5E5EA;
-  --system-gray-6: #F2F2F7;
-  --system-background: #FFFFFF;
+  --system-gray: #8e8e93;
+  --system-gray-2: #aeaeb2;
+  --system-gray-3: #c7c7cc;
+  --system-gray-4: #d1d1d6;
+  --system-gray-5: #e5e5ea;
+  --system-gray-6: #f2f2f7;
+  --system-background: #ffffff;
   --system-separator: rgba(60, 60, 67, 0.36);
-  
+
   /* Text Colors */
   --text-primary: #000000;
   --text-secondary: rgba(60, 60, 67, 0.6);
@@ -28,7 +28,8 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   background: var(--system-gray-6);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -109,7 +110,7 @@ body {
   border-radius: 10px;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .popup-status {
@@ -134,7 +135,7 @@ body {
 
 .popup-status.active .popup-status-icon {
   background: rgba(52, 199, 89, 0.1);
-  color: #34C759;
+  color: #34c759;
 }
 
 .popup-status h3 {
@@ -243,11 +244,11 @@ body {
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --system-background: #1C1C1E;
+    --system-background: #1c1c1e;
     --system-gray-6: #000000;
     --system-separator: rgba(84, 84, 88, 0.65);
-    
-    --text-primary: #FFFFFF;
+
+    --text-primary: #ffffff;
     --text-secondary: rgba(235, 235, 245, 0.6);
     --text-tertiary: rgba(235, 235, 245, 0.3);
   }
@@ -259,15 +260,15 @@ body {
 
   .popup-status.active .popup-status-icon {
     background: rgba(48, 209, 88, 0.2);
-    color: #30D158;
+    color: #30d158;
   }
-  
+
   .popup-status-icon {
-    background: #2C2C2E;
+    background: #2c2c2e;
   }
 
   .popup-example {
     background: rgba(10, 132, 255, 0.2);
-    color: #0A84FF !important;
+    color: #0a84ff !important;
   }
 }

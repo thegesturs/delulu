@@ -19,7 +19,10 @@ const DEFAULT_REPLIES = [
   'Sent you a message \u2709\ufe0f',
 ];
 
-export function CommentReplyEditor({ commentReply, onChange }: CommentReplyEditorProps) {
+export function CommentReplyEditor({
+  commentReply,
+  onChange,
+}: CommentReplyEditorProps) {
   const enabled = commentReply?.enabled ?? false;
   const replies = commentReply?.replies ?? [];
 
@@ -76,11 +79,20 @@ export function CommentReplyEditor({ commentReply, onChange }: CommentReplyEdito
                 onClick={() => removeReply(i)}
                 disabled={replies.length <= 1}
               >
-                <Icon icon={Delete02Icon} size={14} className="text-destructive" />
+                <Icon
+                  icon={Delete02Icon}
+                  size={14}
+                  className="text-destructive"
+                />
               </Button>
             </div>
           ))}
-          <Button variant="outline" size="sm" onClick={addReply} className="w-full">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addReply}
+            className="w-full"
+          >
             <Icon icon={Add01Icon} size={14} className="mr-1" />
             Add Reply Option
           </Button>

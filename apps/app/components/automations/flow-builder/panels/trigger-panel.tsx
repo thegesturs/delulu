@@ -6,8 +6,8 @@ import { Label } from '@delulu/design-system/components/ui/label';
 import { cn } from '@delulu/design-system/lib/utils';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
-  Comment01Icon,
   AtIcon,
+  Comment01Icon,
   InstagramIcon,
   UserStoryIcon,
 } from '@hugeicons-pro/core-solid-rounded';
@@ -95,7 +95,7 @@ export function TriggerPanel({
                 <p className="truncate font-medium text-xs">
                   @{provider.username || provider.fullName}
                 </p>
-                <p className="text-muted-foreground text-[11px]">Instagram</p>
+                <p className="text-[11px] text-muted-foreground">Instagram</p>
               </div>
             </button>
           ))}
@@ -147,7 +147,7 @@ export function TriggerPanel({
                     </Badge>
                   )}
                 </div>
-                <p className="text-muted-foreground text-[11px]">
+                <p className="text-[11px] text-muted-foreground">
                   {option.description}
                 </p>
               </div>

@@ -52,18 +52,24 @@ export function validateFlow(
 
   // 5. URL buttons must have valid URLs and titles
   for (const step of sendDmSteps) {
-    if (step.type !== 'send_dm' || !step.buttons) continue;
+    if (step.type !== 'send_dm' || !step.buttons) {
+      continue;
+    }
     for (const btn of step.buttons) {
       if (!btn.title.trim()) {
         errors.push('All DM buttons must have a title');
         break;
       }
       if (btn.type === 'url' && 'url' in btn && !isValidUrl(btn.url ?? '')) {
-        errors.push('URL buttons must have a valid URL (e.g. https://example.com)');
+        errors.push(
+          'URL buttons must have a valid URL (e.g. https://example.com)'
+        );
         break;
       }
     }
-    if (errors.length > 0) break;
+    if (errors.length > 0) {
+      break;
+    }
   }
 
   // 6. Every trigger must lead to at least one Send DM (reachability)
@@ -96,17 +102,25 @@ function getReachableSteps(
 
   while (stack.length > 0) {
     const id = stack.pop()!;
-    if (visited.has(id)) continue;
+    if (visited.has(id)) {
+      continue;
+    }
     visited.add(id);
 
     const step = stepMap.get(id);
-    if (!step) continue;
+    if (!step) {
+      continue;
+    }
 
     if (step.type === 'condition') {
-      if (step.yesStepId) stack.push(step.yesStepId);
-      if (step.noStepId) stack.push(step.noStepId);
-    } else if (step.type === 'send_dm') {
-      if (step.nextStepId) stack.push(step.nextStepId);
+      if (step.yesStepId) {
+        stack.push(step.yesStepId);
+      }
+      if (step.noStepId) {
+        stack.push(step.noStepId);
+      }
+    } else if (step.type === 'send_dm' && step.nextStepId) {
+      stack.push(step.nextStepId);
     }
   }
 

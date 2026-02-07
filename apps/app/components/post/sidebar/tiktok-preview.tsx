@@ -2,20 +2,20 @@
 
 import { usePost, useSelectedSocialProviders } from '@/store/post';
 import { api } from '@delulu/database/convex/_generated/api';
-import { useQuery } from 'convex-helpers/react/cache';
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
+  Add01Icon,
   BookmarkIcon,
   FavouriteCircleIcon,
   HomeIcon,
   InboxIcon,
   MessageIcon,
   MusicNoteIcon,
-  Add01Icon,
   Search01Icon,
   ShareIcon,
   UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
+import { useQuery } from 'convex-helpers/react/cache';
 import Image from 'next/image';
 
 export function TikTokPreview() {
@@ -185,7 +185,11 @@ export function TikTokPreview() {
 
                 {/* Like */}
                 <div className="flex flex-col items-center">
-                  <Icon icon={FavouriteCircleIcon} size={32} className="text-white" />
+                  <Icon
+                    icon={FavouriteCircleIcon}
+                    size={32}
+                    className="text-white"
+                  />
                   <span className="text-white/80 text-xs">
                     {formatNumber(12300)}
                   </span>
@@ -232,7 +236,11 @@ export function TikTokPreview() {
                   <span className="text-[11px]">Discover</span>
                 </div>
                 <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white">
-                  <Icon icon={Add01Icon} size={20} className="-translate-y-[1px]" />
+                  <Icon
+                    icon={Add01Icon}
+                    size={20}
+                    className="-translate-y-[1px]"
+                  />
                 </div>
                 <div className="flex flex-col items-center text-white/70">
                   <Icon icon={InboxIcon} size={20} />

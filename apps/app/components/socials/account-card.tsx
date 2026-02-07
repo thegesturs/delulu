@@ -31,11 +31,11 @@ import {
 import { Icon } from '@delulu/design-system/providers/icon';
 import {
   Alert01Icon,
-  TickDouble01Icon,
   ClockIcon,
+  Delete01Icon,
   MoreHorizontalIcon,
   Reload,
-  Delete01Icon,
+  TickDouble01Icon,
 } from '@hugeicons-pro/core-solid-rounded';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -142,7 +142,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
             </div>
             {isAccountExpired && (
               <div className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-destructive">
-                <Icon icon={Alert01Icon} size={10} className="text-destructive-foreground" />
+                <Icon
+                  icon={Alert01Icon}
+                  size={10}
+                  className="text-destructive-foreground"
+                />
               </div>
             )}
           </div>
@@ -171,7 +175,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <Icon icon={TickDouble01Icon} size={14} className="flex-shrink-0 text-green-600 dark:text-green-400" />
+                        <Icon
+                          icon={TickDouble01Icon}
+                          size={14}
+                          className="flex-shrink-0 text-green-600 dark:text-green-400"
+                        />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
@@ -185,7 +193,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                     </Tooltip>
                   </TooltipProvider>
                 ) : (
-                  <Icon icon={ClockIcon} size={14} className="flex-shrink-0 text-muted-foreground" />
+                  <Icon
+                    icon={ClockIcon}
+                    size={14}
+                    className="flex-shrink-0 text-muted-foreground"
+                  />
                 )}
               </div>
               <p className="truncate text-muted-foreground text-xs">

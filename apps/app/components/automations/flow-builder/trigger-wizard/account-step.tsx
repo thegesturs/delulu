@@ -17,10 +17,14 @@ interface AccountStepProps {
   onSelect: (id: string) => void;
 }
 
-export function AccountStep({ providers, selectedId, onSelect }: AccountStepProps) {
+export function AccountStep({
+  providers,
+  selectedId,
+  onSelect,
+}: AccountStepProps) {
   if (providers.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-6 text-center">
+      <div className="rounded-lg border border-border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">
           No Instagram accounts connected. Connect an account first.
         </p>
