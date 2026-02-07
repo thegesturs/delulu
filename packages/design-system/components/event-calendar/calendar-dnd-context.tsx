@@ -164,7 +164,7 @@ export function CalendarDndProvider({
     setActiveId(active.id);
     setActiveView(view);
     setCurrentTime(new Date(calendarEvent.start));
-    setIsMultiDay(eventIsMultiDay);
+    setIsMultiDay(Boolean(eventIsMultiDay));
     setMultiDayWidth(eventMultiDayWidth || null);
     setDragHandlePosition(eventDragHandlePosition || null);
 

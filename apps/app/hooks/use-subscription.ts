@@ -23,7 +23,7 @@ export interface UseSubscriptionReturn {
   isPaid: boolean;
   isLoading: boolean;
   currentPeriodEnd: Date | null;
-  cancelAtPeriodEnd: boolean;
+  cancelAtPeriodEnd: boolean | undefined;
 }
 
 export function useSubscription(): UseSubscriptionReturn {
