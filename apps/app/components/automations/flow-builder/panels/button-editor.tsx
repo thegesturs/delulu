@@ -82,10 +82,7 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
 
         <TabsContent className="space-y-2" value="quick_reply">
           {quickReplies.map((btn, i) => (
-            <div
-              className="flex items-center gap-2"
-              key={`quick-reply-${i}-${btn.title}`}
-            >
+            <div className="flex items-center gap-2" key={`quick-reply-${i}`}>
               <Input
                 className="flex-1"
                 maxLength={20}
@@ -128,7 +125,7 @@ export function ButtonEditor({ buttons, onChange }: ButtonEditorProps) {
             return (
               <div
                 className="space-y-1.5 rounded-lg border border-border p-2"
-                key={`url-btn-${i}-${btn.title}-${urlValue}`}
+                key={`url-btn-${i}`}
               >
                 <Input
                   maxLength={20}

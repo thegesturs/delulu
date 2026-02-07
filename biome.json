@@ -47,7 +47,8 @@
         "useNumberNamespace": "error",
         "noUselessElse": "error",
         "noNestedTernary": "off",
-        "useCollapsedIf": "off"
+        "useCollapsedIf": "off",
+        "noExportedImports": "warn"
       },
       "a11y": {
         "noAriaUnsupportedElements": "off",

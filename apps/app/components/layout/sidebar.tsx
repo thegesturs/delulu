@@ -17,7 +17,8 @@ import { Pencil } from "@delulu/design-system/icons";
 import { cn } from "@delulu/design-system/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { navigationItems } from "@/lib/navigation";
 
 // import { OrganizationSwitcher } from './organization-switcher';
@@ -50,6 +51,15 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
   const pathname = usePathname();
   const isSmallScreen = useIsSmallScreen();
+  const { enabled: automationsEnabled } = useFeatureFlag("automations");
+
+  const visibleNavItems = useMemo(
+    () =>
+      navigationItems.filter(
+        (item) => item.url !== "/automations" || automationsEnabled
+      ),
+    [automationsEnabled]
+  );
 
   // Auto-collapse sidebar when screen size goes below lg breakpoint (1024px)
   useEffect(() => {
@@ -95,7 +105,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
 
         <SidebarContent className="px-3">
           <SidebarMenu className="group-data-[state=collapsed]:items-center">
-            {navigationItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild

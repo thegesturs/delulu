@@ -97,7 +97,7 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
                         urlButtons.length > 0 ? "rounded-b-md" : ""
                       }`}
                     >
-                      <p className="whitespace-pre-wrap text-neutral-900 text-xs leading-relaxed dark:text-neutral-100">
+                      <p className="whitespace-pre-wrap text-neutral-900 text-sm leading-relaxed dark:text-neutral-100">
                         {previewText}
                       </p>
                       {isFreePlan && (
