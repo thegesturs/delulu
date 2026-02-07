@@ -6,7 +6,8 @@
       "@/*": ["./*"],
       "@delulu/*": ["../../packages/*"],
       "content-collections": ["./.content-collections/generated"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "globals.d.ts",

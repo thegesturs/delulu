@@ -1,25 +1,38 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "extends": ["ultracite"],
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": [
+    "ultracite",
+    "ultracite/biome/core",
+    "ultracite/biome/next"
+  ],
   "javascript": {
-    "globals": ["Liveblocks"]
-  },
-  "files": {
-    "ignore": [
-      "packages/design-system/components/ui/**",
-      "packages/design-system/lib/**",
-      "packages/design-system/hooks/**",
-      "packages/collaboration/config.ts",
-      "apps/docs/**/*.json",
-      "apps/email/.react-email/**",
-      "apps/app/wrangler.jsonc",
-      "packages/database/prisma/types/zod/**",
-      "packages/infrastructure/.sst/**",
-      "*.d.ts",
-      "packages/database/convex/_generated/**"
+    "globals": [
+      "Liveblocks"
     ]
   },
-  "organizeImports": { "enabled": true },
+  "files": {
+    "includes": [
+      "**",
+      "!**/packages/design-system/components/ui/**",
+      "!**/packages/design-system/lib/**",
+      "!**/packages/design-system/hooks/**",
+      "!**/packages/collaboration/config.ts",
+      "!**/apps/docs/**/*.json",
+      "!**/apps/email/.react-email/**",
+      "!**/apps/app/wrangler.jsonc",
+      "!**/packages/database/prisma/types/zod/**",
+      "!**/packages/infrastructure/.sst/**",
+      "!**/*.d.ts",
+      "!**/packages/database/convex/_generated/**"
+    ]
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -28,11 +41,19 @@
         "useTemplate": "off",
         "noNonNullAssertion": "off",
         "noInferrableTypes": "off",
-        "useFilenamingConvention": "off"
+        "useFilenamingConvention": "off",
+        "noParameterAssign": "error",
+        "useAsConstAssertion": "error",
+        "useDefaultParameterLast": "error",
+        "useEnumInitializers": "error",
+        "useSelfClosingElements": "error",
+        "useSingleVarDeclarator": "error",
+        "noUnusedTemplateLiteral": "error",
+        "useNumberNamespace": "error",
+        "noUselessElse": "error"
       },
       "a11y": {
         "noAriaUnsupportedElements": "warn",
-        "noBlankTarget": "off",
         "useAltText": "warn",
         "useAriaPropsForRole": "warn",
         "useValidAriaProps": "warn",
@@ -57,7 +78,6 @@
       "suspicious": {
         "noCommentText": "error",
         "noDuplicateJsxProps": "error",
-        "noConsoleLog": "off",
         "noConsole": "off"
       }
     }

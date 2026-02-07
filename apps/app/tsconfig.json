@@ -10,7 +10,8 @@
     },
     "strictFunctionTypes": true,
     "noImplicitThis": true,
-    "alwaysStrict": true
+    "alwaysStrict": true,
+    "strictNullChecks": true
   },
   "exclude": [
     "../../packages/database/prisma/types/zod/**/*",
