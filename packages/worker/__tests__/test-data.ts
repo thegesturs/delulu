@@ -4,7 +4,7 @@ export const SOCIAL_PROVIDER_DATA = [
   { id: "jd700er0g06x9dvnc7tk22hfcn7zy70f", socialType: "TIKTOK" }, // Real production TikTok account
   { id: "js734bks5yxa8s93yn908x2tqd7pwrv5", socialType: "YOUTUBE" },
   { id: "js72nvt36ep43bpq7qssjy879d7p6atg", socialType: "THREADS" },
-  { id: "js7ew09rx9brckw85pvk56vsy57p6xn3", socialType: "INSTAGRAM" },
+  { id: "jd71ygsh8e2n10pha52bpmgxsh809fkb", socialType: "INSTAGRAM" },
   { id: "js7bx2a2ca4rmwjryjxfzg8v597p64bx", socialType: "FACEBOOK" },
   { id: "js762hety6cpas0qx7gtxy38ds7nvg3r", socialType: "LINKEDIN" },
 ];
@@ -84,7 +84,46 @@ export const TEST_CONTENT = {
           thumbnailTimestamp: 5.5, // Frame at 5.5 seconds
         },
       ],
-      text: "Testing TikTok video with custom thumbnail at 5.5 seconds",
+      text: "Testing video with custom thumbnail at 5.5 seconds",
+      tags: [],
+    },
+  ],
+
+  videoWithCoverImage: [
+    {
+      order: 0,
+      name: "DEFAULT",
+      media: [
+        {
+          bucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
+          mediaType: "VIDEO" as const,
+          thumbnailBucketUrl:
+            "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+        },
+      ],
+      text: "Testing video with custom cover image",
+      tags: [],
+    },
+  ],
+
+  videoWithBothThumbnailOptions: [
+    {
+      order: 0,
+      name: "DEFAULT",
+      media: [
+        {
+          bucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/331bb161-a69c-40c2-896c-4a6dc78a8ea0.mp4",
+          mediaType: "VIDEO" as const,
+          thumbnailBucketUrl:
+            "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          thumbnailTimestamp: 5.5, // Should be ignored when cover_url is present
+        },
+      ],
+      text: "Testing video with both cover image and timestamp (cover takes priority)",
       tags: [],
     },
   ],

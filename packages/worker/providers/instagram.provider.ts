@@ -65,7 +65,12 @@ const getProfile = (
 
 // Create media container for single media
 const createSingleMediaContainer = (
-  media: { url: string; mediaType: "IMAGE" | "VIDEO" },
+  media: {
+    url: string;
+    mediaType: "IMAGE" | "VIDEO";
+    thumbnailBucketUrl?: string;
+    thumbnailTimestamp?: number;
+  },
   profile: BaseProviderProfile,
   caption: string
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
@@ -95,6 +100,27 @@ const createSingleMediaContainer = (
     params.append("video_url", media.url);
     // Add share_to_feed parameter for REELS
     params.append("share_to_feed", "true");
+
+    // Log thumbnail parameters for debugging
+    console.log("[Instagram] Video cover parameters:", {
+      hasCustomCover: !!media.thumbnailBucketUrl,
+      hasThumbnailTimestamp: media.thumbnailTimestamp !== undefined,
+      thumbnailTimestampSeconds: media.thumbnailTimestamp,
+      thumbnailTimestampMs: media.thumbnailTimestamp
+        ? Math.floor(media.thumbnailTimestamp * 1000)
+        : undefined,
+    });
+
+    // Priority: cover_url > thumb_offset (per Instagram API docs)
+    // "If you specify both cover_url and thumb_offset, we use cover_url and ignore thumb_offset"
+    if (media.thumbnailBucketUrl) {
+      // Custom cover image takes priority
+      params.append("cover_url", media.thumbnailBucketUrl);
+    } else if (media.thumbnailTimestamp !== undefined) {
+      // Convert seconds to milliseconds for thumb_offset
+      const thumbOffsetMs = Math.floor(media.thumbnailTimestamp * 1000);
+      params.append("thumb_offset", thumbOffsetMs.toString());
+    }
   } else {
     params.append("image_url", media.url);
   }
@@ -398,7 +424,12 @@ const publishContent = (
   if (videoMedia.length === 1) {
     // Single video (Reels) - Instagram will fetch video from URL
     containerPromise = createSingleMediaContainer(
-      { url: videoMedia[0].url!, mediaType: "VIDEO" },
+      {
+        url: videoMedia[0].url!,
+        mediaType: "VIDEO",
+        thumbnailBucketUrl: videoMedia[0].thumbnailBucketUrl,
+        thumbnailTimestamp: videoMedia[0].thumbnailTimestamp,
+      },
       profile,
       firstContent.text
     );

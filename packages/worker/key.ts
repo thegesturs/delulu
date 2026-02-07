@@ -34,6 +34,4 @@ export const keys = () => ({
 
   FARCASTER_APP_FID: process.env.FARCASTER_APP_FID || "",
   FARCASTER_MNEMONIC: process.env.FARCASTER_MNEMONIC || "",
-
-  REDIS_URL: process.env.REDIS_URL || "",
 });

@@ -38,8 +38,8 @@ interface VideoContentLayoutProps {
   onTextChange: (text: string) => void;
   onTitleChange?: (title: string) => void;
   onThumbnailUpdate: (thumbnail: {
-    bucketKey: string;
-    url: string;
+    // For video frame selection: only thumbnailTimestamp (platforms extract the frame)
+    // For custom image upload: thumbnailBucketUrl + thumbnailBucketKey
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
     thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
@@ -372,6 +372,7 @@ export function VideoContentLayout({
           currentThumbnail={{
             url: videoMedia?.thumbnailBucketUrl,
             bucketKey: videoMedia?.thumbnailBucketKey,
+            thumbnailTimestamp: videoMedia?.thumbnailTimestamp,
           }}
           isOpen={isThumbnailDialogOpen}
           isVertical={config.isVertical}

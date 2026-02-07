@@ -200,15 +200,48 @@ export class R2Provider {
       secretAccessKey,
       contentType,
       expiresIn,
+      method: "PUT",
     });
 
     return { uploadUrl, key };
   }
 
   /**
+   * Generate presigned URL for direct client downloads from R2
+   * Uses Web Crypto API (works in Cloudflare Workers)
+   * @param key - The object key in R2
+   * @param expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
+   */
+  async getPresignedDownloadUrl(
+    key: string,
+    expiresIn = 3600
+  ): Promise<string> {
+    const r2Keys = keys();
+
+    const accessKeyId = r2Keys.R2_ACCESS_KEY_ID;
+    const secretAccessKey = r2Keys.R2_SECRET_ACCESS_KEY;
+    const bucketName = r2Keys.R2_BUCKET_NAME;
+    const accountId = r2Keys.R2_ACCOUNT_ID;
+    const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+
+    // Generate presigned URL using AWS Signature Version 4
+    const downloadUrl = await this.generatePresignedUrl({
+      endpoint,
+      bucketName,
+      key,
+      accessKeyId,
+      secretAccessKey,
+      expiresIn,
+      method: "GET",
+    });
+
+    return downloadUrl;
+  }
+
+  /**
    * Generate AWS Signature Version 4 presigned URL
    * Compatible with Cloudflare Workers (uses Web Crypto API)
-   * Note: contentType is provided by the client in PUT request headers
+   * Supports both PUT (upload) and GET (download) methods
    */
   private async generatePresignedUrl(params: {
     endpoint: string;
@@ -216,8 +249,9 @@ export class R2Provider {
     key: string;
     accessKeyId: string;
     secretAccessKey: string;
-    contentType: string; // Keep for API compatibility
+    contentType?: string; // Optional, only needed for PUT
     expiresIn: number;
+    method: "PUT" | "GET";
   }): Promise<string> {
     const {
       endpoint,
@@ -226,6 +260,7 @@ export class R2Provider {
       accessKeyId,
       secretAccessKey,
       expiresIn,
+      method,
     } = params;
 
     const region = "auto";
@@ -238,7 +273,6 @@ export class R2Provider {
     const dateStamp = amzDate.slice(0, 8);
 
     // Canonical request components
-    const method = "PUT";
     const canonicalUri = `/${bucketName}/${key}`;
     const canonicalQuerystring = [
       "X-Amz-Algorithm=AWS4-HMAC-SHA256",

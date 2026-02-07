@@ -36,10 +36,11 @@ interface VideoThumbnailSelectorProps {
     url?: string;
     bucketKey?: string;
     bucketUrl?: string;
+    thumbnailTimestamp?: number; // Existing timestamp if set
   };
   onThumbnailUpdate: (thumbnail: {
-    bucketKey: string;
-    url: string;
+    // For video frame selection: only thumbnailTimestamp (platforms extract the frame)
+    // For custom image upload: thumbnailBucketUrl + thumbnailBucketKey
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
     thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
@@ -153,47 +154,49 @@ export function VideoThumbnailSelector({
     []
   );
 
-  // Upload selected thumbnail
-  const handleUploadThumbnail = useCallback(async () => {
-    let thumbnailToUpload: File | null = null;
-
+  // Save selected thumbnail
+  // For video frames: only save timestamp (TikTok/Instagram extract the frame themselves)
+  // For custom images: upload to S3 and save URL (for Instagram's cover_url)
+  const handleSaveThumbnail = useCallback(async () => {
     if (customThumbnail) {
-      // Convert custom thumbnail data URL to file
-      const response = await fetch(customThumbnail);
-      const blob = await response.blob();
-      thumbnailToUpload = blobToFile(blob, `thumbnail-${Date.now()}.jpg`);
+      // Custom image - needs upload for Instagram's cover_url feature
+      setIsUploading(true);
+      try {
+        const response = await fetch(customThumbnail);
+        const blob = await response.blob();
+        const thumbnailToUpload = blobToFile(
+          blob,
+          `thumbnail-${Date.now()}.jpg`
+        );
+        const result = await uploadAndSaveMedia(thumbnailToUpload);
+
+        onThumbnailUpdate({
+          thumbnailBucketUrl: result.url,
+          thumbnailBucketKey: result.bucketKey,
+          // No timestamp for custom images
+        });
+
+        toast.success("Custom thumbnail uploaded");
+        onClose();
+      } catch (error) {
+        console.error("Failed to upload custom thumbnail:", error);
+        toast.error("Failed to upload thumbnail");
+      } finally {
+        setIsUploading(false);
+      }
     } else if (selectedFrame) {
-      // Use selected video frame
-      thumbnailToUpload = blobToFile(
-        selectedFrame.blob,
-        `thumbnail-${Date.now()}.jpg`
-      );
-    }
-
-    if (!thumbnailToUpload) {
-      toast.error("No thumbnail selected");
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const result = await uploadAndSaveMedia(thumbnailToUpload);
-
+      // Video frame - just save timestamp, no upload needed
+      // TikTok uses video_cover_timestamp_ms, Instagram uses thumb_offset
       onThumbnailUpdate({
-        bucketKey: result.bucketKey,
-        url: result.url,
-        thumbnailBucketUrl: result.url,
-        thumbnailBucketKey: result.bucketKey,
-        thumbnailTimestamp: selectedFrame?.timestamp, // Pass timestamp in seconds for video frames
+        thumbnailTimestamp: selectedFrame.timestamp,
       });
 
-      toast.success("Thumbnail uploaded successfully");
-      onClose(); // Close dialog after successful upload
-    } catch (error) {
-      console.error("Failed to upload thumbnail:", error);
-      toast.error("Failed to upload thumbnail");
-    } finally {
-      setIsUploading(false);
+      toast.success(
+        `Thumbnail set to ${formatTimestamp(selectedFrame.timestamp)}`
+      );
+      onClose();
+    } else {
+      toast.error("No thumbnail selected");
     }
   }, [
     customThumbnail,
@@ -204,7 +207,9 @@ export function VideoThumbnailSelector({
   ]);
 
   const displayThumbnail = customThumbnail || selectedFrame?.dataUrl;
-  const hasThumbnail = currentThumbnail?.url || currentThumbnail?.bucketKey;
+  const hasCustomImage = currentThumbnail?.url || currentThumbnail?.bucketKey;
+  const hasTimestamp = currentThumbnail?.thumbnailTimestamp !== undefined;
+  const hasThumbnail = hasCustomImage || hasTimestamp;
   const videoAspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
@@ -360,7 +365,7 @@ export function VideoThumbnailSelector({
                 <Button
                   className="w-full"
                   disabled={isUploading}
-                  onClick={handleUploadThumbnail}
+                  onClick={handleSaveThumbnail}
                   type="button"
                 >
                   {isUploading ? (
@@ -386,21 +391,32 @@ export function VideoThumbnailSelector({
             {hasThumbnail && !displayThumbnail && (
               <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
                 <p className="font-medium text-sm">Current thumbnail:</p>
-                <div
-                  className={cn(
-                    "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border border-border",
-                    videoAspectClass
-                  )}
-                >
-                  <img
-                    alt="Current thumbnail"
-                    className="h-full w-full object-cover"
-                    src={getMediaUrlFromObject({
-                      url: currentThumbnail?.url,
-                      bucketKey: currentThumbnail?.bucketKey,
-                    })}
-                  />
-                </div>
+                {hasCustomImage ? (
+                  <div
+                    className={cn(
+                      "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border border-border",
+                      videoAspectClass
+                    )}
+                  >
+                    <img
+                      alt="Current thumbnail"
+                      className="h-full w-full object-cover"
+                      src={getMediaUrlFromObject({
+                        url: currentThumbnail?.url,
+                        bucketKey: currentThumbnail?.bucketKey,
+                      })}
+                    />
+                  </div>
+                ) : hasTimestamp ? (
+                  <div className="flex items-center justify-center rounded-lg border border-border border-dashed bg-muted/30 p-6">
+                    <p className="text-muted-foreground text-sm">
+                      Frame at{" "}
+                      <span className="font-medium text-foreground">
+                        {formatTimestamp(currentThumbnail!.thumbnailTimestamp!)}
+                      </span>
+                    </p>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

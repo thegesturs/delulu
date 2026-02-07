@@ -186,13 +186,29 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     (
       order: number,
       thumbnail: {
-        bucketKey: string;
-        url: string;
+        // For video frame selection: only thumbnailTimestamp (platforms extract the frame)
+        // For custom image upload: thumbnailBucketUrl + thumbnailBucketKey
         thumbnailBucketUrl?: string;
         thumbnailBucketKey?: string;
         thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
       }
     ) => {
+      // Determine thumbnail type and set fields accordingly:
+      // - Video frame: only thumbnailTimestamp (clear URL fields)
+      // - Custom image: only URL fields (clear timestamp)
+      const isCustomImage = !!thumbnail.thumbnailBucketUrl;
+      const thumbnailFields = isCustomImage
+        ? {
+            thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
+            thumbnailBucketKey: thumbnail.thumbnailBucketKey,
+            thumbnailTimestamp: undefined, // Clear timestamp for custom images
+          }
+        : {
+            thumbnailBucketUrl: undefined, // Clear URL for video frames
+            thumbnailBucketKey: undefined,
+            thumbnailTimestamp: thumbnail.thumbnailTimestamp,
+          };
+
       if (isGlobal) {
         setPost({
           ...post,
@@ -204,9 +220,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     media.mediaType === "VIDEO"
                       ? {
                           ...media,
-                          thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
-                          thumbnailBucketKey: thumbnail.thumbnailBucketKey,
-                          thumbnailTimestamp: thumbnail.thumbnailTimestamp,
+                          ...thumbnailFields,
                         }
                       : media
                   ),
@@ -229,12 +243,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                             media.mediaType === "VIDEO"
                               ? {
                                   ...media,
-                                  thumbnailBucketUrl:
-                                    thumbnail.thumbnailBucketUrl,
-                                  thumbnailBucketKey:
-                                    thumbnail.thumbnailBucketKey,
-                                  thumbnailTimestamp:
-                                    thumbnail.thumbnailTimestamp,
+                                  ...thumbnailFields,
                                 }
                               : media
                           ),

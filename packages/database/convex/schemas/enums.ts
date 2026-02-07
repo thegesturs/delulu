@@ -65,6 +65,7 @@ export const mediaSchema = v.object({
   altText: v.optional(v.string()),
   thumbnailBucketUrl: v.optional(v.string()),
   thumbnailBucketKey: v.optional(v.string()),
+  thumbnailTimestamp: v.optional(v.number()), // Timestamp in seconds when video frame was extracted
 });
 
 // ============================================================================
