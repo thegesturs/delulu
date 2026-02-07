@@ -15,7 +15,7 @@ export default $config({
       },
     };
   },
-  // biome-ignore lint/suspicious/useAwait: <explanation>
+  // biome-ignore lint/suspicious/useAwait: SST config requires async run
   async run() {
     const vpc = new sst.aws.Vpc("MyVpc");
     const cluster = new sst.aws.Cluster("MyCluster", { vpc });

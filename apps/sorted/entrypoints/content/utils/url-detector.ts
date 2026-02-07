@@ -25,6 +25,9 @@ export function isReelPage(url: string = window.location.href): boolean {
   return INSTAGRAM_PATTERNS.REEL.test(url);
 }
 
+// Top-level regex for performance
+const USERNAME_REGEX = /instagram\.com\/([^/?]+)/;
+
 /**
  * Extract username from Instagram profile URL
  * Returns null if not a valid profile URL
@@ -32,7 +35,7 @@ export function isReelPage(url: string = window.location.href): boolean {
 export function extractUsername(
   url: string = window.location.href
 ): string | null {
-  const match = url.match(/instagram\.com\/([^/?]+)/);
+  const match = url.match(USERNAME_REGEX);
   if (!match || match[1] === "reel" || match[1] === "p") {
     return null;
   }

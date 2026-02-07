@@ -64,6 +64,7 @@ export interface ScrapingProgress {
 /**
  * Message types for communication between extension contexts
  */
+// biome-ignore lint/style/noEnum: enum needed for extension message types
 export enum MessageType {
   OPEN_OVERLAY = "OPEN_OVERLAY",
   CLOSE_OVERLAY = "CLOSE_OVERLAY",

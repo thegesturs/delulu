@@ -189,10 +189,12 @@ export function numberToTimestamp(num: number): Date {
   return new Date(num);
 }
 
+// Top-level regex for email validation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Validation helper for email
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return EMAIL_REGEX.test(email);
 }
 
 // Helper to check if a string is a valid URL

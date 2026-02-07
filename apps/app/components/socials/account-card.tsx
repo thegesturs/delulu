@@ -85,7 +85,7 @@ function ReconnectMenuItem({ socialType }: { socialType: string }) {
   const { data: connectUrl } =
     api.socialProvider.getSocialProviderConnectUrl.useQuery(
       {
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: required for tRPC type compatibility
         provider: socialType as any,
       },
       {

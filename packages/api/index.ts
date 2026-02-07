@@ -1,9 +1,6 @@
 import "server-only";
 
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import superjson from "superjson";
-import type { AppRouter } from "./root";
 import { appRouter } from "./root";
 import { createCallerFactory, createTRPCContext } from "./trpc";
 
@@ -32,11 +29,10 @@ type RouterInputs = inferRouterInputs<AppRouter>;
  */
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
-export {
-  createTRPCContext,
-  appRouter,
-  createCaller,
-  superjson,
-  fetchRequestHandler,
-};
-export type { AppRouter, RouterInputs, RouterOutputs };
+export { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+export { superjson } from "superjson";
+export { appRouter } from "./root";
+export { createTRPCContext } from "./trpc";
+export { createCaller };
+export type { AppRouter } from "./root";
+export type { RouterInputs, RouterOutputs };

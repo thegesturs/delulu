@@ -39,7 +39,7 @@ export const useLocale = () => {
 interface LocaleProviderProps {
   children: ReactNode;
   locale: Locale;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: i18n messages are dynamic
   messages: Record<string, any>;
   onLocaleChange?: (locale: Locale) => void;
 }
@@ -60,6 +60,7 @@ export const LocaleProvider = ({
         defaultLocale="en"
         locale={locale}
         messages={messages}
+        // biome-ignore lint/suspicious/noEmptyBlockStatements: intentionally suppress translation warnings
         onError={() => {}} // Suppress missing translation warnings in production
       >
         {children}
@@ -71,7 +72,7 @@ export const LocaleProvider = ({
 // Utility function to load messages
 export const loadMessages = async (
   locale: Locale
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: i18n messages are dynamic
 ): Promise<Record<string, any>> => {
   try {
     const messages = await import(`../locales/${locale}.json`);

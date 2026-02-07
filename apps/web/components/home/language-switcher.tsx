@@ -28,7 +28,8 @@ export const LanguageSwitcher = () => {
       {isOpen && (
         <>
           {/* Backdrop */}
-          {/* biome-ignore lint/nursery/noStaticElementInteractions: <explanation> */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click handler */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: backdrop click handler */}
           <div
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}

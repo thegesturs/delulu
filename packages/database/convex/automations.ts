@@ -29,7 +29,7 @@ export const getAutomations = query({
       return [];
     }
 
-    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+    // biome-ignore lint/suspicious/noImplicitAnyLet: type inferred from query result
     let automations;
     if (args.socialProviderId) {
       automations = await ctx.db

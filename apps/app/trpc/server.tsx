@@ -4,7 +4,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { headers } from "next/headers";
-// biome-ignore lint/style/useImportType: <explanation>
+// biome-ignore lint/style/useImportType: React import needed for JSX
 import React, { cache } from "react";
 
 import { createQueryClient } from "./query-client";
@@ -38,17 +38,17 @@ export function HydrateClient(props: { children: React.ReactNode }) {
     </HydrationBoundary>
   );
 }
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: required for tRPC type compatibility
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T
 ) {
   const queryClient = getQueryClient();
   if (queryOptions.queryKey[1]?.type === "infinite") {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    // biome-ignore lint/complexity/noVoid: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: required for tRPC type compatibility
+    // biome-ignore lint/complexity/noVoid: prefetch is fire-and-forget
     void queryClient.prefetchInfiniteQuery(queryOptions as any);
   } else {
-    // biome-ignore lint/complexity/noVoid: <explanation>
+    // biome-ignore lint/complexity/noVoid: prefetch is fire-and-forget
     void queryClient.prefetchQuery(queryOptions);
   }
 }

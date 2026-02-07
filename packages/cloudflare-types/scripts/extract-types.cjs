@@ -18,6 +18,7 @@ function extractEnvInterface() {
   const content = fs.readFileSync(GENERATED_FILE, "utf8");
 
   // Extract the Env interface
+  // biome-ignore lint/performance/useTopLevelRegex: script file, regex used once
   const envMatch = content.match(/interface Env \{([\s\S]*?)\}/);
   if (!envMatch) {
     console.error("Could not find Env interface in generated file");
@@ -34,6 +35,7 @@ function extractEnvInterface() {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith("//") && !trimmed.startsWith("/*")) {
       // Clean up the property line
+      // biome-ignore lint/performance/useTopLevelRegex: script file, regex used in loop
       const cleaned = trimmed.replace(/\t/g, "  ").replace(/;$/, ";");
       if (cleaned.includes(":")) {
         properties.push(`  ${cleaned}`);

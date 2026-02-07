@@ -8,6 +8,7 @@ import { EffectComposer, wrapEffect } from "@react-three/postprocessing";
 import { Effect } from "postprocessing";
 /* eslint-disable react/no-unknown-property */
 import { forwardRef, useEffect, useRef } from "react";
+// biome-ignore lint/performance/noNamespaceImport: THREE.js requires namespace import
 import * as THREE from "three";
 
 const waveVertexShader = `
@@ -138,11 +139,11 @@ void mainImage(in vec4 inputColor, in vec2 uv, out vec4 outputColor) {
 `;
 
 class RetroEffectImpl extends Effect {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  // biome-ignore lint/nursery/useConsistentMemberAccessibility: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: THREE.js uniforms are dynamic
+  // biome-ignore lint/style/useConsistentMemberAccessibility: required for THREE.js effect pattern
   public uniforms: Map<string, THREE.Uniform<any>>;
   constructor() {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: THREE.js uniforms are dynamic
     const uniforms = new Map<string, THREE.Uniform<any>>([
       ["colorNum", new THREE.Uniform(4.0)],
       ["pixelSize", new THREE.Uniform(2.0)],
@@ -150,17 +151,17 @@ class RetroEffectImpl extends Effect {
     super("RetroEffect", ditherFragmentShader, { uniforms });
     this.uniforms = uniforms;
   }
-  set colorNum(value: number) {
-    this.uniforms.get("colorNum")!.value = value;
-  }
   get colorNum(): number {
     return this.uniforms.get("colorNum")!.value;
   }
-  set pixelSize(value: number) {
-    this.uniforms.get("pixelSize")!.value = value;
+  set colorNum(value: number) {
+    this.uniforms.get("colorNum")!.value = value;
   }
   get pixelSize(): number {
     return this.uniforms.get("pixelSize")!.value;
+  }
+  set pixelSize(value: number) {
+    this.uniforms.get("pixelSize")!.value = value;
   }
 }
 
@@ -178,7 +179,7 @@ const RetroEffect = forwardRef<
 RetroEffect.displayName = "RetroEffect";
 
 interface WaveUniforms {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: THREE.js uniforms are dynamic
   [key: string]: THREE.Uniform<any>;
   time: THREE.Uniform<number>;
   resolution: THREE.Uniform<THREE.Vector2>;

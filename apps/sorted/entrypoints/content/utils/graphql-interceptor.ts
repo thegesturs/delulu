@@ -166,7 +166,10 @@ export function initializeGraphQLInterceptor(): void {
     _password?: string | null
   ) {
     // Store URL for later use
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
     (this as any)._url = url.toString();
+    // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires arguments
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
     return originalOpen.apply(this, arguments as any);
   };
 
@@ -176,6 +179,7 @@ export function initializeGraphQLInterceptor(): void {
   ) {
     // Add load listener to process response
     this.addEventListener("load", function () {
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
       const url = (this as any)._url;
 
       // Only process GraphQL requests
@@ -200,6 +204,8 @@ export function initializeGraphQLInterceptor(): void {
       }
     });
 
+    // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires arguments
+    // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
     return originalSend.apply(this, arguments as any);
   };
 }

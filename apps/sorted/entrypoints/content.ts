@@ -42,11 +42,11 @@ export default defineContentScript({
     let panelContainer: HTMLElement | null = null;
     let gridContainer: HTMLElement | null = null;
     let loadingContainer: HTMLElement | null = null;
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
     let panelRoot: any = null;
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
     let gridRoot: any = null;
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
     let loadingRoot: any = null;
     let _cleanupUrlMonitor: (() => void) | null = null;
     let originalGrid: HTMLElement | null = null;
@@ -264,6 +264,7 @@ export default defineContentScript({
         // Validate scraping capability
         const error = validateScrapingCapability();
         if (error) {
+          // biome-ignore lint/suspicious/noAlert: browser extension requires alert for user feedback
           alert(error);
           return;
         }
@@ -271,8 +272,9 @@ export default defineContentScript({
         // Scrape reels
         const cancelToken = createCancelToken();
         const reels = await scrollAndLoadReels(
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: quantity type conversion needed
           quantity as any,
+          // biome-ignore lint/suspicious/noEmptyBlockStatements: progress callback intentionally empty
           () => {}, // Progress callback
           cancelToken
         );
@@ -282,6 +284,7 @@ export default defineContentScript({
         }
 
         if (reels.length === 0) {
+          // biome-ignore lint/suspicious/noAlert: browser extension requires alert for user feedback
           alert("No reels found");
           return;
         }
@@ -298,6 +301,7 @@ export default defineContentScript({
         // Replace Instagram grid with sorted grid
         const gridReplaced = replaceGrid();
         if (!gridReplaced) {
+          // biome-ignore lint/suspicious/noAlert: browser extension requires alert for user feedback
           alert("Failed to replace grid. Reels container not found.");
           return;
         }
@@ -307,6 +311,7 @@ export default defineContentScript({
         await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
         console.error("[Sorted] Sort failed:", error);
+        // biome-ignore lint/suspicious/noAlert: browser extension requires alert for user feedback
         alert("Failed to sort reels. Please try again.");
       } finally {
         hideLoadingOverlay();

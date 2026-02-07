@@ -6,6 +6,7 @@ import { cn } from "@delulu/design-system/lib/utils";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type React from "react";
 import { useCallback, useMemo, useRef } from "react";
+// biome-ignore lint/performance/noNamespaceImport: THREE.js requires namespace import
 import * as THREE from "three";
 import "@react-three/fiber";
 

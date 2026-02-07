@@ -102,7 +102,7 @@ export class R2Provider {
     // Cast to 'any' to bypass type checking between Node.js and Cloudflare Workers types
     // In actual Cloudflare Workers runtime, File is the correct type for R2
     return ResultAsync.fromPromise(
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: Cloudflare R2 File type compatibility
       this.bucket.put(key, file as any, {
         httpMetadata: {
           contentType,
@@ -233,7 +233,7 @@ export class R2Provider {
 
     // Create timestamp
     const now = new Date();
-    // biome-ignore lint/nursery/noUselessEscapeInRegex: <explanation>
+    // Regex pattern requires escapes for AWS signature
     const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
     const dateStamp = amzDate.slice(0, 8);
 

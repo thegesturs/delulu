@@ -86,16 +86,14 @@ export function TriggerWizard({
     (wizardStep === "trigger_type" && selectedTriggerType) ||
     (wizardStep === "posts" && selectedPostIds.length > 0);
 
-  const stepNumber =
-    wizardStep === "account"
-      ? 1
-      : wizardStep === "trigger_type"
-        ? skipAccount
-          ? 1
-          : 2
-        : skipAccount
-          ? 2
-          : 3;
+  let stepNumber: number;
+  if (wizardStep === "account") {
+    stepNumber = 1;
+  } else if (wizardStep === "trigger_type") {
+    stepNumber = skipAccount ? 1 : 2;
+  } else {
+    stepNumber = skipAccount ? 2 : 3;
+  }
   const totalSteps = skipAccount ? 2 : 3;
 
   return (

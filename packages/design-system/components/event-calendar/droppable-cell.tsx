@@ -47,7 +47,8 @@ export function DroppableCell({
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: This is a droppable cell with onClick for calendar interaction
-    // biome-ignore lint/nursery/noStaticElementInteractions: Droppable cell requires onClick for calendar functionality
+    // biome-ignore lint/a11y/noStaticElementInteractions: Droppable cell requires onClick for calendar functionality
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Droppable cell requires onClick for calendar functionality
     <div
       className={cn(
         "group/cell relative flex h-full flex-col overflow-hidden px-0.5 py-1 transition-all data-dragging:bg-accent sm:px-1",

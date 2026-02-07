@@ -108,11 +108,11 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
                       )}
                       {urlButtons.length > 0 && (
                         <div className="mt-2 grid grid-cols-1 gap-1">
-                          {urlButtons.map((btn, i) => (
+                          {urlButtons.map((btn) => (
                             <a
                               className="flex items-center justify-center rounded-md border-neutral-200 bg-zinc-200 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
                               href={btn.url ?? ""}
-                              key={i}
+                              key={`url-btn-${btn.title}-${btn.url}`}
                               target="_blank"
                             >
                               {btn.title || "Button"}
@@ -124,10 +124,10 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
                   </div>
                   {quickReplies.length > 0 && (
                     <div className="mt-1 flex flex-wrap justify-end gap-1.5 pl-8">
-                      {quickReplies.map((btn, i) => (
+                      {quickReplies.map((btn) => (
                         <span
                           className="rounded-full border border-blue-500 bg-white px-2.5 py-1 text-[10px] text-blue-500 shadow-sm dark:bg-neutral-800 dark:text-blue-400"
-                          key={i}
+                          key={`quick-reply-${btn.title}`}
                         >
                           {btn.title || "Button"}
                         </span>

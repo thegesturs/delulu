@@ -2,7 +2,7 @@
 import { Resource } from "sst";
 import { task } from "sst/aws/task";
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: AWS event types are complex
 export async function handler(event: { Records: any }) {
   for (const record of event.Records) {
     console.log("Record", record.body);

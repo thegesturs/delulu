@@ -5,9 +5,9 @@
   const originalOpen = XMLHttpRequest.prototype.open;
   const originalSend = XMLHttpRequest.prototype.send;
 
-  XMLHttpRequest.prototype.open = function (_method, url) {
+  XMLHttpRequest.prototype.open = function (_method, url, ...rest) {
     this._sortedUrl = url;
-    return originalOpen.apply(this, arguments);
+    return originalOpen.apply(this, [_method, url, ...rest]);
   };
 
   XMLHttpRequest.prototype.send = function (_body) {
@@ -68,6 +68,6 @@
       }
     });
 
-    return originalSend.apply(this, arguments);
+    return originalSend.apply(this, [_body]);
   };
 })();

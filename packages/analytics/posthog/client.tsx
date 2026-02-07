@@ -1,6 +1,7 @@
 "use client";
 
-import posthog, { type PostHog } from "posthog-js";
+import type { PostHog } from "posthog-js";
+import posthog from "posthog-js";
 import { PostHogProvider as PostHogProviderRaw } from "posthog-js/react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -50,5 +51,5 @@ export const PostHogProvider = (
   return <PostHogProviderRaw client={posthog} {...properties} />;
 };
 
+export { posthog } from "posthog-js";
 export { usePostHog as useAnalytics } from "posthog-js/react";
-export { posthog };

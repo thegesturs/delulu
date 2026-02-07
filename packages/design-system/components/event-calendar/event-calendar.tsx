@@ -101,6 +101,9 @@ export function EventCalendar({
         case "a":
           setView("agenda");
           break;
+        default:
+          // Other keys are ignored
+          break;
       }
     };
 

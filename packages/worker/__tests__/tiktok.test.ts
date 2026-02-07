@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { processMessageTestOnly } from "../test-client";
 import { MOCK_POST_ID, SOCIAL_PROVIDER_DATA, TEST_CONTENT } from "./test-data";
 
+// Top-level regex for TikTok URL validation in tests
+const TIKTOK_URL_REGEX = /https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/;
+
 const tiktokProvider = SOCIAL_PROVIDER_DATA.find(
   (p) => p.socialType === "TIKTOK"
 )!;
@@ -50,9 +53,7 @@ describe("TikTok Provider Tests", () => {
 
       // Verify URL format: should be https://www.tiktok.com/@username/video/{id}
       // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
-      expect(value.platformPostUrl).toMatch(
-        /https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/
-      );
+      expect(value.platformPostUrl).toMatch(TIKTOK_URL_REGEX);
 
       console.log("✅ Video published successfully with default thumbnail");
     }
@@ -99,9 +100,7 @@ describe("TikTok Provider Tests", () => {
 
       // Verify URL format and that it uses real item_id (not publish_id)
       // Accept both numeric IDs and publish_id format (v_pub_url~v2-...)
-      expect(value.platformPostUrl).toMatch(
-        /https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/.+/
-      );
+      expect(value.platformPostUrl).toMatch(TIKTOK_URL_REGEX);
 
       // Verify the URL doesn't use the same ID as platformPostId (publish_id)
       const urlVideoId = value.platformPostUrl.split("/video/")[1];

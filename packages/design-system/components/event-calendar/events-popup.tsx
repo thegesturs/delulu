@@ -118,7 +118,8 @@ export function EventsPopup({
             const isLastDay = isSameDay(date, eventEnd);
 
             return (
-              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+              // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
               <div
                 className="cursor-pointer"
                 key={event.id}

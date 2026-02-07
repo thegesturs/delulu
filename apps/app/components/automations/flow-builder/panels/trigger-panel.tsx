@@ -123,9 +123,10 @@ export function TriggerPanel({
                 !option.enabled && "cursor-not-allowed opacity-50",
                 option.enabled && trigger.triggerType === option.type
                   ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                  : option.enabled
-                    ? "border-border hover:border-primary/50"
-                    : "border-border"
+                  : "border-border",
+                option.enabled &&
+                  trigger.triggerType !== option.type &&
+                  "hover:border-primary/50"
               )}
               disabled={!option.enabled}
               key={option.type}

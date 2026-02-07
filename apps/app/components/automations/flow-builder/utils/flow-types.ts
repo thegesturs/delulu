@@ -1,4 +1,5 @@
-import type {
+// Re-export for convenience
+export type {
   AutomationConditionOperator,
   AutomationStep,
   AutomationTriggerType,
@@ -8,18 +9,6 @@ import type {
   SendDmStep,
   TriggerStep,
 } from "@delulu/database/convex/schemas/automations";
-
-// Re-export for convenience
-export type {
-  AutomationStep,
-  ConditionStep,
-  DmButton,
-  CommentReply,
-  SendDmStep,
-  TriggerStep,
-  AutomationTriggerType,
-  AutomationConditionOperator,
-};
 
 export interface AutomationMeta {
   name: string;

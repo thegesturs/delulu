@@ -48,8 +48,9 @@ export function SocialPostEvent({
   };
 
   return (
-    // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by parent
     <div
       className={cn(
         "group relative flex flex-col gap-2 rounded-sm border bg-card p-3 transition-all duration-200",
@@ -95,7 +96,7 @@ export function SocialPostEvent({
       {/* Media Thumbnail */}
       {event.mediaThumbnail && (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
-          {/* biome-ignore lint/nursery/noImgElement: Media thumbnail preview in calendar */}
+          {/* biome-ignore lint/performance/noImgElement: Media thumbnail preview in calendar */}
           <img
             alt="Post media"
             className="h-full w-full object-cover"

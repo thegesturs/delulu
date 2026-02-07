@@ -262,7 +262,8 @@ export function DayView({
             const isSocial = isSocialEvent(positionedEvent.event);
 
             return (
-              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+              // biome-ignore lint/a11y/noStaticElementInteractions: calendar event interaction
+              // biome-ignore lint/a11y/noNoninteractiveElementInteractions: calendar event interaction
               <div
                 className="absolute z-10 px-0.5"
                 key={positionedEvent.event.id}

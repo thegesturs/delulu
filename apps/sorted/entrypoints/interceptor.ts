@@ -15,6 +15,7 @@ export default defineContentScript({
     const metricsCache = new Map();
 
     // Expose cache to isolated world via window
+    // biome-ignore lint/suspicious/noExplicitAny: window extension requires any
     (window as any).__sortedMetricsCache = metricsCache;
 
     // Hook XHR (Instagram uses this!)
@@ -23,16 +24,21 @@ export default defineContentScript({
 
     XMLHttpRequest.prototype.open = function (
       _method: string,
-      url: string | URL
+      url: string | URL,
+      ...rest: unknown[]
     ) {
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
       (this as any)._url = url.toString();
-      return originalOpen.apply(this, arguments as any);
+      // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires rest params
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
+      return originalOpen.apply(this, [_method, url, ...rest] as any);
     };
 
     XMLHttpRequest.prototype.send = function (
       _body?: Document | XMLHttpRequestBodyInit | null
     ) {
       this.addEventListener("load", function () {
+        // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
         const url = (this as any)._url;
 
         // Log all XHR for debugging
@@ -56,6 +62,7 @@ export default defineContentScript({
                   "REELS in GraphQL response!"
                 );
 
+                // biome-ignore lint/suspicious/noExplicitAny: Instagram API response type is dynamic
                 edges.forEach((edge: any) => {
                   const media = edge.node.media;
                   if (media.media_type === 2) {
@@ -93,6 +100,7 @@ export default defineContentScript({
                   "POSTS in GraphQL response!"
                 );
 
+                // biome-ignore lint/suspicious/noExplicitAny: Instagram API response type is dynamic
                 edges.forEach((edge: any) => {
                   const node = edge.node;
                   const metrics = {
@@ -121,7 +129,9 @@ export default defineContentScript({
         }
       });
 
-      return originalSend.apply(this, arguments as any);
+      // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires rest params
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
+      return originalSend.apply(this, [_body] as any);
     };
 
     console.log("[Sorted] ✅ XHR interceptor hooked in main world!");

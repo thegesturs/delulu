@@ -60,7 +60,7 @@ export const createWebSiteSchema = (url: string): WithContext<WebSite> => ({
       urlTemplate: `${url}/search?q={search_term_string}`,
     },
     "query-input": "required name=search_term_string",
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: JSON-LD schema requires flexible typing
   } as any,
 });
 
@@ -169,6 +169,7 @@ export const createBlogSchema = ({
     name: "Delulu Social",
     logo: {
       "@type": "ImageObject",
+      // biome-ignore lint/performance/useTopLevelRegex: URL manipulation, regex used once
       url: `${url.replace(/\/blogs.*/, "")}/images/logo.png`,
     },
   },
@@ -373,7 +374,7 @@ export const createAISoftwareApplicationSchema = (
       target: `${url}/sign-up`,
       name: "Sign Up for Free",
     },
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: JSON-LD schema requires flexible typing
   ] as any,
 });
 

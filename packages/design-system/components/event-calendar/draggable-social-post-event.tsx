@@ -114,6 +114,8 @@ export function DraggableSocialPostEvent({
       };
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: draggable component requires mouse handlers
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: draggable component requires mouse handlers
     <div
       className="h-full touch-none"
       onMouseDown={handleMouseDown}

@@ -69,7 +69,9 @@ export function DottedNoise({ className }: DottedNoiseProps) {
       }
 
       return (xin: number, yin: number) => {
+        // biome-ignore lint/suspicious/noBitwiseOperators: noise function requires bitwise operations
         const X = Math.floor(xin) & 255;
+        // biome-ignore lint/suspicious/noBitwiseOperators: noise function requires bitwise operations
         const Y = Math.floor(yin) & 255;
         const x = xin - Math.floor(xin);
         const y = yin - Math.floor(yin);

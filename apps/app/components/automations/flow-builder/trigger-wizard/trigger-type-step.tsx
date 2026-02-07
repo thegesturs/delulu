@@ -67,9 +67,10 @@ export function TriggerTypeStep({
               !option.enabled && "cursor-not-allowed opacity-60",
               option.enabled && selectedType === option.type
                 ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                : option.enabled
-                  ? "border-border hover:border-primary/50"
-                  : "border-border"
+                : "border-border",
+              option.enabled &&
+                selectedType !== option.type &&
+                "hover:border-primary/50"
             )}
             disabled={!option.enabled}
             key={option.type}

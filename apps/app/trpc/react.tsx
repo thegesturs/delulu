@@ -16,7 +16,7 @@ const getQueryClient = () => {
     return createQueryClient();
   }
   // Browser: use singleton pattern to keep the same query client
-  // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
+  // biome-ignore lint/suspicious/noAssignInExpressions: singleton pattern requires assignment
   return (clientQueryClientSingleton ??= createQueryClient());
 };
 

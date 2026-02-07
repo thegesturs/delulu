@@ -55,11 +55,15 @@ function trySelectorsAll(
 
 // DOM metric extraction removed - we now use GraphQL interceptor exclusively
 
+// Top-level regex patterns for performance
+const REEL_ID_REGEX = /\/reel\/([^/?]+)/;
+const URL_MATCH_REGEX = /url\(['"]?([^'"]+)['"]?\)/;
+
 /**
  * Extract reel ID from URL
  */
 function extractReelId(url: string): string | null {
-  const match = url.match(/\/reel\/([^/?]+)/);
+  const match = url.match(REEL_ID_REGEX);
   return match ? match[1] : null;
 }
 
@@ -106,7 +110,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     if (bgElement) {
       const bgImage = bgElement.style.backgroundImage;
       if (bgImage && bgImage !== "none") {
-        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+        const urlMatch = bgImage.match(URL_MATCH_REGEX);
         if (urlMatch) {
           thumbnailUrl = urlMatch[1];
           // Filter out GIF placeholders (Instagram uses these for loading states)
@@ -121,7 +125,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     if (!thumbnailUrl) {
       const linkBg = (linkElement as HTMLElement).style?.backgroundImage;
       if (linkBg && linkBg !== "none") {
-        const urlMatch = linkBg.match(/url\(['"]?([^'"]+)['"]?\)/);
+        const urlMatch = linkBg.match(URL_MATCH_REGEX);
         if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }
@@ -145,7 +149,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
     if (!thumbnailUrl && bgElement) {
       const computedBg = window.getComputedStyle(bgElement).backgroundImage;
       if (computedBg && computedBg !== "none") {
-        const urlMatch = computedBg.match(/url\(['"]?([^'"]+)['"]?\)/);
+        const urlMatch = computedBg.match(URL_MATCH_REGEX);
         if (urlMatch && !urlMatch[1].startsWith("data:image/gif")) {
           thumbnailUrl = urlMatch[1];
         }

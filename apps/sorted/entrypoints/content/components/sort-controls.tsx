@@ -28,7 +28,7 @@ export function SortControls({
   return (
     <div className="sorted-controls">
       <div className="sorted-control-section">
-        <label className="sorted-label">Sort by:</label>
+        <span className="sorted-label">Sort by:</span>
         <div className="sorted-radio-group">
           <label className="sorted-radio">
             <input
@@ -69,7 +69,7 @@ export function SortControls({
       </div>
 
       <div className="sorted-control-section">
-        <label className="sorted-label">Quantity:</label>
+        <span className="sorted-label">Quantity:</span>
         <div className="sorted-radio-group">
           <label className="sorted-radio">
             <input
