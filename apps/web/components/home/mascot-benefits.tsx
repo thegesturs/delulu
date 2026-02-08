@@ -12,34 +12,34 @@ export function MascotBenefits() {
   const benefits = [
     {
       image: "/images/delulu/calendar.png",
-      title: "Time thief, arrested.",
-      subtitle: "Write once. Post everywhere. Done.",
+      title: "Post everywhere, once.",
+      subtitle: "8 platforms. One click. Zero reformatting.",
       description:
-        "No more tab-hopping Olympics. Create your content once, and we'll format it perfectly for every platform. Your sanity will thank you.",
-      badge: "Efficiency Era",
+        "Instagram, TikTok, LinkedIn, YouTube, Facebook, Pinterest, Threads \u2014 write once, we handle the rest. Schedule a week of content in 15 minutes.",
+      badge: "Superpower #1",
     },
     {
       image: "/images/delulu/happy.png",
-      title: "Consistency without crying.",
-      subtitle: "Schedule ahead. Pretend you're organized.",
+      title: "Comments \u2192 DMs \u2192 Sales.",
+      subtitle: "Your posts sell while you sleep.",
       description:
-        "Queue up a week's worth of posts in 15 minutes. Your audience thinks you're a posting machine. Win-win.",
-      badge: "Main Character",
+        "Set a keyword trigger. When someone comments it, Delulu sends them a DM with your link and replies to their comment. The leads come to you.",
+      badge: "Superpower #2",
     },
     {
       image: "/images/delulu/shill.png",
-      title: "More sleep. Less doomscroll guilt.",
-      subtitle: "Auto-posting while you actually live your life.",
+      title: "Save $72 every month.",
+      subtitle: "Buffer ($15) + ManyChat ($67) = $82. Delulu = $9.99.",
       description:
-        'Because posting at midnight just to hit "optimal time" is so 2022. Set it, forget it, touch grass.',
-      badge: "Self Care Win",
+        "That\u2019s $864/year back in your pocket. Most creators don\u2019t even realize they\u2019re overpaying \u2014 or doing it all manually for free and losing sales.",
+      badge: "The Math",
     },
     {
       image: "/images/delulu/win.png",
       title: "All your chaos, one dashboard.",
-      subtitle: "Instagram, TikTok, LinkedIn, YouTube, Threads...",
+      subtitle: "Posts, DM automations, accounts \u2014 one login.",
       description:
-        "All tucked in like messy little kids in one bed. One login, one interface, zero headaches.",
+        "No more switching between apps. Your scheduled posts, comment triggers, and connected accounts all live in one place.",
       badge: "CEO Mode",
     },
   ];
@@ -58,13 +58,10 @@ export function MascotBenefits() {
           {/* Section Header */}
           <div className="mx-auto mb-20 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
-              <Balancer>How We Fixed Your Posting Nightmare</Balancer>
+              <Balancer>One Tool. Two Superpowers.</Balancer>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-8">
-              <Balancer>
-                Let's be real. You didn't become a creator/entrepreneur/marketer
-                just to babysit a calendar and fight with upload buttons.
-              </Balancer>
+              <Balancer>Schedule everywhere. Sell on autopilot.</Balancer>
             </p>
           </div>
 
@@ -143,8 +140,8 @@ export function MascotBenefits() {
           <div className="mx-auto mt-20 max-w-3xl text-center">
             <blockquote className="font-medium text-foreground text-xl">
               <Balancer>
-                "You could keep wasting hours posting the old way... or just let
-                us do it for you."
+                "The tool that posts your content AND sells your product. For
+                less than a latte."
               </Balancer>
             </blockquote>
           </div>

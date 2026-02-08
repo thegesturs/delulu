@@ -12,39 +12,36 @@ import Balancer from "react-wrap-balancer";
 import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
 import LineSvg from "@/components/ui/line-svg";
 
-// Example: You can export this data to use elsewhere
 export const ctaBenefitsData = [
   {
-    id: "time-value",
+    id: "schedule-automate",
     image: "/images/delulu/coin-flip.png",
     alt: "Delulu flipping a coin",
-    title: "Your Time is Valuable",
+    title: "Schedule + Automate",
     description:
-      "Save 5+ hours every month with automated scheduling and cross-platform posting.",
+      "Post across 8 platforms and auto-DM every lead. One tool does what two couldn\u2019t.",
     imageWidth: "w-24 md:w-28",
   },
   {
-    id: "user-control",
+    id: "save-money",
     image: "/images/delulu/control.png",
     alt: "Delulu with checklist",
-    title: "You Call the Shots",
-    description:
-      "Your feedback shapes our roadmap. We're constantly improving based on real user needs.",
+    title: "Save $72/mo",
+    description: "Replace your scheduler AND your DM tool. Keep $864/year.",
     imageWidth: "w-40",
   },
   {
-    id: "one-click",
+    id: "ship-fast",
     image: "/images/delulu/coffee.png",
     alt: "Happy delulu with coffee",
-    title: "Zero Chaos, One Click",
+    title: "Live in 15 Minutes",
     description:
-      "Scheduling everywhere with one click = no more tab-hopping, no more missed posts, no more forehead dents from facepalming at your laptop.",
+      "Connect your accounts, schedule a week of posts, set up your first keyword trigger. Done before your coffee gets cold.",
     imageWidth: "w-24 md:w-28",
   },
 ];
 
 const CTA = () => {
-  // Using the exported data - you can now use this anywhere
   const benefits = ctaBenefitsData;
 
   return (
@@ -62,27 +59,9 @@ const CTA = () => {
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
-                Join Thousands of Content Creators Simplifying Their Social
-                Media
+                You're Posting Without Selling. Let's Fix That.
               </Balancer>
             </h2>
-
-            {/* Delulu Mascot Section */}
-            {/* <div className="mt-8 flex flex-col items-center gap-4">
-              <Image
-                src="/images/delulu/coin-flip.png"
-                alt="Delulu flipping a coin - dollar back guarantee"
-                width={120}
-                height={120}
-                className="h-auto w-20 md:w-24 dark:invert"
-              />
-              <p className="text-lg text-muted-foreground leading-8">
-                <Balancer>
-                  If this doesn’t save you 5+ hours, we’ll hand back your
-                  dollar. Congrats, you just funded your next latte
-                </Balancer>
-              </p>
-            </div> */}
           </div>
 
           {/* Line above cards */}
@@ -90,7 +69,7 @@ const CTA = () => {
 
           {/* Benefits Grid */}
           <div className="relative mx-auto grid gap-2 px-2 md:grid-cols-3">
-            {benefits.map((benefit, _index) => (
+            {benefits.map((benefit) => (
               <Card
                 className="group relative transition-all duration-300 hover:border-border/80 hover:bg-card/80 hover:shadow-lg"
                 key={benefit.id}
@@ -142,7 +121,7 @@ const CTA = () => {
 
               <Button asChild className="h-14 px-8 text-lg" size="lg">
                 <Link href="https://solulu.delulu.social/sign-in">
-                  Get Started Free
+                  Start free — cancel anytime
                 </Link>
               </Button>
 

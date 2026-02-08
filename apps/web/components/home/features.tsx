@@ -12,20 +12,20 @@ interface FeatureCard {
 
 const features: FeatureCard[] = [
   {
-    percentage: "47%",
-    description: "Time saved on reformatting content for different platforms",
+    percentage: "$72/mo",
+    description: "Saved vs. Buffer + ManyChat",
   },
   {
-    percentage: "3.5x",
-    description: "Faster publishing across multiple social channels",
+    percentage: "8",
+    description: "Platforms supported in one click",
   },
   {
-    percentage: "89%",
-    description: "Users report improved content consistency",
+    percentage: "1",
+    description: "Tool to replace your entire stack",
   },
   {
-    percentage: "24h",
-    description: "Average time saved per week on content scheduling",
+    percentage: "$9.99",
+    description: "For everything. Seriously.",
   },
 ];
 
@@ -34,10 +34,10 @@ export function Features() {
     <div className="relative w-full py-20">
       <div className="mb-12 text-center">
         <h2 className="mb-4 font-bold text-4xl text-foreground">
-          We Know How <span className="text-primary">Messy</span> It Can Be
+          The <span className="text-primary">Numbers</span> Don't Lie
         </h2>
         <p className="mx-4 text-muted-foreground">
-          Why Scheduling Matters for Your Content Strategy
+          Why creators are switching to Delulu
         </p>
       </div>
 

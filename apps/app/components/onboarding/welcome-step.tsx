@@ -22,7 +22,7 @@ export function WelcomeStep() {
           Welcome to Delulu Social
         </h1>
         <p className="text-lg text-muted-foreground">
-          Manage all your social media from one place
+          Schedule posts. Automate DMs. Grow everywhere.
         </p>
       </motion.div>
 
@@ -30,21 +30,21 @@ export function WelcomeStep() {
       <div className="grid gap-4 pt-4 sm:grid-cols-2">
         <BenefitCard
           delay={0.1}
-          description="Create content once, publish everywhere"
+          description="Schedule across Instagram, TikTok, LinkedIn, YouTube, and more — in one click"
           icon={<Icon icon={Sent02Icon} size={24} />}
-          title="Multi-Platform Posting"
+          title="Post Everywhere"
         />
         <BenefitCard
           delay={0.15}
-          description="Plan and schedule posts in advance"
+          description="Auto-DM anyone who comments a keyword on your Instagram posts"
           icon={<Icon icon={Calendar01Icon} size={24} />}
-          title="Smart Scheduling"
+          title="Comment → Sale"
         />
         <BenefitCard
           delay={0.2}
-          description="Track performance across all platforms"
+          description="One tool replaces Buffer + ManyChat at a fraction of the cost"
           icon={<Icon icon={BarChartIcon} size={24} />}
-          title="Analytics Dashboard"
+          title="Save $72/mo"
         />
         <BenefitCard
           delay={0.25}

@@ -33,7 +33,7 @@ export const navigationItems = [
     dataTour: "accounts-nav",
   },
   {
-    title: "Automations",
+    title: "Comment-to-Sale",
     url: "/automations",
     icon: Robot,
     dataTour: "automations-nav",

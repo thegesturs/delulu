@@ -1,4 +1,5 @@
 "use client";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { useTheme } from "@delulu/design-system";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { motion } from "motion/react";
@@ -10,6 +11,46 @@ import Balancer from "react-wrap-balancer";
 import { DesktopMockup } from "./desktop-mockup";
 import { GradientBars } from "./gradient-bars";
 
+const heroVariants = {
+  outcome: {
+    headline: "Every comment on your post can become a sale.",
+    subtitle:
+      "Delulu auto-DMs your link to anyone who comments a keyword \u2014 and schedules your posts across 8 platforms. One tool. $9.99/mo.",
+    cta1: "Start free \u2014 no credit card",
+    cta2: "See how it works",
+  },
+  pain: {
+    headline: "You post every day. Your DMs are still empty.",
+    subtitle:
+      "Comments pile up. Leads go cold. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
+    cta1: "Fix my DMs \u2014 free",
+    cta2: "See how it works",
+  },
+  identity: {
+    headline: "Built for creators who sell, not just post.",
+    subtitle:
+      "Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + sales. One tool. $9.99.",
+    cta1: "Start free \u2014 no credit card",
+    cta2: "See how it works",
+  },
+  curiosity: {
+    headline: "What if every Instagram comment became a customer?",
+    subtitle:
+      "Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and logs the lead. Oh, and it also schedules your posts across 8 platforms. For $9.99/mo.",
+    cta1: "Try it free",
+    cta2: "See how it works",
+  },
+  direct: {
+    headline: "Post everywhere. Auto-DM your buyers. $9.99.",
+    subtitle:
+      "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually makes you money.",
+    cta1: "Start free \u2014 no credit card",
+    cta2: "See how it works",
+  },
+} as const;
+
+type HeroVariantKey = keyof typeof heroVariants;
+
 export function Hero() {
   const parentRef = useRef<HTMLDivElement>(
     null
@@ -17,6 +58,14 @@ export function Hero() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const image = isDark ? "/images/app-dark.png" : "/images/app-light.png";
+
+  const posthog = useAnalytics();
+  const flagValue = posthog?.getFeatureFlag("hero-variant");
+  const variantKey: HeroVariantKey =
+    typeof flagValue === "string" && flagValue in heroVariants
+      ? (flagValue as HeroVariantKey)
+      : "outcome";
+  const variant = heroVariants[variantKey];
 
   return (
     <div
@@ -40,7 +89,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <Balancer>Posting everywhere sucks. We fixed it.</Balancer>
+          <Balancer>{variant.headline}</Balancer>
         </motion.h1>
 
         {/* Subtitle */}
@@ -50,12 +99,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <Balancer>
-            You know the drill: copy → paste → resize → upload → repeat.
-            Instagram wants vertical. LinkedIn wants text-heavy. YouTube wants
-            captions. TikTok wants vibes. And suddenly, your “quick post” just
-            ate your entire afternoon. Delulu Social kills that nightmare.
-          </Balancer>
+          <Balancer>{variant.subtitle}</Balancer>
         </motion.p>
 
         {/* CTA Buttons */}
@@ -67,11 +111,11 @@ export function Hero() {
         >
           <Button asChild size="lg">
             <Link href="https://solulu.delulu.social/sign-in">
-              👉 Fine, save me the headache
+              {variant.cta1}
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="#features">Naah, bro show me more</Link>
+            <Link href="#how-it-works">{variant.cta2}</Link>
           </Button>
         </motion.div>
 
@@ -121,96 +165,3 @@ export function Hero() {
     </div>
   );
 }
-
-// function BackgroundShape({
-//   mobileBreakpoint = '(max-width: 768px)',
-//   sizes = {
-//     mobile: {
-//       outer: 800,
-//       middle: 600,
-//       inner: 400,
-//     },
-//     desktop: {
-//       outer: 1400,
-//       middle: 1100,
-//       inner: 800,
-//     },
-//   },
-//   animations = {
-//     middle: {
-//       scale: [1, 1.02, 1],
-//       y: [0, -5, 0],
-//       duration: 2,
-//     },
-//     inner: {
-//       scale: [1, 1.03, 1],
-//       y: [0, -7, 0],
-//       duration: 2.5,
-//     },
-//   },
-//   gradientColors = {
-//     start: 'var(--background)',
-//     mid1: 'var(--background)',
-//     mid2: 'var(--background)',
-//     end: 'transparent',
-//   },
-// }) {
-//   const isMobile = useMediaQuery(mobileBreakpoint);
-//   const { outer, middle, inner } = isMobile ? sizes.mobile : sizes.desktop;
-
-//   return (
-//     <div className="absolute inset-0 z-0 flex items-center justify-center">
-//       <div
-//         className="absolute z-0 rounded-full border border-foreground/10"
-//         style={{
-//           width: outer,
-//           height: outer,
-//         }}
-//       />
-//       <motion.div
-//         className="absolute z-0 rounded-full border border-foreground/10"
-//         style={{
-//           width: middle,
-//           height: middle,
-//           clipPath: 'circle(50% at 50% 50%)',
-//           background: `
-//             radial-gradient(
-//               circle at center,
-//               ${gradientColors.start} 0%,
-//               ${gradientColors.mid1} 10%,
-//               ${gradientColors.mid2} 20%,
-//               ${gradientColors.end} 20%
-//             )
-//           `,
-//         }}
-//         animate={{
-//           scale: animations.middle.scale,
-//           y: animations.middle.y,
-//         }}
-//         transition={{
-//           duration: animations.middle.duration,
-//           repeat: Number.POSITIVE_INFINITY,
-//           ease: 'easeInOut',
-//           times: [0, 0.5, 1],
-//         }}
-//       />
-//       <motion.div
-//         className="absolute z-2 rounded-full border border-foreground/10 bg-background/10"
-//         style={{
-//           width: inner,
-//           height: inner,
-//         }}
-//         animate={{
-//           scale: animations.inner.scale,
-//           y: animations.inner.y,
-//         }}
-//         transition={{
-//           duration: animations.inner.duration,
-//           repeat: Number.POSITIVE_INFINITY,
-//           ease: 'easeInOut',
-//           times: [0, 0.5, 1],
-//         }}
-//       />
-//     </div>
-//   );
-// }

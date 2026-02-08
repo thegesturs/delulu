@@ -1,4 +1,5 @@
 import "./styles.css";
+import { AnalyticsProvider } from "@delulu/analytics";
 import { DesignSystemProvider } from "@delulu/design-system";
 import { fonts } from "@delulu/design-system/lib/fonts";
 import { cn } from "@delulu/design-system/lib/utils";
@@ -45,9 +46,11 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
       </head>
       <body>
         <DesignSystemProvider>
-          <Navbar />
-          {children}
-          <Footer />
+          <AnalyticsProvider>
+            <Navbar />
+            {children}
+            <Footer />
+          </AnalyticsProvider>
         </DesignSystemProvider>
         {/* <Toolbar /> */}
       </body>

@@ -36,8 +36,8 @@ export function Testimonials() {
             </h2>
 
             <p className="max-w-md text-lg text-neutral-600">
-              People love us for our scheduling software. Even though they
-              don&apis;t use it, we make sure to get a testimonial from them.
+              Creators who stopped posting manually and started selling on
+              autopilot.
             </p>
 
             <div className="space-y-4">
@@ -216,18 +216,15 @@ const OrbitingIcons = ({
   }>;
   className?: string;
 }) => {
-  // Precalculate all orbit data
   const orbitData = React.useMemo(() => {
     return orbits.map((orbit, orbitIndex) => {
       const radius = orbit.radius || 100 + orbitIndex * 80;
       const speed = orbit.speed || 1;
       const iconCount = orbit.icons.length;
 
-      // Calculate angles for each icon with even distribution
       const angleStep = 360 / iconCount;
       const angles = Array.from({ length: iconCount }, (_, i) => angleStep * i);
 
-      // Precalculate positions and animations for each icon
       const iconData = angles.map((angle) => {
         const rotationAngle =
           orbit.rotationDirection === "clockwise"

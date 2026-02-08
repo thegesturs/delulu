@@ -25,14 +25,24 @@ const faqs = [
       "Automatic. Reminders are for your mom. Schedule once, and we'll post at the perfect time while you sleep, work, or touch grass. No babysitting required.",
   },
   {
+    question: "Wait, this really replaces ManyChat?",
+    answer:
+      "For Instagram DM automation? Yes. Someone comments a keyword \u2192 we send them a DM with your link, automatically. We even reply to their comment. ManyChat charges $67/mo for their pro plan. We include it at $9.99. Same triggers, same automations, fraction of the price.",
+  },
+  {
+    question: "How is this so cheap?",
+    answer:
+      "We're early. Current pricing is locked in for our first 50 users. We're not trying to be the most expensive tool in your stack \u2014 we're trying to be the only one you need.",
+  },
+  {
     question: "Is there a free plan?",
     answer:
-      "Yep. Try it. Hate it. Leave. Or stay forever. No hard feelings. Free gets you 2 platforms and 15 posts/month. Paid plans unlock unlimited everything.",
+      "Yep. Try it. Hate it. Leave. Or stay forever. No hard feelings. Free gets you 1 platform and 10 posts/month. Paid plans unlock way more — and the Vibe plan at $9.99/mo gives you unlimited everything.",
   },
   {
     question: "How many posts can I schedule?",
     answer:
-      "Free: 15 posts/month (which is honestly plenty for testing)\n\nPaid plans: Unlimited\n\nWe count by unique content, not platforms. 1 post shared to 5 platforms = 1 post in our system. Much more generous than other tools.",
+      "Free: 10 posts/month (which is honestly plenty for testing)\n\nEcho ($4.99/mo): 30 posts/month across 5 platforms\n\nVibe ($9.99/mo): Unlimited posts, unlimited platforms\n\nWe count by unique content, not platforms. 1 post shared to 5 platforms = 1 post in our system. Much more generous than other tools.",
   },
   {
     question: "What content types do you support?",

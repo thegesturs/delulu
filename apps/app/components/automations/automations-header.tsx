@@ -23,10 +23,11 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
       <div className="flex items-center gap-3">
         <div>
           <h1 className="font-semibold text-2xl text-foreground tracking-tight">
-            Automations
+            Comment-to-Sale Automations
           </h1>
           <p className="mt-1 text-muted-foreground text-sm">
-            Automatically send DMs when users comment on your Instagram posts
+            Turn Instagram comments into sales. Someone comments a keyword →
+            they get a DM with your link. Automatically.
           </p>
         </div>
         <TooltipProvider>
@@ -42,9 +43,10 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               <p>
-                Create automations to send private replies when users comment
-                specific keywords on your posts. Great for lead generation and
-                engagement!
+                Set up triggers for your Instagram posts. When someone comments
+                a specific keyword, Delulu sends them a DM with your link and
+                replies to their comment. Like ManyChat, but included in your
+                plan.
               </p>
             </TooltipContent>
           </Tooltip>
