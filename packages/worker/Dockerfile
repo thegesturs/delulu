@@ -27,7 +27,7 @@ COPY packages/analytics/package.json ./packages/analytics/
 COPY packages/payments/package.json ./packages/payments/
 
 # Install dependencies
-RUN pnpm install
+RUN pnpm install --ignore-scripts
 
 # Copy source code
 COPY packages/worker ./packages/worker

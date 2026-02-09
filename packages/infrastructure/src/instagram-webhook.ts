@@ -218,6 +218,23 @@ function extractCommentEvents(
         );
         continue;
       }
+
+      // Skip replies to comments (only top-level comments trigger automations)
+      if (change.value.parent_id) {
+        console.log(
+          `[skip] Ignoring reply ${change.value.id} (parent: ${change.value.parent_id})`
+        );
+        continue;
+      }
+
+      // Skip comments from the page/bot itself
+      if (change.value.from.id === entry.id) {
+        console.log(
+          `[skip] Ignoring self-comment ${change.value.id} from account ${entry.id}`
+        );
+        continue;
+      }
+
       events.push({
         commentId: change.value.id,
         commentText: change.value.text || "",
