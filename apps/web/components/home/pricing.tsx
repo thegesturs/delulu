@@ -1,11 +1,18 @@
 "use client";
 
+import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
-import { getAllPlans, type Plan, type PlanType } from "@delulu/payments";
+import {
+  CURRENCY_SYMBOLS,
+  getAllPlans,
+  type Plan,
+  type PlanType,
+} from "@delulu/payments";
 import Link from "next/link";
 import { useState } from "react";
+import { useCurrency } from "@/hooks/use-currency";
 
 const PricingCard = ({
   planId,
@@ -17,6 +24,8 @@ const PricingCard = ({
   features,
   isYearly,
   cta = "Get Started",
+  currencySymbol,
+  isINR,
 }: {
   planId: PlanType;
   tier: string;
@@ -27,9 +36,13 @@ const PricingCard = ({
   features: string[];
   isYearly: boolean;
   cta?: string;
+  currencySymbol: string;
+  isINR: boolean;
 }) => {
   const isFree = monthlyPrice === 0;
   const price = isFree ? monthlyPrice : isYearly ? yearlyPrice : monthlyPrice;
+  const formatNum = (n: number) =>
+    isINR ? Math.round(n).toLocaleString("en-IN") : n.toFixed(2);
 
   return (
     <div
@@ -53,10 +66,8 @@ const PricingCard = ({
               <span className="font-bold text-4xl">Free Forever</span>
             ) : (
               <>
-                <span className="font-bold text-4xl">$</span>
-                <span className="font-bold text-4xl">
-                  {typeof price === "number" ? price.toFixed(2) : price}
-                </span>
+                <span className="font-bold text-4xl">{currencySymbol}</span>
+                <span className="font-bold text-4xl">{formatNum(price)}</span>
                 <span className="ml-1 text-muted-foreground">
                   /{isYearly ? "year" : "month"}
                 </span>
@@ -65,13 +76,13 @@ const PricingCard = ({
           </div>
           {!isFree && (
             <p className="mt-2 text-muted-foreground text-sm">
-              $0.00 due today, cancel anytime
+              {currencySymbol}0 due today, cancel anytime
             </p>
           )}
           {isYearly && !isFree && yearlyPrice && (
             <p className="mt-1 font-medium text-primary text-sm">
-              Save ${((monthlyPrice as number) * 12 - yearlyPrice).toFixed(2)}{" "}
-              yearly
+              Save {currencySymbol}
+              {formatNum((monthlyPrice as number) * 12 - yearlyPrice)} yearly
             </p>
           )}
         </div>
@@ -144,6 +155,14 @@ const getFeatureList = (plan: Plan): string[] => {
     features.push(`${plan.limits.teamMembers} team members`);
   }
 
+  // DM automation limits
+  const dmLimit = DM_PLAN_LIMITS[plan.id];
+  if (dmLimit === -1) {
+    features.push("Unlimited auto-DMs/month");
+  } else if (dmLimit > 0) {
+    features.push(`${dmLimit.toLocaleString()} auto-DMs/month`);
+  }
+
   // Features
   if (plan.features.advancedScheduling) {
     features.push("Advanced scheduling");
@@ -175,6 +194,9 @@ const getFeatureList = (plan: Plan): string[] => {
 
 export default function Pricing() {
   const [isYearly, setIsYearly] = useState(false);
+  const currency = useCurrency();
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
+  const isINR = currency === "INR";
 
   const plans = getAllPlans();
 
@@ -239,15 +261,17 @@ export default function Pricing() {
         {plans.map((plan) => (
           <PricingCard
             cta={plan.id === "FREE" ? "Start Free" : "Get Started"}
+            currencySymbol={currencySymbol}
             features={getFeatureList(plan)}
             isHighlighted={plan.popular}
+            isINR={isINR}
             isYearly={isYearly}
             key={plan.id}
-            monthlyPrice={plan.price.monthly}
+            monthlyPrice={plan.price[currency].monthly}
             planId={plan.id}
             subtitle={plan.description}
             tier={plan.name}
-            yearlyPrice={plan.price.yearly}
+            yearlyPrice={plan.price[currency].yearly}
           />
         ))}
       </div>

@@ -11,6 +11,13 @@
 
 export type PlanType = "FREE" | "VIBE" | "ECHO";
 
+export type CurrencyCode = "USD" | "INR";
+
+export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
+  USD: "$",
+  INR: "₹",
+};
+
 export interface PlanLimits {
   socialAccounts: number; // Number of connected social media accounts
   monthlyPosts: number; // Number of posts that can be scheduled per month
@@ -33,10 +40,13 @@ export interface Plan {
   id: PlanType;
   name: string;
   description: string;
-  price: {
-    monthly: number; // Price in USD
-    yearly: number; // Price in USD (usually discounted)
-  };
+  price: Record<
+    CurrencyCode,
+    {
+      monthly: number;
+      yearly: number;
+    }
+  >;
   limits: PlanLimits;
   features: PlanFeatures;
   popular?: boolean; // Highlight this plan
@@ -51,8 +61,8 @@ export const PLANS: Record<PlanType, Plan> = {
     name: "Free",
     description: "Perfect for getting started with social media management",
     price: {
-      monthly: 0,
-      yearly: 0,
+      USD: { monthly: 0, yearly: 0 },
+      INR: { monthly: 0, yearly: 0 },
     },
     limits: {
       socialAccounts: 1,
@@ -76,8 +86,8 @@ export const PLANS: Record<PlanType, Plan> = {
     name: "Echo",
     description: "Great for individuals and small businesses",
     price: {
-      monthly: 4.99,
-      yearly: 49, // Save 17%
+      USD: { monthly: 4.99, yearly: 49 },
+      INR: { monthly: 449, yearly: 4499 },
     },
     limits: {
       socialAccounts: 5,
@@ -101,8 +111,8 @@ export const PLANS: Record<PlanType, Plan> = {
     name: "Vibe",
     description: "Unlimited power for professionals and teams",
     price: {
-      monthly: 9.99,
-      yearly: 99.0, // Save 17%
+      USD: { monthly: 9.99, yearly: 99 },
+      INR: { monthly: 899, yearly: 8899 },
     },
     limits: {
       socialAccounts: -1, // Unlimited
@@ -200,11 +210,24 @@ export function getNextTier(currentPlan: PlanType): PlanType | null {
 /**
  * Format price for display
  */
-export function formatPrice(amount: number): string {
+export function formatPrice(
+  amount: number,
+  currency: CurrencyCode = "USD"
+): string {
   if (amount === 0) {
     return "Free";
   }
-  return `$${amount}`;
+  const symbol = CURRENCY_SYMBOLS[currency];
+  const formatted =
+    currency === "INR" ? amount.toLocaleString("en-IN") : amount.toString();
+  return `${symbol}${formatted}`;
+}
+
+/**
+ * Determine currency from country code (e.g. Cloudflare CF-IPCountry header)
+ */
+export function getCurrencyFromCountry(country: string): CurrencyCode {
+  return country === "IN" ? "INR" : "USD";
 }
 
 /**

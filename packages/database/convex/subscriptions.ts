@@ -436,6 +436,7 @@ export const createCheckoutSession = action({
     productId: v.string(),
     quantity: v.optional(v.number()),
     returnUrl: v.optional(v.string()),
+    billingCurrency: v.optional(v.string()),
   },
   returns: v.object({
     checkout_url: v.string(),
@@ -476,7 +477,7 @@ export const createCheckoutSession = action({
             name: userName,
           },
           return_url: args.returnUrl || process.env.NEXT_PUBLIC_APP_URL,
-          billing_currency: "USD",
+          billing_currency: args.billingCurrency || "USD",
           feature_flags: {
             allow_discount_code: true,
           },

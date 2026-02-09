@@ -25,21 +25,16 @@ import { toast } from "sonner";
 import { CurrentPlanCard } from "@/components/billing/current-plan-card";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { UsageStats } from "@/components/billing/usage-stats";
-
-/**
- * Dodo Payments Product IDs
- * Automatically uses correct IDs based on DODO_PAYMENTS_ENVIRONMENT
- * - test_mode: Uses test product IDs
- * - production: Uses production product IDs
- */
-const productIds = getProductIds();
-const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
-  FREE: { monthly: "", yearly: "" }, // Free plan doesn't need IDs
-  VIBE: productIds.VIBE,
-  ECHO: productIds.ECHO,
-};
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function BillingClient() {
+  const currency = useCurrency();
+  const productIds = getProductIds(currency);
+  const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
+    FREE: { monthly: "", yearly: "" },
+    VIBE: productIds.VIBE,
+    ECHO: productIds.ECHO,
+  };
   const searchParams = useSearchParams();
   const status = searchParams?.get("status"); // Dodo Payments returns 'status' param
   const subscriptionId = searchParams?.get("subscription_id");

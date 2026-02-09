@@ -7,6 +7,7 @@
  */
 
 import { api } from "@delulu/database/convex/_generated/api";
+import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -19,11 +20,17 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { getAllPlans, PLANS, type PlanType } from "@delulu/payments";
+import {
+  CURRENCY_SYMBOLS,
+  getAllPlans,
+  PLANS,
+  type PlanType,
+} from "@delulu/payments";
 import { SparklesIcon, Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
 
 interface PricingCardsProps {
@@ -35,6 +42,8 @@ export function PricingCards({
   productIds,
   onUpgradeSuccess,
 }: PricingCardsProps) {
+  const currency = useCurrency();
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
@@ -83,6 +92,7 @@ export function PricingCards({
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}/billing`,
+        billingCurrency: currency,
       });
 
       // Run callback before navigation so analytics/cleanup can complete
@@ -99,19 +109,23 @@ export function PricingCards({
 
   const getPlanPrice = (planType: PlanType) => {
     const plan = PLANS[planType];
-    return isAnnual ? plan.price.yearly : plan.price.monthly;
+    return isAnnual
+      ? plan.price[currency].yearly
+      : plan.price[currency].monthly;
   };
 
   const getMonthlyEquivalent = (planType: PlanType) => {
     const plan = PLANS[planType];
-    if (!isAnnual || plan.price.yearly === 0) {
+    const prices = plan.price[currency];
+    if (!isAnnual || prices.yearly === 0) {
       return null;
     }
-    // Calculate cents-accurate monthly price (yearly price is in dollars)
-    const yearlyInCents = plan.price.yearly * 100;
+    const yearlyInCents = prices.yearly * 100;
     const monthlyInCents = Math.round(yearlyInCents / 12);
     const monthlyInDollars = monthlyInCents / 100;
-    return monthlyInDollars.toFixed(2);
+    return currency === "INR"
+      ? Math.round(monthlyInDollars).toLocaleString("en-IN")
+      : monthlyInDollars.toFixed(2);
   };
 
   const isCurrentPlan = (planType: PlanType) => {
@@ -209,7 +223,9 @@ export function PricingCards({
                 <div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-4xl">
-                      {price === 0 ? "Free" : `$${price}`}
+                      {price === 0
+                        ? "Free"
+                        : `${currencySymbol}${currency === "INR" ? price.toLocaleString("en-IN") : price}`}
                     </span>
                     {price > 0 && (
                       <span className="text-muted-foreground">
@@ -219,7 +235,8 @@ export function PricingCards({
                   </div>
                   {monthlyEquivalent && (
                     <p className="mt-1 text-muted-foreground text-sm">
-                      ${monthlyEquivalent}/month billed annually
+                      {currencySymbol}
+                      {monthlyEquivalent}/month billed annually
                     </p>
                   )}
                 </div>
@@ -266,6 +283,19 @@ export function PricingCards({
                         ? "Unlimited"
                         : `${plan.limits.mediaStorage}MB`}{" "}
                       media storage
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Icon
+                      className="mt-0.5 flex-shrink-0 text-primary"
+                      icon={Tick01Icon}
+                      size={16}
+                    />
+                    <span>
+                      {DM_PLAN_LIMITS[plan.id] === -1
+                        ? "Unlimited"
+                        : DM_PLAN_LIMITS[plan.id].toLocaleString()}{" "}
+                      auto-DMs/month
                     </span>
                   </li>
                   {plan.features.analytics && (

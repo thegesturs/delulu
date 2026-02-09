@@ -350,7 +350,7 @@ async function processComment(
     return;
   }
 
-  if ((data.dmsSent ?? 0) >= data.dmLimit) {
+  if (data.dmLimit !== -1 && (data.dmsSent ?? 0) >= data.dmLimit) {
     console.log(`[skip] DM limit reached: ${data.dmsSent}/${data.dmLimit}`);
     return;
   }

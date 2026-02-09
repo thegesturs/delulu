@@ -30,6 +30,18 @@ export default clerkMiddleware(async (auth, req) => {
   // Get the security headers
   await securityHeaders();
 
+  // Geo-detection: read Cloudflare country header and set cookie
+  const country = req.headers.get("cf-ipcountry") || "US";
+  const withGeoCookie = (response: NextResponse) => {
+    response.cookies.set("x-geo-country", country, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      maxAge: 86_400,
+    });
+    return response;
+  };
+
   // Get auth state
   const { userId, redirectToSignIn, sessionClaims } = await auth();
 
@@ -37,7 +49,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Allow access to public routes regardless of auth status
   if (publicRoutes(req)) {
-    return NextResponse.next();
+    return withGeoCookie(NextResponse.next());
   }
 
   // If the user isn't signed in and the route is private, redirect to sign-in
@@ -47,13 +59,13 @@ export default clerkMiddleware(async (auth, req) => {
 
   // For authenticated users visiting /onboarding, allow access
   if (userId && onboardingRoute(req)) {
-    return NextResponse.next();
+    return withGeoCookie(NextResponse.next());
   }
 
   // Redirect logged-in users away from auth routes
   if (userId && authRoutes(req)) {
     const homeUrl = new URL("/", req.nextUrl.origin);
-    return NextResponse.redirect(homeUrl);
+    return withGeoCookie(NextResponse.redirect(homeUrl));
   }
 
   // Check if authenticated user has completed onboarding
@@ -63,13 +75,13 @@ export default clerkMiddleware(async (auth, req) => {
     | undefined;
   if (userId && !metadata?.onboardingComplete) {
     const onboardingUrl = new URL("/onboarding", req.url);
-    return NextResponse.redirect(onboardingUrl);
+    return withGeoCookie(NextResponse.redirect(onboardingUrl));
   }
 
   console.log("continuing with security headers");
 
   // For all other routes, continue with security headers
-  return NextResponse.next();
+  return withGeoCookie(NextResponse.next());
 });
 
 export const config = {
