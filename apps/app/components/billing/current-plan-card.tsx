@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { PLANS } from "@delulu/payments";
+import { CURRENCY_SYMBOLS, PLANS } from "@delulu/payments";
 import {
   Calendar01Icon,
   CreditCardIcon,
@@ -29,12 +29,15 @@ import { useAction } from "convex/react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
 
 export function CurrentPlanCard() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const getPortal = useAction(api.subscriptions.getCustomerPortal);
   const subscription = useSubscription();
+  const currency = useCurrency();
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const plan = PLANS[subscription.planType];
 
@@ -102,9 +105,11 @@ export function CurrentPlanCard() {
         <div>
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-3xl">
-              {plan.price.monthly === 0 ? "Free" : `$${plan.price.monthly}`}
+              {plan.price[currency].monthly === 0
+                ? "Free"
+                : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
             </span>
-            {plan.price.monthly > 0 && (
+            {plan.price[currency].monthly > 0 && (
               <span className="text-muted-foreground">/month</span>
             )}
           </div>
