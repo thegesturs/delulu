@@ -66,6 +66,7 @@ export function UpgradePrompt({
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
+        billingCurrency: currency,
       });
       window.location.href = checkout_url;
     } catch (error) {
@@ -220,6 +221,7 @@ export function InlineUpgradePrompt({
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
+        billingCurrency: currency,
       });
       window.location.href = checkout_url;
     } catch (error) {
