@@ -4,32 +4,39 @@ import { motion, useAnimation, useInView } from "motion/react";
 import Link from "next/link";
 import React, { useEffect } from "react";
 import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface FeatureCard {
   percentage: string;
   description: string;
 }
 
-const features: FeatureCard[] = [
-  {
-    percentage: "$72/mo",
-    description: "Saved vs. Buffer + ManyChat",
-  },
-  {
-    percentage: "8",
-    description: "Platforms supported in one click",
-  },
-  {
-    percentage: "1",
-    description: "Tool to replace your entire stack",
-  },
-  {
-    percentage: "$9.99",
-    description: "For everything. Seriously.",
-  },
-];
-
 export function Features() {
+  const currency = useCurrency();
+  const isINR = currency === "INR";
+  // Competitor savings stay USD; our price adapts
+  const savings = isINR ? "\u20B9899/mo" : "$72/mo";
+  const ourPrice = isINR ? "\u20B9899" : "$9.99";
+
+  const features: FeatureCard[] = [
+    {
+      percentage: savings,
+      description: "Saved vs. Buffer + ManyChat",
+    },
+    {
+      percentage: "8",
+      description: "Platforms supported in one click",
+    },
+    {
+      percentage: "1",
+      description: "Tool to replace your entire stack",
+    },
+    {
+      percentage: ourPrice,
+      description: "For everything. Seriously.",
+    },
+  ];
+
   return (
     <div className="relative w-full py-20">
       <div className="mb-12 text-center">

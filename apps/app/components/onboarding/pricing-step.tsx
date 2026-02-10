@@ -1,7 +1,18 @@
+import type { PlanType } from "@delulu/payments";
+import { getProductIds } from "@delulu/payments/product-ids";
 import { motion } from "motion/react";
 import { PricingCards } from "@/components/billing/pricing-cards";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function PricingStep() {
+  const currency = useCurrency();
+  const productIds = getProductIds(currency);
+  const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
+    FREE: { monthly: "", yearly: "" },
+    VIBE: productIds.VIBE,
+    ECHO: productIds.ECHO,
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -24,7 +35,7 @@ export function PricingStep() {
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <PricingCards />
+        <PricingCards productIds={PRODUCT_IDS} />
       </motion.div>
     </div>
   );

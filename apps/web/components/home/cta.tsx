@@ -11,6 +11,7 @@ import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
 import LineSvg from "@/components/ui/line-svg";
+import { useCurrency } from "@/hooks/use-currency";
 
 export const ctaBenefitsData = [
   {
@@ -42,7 +43,20 @@ export const ctaBenefitsData = [
 ];
 
 const CTA = () => {
-  const benefits = ctaBenefitsData;
+  const currency = useCurrency();
+  const isINR = currency === "INR";
+  const savings = isINR ? "\u20B9899/mo" : "$72/mo";
+  const savingsYearly = isINR ? "\u20B910,788/year" : "$864/year";
+
+  const benefits = ctaBenefitsData.map((b) =>
+    b.id === "save-money"
+      ? {
+          ...b,
+          title: `Save ${savings}`,
+          description: `Replace your scheduler AND your DM tool. Keep ${savingsYearly}.`,
+        }
+      : b
+  );
 
   return (
     <section className="relative flex w-full flex-col items-center justify-center border-t">

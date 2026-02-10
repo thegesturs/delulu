@@ -2,54 +2,57 @@
 import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { useTheme } from "@delulu/design-system";
 import { Button } from "@delulu/design-system/components/ui/button";
+import type { CurrencyCode } from "@delulu/payments";
 import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import type React from "react";
 import { useRef } from "react";
 import Balancer from "react-wrap-balancer";
+import { useCurrency } from "@/hooks/use-currency";
 import { DesktopMockup } from "./desktop-mockup";
 import { GradientBars } from "./gradient-bars";
 
-const heroVariants = {
-  outcome: {
-    headline: "Every comment on your post can become a sale.",
-    subtitle:
-      "Delulu auto-DMs your link to anyone who comments a keyword \u2014 and schedules your posts across 8 platforms. One tool. $9.99/mo.",
-    cta1: "Start free \u2014 no credit card",
-    cta2: "See how it works",
-  },
-  pain: {
-    headline: "You post every day. Your DMs are still empty.",
-    subtitle:
-      "Comments pile up. Leads go cold. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
-    cta1: "Fix my DMs \u2014 free",
-    cta2: "See how it works",
-  },
-  identity: {
-    headline: "Built for creators who sell, not just post.",
-    subtitle:
-      "Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + sales. One tool. $9.99.",
-    cta1: "Start free \u2014 no credit card",
-    cta2: "See how it works",
-  },
-  curiosity: {
-    headline: "What if every Instagram comment became a customer?",
-    subtitle:
-      "Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and logs the lead. Oh, and it also schedules your posts across 8 platforms. For $9.99/mo.",
-    cta1: "Try it free",
-    cta2: "See how it works",
-  },
-  direct: {
-    headline: "Post everywhere. Auto-DM your buyers. $9.99.",
-    subtitle:
-      "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually makes you money.",
-    cta1: "Start free \u2014 no credit card",
-    cta2: "See how it works",
-  },
-} as const;
+function getHeroVariants(currency: CurrencyCode) {
+  const price = currency === "INR" ? "\u20B9899" : "$9.99";
+  const priceMo = currency === "INR" ? "\u20B9899/mo" : "$9.99/mo";
+  return {
+    outcome: {
+      headline: "Every comment on your post can become a sale.",
+      subtitle: `Delulu auto-DMs your link to anyone who comments a keyword \u2014 and schedules your posts across 8 platforms. One tool. ${priceMo}.`,
+      cta1: "Start free \u2014 no credit card",
+      cta2: "See how it works",
+    },
+    pain: {
+      headline: "You post every day. Your DMs are still empty.",
+      subtitle:
+        "Comments pile up. Leads go cold. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
+      cta1: "Fix my DMs \u2014 free",
+      cta2: "See how it works",
+    },
+    identity: {
+      headline: "Built for creators who sell, not just post.",
+      subtitle: `Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + sales. One tool. ${price}.`,
+      cta1: "Start free \u2014 no credit card",
+      cta2: "See how it works",
+    },
+    curiosity: {
+      headline: "What if every Instagram comment became a customer?",
+      subtitle: `Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and logs the lead. Oh, and it also schedules your posts across 8 platforms. For ${priceMo}.`,
+      cta1: "Try it free",
+      cta2: "See how it works",
+    },
+    direct: {
+      headline: `Post everywhere. Auto-DM your buyers. ${price}.`,
+      subtitle:
+        "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually makes you money.",
+      cta1: "Start free \u2014 no credit card",
+      cta2: "See how it works",
+    },
+  } as const;
+}
 
-type HeroVariantKey = keyof typeof heroVariants;
+type HeroVariantKey = "outcome" | "pain" | "identity" | "curiosity" | "direct";
 
 export function Hero() {
   const parentRef = useRef<HTMLDivElement>(
@@ -58,6 +61,9 @@ export function Hero() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const image = isDark ? "/images/app-dark.png" : "/images/app-light.png";
+
+  const currency = useCurrency();
+  const heroVariants = getHeroVariants(currency);
 
   const posthog = useAnalytics();
   const flagValue = posthog?.getFeatureFlag("hero-variant");

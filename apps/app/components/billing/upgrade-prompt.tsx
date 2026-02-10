@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { PLANS, type PlanType } from "@delulu/payments";
+import { CURRENCY_SYMBOLS, PLANS, type PlanType } from "@delulu/payments";
 import {
   ArrowRight01Icon,
   LockIcon,
@@ -26,6 +26,7 @@ import {
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface UpgradePromptProps {
   feature: string;
@@ -48,6 +49,8 @@ export function UpgradePrompt({
 }: UpgradePromptProps) {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
+  const currency = useCurrency();
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const plan = PLANS[requiredPlan];
 
@@ -63,6 +66,7 @@ export function UpgradePrompt({
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
+        billingCurrency: currency,
       });
       window.location.href = checkout_url;
     } catch (error) {
@@ -147,12 +151,21 @@ export function UpgradePrompt({
         {/* Pricing */}
         <div className="rounded-lg bg-primary/10 p-4">
           <div className="flex items-baseline gap-2">
-            <span className="font-bold text-3xl">${plan.price.monthly}</span>
+            <span className="font-bold text-3xl">
+              {currencySymbol}
+              {currency === "INR"
+                ? plan.price[currency].monthly.toLocaleString("en-IN")
+                : plan.price[currency].monthly}
+            </span>
             <span className="text-muted-foreground">/month</span>
           </div>
-          {plan.price.yearly > 0 && (
+          {plan.price[currency].yearly > 0 && (
             <p className="mt-1 text-muted-foreground text-sm">
-              Or ${plan.price.yearly}/year (save 17%)
+              Or {currencySymbol}
+              {currency === "INR"
+                ? plan.price[currency].yearly.toLocaleString("en-IN")
+                : plan.price[currency].yearly}
+              /year (save 17%)
             </p>
           )}
         </div>
@@ -192,6 +205,8 @@ export function InlineUpgradePrompt({
 }: Pick<UpgradePromptProps, "feature" | "requiredPlan" | "productId">) {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
+  const currency = useCurrency();
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   const plan = PLANS[requiredPlan];
 
@@ -206,6 +221,7 @@ export function InlineUpgradePrompt({
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
+        billingCurrency: currency,
       });
       window.location.href = checkout_url;
     } catch (error) {
@@ -224,7 +240,11 @@ export function InlineUpgradePrompt({
             {feature} requires {plan.name}
           </p>
           <p className="text-muted-foreground text-sm">
-            Starting at ${plan.price.monthly}/month
+            Starting at {currencySymbol}
+            {currency === "INR"
+              ? plan.price[currency].monthly.toLocaleString("en-IN")
+              : plan.price[currency].monthly}
+            /month
           </p>
         </div>
       </div>

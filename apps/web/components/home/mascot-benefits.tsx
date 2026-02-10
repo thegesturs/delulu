@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -7,8 +9,16 @@ import Image from "next/image";
 import React from "react";
 import Balancer from "react-wrap-balancer";
 import LineSvg from "@/components/ui/line-svg";
+import { useCurrency } from "@/hooks/use-currency";
 
 export function MascotBenefits() {
+  const currency = useCurrency();
+  const isINR = currency === "INR";
+  // Our price changes; competitor prices (Buffer, ManyChat) stay in USD
+  const deluluPrice = isINR ? "\u20B9899" : "$9.99";
+  const savings = isINR ? "\u20B9899" : "$72";
+  const savingsYearly = isINR ? "\u20B910,788" : "$864";
+
   const benefits = [
     {
       image: "/images/delulu/calendar.png",
@@ -28,10 +38,9 @@ export function MascotBenefits() {
     },
     {
       image: "/images/delulu/shill.png",
-      title: "Save $72 every month.",
-      subtitle: "Buffer ($15) + ManyChat ($67) = $82. Delulu = $9.99.",
-      description:
-        "That\u2019s $864/year back in your pocket. Most creators don\u2019t even realize they\u2019re overpaying \u2014 or doing it all manually for free and losing sales.",
+      title: `Save ${savings} every month.`,
+      subtitle: `Buffer ($15) + ManyChat ($67) = $82. Delulu = ${deluluPrice}.`,
+      description: `That\u2019s ${savingsYearly}/year back in your pocket. Most creators don\u2019t even realize they\u2019re overpaying \u2014 or doing it all manually for free and losing sales.`,
       badge: "The Math",
     },
     {

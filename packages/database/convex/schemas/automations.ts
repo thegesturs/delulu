@@ -199,6 +199,6 @@ export type AutomationLog = Infer<typeof automationLogSchema>;
 
 export const DM_PLAN_LIMITS = {
   FREE: 100,
-  VIBE: 5000,
-  ECHO: 50_000,
+  ECHO: -1, // Unlimited
+  VIBE: 10_000,
 } as const;

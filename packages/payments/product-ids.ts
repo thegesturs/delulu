@@ -5,7 +5,7 @@
  * Supports different IDs for test_mode and production environments.
  */
 
-import type { PlanType } from "./plans";
+import type { CurrencyCode, PlanType } from "./plans";
 
 export interface ProductIdConfig {
   monthly: string;
@@ -47,14 +47,50 @@ export const PROD_PRODUCT_IDS: Record<
 };
 
 /**
- * Get product IDs based on environment
- * Checks DODO_PAYMENTS_ENVIRONMENT to determine which set to use
+ * Test Mode Product IDs for INR (India)
  */
-export function getProductIds(): Record<
+export const TEST_PRODUCT_IDS_INR: Record<
   Exclude<PlanType, "FREE">,
   ProductIdConfig
-> {
+> = {
+  VIBE: {
+    monthly: "pdt_0NY399wZtyH8PLqVDYxu2", // ₹899/month (test)
+    yearly: "pdt_0NY392AyfbiQoB7XCXrIj", // ₹8,899/year (test)
+  },
+  ECHO: {
+    monthly: "pdt_0NY38Xmrynco8NzEON4FD", // ₹449/month (test)
+    yearly: "pdt_0NY38rzJ2RhgwR1aVHsX0", // ₹4,499/year (test)
+  },
+};
+
+/**
+ * Production Product IDs for INR (India)
+ */
+export const PROD_PRODUCT_IDS_INR: Record<
+  Exclude<PlanType, "FREE">,
+  ProductIdConfig
+> = {
+  VIBE: {
+    monthly: "pdt_0NY399wZtyH8PLqVDYxu2", // ₹899/month (prod)
+    yearly: "pdt_0NY392AyfbiQoB7XCXrIj", // ₹8,899/year (prod)
+  },
+  ECHO: {
+    monthly: "pdt_0NY38Xmrynco8NzEON4FD", // ₹449/month (prod)
+    yearly: "pdt_0NY38rzJ2RhgwR1aVHsX0", // ₹4,499/year (prod)
+  },
+};
+
+/**
+ * Get product IDs based on environment and currency
+ * Checks DODO_PAYMENTS_ENVIRONMENT to determine which set to use
+ */
+export function getProductIds(
+  currency: CurrencyCode = "USD"
+): Record<Exclude<PlanType, "FREE">, ProductIdConfig> {
   const env = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT ?? "test_mode";
+  if (currency === "INR") {
+    return env === "live_mode" ? PROD_PRODUCT_IDS_INR : TEST_PRODUCT_IDS_INR;
+  }
   return env === "live_mode" ? PROD_PRODUCT_IDS : TEST_PRODUCT_IDS;
 }
 
@@ -73,41 +109,33 @@ export function getProductId(
 
 /**
  * Map product ID back to plan type and billing period
- * Supports both test and production IDs
+ * Supports test, production, and INR IDs
  */
 export function getPlanFromProductId(productId: string): {
   planType: Exclude<PlanType, "FREE">;
   billingPeriod: "MONTHLY" | "YEARLY";
 } | null {
-  // Check test IDs
-  for (const [plan, ids] of Object.entries(TEST_PRODUCT_IDS)) {
-    if (ids.monthly === productId) {
-      return {
-        planType: plan as Exclude<PlanType, "FREE">,
-        billingPeriod: "MONTHLY",
-      };
-    }
-    if (ids.yearly === productId) {
-      return {
-        planType: plan as Exclude<PlanType, "FREE">,
-        billingPeriod: "YEARLY",
-      };
-    }
-  }
+  const allMaps = [
+    TEST_PRODUCT_IDS,
+    PROD_PRODUCT_IDS,
+    TEST_PRODUCT_IDS_INR,
+    PROD_PRODUCT_IDS_INR,
+  ];
 
-  // Check prod IDs
-  for (const [plan, ids] of Object.entries(PROD_PRODUCT_IDS)) {
-    if (ids.monthly === productId) {
-      return {
-        planType: plan as Exclude<PlanType, "FREE">,
-        billingPeriod: "MONTHLY",
-      };
-    }
-    if (ids.yearly === productId) {
-      return {
-        planType: plan as Exclude<PlanType, "FREE">,
-        billingPeriod: "YEARLY",
-      };
+  for (const map of allMaps) {
+    for (const [plan, ids] of Object.entries(map)) {
+      if (ids.monthly === productId) {
+        return {
+          planType: plan as Exclude<PlanType, "FREE">,
+          billingPeriod: "MONTHLY",
+        };
+      }
+      if (ids.yearly === productId) {
+        return {
+          planType: plan as Exclude<PlanType, "FREE">,
+          billingPeriod: "YEARLY",
+        };
+      }
     }
   }
 
@@ -119,13 +147,11 @@ export function getPlanFromProductId(productId: string): {
  */
 export function getAllProductIds(): string[] {
   return [
-    ...Object.values(TEST_PRODUCT_IDS).flatMap((ids) => [
-      ids.monthly,
-      ids.yearly,
-    ]),
-    ...Object.values(PROD_PRODUCT_IDS).flatMap((ids) => [
-      ids.monthly,
-      ids.yearly,
-    ]),
-  ];
+    TEST_PRODUCT_IDS,
+    PROD_PRODUCT_IDS,
+    TEST_PRODUCT_IDS_INR,
+    PROD_PRODUCT_IDS_INR,
+  ].flatMap((map) =>
+    Object.values(map).flatMap((ids) => [ids.monthly, ids.yearly])
+  );
 }
