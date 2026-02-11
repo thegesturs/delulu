@@ -26,7 +26,9 @@ export const automationConditionOperatorSchema = v.union(
   v.literal("starts_with"),
   v.literal("ends_with"),
   v.literal("regex"),
-  v.literal("always")
+  v.literal("always"),
+  v.literal("is_follower"),
+  v.literal("has_email")
 );
 
 export const AUTOMATION_CONDITION_OPERATOR = {
@@ -37,6 +39,8 @@ export const AUTOMATION_CONDITION_OPERATOR = {
   ENDS_WITH: "ends_with",
   REGEX: "regex",
   ALWAYS: "always",
+  IS_FOLLOWER: "is_follower",
+  HAS_EMAIL: "has_email",
 } as const;
 
 export type AutomationConditionOperator =
@@ -54,11 +58,21 @@ export const commentReplySchema = v.object({
 
 export type CommentReply = Infer<typeof commentReplySchema>;
 
+// Keyword filter for triggers (merged into trigger, not a separate condition)
+export const keywordFilterSchema = v.object({
+  operator: automationConditionOperatorSchema,
+  value: v.optional(v.string()),
+  caseSensitive: v.optional(v.boolean()),
+});
+
+export type KeywordFilter = Infer<typeof keywordFilterSchema>;
+
 // DM buttons
 export const dmQuickReplySchema = v.object({
   type: v.literal("quick_reply"),
   title: v.string(), // max 20 chars
-  payload: v.optional(v.string()),
+  payload: v.string(), // auto-generated ID for webhook identification
+  nextStepId: v.optional(v.string()), // branch to next step when tapped
 });
 
 export const dmUrlButtonSchema = v.object({
@@ -77,6 +91,8 @@ export const triggerStepSchema = v.object({
   type: v.literal("trigger"),
   triggerType: automationTriggerTypeSchema,
   targetPostIds: v.array(v.string()),
+  keywordFilter: v.optional(keywordFilterSchema),
+  commentReply: v.optional(commentReplySchema),
   nextStepId: v.optional(v.string()),
 });
 
@@ -192,6 +208,59 @@ export const automationLogSchema = v.object({
 });
 
 export type AutomationLog = Infer<typeof automationLogSchema>;
+
+// ============================================================================
+// AUTOMATION SESSION SCHEMAS
+// ============================================================================
+
+export const baseAutomationSessionSchema = v.object({
+  automationId: v.id("automations"),
+  userId: v.id("users"),
+  instagramUserId: v.string(),
+  instagramUsername: v.optional(v.string()),
+  currentStepId: v.string(),
+  triggerCommentId: v.optional(v.string()),
+  triggerMediaId: v.optional(v.string()),
+  status: v.union(
+    v.literal("active"),
+    v.literal("completed"),
+    v.literal("expired")
+  ),
+  variables: v.optional(v.any()),
+  lastActivityAt: v.number(),
+  createdAt: v.number(),
+});
+
+export const automationSessionSchema = v.object({
+  _id: v.id("automationSessions"),
+  _creationTime: v.number(),
+  ...baseAutomationSessionSchema.fields,
+});
+
+export type AutomationSession = Infer<typeof automationSessionSchema>;
+
+// ============================================================================
+// AUTOMATION CONTACT SCHEMAS
+// ============================================================================
+
+export const baseAutomationContactSchema = v.object({
+  userId: v.id("users"),
+  socialProviderId: v.id("socialProviders"),
+  instagramUserId: v.string(),
+  instagramUsername: v.optional(v.string()),
+  email: v.optional(v.string()),
+  collectedData: v.optional(v.any()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+export const automationContactSchema = v.object({
+  _id: v.id("automationContacts"),
+  _creationTime: v.number(),
+  ...baseAutomationContactSchema.fields,
+});
+
+export type AutomationContact = Infer<typeof automationContactSchema>;
 
 // ============================================================================
 // DM PLAN LIMITS

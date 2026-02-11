@@ -39,6 +39,12 @@ interface FlowSidebarPanelProps {
   onUpdateTrigger: (id: string, trigger: TriggerStep) => void;
   onUpdateStep: (id: string, step: Partial<AutomationStep>) => void;
   onDeleteStep: (id: string) => void;
+  onCreateStepForButton?: (
+    stepId: string,
+    buttonIndex: number,
+    stepType: "send_dm" | "condition"
+  ) => void;
+  onRemoveStepForButton?: (stepId: string, buttonIndex: number) => void;
 }
 
 export function FlowSidebarPanel({
@@ -53,6 +59,8 @@ export function FlowSidebarPanel({
   onUpdateTrigger,
   onUpdateStep,
   onDeleteStep,
+  onCreateStepForButton,
+  onRemoveStepForButton,
 }: FlowSidebarPanelProps) {
   if (!selectedId) {
     return null;
@@ -120,6 +128,18 @@ export function FlowSidebarPanel({
               <SendDmPanel
                 isFreePlan={isFreePlan}
                 onChange={(updated) => onUpdateStep(step.id, updated)}
+                onCreateStepForButton={
+                  onCreateStepForButton
+                    ? (buttonIndex, stepType) =>
+                        onCreateStepForButton(step.id, buttonIndex, stepType)
+                    : undefined
+                }
+                onRemoveStepForButton={
+                  onRemoveStepForButton
+                    ? (buttonIndex) =>
+                        onRemoveStepForButton(step.id, buttonIndex)
+                    : undefined
+                }
                 step={step as SendDmStep}
               />
             )}

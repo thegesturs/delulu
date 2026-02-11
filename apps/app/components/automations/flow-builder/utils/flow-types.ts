@@ -6,6 +6,7 @@ export type {
   CommentReply,
   ConditionStep,
   DmButton,
+  KeywordFilter,
   SendDmStep,
   TriggerStep,
 } from "@delulu/database/convex/schemas/automations";

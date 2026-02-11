@@ -1,7 +1,17 @@
 "use client";
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger as SelectTriggerUI,
+  SelectValue,
+} from "@delulu/design-system/components/ui/select";
+import { Separator } from "@delulu/design-system/components/ui/separator";
+import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -11,7 +21,13 @@ import {
   UserStoryIcon,
 } from "@hugeicons-pro/core-solid-rounded";
 import { PostSelector } from "@/components/automations/post-selector";
-import type { AutomationTriggerType, TriggerStep } from "../utils/flow-types";
+import type {
+  AutomationConditionOperator,
+  AutomationTriggerType,
+  CommentReply,
+  TriggerStep,
+} from "../utils/flow-types";
+import { CommentReplyEditor } from "./comment-reply-editor";
 
 interface SocialProvider {
   _id: string;
@@ -54,7 +70,7 @@ const TRIGGER_TYPE_OPTIONS: {
     label: "Story Replies",
     description: "Fires when a user replies to your story",
     icon: UserStoryIcon,
-    enabled: false,
+    enabled: true,
   },
 ];
 
@@ -157,11 +173,17 @@ export function TriggerPanel({
         </div>
       </div>
 
-      {/* Target Posts */}
+      {/* Target Posts / Stories */}
       <div className="space-y-2">
-        <Label>Target Posts</Label>
+        <Label>
+          {trigger.triggerType === "STORY_REPLY"
+            ? "Target Stories"
+            : "Target Posts"}
+        </Label>
         <p className="text-muted-foreground text-xs">
-          Select which posts this trigger monitors.
+          {trigger.triggerType === "STORY_REPLY"
+            ? "Select which stories this trigger monitors."
+            : "Select which posts this trigger monitors."}
         </p>
         <PostSelector
           onSelectionChange={(postIds) =>
@@ -169,8 +191,137 @@ export function TriggerPanel({
           }
           selectedPostIds={trigger.targetPostIds}
           socialProviderId={socialProviderId || null}
+          triggerType={trigger.triggerType}
         />
       </div>
+
+      {/* Keyword Filter */}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label>Keyword Filter</Label>
+          <p className="text-muted-foreground text-xs">
+            Filter which comments trigger this automation.
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <button
+            className={cn(
+              "rounded-lg border p-3 text-left transition-all",
+              !trigger.keywordFilter ||
+                trigger.keywordFilter.operator === "always"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                : "border-border hover:border-primary/50"
+            )}
+            onClick={() => onChange({ ...trigger, keywordFilter: undefined })}
+            type="button"
+          >
+            <p className="font-medium text-xs">Any comment</p>
+            <p className="text-[11px] text-muted-foreground">
+              Trigger on every comment
+            </p>
+          </button>
+          <button
+            className={cn(
+              "rounded-lg border p-3 text-left transition-all",
+              trigger.keywordFilter &&
+                trigger.keywordFilter.operator !== "always"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                : "border-border hover:border-primary/50"
+            )}
+            onClick={() =>
+              onChange({
+                ...trigger,
+                keywordFilter:
+                  trigger.keywordFilter?.operator !== "always" &&
+                  trigger.keywordFilter
+                    ? trigger.keywordFilter
+                    : {
+                        operator: "contains",
+                        value: "",
+                        caseSensitive: false,
+                      },
+              })
+            }
+            type="button"
+          >
+            <p className="font-medium text-xs">Specific keyword</p>
+            <p className="text-[11px] text-muted-foreground">
+              Only trigger on matching comments
+            </p>
+          </button>
+        </div>
+        {trigger.keywordFilter &&
+          trigger.keywordFilter.operator !== "always" && (
+            <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+              <Select
+                onValueChange={(value) =>
+                  onChange({
+                    ...trigger,
+                    keywordFilter: {
+                      ...trigger.keywordFilter!,
+                      operator: value as AutomationConditionOperator,
+                    },
+                  })
+                }
+                value={trigger.keywordFilter.operator}
+              >
+                <SelectTriggerUI>
+                  <SelectValue />
+                </SelectTriggerUI>
+                <SelectContent>
+                  <SelectItem value="contains">Contains</SelectItem>
+                  <SelectItem value="not_contains">Does not contain</SelectItem>
+                  <SelectItem value="equals">Equals exactly</SelectItem>
+                  <SelectItem value="starts_with">Starts with</SelectItem>
+                  <SelectItem value="ends_with">Ends with</SelectItem>
+                  <SelectItem value="regex">Matches regex</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                onChange={(e) =>
+                  onChange({
+                    ...trigger,
+                    keywordFilter: {
+                      ...trigger.keywordFilter!,
+                      value: e.target.value,
+                    },
+                  })
+                }
+                placeholder="Enter keyword..."
+                value={trigger.keywordFilter.value || ""}
+              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="trigger-case-sensitive">Case sensitive</Label>
+                <Switch
+                  checked={trigger.keywordFilter.caseSensitive ?? false}
+                  id="trigger-case-sensitive"
+                  onCheckedChange={(checked) =>
+                    onChange({
+                      ...trigger,
+                      keywordFilter: {
+                        ...trigger.keywordFilter!,
+                        caseSensitive: checked,
+                      },
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
+      </div>
+
+      {/* Comment Reply — only for COMMENT triggers */}
+      {trigger.triggerType === "COMMENT" && (
+        <>
+          <Separator />
+          <CommentReplyEditor
+            commentReply={trigger.commentReply}
+            onChange={(commentReply: CommentReply) =>
+              onChange({ ...trigger, commentReply })
+            }
+          />
+        </>
+      )}
     </div>
   );
 }

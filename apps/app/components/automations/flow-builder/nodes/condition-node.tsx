@@ -6,19 +6,13 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import type { ConditionStep } from "../utils/flow-types";
 
 const OPERATOR_LABELS: Record<string, string> = {
-  always: "Always (any comment)",
-  contains: "Contains",
-  not_contains: "Does not contain",
-  equals: "Equals",
-  starts_with: "Starts with",
-  ends_with: "Ends with",
-  regex: "Regex",
+  is_follower: "User follows you",
+  has_email: "User is a contact",
 };
 
 export function ConditionNode({ data, selected }: NodeProps) {
   const step = data.step as ConditionStep;
   const label = OPERATOR_LABELS[step.operator] || step.operator;
-  const hasValue = step.operator !== "always" && step.value;
 
   return (
     <div
@@ -36,10 +30,7 @@ export function ConditionNode({ data, selected }: NodeProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm">Condition</p>
-          <p className="truncate text-muted-foreground text-xs">
-            {label}
-            {hasValue ? `: "${step.value}"` : ""}
-          </p>
+          <p className="truncate text-muted-foreground text-xs">{label}</p>
         </div>
       </div>
       <Handle

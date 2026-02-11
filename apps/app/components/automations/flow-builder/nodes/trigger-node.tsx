@@ -15,6 +15,12 @@ export function TriggerNode({ data, selected }: NodeProps) {
   const trigger = data.step as TriggerStep;
   const postCount = trigger.targetPostIds.length;
 
+  const hasKeywordFilter =
+    trigger.keywordFilter && trigger.keywordFilter.operator !== "always";
+  const keywordLabel = hasKeywordFilter
+    ? `keyword: ${trigger.keywordFilter!.value || "..."}`
+    : "any comment";
+
   return (
     <div
       className={`rounded-xl border px-4 py-3 shadow-sm transition-all ${
@@ -32,10 +38,10 @@ export function TriggerNode({ data, selected }: NodeProps) {
           <p className="font-medium text-sm">
             {TRIGGER_LABELS[trigger.triggerType] || trigger.triggerType}
           </p>
-          <p className="text-muted-foreground text-xs">
+          <p className="truncate text-muted-foreground text-xs">
             {postCount === 0
               ? "No posts selected"
-              : `${postCount} post${postCount !== 1 ? "s" : ""}`}
+              : `${postCount} post${postCount !== 1 ? "s" : ""} | ${keywordLabel}`}
           </p>
         </div>
       </div>

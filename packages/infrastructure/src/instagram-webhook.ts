@@ -6,6 +6,8 @@ import type {
   CommentReply,
   ConditionStep,
   DmButton,
+  KeywordFilter,
+  SendDmStep,
   TriggerStep,
 } from "@delulu/database/convex/schemas/automations";
 import { ConvexHttpClient } from "convex/browser";
@@ -38,6 +40,20 @@ interface InstagramWebhookPayload {
         parent_id?: string;
       };
     }>;
+    messaging?: Array<{
+      sender: { id: string };
+      recipient: { id: string };
+      timestamp: number;
+      message?: {
+        mid: string;
+        text?: string;
+        quick_reply?: { payload: string };
+      };
+      postback?: {
+        title?: string;
+        payload: string;
+      };
+    }>;
   }>;
 }
 
@@ -45,7 +61,17 @@ interface CommentEvent {
   commentId: string;
   commentText: string;
   username?: string;
+  fromId: string; // commenter's Instagram-scoped ID
   mediaId?: string;
+  instagramAccountId: string;
+}
+
+interface MessageEvent {
+  senderId: string; // user's Instagram-scoped ID
+  recipientId: string; // business account ID
+  messageId: string;
+  text?: string;
+  quickReplyPayload?: string;
   instagramAccountId: string;
 }
 
@@ -82,10 +108,10 @@ function validateSignature(
 }
 
 // ============================================================================
-// Condition Evaluation
+// Condition Evaluation (text-based operators — synchronous)
 // ============================================================================
 
-function evaluateCondition(
+function evaluateTextCondition(
   text: string,
   condition: Pick<ConditionStep, "operator" | "value" | "caseSensitive">
 ): boolean {
@@ -123,6 +149,70 @@ function evaluateCondition(
 }
 
 // ============================================================================
+// Async Condition Evaluation (for API-based operators like is_follower)
+// ============================================================================
+
+async function evaluateConditionAsync(
+  text: string,
+  condition: Pick<ConditionStep, "operator" | "value" | "caseSensitive">,
+  context: {
+    accessToken: string;
+    instagramUserId: string;
+    convex: ConvexHttpClient;
+    secretKey: string;
+    socialProviderId?: string;
+  }
+): Promise<boolean> {
+  switch (condition.operator) {
+    case "is_follower":
+      return checkIsFollower(context.accessToken, context.instagramUserId);
+    case "has_email":
+      if (!context.socialProviderId) {
+        return false;
+      }
+      return context.convex.query(api.automations.checkContactHasEmail, {
+        webhookSecret: context.secretKey,
+        socialProviderId: context.socialProviderId as Id<"socialProviders">,
+        instagramUserId: context.instagramUserId,
+      });
+    default:
+      return evaluateTextCondition(text, condition);
+  }
+}
+
+// ============================================================================
+// Follower Check via Instagram Messaging API
+// ============================================================================
+
+async function checkIsFollower(
+  accessToken: string,
+  instagramUserId: string
+): Promise<boolean> {
+  try {
+    // Use the Instagram Messaging API's user profile endpoint
+    // which includes is_user_follow_business for users in conversation
+    const response = await fetch(
+      `https://graph.instagram.com/v24.0/${instagramUserId}?fields=is_user_follow_business&access_token=${accessToken}`
+    );
+
+    if (!response.ok) {
+      console.warn(
+        `[follower-check] API returned ${response.status} for user ${instagramUserId}`
+      );
+      return false;
+    }
+
+    const data = (await response.json()) as {
+      is_user_follow_business?: boolean;
+    };
+    return data.is_user_follow_business ?? false;
+  } catch (e) {
+    console.warn("[follower-check] Failed to check follower status:", e);
+    return false;
+  }
+}
+
+// ============================================================================
 // Template Rendering
 // ============================================================================
 
@@ -140,27 +230,29 @@ function renderTemplate(
 interface FlowResult {
   message: string;
   buttons?: DmButton[];
-  commentReply?: CommentReply;
+  /** The send_dm step ID that produced this result (for session tracking) */
+  stepId: string;
 }
 
-function executeStepFlow(
-  triggers: TriggerStep[],
+/**
+ * Execute step flow starting from a specific step ID.
+ * Used both for initial trigger execution and for resuming from button taps.
+ */
+async function executeStepFlowFromStep(
+  startStepId: string,
   steps: AutomationStep[],
-  mediaId: string,
   commentText: string,
-  variables: Record<string, string>
-): FlowResult | null {
-  // 1. Find matching trigger (any trigger with this mediaId)
-  const trigger = triggers.find((t) => t.targetPostIds.includes(mediaId));
-  if (!trigger) {
-    return null;
+  variables: Record<string, string>,
+  conditionContext: {
+    accessToken: string;
+    instagramUserId: string;
+    convex: ConvexHttpClient;
+    secretKey: string;
+    socialProviderId?: string;
   }
-
-  // 2. Build step map
+): Promise<FlowResult | null> {
   const stepMap = new Map(steps.map((s) => [s.id, s]));
-
-  // 3. Traverse from trigger.nextStepId
-  let currentId = trigger.nextStepId;
+  let currentId: string | undefined = startStepId;
   const visited = new Set<string>();
 
   while (currentId && !visited.has(currentId)) {
@@ -174,16 +266,20 @@ function executeStepFlow(
       return {
         message: renderTemplate(step.messageTemplate, variables),
         buttons: step.buttons,
-        commentReply: step.commentReply,
+        stepId: step.id,
       };
     }
 
     if (step.type === "condition") {
-      const match = evaluateCondition(commentText, {
-        operator: step.operator,
-        value: step.value,
-        caseSensitive: step.caseSensitive,
-      });
+      const match = await evaluateConditionAsync(
+        commentText,
+        {
+          operator: step.operator,
+          value: step.value,
+          caseSensitive: step.caseSensitive,
+        },
+        conditionContext
+      );
       currentId = match ? step.yesStepId : step.noStepId;
       continue;
     }
@@ -192,6 +288,76 @@ function executeStepFlow(
   }
 
   return null;
+}
+
+/**
+ * Execute step flow from a trigger (finds matching trigger, applies keyword filter).
+ * Returns both the flow result and the matched trigger (for comment reply).
+ */
+async function executeStepFlow(
+  triggers: TriggerStep[],
+  steps: AutomationStep[],
+  mediaId: string,
+  commentText: string,
+  variables: Record<string, string>,
+  conditionContext: {
+    accessToken: string;
+    instagramUserId: string;
+    convex: ConvexHttpClient;
+    secretKey: string;
+    socialProviderId?: string;
+  }
+): Promise<{ result: FlowResult; trigger: TriggerStep } | null> {
+  // Find matching trigger (any trigger with this mediaId)
+  const trigger = triggers.find((t) => t.targetPostIds.includes(mediaId));
+  if (!trigger) {
+    return null;
+  }
+
+  // Apply keyword filter if set
+  if (trigger.keywordFilter && trigger.keywordFilter.operator !== "always") {
+    const matches = evaluateTextCondition(commentText, {
+      operator: trigger.keywordFilter.operator,
+      value: trigger.keywordFilter.value,
+      caseSensitive: trigger.keywordFilter.caseSensitive,
+    });
+    if (!matches) {
+      console.log(
+        `[keyword] Comment "${commentText}" did not match keyword filter (${trigger.keywordFilter.operator}: "${trigger.keywordFilter.value}")`
+      );
+      return null;
+    }
+  }
+
+  if (!trigger.nextStepId) {
+    return null;
+  }
+
+  const result = await executeStepFlowFromStep(
+    trigger.nextStepId,
+    steps,
+    commentText,
+    variables,
+    conditionContext
+  );
+
+  if (!result) {
+    return null;
+  }
+  return { result, trigger };
+}
+
+// ============================================================================
+// Check if DM has branching buttons (quick_reply with nextStepId)
+// ============================================================================
+
+function hasBranchingButtons(buttons?: DmButton[]): boolean {
+  if (!buttons) {
+    return false;
+  }
+  return buttons.some(
+    (b) => b.type === "quick_reply" && "nextStepId" in b && b.nextStepId
+  );
 }
 
 // ============================================================================
@@ -222,6 +388,7 @@ function extractCommentEvents(
         commentId: change.value.id,
         commentText: change.value.text || "",
         username: change.value.from.username,
+        fromId: change.value.from.id,
         mediaId: change.value.media?.id,
         instagramAccountId: entry.id,
       });
@@ -232,44 +399,102 @@ function extractCommentEvents(
 }
 
 // ============================================================================
+// Extract Message Events (button taps via quick_reply)
+// ============================================================================
+
+function extractMessageEvents(
+  payload: InstagramWebhookPayload
+): MessageEvent[] {
+  const events: MessageEvent[] = [];
+
+  for (const entry of payload.entry) {
+    if (!entry.messaging) {
+      continue;
+    }
+    for (const msg of entry.messaging) {
+      // Skip echo messages (sent by us)
+      if (msg.sender.id === entry.id) {
+        continue;
+      }
+
+      // Handle quick_reply taps
+      if (msg.message?.quick_reply?.payload) {
+        events.push({
+          senderId: msg.sender.id,
+          recipientId: msg.recipient.id,
+          messageId: msg.message.mid,
+          text: msg.message.text,
+          quickReplyPayload: msg.message.quick_reply.payload,
+          instagramAccountId: entry.id,
+        });
+        continue;
+      }
+
+      // Handle postback button taps
+      if (msg.postback?.payload) {
+        events.push({
+          senderId: msg.sender.id,
+          recipientId: msg.recipient.id,
+          messageId: `postback-${msg.timestamp}`,
+          text: msg.postback.title,
+          quickReplyPayload: msg.postback.payload,
+          instagramAccountId: entry.id,
+        });
+      }
+    }
+  }
+
+  return events;
+}
+
+// ============================================================================
 // Send DM via Instagram API
 // ============================================================================
 
-async function sendPrivateReply(
+async function sendDirectMessage(
   accessToken: string,
   profileId: string,
-  commentId: string,
+  recipient: { comment_id: string } | { id: string },
   message: string,
   buttons?: DmButton[]
 ): Promise<boolean> {
   // biome-ignore lint/suspicious/noExplicitAny: Instagram API body varies
   const body: any = {
-    recipient: { comment_id: commentId },
+    recipient,
     message: { text: message },
   };
 
-  // Add quick reply buttons
-  const quickReplies = buttons?.filter((b) => b.type === "quick_reply") ?? [];
-  const urlButtons = buttons?.filter((b) => b.type === "url") ?? [];
+  // Build template buttons (postback for quick_reply, web_url for url buttons)
+  // Button template supports max 3 buttons total
+  const templateButtons: Record<string, string>[] = [];
 
-  if (quickReplies.length > 0) {
-    body.message.quick_replies = quickReplies.slice(0, 13).map((b) => ({
-      content_type: "text",
-      title: b.title,
-      payload: b.payload || b.title,
-    }));
-  } else if (urlButtons.length > 0) {
+  for (const btn of buttons ?? []) {
+    if (templateButtons.length >= 3) {
+      break;
+    }
+    if (btn.type === "quick_reply") {
+      templateButtons.push({
+        type: "postback",
+        title: btn.title,
+        payload: btn.payload || btn.title,
+      });
+    } else if (btn.type === "url") {
+      templateButtons.push({
+        type: "web_url",
+        title: btn.title,
+        url: btn.url,
+      });
+    }
+  }
+
+  if (templateButtons.length > 0) {
     body.message = {
       attachment: {
         type: "template",
         payload: {
           template_type: "button",
           text: message,
-          buttons: urlButtons.slice(0, 3).map((b) => ({
-            type: "web_url",
-            url: b.url,
-            title: b.title,
-          })),
+          buttons: templateButtons,
         },
       },
     };
@@ -365,18 +590,28 @@ async function processComment(
     comment_text: event.commentText,
   };
 
+  const conditionContext = {
+    accessToken: data.accessToken,
+    instagramUserId: event.fromId,
+    convex,
+    secretKey,
+  };
+
   for (const automation of data.automations) {
-    const result = executeStepFlow(
+    const match = await executeStepFlow(
       automation.triggers,
       automation.steps,
       event.mediaId,
       event.commentText,
-      variables
+      variables,
+      conditionContext
     );
 
-    if (!result) {
+    if (!match) {
       continue;
     }
+
+    const { result, trigger: matchedTrigger } = match;
 
     // Append watermark for free plan users
     const message =
@@ -384,21 +619,28 @@ async function processComment(
         ? result.message + FREE_WATERMARK
         : result.message;
 
+    // Prefix button payloads with automationId for session lookup on tap
+    const prefixedButtons = result.buttons?.map((btn) =>
+      btn.type === "quick_reply"
+        ? { ...btn, payload: `${automation._id}:${btn.payload}` }
+        : btn
+    );
+
     console.log(
       `[dm] Sending DM for automation ${automation._id} to @${event.username}`
     );
-    const success = await sendPrivateReply(
+    const success = await sendDirectMessage(
       data.accessToken,
       data.profileId,
-      event.commentId,
+      { comment_id: event.commentId },
       message,
-      result.buttons
+      prefixedButtons
     );
 
     if (success) {
       console.log(`[dm] DM sent successfully for comment ${event.commentId}`);
 
-      // Record DM sent (don't let failure block comment reply)
+      // Record DM sent
       try {
         await convex.mutation(api.automations.recordDMSent, {
           webhookSecret: secretKey,
@@ -414,14 +656,34 @@ async function processComment(
         );
       }
 
-      // Reply to comment if configured
-      if (
-        result.commentReply?.enabled &&
-        result.commentReply.replies.length > 0
-      ) {
+      // Create session if DM has branching buttons
+      if (hasBranchingButtons(result.buttons)) {
+        try {
+          await convex.mutation(api.automations.createSession, {
+            webhookSecret: secretKey,
+            automationId: automation._id,
+            userId: data.userId,
+            instagramUserId: event.fromId,
+            instagramUsername: event.username,
+            currentStepId: result.stepId,
+            triggerCommentId: event.commentId,
+            triggerMediaId: event.mediaId,
+            variables,
+          });
+          console.log(
+            `[session] Created session for @${event.username} at step ${result.stepId}`
+          );
+        } catch (e) {
+          console.error("[session] Failed to create session:", e);
+        }
+      }
+
+      // Reply to comment if configured on the trigger
+      const commentReply = matchedTrigger.commentReply;
+      if (commentReply?.enabled && commentReply.replies.length > 0) {
         const reply =
-          result.commentReply.replies[
-            Math.floor(Math.random() * result.commentReply.replies.length)
+          commentReply.replies[
+            Math.floor(Math.random() * commentReply.replies.length)
           ];
         await replyToComment(data.accessToken, event.commentId, reply);
         console.log(`[reply] Replied to comment ${event.commentId}`);
@@ -432,6 +694,241 @@ async function processComment(
 
     // One reply per comment
     break;
+  }
+}
+
+// ============================================================================
+// Process a message event (button tap)
+// ============================================================================
+
+async function processMessageEvent(
+  convex: ConvexHttpClient,
+  event: MessageEvent,
+  secretKey: string
+): Promise<void> {
+  console.log(
+    `[message] Quick reply from ${event.senderId}: payload="${event.quickReplyPayload}"`
+  );
+
+  // Parse payload format: "automationId:stepId:buttonPayload"
+  // The payload is the button's auto-generated payload ID
+  // We need to find which automation/step/button this belongs to by checking active sessions
+
+  // 1. Find social provider for this Instagram account
+  // We'll use getForWebhook with a dummy mediaId — but we need a different approach
+  // Instead, look for active sessions for this sender across all automations for this IG account
+
+  // First, get all active automations for this Instagram account
+  // We need the access token too. Use a broad query:
+  const data = await convex.query(api.automations.getForWebhook, {
+    webhookSecret: secretKey,
+    instagramAccountId: event.instagramAccountId,
+    mediaId: "__message_event__", // Won't match any trigger, but we need the provider data
+  });
+
+  // getForWebhook returns null if no matching automations for that mediaId
+  // We need a fallback: query all active automations for this account
+  // For now, let's try to find sessions directly
+
+  // Try each active automation to find a session
+  // Get all automations for this IG account (re-query without mediaId filter)
+  // This is handled by looking up sessions which store the automationId
+
+  // Alternative approach: iterate all automations for this IG account
+  // Since we don't have a dedicated "getAllForAccount" query, we'll check sessions
+  // by iterating automations that the sender might have sessions for
+
+  // Actually, the cleanest approach: the session stores automationId,
+  // and the automation stores the socialProviderId. Let's find sessions.
+
+  // But we need the access token. Let's get all active automations for this IG account.
+  // We'll modify our approach to get provider data first.
+
+  // For message events, we look for ANY automation with an active session for this user
+  // This requires a broader query. Let's just get all active automations for the account.
+
+  // Since getForWebhook requires mediaId and returns null if no match,
+  // let's handle this by checking each automation the hard way.
+  // Actually, let's look at what we can query...
+
+  // The simplest approach: iterate the payload to find the button,
+  // then look up session. But payload is just a nanoid, we need context.
+
+  // Best approach for MVP: Get all active automations for this Instagram account,
+  // then for each, check if there's an active session for this sender.
+
+  // We'll reuse getForWebhook logic but we need a version that doesn't filter by mediaId.
+  // For now, use a workaround: the session itself has automationId, we can search sessions.
+
+  // However, Convex queries need to be pre-defined. We already have getSessionForWebhook
+  // but it requires automationId. We need to find which automation this belongs to.
+
+  // Pragmatic approach: encode automationId in the payload
+  // Payload format: "{automationId}:{buttonPayload}"
+  const payloadParts = event.quickReplyPayload?.split(":") ?? [];
+  if (payloadParts.length < 2) {
+    console.log(
+      `[message] Invalid payload format: "${event.quickReplyPayload}"`
+    );
+    return;
+  }
+
+  const automationId = payloadParts[0] as Id<"automations">;
+  const buttonPayload = payloadParts.slice(1).join(":");
+
+  // Look up the session
+  const session = await convex.query(api.automations.getSessionForWebhook, {
+    webhookSecret: secretKey,
+    automationId,
+    instagramUserId: event.senderId,
+  });
+
+  if (!session) {
+    console.log(
+      `[message] No active session for automation ${automationId}, user ${event.senderId}`
+    );
+    return;
+  }
+
+  // Get the automation to find the step and button
+  const automation = await convex.query(api.automations.getForWebhook, {
+    webhookSecret: secretKey,
+    instagramAccountId: event.instagramAccountId,
+    mediaId: session.triggerMediaId || "__session__",
+  });
+
+  if (!automation) {
+    console.log("[message] Could not load automation data for session");
+    return;
+  }
+
+  // Find the automation matching our session
+  const matchingAutomation = automation.automations.find(
+    (a) => a._id === automationId
+  );
+  if (!matchingAutomation) {
+    console.log(
+      `[message] Automation ${automationId} not found in webhook data`
+    );
+    return;
+  }
+
+  // Find the current step (the send_dm that had the buttons)
+  const stepMap = new Map(matchingAutomation.steps.map((s) => [s.id, s]));
+  const currentStep = stepMap.get(session.currentStepId);
+  if (!currentStep || currentStep.type !== "send_dm") {
+    console.log(
+      `[message] Current step ${session.currentStepId} is not a send_dm`
+    );
+    return;
+  }
+
+  // Find the button that was tapped by matching the payload
+  const tappedButton = (currentStep as SendDmStep).buttons?.find(
+    (b) => b.type === "quick_reply" && b.payload === buttonPayload
+  );
+  if (
+    !tappedButton ||
+    tappedButton.type !== "quick_reply" ||
+    !tappedButton.nextStepId
+  ) {
+    console.log(
+      `[message] No branching button found for payload "${buttonPayload}"`
+    );
+    // Mark session completed — button has no next step
+    await convex.mutation(api.automations.updateSession, {
+      webhookSecret: secretKey,
+      sessionId: session._id,
+      status: "completed",
+    });
+    return;
+  }
+
+  // Execute the flow from the button's nextStepId
+  const variables = (session.variables as Record<string, string>) || {};
+
+  const conditionContext = {
+    accessToken: automation.accessToken,
+    instagramUserId: event.senderId,
+    convex,
+    secretKey,
+  };
+
+  const result = await executeStepFlowFromStep(
+    tappedButton.nextStepId,
+    matchingAutomation.steps,
+    variables.comment_text || "",
+    variables,
+    conditionContext
+  );
+
+  if (!result) {
+    console.log("[message] No result from step flow execution");
+    await convex.mutation(api.automations.updateSession, {
+      webhookSecret: secretKey,
+      sessionId: session._id,
+      status: "completed",
+    });
+    return;
+  }
+
+  // Apply watermark for free plan
+  const message =
+    automation.planType === "FREE"
+      ? result.message + FREE_WATERMARK
+      : result.message;
+
+  // Prefix button payloads with automationId for session lookup on tap
+  const prefixedButtons = result.buttons?.map((btn) =>
+    btn.type === "quick_reply"
+      ? { ...btn, payload: `${automationId}:${btn.payload}` }
+      : btn
+  );
+
+  // Send DM directly to user (not via comment_id)
+  const success = await sendDirectMessage(
+    automation.accessToken,
+    automation.profileId,
+    { id: event.senderId },
+    message,
+    prefixedButtons
+  );
+
+  if (success) {
+    console.log(
+      `[message] Follow-up DM sent to ${event.senderId} at step ${result.stepId}`
+    );
+
+    // Record DM sent
+    try {
+      await convex.mutation(api.automations.recordDMSent, {
+        webhookSecret: secretKey,
+        userId: automation.userId,
+        automationId,
+        instagramCommentId: session.triggerCommentId || event.messageId,
+        instagramUsername: session.instagramUsername,
+      });
+    } catch (e) {
+      console.error("[message] Failed to record DM:", e);
+    }
+
+    // Update or complete the session
+    if (hasBranchingButtons(result.buttons)) {
+      await convex.mutation(api.automations.updateSession, {
+        webhookSecret: secretKey,
+        sessionId: session._id,
+        currentStepId: result.stepId,
+      });
+    } else {
+      await convex.mutation(api.automations.updateSession, {
+        webhookSecret: secretKey,
+        sessionId: session._id,
+        currentStepId: result.stepId,
+        status: "completed",
+      });
+    }
+  } else {
+    console.error(`[message] DM failed for user ${event.senderId}`);
   }
 }
 
@@ -489,10 +986,10 @@ export async function handler(event: LambdaEvent) {
       return json(200, { status: "received" });
     }
 
-    // Process comments (Lambda waits for completion, no waitUntil needed)
     const convex = new ConvexHttpClient(Resource.CONVEX_URL.value);
-    const commentEvents = extractCommentEvents(payload);
 
+    // Process comment events
+    const commentEvents = extractCommentEvents(payload);
     console.log(`[webhook] Processing ${commentEvents.length} comment events`);
 
     for (const commentEvent of commentEvents) {
@@ -506,6 +1003,26 @@ export async function handler(event: LambdaEvent) {
         console.error(
           "Error processing comment:",
           commentEvent.commentId,
+          error
+        );
+      }
+    }
+
+    // Process message events (button taps)
+    const messageEvents = extractMessageEvents(payload);
+    console.log(`[webhook] Processing ${messageEvents.length} message events`);
+
+    for (const messageEvent of messageEvents) {
+      try {
+        await processMessageEvent(
+          convex,
+          messageEvent,
+          Resource.LAMBDA_SECRET_KEY.value
+        );
+      } catch (error) {
+        console.error(
+          "Error processing message:",
+          messageEvent.messageId,
           error
         );
       }

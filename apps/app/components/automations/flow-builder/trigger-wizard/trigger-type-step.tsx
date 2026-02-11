@@ -38,7 +38,7 @@ const TRIGGER_OPTIONS: TriggerOption[] = [
     title: "Story Replies",
     description: "User replies to your Instagram story",
     icon: UserStoryIcon,
-    enabled: false,
+    enabled: true,
   },
 ];
 

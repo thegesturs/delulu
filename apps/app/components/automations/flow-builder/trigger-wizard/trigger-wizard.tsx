@@ -9,9 +9,14 @@ import {
   DialogTitle,
 } from "@delulu/design-system/components/ui/dialog";
 import { useState } from "react";
-import type { AutomationTriggerType, TriggerStep } from "../utils/flow-types";
+import type {
+  AutomationTriggerType,
+  KeywordFilter,
+  TriggerStep,
+} from "../utils/flow-types";
 import { createTrigger } from "../utils/step-helpers";
 import { AccountStep } from "./account-step";
+import { KeywordFilterStep } from "./keyword-filter-step";
 import { PostSelectorStep } from "./post-selector-step";
 import { TriggerTypeStep } from "./trigger-type-step";
 
@@ -31,7 +36,7 @@ interface TriggerWizardProps {
   currentSocialProviderId?: string;
 }
 
-type WizardStep = "account" | "trigger_type" | "posts";
+type WizardStep = "account" | "trigger_type" | "posts" | "keyword_filter";
 
 export function TriggerWizard({
   open,
@@ -50,6 +55,13 @@ export function TriggerWizard({
   const [selectedTriggerType, setSelectedTriggerType] =
     useState<AutomationTriggerType | null>(null);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
+  const [keywordFilter, setKeywordFilter] = useState<KeywordFilter | undefined>(
+    undefined
+  );
+
+  // Keyword filter step is available for COMMENT and STORY_REPLY triggers
+  const showKeywordStep =
+    selectedTriggerType === "COMMENT" || selectedTriggerType === "STORY_REPLY";
 
   const handleNext = () => {
     if (wizardStep === "account") {
@@ -57,24 +69,38 @@ export function TriggerWizard({
     } else if (wizardStep === "trigger_type") {
       setWizardStep("posts");
     } else if (wizardStep === "posts") {
-      if (!(selectedAccountId && selectedTriggerType)) {
-        return;
+      if (showKeywordStep) {
+        setWizardStep("keyword_filter");
+      } else {
+        finishWizard();
       }
-      const trigger = createTrigger({
-        triggerType: selectedTriggerType,
-        targetPostIds: selectedPostIds,
-      });
-      onComplete(trigger, selectedAccountId);
-      // Reset state
-      setWizardStep(initialStep);
-      setSelectedAccountId(currentSocialProviderId || null);
-      setSelectedTriggerType(null);
-      setSelectedPostIds([]);
+    } else if (wizardStep === "keyword_filter") {
+      finishWizard();
     }
   };
 
+  const finishWizard = () => {
+    if (!(selectedAccountId && selectedTriggerType)) {
+      return;
+    }
+    const trigger = createTrigger({
+      triggerType: selectedTriggerType,
+      targetPostIds: selectedPostIds,
+      keywordFilter,
+    });
+    onComplete(trigger, selectedAccountId);
+    // Reset state
+    setWizardStep(initialStep);
+    setSelectedAccountId(currentSocialProviderId || null);
+    setSelectedTriggerType(null);
+    setSelectedPostIds([]);
+    setKeywordFilter(undefined);
+  };
+
   const handleBack = () => {
-    if (wizardStep === "posts") {
+    if (wizardStep === "keyword_filter") {
+      setWizardStep("posts");
+    } else if (wizardStep === "posts") {
       setWizardStep("trigger_type");
     } else if (wizardStep === "trigger_type" && !skipAccount) {
       setWizardStep("account");
@@ -84,17 +110,26 @@ export function TriggerWizard({
   const canProceed =
     (wizardStep === "account" && selectedAccountId) ||
     (wizardStep === "trigger_type" && selectedTriggerType) ||
-    (wizardStep === "posts" && selectedPostIds.length > 0);
+    (wizardStep === "posts" && selectedPostIds.length > 0) ||
+    wizardStep === "keyword_filter"; // keyword filter is always valid (can skip = "any")
+
+  const totalSteps = (skipAccount ? 0 : 1) + 2 + (showKeywordStep ? 1 : 0);
 
   let stepNumber: number;
   if (wizardStep === "account") {
     stepNumber = 1;
   } else if (wizardStep === "trigger_type") {
     stepNumber = skipAccount ? 1 : 2;
-  } else {
+  } else if (wizardStep === "posts") {
     stepNumber = skipAccount ? 2 : 3;
+  } else {
+    // keyword_filter
+    stepNumber = skipAccount ? 3 : 4;
   }
-  const totalSteps = skipAccount ? 2 : 3;
+
+  const isLastStep =
+    wizardStep === "keyword_filter" ||
+    (wizardStep === "posts" && !showKeywordStep);
 
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} open={open}>
@@ -127,19 +162,27 @@ export function TriggerWizard({
               onSelectionChange={setSelectedPostIds}
               selectedPostIds={selectedPostIds}
               socialProviderId={selectedAccountId}
+              triggerType={selectedTriggerType || undefined}
+            />
+          )}
+          {wizardStep === "keyword_filter" && (
+            <KeywordFilterStep
+              filter={keywordFilter}
+              onChange={setKeywordFilter}
             />
           )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
           {((wizardStep === "trigger_type" && !skipAccount) ||
-            wizardStep === "posts") && (
+            wizardStep === "posts" ||
+            wizardStep === "keyword_filter") && (
             <Button onClick={handleBack} variant="outline">
               Back
             </Button>
           )}
           <Button disabled={!canProceed} onClick={handleNext}>
-            {wizardStep === "posts" ? "Add Trigger" : "Continue"}
+            {isLastStep ? "Add Trigger" : "Continue"}
           </Button>
         </DialogFooter>
       </DialogContent>

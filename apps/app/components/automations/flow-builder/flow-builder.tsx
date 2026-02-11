@@ -6,11 +6,10 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Comment01Icon,
-  FilterIcon,
   Loading03Icon,
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { ReactFlowProvider } from "@xyflow/react";
+import { type Connection, type Edge, ReactFlowProvider } from "@xyflow/react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
@@ -27,6 +26,8 @@ import { stepsToFlow } from "./utils/auto-layout";
 import type { AutomationStep, TriggerStep } from "./utils/flow-types";
 import { validateFlow } from "./utils/flow-validation";
 import { createConditionStep, createSendDmStep } from "./utils/step-helpers";
+
+const BUTTON_HANDLE_RE = /^button_(\d+)$/;
 
 interface FlowBuilderProps {
   automationId?: string;
@@ -70,7 +71,6 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     markDirty,
     addTrigger,
     updateTrigger,
-    addStepAfterSync,
     updateStepById,
     removeStepById,
   } = state;
@@ -114,69 +114,114 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         setAutomationMeta((prev) => ({ ...prev, socialProviderId }));
       }
 
-      // Set nextStepId to first step if there are existing steps
-      const firstStepId = steps.length > 0 ? steps[0].id : undefined;
-      addTrigger({ ...trigger, nextStepId: firstStepId });
-      setShowTriggerWizard(false);
-    },
-    [triggers.length, steps, addTrigger, setAutomationMeta]
-  );
-
-  const handleAddCondition = useCallback(() => {
-    const newStep = createConditionStep();
-    // Find the last trigger's nextStepId chain — insert at end
-    if (triggers.length > 0) {
-      const lastTrigger = triggers[0];
-      if (lastTrigger.nextStepId) {
-        addStepAfterSync(
-          findLastStepId(lastTrigger.nextStepId, steps),
-          "next",
-          newStep
-        );
+      if (steps.length > 0) {
+        // Link to existing first step
+        addTrigger({ ...trigger, nextStepId: steps[0].id });
       } else {
-        // No steps yet, connect trigger → new condition
-        updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
-        setSteps((prev) => [...prev, newStep]);
+        // Auto-create a Send DM step and link it
+        const dmStep = createSendDmStep();
+        addTrigger({ ...trigger, nextStepId: dmStep.id });
+        setSteps((prev) => [...prev, dmStep]);
         markDirty();
       }
-    }
-    setSelectedStepId(newStep.id);
-  }, [
-    triggers,
-    steps,
-    updateTrigger,
-    setSteps,
-    markDirty,
-    addStepAfterSync,
-    setSelectedStepId,
-  ]);
+      setShowTriggerWizard(false);
+    },
+    [triggers.length, steps, addTrigger, setAutomationMeta, setSteps, markDirty]
+  );
 
   const handleAddSendDm = useCallback(() => {
     const newStep = createSendDmStep();
-    if (triggers.length > 0) {
-      const lastTrigger = triggers[0];
-      if (lastTrigger.nextStepId) {
-        addStepAfterSync(
-          findLastStepId(lastTrigger.nextStepId, steps),
-          "next",
-          newStep
-        );
-      } else {
-        updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
-        setSteps((prev) => [...prev, newStep]);
-        markDirty();
-      }
-    }
+    setSteps((prev) => [...prev, newStep]);
+    markDirty();
     setSelectedStepId(newStep.id);
-  }, [
-    triggers,
-    steps,
-    updateTrigger,
-    setSteps,
-    markDirty,
-    addStepAfterSync,
-    setSelectedStepId,
-  ]);
+  }, [setSteps, markDirty, setSelectedStepId]);
+
+  // When the user drags an edge from a source handle to a target node
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      const { source, target, sourceHandle } = connection;
+      if (!(source && target)) {
+        return;
+      }
+
+      // Source is a trigger
+      const sourceTrigger = triggers.find((t) => t.id === source);
+      if (sourceTrigger) {
+        updateTrigger(source, { nextStepId: target });
+        return;
+      }
+
+      // Source is a step
+      const sourceStep = steps.find((s) => s.id === source);
+      if (!sourceStep) {
+        return;
+      }
+
+      if (sourceStep.type === "condition") {
+        if (sourceHandle === "yes") {
+          updateStepById(source, { yesStepId: target });
+        } else if (sourceHandle === "no") {
+          updateStepById(source, { noStepId: target });
+        }
+      } else if (sourceStep.type === "send_dm") {
+        const buttonMatch = sourceHandle?.match(BUTTON_HANDLE_RE);
+        if (buttonMatch) {
+          const btnIndex = Number.parseInt(buttonMatch[1], 10);
+          const buttons = [...(sourceStep.buttons ?? [])];
+          const btn = buttons[btnIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[btnIndex] = { ...btn, nextStepId: target };
+            updateStepById(source, { buttons });
+          }
+        } else {
+          updateStepById(source, { nextStepId: target });
+        }
+      }
+    },
+    [triggers, steps, updateTrigger, updateStepById]
+  );
+
+  // When the user deletes an edge (select + Backspace)
+  const handleEdgeDelete = useCallback(
+    (edge: Edge) => {
+      const { source, sourceHandle } = edge;
+
+      // Source is a trigger
+      const sourceTrigger = triggers.find((t) => t.id === source);
+      if (sourceTrigger) {
+        updateTrigger(source, { nextStepId: undefined });
+        return;
+      }
+
+      // Source is a step
+      const sourceStep = steps.find((s) => s.id === source);
+      if (!sourceStep) {
+        return;
+      }
+
+      if (sourceStep.type === "condition") {
+        if (sourceHandle === "yes") {
+          updateStepById(source, { yesStepId: undefined });
+        } else if (sourceHandle === "no") {
+          updateStepById(source, { noStepId: undefined });
+        }
+      } else if (sourceStep.type === "send_dm") {
+        const buttonMatch = sourceHandle?.match(BUTTON_HANDLE_RE);
+        if (buttonMatch) {
+          const btnIndex = Number.parseInt(buttonMatch[1], 10);
+          const buttons = [...(sourceStep.buttons ?? [])];
+          const btn = buttons[btnIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[btnIndex] = { ...btn, nextStepId: undefined };
+            updateStepById(source, { buttons });
+          }
+        } else {
+          updateStepById(source, { nextStepId: undefined });
+        }
+      }
+    },
+    [triggers, steps, updateTrigger, updateStepById]
+  );
 
   const handleToggleActive = useCallback(
     (active: boolean) => {
@@ -202,11 +247,6 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
   );
 
   const handleSave = useCallback(async () => {
-    if (!automationMeta.name.trim()) {
-      toast.error("Please enter an automation name");
-      return;
-    }
-
     if (!automationMeta.socialProviderId) {
       toast.error("Please select an Instagram account");
       return;
@@ -217,11 +257,29 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       return;
     }
 
+    // Auto-generate name if empty
+    let name = automationMeta.name.trim();
+    if (!name) {
+      const trigger = triggers[0];
+      const typeLabel =
+        trigger.triggerType === "STORY_REPLY"
+          ? "Story Reply"
+          : trigger.triggerType === "MENTION"
+            ? "Mention"
+            : "Comment";
+      const keywordPart =
+        trigger.keywordFilter?.value &&
+        trigger.keywordFilter.operator !== "always"
+          ? ` (${trigger.keywordFilter.value})`
+          : "";
+      name = `${typeLabel}${keywordPart} → DM`;
+    }
+
     setIsSaving(true);
     try {
       if (isNew) {
         const id = await createAutomation({
-          name: automationMeta.name.trim(),
+          name,
           description: automationMeta.description.trim() || undefined,
           socialProviderId:
             automationMeta.socialProviderId as Id<"socialProviders">,
@@ -234,7 +292,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       } else {
         await updateAutomation({
           id: automationId as Id<"automations">,
-          name: automationMeta.name.trim(),
+          name,
           description: automationMeta.description.trim() || undefined,
           isActive: automationMeta.isActive,
           triggers,
@@ -289,6 +347,74 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     [removeStepById]
   );
 
+  const handleCreateStepForButton = useCallback(
+    (
+      stepId: string,
+      buttonIndex: number,
+      stepType: "send_dm" | "condition"
+    ) => {
+      const newStep =
+        stepType === "send_dm" ? createSendDmStep() : createConditionStep();
+
+      // Update the button's nextStepId to point to the new step
+      setSteps((prev) => {
+        const updated = prev.map((s) => {
+          if (s.id !== stepId || s.type !== "send_dm") {
+            return s;
+          }
+          const buttons = [...(s.buttons ?? [])];
+          const btn = buttons[buttonIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[buttonIndex] = { ...btn, nextStepId: newStep.id };
+          }
+          return { ...s, buttons };
+        });
+        return [...updated, newStep];
+      });
+      markDirty();
+      setSelectedStepId(newStep.id);
+    },
+    [setSteps, markDirty, setSelectedStepId]
+  );
+
+  const handleRemoveStepForButton = useCallback(
+    (stepId: string, buttonIndex: number) => {
+      setSteps((prev) => {
+        const parentStep = prev.find((s) => s.id === stepId);
+        if (!parentStep || parentStep.type !== "send_dm") {
+          return prev;
+        }
+        const btn = parentStep.buttons?.[buttonIndex];
+        const targetStepId =
+          btn?.type === "quick_reply" && "nextStepId" in btn
+            ? btn.nextStepId
+            : undefined;
+
+        // Clear the button's nextStepId
+        let updated = prev.map((s) => {
+          if (s.id !== stepId || s.type !== "send_dm") {
+            return s;
+          }
+          const buttons = [...(s.buttons ?? [])];
+          const b = buttons[buttonIndex];
+          if (b?.type === "quick_reply") {
+            buttons[buttonIndex] = { ...b, nextStepId: undefined };
+          }
+          return { ...s, buttons };
+        });
+
+        // Remove the orphaned step if it exists and nothing else references it
+        if (targetStepId) {
+          updated = updated.filter((s) => s.id !== targetStepId);
+        }
+
+        return updated;
+      });
+      markDirty();
+    },
+    [setSteps, markDirty]
+  );
+
   // Loading state for edit mode
   if (!isNew && automation === undefined) {
     return (
@@ -324,7 +450,13 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         onToggleActive={handleToggleActive}
       />
       <div className="relative flex-1">
-        <FlowCanvas edges={edges} nodes={nodes} onNodeClick={handleNodeClick} />
+        <FlowCanvas
+          edges={edges}
+          nodes={nodes}
+          onConnect={handleConnect}
+          onEdgeDelete={handleEdgeDelete}
+          onNodeClick={handleNodeClick}
+        />
 
         {/* Action cards at bottom */}
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
@@ -341,29 +473,12 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
           </Button>
           <Button
             className="gap-1.5 shadow-md"
-            disabled={triggers.length === 0}
-            onClick={handleAddCondition}
-            size="sm"
-            variant="outline"
-          >
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-amber-500/15">
-              <Icon className="text-amber-600" icon={FilterIcon} size={12} />
-            </div>
-            Add Condition
-          </Button>
-          <Button
-            className="gap-1.5 shadow-md"
-            disabled={triggers.length === 0}
             onClick={handleAddSendDm}
             size="sm"
             variant="outline"
           >
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-green-500/15">
-              <Icon
-                className="text-green-600"
-                icon={MailSend01Icon}
-                size={12}
-              />
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Icon className="text-white" icon={MailSend01Icon} size={12} />
             </div>
             Add Send DM
           </Button>
@@ -373,7 +488,9 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
           instagramProviders={instagramProviders}
           isFreePlan={isFreePlan}
           onClose={() => setSelectedStepId(null)}
+          onCreateStepForButton={handleCreateStepForButton}
           onDeleteStep={handleDeleteStep}
+          onRemoveStepForButton={handleRemoveStepForButton}
           onSocialProviderChange={(id) => {
             setAutomationMeta((prev) => ({ ...prev, socialProviderId: id }));
             markDirty();
@@ -404,35 +521,4 @@ export function FlowBuilder({ automationId }: FlowBuilderProps) {
       <FlowBuilderInner automationId={automationId} />
     </ReactFlowProvider>
   );
-}
-
-/**
- * Find the last step in a linear chain (follows nextStepId / yesStepId).
- */
-function findLastStepId(startId: string, steps: AutomationStep[]): string {
-  const stepMap = new Map(steps.map((s) => [s.id, s]));
-  let currentId = startId;
-  const visited = new Set<string>();
-
-  while (!visited.has(currentId)) {
-    visited.add(currentId);
-    const step = stepMap.get(currentId);
-    if (!step) {
-      break;
-    }
-
-    let nextId: string | undefined;
-    if (step.type === "condition") {
-      nextId = step.yesStepId;
-    } else if (step.type === "send_dm") {
-      nextId = step.nextStepId;
-    }
-
-    if (!nextId) {
-      break;
-    }
-    currentId = nextId;
-  }
-
-  return currentId;
 }

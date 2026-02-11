@@ -17,21 +17,40 @@ interface PostSelectorProps {
   socialProviderId: string | null;
   selectedPostIds: string[];
   onSelectionChange: (postIds: string[]) => void;
+  triggerType?: string;
 }
 
 export function PostSelector({
   socialProviderId,
   selectedPostIds,
   onSelectionChange,
+  triggerType,
 }: PostSelectorProps) {
+  const isStoryMode = triggerType === "STORY_REPLY";
+
   const {
     data: posts,
-    isLoading,
-    error,
+    isLoading: postsLoading,
+    error: postsError,
   } = api.socialProvider.getInstagramPosts.useQuery(
     { socialProviderId: socialProviderId! },
-    { enabled: !!socialProviderId }
+    { enabled: !!socialProviderId && !isStoryMode }
   );
+
+  const {
+    data: stories,
+    isLoading: storiesLoading,
+    error: storiesError,
+  } = api.socialProvider.getInstagramStories.useQuery(
+    { socialProviderId: socialProviderId! },
+    { enabled: !!socialProviderId && isStoryMode }
+  );
+
+  const items = isStoryMode ? stories : posts;
+  const isLoading = isStoryMode ? storiesLoading : postsLoading;
+  const error = isStoryMode ? storiesError : postsError;
+  const itemLabel = isStoryMode ? "Stories" : "Posts";
+  const itemLabelLower = isStoryMode ? "stories" : "posts";
 
   const allPostsSelected = selectedPostIds.length === 0;
 
@@ -59,7 +78,7 @@ export function PostSelector({
     return (
       <div className="rounded-lg border border-border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">
-          Select an Instagram account first to choose target posts
+          Select an Instagram account first to choose target {itemLabelLower}
         </p>
       </div>
     );
@@ -82,17 +101,17 @@ export function PostSelector({
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-center">
         <p className="text-destructive text-sm">
-          Failed to load posts: {error.message}
+          Failed to load {itemLabelLower}: {error.message}
         </p>
       </div>
     );
   }
 
-  if (!posts || posts.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <div className="rounded-lg border border-border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">
-          No posts found for this Instagram account
+          No {itemLabelLower} found for this Instagram account
         </p>
       </div>
     );
@@ -100,7 +119,7 @@ export function PostSelector({
 
   return (
     <div className="space-y-4">
-      {/* All Posts Option */}
+      {/* All Posts/Stories Option */}
       <div
         className={cn(
           "flex items-center gap-3 rounded-lg border p-3 transition-colors",
@@ -121,11 +140,11 @@ export function PostSelector({
             size={18}
           />
           <Label className="cursor-pointer font-medium" htmlFor="all-posts">
-            All Posts
+            All {itemLabel}
           </Label>
         </div>
         <span className="text-muted-foreground text-xs">
-          Automation will trigger on any post
+          Automation will trigger on any {isStoryMode ? "story" : "post"}
         </span>
       </div>
 
@@ -133,14 +152,14 @@ export function PostSelector({
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-border" />
         <span className="text-muted-foreground text-xs">
-          or select specific posts
+          or select specific {itemLabelLower}
         </span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Posts Grid */}
+      {/* Posts/Stories Grid */}
       <div className="grid grid-cols-3 gap-3">
-        {posts.map((post) => {
+        {items.map((post) => {
           const isSelected = selectedPostIds.includes(post.id);
           const MediaIcon =
             post.mediaType === "VIDEO"
@@ -164,7 +183,10 @@ export function PostSelector({
               {/* Thumbnail */}
               {post.thumbnailUrl ? (
                 <img
-                  alt={post.caption || "Instagram post"}
+                  alt={
+                    post.caption ||
+                    `Instagram ${isStoryMode ? "story" : "post"}`
+                  }
                   className="h-full w-full object-cover"
                   src={post.thumbnailUrl}
                 />
@@ -234,7 +256,14 @@ export function PostSelector({
       {/* Selection Summary */}
       {!allPostsSelected && selectedPostIds.length > 0 && (
         <p className="text-center text-muted-foreground text-sm">
-          {selectedPostIds.length} post{selectedPostIds.length !== 1 ? "s" : ""}{" "}
+          {selectedPostIds.length} {isStoryMode ? "stor" : "post"}
+          {selectedPostIds.length !== 1
+            ? isStoryMode
+              ? "ies"
+              : "s"
+            : isStoryMode
+              ? "y"
+              : ""}{" "}
           selected
         </p>
       )}

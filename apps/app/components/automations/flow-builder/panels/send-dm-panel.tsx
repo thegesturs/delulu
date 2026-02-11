@@ -4,9 +4,8 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Separator } from "@delulu/design-system/components/ui/separator";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
-import type { CommentReply, DmButton, SendDmStep } from "../utils/flow-types";
+import type { DmButton, SendDmStep } from "../utils/flow-types";
 import { ButtonEditor } from "./button-editor";
-import { CommentReplyEditor } from "./comment-reply-editor";
 
 const VARIABLES = [
   { name: "{username}", description: "Commenter's Instagram username" },
@@ -17,6 +16,11 @@ interface SendDmPanelProps {
   step: SendDmStep;
   isFreePlan?: boolean;
   onChange: (step: SendDmStep) => void;
+  onCreateStepForButton?: (
+    buttonIndex: number,
+    stepType: "send_dm" | "condition"
+  ) => void;
+  onRemoveStepForButton?: (buttonIndex: number) => void;
 }
 
 function renderPreview(template: string): string {
@@ -25,7 +29,13 @@ function renderPreview(template: string): string {
     .replace(/{comment_text}/g, "Great post!");
 }
 
-export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
+export function SendDmPanel({
+  step,
+  isFreePlan,
+  onChange,
+  onCreateStepForButton,
+  onRemoveStepForButton,
+}: SendDmPanelProps) {
   const insertVariable = (variable: string) => {
     onChange({
       ...step,
@@ -34,10 +44,8 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
   };
 
   const previewText = renderPreview(step.messageTemplate);
-  const quickReplies = (step.buttons ?? []).filter(
-    (b) => b.type === "quick_reply"
-  );
-  const urlButtons = (step.buttons ?? []).filter((b) => b.type === "url");
+  // All buttons render as template buttons (postback + URL), max 3
+  const allButtons = (step.buttons ?? []).slice(0, 3);
 
   return (
     <div className="space-y-5">
@@ -86,15 +94,14 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
           <div className="flex min-h-[100px] flex-col justify-end gap-1 px-3 py-3">
             {previewText ? (
               <>
-                {/* Message bubble + URL buttons as one card */}
+                {/* Message bubble + buttons as one card */}
                 <div className="flex items-end gap-1.5">
                   {/* Avatar */}
                   <div className="mb-0.5 h-6 w-6 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-600" />
                   <div className="min-w-0 max-w-[85%]">
-                    {/* Message bubble */}
                     <div
                       className={`rounded-2xl rounded-bl-md bg-white px-3 py-2.5 shadow-sm dark:bg-neutral-800 ${
-                        urlButtons.length > 0 ? "rounded-b-md" : ""
+                        allButtons.length > 0 ? "rounded-b-md" : ""
                       }`}
                     >
                       <p className="whitespace-pre-wrap text-neutral-900 text-sm leading-relaxed dark:text-neutral-100">
@@ -106,36 +113,21 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
                           Sent via @delulu.social
                         </p>
                       )}
-                      {urlButtons.length > 0 && (
+                      {allButtons.length > 0 && (
                         <div className="mt-2 grid grid-cols-1 gap-1">
-                          {urlButtons.map((btn) => (
-                            <a
+                          {allButtons.map((btn, i) => (
+                            <span
                               className="flex items-center justify-center rounded-md border-neutral-200 bg-zinc-200 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
-                              href={btn.url ?? ""}
-                              key={`url-btn-${btn.title}-${btn.url}`}
-                              target="_blank"
+                              key={`btn-${btn.title}-${i}`}
                             >
                               {btn.title || "Button"}
-                            </a>
+                            </span>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
-                  {quickReplies.length > 0 && (
-                    <div className="mt-1 flex flex-wrap justify-end gap-1.5 pl-8">
-                      {quickReplies.map((btn) => (
-                        <span
-                          className="rounded-full border border-blue-500 bg-white px-2.5 py-1 text-[10px] text-blue-500 shadow-sm dark:bg-neutral-800 dark:text-blue-400"
-                          key={`quick-reply-${btn.title}`}
-                        >
-                          {btn.title || "Button"}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-                {/* Quick reply buttons — separate row, right-aligned */}
               </>
             ) : (
               <p className="text-center text-neutral-400 text-xs">
@@ -151,15 +143,8 @@ export function SendDmPanel({ step, isFreePlan, onChange }: SendDmPanelProps) {
       <ButtonEditor
         buttons={step.buttons ?? []}
         onChange={(buttons: DmButton[]) => onChange({ ...step, buttons })}
-      />
-
-      <Separator />
-
-      <CommentReplyEditor
-        commentReply={step.commentReply}
-        onChange={(commentReply: CommentReply) =>
-          onChange({ ...step, commentReply })
-        }
+        onCreateStepForButton={onCreateStepForButton}
+        onRemoveStepForButton={onRemoveStepForButton}
       />
     </div>
   );

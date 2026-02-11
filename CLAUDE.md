@@ -352,4 +352,77 @@ Posts use Convex schema with these key fields:
 - **List view**: Consistent row heights with proper flex layouts
 - **Media handling**: Always show placeholder for posts without images
 
+## Automation Flow Builder
+
+### Architecture Overview
+The automation system uses a **step-based flow** where nodes are connected via ID references:
+- **Schema source of truth**: `packages/database/convex/schemas/automations.ts`
+- **Flow builder UI**: `apps/app/components/automations/flow-builder/`
+- **Webhook handler (Lambda)**: `packages/infrastructure/src/instagram-webhook.ts`
+
+### Step Types & Connections
+Steps connect via ID references (`nextStepId`, `yesStepId`, `noStepId`). Edges are **computed on render** from step data — never stored.
+
+- **TriggerStep**: `nextStepId` → first step in chain. Has `commentReply` (only for COMMENT type).
+- **SendDmStep**: `nextStepId` → next linear step. `buttons[].nextStepId` → branch steps.
+- **ConditionStep**: `yesStepId` / `noStepId` → branching paths.
+
+### Flow Canvas (React Flow)
+- `nodesConnectable={true}` — users **manually drag edges** between node handles
+- `nodesDraggable={true}` — nodes can be repositioned on canvas
+- **"Add Send DM" button** creates a **floating unconnected node** — user wires it manually
+- **Orphan nodes** (not connected to any trigger) are positioned to the right of the main tree
+- Edges can be deleted by selecting + Backspace
+
+### Node Handles
+| Node Type | Target Handle | Source Handles |
+|-----------|--------------|----------------|
+| Trigger | none | `default` (bottom) |
+| Send DM | top | `default` (bottom) + `button_N` per branching button |
+| Condition | top | `yes` (bottom-left 30%) + `no` (bottom-right 70%) |
+
+### Instagram DM Buttons
+Buttons are sent as **postback buttons** in Instagram's Button Template (not quick replies):
+- `quick_reply` type → sent as `type: "postback"` in button template (persistent, max 3)
+- `url` type → sent as `type: "web_url"` in same template
+- Both types share the 3-button limit of the button template
+- Payloads are prefixed with `automationId:` at send time for session lookup
+
+### Comment Reply
+- Lives on the **TriggerStep** (not on SendDmStep) — only shown in UI when `triggerType === "COMMENT"`
+- Webhook reads `commentReply` from the matched trigger, not from the step result
+
+### Webhook Button Tap Flow
+1. User taps postback button → Instagram sends `postback.payload` to webhook
+2. Webhook parses payload format: `{automationId}:{buttonPayload}`
+3. Looks up active session via `getSessionForWebhook(automationId, instagramUserId)`
+4. Finds the button in the current step, follows `nextStepId` to execute next step
+5. Sends follow-up DM with prefixed payloads, updates session
+
+### Key Files
+```
+apps/app/components/automations/flow-builder/
+├── flow-builder.tsx           # Main orchestrator, handlers for connect/delete/add
+├── flow-canvas.tsx            # React Flow wrapper, onConnect/onEdgesChange
+├── flow-sidebar-panel.tsx     # Panel router (trigger/condition/send_dm panels)
+├── flow-toolbar.tsx           # Top toolbar (name, save, active toggle)
+├── hooks/use-automation-state.ts  # Zustand-like state for triggers/steps
+├── nodes/
+│   ├── trigger-node.tsx       # Trigger node with source handle
+│   ├── send-dm-node.tsx       # DM node with target + source + button handles
+│   └── condition-node.tsx     # Condition node with yes/no source handles
+├── panels/
+│   ├── trigger-panel.tsx      # Trigger config (type, posts, keywords, comment reply)
+│   ├── send-dm-panel.tsx      # DM config (message, variables, buttons)
+│   ├── condition-panel.tsx    # Condition config (operator, value)
+│   ├── button-editor.tsx      # Button list editor (quick_reply + url)
+│   └── comment-reply-editor.tsx  # Comment reply toggle + reply list
+├── trigger-wizard/            # Multi-step wizard for creating triggers
+└── utils/
+    ├── auto-layout.ts         # stepsToFlow() — computes node positions + edges
+    ├── flow-types.ts          # Re-exports from schema
+    ├── flow-validation.ts     # validateFlow() for activation checks
+    └── step-helpers.ts        # createSendDmStep, updateStep, removeStep, etc.
+```
+
 This platform is designed for scalability, maintainability, and optimal user experience across both the dashboard application and marketing website.

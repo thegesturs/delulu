@@ -1,5 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { AutomationStep, TriggerStep } from "./flow-types";
+import type { AutomationStep, SendDmStep, TriggerStep } from "./flow-types";
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 80;
@@ -13,7 +13,26 @@ interface LayoutNode {
   width: number;
   height: number;
   children: LayoutNode[];
-  branch?: "yes" | "no";
+  branch?: "yes" | "no" | string; // "yes"/"no" for conditions, "button_N" for button branches
+}
+
+/**
+ * Get branching button children from a send_dm step.
+ */
+function getButtonBranches(
+  step: SendDmStep
+): { index: number; nextStepId: string }[] {
+  if (!step.buttons) {
+    return [];
+  }
+  const branches: { index: number; nextStepId: string }[] = [];
+  for (let i = 0; i < step.buttons.length; i++) {
+    const btn = step.buttons[i];
+    if (btn.type === "quick_reply" && "nextStepId" in btn && btn.nextStepId) {
+      branches.push({ index: i, nextStepId: btn.nextStepId });
+    }
+  }
+  return branches;
 }
 
 /**
@@ -27,6 +46,7 @@ export function stepsToFlow(
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const stepMap = new Map(steps.map((s) => [s.id, s]));
+  const positionedIds = new Set<string>();
 
   // --- Trigger nodes (horizontal row at top) ---
   const triggerGroupWidth =
@@ -49,33 +69,104 @@ export function stepsToFlow(
   // --- Build step tree from first trigger's nextStepId ---
   // All triggers share the same step chain (OR logic — any trigger fires it)
   const rootStepId = triggers[0]?.nextStepId;
-  if (!rootStepId) {
-    return { nodes, edges };
+
+  if (rootStepId) {
+    // Connect all triggers to the root step
+    for (const trigger of triggers) {
+      if (trigger.nextStepId) {
+        edges.push({
+          id: `edge-${trigger.id}-${trigger.nextStepId}`,
+          source: trigger.id,
+          target: trigger.nextStepId,
+          type: "smoothstep",
+        });
+      }
+    }
+
+    // Recursively layout the step tree
+    const { layoutNodes, layoutEdges } = layoutStepTree(rootStepId, stepMap);
+
+    // Center the step tree below triggers
+    const treeWidth = getSubtreeWidth(buildLayoutTree(rootStepId, stepMap));
+    const treeOffsetX = -treeWidth / 2 + NODE_WIDTH / 2;
+
+    positionLayoutNodes(layoutNodes, treeOffsetX, STEPS_START_Y);
+
+    for (const n of layoutNodes) {
+      positionedIds.add(n.id);
+    }
+    nodes.push(...layoutNodes);
+    edges.push(...layoutEdges);
   }
 
-  // Connect all triggers to the root step
-  for (const trigger of triggers) {
-    if (trigger.nextStepId) {
-      edges.push({
-        id: `edge-${trigger.id}-${trigger.nextStepId}`,
-        source: trigger.id,
-        target: trigger.nextStepId,
-        type: "smoothstep",
+  // --- Orphan nodes (not connected to any trigger chain) ---
+  const orphanSteps = steps.filter((s) => !positionedIds.has(s.id));
+  if (orphanSteps.length > 0) {
+    const orphanStartX = 400;
+
+    for (let i = 0; i < orphanSteps.length; i++) {
+      const step = orphanSteps[i];
+      nodes.push({
+        id: step.id,
+        type: step.type,
+        position: {
+          x: orphanStartX,
+          y: STEPS_START_Y + i * (NODE_HEIGHT + VERTICAL_GAP),
+        },
+        data: { step },
       });
+      positionedIds.add(step.id);
+    }
+
+    // Draw edges between orphan nodes (and from orphans to main tree nodes)
+    for (const step of orphanSteps) {
+      if (step.type === "send_dm") {
+        if (step.nextStepId && positionedIds.has(step.nextStepId)) {
+          edges.push({
+            id: `edge-${step.id}-${step.nextStepId}`,
+            source: step.id,
+            target: step.nextStepId,
+            type: "smoothstep",
+          });
+        }
+        const btnBranches = getButtonBranches(step);
+        for (const branch of btnBranches) {
+          if (positionedIds.has(branch.nextStepId)) {
+            const btn = step.buttons![branch.index];
+            edges.push({
+              id: `edge-${step.id}-btn${branch.index}-${branch.nextStepId}`,
+              source: step.id,
+              target: branch.nextStepId,
+              sourceHandle: `button_${branch.index}`,
+              type: "smoothstep",
+              label: btn.title || `Button ${branch.index + 1}`,
+            });
+          }
+        }
+      } else if (step.type === "condition") {
+        if (step.yesStepId && positionedIds.has(step.yesStepId)) {
+          edges.push({
+            id: `edge-${step.id}-yes-${step.yesStepId}`,
+            source: step.id,
+            target: step.yesStepId,
+            sourceHandle: "yes",
+            type: "smoothstep",
+            label: "Yes",
+          });
+        }
+        if (step.noStepId && positionedIds.has(step.noStepId)) {
+          edges.push({
+            id: `edge-${step.id}-no-${step.noStepId}`,
+            source: step.id,
+            target: step.noStepId,
+            sourceHandle: "no",
+            type: "smoothstep",
+            label: "No",
+          });
+        }
+      }
     }
   }
-
-  // Recursively layout the step tree
-  const { layoutNodes, layoutEdges } = layoutStepTree(rootStepId, stepMap);
-
-  // Center the step tree below triggers
-  const treeWidth = getSubtreeWidth(buildLayoutTree(rootStepId, stepMap));
-  const treeOffsetX = -treeWidth / 2 + NODE_WIDTH / 2;
-
-  positionLayoutNodes(layoutNodes, treeOffsetX, STEPS_START_Y);
-
-  nodes.push(...layoutNodes);
-  edges.push(...layoutEdges);
 
   return { nodes, edges };
 }
@@ -117,10 +208,22 @@ function buildLayoutTree(
         node.children.push(noChild);
       }
     }
-  } else if (step.type === "send_dm" && step.nextStepId) {
-    const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
-    if (nextChild) {
-      node.children.push(nextChild);
+  } else if (step.type === "send_dm") {
+    // Linear chain via nextStepId
+    if (step.nextStepId) {
+      const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
+      if (nextChild) {
+        node.children.push(nextChild);
+      }
+    }
+    // Button branches
+    const buttonBranches = getButtonBranches(step);
+    for (const branch of buttonBranches) {
+      const btnChild = buildLayoutTree(branch.nextStepId, stepMap, visited);
+      if (btnChild) {
+        btnChild.branch = `button_${branch.index}`;
+        node.children.push(btnChild);
+      }
     }
   }
 
@@ -193,14 +296,32 @@ function layoutStepTree(
         });
         walk(step.noStepId, visited);
       }
-    } else if (step.type === "send_dm" && step.nextStepId) {
-      edges.push({
-        id: `edge-${step.id}-${step.nextStepId}`,
-        source: step.id,
-        target: step.nextStepId,
-        type: "smoothstep",
-      });
-      walk(step.nextStepId, visited);
+    } else if (step.type === "send_dm") {
+      // Linear chain
+      if (step.nextStepId) {
+        edges.push({
+          id: `edge-${step.id}-${step.nextStepId}`,
+          source: step.id,
+          target: step.nextStepId,
+          type: "smoothstep",
+        });
+        walk(step.nextStepId, visited);
+      }
+      // Button branches
+      const buttonBranches = getButtonBranches(step);
+      for (const branch of buttonBranches) {
+        const btn = step.buttons![branch.index];
+        const label = btn.title || `Button ${branch.index + 1}`;
+        edges.push({
+          id: `edge-${step.id}-btn${branch.index}-${branch.nextStepId}`,
+          source: step.id,
+          target: branch.nextStepId,
+          sourceHandle: `button_${branch.index}`,
+          type: "smoothstep",
+          label,
+        });
+        walk(branch.nextStepId, visited);
+      }
     }
   }
 
@@ -214,13 +335,6 @@ function layoutStepTree(
  */
 function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
-  // Build parent→children relationships from edges
-  // We need to recompute the tree for positioning
-  // For simplicity, do a topological sort based on the nodes array order
-  // and position them in a simple vertical chain or branching layout
-
-  const _y = startY;
   const positioned = new Set<string>();
 
   function positionNode(nodeId: string, x: number, currentY: number): number {
@@ -243,7 +357,6 @@ function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
       const hasNo = step.noStepId && nodeMap.has(step.noStepId);
 
       if (hasYes && hasNo) {
-        // Two branches: offset left and right
         const offset = (NODE_WIDTH + HORIZONTAL_GAP) / 2;
         const afterYes = positionNode(step.yesStepId!, x - offset, nextY);
         const afterNo = positionNode(step.noStepId!, x + offset, nextY);
@@ -258,22 +371,45 @@ function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
       return nextY;
     }
 
-    if (
-      step.type === "send_dm" &&
-      step.nextStepId &&
-      nodeMap.has(step.nextStepId)
-    ) {
-      return positionNode(
-        step.nextStepId,
-        x,
-        currentY + NODE_HEIGHT + VERTICAL_GAP
-      );
+    if (step.type === "send_dm") {
+      const nextY = currentY + NODE_HEIGHT + VERTICAL_GAP;
+      const buttonBranches = getButtonBranches(step);
+      const allChildren: string[] = [];
+
+      if (step.nextStepId && nodeMap.has(step.nextStepId)) {
+        allChildren.push(step.nextStepId);
+      }
+      for (const branch of buttonBranches) {
+        if (nodeMap.has(branch.nextStepId)) {
+          allChildren.push(branch.nextStepId);
+        }
+      }
+
+      if (allChildren.length === 0) {
+        return nextY;
+      }
+
+      if (allChildren.length === 1) {
+        return positionNode(allChildren[0], x, nextY);
+      }
+
+      // Multiple children: spread horizontally
+      const totalWidth =
+        allChildren.length * NODE_WIDTH +
+        (allChildren.length - 1) * HORIZONTAL_GAP;
+      const childStartX = x - totalWidth / 2 + NODE_WIDTH / 2;
+      let maxY = nextY;
+      for (let i = 0; i < allChildren.length; i++) {
+        const childX = childStartX + i * (NODE_WIDTH + HORIZONTAL_GAP);
+        const afterChild = positionNode(allChildren[i], childX, nextY);
+        maxY = Math.max(maxY, afterChild);
+      }
+      return maxY;
     }
 
     return currentY + NODE_HEIGHT + VERTICAL_GAP;
   }
 
-  // Find root step (first node that isn't a child of another node)
   if (nodes.length > 0) {
     positionNode(nodes[0].id, startX, startY);
   }

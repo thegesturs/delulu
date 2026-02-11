@@ -42,7 +42,7 @@ export function FlowToolbar({
           onChange={(e) =>
             onMetaChange({ ...automationMeta, name: e.target.value })
           }
-          placeholder="Automation name..."
+          placeholder="Untitled automation"
           value={automationMeta.name}
         />
       </div>

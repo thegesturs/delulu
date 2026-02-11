@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import {
   automationCreateSchema,
   automationSchema,
+  automationSessionSchema,
   automationStepSchema,
   automationUpdateSchema,
   DM_PLAN_LIMITS,
@@ -370,5 +371,219 @@ export const toggleAutomation = mutation({
     });
 
     return !automation.isActive;
+  },
+});
+
+// ============================================================================
+// Session Functions (called by Lambda for multi-turn conversations)
+// ============================================================================
+
+/**
+ * Get active session for a given automation + Instagram user (called by Lambda)
+ */
+export const getSessionForWebhook = query({
+  args: {
+    webhookSecret: v.string(),
+    automationId: v.id("automations"),
+    instagramUserId: v.string(),
+  },
+  returns: v.union(automationSessionSchema, v.null()),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      return null;
+    }
+
+    const session = await ctx.db
+      .query("automationSessions")
+      .withIndex("by_instagram_user", (q) =>
+        q
+          .eq("automationId", args.automationId)
+          .eq("instagramUserId", args.instagramUserId)
+          .eq("status", "active")
+      )
+      .first();
+
+    return session;
+  },
+});
+
+/**
+ * Create a new automation session (called by Lambda)
+ */
+export const createSession = mutation({
+  args: {
+    webhookSecret: v.string(),
+    automationId: v.id("automations"),
+    userId: v.id("users"),
+    instagramUserId: v.string(),
+    instagramUsername: v.optional(v.string()),
+    currentStepId: v.string(),
+    triggerCommentId: v.optional(v.string()),
+    triggerMediaId: v.optional(v.string()),
+    variables: v.optional(v.any()),
+  },
+  returns: v.id("automationSessions"),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      throw new Error("Unauthorized");
+    }
+
+    const now = getCurrentTimestamp();
+
+    // Expire any existing active sessions for this user + automation
+    const existingSessions = await ctx.db
+      .query("automationSessions")
+      .withIndex("by_instagram_user", (q) =>
+        q
+          .eq("automationId", args.automationId)
+          .eq("instagramUserId", args.instagramUserId)
+          .eq("status", "active")
+      )
+      .collect();
+
+    for (const session of existingSessions) {
+      await ctx.db.patch(session._id, {
+        status: "expired",
+        lastActivityAt: now,
+      });
+    }
+
+    return await ctx.db.insert("automationSessions", {
+      automationId: args.automationId,
+      userId: args.userId,
+      instagramUserId: args.instagramUserId,
+      instagramUsername: args.instagramUsername,
+      currentStepId: args.currentStepId,
+      triggerCommentId: args.triggerCommentId,
+      triggerMediaId: args.triggerMediaId,
+      status: "active",
+      variables: args.variables,
+      lastActivityAt: now,
+      createdAt: now,
+    });
+  },
+});
+
+/**
+ * Update an existing session (advance step or mark completed) (called by Lambda)
+ */
+export const updateSession = mutation({
+  args: {
+    webhookSecret: v.string(),
+    sessionId: v.id("automationSessions"),
+    currentStepId: v.optional(v.string()),
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("completed"), v.literal("expired"))
+    ),
+    variables: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      throw new Error("Unauthorized");
+    }
+
+    const now = getCurrentTimestamp();
+    const patch: Record<string, unknown> = { lastActivityAt: now };
+
+    if (args.currentStepId !== undefined) {
+      patch.currentStepId = args.currentStepId;
+    }
+    if (args.status !== undefined) {
+      patch.status = args.status;
+    }
+    if (args.variables !== undefined) {
+      patch.variables = args.variables;
+    }
+
+    await ctx.db.patch(args.sessionId, patch);
+    return null;
+  },
+});
+
+/**
+ * Upsert a contact (store/update email and collected data) (called by Lambda)
+ */
+export const upsertContact = mutation({
+  args: {
+    webhookSecret: v.string(),
+    userId: v.id("users"),
+    socialProviderId: v.id("socialProviders"),
+    instagramUserId: v.string(),
+    instagramUsername: v.optional(v.string()),
+    email: v.optional(v.string()),
+    collectedData: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      throw new Error("Unauthorized");
+    }
+
+    const now = getCurrentTimestamp();
+
+    const existing = await ctx.db
+      .query("automationContacts")
+      .withIndex("by_instagram_user", (q) =>
+        q
+          .eq("socialProviderId", args.socialProviderId)
+          .eq("instagramUserId", args.instagramUserId)
+      )
+      .first();
+
+    if (existing) {
+      const patch: Record<string, unknown> = { updatedAt: now };
+      if (args.instagramUsername) {
+        patch.instagramUsername = args.instagramUsername;
+      }
+      if (args.email) {
+        patch.email = args.email;
+      }
+      if (args.collectedData) {
+        patch.collectedData = args.collectedData;
+      }
+      await ctx.db.patch(existing._id, patch);
+    } else {
+      await ctx.db.insert("automationContacts", {
+        userId: args.userId,
+        socialProviderId: args.socialProviderId,
+        instagramUserId: args.instagramUserId,
+        instagramUsername: args.instagramUsername,
+        email: args.email,
+        collectedData: args.collectedData,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return null;
+  },
+});
+
+/**
+ * Check if a contact has email stored (called by Lambda for has_email condition)
+ */
+export const checkContactHasEmail = query({
+  args: {
+    webhookSecret: v.string(),
+    socialProviderId: v.id("socialProviders"),
+    instagramUserId: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      return false;
+    }
+
+    const contact = await ctx.db
+      .query("automationContacts")
+      .withIndex("by_instagram_user", (q) =>
+        q
+          .eq("socialProviderId", args.socialProviderId)
+          .eq("instagramUserId", args.instagramUserId)
+      )
+      .first();
+
+    return !!contact?.email;
   },
 });
