@@ -284,6 +284,8 @@ export const createAutomation = mutation({
       isActive: args.isActive ?? true,
       triggers: args.triggers,
       steps: args.steps,
+      notes: args.notes,
+      nodePositions: args.nodePositions,
       totalTriggered: 0,
       totalDMsSent: 0,
       totalFailed: 0,

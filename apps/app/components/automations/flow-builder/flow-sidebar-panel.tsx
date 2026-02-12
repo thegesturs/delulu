@@ -8,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@delulu/design-system/components/ui/sheet";
+import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
 import { ConditionPanel } from "./panels/condition-panel";
@@ -16,6 +17,7 @@ import { TriggerPanel } from "./panels/trigger-panel";
 import type {
   AutomationStep,
   ConditionStep,
+  Note,
   SendDmStep,
   TriggerStep,
 } from "./utils/flow-types";
@@ -31,6 +33,7 @@ interface FlowSidebarPanelProps {
   selectedId: string | null;
   triggers: TriggerStep[];
   steps: AutomationStep[];
+  notes: Note[];
   socialProviderId: string;
   instagramProviders: SocialProvider[];
   isFreePlan?: boolean;
@@ -39,6 +42,8 @@ interface FlowSidebarPanelProps {
   onUpdateTrigger: (id: string, trigger: TriggerStep) => void;
   onUpdateStep: (id: string, step: Partial<AutomationStep>) => void;
   onDeleteStep: (id: string) => void;
+  onUpdateNote?: (id: string, patch: Partial<Note>) => void;
+  onDeleteNote?: (id: string) => void;
   onCreateStepForButton?: (
     stepId: string,
     buttonIndex: number,
@@ -51,6 +56,7 @@ export function FlowSidebarPanel({
   selectedId,
   triggers,
   steps,
+  notes,
   socialProviderId,
   instagramProviders,
   isFreePlan,
@@ -59,6 +65,8 @@ export function FlowSidebarPanel({
   onUpdateTrigger,
   onUpdateStep,
   onDeleteStep,
+  onUpdateNote,
+  onDeleteNote,
   onCreateStepForButton,
   onRemoveStepForButton,
 }: FlowSidebarPanelProps) {
@@ -84,6 +92,49 @@ export function FlowSidebarPanel({
                 socialProviderId={socialProviderId}
                 trigger={trigger}
               />
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // Check if it's a note
+  const note = notes.find((n) => n.id === selectedId);
+  if (note) {
+    return (
+      <Sheet onOpenChange={(o) => !o && onClose()} open>
+        <SheetContent className="w-[400px] p-0 sm:max-w-[400px]">
+          <SheetHeader className="border-border border-b px-6 py-4">
+            <div className="flex items-center justify-between">
+              <SheetTitle>Note</SheetTitle>
+              <Button
+                className="text-destructive hover:text-destructive"
+                onClick={() => onDeleteNote?.(note.id)}
+                size="sm"
+                variant="ghost"
+              >
+                <Icon className="mr-1" icon={Delete02Icon} size={14} />
+                Delete
+              </Button>
+            </div>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-73px)]">
+            <div className="px-6 py-5">
+              <div className="space-y-2">
+                <label className="font-medium text-sm" htmlFor="note-content">
+                  Content
+                </label>
+                <Textarea
+                  id="note-content"
+                  onChange={(e) =>
+                    onUpdateNote?.(note.id, { content: e.target.value })
+                  }
+                  placeholder="Write a note to explain this part of your flow..."
+                  rows={6}
+                  value={note.content}
+                />
+              </div>
             </div>
           </ScrollArea>
         </SheetContent>

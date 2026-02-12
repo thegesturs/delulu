@@ -131,6 +131,15 @@ export const automationStepSchema = v.union(
 
 export type AutomationStep = Infer<typeof automationStepSchema>;
 
+// Note (canvas annotation, no flow logic)
+export const noteSchema = v.object({
+  id: v.string(),
+  content: v.string(),
+  position: v.object({ x: v.number(), y: v.number() }),
+});
+
+export type Note = Infer<typeof noteSchema>;
+
 // ============================================================================
 // AUTOMATION SCHEMAS
 // ============================================================================
@@ -147,6 +156,10 @@ export const baseAutomationSchema = v.object({
   // Step-based flow
   triggers: v.array(triggerStepSchema),
   steps: v.array(automationStepSchema),
+
+  // Canvas annotations and layout
+  notes: v.optional(v.array(noteSchema)),
+  nodePositions: v.optional(v.any()), // Record<string, {x,y}> — stored as JSON blob
 
   // Stats (denormalized for quick access)
   totalTriggered: v.number(),
@@ -175,6 +188,8 @@ export const automationCreateSchema = v.object({
   isActive: v.optional(v.boolean()),
   triggers: v.array(triggerStepSchema),
   steps: v.array(automationStepSchema),
+  notes: v.optional(v.array(noteSchema)),
+  nodePositions: v.optional(v.any()),
 });
 
 // Automation update schema (partial)
@@ -184,6 +199,8 @@ export const automationUpdateSchema = v.object({
   isActive: v.optional(v.boolean()),
   triggers: v.optional(v.array(triggerStepSchema)),
   steps: v.optional(v.array(automationStepSchema)),
+  notes: v.optional(v.array(noteSchema)),
+  nodePositions: v.optional(v.any()),
 });
 
 // ============================================================================

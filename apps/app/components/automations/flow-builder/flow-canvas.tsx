@@ -18,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConditionNode } from "./nodes/condition-node";
+import { NoteNode } from "./nodes/note-node";
 import { SendDmNode } from "./nodes/send-dm-node";
 import { TriggerNode } from "./nodes/trigger-node";
 
@@ -25,6 +26,7 @@ const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   condition: ConditionNode,
   send_dm: SendDmNode,
+  note: NoteNode,
 };
 
 interface FlowCanvasProps {
@@ -33,6 +35,7 @@ interface FlowCanvasProps {
   onNodeClick: (nodeId: string) => void;
   onConnect: (connection: Connection) => void;
   onEdgeDelete: (edge: Edge) => void;
+  onNodeDragStop?: (nodeId: string, position: { x: number; y: number }) => void;
 }
 
 export function FlowCanvas({
@@ -41,6 +44,7 @@ export function FlowCanvas({
   onNodeClick,
   onConnect,
   onEdgeDelete,
+  onNodeDragStop,
 }: FlowCanvasProps) {
   const [nodes, setNodes] = useState<Node[]>(propNodes);
   const [edges, setEdges] = useState<Edge[]>(propEdges);
@@ -75,6 +79,13 @@ export function FlowCanvas({
     [onEdgeDelete]
   );
 
+  const handleNodeDragStop = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      onNodeDragStop?.(node.id, node.position);
+    },
+    [onNodeDragStop]
+  );
+
   return (
     <ReactFlow
       edges={edges}
@@ -90,6 +101,7 @@ export function FlowCanvas({
       onConnect={onConnect}
       onEdgesChange={onEdgesChange}
       onNodeClick={(_, node) => onNodeClick(node.id)}
+      onNodeDragStop={handleNodeDragStop}
       onNodesChange={onNodesChange}
       proOptions={{ hideAttribution: true }}
     >

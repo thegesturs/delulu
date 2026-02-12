@@ -34,6 +34,8 @@ interface TriggerWizardProps {
   instagramProviders: SocialProvider[];
   /** If set, skip account step (editing existing automation) */
   currentSocialProviderId?: string;
+  /** Pre-select trigger type (from template) */
+  defaultTriggerType?: AutomationTriggerType;
 }
 
 type WizardStep = "account" | "trigger_type" | "posts" | "keyword_filter";
@@ -44,6 +46,7 @@ export function TriggerWizard({
   onComplete,
   instagramProviders,
   currentSocialProviderId,
+  defaultTriggerType,
 }: TriggerWizardProps) {
   const skipAccount = !!currentSocialProviderId;
   const initialStep: WizardStep = skipAccount ? "trigger_type" : "account";
@@ -53,7 +56,7 @@ export function TriggerWizard({
     currentSocialProviderId || null
   );
   const [selectedTriggerType, setSelectedTriggerType] =
-    useState<AutomationTriggerType | null>(null);
+    useState<AutomationTriggerType | null>(defaultTriggerType ?? null);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
   const [keywordFilter, setKeywordFilter] = useState<KeywordFilter | undefined>(
     undefined
