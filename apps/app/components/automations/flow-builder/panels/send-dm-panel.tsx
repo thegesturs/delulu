@@ -117,7 +117,7 @@ export function SendDmPanel({
                         <div className="mt-2 grid grid-cols-1 gap-1">
                           {allButtons.map((btn, i) => (
                             <span
-                              className="flex items-center justify-center rounded-md border-neutral-200 bg-zinc-200 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-800"
+                              className="flex items-center justify-center rounded-md border-neutral-200 bg-zinc-200 px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-600"
                               key={`btn-${btn.title}-${i}`}
                             >
                               {btn.title || "Button"}
