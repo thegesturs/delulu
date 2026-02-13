@@ -123,6 +123,10 @@ export function ConnectAccountsStep() {
         <p className="text-lg text-muted-foreground tracking-tight">
           Connect at least one account to start posting
         </p>
+        <p className="text-muted-foreground text-sm">
+          All connections use official platform APIs — your passwords never
+          touch our servers.
+        </p>
         <div className="flex items-center justify-center gap-3">
           <div className="inline-flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1 font-medium text-muted-foreground text-sm backdrop-blur-sm">
             {isRefreshing && (

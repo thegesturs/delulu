@@ -148,7 +148,7 @@ export function ConnectedAccountsHeader() {
               <DialogDescription>
                 {isAtLimit
                   ? `You've reached your ${limitCheck?.planType} plan limit of ${limitCheck?.limit} social accounts`
-                  : "Choose a social media platform to connect with your account"}
+                  : "All connections use official platform APIs. Your passwords never touch our servers."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 gap-4 py-4">
