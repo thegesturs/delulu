@@ -22,6 +22,7 @@ import { useState } from "react";
 import { FaBookmark } from "react-icons/fa";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { toast } from "sonner";
+import { AutomationQuickAccess } from "@/components/automations/automation-quick-access";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
 import {
@@ -280,6 +281,10 @@ export function BasicSettings() {
 
       <CardContent className="pt-4">
         <SocialSelector />
+      </CardContent>
+
+      <CardContent className="pt-4">
+        <AutomationQuickAccess />
       </CardContent>
 
       {/* Advanced Settings Accordion for each TikTok provider */}

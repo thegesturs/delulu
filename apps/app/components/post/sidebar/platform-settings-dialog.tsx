@@ -8,6 +8,7 @@ import {
 } from "@delulu/design-system/components/ui/dialog";
 import type { SocialType } from "@delulu/validators/post";
 import { usePost } from "@/store/post";
+import { InstagramSettingsDisplay } from "./instagram-settings";
 import { TikTokSettingsDisplay } from "./tiktok-settings";
 
 interface PlatformSettingsDialogProps {
@@ -35,6 +36,10 @@ export function PlatformSettingsDialog({
       case "TIKTOK":
         return (
           <TikTokSettingsDisplay hasVideo={hasVideo} providerId={socialId} />
+        );
+      case "INSTAGRAM":
+        return (
+          <InstagramSettingsDisplay hasVideo={hasVideo} providerId={socialId} />
         );
       default:
         return (

@@ -90,7 +90,8 @@ export const triggerStepSchema = v.object({
   id: v.string(),
   type: v.literal("trigger"),
   triggerType: automationTriggerTypeSchema,
-  targetPostIds: v.array(v.string()),
+  targetPostIds: v.array(v.string()), // Instagram media IDs (for webhook matching)
+  pendingPostIds: v.optional(v.array(v.string())), // Convex post _ids (waiting to be published)
   keywordFilter: v.optional(keywordFilterSchema),
   commentReply: v.optional(commentReplySchema),
   nextStepId: v.optional(v.string()),

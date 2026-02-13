@@ -1,16 +1,21 @@
 "use client";
 
+import { api as convexApi } from "@delulu/database/convex/_generated/api";
+import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Checkbox } from "@delulu/design-system/components/ui/checkbox";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Skeleton } from "@delulu/design-system/components/ui/skeleton";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
+  Calendar03Icon,
   CheckmarkSquare02Icon,
   GridIcon,
   Image02Icon,
   Video02Icon,
 } from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex/react";
 import { api } from "@/trpc/react";
 
 interface PostSelectorProps {
@@ -46,11 +51,27 @@ export function PostSelector({
     { enabled: !!socialProviderId && isStoryMode }
   );
 
+  // Fetch scheduled posts from Convex
+  const scheduledPosts = useQuery(
+    convexApi.posts.getScheduledPostsByProvider,
+    socialProviderId && !isStoryMode
+      ? { socialProviderId: socialProviderId as Id<"socialProviders"> }
+      : "skip"
+  );
+
   const items = isStoryMode ? stories : posts;
   const isLoading = isStoryMode ? storiesLoading : postsLoading;
   const error = isStoryMode ? storiesError : postsError;
   const itemLabel = isStoryMode ? "Stories" : "Posts";
   const itemLabelLower = isStoryMode ? "stories" : "posts";
+
+  // Count selected items (excluding pending: prefix for display)
+  const selectedCount = selectedPostIds.filter(
+    (id) => !id.startsWith("pending:")
+  ).length;
+  const selectedScheduledCount = selectedPostIds.filter((id) =>
+    id.startsWith("pending:")
+  ).length;
 
   const allPostsSelected = selectedPostIds.length === 0;
 
@@ -107,7 +128,10 @@ export function PostSelector({
     );
   }
 
-  if (!items || items.length === 0) {
+  const hasScheduledPosts =
+    !isStoryMode && scheduledPosts && scheduledPosts.length > 0;
+
+  if ((!items || items.length === 0) && !hasScheduledPosts) {
     return (
       <div className="rounded-lg border border-border border-dashed p-6 text-center">
         <p className="text-muted-foreground text-sm">
@@ -159,7 +183,7 @@ export function PostSelector({
 
       {/* Posts/Stories Grid */}
       <div className="grid grid-cols-3 gap-3">
-        {items.map((post) => {
+        {(items ?? []).map((post) => {
           const isSelected = selectedPostIds.includes(post.id);
           const MediaIcon =
             post.mediaType === "VIDEO"
@@ -253,18 +277,128 @@ export function PostSelector({
         })}
       </div>
 
+      {/* Scheduled Posts Section */}
+      {hasScheduledPosts && (
+        <>
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-muted-foreground text-xs">
+              scheduled posts
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {scheduledPosts.map((post) => {
+              const pendingId = `pending:${post._id}`;
+              const isSelected = selectedPostIds.includes(pendingId);
+
+              return (
+                <button
+                  className={cn(
+                    "group relative aspect-square overflow-hidden rounded-lg border transition-all",
+                    isSelected
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "border-border hover:border-muted-foreground/50"
+                  )}
+                  key={post._id}
+                  onClick={() => handlePostToggle(pendingId, !isSelected)}
+                  type="button"
+                >
+                  {/* Thumbnail */}
+                  {post.thumbnailUrl ? (
+                    <img
+                      alt={post.caption || "Scheduled post"}
+                      className="h-full w-full object-cover"
+                      src={post.thumbnailUrl}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-muted">
+                      <Icon
+                        className="text-muted-foreground"
+                        icon={Image02Icon}
+                        size={24}
+                      />
+                    </div>
+                  )}
+
+                  {/* Scheduled Badge */}
+                  <div className="absolute top-2 right-2">
+                    <Badge className="gap-1 text-[10px]" variant="secondary">
+                      <Icon icon={Calendar03Icon} size={10} />
+                      Scheduled
+                    </Badge>
+                  </div>
+
+                  {/* Selection Overlay */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 flex items-center justify-center transition-opacity",
+                      isSelected
+                        ? "bg-primary/20 opacity-100"
+                        : "bg-black/0 opacity-0 group-hover:bg-black/10 group-hover:opacity-100"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-white bg-black/30"
+                      )}
+                    >
+                      {isSelected && (
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M5 13l4 4L19 7"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Caption + Scheduled Date on Hover */}
+                  <div className="absolute right-0 bottom-0 left-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    {post.caption && (
+                      <p className="line-clamp-1 text-white text-xs">
+                        {post.caption}
+                      </p>
+                    )}
+                    {post.scheduledAt && (
+                      <p className="text-[10px] text-white/70">
+                        {new Date(post.scheduledAt).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* Selection Summary */}
       {!allPostsSelected && selectedPostIds.length > 0 && (
         <p className="text-center text-muted-foreground text-sm">
-          {selectedPostIds.length} {isStoryMode ? "stor" : "post"}
-          {selectedPostIds.length !== 1
-            ? isStoryMode
-              ? "ies"
-              : "s"
-            : isStoryMode
-              ? "y"
-              : ""}{" "}
-          selected
+          {selectedPostIds.length} item
+          {selectedPostIds.length !== 1 ? "s" : ""} selected
+          {selectedScheduledCount > 0 &&
+            ` (${selectedScheduledCount} scheduled)`}
         </p>
       )}
     </div>

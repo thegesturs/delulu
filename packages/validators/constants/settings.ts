@@ -44,12 +44,15 @@ export const DEFAULT_YOUTUBE_SETTINGS: YouTubeSettings = {
 /**
  * Default settings for Instagram platform
  * - Share to feed enabled
- * - Story and Reels disabled by default
+ * - Story disabled by default
+ * - Trial reels disabled by default
+ * - Graduation strategy defaults to MANUAL
  */
 export const DEFAULT_INSTAGRAM_SETTINGS: InstagramSettings = {
   shareToFeed: true,
   shareToStory: false,
-  shareToReels: false,
+  trialReels: false,
+  graduationStrategy: "MANUAL",
 };
 
 /**

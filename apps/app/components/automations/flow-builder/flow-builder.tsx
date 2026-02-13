@@ -154,7 +154,15 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
       socialProviderId: automation.socialProviderId,
     });
 
-    setTriggers(automation.triggers);
+    // Recombine pendingPostIds into targetPostIds with pending: prefix for UI
+    const loadedTriggers = automation.triggers.map((trigger) => ({
+      ...trigger,
+      targetPostIds: [
+        ...trigger.targetPostIds,
+        ...(trigger.pendingPostIds ?? []).map((id: string) => `pending:${id}`),
+      ],
+    }));
+    setTriggers(loadedTriggers);
     setSteps(automation.steps);
     setNotes(((automation as Record<string, unknown>).notes as Note[]) ?? []);
     setNodePositions(
@@ -162,7 +170,7 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
         .nodePositions as NodePositions) ?? {}
     );
     resetDirty(
-      automation.triggers,
+      loadedTriggers,
       automation.steps,
       ((automation as Record<string, unknown>).notes as Note[]) ?? [],
       ((automation as Record<string, unknown>)
@@ -409,6 +417,27 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
       name = `${typeLabel}${keywordPart} → DM`;
     }
 
+    // Split pending: prefixed IDs from real targetPostIds
+    const processedTriggers = triggers.map((trigger) => {
+      const pendingIds: string[] = [];
+      const realIds: string[] = [];
+      for (const id of trigger.targetPostIds) {
+        if (id.startsWith("pending:")) {
+          pendingIds.push(id.slice("pending:".length));
+        } else {
+          realIds.push(id);
+        }
+      }
+      return {
+        ...trigger,
+        targetPostIds: realIds,
+        pendingPostIds:
+          pendingIds.length > 0
+            ? pendingIds
+            : (trigger.pendingPostIds ?? undefined),
+      };
+    });
+
     setIsSaving(true);
     try {
       if (isNew) {
@@ -418,7 +447,7 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
           socialProviderId:
             automationMeta.socialProviderId as Id<"socialProviders">,
           isActive: automationMeta.isActive,
-          triggers,
+          triggers: processedTriggers,
           steps,
           notes: notes.length > 0 ? notes : undefined,
           nodePositions:
@@ -432,7 +461,7 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
           name,
           description: automationMeta.description.trim() || undefined,
           isActive: automationMeta.isActive,
-          triggers,
+          triggers: processedTriggers,
           steps,
           notes: notes.length > 0 ? notes : undefined,
           nodePositions:

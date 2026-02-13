@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import {
   automationCreateSchema,
   automationSchema,
@@ -373,6 +373,65 @@ export const toggleAutomation = mutation({
     });
 
     return !automation.isActive;
+  },
+});
+
+/**
+ * Link a published post's Instagram media ID to automations that were waiting for it.
+ * Called internally after a scheduled post is successfully published.
+ */
+export const linkPublishedPost = internalMutation({
+  args: {
+    convexPostId: v.id("posts"),
+    instagramMediaId: v.string(),
+    socialProviderId: v.id("socialProviders"),
+  },
+  handler: async (ctx, args) => {
+    // Find all active automations for this social provider
+    const automations = await ctx.db
+      .query("automations")
+      .withIndex("by_social_provider_active", (q) =>
+        q.eq("socialProviderId", args.socialProviderId).eq("isActive", true)
+      )
+      .collect();
+
+    // Also check inactive automations that might have pending post IDs
+    const inactiveAutomations = await ctx.db
+      .query("automations")
+      .withIndex("by_social_provider_id", (q) =>
+        q.eq("socialProviderId", args.socialProviderId)
+      )
+      .collect();
+
+    const allAutomations = [
+      ...automations,
+      ...inactiveAutomations.filter(
+        (a) => !automations.some((active) => active._id === a._id)
+      ),
+    ];
+
+    for (const automation of allAutomations) {
+      let updated = false;
+      const newTriggers = automation.triggers.map((trigger) => {
+        const pendingIds = trigger.pendingPostIds || [];
+        if (pendingIds.includes(args.convexPostId)) {
+          updated = true;
+          return {
+            ...trigger,
+            targetPostIds: [...trigger.targetPostIds, args.instagramMediaId],
+            pendingPostIds: pendingIds.filter((id) => id !== args.convexPostId),
+          };
+        }
+        return trigger;
+      });
+
+      if (updated) {
+        await ctx.db.patch(automation._id, {
+          triggers: newTriggers,
+          updatedAt: getCurrentTimestamp(),
+        });
+      }
+    }
   },
 });
 
