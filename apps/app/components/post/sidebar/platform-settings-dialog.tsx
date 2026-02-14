@@ -52,11 +52,13 @@ export function PlatformSettingsDialog({
 
   return (
     <Dialog onOpenChange={onClose} open={isOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{platformName} Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">{renderSettings()}</div>
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+          {renderSettings()}
+        </div>
       </DialogContent>
     </Dialog>
   );

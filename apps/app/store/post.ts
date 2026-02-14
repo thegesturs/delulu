@@ -11,6 +11,25 @@ import { promotionContentTypes } from "@delulu/validators/post";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
+import type { NodePositions } from "@/components/automations/flow-builder/hooks/use-automation-state";
+import type {
+  AutomationStep,
+  Note,
+  TriggerStep,
+} from "@/components/automations/flow-builder/utils/flow-types";
+
+export interface InlineAutomationConfig {
+  templateSlug: string;
+  socialProviderId: string;
+  name: string;
+  triggers: TriggerStep[];
+  steps: AutomationStep[];
+  notes: Note[];
+  nodePositions: NodePositions;
+  isActive: boolean;
+  /** Set when editing an existing automation — triggers update instead of create */
+  existingAutomationId?: string;
+}
 
 // Define the store's state types
 interface PostState {
@@ -25,6 +44,8 @@ interface PostState {
   providerSettings: Record<string, ProviderSetting>;
   // Media upload state
   isMediaUploading: boolean;
+  // Inline automation configs (keyed by socialProviderId)
+  automationConfigs: Record<string, InlineAutomationConfig>;
 }
 
 // Define the store's actions
@@ -40,6 +61,10 @@ interface PostActions {
   setProviderSettings: (providerId: string, setting: ProviderSetting) => void;
   getProviderSettings: (providerId: string) => ProviderSetting | undefined;
   setIsMediaUploading: (isUploading: boolean) => void;
+  setAutomationConfig: (
+    providerId: string,
+    config: InlineAutomationConfig | null
+  ) => void;
   loadPost: (postData: GetPostByIdSchema) => void;
   cleanupDeletedProviders: (validProviderIds: string[]) => void;
   reset: () => void;
@@ -72,6 +97,8 @@ const initialState: PostState = {
   providerSettings: {},
   // Media upload state defaults
   isMediaUploading: false,
+  // Inline automation configs
+  automationConfigs: {},
 };
 
 // Create the store with SSR support and persistence
@@ -125,6 +152,19 @@ export const useStore = create<PostState & PostActions>()(
         },
         setIsMediaUploading: (isUploading) =>
           set({ isMediaUploading: isUploading }),
+        setAutomationConfig: (providerId, config) =>
+          set((state) => {
+            if (config === null) {
+              const { [providerId]: _, ...rest } = state.automationConfigs;
+              return { automationConfigs: rest };
+            }
+            return {
+              automationConfigs: {
+                ...state.automationConfigs,
+                [providerId]: config,
+              },
+            };
+          }),
         loadPost: (postData) => {
           // Map Convex post data to store format
           const mappedPost: FullPostType = {
@@ -251,6 +291,8 @@ export const useDateTime = () => useStore(useShallow(dateTimeSelector));
 export const useSelectedSocialProviders = () =>
   useStore(useShallow(selectedProvidersSelector));
 export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
+export const useAutomationConfig = (providerId: string) =>
+  useStore((state) => state.automationConfigs[providerId] ?? null);
 // Stable function that gets state directly without React hooks
 export const getProviderSettingsForConvex = () => {
   const state = useStore.getState();
