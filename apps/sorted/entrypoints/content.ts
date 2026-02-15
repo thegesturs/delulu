@@ -203,12 +203,15 @@ export default defineContentScript({
     /**
      * Wait for reels to appear in the DOM, then create the sort panel.
      * Uses MutationObserver instead of fragile setTimeout retries.
+     * Keeps observing until createSortPanel() actually succeeds (panel injected).
      */
     function waitForReelsAndCreatePanel() {
       // Try immediately first
       if (findReelsContainer()) {
         createSortPanel();
-        return;
+        if (panelContainer) {
+          return;
+        }
       }
 
       // Disconnect any existing observer
@@ -217,12 +220,18 @@ export default defineContentScript({
         reelsObserver = null;
       }
 
-      // Watch for reel links to appear in the DOM
+      // Watch for reel links to appear AND the grid container to be ready
       reelsObserver = new MutationObserver(() => {
-        if (document.querySelector('a[href*="/reel/"]')) {
+        if (!document.querySelector('a[href*="/reel/"]')) {
+          return;
+        }
+
+        // Reel links exist — try to create the panel.
+        // Only disconnect if the panel was actually injected.
+        createSortPanel();
+        if (panelContainer) {
           reelsObserver?.disconnect();
           reelsObserver = null;
-          createSortPanel();
         }
       });
 
