@@ -2,7 +2,7 @@
   "name": "@delulu/sorted",
   "description": "Instagram Reel Sorter - Sort reels by engagement metrics",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
