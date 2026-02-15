@@ -26,6 +26,30 @@ interface InstagramUserResponse {
   profile_picture_url: string;
 }
 
+async function subscribeToWebhooks(
+  profileId: string,
+  accessToken: string
+): Promise<void> {
+  try {
+    const response = await fetchWithTimeout(
+      `https://graph.instagram.com/v24.0/${profileId}/subscribed_apps?subscribed_fields=comments,messages&access_token=${accessToken}`,
+      { method: "POST" }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn(
+        `[instagram] Failed to subscribe webhooks for ${profileId}: ${response.status} ${text}`
+      );
+      return;
+    }
+
+    console.log(`[instagram] Subscribed to webhooks for ${profileId}`);
+  } catch (error) {
+    console.warn("[instagram] Error subscribing to webhooks:", error);
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { userId, getToken } = await auth();
@@ -176,6 +200,12 @@ export async function GET(request: NextRequest) {
         isActive: true,
       },
       { token }
+    );
+
+    // Subscribe to webhook fields (non-blocking — don't fail the callback)
+    await subscribeToWebhooks(
+      userObject.user_id,
+      longLivedTokenData.access_token
     );
 
     // Handle different response statuses

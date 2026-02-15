@@ -91,6 +91,7 @@ export default defineSchema({
   automationSessions: defineTable(baseAutomationSessionSchema.fields)
     .index("by_automation_id", ["automationId"])
     .index("by_instagram_user", ["automationId", "instagramUserId", "status"])
+    .index("by_ig_user_status", ["instagramUserId", "status"])
     .index("by_status", ["status", "lastActivityAt"]),
 
   // Automation contacts for collected user data (email, etc.)

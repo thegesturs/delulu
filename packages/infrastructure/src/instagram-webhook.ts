@@ -72,6 +72,7 @@ interface MessageEvent {
   messageId: string;
   text?: string;
   quickReplyPayload?: string;
+  isPlainText?: boolean;
   instagramAccountId: string;
 }
 
@@ -232,6 +233,8 @@ interface FlowResult {
   buttons?: DmButton[];
   /** The send_dm step ID that produced this result (for session tracking) */
   stepId: string;
+  /** Condition steps that evaluated false (for session creation — e.g. email collection) */
+  failedConditions?: Array<{ stepId: string; operator: string }>;
 }
 
 /**
@@ -254,6 +257,7 @@ async function executeStepFlowFromStep(
   const stepMap = new Map(steps.map((s) => [s.id, s]));
   let currentId: string | undefined = startStepId;
   const visited = new Set<string>();
+  const failedConditions: Array<{ stepId: string; operator: string }> = [];
 
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
@@ -267,6 +271,7 @@ async function executeStepFlowFromStep(
         message: renderTemplate(step.messageTemplate, variables),
         buttons: step.buttons,
         stepId: step.id,
+        ...(failedConditions.length > 0 ? { failedConditions } : {}),
       };
     }
 
@@ -280,6 +285,9 @@ async function executeStepFlowFromStep(
         },
         conditionContext
       );
+      if (!match) {
+        failedConditions.push({ stepId: step.id, operator: step.operator });
+      }
       currentId = match ? step.yesStepId : step.noStepId;
       continue;
     }
@@ -455,6 +463,19 @@ function extractMessageEvents(
           messageId: `postback-${msg.timestamp}`,
           text: msg.postback.title,
           quickReplyPayload: msg.postback.payload,
+          instagramAccountId: entry.id,
+        });
+        continue;
+      }
+
+      // Handle plain text messages (email collection, etc.)
+      if (msg.message?.text && !msg.message.quick_reply) {
+        events.push({
+          senderId: msg.sender.id,
+          recipientId: msg.recipient.id,
+          messageId: msg.message.mid,
+          text: msg.message.text,
+          isPlainText: true,
           instagramAccountId: entry.id,
         });
       }
@@ -673,8 +694,11 @@ async function processComment(
         );
       }
 
-      // Create session if DM has branching buttons
-      if (hasBranchingButtons(result.buttons)) {
+      // Create session if DM has branching buttons or we're collecting email
+      const emailCondition = result.failedConditions?.find(
+        (c) => c.operator === "has_email"
+      );
+      if (hasBranchingButtons(result.buttons) || emailCondition) {
         try {
           await convex.mutation(api.automations.createSession, {
             webhookSecret: secretKey,
@@ -685,10 +709,15 @@ async function processComment(
             currentStepId: result.stepId,
             triggerCommentId: event.commentId,
             triggerMediaId: event.mediaId,
-            variables,
+            variables: {
+              ...variables,
+              ...(emailCondition
+                ? { _emailConditionStepId: emailCondition.stepId }
+                : {}),
+            },
           });
           console.log(
-            `[session] Created session for @${event.username} at step ${result.stepId}`
+            `[session] Created session for @${event.username} at step ${result.stepId}${emailCondition ? " (email collection)" : ""}`
           );
         } catch (e) {
           console.error("[session] Failed to create session:", e);
@@ -950,6 +979,222 @@ async function processMessageEvent(
 }
 
 // ============================================================================
+// Email Validation
+// ============================================================================
+
+function isValidEmail(text: string): boolean {
+  // biome-ignore lint/performance/useTopLevelRegex: <explanation>
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
+}
+
+// ============================================================================
+// Process a plain text message (email collection)
+// ============================================================================
+
+async function processTextMessage(
+  convex: ConvexHttpClient,
+  event: MessageEvent,
+  secretKey: string
+): Promise<void> {
+  console.log(`[text] Plain text from ${event.senderId}: "${event.text}"`);
+
+  // 1. Find active session for this Instagram user
+  const session = await convex.query(api.automations.findActiveSessionByUser, {
+    webhookSecret: secretKey,
+    instagramUserId: event.senderId,
+  });
+
+  if (!session) {
+    console.log(
+      `[text] No active session for user ${event.senderId}, ignoring`
+    );
+    return;
+  }
+
+  // 2. Check if session is collecting email
+  const variables = (session.variables as Record<string, string>) || {};
+  const emailConditionStepId = variables._emailConditionStepId;
+  if (!emailConditionStepId) {
+    console.log(
+      `[text] Session ${session._id} is not collecting email, ignoring`
+    );
+    return;
+  }
+
+  // 3. Get provider data for sending DMs
+  const providerData = await convex.query(
+    api.automations.getProviderDataForWebhook,
+    {
+      webhookSecret: secretKey,
+      instagramAccountId: event.instagramAccountId,
+    }
+  );
+
+  if (!providerData) {
+    console.log("[text] Could not load provider data");
+    return;
+  }
+
+  const text = (event.text || "").trim();
+  const emailAttempts = Number(variables._emailAttempts) || 0;
+
+  // 4. Validate email (max 2 re-prompts, then give up)
+  if (!isValidEmail(text)) {
+    if (emailAttempts >= 2) {
+      console.log(
+        `[text] Invalid email "${text}", max re-prompts reached — ending session`
+      );
+      await convex.mutation(api.automations.updateSession, {
+        webhookSecret: secretKey,
+        sessionId: session._id,
+        status: "completed",
+      });
+      return;
+    }
+
+    console.log(
+      `[text] Invalid email "${text}", re-prompting (attempt ${emailAttempts + 1}/2)`
+    );
+    await sendDirectMessage(
+      providerData.accessToken,
+      providerData.profileId,
+      { id: event.senderId },
+      "That doesn't look like a valid email. Please reply with your email address to continue."
+    );
+    await convex.mutation(api.automations.updateSession, {
+      webhookSecret: secretKey,
+      sessionId: session._id,
+      variables: { ...variables, _emailAttempts: String(emailAttempts + 1) },
+    });
+    return;
+  }
+
+  // 5. Store email via upsertContact
+  try {
+    await convex.mutation(api.automations.upsertContact, {
+      webhookSecret: secretKey,
+      userId: providerData.userId,
+      socialProviderId: providerData.socialProviderId,
+      instagramUserId: event.senderId,
+      instagramUsername: session.instagramUsername,
+      email: text,
+    });
+    console.log(`[text] Stored email "${text}" for user ${event.senderId}`);
+  } catch (e) {
+    console.error("[text] Failed to store email:", e);
+    return;
+  }
+
+  // 6. Get automation data to re-execute flow from the condition step
+  const automationData = await convex.query(api.automations.getForWebhook, {
+    webhookSecret: secretKey,
+    instagramAccountId: event.instagramAccountId,
+    mediaId: session.triggerMediaId || "__session__",
+  });
+
+  if (!automationData) {
+    console.log("[text] Could not load automation data");
+    return;
+  }
+
+  const matchingAutomation = automationData.automations.find(
+    (a) => a._id === session.automationId
+  );
+  if (!matchingAutomation) {
+    console.log(
+      `[text] Automation ${session.automationId} not found in webhook data`
+    );
+    return;
+  }
+
+  // 7. Re-execute flow from the email condition step — has_email now returns true
+  const conditionContext = {
+    accessToken: providerData.accessToken,
+    instagramUserId: event.senderId,
+    convex,
+    secretKey,
+    socialProviderId: providerData.socialProviderId as unknown as string,
+  };
+
+  const result = await executeStepFlowFromStep(
+    emailConditionStepId,
+    matchingAutomation.steps,
+    variables.comment_text || "",
+    variables,
+    conditionContext
+  );
+
+  if (!result) {
+    console.log("[text] No result from re-execution after email stored");
+    await convex.mutation(api.automations.updateSession, {
+      webhookSecret: secretKey,
+      sessionId: session._id,
+      status: "completed",
+    });
+    return;
+  }
+
+  // 8. Send the content DM
+  const message =
+    providerData.planType === "FREE"
+      ? result.message + FREE_WATERMARK
+      : result.message;
+
+  const prefixedButtons = result.buttons?.map((btn) =>
+    btn.type === "quick_reply"
+      ? { ...btn, payload: `${session.automationId}:${btn.payload}` }
+      : btn
+  );
+
+  const success = await sendDirectMessage(
+    providerData.accessToken,
+    providerData.profileId,
+    { id: event.senderId },
+    message,
+    prefixedButtons
+  );
+
+  if (success) {
+    console.log(
+      `[text] Content DM sent to ${event.senderId} after email collection`
+    );
+
+    // Record DM sent
+    try {
+      await convex.mutation(api.automations.recordDMSent, {
+        webhookSecret: secretKey,
+        userId: providerData.userId,
+        automationId: session.automationId,
+        instagramCommentId: session.triggerCommentId || event.messageId,
+        instagramUsername: session.instagramUsername,
+      });
+    } catch (e) {
+      console.error("[text] Failed to record DM:", e);
+    }
+
+    // Mark session completed (or update if there are branching buttons)
+    if (hasBranchingButtons(result.buttons)) {
+      await convex.mutation(api.automations.updateSession, {
+        webhookSecret: secretKey,
+        sessionId: session._id,
+        currentStepId: result.stepId,
+        // Clear the email condition flag since email is now collected
+        variables: { ...variables, _emailConditionStepId: undefined },
+      });
+    } else {
+      await convex.mutation(api.automations.updateSession, {
+        webhookSecret: secretKey,
+        sessionId: session._id,
+        currentStepId: result.stepId,
+        status: "completed",
+      });
+    }
+  } else {
+    console.error(`[text] DM failed for user ${event.senderId}`);
+  }
+}
+
+// ============================================================================
 // Lambda Handler
 // ============================================================================
 
@@ -1031,11 +1276,19 @@ export async function handler(event: LambdaEvent) {
 
     for (const messageEvent of messageEvents) {
       try {
-        await processMessageEvent(
-          convex,
-          messageEvent,
-          Resource.LAMBDA_SECRET_KEY.value
-        );
+        if (messageEvent.isPlainText) {
+          await processTextMessage(
+            convex,
+            messageEvent,
+            Resource.LAMBDA_SECRET_KEY.value
+          );
+        } else {
+          await processMessageEvent(
+            convex,
+            messageEvent,
+            Resource.LAMBDA_SECRET_KEY.value
+          );
+        }
       } catch (error) {
         console.error(
           "Error processing message:",

@@ -190,6 +190,97 @@ export const getForWebhook = query({
 });
 
 /**
+ * Find the most recent active session for an Instagram user (called by Lambda)
+ * Used for plain text message handling (email collection) where we don't know the automationId
+ */
+export const findActiveSessionByUser = query({
+  args: {
+    webhookSecret: v.string(),
+    instagramUserId: v.string(),
+  },
+  returns: v.union(automationSessionSchema, v.null()),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      return null;
+    }
+
+    const session = await ctx.db
+      .query("automationSessions")
+      .withIndex("by_ig_user_status", (q) =>
+        q.eq("instagramUserId", args.instagramUserId).eq("status", "active")
+      )
+      .order("desc")
+      .first();
+
+    return session;
+  },
+});
+
+/**
+ * Get provider data for webhook processing without mediaId filtering (called by Lambda)
+ * Used for text message handling where we only know the Instagram account ID
+ */
+export const getProviderDataForWebhook = query({
+  args: {
+    webhookSecret: v.string(),
+    instagramAccountId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      accessToken: v.string(),
+      profileId: v.string(),
+      userId: v.id("users"),
+      socialProviderId: v.id("socialProviders"),
+      planType: v.union(
+        v.literal("FREE"),
+        v.literal("VIBE"),
+        v.literal("ECHO")
+      ),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
+      return null;
+    }
+
+    const provider = await ctx.db
+      .query("socialProviders")
+      .withIndex("by_profile_id", (q) =>
+        q.eq("profileId", args.instagramAccountId)
+      )
+      .first();
+
+    if (!provider || provider.socialType !== "INSTAGRAM") {
+      return null;
+    }
+
+    const user = await ctx.db.get(provider.userId!);
+    if (!user) {
+      return null;
+    }
+
+    let planType: "FREE" | "VIBE" | "ECHO" = "FREE";
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription && subscription.status === "ACTIVE") {
+        planType = subscription.planType as "FREE" | "VIBE" | "ECHO";
+      }
+    }
+
+    const accessToken = await decryptData(provider.accessToken);
+
+    return {
+      accessToken,
+      profileId: provider.profileId,
+      userId: user._id,
+      socialProviderId: provider._id,
+      planType,
+    };
+  },
+});
+
+/**
  * Record a DM sent (called by Lambda)
  * Single mutation: increment usage + stats + minimal log
  */
