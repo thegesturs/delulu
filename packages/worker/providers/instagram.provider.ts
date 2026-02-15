@@ -34,6 +34,7 @@ interface InstagramMediaContainer {
 interface InstagramContainerStatus {
   id: string;
   status_code: "IN_PROGRESS" | "FINISHED" | "ERROR";
+  status?: string; // Human-readable error description from Instagram
 }
 
 interface InstagramMediaPublishResponse {
@@ -117,10 +118,13 @@ const createSingleMediaContainer = (
 
     // Priority: cover_url > thumb_offset (per Instagram API docs)
     // "If you specify both cover_url and thumb_offset, we use cover_url and ignore thumb_offset"
-    if (media.thumbnailBucketUrl) {
+    if (media.thumbnailBucketUrl?.startsWith("http")) {
       // Custom cover image takes priority
       params.append("cover_url", media.thumbnailBucketUrl);
-    } else if (media.thumbnailTimestamp !== undefined) {
+    } else if (
+      media.thumbnailTimestamp !== undefined &&
+      media.thumbnailTimestamp > 0
+    ) {
       // Convert seconds to milliseconds for thumb_offset
       const thumbOffsetMs = Math.floor(media.thumbnailTimestamp * 1000);
       params.append("thumb_offset", thumbOffsetMs.toString());
@@ -132,6 +136,7 @@ const createSingleMediaContainer = (
       providerSettings.settings?.trialReels
     ) {
       const strategy = providerSettings.settings.graduationStrategy || "MANUAL";
+      console.log(`[Instagram] Adding trial_params with strategy: ${strategy}`);
       params.append(
         "trial_params",
         JSON.stringify({ graduation_strategy: strategy })
@@ -236,7 +241,7 @@ const checkContainerStatus = (
   return ResultAsync.fromPromise(
     axios.get(`https://graph.instagram.com/v23.0/${containerId}`, {
       params: {
-        fields: "id,status_code",
+        fields: "id,status_code,status",
         access_token: accessToken,
       },
     }),
@@ -326,11 +331,11 @@ const waitForContainerProcessing = (
     if (status.status_code === "ERROR") {
       const elapsedMinutes = (Date.now() - startTime) / 1000 / 60;
       console.log(
-        `[Instagram] Container processing error after ${elapsedMinutes.toFixed(1)} minutes for ${containerId}`
+        `[Instagram] Container processing error after ${elapsedMinutes.toFixed(1)} minutes for ${containerId}: ${status.status || "no details"}`
       );
       throw new MediaProcessingError(
         "Instagram",
-        `Container processing failed (failed after ${elapsedMinutes.toFixed(1)} minutes)`
+        `Container processing failed: ${status.status || "unknown error"} (failed after ${elapsedMinutes.toFixed(1)} minutes)`
       );
     }
 

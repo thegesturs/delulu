@@ -101,6 +101,8 @@ export const TEST_CONTENT = {
           mediaType: "VIDEO" as const,
           thumbnailBucketUrl:
             "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          thumbnailBucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
         },
       ],
       text: "Testing video with custom cover image",
@@ -120,6 +122,8 @@ export const TEST_CONTENT = {
           mediaType: "VIDEO" as const,
           thumbnailBucketUrl:
             "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          thumbnailBucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
           thumbnailTimestamp: 5.5, // Should be ignored when cover_url is present
         },
       ],

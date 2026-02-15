@@ -34,4 +34,9 @@ export const keys = () => ({
 
   FARCASTER_APP_FID: process.env.FARCASTER_APP_FID || "",
   FARCASTER_MNEMONIC: process.env.FARCASTER_MNEMONIC || "",
+
+  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID || "",
+  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY || "",
+  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME || "",
+  R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID || "",
 });

@@ -3,6 +3,7 @@ import type {
   SocialType,
 } from "@delulu/validators/post";
 import { providerRegistry } from "./providers";
+import { resolveMediaUrls } from "./resolve-media-urls";
 
 export async function processMessageTestOnly(messageBody: string) {
   console.log("Message body", messageBody);
@@ -16,6 +17,8 @@ export async function processMessageTestOnly(messageBody: string) {
   if (socialType === "LENS" || socialType === "DEFAULT") {
     return;
   }
+
+  await resolveMediaUrls(socialPublishInput);
 
   const providerImpl = providerRegistry[socialType];
   console.log(providerImpl, "impl");
