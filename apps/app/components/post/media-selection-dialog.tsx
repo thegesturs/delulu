@@ -21,6 +21,7 @@ import { useQuery } from "convex/react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getMediaUrlFromObject } from "@/lib/media-url";
 import {
   canAddMediaType,
   getDynamicMediaLimits,
@@ -145,7 +146,7 @@ function MediaGrid({
                   className="object-cover"
                   fill
                   sizes="(max-width: 768px) 25vw, 200px"
-                  src={media.url}
+                  src={getMediaUrlFromObject(media)}
                 />
               ) : (
                 <div className="relative h-full w-full">
@@ -155,7 +156,7 @@ function MediaGrid({
                     muted
                     playsInline
                     preload="metadata"
-                    src={media.url}
+                    src={getMediaUrlFromObject(media)}
                   />
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
                     <div className="rounded-full bg-black bg-opacity-50 p-2">

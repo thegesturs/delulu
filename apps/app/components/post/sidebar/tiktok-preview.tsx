@@ -16,6 +16,7 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import { useQuery } from "convex-helpers/react/cache";
 import Image from "next/image";
+import { getMediaUrlFromObject } from "@/lib/media-url";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
 
 export function TikTokPreview() {
@@ -100,14 +101,14 @@ export function TikTokPreview() {
                       loop
                       muted
                       playsInline
-                      src={media.url}
+                      src={getMediaUrlFromObject(media)}
                     />
                   ) : (
                     <Image
                       alt="Preview"
                       className="rounded-none object-cover"
                       fill
-                      src={media.url}
+                      src={getMediaUrlFromObject(media)}
                     />
                   )}
                 </div>
