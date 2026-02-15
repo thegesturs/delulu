@@ -164,7 +164,7 @@
 
 .sorted-compact-button:hover:not(:disabled) {
   background: #4f46e5; /* darker indigo */
-  transform: translateY(-0.5px);
+  filter: brightness(0.95);
 }
 
 .sorted-compact-button:disabled {
@@ -190,6 +190,34 @@
   color: var(--sorted-text-primary);
 }
 
+/* Export Buttons */
+.sorted-export-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sorted-export-button {
+  background: rgba(118, 118, 128, 0.12);
+  color: var(--sorted-text-primary);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: inherit;
+  line-height: 1;
+  height: 26px;
+  display: flex;
+  align-items: center;
+}
+
+.sorted-export-button:hover {
+  background: rgba(118, 118, 128, 0.2);
+}
+
 /* Spinner */
 .sorted-loading-spinner-sm {
   width: 14px;
@@ -209,19 +237,17 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 /* Results Grid Updates */
 .sorted-grid-container {
   width: 100%;
-  max-width: 935px; /* Matches Instagram feed width */
   margin: 0 auto;
+  contain: layout style;
 }
 
 .sorted-results-header {
@@ -247,6 +273,7 @@
   padding-bottom: 32px;
   width: 100%; /* Full width */
   box-sizing: border-box;
+  contain: layout style;
 }
 
 /* Reel Card Updates */
@@ -257,6 +284,7 @@
   background: rgba(0, 0, 0, 0.05);
   cursor: pointer;
   border-radius: 4px; /* Subtle roundedness */
+  contain: layout style paint;
 }
 
 .sorted-reel-thumbnail {
@@ -303,6 +331,36 @@
   background: rgba(99, 102, 241, 0.4); /* Indigo overlay on hover */
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
+}
+
+/* Download Button - Floating top right, visible on hover */
+.sorted-reel-download {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.sorted-reel-card:hover .sorted-reel-download {
+  opacity: 1;
+}
+
+.sorted-reel-download:hover {
+  background: rgba(0, 0, 0, 0.8);
 }
 
 /* Rank Badge - Floating top left */

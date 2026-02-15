@@ -25,9 +25,34 @@ function formatMetric(value: number | undefined | null): string {
   return value.toString();
 }
 
+async function downloadVideo(videoUrl: string, reelId: string) {
+  try {
+    const response = await fetch(videoUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `reel-${reelId}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // CORS fallback: open video URL in new tab
+    window.open(videoUrl, "_blank");
+  }
+}
+
 export function ReelCard({ reel, rank }: ReelCardProps) {
   const handleClick = () => {
     window.open(reel.url, "_blank");
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reel.videoUrl) {
+      downloadVideo(reel.videoUrl, reel.id);
+    }
   };
 
   return (
@@ -37,6 +62,33 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
     <div className="sorted-reel-card" onClick={handleClick}>
       {/* Rank badge */}
       <div className="sorted-reel-rank">{rank}</div>
+
+      {/* Download button */}
+      {reel.videoUrl && (
+        // biome-ignore lint/a11y/useKeyWithClickEvents: handled by parent component
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: <explanation>
+        // biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
+        <div
+          className="sorted-reel-download"
+          onClick={handleDownload}
+          title="Download video"
+        >
+          <svg
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+            width="14"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" x2="12" y1="15" y2="3" />
+          </svg>
+        </div>
+      )}
 
       {/* Thumbnail */}
       <div className="sorted-reel-thumbnail">

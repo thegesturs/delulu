@@ -9,6 +9,7 @@ import { SortPanel } from "./content/components/sort-panel";
 import { SortedGrid } from "./content/components/sorted-grid";
 // Import styles inline to ensure they are injected
 import overlayStyles from "./content/styles/overlay.css?inline";
+import { handleExport } from "./content/utils/export";
 import { initializeGraphQLInterceptor } from "./content/utils/graphql-interceptor";
 import {
   createCancelToken,
@@ -16,7 +17,7 @@ import {
 } from "./content/utils/infinite-scroll";
 import { validateScrapingCapability } from "./content/utils/instagram-scraper";
 import { isReelsTab, monitorUrlChanges } from "./content/utils/url-detector";
-import type { ReelData, SortMetric } from "./shared/types";
+import type { ExportFormat, ReelData, SortMetric } from "./shared/types";
 
 export default defineContentScript({
   matches: ["*://www.instagram.com/*", "*://instagram.com/*"],
@@ -50,12 +51,20 @@ export default defineContentScript({
     let loadingRoot: any = null;
     let _cleanupUrlMonitor: (() => void) | null = null;
     let originalGrid: HTMLElement | null = null;
+    let reelsObserver: MutationObserver | null = null;
     let isSorting = false;
     let isActive = false;
     let isCancelled = false;
     let currentReels: ReelData[] = [];
     let currentMetric: SortMetric = "views";
     let currentQuantity: number = 25;
+
+    /**
+     * Handle export action
+     */
+    function onExportReels(format: ExportFormat) {
+      handleExport(format, currentReels);
+    }
 
     /**
      * Show loading overlay
@@ -158,25 +167,19 @@ export default defineContentScript({
     /**
      * Create and inject the sort panel
      */
-    function createSortPanel(retryCount = 0) {
+    function createSortPanel() {
       if (panelContainer) {
         return;
       }
 
       const reelsContainer = findReelsContainer();
       if (!reelsContainer) {
-        // Retry up to 5 times with increasing delays
-        if (retryCount < 5) {
-          const delay = 1000 * (retryCount + 1); // 1s, 2s, 3s, 4s, 5s
-          setTimeout(() => createSortPanel(retryCount + 1), delay);
-        }
         return;
       }
 
       // Create panel container
       panelContainer = document.createElement("div");
       panelContainer.id = "sorted-panel";
-      // No inline styles here, managed by CSS class
 
       // Insert before reels container
       reelsContainer.parentElement?.insertBefore(
@@ -192,8 +195,49 @@ export default defineContentScript({
           isSorting,
           onReset: handleReset,
           isActive,
+          onExport: onExportReels,
         })
       );
+    }
+
+    /**
+     * Wait for reels to appear in the DOM, then create the sort panel.
+     * Uses MutationObserver instead of fragile setTimeout retries.
+     */
+    function waitForReelsAndCreatePanel() {
+      // Try immediately first
+      if (findReelsContainer()) {
+        createSortPanel();
+        return;
+      }
+
+      // Disconnect any existing observer
+      if (reelsObserver) {
+        reelsObserver.disconnect();
+        reelsObserver = null;
+      }
+
+      // Watch for reel links to appear in the DOM
+      reelsObserver = new MutationObserver(() => {
+        if (document.querySelector('a[href*="/reel/"]')) {
+          reelsObserver?.disconnect();
+          reelsObserver = null;
+          createSortPanel();
+        }
+      });
+
+      reelsObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Safety timeout: disconnect after 60s to prevent leaks
+      setTimeout(() => {
+        if (reelsObserver) {
+          reelsObserver.disconnect();
+          reelsObserver = null;
+        }
+      }, 60_000);
     }
 
     /**
@@ -330,6 +374,13 @@ export default defineContentScript({
         return false;
       }
 
+      // Capture original width before hiding to match sorted grid dimensions
+      const originalWidth = reelsContainer.offsetWidth;
+
+      // Prevent scrollbar jitter during swap
+      const prevOverflow = document.documentElement.style.overflowY;
+      document.documentElement.style.overflowY = "scroll";
+
       // Hide original grid
       if (!originalGrid) {
         originalGrid = reelsContainer;
@@ -346,6 +397,11 @@ export default defineContentScript({
         );
       }
 
+      // Match original grid width to prevent layout shift
+      if (originalWidth > 0) {
+        gridContainer.style.width = `${originalWidth}px`;
+      }
+
       // Render sorted grid
       if (!gridRoot) {
         gridRoot = createRoot(gridContainer);
@@ -358,6 +414,13 @@ export default defineContentScript({
           quantity: currentQuantity,
         })
       );
+
+      // Restore scrollbar after render settles
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.style.overflowY = prevOverflow;
+        });
+      });
 
       return true;
     }
@@ -396,6 +459,7 @@ export default defineContentScript({
             isSorting,
             onReset: handleReset,
             isActive,
+            onExport: onExportReels,
           })
         );
       }
@@ -406,7 +470,7 @@ export default defineContentScript({
      */
     function handleUrlChange(newUrl: string) {
       if (isReelsTab(newUrl)) {
-        setTimeout(() => createSortPanel(), 1000);
+        waitForReelsAndCreatePanel();
       } else {
         cleanup();
       }
@@ -417,6 +481,10 @@ export default defineContentScript({
      */
     function cleanup() {
       isCancelled = true;
+      if (reelsObserver) {
+        reelsObserver.disconnect();
+        reelsObserver = null;
+      }
       hideLoadingOverlay();
       removeSortPanel();
       handleReset();
@@ -426,11 +494,20 @@ export default defineContentScript({
      * Initialize
      */
     function initialize() {
-      if (isReelsTab()) {
-        setTimeout(() => createSortPanel(), 2000);
-      }
+      const startObserving = () => {
+        if (isReelsTab()) {
+          waitForReelsAndCreatePanel();
+        }
+        _cleanupUrlMonitor = monitorUrlChanges(handleUrlChange);
+      };
 
-      _cleanupUrlMonitor = monitorUrlChanges(handleUrlChange);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", startObserving, {
+          once: true,
+        });
+      } else {
+        startObserving();
+      }
     }
 
     // Initialize

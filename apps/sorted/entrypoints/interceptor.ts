@@ -70,6 +70,7 @@ export default defineContentScript({
                       views: media.play_count ?? media.view_count,
                       likes: media.like_count,
                       comments: media.comment_count,
+                      videoUrl: media.video_versions?.[0]?.url,
                     };
 
                     if (media.code) {
@@ -107,6 +108,7 @@ export default defineContentScript({
                     views: node.play_count ?? node.view_count,
                     likes: node.like_count,
                     comments: node.comment_count,
+                    videoUrl: node.video_versions?.[0]?.url,
                   };
 
                   if (node.code) {

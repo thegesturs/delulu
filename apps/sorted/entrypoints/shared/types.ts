@@ -9,6 +9,7 @@ export interface ReelMetrics {
   likes?: number | null;
   views?: number | null;
   comments?: number | null;
+  videoUrl?: string;
 }
 
 /**
@@ -19,6 +20,7 @@ export interface ReelData {
   url: string;
   thumbnailUrl: string;
   metrics: ReelMetrics;
+  videoUrl?: string;
   scrapedAt: number; // Timestamp when scraped
 }
 
@@ -26,6 +28,11 @@ export interface ReelData {
  * Metric to sort by
  */
 export type SortMetric = "likes" | "views" | "comments" | "oldest";
+
+/**
+ * Export format for reel data
+ */
+export type ExportFormat = "json" | "csv" | "xlsx";
 
 /**
  * Number of reels to scrape

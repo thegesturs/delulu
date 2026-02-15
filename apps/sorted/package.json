@@ -17,7 +17,8 @@
   },
   "dependencies": {
     "react": "catalog:react19",
-    "react-dom": "catalog:react19"
+    "react-dom": "catalog:react19",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.278",
