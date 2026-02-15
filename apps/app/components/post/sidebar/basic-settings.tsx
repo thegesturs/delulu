@@ -53,6 +53,12 @@ export function BasicSettings() {
 
   // Single unified mutation for all operations
   const upsertPostMutation = useMutation(api.posts.upsertPost);
+  const createAutomationMutation = useMutation(
+    api.automations.createAutomation
+  );
+  const updateAutomationMutation = useMutation(
+    api.automations.updateAutomation
+  );
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Get current user and monthly post count for usage limits
@@ -64,6 +70,49 @@ export function BasicSettings() {
   const isAtPostLimit = !(
     monthlyPostsLimit.isUnlimited || monthlyPostsLimit.allowed
   );
+
+  const createAutomationsForPost = async (savedPostId: Id<"posts">) => {
+    // Read fresh from store to avoid stale closure
+    const configs = Object.values(useStore.getState().automationConfigs);
+    const shortPostId = (savedPostId as string).slice(-6);
+    for (const config of configs) {
+      const nameWithPostId = `${config.name} — ${shortPostId}`;
+      const triggersWithPost = config.triggers.map((t) => ({
+        ...t,
+        targetPostIds: t.targetPostIds ?? [],
+        pendingPostIds: [savedPostId as string],
+      }));
+      try {
+        if (config.existingAutomationId) {
+          // Update existing automation
+          await updateAutomationMutation({
+            id: config.existingAutomationId as Id<"automations">,
+            name: nameWithPostId,
+            isActive: config.isActive,
+            triggers: triggersWithPost,
+            steps: config.steps,
+            notes: config.notes,
+            nodePositions: config.nodePositions,
+          });
+        } else {
+          // Create new automation
+          await createAutomationMutation({
+            socialProviderId: config.socialProviderId as Id<"socialProviders">,
+            name: nameWithPostId,
+            isActive: config.isActive,
+            triggers: triggersWithPost,
+            steps: config.steps,
+            notes: config.notes,
+            nodePositions: config.nodePositions,
+          });
+        }
+      } catch {
+        toast.error("Post saved, but automation creation failed.");
+      }
+    }
+    // Clear all configs after save
+    useStore.setState({ automationConfigs: {} });
+  };
 
   const handlePostNow = async () => {
     // Check post limit before publishing
@@ -77,7 +126,7 @@ export function BasicSettings() {
     try {
       setIsProcessing(true);
 
-      await upsertPostMutation({
+      const savedPostId = await upsertPostMutation({
         ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
@@ -93,6 +142,7 @@ export function BasicSettings() {
         // No scheduledAt - immediate publishing via existing tRPC flow
         status: "PROCESSING",
       });
+      await createAutomationsForPost(savedPostId);
       toast.success(
         "Post sent for processing, will be published shortly. You can close this window now."
       );
@@ -121,7 +171,7 @@ export function BasicSettings() {
     try {
       setIsProcessing(true);
 
-      await upsertPostMutation({
+      const savedPostId = await upsertPostMutation({
         ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
@@ -137,6 +187,7 @@ export function BasicSettings() {
         scheduledAt: date.getTime(), // Future scheduling
         status: "SCHEDULED",
       });
+      await createAutomationsForPost(savedPostId);
       toast.success("Post scheduled successfully");
       router.push("/posts?status=SCHEDULED");
     } catch {
@@ -151,7 +202,7 @@ export function BasicSettings() {
     try {
       setIsProcessing(true);
 
-      await upsertPostMutation({
+      const savedPostId = await upsertPostMutation({
         ...(postId && { id: postId as Id<"posts"> }),
         content: post.content,
         alternativeContent: post.alternativeContent.map((alt) => ({
@@ -166,6 +217,7 @@ export function BasicSettings() {
         providerSettings: providerSettingsForConvex,
         status: "SAVED",
       });
+      await createAutomationsForPost(savedPostId);
       toast.success(
         postId ? "Post updated successfully" : "Post saved successfully"
       );

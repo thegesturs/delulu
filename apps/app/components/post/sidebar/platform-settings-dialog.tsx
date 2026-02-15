@@ -8,6 +8,7 @@ import {
 } from "@delulu/design-system/components/ui/dialog";
 import type { SocialType } from "@delulu/validators/post";
 import { usePost } from "@/store/post";
+import { InstagramSettingsDisplay } from "./instagram-settings";
 import { TikTokSettingsDisplay } from "./tiktok-settings";
 
 interface PlatformSettingsDialogProps {
@@ -36,6 +37,10 @@ export function PlatformSettingsDialog({
         return (
           <TikTokSettingsDisplay hasVideo={hasVideo} providerId={socialId} />
         );
+      case "INSTAGRAM":
+        return (
+          <InstagramSettingsDisplay hasVideo={hasVideo} providerId={socialId} />
+        );
       default:
         return (
           <div className="py-8 text-center text-muted-foreground text-sm">
@@ -47,11 +52,13 @@ export function PlatformSettingsDialog({
 
   return (
     <Dialog onOpenChange={onClose} open={isOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{platformName} Settings</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">{renderSettings()}</div>
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+          {renderSettings()}
+        </div>
       </DialogContent>
     </Dialog>
   );

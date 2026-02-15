@@ -15,7 +15,10 @@ import {
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
+import {
+  DEFAULT_INSTAGRAM_SETTINGS,
+  DEFAULT_TIKTOK_SETTINGS,
+} from "@delulu/validators/constants/settings";
 import type { SocialType } from "@delulu/validators/post";
 import { Settings01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useQuery } from "convex-helpers/react/cache";
@@ -31,6 +34,7 @@ import { IoCheckmarkCircle } from "react-icons/io5";
 import { toast } from "sonner";
 import {
   postActions,
+  useAutomationConfig,
   useSelectedSocialProviders,
   useStore,
 } from "@/store/post";
@@ -119,7 +123,7 @@ export default function SocialSelector() {
 
 // Helper function to determine which platforms have settings
 function hasSettings(platform: SocialType): boolean {
-  return platform === "TIKTOK";
+  return platform === "TIKTOK" || platform === "INSTAGRAM";
 }
 
 function SocialSelectorItem({
@@ -131,6 +135,7 @@ function SocialSelectorItem({
   const post = useStore((state) => state.post);
   const setProviderSettings = useStore((state) => state.setProviderSettings);
   const getProviderSettings = useStore((state) => state.getProviderSettings);
+  const automationConfig = useAutomationConfig(socialId);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
@@ -178,7 +183,16 @@ function SocialSelectorItem({
           });
         }
       }
-      // Add more platforms here as needed
+      if (socialProvider === "INSTAGRAM") {
+        const existingSettings = getProviderSettings(socialId);
+        if (!existingSettings) {
+          setProviderSettings(socialId, {
+            socialProviderId: socialId,
+            type: "INSTAGRAM",
+            settings: DEFAULT_INSTAGRAM_SETTINGS,
+          });
+        }
+      }
     }
   };
 
@@ -228,18 +242,25 @@ function SocialSelectorItem({
             <motion.div className="flex w-full items-center gap-2" layout>
               <SocialIcon type={socialProvider} />
               <motion.span className="flex-1 text-left" layout>
-                {name}
+                {name.trim().length > 10
+                  ? name.slice(0, 13) + "..."
+                  : name.trim()}
               </motion.span>
               <div className="flex items-center gap-1">
                 {isSelected && hasSettings(socialProvider) && (
-                  <Button
-                    className="h-6 w-6 hover:bg-white/20"
-                    onClick={handleSettingsClick}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Icon icon={Settings01Icon} size={12} />
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      className="h-6 w-6 hover:bg-white/20"
+                      onClick={handleSettingsClick}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Icon icon={Settings01Icon} size={12} />
+                    </Button>
+                    {socialProvider === "INSTAGRAM" && automationConfig && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white" />
+                    )}
+                  </div>
                 )}
                 {isSelected && (
                   <motion.span

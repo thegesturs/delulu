@@ -1,7 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import {
+  baseAutomationContactSchema,
   baseAutomationLogSchema,
   baseAutomationSchema,
+  baseAutomationSessionSchema,
   baseMediaTableSchema,
   basePostSchema,
   baseSocialProviderSchema,
@@ -84,4 +86,15 @@ export default defineSchema({
   automationLogs: defineTable(baseAutomationLogSchema.fields)
     .index("by_automation_id", ["automationId"])
     .index("by_user_id", ["userId"]),
+
+  // Automation sessions for multi-turn conversations (button taps)
+  automationSessions: defineTable(baseAutomationSessionSchema.fields)
+    .index("by_automation_id", ["automationId"])
+    .index("by_instagram_user", ["automationId", "instagramUserId", "status"])
+    .index("by_status", ["status", "lastActivityAt"]),
+
+  // Automation contacts for collected user data (email, etc.)
+  automationContacts: defineTable(baseAutomationContactSchema.fields)
+    .index("by_social_provider", ["socialProviderId"])
+    .index("by_instagram_user", ["socialProviderId", "instagramUserId"]),
 });

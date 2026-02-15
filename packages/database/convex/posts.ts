@@ -685,6 +685,15 @@ export const updatePostPublishStatus = mutation({
           publishDate: now,
         });
       }
+
+      // If published with a platform post ID, link to automations waiting for this post
+      if (args.status === "PUBLISHED" && args.platformPostData.platformPostId) {
+        await ctx.runMutation(internal.automations.linkPublishedPost, {
+          convexPostId: args.postId,
+          instagramMediaId: args.platformPostData.platformPostId,
+          socialProviderId: args.platformPostData.socialProviderId,
+        });
+      }
     }
 
     return true;
@@ -827,6 +836,40 @@ export const saveCallMeLaterScheduleId = internalMutation({
     await ctx.db.patch(args.postId, {
       callMeLaterScheduleId: args.scheduleId,
     });
+  },
+});
+
+// Get scheduled posts for a specific social provider (used by automation post selector)
+export const getScheduledPostsByProvider = query({
+  args: { socialProviderId: v.id("socialProviders") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      return [];
+    }
+
+    // Get posts with SCHEDULED status
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_user_status", (q) =>
+        q
+          .eq("userId", user._id)
+          .eq("status", "SCHEDULED")
+          .eq("isDeleted", false)
+      )
+      .collect();
+
+    // Filter to posts that target this provider
+    return posts
+      .filter((p) => p.socialProviderIds.includes(args.socialProviderId))
+      .map((p) => ({
+        _id: p._id,
+        content: p.content,
+        scheduledAt: p.scheduledAt,
+        status: p.status,
+        thumbnailUrl: p.content[0]?.media?.[0]?.url,
+        caption: p.content[0]?.text?.substring(0, 100),
+      }));
   },
 });
 

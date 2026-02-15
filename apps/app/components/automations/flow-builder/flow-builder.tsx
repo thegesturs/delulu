@@ -6,11 +6,16 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Comment01Icon,
-  FilterIcon,
+  Edit01Icon,
   Loading03Icon,
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { ReactFlowProvider } from "@xyflow/react";
+import {
+  type Connection,
+  type Edge,
+  type Node,
+  ReactFlowProvider,
+} from "@xyflow/react";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
@@ -21,24 +26,34 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { FlowCanvas } from "./flow-canvas";
 import { FlowSidebarPanel } from "./flow-sidebar-panel";
 import { FlowToolbar } from "./flow-toolbar";
+import type { NodePositions } from "./hooks/use-automation-state";
 import { useAutomationState } from "./hooks/use-automation-state";
+import { getTemplateBySlug } from "./templates/automation-templates";
 import { TriggerWizard } from "./trigger-wizard/trigger-wizard";
 import { stepsToFlow } from "./utils/auto-layout";
-import type { AutomationStep, TriggerStep } from "./utils/flow-types";
+import type { AutomationStep, Note, TriggerStep } from "./utils/flow-types";
 import { validateFlow } from "./utils/flow-validation";
-import { createConditionStep, createSendDmStep } from "./utils/step-helpers";
+import {
+  createConditionStep,
+  createId,
+  createSendDmStep,
+} from "./utils/step-helpers";
+
+const BUTTON_HANDLE_RE = /^button_(\d+)$/;
 
 interface FlowBuilderProps {
   automationId?: string;
+  templateSlug?: string;
 }
 
-function FlowBuilderInner({ automationId }: FlowBuilderProps) {
+function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
   const router = useRouter();
   const { isFree: isFreePlan } = useSubscription();
   const isNew = !automationId;
   const [isSaving, setIsSaving] = useState(false);
   const [showTriggerWizard, setShowTriggerWizard] = useState(false);
   const initializedRef = useRef(false);
+  const templateInitRef = useRef(false);
 
   const automation = useQuery(
     api.automations.getAutomation,
@@ -61,6 +76,10 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     setTriggers,
     steps,
     setSteps,
+    notes,
+    setNotes,
+    nodePositions,
+    setNodePositions,
     selectedStepId,
     setSelectedStepId,
     isDirty,
@@ -70,10 +89,56 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     markDirty,
     addTrigger,
     updateTrigger,
-    addStepAfterSync,
     updateStepById,
     removeStepById,
+    addNote,
+    updateNote,
+    removeNote,
+    updateNodePosition,
   } = state;
+
+  // Template state for pre-selecting trigger type in wizard
+  const [templateTriggerType, setTemplateTriggerType] = useState<
+    "COMMENT" | "STORY_REPLY" | undefined
+  >(undefined);
+
+  // Initialize from template
+  useEffect(() => {
+    if (!templateSlug || templateInitRef.current || !socialProviders) {
+      return;
+    }
+
+    const template = getTemplateBySlug(templateSlug);
+    if (!template) {
+      return;
+    }
+
+    templateInitRef.current = true;
+    const {
+      steps: tSteps,
+      firstStepId,
+      notes: tNotes,
+      nodePositions: tPositions,
+    } = template.buildSteps();
+
+    setSteps(tSteps);
+    setNotes(tNotes);
+    setNodePositions(tPositions);
+    setTemplateTriggerType(
+      template.triggerType === "COMMENT" ||
+        template.triggerType === "STORY_REPLY"
+        ? template.triggerType
+        : undefined
+    );
+
+    // Store firstStepId so the trigger wizard can link to it
+    templateFirstStepRef.current = firstStepId;
+
+    // Open trigger wizard to complete setup
+    setShowTriggerWizard(true);
+  }, [templateSlug, socialProviders, setSteps, setNotes, setNodePositions]);
+
+  const templateFirstStepRef = useRef<string | undefined>(undefined);
 
   // Initialize from existing automation
   useEffect(() => {
@@ -89,23 +154,77 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       socialProviderId: automation.socialProviderId,
     });
 
-    setTriggers(automation.triggers);
+    // Recombine pendingPostIds into targetPostIds with pending: prefix for UI
+    const loadedTriggers = automation.triggers.map((trigger) => ({
+      ...trigger,
+      targetPostIds: [
+        ...trigger.targetPostIds,
+        ...(trigger.pendingPostIds ?? []).map((id: string) => `pending:${id}`),
+      ],
+    }));
+    setTriggers(loadedTriggers);
     setSteps(automation.steps);
-    resetDirty(automation.triggers, automation.steps);
-  }, [automation, setAutomationMeta, setTriggers, setSteps, resetDirty]);
+    setNotes(((automation as Record<string, unknown>).notes as Note[]) ?? []);
+    setNodePositions(
+      ((automation as Record<string, unknown>)
+        .nodePositions as NodePositions) ?? {}
+    );
+    resetDirty(
+      loadedTriggers,
+      automation.steps,
+      ((automation as Record<string, unknown>).notes as Note[]) ?? [],
+      ((automation as Record<string, unknown>)
+        .nodePositions as NodePositions) ?? {}
+    );
+  }, [
+    automation,
+    setAutomationMeta,
+    setTriggers,
+    setSteps,
+    setNotes,
+    setNodePositions,
+    resetDirty,
+  ]);
 
-  // Open trigger wizard automatically for new automations
+  // Open trigger wizard automatically for new automations (without template)
   useEffect(() => {
-    if (isNew && triggers.length === 0 && socialProviders !== undefined) {
+    if (
+      isNew &&
+      !templateSlug &&
+      triggers.length === 0 &&
+      socialProviders !== undefined
+    ) {
       setShowTriggerWizard(true);
     }
-  }, [isNew, triggers.length, socialProviders]);
+  }, [isNew, templateSlug, triggers.length, socialProviders]);
 
   // Compute React Flow nodes/edges from step-based state
-  const { nodes, edges } = useMemo(
+  const { nodes: stepNodes, edges } = useMemo(
     () => stepsToFlow(triggers, steps),
     [triggers, steps]
   );
+
+  // Apply stored position overrides and add note nodes
+  const nodes = useMemo(() => {
+    // Override step/trigger node positions from stored positions
+    const positionedNodes = stepNodes.map((node) => {
+      const stored = nodePositions[node.id];
+      if (stored) {
+        return { ...node, position: stored };
+      }
+      return node;
+    });
+
+    // Add note nodes
+    const noteNodes: Node[] = notes.map((note) => ({
+      id: note.id,
+      type: "note",
+      position: nodePositions[note.id] ?? note.position,
+      data: { note },
+    }));
+
+    return [...positionedNodes, ...noteNodes];
+  }, [stepNodes, notes, nodePositions]);
 
   const handleTriggerWizardComplete = useCallback(
     (trigger: TriggerStep, socialProviderId: string) => {
@@ -114,69 +233,137 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         setAutomationMeta((prev) => ({ ...prev, socialProviderId }));
       }
 
-      // Set nextStepId to first step if there are existing steps
-      const firstStepId = steps.length > 0 ? steps[0].id : undefined;
-      addTrigger({ ...trigger, nextStepId: firstStepId });
-      setShowTriggerWizard(false);
-    },
-    [triggers.length, steps, addTrigger, setAutomationMeta]
-  );
-
-  const handleAddCondition = useCallback(() => {
-    const newStep = createConditionStep();
-    // Find the last trigger's nextStepId chain — insert at end
-    if (triggers.length > 0) {
-      const lastTrigger = triggers[0];
-      if (lastTrigger.nextStepId) {
-        addStepAfterSync(
-          findLastStepId(lastTrigger.nextStepId, steps),
-          "next",
-          newStep
-        );
+      // If template provided a first step, link to it
+      const templateFirstStep = templateFirstStepRef.current;
+      if (templateFirstStep && steps.some((s) => s.id === templateFirstStep)) {
+        addTrigger({ ...trigger, nextStepId: templateFirstStep });
+        templateFirstStepRef.current = undefined;
+        setTemplateTriggerType(undefined);
+      } else if (steps.length > 0) {
+        // Link to existing first step
+        addTrigger({ ...trigger, nextStepId: steps[0].id });
       } else {
-        // No steps yet, connect trigger → new condition
-        updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
-        setSteps((prev) => [...prev, newStep]);
+        // Auto-create a Send DM step and link it
+        const dmStep = createSendDmStep();
+        addTrigger({ ...trigger, nextStepId: dmStep.id });
+        setSteps((prev) => [...prev, dmStep]);
         markDirty();
       }
-    }
-    setSelectedStepId(newStep.id);
-  }, [
-    triggers,
-    steps,
-    updateTrigger,
-    setSteps,
-    markDirty,
-    addStepAfterSync,
-    setSelectedStepId,
-  ]);
+      setShowTriggerWizard(false);
+    },
+    [triggers.length, steps, addTrigger, setAutomationMeta, setSteps, markDirty]
+  );
 
   const handleAddSendDm = useCallback(() => {
     const newStep = createSendDmStep();
-    if (triggers.length > 0) {
-      const lastTrigger = triggers[0];
-      if (lastTrigger.nextStepId) {
-        addStepAfterSync(
-          findLastStepId(lastTrigger.nextStepId, steps),
-          "next",
-          newStep
-        );
-      } else {
-        updateTrigger(lastTrigger.id, { nextStepId: newStep.id });
-        setSteps((prev) => [...prev, newStep]);
-        markDirty();
-      }
-    }
+    setSteps((prev) => [...prev, newStep]);
+    markDirty();
     setSelectedStepId(newStep.id);
-  }, [
-    triggers,
-    steps,
-    updateTrigger,
-    setSteps,
-    markDirty,
-    addStepAfterSync,
-    setSelectedStepId,
-  ]);
+  }, [setSteps, markDirty, setSelectedStepId]);
+
+  const handleAddNote = useCallback(() => {
+    const note: Note = {
+      id: `note_${createId()}`,
+      content: "",
+      position: { x: 400, y: 100 },
+    };
+    addNote(note);
+    setSelectedStepId(note.id);
+  }, [addNote, setSelectedStepId]);
+
+  const handleNodeDragStop = useCallback(
+    (nodeId: string, position: { x: number; y: number }) => {
+      updateNodePosition(nodeId, position);
+    },
+    [updateNodePosition]
+  );
+
+  // When the user drags an edge from a source handle to a target node
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      const { source, target, sourceHandle } = connection;
+      if (!(source && target)) {
+        return;
+      }
+
+      // Source is a trigger
+      const sourceTrigger = triggers.find((t) => t.id === source);
+      if (sourceTrigger) {
+        updateTrigger(source, { nextStepId: target });
+        return;
+      }
+
+      // Source is a step
+      const sourceStep = steps.find((s) => s.id === source);
+      if (!sourceStep) {
+        return;
+      }
+
+      if (sourceStep.type === "condition") {
+        if (sourceHandle === "yes") {
+          updateStepById(source, { yesStepId: target });
+        } else if (sourceHandle === "no") {
+          updateStepById(source, { noStepId: target });
+        }
+      } else if (sourceStep.type === "send_dm") {
+        const buttonMatch = sourceHandle?.match(BUTTON_HANDLE_RE);
+        if (buttonMatch) {
+          const btnIndex = Number.parseInt(buttonMatch[1], 10);
+          const buttons = [...(sourceStep.buttons ?? [])];
+          const btn = buttons[btnIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[btnIndex] = { ...btn, nextStepId: target };
+            updateStepById(source, { buttons });
+          }
+        } else {
+          updateStepById(source, { nextStepId: target });
+        }
+      }
+    },
+    [triggers, steps, updateTrigger, updateStepById]
+  );
+
+  // When the user deletes an edge (select + Backspace)
+  const handleEdgeDelete = useCallback(
+    (edge: Edge) => {
+      const { source, sourceHandle } = edge;
+
+      // Source is a trigger
+      const sourceTrigger = triggers.find((t) => t.id === source);
+      if (sourceTrigger) {
+        updateTrigger(source, { nextStepId: undefined });
+        return;
+      }
+
+      // Source is a step
+      const sourceStep = steps.find((s) => s.id === source);
+      if (!sourceStep) {
+        return;
+      }
+
+      if (sourceStep.type === "condition") {
+        if (sourceHandle === "yes") {
+          updateStepById(source, { yesStepId: undefined });
+        } else if (sourceHandle === "no") {
+          updateStepById(source, { noStepId: undefined });
+        }
+      } else if (sourceStep.type === "send_dm") {
+        const buttonMatch = sourceHandle?.match(BUTTON_HANDLE_RE);
+        if (buttonMatch) {
+          const btnIndex = Number.parseInt(buttonMatch[1], 10);
+          const buttons = [...(sourceStep.buttons ?? [])];
+          const btn = buttons[btnIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[btnIndex] = { ...btn, nextStepId: undefined };
+            updateStepById(source, { buttons });
+          }
+        } else {
+          updateStepById(source, { nextStepId: undefined });
+        }
+      }
+    },
+    [triggers, steps, updateTrigger, updateStepById]
+  );
 
   const handleToggleActive = useCallback(
     (active: boolean) => {
@@ -202,11 +389,6 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
   );
 
   const handleSave = useCallback(async () => {
-    if (!automationMeta.name.trim()) {
-      toast.error("Please enter an automation name");
-      return;
-    }
-
     if (!automationMeta.socialProviderId) {
       toast.error("Please select an Instagram account");
       return;
@@ -217,31 +399,76 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       return;
     }
 
+    // Auto-generate name if empty
+    let name = automationMeta.name.trim();
+    if (!name) {
+      const trigger = triggers[0];
+      const typeLabel =
+        trigger.triggerType === "STORY_REPLY"
+          ? "Story Reply"
+          : trigger.triggerType === "MENTION"
+            ? "Mention"
+            : "Comment";
+      const keywordPart =
+        trigger.keywordFilter?.value &&
+        trigger.keywordFilter.operator !== "always"
+          ? ` (${trigger.keywordFilter.value})`
+          : "";
+      name = `${typeLabel}${keywordPart} → DM`;
+    }
+
+    // Split pending: prefixed IDs from real targetPostIds
+    const processedTriggers = triggers.map((trigger) => {
+      const pendingIds: string[] = [];
+      const realIds: string[] = [];
+      for (const id of trigger.targetPostIds) {
+        if (id.startsWith("pending:")) {
+          pendingIds.push(id.slice("pending:".length));
+        } else {
+          realIds.push(id);
+        }
+      }
+      return {
+        ...trigger,
+        targetPostIds: realIds,
+        pendingPostIds:
+          pendingIds.length > 0
+            ? pendingIds
+            : (trigger.pendingPostIds ?? undefined),
+      };
+    });
+
     setIsSaving(true);
     try {
       if (isNew) {
         const id = await createAutomation({
-          name: automationMeta.name.trim(),
+          name,
           description: automationMeta.description.trim() || undefined,
           socialProviderId:
             automationMeta.socialProviderId as Id<"socialProviders">,
           isActive: automationMeta.isActive,
-          triggers,
+          triggers: processedTriggers,
           steps,
+          notes: notes.length > 0 ? notes : undefined,
+          nodePositions:
+            Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
         });
         toast.success("Automation created");
         router.push(`/automations/${id}`);
       } else {
         await updateAutomation({
           id: automationId as Id<"automations">,
-          name: automationMeta.name.trim(),
+          name,
           description: automationMeta.description.trim() || undefined,
           isActive: automationMeta.isActive,
-          triggers,
+          triggers: processedTriggers,
           steps,
+          notes: notes.length > 0 ? notes : undefined,
+          nodePositions:
+            Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
         });
         toast.success("Automation saved");
-        resetDirty(triggers, steps);
+        resetDirty(triggers, steps, notes, nodePositions);
       }
     } catch (error) {
       console.error("Failed to save automation:", error);
@@ -255,6 +482,8 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
     automationId,
     triggers,
     steps,
+    notes,
+    nodePositions,
     createAutomation,
     updateAutomation,
     router,
@@ -287,6 +516,74 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
       removeStepById(id);
     },
     [removeStepById]
+  );
+
+  const handleCreateStepForButton = useCallback(
+    (
+      stepId: string,
+      buttonIndex: number,
+      stepType: "send_dm" | "condition"
+    ) => {
+      const newStep =
+        stepType === "send_dm" ? createSendDmStep() : createConditionStep();
+
+      // Update the button's nextStepId to point to the new step
+      setSteps((prev) => {
+        const updated = prev.map((s) => {
+          if (s.id !== stepId || s.type !== "send_dm") {
+            return s;
+          }
+          const buttons = [...(s.buttons ?? [])];
+          const btn = buttons[buttonIndex];
+          if (btn?.type === "quick_reply") {
+            buttons[buttonIndex] = { ...btn, nextStepId: newStep.id };
+          }
+          return { ...s, buttons };
+        });
+        return [...updated, newStep];
+      });
+      markDirty();
+      setSelectedStepId(newStep.id);
+    },
+    [setSteps, markDirty, setSelectedStepId]
+  );
+
+  const handleRemoveStepForButton = useCallback(
+    (stepId: string, buttonIndex: number) => {
+      setSteps((prev) => {
+        const parentStep = prev.find((s) => s.id === stepId);
+        if (!parentStep || parentStep.type !== "send_dm") {
+          return prev;
+        }
+        const btn = parentStep.buttons?.[buttonIndex];
+        const targetStepId =
+          btn?.type === "quick_reply" && "nextStepId" in btn
+            ? btn.nextStepId
+            : undefined;
+
+        // Clear the button's nextStepId
+        let updated = prev.map((s) => {
+          if (s.id !== stepId || s.type !== "send_dm") {
+            return s;
+          }
+          const buttons = [...(s.buttons ?? [])];
+          const b = buttons[buttonIndex];
+          if (b?.type === "quick_reply") {
+            buttons[buttonIndex] = { ...b, nextStepId: undefined };
+          }
+          return { ...s, buttons };
+        });
+
+        // Remove the orphaned step if it exists and nothing else references it
+        if (targetStepId) {
+          updated = updated.filter((s) => s.id !== targetStepId);
+        }
+
+        return updated;
+      });
+      markDirty();
+    },
+    [setSteps, markDirty]
   );
 
   // Loading state for edit mode
@@ -324,7 +621,14 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
         onToggleActive={handleToggleActive}
       />
       <div className="relative flex-1">
-        <FlowCanvas edges={edges} nodes={nodes} onNodeClick={handleNodeClick} />
+        <FlowCanvas
+          edges={edges}
+          nodes={nodes}
+          onConnect={handleConnect}
+          onEdgeDelete={handleEdgeDelete}
+          onNodeClick={handleNodeClick}
+          onNodeDragStop={handleNodeDragStop}
+        />
 
         {/* Action cards at bottom */}
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2">
@@ -341,43 +645,42 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
           </Button>
           <Button
             className="gap-1.5 shadow-md"
-            disabled={triggers.length === 0}
-            onClick={handleAddCondition}
-            size="sm"
-            variant="outline"
-          >
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-amber-500/15">
-              <Icon className="text-amber-600" icon={FilterIcon} size={12} />
-            </div>
-            Add Condition
-          </Button>
-          <Button
-            className="gap-1.5 shadow-md"
-            disabled={triggers.length === 0}
             onClick={handleAddSendDm}
             size="sm"
             variant="outline"
           >
-            <div className="flex h-5 w-5 items-center justify-center rounded bg-green-500/15">
-              <Icon
-                className="text-green-600"
-                icon={MailSend01Icon}
-                size={12}
-              />
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Icon className="text-white" icon={MailSend01Icon} size={12} />
             </div>
             Add Send DM
+          </Button>
+          <Button
+            className="gap-1.5 shadow-md"
+            onClick={handleAddNote}
+            size="sm"
+            variant="outline"
+          >
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-amber-400 to-orange-400">
+              <Icon className="text-white" icon={Edit01Icon} size={12} />
+            </div>
+            Add Note
           </Button>
         </div>
 
         <FlowSidebarPanel
           instagramProviders={instagramProviders}
           isFreePlan={isFreePlan}
+          notes={notes}
           onClose={() => setSelectedStepId(null)}
+          onCreateStepForButton={handleCreateStepForButton}
+          onDeleteNote={removeNote}
           onDeleteStep={handleDeleteStep}
+          onRemoveStepForButton={handleRemoveStepForButton}
           onSocialProviderChange={(id) => {
             setAutomationMeta((prev) => ({ ...prev, socialProviderId: id }));
             markDirty();
           }}
+          onUpdateNote={updateNote}
           onUpdateStep={handleUpdateStep}
           onUpdateTrigger={handleUpdateTrigger}
           selectedId={selectedStepId}
@@ -389,6 +692,7 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
 
       <TriggerWizard
         currentSocialProviderId={automationMeta.socialProviderId || undefined}
+        defaultTriggerType={templateTriggerType}
         instagramProviders={instagramProviders}
         onClose={() => setShowTriggerWizard(false)}
         onComplete={handleTriggerWizardComplete}
@@ -398,41 +702,13 @@ function FlowBuilderInner({ automationId }: FlowBuilderProps) {
   );
 }
 
-export function FlowBuilder({ automationId }: FlowBuilderProps) {
+export function FlowBuilder({ automationId, templateSlug }: FlowBuilderProps) {
   return (
     <ReactFlowProvider>
-      <FlowBuilderInner automationId={automationId} />
+      <FlowBuilderInner
+        automationId={automationId}
+        templateSlug={templateSlug}
+      />
     </ReactFlowProvider>
   );
-}
-
-/**
- * Find the last step in a linear chain (follows nextStepId / yesStepId).
- */
-function findLastStepId(startId: string, steps: AutomationStep[]): string {
-  const stepMap = new Map(steps.map((s) => [s.id, s]));
-  let currentId = startId;
-  const visited = new Set<string>();
-
-  while (!visited.has(currentId)) {
-    visited.add(currentId);
-    const step = stepMap.get(currentId);
-    if (!step) {
-      break;
-    }
-
-    let nextId: string | undefined;
-    if (step.type === "condition") {
-      nextId = step.yesStepId;
-    } else if (step.type === "send_dm") {
-      nextId = step.nextStepId;
-    }
-
-    if (!nextId) {
-      break;
-    }
-    currentId = nextId;
-  }
-
-  return currentId;
 }

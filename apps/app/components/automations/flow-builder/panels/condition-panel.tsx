@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import {
   Select,
@@ -9,21 +8,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@delulu/design-system/components/ui/select";
-import { Switch } from "@delulu/design-system/components/ui/switch";
 import type {
   AutomationConditionOperator,
   ConditionStep,
 } from "../utils/flow-types";
 
 const OPERATORS = [
-  { value: "always", label: "Always (any comment)" },
-  { value: "contains", label: "Contains keyword" },
-  { value: "not_contains", label: "Does not contain" },
-  { value: "equals", label: "Equals exactly" },
-  { value: "starts_with", label: "Starts with" },
-  { value: "ends_with", label: "Ends with" },
-  { value: "regex", label: "Matches regex" },
+  { value: "is_follower", label: "User follows you" },
+  { value: "has_email", label: "User is a contact" },
 ];
+
+function getConditionDescription(operator: string): string {
+  switch (operator) {
+    case "is_follower":
+      return "Check if the user follows your Instagram account. The Yes path runs if they follow you, the No path runs otherwise.";
+    case "has_email":
+      return "Check if we have an email address stored for this user. The Yes path runs if email is known, the No path runs otherwise.";
+    default:
+      return "The Yes path runs when the condition matches. The No path runs otherwise.";
+  }
+}
 
 interface ConditionPanelProps {
   step: ConditionStep;
@@ -36,18 +40,18 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
       <div className="space-y-1">
         <h3 className="font-semibold text-sm">Condition</h3>
         <p className="text-muted-foreground text-xs">
-          Route the flow based on the comment text.
+          Route the flow based on a condition check.
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label>Operator</Label>
+        <Label>Condition type</Label>
         <Select
           onValueChange={(value) =>
             onChange({
               ...step,
               operator: value as AutomationConditionOperator,
-              value: value === "always" ? undefined : step.value,
+              value: undefined,
             })
           }
           value={step.operator}
@@ -65,36 +69,9 @@ export function ConditionPanel({ step, onChange }: ConditionPanelProps) {
         </Select>
       </div>
 
-      {step.operator !== "always" && (
-        <div className="space-y-2">
-          <Label>Value</Label>
-          <Input
-            onChange={(e) => onChange({ ...step, value: e.target.value })}
-            placeholder="Enter keyword or pattern..."
-            value={step.value || ""}
-          />
-        </div>
-      )}
-
-      {step.operator !== "always" && (
-        <div className="flex items-center justify-between">
-          <Label htmlFor="case-sensitive">Case sensitive</Label>
-          <Switch
-            checked={step.caseSensitive ?? false}
-            id="case-sensitive"
-            onCheckedChange={(checked) =>
-              onChange({ ...step, caseSensitive: checked })
-            }
-          />
-        </div>
-      )}
-
       <div className="rounded-lg border border-border bg-muted/30 p-3">
         <p className="text-muted-foreground text-xs">
-          The <span className="font-medium text-green-600">Yes</span> path runs
-          when the condition matches. The{" "}
-          <span className="font-medium text-red-600">No</span> path runs
-          otherwise.
+          {getConditionDescription(step.operator)}
         </p>
       </div>
     </div>

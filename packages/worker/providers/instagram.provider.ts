@@ -1,7 +1,10 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { convex } from "@delulu/database/node";
-import { getValidMediaUrls } from "@delulu/validators/post";
+import {
+  getValidMediaUrls,
+  type ProviderSetting,
+} from "@delulu/validators/post";
 import axios from "axios";
 import { nanoid } from "nanoid";
 import { err, errAsync, ok, type Result, ResultAsync } from "neverthrow";
@@ -72,7 +75,8 @@ const createSingleMediaContainer = (
     thumbnailTimestamp?: number;
   },
   profile: BaseProviderProfile,
-  caption: string
+  caption: string,
+  providerSettings?: ProviderSetting
 ): ResultAsync<InstagramMediaContainer, SocialProviderError> => {
   // Validate caption length - Instagram limit is 2200 characters
   if (caption.length > 2200) {
@@ -120,6 +124,18 @@ const createSingleMediaContainer = (
       // Convert seconds to milliseconds for thumb_offset
       const thumbOffsetMs = Math.floor(media.thumbnailTimestamp * 1000);
       params.append("thumb_offset", thumbOffsetMs.toString());
+    }
+
+    // Add trial reel params if enabled
+    if (
+      providerSettings?.type === "INSTAGRAM" &&
+      providerSettings.settings?.trialReels
+    ) {
+      const strategy = providerSettings.settings.graduationStrategy || "MANUAL";
+      params.append(
+        "trial_params",
+        JSON.stringify({ graduation_strategy: strategy })
+      );
     }
   } else {
     params.append("image_url", media.url);
@@ -369,7 +385,8 @@ const getMediaDetails = (
 // Main publish function - Instagram supports single video OR multiple images
 const publishContent = (
   content: { content: PostContent[]; postId: string },
-  profile: BaseProviderProfile
+  profile: BaseProviderProfile,
+  providerSettings?: ProviderSetting
 ): ResultAsync<PostPublishResult, SocialProviderError> => {
   const firstContent = content.content[0];
 
@@ -431,7 +448,8 @@ const publishContent = (
         thumbnailTimestamp: videoMedia[0].thumbnailTimestamp,
       },
       profile,
-      firstContent.text
+      firstContent.text,
+      providerSettings
     );
   } else if (imageMedia.length === 1) {
     // Single image
@@ -500,7 +518,7 @@ const publishContent = (
 export const instagramProvider: SocialProvider = {
   publish: async ({ content, socialProviderId }) => {
     const result = await getProfile(socialProviderId).andThen((profile) =>
-      publishContent(content, profile)
+      publishContent(content, profile, content.providerSettings)
     );
     return result;
   },

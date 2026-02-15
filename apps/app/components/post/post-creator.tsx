@@ -13,7 +13,8 @@ import { SocialTypes } from "@delulu/validators/post";
 import { useQuery } from "convex-helpers/react/cache";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { NodePositions } from "@/components/automations/flow-builder/hooks/use-automation-state";
 import { getSingleProviderInDefault } from "@/lib/platform-rules";
 import {
   useAlternativeContent,
@@ -77,6 +78,60 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       }
     }
   }, [postId, searchParams, setDateAlongWithTime, setTime]);
+
+  // Clear stale automation configs for new posts
+  useEffect(() => {
+    if (!postId) {
+      useStore.setState({ automationConfigs: {} });
+    }
+  }, [postId]);
+
+  // Preload automation configs for edit mode so indicators show immediately
+  const allAutomations = useQuery(
+    api.automations.getAutomations,
+    postId ? {} : "skip"
+  );
+  const hasPreloaded = useRef(false);
+  const setAutomationConfig = useStore((state) => state.setAutomationConfig);
+
+  useEffect(() => {
+    if (hasPreloaded.current || !postId || !allAutomations || !postData) {
+      return;
+    }
+
+    const instagramProviders = postData.socialProviders.filter(
+      (p) => p.socialType === "INSTAGRAM"
+    );
+
+    for (const provider of instagramProviders) {
+      // Skip if config already loaded (e.g. from instagram-settings)
+      if (useStore.getState().automationConfigs[provider._id]) {
+        continue;
+      }
+
+      const linked = allAutomations.find(
+        (a) =>
+          a.socialProviderId === provider._id &&
+          a.triggers.some((t) => t.pendingPostIds?.includes(postId))
+      );
+
+      if (linked) {
+        setAutomationConfig(provider._id, {
+          templateSlug: "",
+          socialProviderId: provider._id,
+          name: linked.name,
+          triggers: linked.triggers,
+          steps: linked.steps,
+          notes: linked.notes ?? [],
+          nodePositions: (linked.nodePositions as NodePositions) ?? {},
+          isActive: linked.isActive,
+          existingAutomationId: linked._id,
+        });
+      }
+    }
+
+    hasPreloaded.current = true;
+  }, [postId, allAutomations, postData, setAutomationConfig]);
 
   const handleTabChange = useCallback(
     (value: string) => {

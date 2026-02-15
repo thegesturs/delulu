@@ -517,6 +517,91 @@ export const socialProviderRouter = {
         });
       }
     }),
+  getInstagramStories: protectedProcedure
+    .input(
+      z.object({
+        socialProviderId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const provider = await fetchQuery(
+        api.social_providers.getSocialProviderWithDecryptedTokens,
+        { id: input.socialProviderId as Id<"socialProviders"> },
+        { token: ctx.token }
+      );
+
+      if (!(provider?.accessToken && provider.profileId)) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Instagram account not found or access token missing",
+        });
+      }
+
+      if (provider.socialType !== "INSTAGRAM") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This endpoint only supports Instagram accounts",
+        });
+      }
+
+      try {
+        const response = await fetch(
+          `https://graph.instagram.com/v24.0/${provider.profileId}/stories?fields=id,caption,media_type,timestamp,permalink,thumbnail_url,media_url&access_token=${provider.accessToken}`
+        );
+
+        if (!response.ok) {
+          const errorBody = await response.text().catch(() => undefined);
+          log.error("Instagram stories fetch failed", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorBody,
+          });
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Instagram API error: ${response.status}`,
+          });
+        }
+
+        const data = (await response.json()) as {
+          data?: Array<{
+            id: string;
+            caption?: string;
+            media_type: "IMAGE" | "VIDEO" | "CAROUSEL_ALBUM";
+            timestamp: string;
+            permalink: string;
+            thumbnail_url?: string;
+            media_url?: string;
+          }>;
+          error?: { message: string };
+        };
+
+        if (data.error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: data.error.message || "Failed to fetch Instagram stories",
+          });
+        }
+
+        const stories = data.data || [];
+
+        return stories.map((s) => ({
+          id: s.id,
+          caption: s.caption || "",
+          mediaType: s.media_type,
+          thumbnailUrl: s.thumbnail_url || s.media_url || "",
+          permalink: s.permalink,
+          timestamp: s.timestamp,
+        }));
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to fetch Instagram stories",
+        });
+      }
+    }),
   deleteSocialProvider: protectedProcedure
     .input(
       z.object({

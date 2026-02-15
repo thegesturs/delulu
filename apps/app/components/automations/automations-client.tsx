@@ -13,6 +13,7 @@ import { AutomationFilters } from "./automation-filters";
 import { AutomationList } from "./automation-list";
 import { AutomationStats } from "./automation-stats";
 import { AutomationsHeader } from "./automations-header";
+import { TemplatePickerDialog } from "./flow-builder/templates/template-picker-dialog";
 
 export default function AutomationsClient() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function AutomationsClient() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTrigger, setFilterTrigger] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   const automations = useQuery(api.automations.getAutomations, {});
   const isLoading = automations === undefined;
@@ -110,12 +112,19 @@ export default function AutomationsClient() {
     );
   }
 
+  const handleSelectTemplate = (slug: string | null) => {
+    setShowTemplatePicker(false);
+    if (slug) {
+      router.push(`/automations/new?template=${slug}`);
+    } else {
+      router.push("/automations/new");
+    }
+  };
+
   return (
     <div className="h-screen bg-background">
       <div className="mx-auto flex max-w-6xl flex-col space-y-6 p-6">
-        <AutomationsHeader
-          onCreateClick={() => router.push("/automations/new")}
-        />
+        <AutomationsHeader onCreateClick={() => setShowTemplatePicker(true)} />
         <AutomationStats stats={stats} />
         <AutomationFilters
           filterStatus={filterStatus}
@@ -134,6 +143,12 @@ export default function AutomationsClient() {
           viewMode={viewMode}
         />
       </div>
+
+      <TemplatePickerDialog
+        onClose={() => setShowTemplatePicker(false)}
+        onSelect={handleSelectTemplate}
+        open={showTemplatePicker}
+      />
     </div>
   );
 }

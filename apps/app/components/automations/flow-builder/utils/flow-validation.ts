@@ -36,13 +36,25 @@ export function validateFlow(
     }
   }
 
-  // 3. At least 1 Send DM step
+  // 3. Keyword filter validation: if operator is not "always", value must be set
+  for (const trigger of triggers) {
+    if (
+      trigger.keywordFilter &&
+      trigger.keywordFilter.operator !== "always" &&
+      !trigger.keywordFilter.value?.trim()
+    ) {
+      errors.push("Keyword filter must have a value when enabled");
+      break;
+    }
+  }
+
+  // 4. At least 1 Send DM step
   const sendDmSteps = steps.filter((s) => s.type === "send_dm");
   if (sendDmSteps.length === 0) {
     errors.push("Flow must have at least one Send DM step");
   }
 
-  // 4. All Send DM steps must have a message
+  // 5. All Send DM steps must have a message
   for (const step of sendDmSteps) {
     if (step.type === "send_dm" && !step.messageTemplate.trim()) {
       errors.push("All Send DM steps must have a message");
@@ -50,7 +62,9 @@ export function validateFlow(
     }
   }
 
-  // 5. URL buttons must have valid URLs and titles
+  // 6. URL buttons must have valid URLs and titles
+  // Quick reply buttons with nextStepId must point to valid step IDs
+  const stepMap = new Map(steps.map((s) => [s.id, s]));
   for (const step of sendDmSteps) {
     if (step.type !== "send_dm" || !step.buttons) {
       continue;
@@ -66,14 +80,22 @@ export function validateFlow(
         );
         break;
       }
+      if (
+        btn.type === "quick_reply" &&
+        "nextStepId" in btn &&
+        btn.nextStepId &&
+        !stepMap.has(btn.nextStepId)
+      ) {
+        errors.push("Quick reply button references a non-existent step");
+        break;
+      }
     }
     if (errors.length > 0) {
       break;
     }
   }
 
-  // 6. Every trigger must lead to at least one Send DM (reachability)
-  const stepMap = new Map(steps.map((s) => [s.id, s]));
+  // 7. Every trigger must lead to at least one Send DM (reachability)
   for (const trigger of triggers) {
     if (!trigger.nextStepId) {
       errors.push("Every trigger must be connected to at least one step");
@@ -119,8 +141,22 @@ function getReachableSteps(
       if (step.noStepId) {
         stack.push(step.noStepId);
       }
-    } else if (step.type === "send_dm" && step.nextStepId) {
-      stack.push(step.nextStepId);
+    } else if (step.type === "send_dm") {
+      if (step.nextStepId) {
+        stack.push(step.nextStepId);
+      }
+      // Also traverse button branches
+      if (step.buttons) {
+        for (const btn of step.buttons) {
+          if (
+            btn.type === "quick_reply" &&
+            "nextStepId" in btn &&
+            btn.nextStepId
+          ) {
+            stack.push(btn.nextStepId);
+          }
+        }
+      }
     }
   }
 

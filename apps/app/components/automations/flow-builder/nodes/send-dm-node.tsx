@@ -13,6 +13,12 @@ export function SendDmNode({ data, selected }: NodeProps) {
   const hasReply =
     step.commentReply?.enabled && step.commentReply.replies.length > 0;
 
+  // Collect quick reply buttons that have nextStepId (branching buttons)
+  const branchingButtons =
+    step.buttons?.filter(
+      (b) => b.type === "quick_reply" && "nextStepId" in b && b.nextStepId
+    ) ?? [];
+
   return (
     <div
       className={`rounded-xl border px-4 py-3 shadow-sm transition-all ${
@@ -38,7 +44,7 @@ export function SendDmNode({ data, selected }: NodeProps) {
         </div>
       </div>
       {(hasButtons || hasReply) && (
-        <div className="mt-2 flex gap-1.5 pl-12">
+        <div className="mt-2 flex flex-wrap gap-1.5 pl-12">
           {hasButtons && (
             <Badge className="text-[10px]" variant="secondary">
               {step.buttons!.length} button
@@ -52,12 +58,46 @@ export function SendDmNode({ data, selected }: NodeProps) {
           )}
         </div>
       )}
+
+      {/* Branching button labels */}
+      {branchingButtons.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1 pl-12">
+          {branchingButtons.map((btn, i) => (
+            <Badge
+              className="text-[9px]"
+              key={`branch-${btn.type === "quick_reply" ? btn.payload : i}`}
+              variant="outline"
+            >
+              {btn.title || `Button ${i + 1}`}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Default bottom handle for linear nextStepId chain */}
       <Handle
         className="!bg-green-500"
         id="default"
         position={Position.Bottom}
         type="source"
       />
+
+      {/* Dynamic handles for branching buttons */}
+      {branchingButtons.map((btn, i) => {
+        const totalBranches = branchingButtons.length;
+        // Distribute handles evenly along the bottom
+        const leftPercent = ((i + 1) / (totalBranches + 1)) * 100;
+        return (
+          <Handle
+            className="!bg-blue-500"
+            id={`button_${step.buttons!.indexOf(btn)}`}
+            key={`handle-${btn.type === "quick_reply" ? btn.payload : i}`}
+            position={Position.Bottom}
+            style={{ left: `${leftPercent}%` }}
+            type="source"
+          />
+        );
+      })}
     </div>
   );
 }

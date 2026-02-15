@@ -26,7 +26,7 @@ COPY packages/cloudflare-types/package.json ./packages/cloudflare-types/
 COPY packages/analytics/package.json ./packages/analytics/
 COPY packages/payments/package.json ./packages/payments/
 
-# Install dependencies
+# Install dependencies (skip prepare/lefthook - git hooks not needed in container)
 RUN pnpm install --ignore-scripts
 
 # Copy source code

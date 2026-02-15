@@ -282,6 +282,24 @@ export const tikTokSettingsSchema = z
 
 export type TikTokSettings = z.infer<typeof tikTokSettingsSchema>;
 
+// Graduation strategies for trial reels
+export const instagramGraduationStrategies = {
+  MANUAL: "MANUAL",
+  SS_PERFORMANCE: "SS_PERFORMANCE",
+} as const;
+
+export type InstagramGraduationStrategy =
+  keyof typeof instagramGraduationStrategies;
+
+export const instagramSettingsSchema = z.object({
+  shareToFeed: z.boolean().default(true),
+  shareToStory: z.boolean().default(false),
+  trialReels: z.boolean().default(false),
+  graduationStrategy: z.enum(["MANUAL", "SS_PERFORMANCE"]).default("MANUAL"),
+});
+
+export type InstagramSettings = z.infer<typeof instagramSettingsSchema>;
+
 // Zod schema for provider settings (must be before SocialPublishInputSchema)
 export const providerSettingSchema = z.discriminatedUnion("type", [
   z.object({
@@ -301,11 +319,7 @@ export const providerSettingSchema = z.discriminatedUnion("type", [
   z.object({
     socialProviderId: z.string(),
     type: z.literal(SocialTypes.INSTAGRAM),
-    settings: z.object({
-      shareToFeed: z.boolean(),
-      shareToStory: z.boolean(),
-      shareToReels: z.boolean(),
-    }),
+    settings: instagramSettingsSchema,
   }),
   z.object({
     socialProviderId: z.string(),
@@ -373,12 +387,6 @@ export interface YouTubeSettings {
   privacy: "PUBLIC" | "PRIVATE" | "UNLISTED";
   madeForKids: boolean;
   ageRestriction?: boolean;
-}
-
-export interface InstagramSettings {
-  shareToFeed: boolean;
-  shareToStory: boolean;
-  shareToReels: boolean;
 }
 
 export interface FacebookSettings {

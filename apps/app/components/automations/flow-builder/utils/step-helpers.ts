@@ -26,8 +26,7 @@ export function createConditionStep(
   return {
     id: createId(),
     type: "condition",
-    operator: "contains",
-    value: "",
+    operator: "is_follower",
     ...overrides,
   };
 }
@@ -66,6 +65,7 @@ export function updateStep(
 
 /**
  * Remove a step by ID and clean up references to it in other steps
+ * (including button nextStepId references)
  */
 export function removeStep(
   steps: AutomationStep[],
@@ -82,9 +82,20 @@ export function removeStep(
         };
       }
       if (s.type === "send_dm") {
+        const cleanedButtons = s.buttons?.map((btn) => {
+          if (
+            btn.type === "quick_reply" &&
+            "nextStepId" in btn &&
+            btn.nextStepId === id
+          ) {
+            return { ...btn, nextStepId: undefined };
+          }
+          return btn;
+        });
         return {
           ...s,
           nextStepId: s.nextStepId === id ? undefined : s.nextStepId,
+          buttons: cleanedButtons,
         };
       }
       return s;
