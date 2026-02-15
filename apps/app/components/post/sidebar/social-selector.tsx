@@ -34,6 +34,7 @@ import { IoCheckmarkCircle } from "react-icons/io5";
 import { toast } from "sonner";
 import {
   postActions,
+  useAutomationConfig,
   useSelectedSocialProviders,
   useStore,
 } from "@/store/post";
@@ -134,6 +135,7 @@ function SocialSelectorItem({
   const post = useStore((state) => state.post);
   const setProviderSettings = useStore((state) => state.setProviderSettings);
   const getProviderSettings = useStore((state) => state.getProviderSettings);
+  const automationConfig = useAutomationConfig(socialId);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
@@ -246,14 +248,19 @@ function SocialSelectorItem({
               </motion.span>
               <div className="flex items-center gap-1">
                 {isSelected && hasSettings(socialProvider) && (
-                  <Button
-                    className="h-6 w-6 hover:bg-white/20"
-                    onClick={handleSettingsClick}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Icon icon={Settings01Icon} size={12} />
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      className="h-6 w-6 hover:bg-white/20"
+                      onClick={handleSettingsClick}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Icon icon={Settings01Icon} size={12} />
+                    </Button>
+                    {socialProvider === "INSTAGRAM" && automationConfig && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white" />
+                    )}
+                  </div>
                 )}
                 {isSelected && (
                   <motion.span

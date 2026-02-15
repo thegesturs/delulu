@@ -8,6 +8,7 @@ import {
 } from "@delulu/design-system/components/ui/alert";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import {
   Select,
@@ -37,6 +38,7 @@ import {
   type AutomationTemplate,
 } from "@/components/automations/flow-builder/templates/automation-templates";
 import type {
+  AutomationConditionOperator,
   AutomationStep,
   SendDmStep,
 } from "@/components/automations/flow-builder/utils/flow-types";
@@ -167,6 +169,14 @@ export function InstagramSettingsDisplay({
         triggerType: template.triggerType,
         targetPostIds: [],
         nextStepId: firstStepId,
+        commentReply: {
+          enabled: true,
+          replies: [
+            "Check your DMs! 📨",
+            "DM sent! 🎉",
+            "Sent you a message ✉️",
+          ],
+        },
       });
       setAutomationConfig(providerId, {
         templateSlug: template.slug,
@@ -201,6 +211,41 @@ export function InstagramSettingsDisplay({
     },
     [providerId, automationConfig, setAutomationConfig]
   );
+
+  const handleKeywordFilterChange = useCallback(
+    (
+      mode: "any" | "specific",
+      operator?: AutomationConditionOperator,
+      value?: string
+    ) => {
+      if (!automationConfig) {
+        return;
+      }
+      const trigger = automationConfig.triggers[0];
+      if (!trigger) {
+        return;
+      }
+
+      const keywordFilter =
+        mode === "any"
+          ? { operator: "always" as const, value: undefined }
+          : {
+              operator: operator ?? ("contains" as AutomationConditionOperator),
+              value: value ?? "",
+            };
+
+      const newTriggers = [{ ...trigger, keywordFilter }];
+      setAutomationConfig(providerId, {
+        ...automationConfig,
+        triggers: newTriggers,
+      });
+    },
+    [providerId, automationConfig, setAutomationConfig]
+  );
+
+  const currentFilter = automationConfig?.triggers[0]?.keywordFilter;
+  const isSpecificKeyword =
+    currentFilter != null && currentFilter.operator !== "always";
 
   const primaryDmStep = automationConfig
     ? getPrimaryDmStep(automationConfig.steps)
@@ -310,6 +355,72 @@ export function InstagramSettingsDisplay({
                   Change
                 </Button>
               </div>
+            </div>
+
+            {/* Keyword Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs">Trigger on</Label>
+              <div className="flex gap-1.5">
+                <Button
+                  className="flex-1 text-xs"
+                  onClick={() => handleKeywordFilterChange("any")}
+                  size="sm"
+                  variant={isSpecificKeyword ? "outline" : "default"}
+                >
+                  Any comment
+                </Button>
+                <Button
+                  className="flex-1 text-xs"
+                  onClick={() =>
+                    handleKeywordFilterChange(
+                      "specific",
+                      "contains",
+                      currentFilter?.value ?? ""
+                    )
+                  }
+                  size="sm"
+                  variant={isSpecificKeyword ? "default" : "outline"}
+                >
+                  Specific keyword
+                </Button>
+              </div>
+
+              {isSpecificKeyword && (
+                <div className="space-y-2">
+                  <Select
+                    onValueChange={(value) =>
+                      handleKeywordFilterChange(
+                        "specific",
+                        value as AutomationConditionOperator,
+                        currentFilter?.value ?? ""
+                      )
+                    }
+                    value={currentFilter.operator}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">Contains</SelectItem>
+                      <SelectItem value="equals">Equals</SelectItem>
+                      <SelectItem value="starts_with">Starts with</SelectItem>
+                      <SelectItem value="ends_with">Ends with</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    className="h-8 text-xs"
+                    onChange={(e) =>
+                      handleKeywordFilterChange(
+                        "specific",
+                        currentFilter.operator as AutomationConditionOperator,
+                        e.target.value
+                      )
+                    }
+                    placeholder="e.g. LINK"
+                    value={currentFilter.value ?? ""}
+                  />
+                </div>
+              )}
             </div>
 
             {primaryDmStep && (
