@@ -18,7 +18,7 @@ function getFaqs(currency: CurrencyCode) {
     {
       question: "Is my data safe?",
       answer:
-        "Bro, yes. We don't want your embarrassing drafts either. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.",
+        "Bro, yes. We use the same official APIs that Meta, TikTok, and LinkedIn give to verified partners. No reverse-engineering, no sketchy hacks. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.",
     },
     {
       question: "What if I'm just one random creator?",
@@ -55,7 +55,7 @@ function getFaqs(currency: CurrencyCode) {
     {
       question: "Will this hurt my organic reach?",
       answer:
-        "Nope. We use official APIs, so platforms treat your content exactly like native posts. No algorithmic penalties for being smart about your time.",
+        "Nope. We use official APIs — the same ones Meta, TikTok, and LinkedIn hand out to approved apps. Platforms treat your content exactly like native posts. No algorithmic penalties, no account risk.",
     },
     {
       question: "Can I cancel anytime?",

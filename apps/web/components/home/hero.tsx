@@ -133,8 +133,8 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.5 }}
         >
           <Balancer>
-            Chill. We don't spam. We don't sell your data. We don't even want
-            your phone number — ew.
+            We use official APIs from Meta, TikTok, LinkedIn & more. No sketchy
+            workarounds. Your account stays safe — pinky promise.
           </Balancer>
         </motion.p>
       </div>
