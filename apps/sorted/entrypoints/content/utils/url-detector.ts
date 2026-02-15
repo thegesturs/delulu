@@ -62,44 +62,33 @@ export type UrlChangeCallback = (newUrl: string, oldUrl: string) => void;
 
 /**
  * Monitor URL changes in Instagram's SPA
+ * Uses polling as primary detection (works across isolated/MAIN worlds)
+ * with pushState/popstate as supplementary signals.
  * Returns a cleanup function to stop monitoring
  */
 export function monitorUrlChanges(callback: UrlChangeCallback): () => void {
   let currentUrl = window.location.href;
 
-  // Handle pushState and replaceState
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
-
-  history.pushState = function (...args) {
-    const result = originalPushState.apply(this, args);
-    const oldUrl = currentUrl;
-    currentUrl = window.location.href;
-    callback(currentUrl, oldUrl);
-    return result;
+  const notifyIfChanged = () => {
+    const newUrl = window.location.href;
+    if (newUrl !== currentUrl) {
+      const oldUrl = currentUrl;
+      currentUrl = newUrl;
+      callback(newUrl, oldUrl);
+    }
   };
 
-  history.replaceState = function (...args) {
-    const result = originalReplaceState.apply(this, args);
-    const oldUrl = currentUrl;
-    currentUrl = window.location.href;
-    callback(currentUrl, oldUrl);
-    return result;
-  };
+  // Poll for URL changes — catches SPA navigations that happen in the
+  // MAIN world (pushState/replaceState overrides don't work cross-world)
+  const pollInterval = setInterval(notifyIfChanged, 300);
 
-  // Handle back/forward navigation
-  const popstateHandler = () => {
-    const oldUrl = currentUrl;
-    currentUrl = window.location.href;
-    callback(currentUrl, oldUrl);
-  };
-
+  // Handle back/forward navigation (fires synchronously)
+  const popstateHandler = () => notifyIfChanged();
   window.addEventListener("popstate", popstateHandler);
 
   // Cleanup function
   return () => {
-    history.pushState = originalPushState;
-    history.replaceState = originalReplaceState;
+    clearInterval(pollInterval);
     window.removeEventListener("popstate", popstateHandler);
   };
 }

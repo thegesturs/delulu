@@ -3,13 +3,14 @@
  */
 
 import { useState } from "react";
-import type { SortMetric } from "../../shared/types";
+import type { ExportFormat, SortMetric } from "../../shared/types";
 
 interface SortPanelProps {
   onSort: (metric: SortMetric, quantity: number) => void;
   isSorting: boolean;
   onReset?: () => void;
   isActive: boolean;
+  onExport?: (format: ExportFormat) => void;
 }
 
 export function SortPanel({
@@ -17,6 +18,7 @@ export function SortPanel({
   isSorting,
   onReset,
   isActive,
+  onExport,
 }: SortPanelProps) {
   const [sortMetric, setSortMetric] = useState<SortMetric>("views");
   const [quantity, setQuantity] = useState<number>(25);
@@ -127,13 +129,42 @@ export function SortPanel({
             className="sorted-info-text"
             style={{
               marginLeft: "auto",
-              marginRight: "16px",
               fontSize: "13px",
               fontWeight: 500,
               color: "var(--sorted-text-secondary)",
             }}
           >
             Latest {quantity} Reels Sorted
+          </div>
+        )}
+
+        {/* Export Buttons */}
+        {isActive && onExport && (
+          <div className="sorted-export-group">
+            <button
+              className="sorted-export-button"
+              onClick={() => onExport("csv")}
+              title="Export as CSV"
+              type="button"
+            >
+              CSV
+            </button>
+            <button
+              className="sorted-export-button"
+              onClick={() => onExport("json")}
+              title="Export as JSON"
+              type="button"
+            >
+              JSON
+            </button>
+            <button
+              className="sorted-export-button"
+              onClick={() => onExport("xlsx")}
+              title="Export as Excel"
+              type="button"
+            >
+              Excel
+            </button>
           </div>
         )}
 

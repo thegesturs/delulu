@@ -14,6 +14,7 @@ interface GraphQLReelData {
   view_count?: number;
   like_count?: number;
   comment_count?: number;
+  video_versions?: Array<{ url?: string }>;
 }
 
 interface GraphQLResponse {
@@ -59,6 +60,7 @@ function extractMetrics(data: GraphQLReelData): ReelMetrics {
     views: data.play_count ?? data.view_count,
     likes: data.like_count,
     comments: data.comment_count,
+    videoUrl: data.video_versions?.[0]?.url,
   };
 }
 

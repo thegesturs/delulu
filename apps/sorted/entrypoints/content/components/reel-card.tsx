@@ -25,9 +25,113 @@ function formatMetric(value: number | undefined | null): string {
   return value.toString();
 }
 
-export function ReelCard({ reel, rank }: ReelCardProps) {
-  const handleClick = () => {
+// Top-level regex patterns for video URL extraction (biome perf)
+const OG_VIDEO_REGEX = /<meta\s+property="og:video"\s+content="([^"]+)"/;
+const OG_VIDEO_URL_REGEX =
+  /<meta\s+property="og:video:url"\s+content="([^"]+)"/;
+const JSON_VIDEO_URL_REGEX = /"video_url":"(https?:[^"]+)"/;
+// Matches "video_versions":[{"url":"https:\/\/..."}] with escaped slashes
+const VIDEO_VERSIONS_REGEX =
+  /"video_versions"\s*:\s*\[\s*\{[^}]*"url"\s*:\s*"([^"]+)"/;
+
+/**
+ * Decode a JSON-escaped URL (handles \/, \u0026, etc.)
+ */
+function decodeEscapedUrl(url: string): string {
+  return url
+    .replace(/\\u[\da-fA-F]{4}/g, (m) =>
+      String.fromCharCode(Number.parseInt(m.slice(2), 16))
+    )
+    .replace(/\\\//g, "/");
+}
+
+/**
+ * Try to resolve a video URL for a reel.
+ * Uses cached videoUrl if available, otherwise fetches the reel page
+ * and extracts the video URL from Open Graph meta tags.
+ */
+async function resolveVideoUrl(reel: ReelData): Promise<string | null> {
+  // Use cached URL from GraphQL if available
+  if (reel.videoUrl) {
+    return reel.videoUrl;
+  }
+
+  try {
+    // Fetch the reel page (same-origin, no CORS issues)
+    const res = await fetch(reel.url, {
+      credentials: "include",
+      headers: { Accept: "text/html" },
+    });
+    const html = await res.text();
+
+    // Try og:video meta tag first
+    const ogMatch = html.match(OG_VIDEO_REGEX);
+    if (ogMatch) {
+      return ogMatch[1];
+    }
+
+    // Try og:video:url
+    const ogUrlMatch = html.match(OG_VIDEO_URL_REGEX);
+    if (ogUrlMatch) {
+      return ogUrlMatch[1];
+    }
+
+    // Try "video_url":"https://..." pattern
+    const jsonMatch = html.match(JSON_VIDEO_URL_REGEX);
+    if (jsonMatch) {
+      return decodeEscapedUrl(jsonMatch[1]);
+    }
+
+    // Try "video_versions":[{"url":"..."}] pattern (Instagram's common format)
+    const versionsMatch = html.match(VIDEO_VERSIONS_REGEX);
+    if (versionsMatch) {
+      return decodeEscapedUrl(versionsMatch[1]);
+    }
+  } catch {
+    // Fetch failed — fall through
+  }
+
+  return null;
+}
+
+async function downloadVideo(reel: ReelData) {
+  const videoUrl = await resolveVideoUrl(reel);
+
+  if (!videoUrl) {
     window.open(reel.url, "_blank");
+    return;
+  }
+
+  try {
+    const response = await fetch(videoUrl);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `reel-${reel.id}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // CORS fallback: open video URL in new tab
+    window.open(videoUrl, "_blank");
+  }
+}
+
+export function ReelCard({ reel, rank }: ReelCardProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    // Ignore clicks on the download button
+    if ((e.target as HTMLElement).closest(".sorted-reel-download")) {
+      return;
+    }
+    window.open(reel.url, "_blank");
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    downloadVideo(reel);
   };
 
   return (
@@ -130,6 +234,31 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
             </span>
           </div>
         )}
+      </div>
+
+      {/* Download button — rendered LAST so it sits above the metrics overlay */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: download action */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: download action */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: download action */}
+      <div
+        className="sorted-reel-download"
+        onClick={handleDownload}
+        title="Download video"
+      >
+        <svg
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.5"
+          viewBox="0 0 24 24"
+          width="14"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" x2="12" y1="15" y2="3" />
+        </svg>
       </div>
     </div>
   );

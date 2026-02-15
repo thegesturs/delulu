@@ -158,7 +158,8 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
 
     // Get metrics from GraphQL interceptor cache ONLY
     // Instagram sends these via GraphQL - we intercept and cache them
-    const metrics = getCachedMetrics(id) || {
+    const cachedMetrics = getCachedMetrics(id);
+    const metrics = cachedMetrics || {
       views: undefined,
       likes: undefined,
       comments: undefined,
@@ -169,6 +170,7 @@ export function scrapeReelElement(reelElement: Element): ReelData | null {
       url,
       thumbnailUrl,
       metrics,
+      videoUrl: cachedMetrics?.videoUrl,
       scrapedAt: Date.now(),
     };
   } catch (error) {

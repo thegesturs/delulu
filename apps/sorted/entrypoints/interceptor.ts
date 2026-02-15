@@ -18,6 +18,18 @@ export default defineContentScript({
     // biome-ignore lint/suspicious/noExplicitAny: window extension requires any
     (window as any).__sortedMetricsCache = metricsCache;
 
+    /**
+     * Cache metrics and notify the isolated world via postMessage
+     */
+    // biome-ignore lint/suspicious/noExplicitAny: metrics shape is dynamic
+    function cacheAndNotify(reelId: string, metrics: any) {
+      metricsCache.set(reelId, metrics);
+      window.postMessage(
+        { type: "SORTED_METRICS_CACHED", reelId, metrics },
+        "*"
+      );
+    }
+
     // Hook XHR (Instagram uses this!)
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
@@ -70,10 +82,11 @@ export default defineContentScript({
                       views: media.play_count ?? media.view_count,
                       likes: media.like_count,
                       comments: media.comment_count,
+                      videoUrl: media.video_versions?.[0]?.url,
                     };
 
                     if (media.code) {
-                      metricsCache.set(media.code, metrics);
+                      cacheAndNotify(media.code, metrics);
                       console.log(
                         "[Sorted] 📊 Cached metrics for",
                         media.code,
@@ -81,7 +94,7 @@ export default defineContentScript({
                       );
                     }
                     if (media.pk) {
-                      metricsCache.set(media.pk, metrics);
+                      cacheAndNotify(media.pk, metrics);
                     }
                   }
                 });
@@ -107,10 +120,11 @@ export default defineContentScript({
                     views: node.play_count ?? node.view_count,
                     likes: node.like_count,
                     comments: node.comment_count,
+                    videoUrl: node.video_versions?.[0]?.url,
                   };
 
                   if (node.code) {
-                    metricsCache.set(node.code, metrics);
+                    cacheAndNotify(node.code, metrics);
                     console.log(
                       "[Sorted] 📊 Cached metrics for",
                       node.code,
@@ -118,7 +132,7 @@ export default defineContentScript({
                     );
                   }
                   if (node.pk) {
-                    metricsCache.set(node.pk, metrics);
+                    cacheAndNotify(node.pk, metrics);
                   }
                 });
               }
