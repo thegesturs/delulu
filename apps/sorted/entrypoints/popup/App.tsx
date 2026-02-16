@@ -1,5 +1,5 @@
 /**
- * Popup UI — Auth states, usage display, and status
+ * Popup UI — Auth states, usage display, transcription history, and status
  */
 
 import {
@@ -9,8 +9,9 @@ import {
   UserButton,
   useUser,
 } from "@clerk/chrome-extension";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { isReelsTab } from "../content/utils/url-detector";
+import type { StoredTranscription } from "../shared/types";
 import "./App.css";
 
 interface UsageData {
@@ -18,10 +19,98 @@ interface UsageData {
   limit: number;
 }
 
+interface ActiveTranscription {
+  reelId: string;
+  reelUrl: string;
+  startedAt: number;
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds >= 60) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  return `${Math.round(seconds)}s`;
+}
+
+function HistoryItem({ item }: { item: StoredTranscription }) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(item.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: popup history item
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: <explanation>
+    // biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
+    <div
+      className={`popup-history-item ${expanded ? "expanded" : ""}`}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div className="popup-history-item-header">
+        <div className="popup-history-item-meta">
+          <span className="popup-history-lang">
+            {item.language.toUpperCase()}
+          </span>
+          <span className="popup-history-duration">
+            {formatDuration(item.durationSeconds)}
+          </span>
+        </div>
+        <button
+          className="popup-history-copy"
+          onClick={handleCopy}
+          title="Copy transcription"
+          type="button"
+        >
+          {copied ? (
+            <svg
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="14"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="14"
+            >
+              <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+        </button>
+      </div>
+      <p className={`popup-history-text ${expanded ? "expanded" : ""}`}>
+        {item.text}
+      </p>
+    </div>
+  );
+}
+
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
   const { user } = useUser();
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [history, setHistory] = useState<StoredTranscription[]>([]);
+  const [active, setActive] = useState<ActiveTranscription | null>(null);
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -32,17 +121,53 @@ function App() {
     });
   }, []);
 
-  // Load usage from chrome.storage (set by content script after transcription)
-  useEffect(() => {
+  // Load usage, history, and active transcription from chrome.storage
+  const loadStorageData = useCallback(() => {
     if (!user) {
       return;
     }
-    chrome.storage.local.get(["transcriptionUsage"], (result) => {
-      if (result.transcriptionUsage) {
-        setUsage(result.transcriptionUsage);
+    chrome.storage.local.get(
+      ["transcriptionUsage", "transcriptionHistory", "activeTranscription"],
+      (result) => {
+        if (result.transcriptionUsage) {
+          setUsage(result.transcriptionUsage);
+        }
+        if (result.transcriptionHistory) {
+          setHistory(result.transcriptionHistory);
+        }
+        setActive(result.activeTranscription ?? null);
       }
-    });
+    );
   }, [user]);
+
+  useEffect(() => {
+    loadStorageData();
+  }, [loadStorageData]);
+
+  // Live-update when content script writes to storage
+  useEffect(() => {
+    const listener = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      area: string
+    ) => {
+      if (area !== "local") {
+        return;
+      }
+      if (changes.transcriptionHistory) {
+        setHistory(changes.transcriptionHistory.newValue ?? []);
+      }
+      if (changes.activeTranscription) {
+        setActive(changes.activeTranscription.newValue ?? null);
+      }
+      if (changes.transcriptionUsage) {
+        setUsage(changes.transcriptionUsage.newValue ?? null);
+      }
+    };
+    chrome.storage.onChanged.addListener(listener);
+    return () => chrome.storage.onChanged.removeListener(listener);
+  }, []);
+
+  const hasHistory = history.length > 0;
 
   return (
     <div className="popup-container">
@@ -111,6 +236,36 @@ function App() {
               </p>
             )}
           </div>
+
+          {/* Active Transcription */}
+          {active && (
+            <div className="popup-active-card">
+              <div className="popup-active-dot" />
+              <div className="popup-active-content">
+                <span className="popup-active-label">
+                  Transcribing a reel...
+                </span>
+                <span className="popup-active-sublabel">
+                  This may take up to a minute
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Transcription History */}
+          {hasHistory && (
+            <div className="popup-history-section">
+              <h4 className="popup-history-header">Recent Transcriptions</h4>
+              <div className="popup-history-list">
+                {history.map((item) => (
+                  <HistoryItem
+                    item={item}
+                    key={`${item.reelId}-${item.timestamp}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </SignedIn>
 
         {/* Status */}
@@ -136,17 +291,19 @@ function App() {
           )}
         </div>
 
-        {/* Instructions */}
-        <div className="popup-instructions">
-          <h4>How to Use:</h4>
-          <ol>
-            <li>Go to any Instagram profile's reels tab</li>
-            <li>The sort panel will appear automatically</li>
-            <li>Select sort metric and quantity</li>
-            <li>Click "Sort Reels"</li>
-            <li>Hover a reel to download or transcribe</li>
-          </ol>
-        </div>
+        {/* Instructions — only when no history */}
+        {!hasHistory && (
+          <div className="popup-instructions">
+            <h4>How to Use:</h4>
+            <ol>
+              <li>Go to any Instagram profile's reels tab</li>
+              <li>The sort panel will appear automatically</li>
+              <li>Select sort metric and quantity</li>
+              <li>Click "Sort Reels"</li>
+              <li>Hover a reel to download or transcribe</li>
+            </ol>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

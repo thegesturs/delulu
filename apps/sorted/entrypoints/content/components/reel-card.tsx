@@ -129,6 +129,9 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
     null
   );
+  const [transcriptionInfo, setTranscriptionInfo] = useState<string | null>(
+    null
+  );
 
   const handleClick = (e: React.MouseEvent) => {
     // Ignore clicks on action buttons
@@ -157,6 +160,10 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
 
     setTranscribing(true);
     setTranscriptionError(null);
+
+    // Show info tooltip directing to popup
+    setTranscriptionInfo("Transcribing… check the Sorted popup for results");
+    setTimeout(() => setTranscriptionInfo(null), 5000);
 
     try {
       const result = await transcribeReel(reel, resolveVideoUrl);
@@ -312,6 +319,11 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
       {/* Error tooltip */}
       {transcriptionError && (
         <div className="sorted-transcription-error">{transcriptionError}</div>
+      )}
+
+      {/* Info tooltip */}
+      {transcriptionInfo && !transcriptionError && (
+        <div className="sorted-transcription-info">{transcriptionInfo}</div>
       )}
 
       {/* Download button — rendered LAST so it sits above the metrics overlay */}
