@@ -87,7 +87,13 @@ export default $config({
       "TranscriptionFunction",
       {
         handler: "src/transcription.handler",
-        url: true,
+        url: {
+          cors: {
+            allowOrigins: ["*"],
+            allowMethods: ["POST"],
+            allowHeaders: ["Content-Type", "Authorization"],
+          },
+        },
         link: [
           GROQ_API_KEY,
           CLERK_SECRET_KEY,

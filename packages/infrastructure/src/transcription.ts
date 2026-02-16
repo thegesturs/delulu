@@ -22,20 +22,17 @@ interface TranscriptionRequest {
 }
 
 // ============================================================================
-// CORS helpers
+// Response helper (CORS handled by SST Function URL config)
 // ============================================================================
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+const RESPONSE_HEADERS = {
   "Content-Type": "application/json",
 };
 
 function jsonResponse(statusCode: number, body: Record<string, unknown>) {
   return {
     statusCode,
-    headers: CORS_HEADERS,
+    headers: RESPONSE_HEADERS,
     body: JSON.stringify(body),
   };
 }
@@ -46,11 +43,6 @@ function jsonResponse(statusCode: number, body: Record<string, unknown>) {
 
 export async function handler(event: LambdaEvent) {
   const method = event.requestContext.http.method;
-
-  // Handle CORS preflight
-  if (method === "OPTIONS") {
-    return { statusCode: 200, headers: CORS_HEADERS, body: "" };
-  }
 
   if (method !== "POST") {
     return jsonResponse(405, { error: "Method not allowed" });
@@ -185,7 +177,7 @@ export async function handler(event: LambdaEvent) {
     // 10. Log to Dodo Payments metering (fire-and-forget)
     if (usage.dodoCustomerId) {
       try {
-        await fetch("https://api.dodopayments.com/events/ingest", {
+        await fetch("https://test.dodopayments.com/events/ingest", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${Resource.DODO_PAYMENTS_API_KEY.value}`,
@@ -196,7 +188,7 @@ export async function handler(event: LambdaEvent) {
               {
                 event_id: `transcription_${body.reelId}_${Date.now()}`,
                 customer_id: usage.dodoCustomerId,
-                event_name: "transcription",
+                event_name: "transcription.usage",
                 timestamp: new Date().toISOString(),
                 metadata: {
                   duration_seconds: durationSeconds,
