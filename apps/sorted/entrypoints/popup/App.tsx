@@ -1,29 +1,42 @@
 /**
  * Popup UI — Auth states, usage display, transcription history, and status
  */
+/** biome-ignore-all lint/performance/useTopLevelRegex: <explanation> */
 
 import {
   SignedIn,
   SignedOut,
   SignInButton,
   UserButton,
+  useAuth,
   useUser,
 } from "@clerk/chrome-extension";
+import { api } from "@delulu/database/convex/_generated/api";
+import { ConvexHttpClient } from "convex/browser";
 import { useCallback, useEffect, useState } from "react";
 import { isReelsTab } from "../content/utils/url-detector";
-import type { StoredTranscription } from "../shared/types";
 import "./App.css";
 
-interface UsageData {
-  used: number;
-  limit: number;
-}
+const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
+const convex = new ConvexHttpClient(CONVEX_URL);
 
 interface ActiveTranscription {
   reelId: string;
   reelUrl: string;
   startedAt: number;
 }
+
+interface UsageData {
+  used: number;
+  limit: number;
+}
+
+// Infer the transcription type from the Convex query
+type Transcription = Awaited<
+  ReturnType<
+    typeof convex.query<typeof api.transcriptions.getUserTranscriptions>
+  >
+>[number];
 
 function formatDuration(seconds: number): string {
   if (seconds >= 60) {
@@ -34,7 +47,23 @@ function formatDuration(seconds: number): string {
   return `${Math.round(seconds)}s`;
 }
 
-function HistoryItem({ item }: { item: StoredTranscription }) {
+const REEL_URL_REGEX =
+  /instagram\.com\/([^/]+)\/reel\/|instagram\.com\/reel\/([^/?]+)/;
+
+function extractReelLabel(reelUrl: string): string {
+  const match = reelUrl.match(REEL_URL_REGEX);
+  if (match) {
+    const username = match[1];
+    if (username && username !== "reel") {
+      return `@${username}`;
+    }
+  }
+  // Fallback: show shortened reel ID
+  const idMatch = reelUrl.match(/\/reel\/([^/?]+)/);
+  return idMatch ? `Reel ${idMatch[1].slice(0, 8)}...` : "Reel";
+}
+
+function HistoryItem({ item }: { item: Transcription }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -47,8 +76,8 @@ function HistoryItem({ item }: { item: StoredTranscription }) {
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: popup history item
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: <explanation>
-    // biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: popup history item
+    // biome-ignore lint/a11y/noStaticElementInteractions: popup history item
     <div
       className={`popup-history-item ${expanded ? "expanded" : ""}`}
       onClick={() => setExpanded(!expanded)}
@@ -61,41 +90,22 @@ function HistoryItem({ item }: { item: StoredTranscription }) {
           <span className="popup-history-duration">
             {formatDuration(item.durationSeconds)}
           </span>
+          <a
+            className="popup-history-reel-link"
+            href={item.reelUrl}
+            onClick={(e) => e.stopPropagation()}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {extractReelLabel(item.reelUrl)}
+          </a>
         </div>
         <button
-          className="popup-history-copy"
+          className={`popup-history-copy ${copied ? "copied" : ""}`}
           onClick={handleCopy}
-          title="Copy transcription"
           type="button"
         >
-          {copied ? (
-            <svg
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              width="14"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              width="14"
-            >
-              <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
-          )}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
       <p className={`popup-history-text ${expanded ? "expanded" : ""}`}>
@@ -105,12 +115,16 @@ function HistoryItem({ item }: { item: StoredTranscription }) {
   );
 }
 
+const PREVIEW_LIMIT = 5;
+
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
   const { user } = useUser();
-  const [usage, setUsage] = useState<UsageData | null>(null);
-  const [history, setHistory] = useState<StoredTranscription[]>([]);
+  const { getToken } = useAuth();
   const [active, setActive] = useState<ActiveTranscription | null>(null);
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [usage, setUsage] = useState<UsageData | null>(null);
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -121,31 +135,42 @@ function App() {
     });
   }, []);
 
-  // Load usage, history, and active transcription from chrome.storage
-  const loadStorageData = useCallback(() => {
+  // Fetch transcription data from Convex via HTTP (no WebSocket)
+  const fetchConvexData = useCallback(async () => {
     if (!user) {
       return;
     }
-    chrome.storage.local.get(
-      ["transcriptionUsage", "transcriptionHistory", "activeTranscription"],
-      (result) => {
-        if (result.transcriptionUsage) {
-          setUsage(result.transcriptionUsage);
-        }
-        if (result.transcriptionHistory) {
-          setHistory(result.transcriptionHistory);
-        }
-        setActive(result.activeTranscription ?? null);
+    try {
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        return;
       }
-    );
-  }, [user]);
+      convex.setAuth(token);
+      const [txns, usageData] = await Promise.all([
+        convex.query(api.transcriptions.getUserTranscriptions, {}),
+        convex.query(api.transcriptions.getMyTranscriptionUsage, {}),
+      ]);
+      setTranscriptions(txns);
+      setUsage(usageData);
+    } catch {
+      // Auth not ready yet or query failed — ignore
+    }
+  }, [user, getToken]);
 
   useEffect(() => {
-    loadStorageData();
-  }, [loadStorageData]);
+    fetchConvexData();
+  }, [fetchConvexData]);
 
-  // Live-update when content script writes to storage
+  // Load active transcription from chrome.storage (transient content-script state)
+  // and re-fetch Convex data when a transcription completes
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+    chrome.storage.local.get(["activeTranscription"], (result) => {
+      setActive(result.activeTranscription ?? null);
+    });
+
     const listener = (
       changes: { [key: string]: chrome.storage.StorageChange },
       area: string
@@ -153,21 +178,67 @@ function App() {
       if (area !== "local") {
         return;
       }
-      if (changes.transcriptionHistory) {
-        setHistory(changes.transcriptionHistory.newValue ?? []);
-      }
       if (changes.activeTranscription) {
-        setActive(changes.activeTranscription.newValue ?? null);
-      }
-      if (changes.transcriptionUsage) {
-        setUsage(changes.transcriptionUsage.newValue ?? null);
+        const newVal = changes.activeTranscription.newValue ?? null;
+        setActive(newVal);
+        // When activeTranscription is cleared, a transcription just completed — refetch
+        if (!newVal) {
+          fetchConvexData();
+        }
       }
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
-  }, []);
+  }, [user, fetchConvexData]);
 
-  const hasHistory = history.length > 0;
+  const hasHistory = transcriptions.length > 0;
+  const previewItems = transcriptions.slice(0, PREVIEW_LIMIT);
+  const hasMore = transcriptions.length > PREVIEW_LIMIT;
+
+  // Full-page history view
+  if (showAllHistory) {
+    return (
+      <div className="popup-container">
+        <div className="popup-header">
+          <div className="popup-header-top">
+            <button
+              className="popup-back-button"
+              onClick={() => setShowAllHistory(false)}
+              type="button"
+            >
+              <svg
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back
+            </button>
+            <span className="popup-header-title">All Transcriptions</span>
+            <div style={{ width: 52 }} />
+          </div>
+        </div>
+        <div className="popup-content">
+          <div className="popup-history-section">
+            <div className="popup-history-list">
+              {transcriptions.map((item) => (
+                <HistoryItem
+                  item={item}
+                  key={`${item.reelId}-${item.createdAt}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="popup-container">
@@ -212,7 +283,7 @@ function App() {
             <div className="popup-usage-header">
               <span className="popup-usage-label">Transcriptions</span>
               <span className="popup-usage-count">
-                {usage ? `${usage.used}/${usage.limit}` : "0/10"} free
+                {usage ? `${usage.used}/${usage.limit}` : "–/10"} free
               </span>
             </div>
             <div className="popup-usage-bar-bg">
@@ -255,12 +326,23 @@ function App() {
           {/* Transcription History */}
           {hasHistory && (
             <div className="popup-history-section">
-              <h4 className="popup-history-header">Recent Transcriptions</h4>
+              <div className="popup-history-section-header">
+                <h4 className="popup-history-header">Recent Transcriptions</h4>
+                {hasMore && (
+                  <button
+                    className="popup-history-show-more"
+                    onClick={() => setShowAllHistory(true)}
+                    type="button"
+                  >
+                    Show all
+                  </button>
+                )}
+              </div>
               <div className="popup-history-list">
-                {history.map((item) => (
+                {previewItems.map((item) => (
                   <HistoryItem
                     item={item}
-                    key={`${item.reelId}-${item.timestamp}`}
+                    key={`${item.reelId}-${item.createdAt}`}
                   />
                 ))}
               </div>

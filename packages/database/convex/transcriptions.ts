@@ -210,3 +210,36 @@ export const getUserTranscriptions = query({
     return transcriptions;
   },
 });
+
+/**
+ * Get transcription usage for the current authenticated user.
+ * Used by the extension popup to display the usage meter.
+ */
+export const getMyTranscriptionUsage = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
+      .unique();
+
+    if (!user) {
+      return null;
+    }
+
+    const now = getCurrentTimestamp();
+    const periodStart = user.usage.transcriptionPeriodStart ?? now;
+    const periodEnd = periodStart + PERIOD_MS;
+    const used = now > periodEnd ? 0 : (user.usage.transcriptionsUsed ?? 0);
+
+    return {
+      used,
+      limit: FREE_TRANSCRIPTION_LIMIT,
+    };
+  },
+});

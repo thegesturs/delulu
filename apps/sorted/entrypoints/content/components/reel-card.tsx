@@ -3,9 +3,8 @@
  */
 
 import { useState } from "react";
-import type { ReelData, TranscriptionResult } from "../../shared/types";
+import type { ReelData } from "../../shared/types";
 import { transcribeReel } from "../utils/transcription-api";
-import { TranscriptionModal } from "./transcription-modal";
 
 interface ReelCardProps {
   reel: ReelData;
@@ -124,12 +123,7 @@ async function downloadVideo(reel: ReelData) {
 
 export function ReelCard({ reel, rank }: ReelCardProps) {
   const [transcribing, setTranscribing] = useState(false);
-  const [transcription, setTranscription] =
-    useState<TranscriptionResult | null>(null);
   const [transcriptionError, setTranscriptionError] = useState<string | null>(
-    null
-  );
-  const [transcriptionInfo, setTranscriptionInfo] = useState<string | null>(
     null
   );
 
@@ -161,13 +155,8 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
     setTranscribing(true);
     setTranscriptionError(null);
 
-    // Show info tooltip directing to popup
-    setTranscriptionInfo("Transcribing… check the Sorted popup for results");
-    setTimeout(() => setTranscriptionInfo(null), 5000);
-
     try {
-      const result = await transcribeReel(reel, resolveVideoUrl);
-      setTranscription(result);
+      await transcribeReel(reel, resolveVideoUrl);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Transcription failed";
@@ -321,11 +310,6 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
         <div className="sorted-transcription-error">{transcriptionError}</div>
       )}
 
-      {/* Info tooltip */}
-      {transcriptionInfo && !transcriptionError && (
-        <div className="sorted-transcription-info">{transcriptionInfo}</div>
-      )}
-
       {/* Download button — rendered LAST so it sits above the metrics overlay */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: download action */}
       {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: download action */}
@@ -350,14 +334,6 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
           <line x1="12" x2="12" y1="15" y2="3" />
         </svg>
       </div>
-
-      {/* Transcription modal */}
-      {transcription && (
-        <TranscriptionModal
-          onClose={() => setTranscription(null)}
-          result={transcription}
-        />
-      )}
     </div>
   );
 }

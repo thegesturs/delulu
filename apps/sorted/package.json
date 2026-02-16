@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@clerk/chrome-extension": "2.9.2",
+    "@delulu/database": "workspace:*",
+    "convex": "^1.25.4",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
     "xlsx": "^0.18.5"

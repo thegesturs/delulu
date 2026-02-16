@@ -143,15 +143,6 @@ export interface TranscriptionResult {
 }
 
 /**
- * Stored transcription with metadata for history
- */
-export interface StoredTranscription extends TranscriptionResult {
-  reelId: string;
-  reelUrl: string;
-  timestamp: number; // Date.now() when completed
-}
-
-/**
  * Union type for all messages
  */
 export type ExtensionMessage =

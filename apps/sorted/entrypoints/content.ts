@@ -5,6 +5,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { LoadingOverlay } from "./content/components/loading-overlay";
+import { ReelPageFab } from "./content/components/reel-page-fab";
 import { SortPanel } from "./content/components/sort-panel";
 import { SortedGrid } from "./content/components/sorted-grid";
 // Import styles inline to ensure they are injected
@@ -16,7 +17,11 @@ import {
   scrollAndLoadReels,
 } from "./content/utils/infinite-scroll";
 import { validateScrapingCapability } from "./content/utils/instagram-scraper";
-import { isReelsTab, monitorUrlChanges } from "./content/utils/url-detector";
+import {
+  isReelPage,
+  isReelsTab,
+  monitorUrlChanges,
+} from "./content/utils/url-detector";
 import type { ExportFormat, ReelData, SortMetric } from "./shared/types";
 
 export default defineContentScript({
@@ -58,6 +63,9 @@ export default defineContentScript({
     let currentReels: ReelData[] = [];
     let currentMetric: SortMetric = "views";
     let currentQuantity: number = 25;
+    let fabContainer: HTMLElement | null = null;
+    // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
+    let fabRoot: any = null;
 
     /**
      * Handle export action
@@ -475,13 +483,46 @@ export default defineContentScript({
     }
 
     /**
+     * Create floating transcribe button for individual reel pages
+     */
+    function createReelPageFab() {
+      if (fabContainer) {
+        return;
+      }
+      fabContainer = document.createElement("div");
+      fabContainer.id = "sorted-reel-fab-container";
+      document.body.appendChild(fabContainer);
+      fabRoot = createRoot(fabContainer);
+      fabRoot.render(React.createElement(ReelPageFab));
+    }
+
+    /**
+     * Remove floating transcribe button
+     */
+    function removeReelPageFab() {
+      if (fabRoot) {
+        fabRoot.unmount();
+        fabRoot = null;
+      }
+      if (fabContainer) {
+        fabContainer.remove();
+        fabContainer = null;
+      }
+    }
+
+    /**
      * Handle URL changes
      */
     function handleUrlChange(newUrl: string) {
       if (isReelsTab(newUrl)) {
+        removeReelPageFab();
         waitForReelsAndCreatePanel();
+      } else if (isReelPage(newUrl)) {
+        cleanup();
+        createReelPageFab();
       } else {
         cleanup();
+        removeReelPageFab();
       }
     }
 
@@ -506,6 +547,8 @@ export default defineContentScript({
       const startObserving = () => {
         if (isReelsTab()) {
           waitForReelsAndCreatePanel();
+        } else if (isReelPage()) {
+          createReelPageFab();
         }
         _cleanupUrlMonitor = monitorUrlChanges(handleUrlChange);
       };
