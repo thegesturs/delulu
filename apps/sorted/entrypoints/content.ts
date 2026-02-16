@@ -486,6 +486,10 @@ export default defineContentScript({
      * Create floating transcribe button for individual reel pages
      */
     function createReelPageFab() {
+      console.log(
+        "[Sorted] createReelPageFab called, existing fabContainer:",
+        !!fabContainer
+      );
       if (fabContainer) {
         return;
       }
@@ -494,6 +498,7 @@ export default defineContentScript({
       document.body.appendChild(fabContainer);
       fabRoot = createRoot(fabContainer);
       fabRoot.render(React.createElement(ReelPageFab));
+      console.log("[Sorted] FAB injected into DOM");
     }
 
     /**
@@ -514,6 +519,13 @@ export default defineContentScript({
      * Handle URL changes
      */
     function handleUrlChange(newUrl: string) {
+      console.log("[Sorted] URL changed:", newUrl);
+      console.log(
+        "[Sorted] isReelsTab:",
+        isReelsTab(newUrl),
+        "isReelPage:",
+        isReelPage(newUrl)
+      );
       if (isReelsTab(newUrl)) {
         removeReelPageFab();
         waitForReelsAndCreatePanel();
@@ -544,7 +556,17 @@ export default defineContentScript({
      * Initialize
      */
     function initialize() {
+      console.log(
+        "[Sorted] Initializing content script, URL:",
+        window.location.href
+      );
       const startObserving = () => {
+        console.log(
+          "[Sorted] startObserving — isReelsTab:",
+          isReelsTab(),
+          "isReelPage:",
+          isReelPage()
+        );
         if (isReelsTab()) {
           waitForReelsAndCreatePanel();
         } else if (isReelPage()) {

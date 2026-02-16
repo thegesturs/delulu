@@ -22,7 +22,13 @@ export function isProfile(url: string = window.location.href): boolean {
  * Check if current URL is a single reel page
  */
 export function isReelPage(url: string = window.location.href): boolean {
-  return INSTAGRAM_PATTERNS.REEL.test(url);
+  const result = INSTAGRAM_PATTERNS.REEL.test(url);
+  console.log("[Sorted] isReelPage check:", {
+    url,
+    result,
+    pattern: INSTAGRAM_PATTERNS.REEL.source,
+  });
+  return result;
 }
 
 // Top-level regex for performance

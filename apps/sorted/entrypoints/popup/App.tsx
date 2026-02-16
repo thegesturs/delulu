@@ -269,7 +269,7 @@ function App() {
               Transcribe reel audio to text with AI. Get 10 free transcriptions
               per month.
             </p>
-            <SignInButton mode="redirect">
+            <SignInButton mode="modal">
               <button className="popup-signin-button" type="button">
                 Sign in with Delulu
               </button>

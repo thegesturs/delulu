@@ -7,8 +7,8 @@ import type { ReelData } from "../../shared/types";
 import { transcribeReel } from "../utils/transcription-api";
 import { resolveVideoUrl } from "./reel-card";
 
-// Extract reel ID from URL like /reel/DT2O5zIk6Ae/
-const REEL_ID_REGEX = /\/reel\/([^/?]+)/;
+// Extract reel/post ID from URL like /reel/CODE/ or /p/CODE/
+const REEL_ID_REGEX = /\/(?:reel|p)\/([^/?]+)/;
 
 function getReelDataFromUrl(): ReelData | null {
   const match = window.location.href.match(REEL_ID_REGEX);
