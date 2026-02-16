@@ -9,6 +9,7 @@ import {
   baseSocialProviderSchema,
   baseSubscriptionSchema,
   baseTransactionSchema,
+  baseTranscriptionSchema,
   baseUserSchema,
 } from "./schemas";
 
@@ -98,4 +99,10 @@ export default defineSchema({
   automationContacts: defineTable(baseAutomationContactSchema.fields)
     .index("by_social_provider", ["socialProviderId"])
     .index("by_instagram_user", ["socialProviderId", "instagramUserId"]),
+
+  // Transcriptions table for reel audio transcriptions (Sorted extension)
+  transcriptions: defineTable(baseTranscriptionSchema.fields)
+    .index("by_user_id", ["userId"])
+    .index("by_reel_id", ["reelId"])
+    .index("by_user_created", ["userId", "createdAt"]),
 });

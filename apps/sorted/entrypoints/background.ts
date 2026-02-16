@@ -12,23 +12,49 @@ export default defineBackground(() => {
     console.log("[Sorted Background] Extension installed/updated", details);
 
     if (details.reason === "install") {
-      // Show onboarding/welcome page
       console.log("[Sorted Background] First install - showing welcome");
-      // Could open a welcome page or show notification
     } else if (details.reason === "update") {
       console.log("[Sorted Background] Extension updated");
-      // Could show update notes
     }
   });
 
   // Handle messages from content scripts or popup
-  browser.runtime.onMessage.addListener((message, sender, _sendResponse) => {
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(
       "[Sorted Background] Received message:",
       message,
       "from:",
       sender
     );
+
+    // Handle auth token request from content script
+    if (message.type === "GET_AUTH_TOKEN") {
+      // Retrieve Clerk session token from chrome.storage.local
+      // Clerk Chrome Extension stores the session in storage
+      chrome.storage.local.get(null, (items) => {
+        // Find the Clerk session key
+        const clerkKey = Object.keys(items).find(
+          (k) => k.startsWith("__clerk") && k.includes("client")
+        );
+        if (clerkKey && items[clerkKey]) {
+          try {
+            const data =
+              typeof items[clerkKey] === "string"
+                ? JSON.parse(items[clerkKey])
+                : items[clerkKey];
+            // Extract the JWT from Clerk's session data
+            const session = data?.sessions?.[0];
+            const token = session?.lastActiveToken?.jwt;
+            sendResponse({ token: token || null });
+          } catch {
+            sendResponse({ token: null });
+          }
+        } else {
+          sendResponse({ token: null });
+        }
+      });
+      return true; // Keep channel open for async response
+    }
 
     // Handle different message types
     if (message.type === "OPEN_OVERLAY") {
@@ -38,7 +64,6 @@ export default defineBackground(() => {
       }
     }
 
-    // Return true to indicate we'll send a response asynchronously
     return true;
   });
 

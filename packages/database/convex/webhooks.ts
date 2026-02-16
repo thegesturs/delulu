@@ -174,6 +174,39 @@ export const handleSubscriptionActivated = internalMutation({
 });
 
 /**
+ * Handle Sorted extension subscription activation
+ * Only sets dodoCustomerId on the user — no plan upgrade needed
+ */
+export const handleSortedSubscription = internalMutation({
+  args: {
+    customerEmail: v.string(),
+    customerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    console.log("[Webhook] Sorted subscription for:", args.customerEmail);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
+      .first();
+
+    if (!user) {
+      console.error("[Webhook] User not found for email:", args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
+    }
+
+    await ctx.db.patch(user._id, {
+      dodoCustomerId: args.customerId,
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    console.log("[Webhook] Set dodoCustomerId on user:", user._id);
+  },
+});
+
+/**
  * Handle subscription cancelled event
  * Called when a subscription is cancelled
  */

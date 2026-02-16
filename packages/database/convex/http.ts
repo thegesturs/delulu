@@ -151,6 +151,19 @@ http.route({
         payload.data.subscription_id
       );
 
+      // Check if this is a Sorted extension metered subscription
+      const SORTED_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
+      if (payload.data.product_id === SORTED_PRODUCT_ID) {
+        console.log(
+          "[Dodo Webhook] Sorted extension subscription — setting dodoCustomerId only"
+        );
+        await ctx.runMutation(internal.webhooks.handleSortedSubscription, {
+          customerEmail: payload.data.customer?.email || "",
+          customerId: payload.data.customer.customer_id,
+        });
+        return;
+      }
+
       // Calculate period start from previous billing date, created date, or current time
       let periodStart = Date.now();
       if (payload.data.previous_billing_date) {

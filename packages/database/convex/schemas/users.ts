@@ -17,6 +17,8 @@ const usageSchema = v.object({
   drafts: v.number(),
   organization: v.number(),
   dmsSent: v.optional(v.number()),
+  transcriptionsUsed: v.optional(v.number()),
+  transcriptionPeriodStart: v.optional(v.number()),
 });
 
 // Base user schema without system fields

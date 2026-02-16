@@ -5,7 +5,19 @@
 
 declare module "sst" {
   export interface Resource {
+    "CLERK_SECRET_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "CONVEX_URL": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "DODO_PAYMENTS_API_KEY": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "GROQ_API_KEY": {
       "type": "sst.sst.Secret"
       "value": string
     }
@@ -41,6 +53,11 @@ declare module "sst" {
       "subnets": any
       "taskDefinition": string
       "type": "sst.aws.Task"
+    }
+    "TranscriptionFunction": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
     }
     "TriggerSqsFunction": {
       "name": string

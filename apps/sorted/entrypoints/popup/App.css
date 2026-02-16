@@ -39,7 +39,7 @@ body {
 
 #root {
   width: 360px;
-  min-height: 500px;
+  min-height: 480px;
 }
 
 .popup-container {
@@ -56,26 +56,34 @@ body {
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid var(--system-separator);
   padding: 16px;
-  text-align: center;
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.popup-header-top {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+}
+
+.popup-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .popup-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   background: var(--system-blue);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  flex-shrink: 0;
 }
 
 .popup-title {
@@ -86,34 +94,133 @@ body {
 }
 
 .popup-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
-  margin: 2px 0 0 0;
-}
-
-.popup-branding {
-  display: none; /* Hide branding in minimal mode */
+  margin: 1px 0 0 0;
 }
 
 /* Content */
 .popup-content {
   flex: 1;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 /* iOS Grouped Style for Sections */
 .popup-status,
-.popup-instructions {
+.popup-instructions,
+.popup-auth-card,
+.popup-usage-card {
   background: var(--system-background);
   border-radius: 10px;
-  padding: 0;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+/* Auth Card */
+.popup-auth-card {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.popup-auth-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.popup-auth-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.popup-auth-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+  max-width: 280px;
+}
+
+.popup-signin-button {
+  background: var(--system-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: inherit;
+}
+
+.popup-signin-button:hover {
+  background: #4f46e5;
+}
+
+/* Usage Card */
+.popup-usage-card {
+  padding: 16px;
+}
+
+.popup-usage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.popup-usage-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.popup-usage-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.popup-usage-bar-bg {
+  height: 6px;
+  background: var(--system-gray-5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.popup-usage-bar-fill {
+  height: 100%;
+  background: var(--system-blue);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  min-width: 0;
+}
+
+.popup-usage-limit-msg {
+  font-size: 12px;
+  color: #ef4444;
+  margin: 8px 0 0 0;
+  text-align: center;
+}
+
+.popup-usage-limit-msg a {
+  color: var(--system-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.popup-usage-limit-msg a:hover {
+  text-decoration: underline;
+}
+
+/* Status */
 .popup-status {
   padding: 16px;
   display: flex;
@@ -140,7 +247,7 @@ body {
 }
 
 .popup-status h3 {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   margin: 0 0 4px 0;
 }
@@ -157,14 +264,14 @@ body {
   margin-top: 12px !important;
   font-size: 12px !important;
   color: var(--system-blue) !important;
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(99, 102, 241, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
 }
 
 /* Instructions List */
 .popup-instructions {
-  padding: 0 0 0 16px; /* Indent for list */
+  padding: 0 0 0 16px;
 }
 
 .popup-instructions h4 {
@@ -179,11 +286,12 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
+  counter-reset: list-item;
 }
 
 .popup-instructions li {
-  padding: 12px 16px 12px 0;
-  font-size: 15px;
+  padding: 10px 16px 10px 0;
+  font-size: 14px;
   border-bottom: 0.5px solid var(--system-separator);
   display: flex;
   gap: 12px;
@@ -195,44 +303,18 @@ body {
 
 .popup-instructions li::before {
   content: counter(list-item);
-  counter-increment: list-item; /* This assumes implied counter reset */
+  counter-increment: list-item;
   color: var(--system-blue);
   font-weight: 600;
   min-width: 16px;
 }
 
-.popup-instructions ol {
-  counter-reset: list-item;
-}
-
-/* Debug */
-.popup-debug {
-  background: var(--system-background);
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 12px;
-}
-
-.popup-debug summary {
-  color: var(--text-secondary);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.popup-url {
-  background: var(--system-gray-6);
-  padding: 8px;
-  border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  word-break: break-all;
-  margin-top: 8px;
-  color: var(--text-secondary);
-}
-
 /* Footer */
 .popup-footer {
-  padding: 16px;
-  text-align: center;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: var(--system-gray-6);
 }
 
@@ -242,11 +324,22 @@ body {
   margin: 0;
 }
 
+.popup-footer-link {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.popup-footer-link:hover {
+  color: var(--system-blue);
+}
+
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --system-background: #1c1c1e;
     --system-gray-6: #000000;
+    --system-gray-5: #2c2c2e;
     --system-separator: rgba(84, 84, 88, 0.65);
 
     --text-primary: #ffffff;
@@ -269,7 +362,19 @@ body {
   }
 
   .popup-example {
-    background: rgba(10, 132, 255, 0.2);
-    color: #0a84ff !important;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8 !important;
+  }
+
+  .popup-signin-button {
+    background: #818cf8;
+  }
+
+  .popup-signin-button:hover {
+    background: #6366f1;
+  }
+
+  .popup-usage-limit-msg {
+    color: #f87171;
   }
 }

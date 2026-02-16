@@ -2,7 +2,10 @@
  * Individual reel card component
  */
 
-import type { ReelData } from "../../shared/types";
+import { useState } from "react";
+import type { ReelData, TranscriptionResult } from "../../shared/types";
+import { transcribeReel } from "../utils/transcription-api";
+import { TranscriptionModal } from "./transcription-modal";
 
 interface ReelCardProps {
   reel: ReelData;
@@ -50,7 +53,7 @@ function decodeEscapedUrl(url: string): string {
  * Uses cached videoUrl if available, otherwise fetches the reel page
  * and extracts the video URL from Open Graph meta tags.
  */
-async function resolveVideoUrl(reel: ReelData): Promise<string | null> {
+export async function resolveVideoUrl(reel: ReelData): Promise<string | null> {
   // Use cached URL from GraphQL if available
   if (reel.videoUrl) {
     return reel.videoUrl;
@@ -120,9 +123,19 @@ async function downloadVideo(reel: ReelData) {
 }
 
 export function ReelCard({ reel, rank }: ReelCardProps) {
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcription, setTranscription] =
+    useState<TranscriptionResult | null>(null);
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(
+    null
+  );
+
   const handleClick = (e: React.MouseEvent) => {
-    // Ignore clicks on the download button
-    if ((e.target as HTMLElement).closest(".sorted-reel-download")) {
+    // Ignore clicks on action buttons
+    if (
+      (e.target as HTMLElement).closest(".sorted-reel-download") ||
+      (e.target as HTMLElement).closest(".sorted-reel-transcribe")
+    ) {
       return;
     }
     window.open(reel.url, "_blank");
@@ -132,6 +145,37 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
     downloadVideo(reel);
+  };
+
+  const handleTranscribe = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+
+    if (transcribing) {
+      return;
+    }
+
+    setTranscribing(true);
+    setTranscriptionError(null);
+
+    try {
+      const result = await transcribeReel(reel, resolveVideoUrl);
+      setTranscription(result);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Transcription failed";
+      if (message === "NOT_SIGNED_IN") {
+        setTranscriptionError("Sign in via the Sorted popup to transcribe");
+      } else if (message === "QUOTA_EXCEEDED") {
+        setTranscriptionError("Free limit reached — upgrade in the popup");
+      } else {
+        setTranscriptionError(message);
+      }
+      // Auto-clear error after 4 seconds
+      setTimeout(() => setTranscriptionError(null), 4000);
+    } finally {
+      setTranscribing(false);
+    }
   };
 
   return (
@@ -236,6 +280,40 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
         )}
       </div>
 
+      {/* Transcribe button — positioned below download button */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: transcribe action */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: transcribe action */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: transcribe action */}
+      <div
+        className={`sorted-reel-transcribe ${transcribing ? "loading" : ""}`}
+        onClick={handleTranscribe}
+        title="Transcribe audio"
+      >
+        {transcribing ? (
+          <div className="sorted-loading-spinner-sm" />
+        ) : (
+          <svg
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+            width="14"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <line x1="9" x2="15" y1="10" y2="10" />
+            <line x1="12" x2="12" y1="7" y2="13" />
+          </svg>
+        )}
+      </div>
+
+      {/* Error tooltip */}
+      {transcriptionError && (
+        <div className="sorted-transcription-error">{transcriptionError}</div>
+      )}
+
       {/* Download button — rendered LAST so it sits above the metrics overlay */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: download action */}
       {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: download action */}
@@ -260,6 +338,14 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
           <line x1="12" x2="12" y1="15" y2="3" />
         </svg>
       </div>
+
+      {/* Transcription modal */}
+      {transcription && (
+        <TranscriptionModal
+          onClose={() => setTranscription(null)}
+          result={transcription}
+        />
+      )}
     </div>
   );
 }

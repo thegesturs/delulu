@@ -31,6 +31,9 @@ export default $config({
       "INSTAGRAM_WEBHOOK_VERIFY_TOKEN"
     );
     const CONVEX_URL = new sst.Secret("CONVEX_URL");
+    const GROQ_API_KEY = new sst.Secret("GROQ_API_KEY");
+    const CLERK_SECRET_KEY = new sst.Secret("CLERK_SECRET_KEY");
+    const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");
 
     const triggerFunction = new sst.aws.Function("TriggerSqsFunction", {
       handler: "src/trigger-sqs.handler",
@@ -77,10 +80,31 @@ export default $config({
       timeout: "30 seconds",
     });
 
+    // ============================================================================
+    // TRANSCRIPTION FUNCTION (Sorted extension)
+    // ============================================================================
+    const transcriptionFunction = new sst.aws.Function(
+      "TranscriptionFunction",
+      {
+        handler: "src/transcription.handler",
+        url: true,
+        link: [
+          GROQ_API_KEY,
+          CLERK_SECRET_KEY,
+          CONVEX_URL,
+          SECRET_KEY,
+          DODO_PAYMENTS_API_KEY,
+        ],
+        timeout: "120 seconds",
+        memory: "1024 MB",
+      }
+    );
+
     return {
       SocialPostsQueueURL: queue.url,
       SocialPostsApiEndpoint: triggerFunction.url,
       InstagramWebhookURL: instagramWebhook.url,
+      TranscriptionApiEndpoint: transcriptionFunction.url,
     };
   },
 });

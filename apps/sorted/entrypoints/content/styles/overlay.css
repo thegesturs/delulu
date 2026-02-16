@@ -399,6 +399,194 @@
   opacity: 1;
 }
 
+/* Transcribe Button — Floating top right, below download */
+.sorted-reel-transcribe {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.sorted-reel-card:hover .sorted-reel-transcribe {
+  opacity: 1;
+}
+
+.sorted-reel-transcribe:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+.sorted-reel-transcribe.loading {
+  opacity: 1;
+  background: rgba(99, 102, 241, 0.6);
+  cursor: wait;
+}
+
+/* Transcription error tooltip */
+.sorted-transcription-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 4;
+  text-align: center;
+  max-width: 80%;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Transcription Modal */
+.sorted-transcription-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sorted-transcription-modal {
+  background: white;
+  border-radius: 16px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sorted-transcription-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sorted-transcription-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sorted-transcription-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+}
+
+.sorted-transcription-meta {
+  display: flex;
+  gap: 6px;
+}
+
+.sorted-transcription-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sorted-transcription-close {
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+}
+
+.sorted-transcription-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.sorted-transcription-text {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1a1a1a;
+  overflow-y: auto;
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sorted-transcription-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sorted-transcription-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sorted-transcription-copy:hover {
+  background: #4f46e5;
+}
+
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -432,5 +620,35 @@
   .sorted-compact-reset:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
+  }
+
+  .sorted-transcription-modal {
+    background: #1c1c1e;
+  }
+
+  .sorted-transcription-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .sorted-transcription-title {
+    color: #fff;
+  }
+
+  .sorted-transcription-close {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .sorted-transcription-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .sorted-transcription-text {
+    color: #e5e5e5;
+  }
+
+  .sorted-transcription-actions {
+    border-top-color: rgba(255, 255, 255, 0.1);
   }
 }

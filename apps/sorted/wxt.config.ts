@@ -7,10 +7,14 @@ export default defineConfig({
     name: "Sorted - Instagram Reel Sorter",
     description:
       "Sort Instagram reels by likes, views, or comments. Find the most engaging content instantly.",
-    version: "1.1.0",
+    version: "1.2.0",
     homepage_url: "https://delulu.social",
-    permissions: ["activeTab"],
-    host_permissions: ["*://www.instagram.com/*", "*://instagram.com/*"],
+    permissions: ["activeTab", "cookies", "storage"],
+    host_permissions: [
+      "*://www.instagram.com/*",
+      "*://instagram.com/*",
+      "https://clerk.delulu.social/*",
+    ],
     action: {
       default_title: "Sorted - Instagram Reel Sorter",
       default_popup: "popup.html",

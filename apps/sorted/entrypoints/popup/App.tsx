@@ -1,47 +1,119 @@
 /**
- * Popup UI - Status and Info
+ * Popup UI — Auth states, usage display, and status
  */
 
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+  useUser,
+} from "@clerk/chrome-extension";
 import { useEffect, useState } from "react";
 import { isReelsTab } from "../content/utils/url-detector";
 import "./App.css";
 
+interface UsageData {
+  used: number;
+  limit: number;
+}
+
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState("");
+  const { user } = useUser();
+  const [usage, setUsage] = useState<UsageData | null>(null);
 
   useEffect(() => {
-    // Check current tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
       if (tab?.url) {
-        setCurrentUrl(tab.url);
         setIsOnReelsTab(isReelsTab(tab.url));
       }
     });
   }, []);
 
+  // Load usage from chrome.storage (set by content script after transcription)
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    chrome.storage.local.get(["transcriptionUsage"], (result) => {
+      if (result.transcriptionUsage) {
+        setUsage(result.transcriptionUsage);
+      }
+    });
+  }, [user]);
+
   return (
     <div className="popup-container">
       {/* Header */}
       <div className="popup-header">
-        <div className="popup-icon">📊</div>
-        <h1 className="popup-title">Sorted</h1>
-        <p className="popup-subtitle">Instagram Reel Sorter</p>
-        <div className="popup-branding">
-          <span>by</span>
-          <a
-            href="https://delulu.social"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            delulu.social
-          </a>
+        <div className="popup-header-top">
+          <div className="popup-header-left">
+            <div className="popup-icon">📊</div>
+            <div>
+              <h1 className="popup-title">Sorted</h1>
+              <p className="popup-subtitle">Instagram Reel Sorter</p>
+            </div>
+          </div>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </div>
       </div>
 
       {/* Content */}
       <div className="popup-content">
+        {/* Auth Section */}
+        <SignedOut>
+          <div className="popup-auth-card">
+            <div className="popup-auth-icon">🔑</div>
+            <h3>Sign in to unlock transcription</h3>
+            <p>
+              Transcribe reel audio to text with AI. Get 10 free transcriptions
+              per month.
+            </p>
+            <SignInButton mode="redirect">
+              <button className="popup-signin-button" type="button">
+                Sign in with Delulu
+              </button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        <SignedIn>
+          {/* Usage Meter */}
+          <div className="popup-usage-card">
+            <div className="popup-usage-header">
+              <span className="popup-usage-label">Transcriptions</span>
+              <span className="popup-usage-count">
+                {usage ? `${usage.used}/${usage.limit}` : "0/10"} free
+              </span>
+            </div>
+            <div className="popup-usage-bar-bg">
+              <div
+                className="popup-usage-bar-fill"
+                style={{
+                  width: `${Math.min(((usage?.used ?? 0) / (usage?.limit ?? 10)) * 100, 100)}%`,
+                }}
+              />
+            </div>
+            {usage && usage.used >= usage.limit && (
+              <p className="popup-usage-limit-msg">
+                Free limit reached.{" "}
+                <a
+                  href="https://delulu.social/pricing"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Upgrade to continue
+                </a>
+              </p>
+            )}
+          </div>
+        </SignedIn>
+
+        {/* Status */}
         <div className={`popup-status ${isOnReelsTab ? "active" : ""}`}>
           {isOnReelsTab ? (
             <>
@@ -64,6 +136,7 @@ function App() {
           )}
         </div>
 
+        {/* Instructions */}
         <div className="popup-instructions">
           <h4>How to Use:</h4>
           <ol>
@@ -71,23 +144,22 @@ function App() {
             <li>The sort panel will appear automatically</li>
             <li>Select sort metric and quantity</li>
             <li>Click "Sort Reels"</li>
-            <li>Reels will be sorted and displayed!</li>
+            <li>Hover a reel to download or transcribe</li>
           </ol>
         </div>
-
-        {/* Debug Info */}
-        {currentUrl && (
-          <details className="popup-debug">
-            <summary>Debug Info</summary>
-            <p className="popup-url">{currentUrl}</p>
-            <p>Is Reels Tab: {isOnReelsTab ? "Yes" : "No"}</p>
-          </details>
-        )}
       </div>
 
       {/* Footer */}
       <div className="popup-footer">
-        <p className="popup-version">Version 1.0.0</p>
+        <p className="popup-version">v1.2.0</p>
+        <a
+          className="popup-footer-link"
+          href="https://delulu.social"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          delulu.social
+        </a>
       </div>
     </div>
   );
