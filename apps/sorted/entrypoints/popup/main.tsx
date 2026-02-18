@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import "./style.css";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const SYNC_HOST = import.meta.env.VITE_CLERK_SYNC_HOST;
 const popupUrl = `${chrome.runtime.getURL(".")}/popup.html`;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       publishableKey={PUBLISHABLE_KEY}
       signInFallbackRedirectUrl={popupUrl}
       signUpFallbackRedirectUrl={popupUrl}
+      syncHost={SYNC_HOST}
     >
       <App />
     </ClerkProvider>
