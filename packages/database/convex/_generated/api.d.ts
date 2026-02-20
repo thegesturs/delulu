@@ -17,6 +17,7 @@ import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
 import type * as posts from "../posts.js";
+import type * as repairs from "../repairs.js";
 import type * as schemas_automations from "../schemas/automations.js";
 import type * as schemas_enums from "../schemas/enums.js";
 import type * as schemas_index from "../schemas/index.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   media: typeof media;
   posts: typeof posts;
+  repairs: typeof repairs;
   "schemas/automations": typeof schemas_automations;
   "schemas/enums": typeof schemas_enums;
   "schemas/index": typeof schemas_index;
