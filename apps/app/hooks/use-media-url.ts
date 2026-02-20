@@ -49,9 +49,9 @@ async function fetchPresignedUrl(bucketKey: string): Promise<string> {
       if (!res.ok) {
         throw new Error(`Failed to fetch presigned URL: ${res.status}`);
       }
-      return res.json();
+      return res.json() as Promise<{ downloadUrl: string }>;
     })
-    .then((data: { downloadUrl: string }) => {
+    .then((data) => {
       presignedCache.set(bucketKey, data.downloadUrl);
       inflight.delete(bucketKey);
       return data.downloadUrl;
