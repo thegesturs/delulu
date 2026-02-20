@@ -111,28 +111,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get Cloudflare environment and initialize R2Provider with bucket
-    const env = await getCloudflareEnv();
-    const r2Provider = new R2Provider(env.DELULU_SOCIAL_BUCKET);
+    const r2Provider = new R2Provider();
 
-    console.log(`[DEBUG] Getting download URL for key: ${key}`);
+    console.log(`[DEBUG] Getting presigned download URL for key: ${key}`);
 
-    const downloadUrl = await r2Provider.getSignedDownloadUrl(key);
+    const downloadUrl = await r2Provider.getPresignedDownloadUrl(key);
 
-    if (downloadUrl.isErr()) {
-      console.error(
-        `[ERROR] Download URL generation failed: ${downloadUrl.error.message}`
-      );
-      return new NextResponse(
-        `Error generating download URL: ${downloadUrl.error.message}`,
-        { status: 500 }
-      );
-    }
-
-    console.log(
-      `[DEBUG] Download URL generated successfully: ${downloadUrl.value}`
-    );
-    return NextResponse.json({ downloadUrl: downloadUrl.value });
+    console.log("[DEBUG] Presigned download URL generated successfully");
+    return NextResponse.json({ downloadUrl });
   } catch (error) {
     console.error(`[ERROR] Download URL route error: ${error}`);
     return new NextResponse("Error generating download URL", { status: 500 });

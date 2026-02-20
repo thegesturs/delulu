@@ -814,12 +814,17 @@ export const updatePostStatus = internalMutation({
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
 
+    const oldPost = await ctx.db.get(args.postId);
     await ctx.db.patch(args.postId, {
       status: args.status,
       ...(args.failureReason && { postFailureReason: args.failureReason }),
       ...(args.status === "FAILED" && { lastFailedAt: now }),
       updatedAt: now,
     });
+    const newPost = await ctx.db.get(args.postId);
+    if (oldPost && newPost) {
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+    }
 
     return true;
   },

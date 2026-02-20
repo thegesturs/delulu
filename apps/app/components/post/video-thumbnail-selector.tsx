@@ -20,7 +20,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useMediaStorage } from "@/hooks/use-media-storage";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import {
   blobToFile,
   extractVideoFrame,
@@ -71,6 +71,11 @@ export function VideoThumbnailSelector({
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadAndSaveMedia } = useMediaStorage();
+  const resolvedVideoUrl = useMediaUrl(undefined, videoUrl);
+  const resolvedThumbnailUrl = useMediaUrl(
+    currentThumbnail?.bucketKey,
+    currentThumbnail?.url
+  );
 
   // Get the video source (prefer videoFile for local files)
   const videoSource = videoFile || videoUrl;
@@ -236,10 +241,7 @@ export function VideoThumbnailSelector({
                 controls
                 playsInline
                 ref={videoRef}
-                src={getMediaUrlFromObject({
-                  url: videoUrl,
-                  bucketKey: undefined,
-                })}
+                src={resolvedVideoUrl}
               >
                 <track kind="captions" />
               </video>
@@ -401,10 +403,7 @@ export function VideoThumbnailSelector({
                     <img
                       alt="Current thumbnail"
                       className="h-full w-full object-cover"
-                      src={getMediaUrlFromObject({
-                        url: currentThumbnail?.url,
-                        bucketKey: currentThumbnail?.bucketKey,
-                      })}
+                      src={resolvedThumbnailUrl}
                     />
                   </div>
                 ) : hasTimestamp ? (

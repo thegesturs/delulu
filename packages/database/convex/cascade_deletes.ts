@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { api } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import { mutation } from "./_generated/server.js";
+import { postsByUserStatus } from "./stats.js";
 import { getCurrentTimestamp } from "./utils.js";
 
 /**
@@ -130,7 +131,7 @@ export const deleteUserWithCascade = mutation({
       .collect();
 
     for (const post of posts) {
-      // Delete the post
+      await postsByUserStatus.delete(ctx, post);
       await ctx.db.delete(post._id);
       deletedPostsCount++;
     }
@@ -196,6 +197,7 @@ export const deletePostWithCascade = mutation({
       throw new Error("Post not found");
     }
 
+    await postsByUserStatus.delete(ctx, post);
     await ctx.db.delete(post._id);
 
     return true;

@@ -21,7 +21,7 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import Image from "next/image";
 import React from "react";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import { type Post, statusColors } from "./types";
 
 interface PostPreviewDialogProps {
@@ -40,6 +40,7 @@ export function PostPreviewDialog({
 
   const firstContent = post.content[0];
   const firstMedia = firstContent?.media?.[0];
+  const firstMediaUrl = useMediaUrl(firstMedia?.bucketKey, firstMedia?.url);
 
   // Reset states when dialog opens/closes or post changes
   React.useEffect(() => {
@@ -99,12 +100,12 @@ export function PostPreviewDialog({
                       setImageLoading(false);
                       if (process.env.NODE_ENV === "development") {
                         console.error(
-                          `[DEBUG] Failed to load image in preview: ${getMediaUrlFromObject(firstMedia)}`
+                          `[DEBUG] Failed to load image in preview: ${firstMediaUrl}`
                         );
                       }
                     }}
                     onLoad={() => setImageLoading(false)}
-                    src={getMediaUrlFromObject(firstMedia)}
+                    src={firstMediaUrl}
                   />
                 )
               ) : (
@@ -115,12 +116,12 @@ export function PostPreviewDialog({
                   onError={() => {
                     if (process.env.NODE_ENV === "development") {
                       console.error(
-                        `[DEBUG] Failed to load video in preview: ${getMediaUrlFromObject(firstMedia)}`
+                        `[DEBUG] Failed to load video in preview: ${firstMediaUrl}`
                       );
                     }
                   }}
                   playsInline
-                  src={getMediaUrlFromObject(firstMedia)}
+                  src={firstMediaUrl}
                 >
                   <track kind="captions" />
                 </video>

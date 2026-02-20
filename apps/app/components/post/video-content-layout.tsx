@@ -16,7 +16,7 @@ import {
   PencilEdit01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import { useCallback, useState } from "react";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import { MediaUploader } from "./media-uploader";
 import { VideoThumbnailSelector } from "./video-thumbnail-selector";
 
@@ -152,17 +152,14 @@ export function VideoContentLayout({
     ? config.titleMaxLength - title.length
     : 0;
 
-  const videoUrl = videoMedia ? getMediaUrlFromObject(videoMedia) : "";
+  const videoUrl = useMediaUrl(videoMedia?.bucketKey, videoMedia?.url);
   const hasThumbnail = videoMedia
     ? videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey
     : false;
-  const thumbnailUrl =
-    hasThumbnail && videoMedia
-      ? getMediaUrlFromObject({
-          url: videoMedia.thumbnailBucketUrl,
-          bucketKey: videoMedia.thumbnailBucketKey,
-        })
-      : null;
+  const thumbnailUrl = useMediaUrl(
+    videoMedia?.thumbnailBucketKey,
+    videoMedia?.thumbnailBucketUrl
+  );
 
   const videoAspectClass = config.isVertical ? "aspect-[9/16]" : "aspect-video";
 

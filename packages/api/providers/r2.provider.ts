@@ -220,14 +220,13 @@ export class R2Provider {
 
     const accessKeyId = r2Keys.R2_ACCESS_KEY_ID;
     const secretAccessKey = r2Keys.R2_SECRET_ACCESS_KEY;
-    const bucketName = r2Keys.R2_BUCKET_NAME;
-    const accountId = r2Keys.R2_ACCOUNT_ID;
-    const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
-    // Generate presigned URL using AWS Signature Version 4
+    // Use custom domain — already bound to the bucket, so no bucket name in path
+    const endpoint = "https://media.delulu.social";
+
     const downloadUrl = await this.generatePresignedUrl({
       endpoint,
-      bucketName,
+      bucketName: "",
       key,
       accessKeyId,
       secretAccessKey,
@@ -273,7 +272,7 @@ export class R2Provider {
     const dateStamp = amzDate.slice(0, 8);
 
     // Canonical request components
-    const canonicalUri = `/${bucketName}/${key}`;
+    const canonicalUri = bucketName ? `/${bucketName}/${key}` : `/${key}`;
     const canonicalQuerystring = [
       "X-Amz-Algorithm=AWS4-HMAC-SHA256",
       `X-Amz-Credential=${encodeURIComponent(`${accessKeyId}/${dateStamp}/${region}/${service}/aws4_request`)}`,
