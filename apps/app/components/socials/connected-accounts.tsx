@@ -6,6 +6,7 @@ import { Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useQuery } from "convex-helpers/react/cache";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { postActions } from "@/store/post";
 import { api as TrpcApi } from "@/trpc/react";
 import type { SocialProvider } from "@/types/convex";
 import { AccountFilters } from "./account-filter";
@@ -94,6 +95,7 @@ export default function ConnectedAccounts() {
       { socialProviderId: socialId },
       {
         onSuccess: () => {
+          postActions.removeSocialProvider(socialId);
           toast.success("Account deleted successfully");
         },
         onError: (error) => {

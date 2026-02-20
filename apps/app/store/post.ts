@@ -312,17 +312,25 @@ export const postActions = {
       selectedSocialProviders: [...state.selectedSocialProviders, provider],
     })),
   removeSocialProvider: (socialId: string) =>
-    useStore.setState((state) => ({
-      selectedSocialProviders: state.selectedSocialProviders.filter(
-        (provider) => provider.socialId !== socialId
-      ),
-      post: {
-        ...state.post,
-        alternativeContent: state.post.alternativeContent.filter(
-          (content) => content.socialProvider.socialId !== socialId
+    useStore.setState((state) => {
+      const { [socialId]: _ps, ...restProviderSettings } =
+        state.providerSettings;
+      const { [socialId]: _ac, ...restAutomationConfigs } =
+        state.automationConfigs;
+      return {
+        selectedSocialProviders: state.selectedSocialProviders.filter(
+          (provider) => provider.socialId !== socialId
         ),
-      },
-    })),
+        post: {
+          ...state.post,
+          alternativeContent: state.post.alternativeContent.filter(
+            (content) => content.socialProvider.socialId !== socialId
+          ),
+        },
+        providerSettings: restProviderSettings,
+        automationConfigs: restAutomationConfigs,
+      };
+    }),
   updatePost: (updates: Partial<FullPostType>) =>
     useStore.setState((state) => ({
       post: { ...state.post, ...updates },

@@ -143,6 +143,7 @@ export function BasicSettings() {
         status: "PROCESSING",
       });
       await createAutomationsForPost(savedPostId);
+      useStore.getState().reset();
       toast.success(
         "Post sent for processing, will be published shortly. You can close this window now."
       );
@@ -188,6 +189,7 @@ export function BasicSettings() {
         status: "SCHEDULED",
       });
       await createAutomationsForPost(savedPostId);
+      useStore.getState().reset();
       toast.success("Post scheduled successfully");
       router.push("/posts?status=SCHEDULED");
     } catch {
@@ -218,6 +220,7 @@ export function BasicSettings() {
         status: "SAVED",
       });
       await createAutomationsForPost(savedPostId);
+      useStore.getState().reset();
       toast.success(
         postId ? "Post updated successfully" : "Post saved successfully"
       );
