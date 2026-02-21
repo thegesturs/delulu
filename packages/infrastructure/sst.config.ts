@@ -17,11 +17,32 @@ export default $config({
   },
   // biome-ignore lint/suspicious/useAwait: SST config requires async run
   async run() {
-    const vpc = new sst.aws.Vpc("MyVpc");
-    const cluster = new sst.aws.Cluster("MyCluster", { vpc });
+    // ============================================================================
+    // COMMENTED OUT — keeping for potential future large upload support (2GB+ YT videos)
+    // ============================================================================
+    // const vpc = new sst.aws.Vpc("MyVpc");
+    // const cluster = new sst.aws.Cluster("MyCluster", { vpc });
+    // const task = new sst.aws.Task("SocialPostsTask", {
+    //   cluster,
+    //   cpu: "0.5 vCPU",
+    //   memory: "1 GB",
+    //   publicIp: true,
+    //   image: {
+    //     context: "../..",
+    //     dockerfile: "packages/worker/Dockerfile",
+    //   },
+    //   environment: {
+    //     QUEUE_URL: queue.url,
+    //     DEBUG: "true",
+    //   },
+    //   dev: {
+    //     command: "pnpm dev",
+    //     directory: "packages/worker",
+    //   },
+    // });
 
     // ============================================================================
-    // SOCIAL POSTS QUEUE (existing)
+    // SOCIAL POSTS QUEUE
     // ============================================================================
     const queue = new sst.aws.Queue("SocialPostsQueue");
 
@@ -32,35 +53,32 @@ export default $config({
     );
     const CONVEX_URL = new sst.Secret("CONVEX_URL");
 
+    // Trigger endpoint — receives HTTP from Convex, enqueues to SQS (UNCHANGED)
     const triggerFunction = new sst.aws.Function("TriggerSqsFunction", {
       handler: "src/trigger-sqs.handler",
-      url: true, // Expose as HTTP endpoint
+      url: true,
       link: [queue, SECRET_KEY],
     });
 
-    const task = new sst.aws.Task("SocialPostsTask", {
-      cluster,
-      cpu: "0.5 vCPU",
-      memory: "1 GB",
-      publicIp: true,
-      image: {
-        context: "../..",
-        dockerfile: "packages/worker/Dockerfile",
+    // Worker Lambda — processes one SQS message per invocation
+    // (replaces: trigger-task Lambda → ECS Task)
+    queue.subscribe(
+      {
+        handler: "src/social-post-worker.handler",
+        timeout: "10 minutes",
+        memory: "1024 MB",
+        link: [CONVEX_URL],
+        environment: {
+          NEXT_PUBLIC_CONVEX_URL: CONVEX_URL.value,
+        },
+        copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
+        nodejs: {
+          install: ["googleapis"],
+          esbuild: { external: ["googleapis"] },
+        },
       },
-      environment: {
-        QUEUE_URL: queue.url,
-        DEBUG: "true",
-      },
-      dev: {
-        command: "pnpm dev",
-        directory: "packages/worker",
-      },
-    });
-
-    queue.subscribe({
-      handler: "src/trigger-task.handler",
-      link: [task],
-    });
+      { batch: { size: 1 } }
+    );
 
     // ============================================================================
     // INSTAGRAM WEBHOOK

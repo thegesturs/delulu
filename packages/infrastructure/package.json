@@ -17,8 +17,13 @@
     "@aws-sdk/client-sqs": "^3.840.0",
     "@delulu/database": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
+    "@delulu/validators": "workspace:*",
+    "@delulu/worker": "workspace:*",
     "convex": "^1.28.2",
     "sst": "^3.17.10",
     "typescript": "catalog:"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147"
   }
 }
