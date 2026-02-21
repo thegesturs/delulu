@@ -79,10 +79,10 @@ export async function BlogLayout({
                   <div className="flex items-center space-x-2">
                     {blog.authorAvatar && (
                       <Image
-                        alt={blog.author}
+                        alt={blog.author ?? ""}
                         className="h-5 w-5 rounded-full"
                         height={20}
-                        src={blog.authorAvatar}
+                        src={blog.authorAvatar ?? ""}
                         width={20}
                       />
                     )}

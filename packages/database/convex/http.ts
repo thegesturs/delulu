@@ -231,7 +231,23 @@ http.route({
     }
 
     try {
-      const body = await request.json();
+      const body = (await request.json()) as {
+        event_type: string;
+        timestamp?: string;
+        data?: {
+          articles?: Array<{
+            id: string;
+            title: string;
+            slug: string;
+            content_markdown: string;
+            content_html: string;
+            meta_description: string;
+            image_url?: string | null;
+            tags?: string[];
+            created_at: string;
+          }>;
+        };
+      };
 
       // Only handle publish_articles event
       if (body.event_type !== "publish_articles") {
@@ -251,30 +267,18 @@ http.route({
       const rawArticles = body.data?.articles ?? [];
 
       // Transform snake_case payload to camelCase
-      const articles = rawArticles.map(
-        (a: {
-          id: string;
-          title: string;
-          slug: string;
-          content_markdown: string;
-          content_html: string;
-          meta_description: string;
-          image_url?: string | null;
-          tags?: string[];
-          created_at: string;
-        }) => ({
-          outrankId: a.id,
-          title: a.title,
-          slug: a.slug,
-          contentMarkdown: a.content_markdown,
-          contentHtml: a.content_html,
-          metaDescription: a.meta_description,
-          imageUrl: a.image_url ?? undefined,
-          tags: a.tags ?? [],
-          outrankCreatedAt: new Date(a.created_at).getTime(),
-          publishedAt: webhookTimestamp,
-        })
-      );
+      const articles = rawArticles.map((a) => ({
+        outrankId: a.id,
+        title: a.title,
+        slug: a.slug,
+        contentMarkdown: a.content_markdown,
+        contentHtml: a.content_html,
+        metaDescription: a.meta_description,
+        imageUrl: a.image_url ?? undefined,
+        tags: a.tags ?? [],
+        outrankCreatedAt: new Date(a.created_at).getTime(),
+        publishedAt: webhookTimestamp,
+      }));
 
       await ctx.runMutation(internal.articles.upsertArticles, { articles });
 
