@@ -1,11 +1,11 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import { allBlogs } from "content-collections";
+import { fetchQuery } from "convex/nextjs";
 import { BlogCardVertical } from "@/components/blog/blog-card";
-import { convex } from "@/lib/convex";
 import { adaptContentCollectionsBlog, adaptConvexArticle } from "@/types/blog";
 
 export async function BlogSection() {
-  const convexArticles = await convex.query(api.articles.getRecentArticles, {
+  const convexArticles = await fetchQuery(api.articles.getRecentArticles, {
     limit: 3,
   });
 

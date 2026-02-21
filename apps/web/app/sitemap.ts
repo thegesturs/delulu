@@ -1,8 +1,8 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import { allBlogs, allLegals } from "content-collections";
+import { fetchQuery } from "convex/nextjs";
 import type { MetadataRoute } from "next";
 import { env } from "@/env";
-import { convex } from "@/lib/convex";
 
 // Static list of known pages to avoid filesystem access in edge runtime
 const pages = ["blogs", "pricing", "contact"];
@@ -13,7 +13,7 @@ const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
   // Fetch Outrank article slugs from Convex
-  const convexArticles = await convex.query(api.articles.getAllArticles);
+  const convexArticles = await fetchQuery(api.articles.getAllArticles);
   const convexSlugs = convexArticles.map((a) => a.slug);
 
   return [

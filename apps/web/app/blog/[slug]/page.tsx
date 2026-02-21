@@ -2,6 +2,7 @@ import { api } from "@delulu/database/convex/_generated/api";
 import { createBlogPostingSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { allBlogs } from "content-collections";
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { remark } from "remark";
@@ -12,7 +13,6 @@ import { BlogLayout } from "@/components/blog/blog-layout";
 import CTA from "@/components/home/cta";
 import { components } from "@/components/home/mdx-components";
 import { env } from "@/env";
-import { convex } from "@/lib/convex";
 
 const parser = remark()
   .use(remarkMdx)
@@ -67,7 +67,7 @@ export const generateMetadata = async ({
   }
 
   // Fallback to Convex article
-  const article = await convex.query(api.articles.getArticleBySlug, { slug });
+  const article = await fetchQuery(api.articles.getArticleBySlug, { slug });
   if (!article) {
     return notFound();
   }
@@ -152,7 +152,7 @@ export default async function Page({ params }: PageProps) {
   }
 
   // Fallback to Convex article
-  const article = await convex.query(api.articles.getArticleBySlug, { slug });
+  const article = await fetchQuery(api.articles.getArticleBySlug, { slug });
   if (!article) {
     return notFound();
   }

@@ -2,9 +2,9 @@ import { api } from "@delulu/database/convex/_generated/api";
 import { createBlogSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { allBlogs } from "content-collections";
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
-import { convex } from "@/lib/convex";
 import { adaptContentCollectionsBlog, adaptConvexArticle } from "@/types/blog";
 
 export const metadata: Metadata = createMetadata({
@@ -21,7 +21,7 @@ const BlogIndex = async () => {
   const blogUrl = `${baseUrl}/blogs`;
 
   // Fetch Outrank articles from Convex
-  const convexArticles = await convex.query(api.articles.getAllArticles);
+  const convexArticles = await fetchQuery(api.articles.getAllArticles);
 
   // Adapt both sources to unified type
   const ccBlogs = allBlogs.map(adaptContentCollectionsBlog);
