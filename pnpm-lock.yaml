@@ -512,6 +512,9 @@ importers:
       axios:
         specifier: ^1.9.0
         version: 1.10.0
+      convex:
+        specifier: ^1.21.0
+        version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
