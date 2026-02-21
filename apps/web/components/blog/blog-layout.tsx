@@ -1,22 +1,32 @@
-import { allBlogs, type Blog, type Legal } from "content-collections";
+import { allBlogs } from "content-collections";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
+import { adaptContentCollectionsBlog } from "@/types/blog";
 import { BlogCardVertical } from "./blog-card";
 
-type BlogWithType = Blog & { type: "blog" };
-type LegalWithType = Legal & { type: "legal" };
-type ContentType = BlogWithType | LegalWithType;
+interface BlogLike {
+  type: "blog" | "legal";
+  title: string;
+  date: string;
+  image?: string;
+  categories?: string[];
+  author?: string;
+  authorAvatar?: string;
+}
 
 export async function BlogLayout({
   blog,
   children,
 }: {
-  blog: ContentType;
+  blog: BlogLike;
   children: React.ReactNode;
 }) {
-  const relatedBlogs = blog.type === "blog" ? allBlogs.slice(0, 3) : [];
+  const relatedBlogs =
+    blog.type === "blog"
+      ? allBlogs.slice(0, 3).map(adaptContentCollectionsBlog)
+      : [];
 
   return (
     <div className="mx-auto mt-16 max-w-6xl px-4 lg:mt-14">

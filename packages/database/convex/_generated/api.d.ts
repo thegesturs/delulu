@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as articles from "../articles.js";
 import type * as automationLogs from "../automationLogs.js";
 import type * as automations from "../automations.js";
 import type * as callmelater from "../callmelater.js";
@@ -18,6 +19,7 @@ import type * as index from "../index.js";
 import type * as media from "../media.js";
 import type * as posts from "../posts.js";
 import type * as repairs from "../repairs.js";
+import type * as schemas_articles from "../schemas/articles.js";
 import type * as schemas_automations from "../schemas/automations.js";
 import type * as schemas_enums from "../schemas/enums.js";
 import type * as schemas_index from "../schemas/index.js";
@@ -48,6 +50,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  articles: typeof articles;
   automationLogs: typeof automationLogs;
   automations: typeof automations;
   callmelater: typeof callmelater;
@@ -58,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   media: typeof media;
   posts: typeof posts;
   repairs: typeof repairs;
+  "schemas/articles": typeof schemas_articles;
   "schemas/automations": typeof schemas_automations;
   "schemas/enums": typeof schemas_enums;
   "schemas/index": typeof schemas_index;

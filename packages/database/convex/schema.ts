@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import {
+  baseArticleSchema,
   baseAutomationContactSchema,
   baseAutomationLogSchema,
   baseAutomationSchema,
@@ -13,6 +14,12 @@ import {
 } from "./schemas";
 
 export default defineSchema({
+  // Articles table (Outrank webhook articles for blog)
+  articles: defineTable(baseArticleSchema.fields)
+    .index("by_slug", ["slug"])
+    .index("by_outrank_id", ["outrankId"])
+    .index("by_published_at", ["publishedAt"]),
+
   // Users table
   users: defineTable(baseUserSchema.fields)
     .index("by_email", ["email"])

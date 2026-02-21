@@ -1,5 +1,6 @@
 // Re-export all schemas from their respective files
 
+export * from "./articles";
 export * from "./automations";
 export * from "./enums";
 export * from "./posts_media";

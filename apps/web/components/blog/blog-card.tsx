@@ -1,4 +1,3 @@
-import type { Blog } from "content-collections";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
@@ -6,8 +5,9 @@ import Balancer from "react-wrap-balancer";
 import { BlurImage } from "@/components/blog/blur-image";
 import { Logo } from "@/components/logo";
 import { truncate } from "@/lib/utils";
+import type { UnifiedBlog } from "@/types/blog";
 
-export const BlogCard = ({ blog }: { blog: Blog }) => {
+export const BlogCard = ({ blog }: { blog: UnifiedBlog }) => {
   return (
     <Link
       className="group grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-border hover:bg-muted/50 md:grid-cols-2"
@@ -70,11 +70,11 @@ export const BlogCard = ({ blog }: { blog: Blog }) => {
   );
 };
 
-export const BlogCardVertical = ({ blog }: { blog: Blog }) => {
+export const BlogCardVertical = ({ blog }: { blog: UnifiedBlog }) => {
   return (
     <Link
       className="group w-full overflow-hidden rounded-3xl border border-transparent shadow-lg transition duration-200 hover:scale-[1.02] hover:border-border hover:bg-muted/50"
-      href={`${blog.slug}`}
+      href={`/blog/${blog.slug}`}
     >
       <div className="">
         {blog.image ? (

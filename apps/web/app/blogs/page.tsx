@@ -1,8 +1,11 @@
+import { api } from "@delulu/database/convex/_generated/api";
 import { createBlogSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { allBlogs } from "content-collections";
 import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
+import { convex } from "@/lib/convex";
+import { adaptContentCollectionsBlog, adaptConvexArticle } from "@/types/blog";
 
 export const metadata: Metadata = createMetadata({
   title: "Blog",
@@ -13,16 +16,28 @@ export const metadata: Metadata = createMetadata({
   },
 });
 
-const BlogIndex = () => {
+const BlogIndex = async () => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
   const blogUrl = `${baseUrl}/blogs`;
+
+  // Fetch Outrank articles from Convex
+  const convexArticles = await convex.query(api.articles.getAllArticles);
+
+  // Adapt both sources to unified type
+  const ccBlogs = allBlogs.map(adaptContentCollectionsBlog);
+  const outBlogs = convexArticles.map(adaptConvexArticle);
+
+  // Merge and sort by date descending
+  const allPosts = [...ccBlogs, ...outBlogs].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   const blogSchema = createBlogSchema({
     title: "Delulu Social Blog",
     description:
       "Expert insights and practical tips for social media management, content creation, and digital marketing across all major platforms.",
     url: blogUrl,
-    posts: allBlogs.map((blog) => ({
+    posts: allPosts.map((blog) => ({
       title: blog.title,
       url: `${baseUrl}/blog/${blog.slug}`,
       datePublished: blog.date,
@@ -47,7 +62,7 @@ const BlogIndex = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {allBlogs.map((blog) => (
+            {allPosts.map((blog) => (
               <BlogCard blog={blog} key={blog.slug} />
             ))}
           </div>

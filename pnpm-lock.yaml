@@ -455,6 +455,9 @@ importers:
       '@delulu/cloudflare-types':
         specifier: workspace:*
         version: link:../../packages/cloudflare-types
+      '@delulu/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
@@ -509,6 +512,9 @@ importers:
       axios:
         specifier: ^1.9.0
         version: 1.10.0
+      convex:
+        specifier: ^1.21.0
+        version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -1194,6 +1200,12 @@ importers:
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@delulu/validators':
+        specifier: workspace:*
+        version: link:../validators
+      '@delulu/worker':
+        specifier: workspace:*
+        version: link:../worker
       convex:
         specifier: ^1.28.2
         version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
@@ -1203,6 +1215,10 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+    devDependencies:
+      '@types/aws-lambda':
+        specifier: ^8.10.147
+        version: 8.10.160
 
   packages/next-config:
     dependencies:
@@ -7007,6 +7023,9 @@ packages:
 
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
+
+  '@types/aws-lambda@8.10.160':
+    resolution: {integrity: sha512-uoO4QVQNWFPJMh26pXtmtrRfGshPUSpMZGUyUQY20FhfHEElEBOPKgVmFs1z+kbpyBsRs2JnoOPT7++Z4GA9pA==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -21459,6 +21478,8 @@ snapshots:
 
   '@types/aria-query@5.0.4': {}
 
+  '@types/aws-lambda@8.10.160': {}
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.27.7
@@ -21813,6 +21834,14 @@ snapshots:
       magic-string: 0.30.17
     optionalDependencies:
       vite: 5.4.19(@types/node@22.14.1)(lightningcss@1.30.1)(terser@5.43.1)
+
+  '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 7.0.0(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0)
 
   '@vitest/mocker@3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))':
     dependencies:
@@ -29710,7 +29739,7 @@ snapshots:
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.15.34)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
+      '@vitest/mocker': 3.2.4(vite@7.0.0(@types/node@22.14.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.8.0))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
