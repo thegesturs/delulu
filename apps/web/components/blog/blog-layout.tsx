@@ -51,7 +51,7 @@ export async function BlogLayout({
         </div>
       ) : null}
       <div className="xl:relative">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-5xl">
           <article className="pt-8 pb-8">
             {blog.type === "blog" && blog.categories && (
               <div className="flex flex-wrap gap-4">
@@ -70,7 +70,7 @@ export async function BlogLayout({
                 {blog.title}
               </h1>
             </header>
-            <div className="prose prose-sm mt-8" data-mdx-content>
+            <div className="prose prose-lg mt-8 max-w-none" data-mdx-content>
               {children}
             </div>
             <div className="mt-12 flex items-center space-x-2 border-gray-200 border-t pt-12">

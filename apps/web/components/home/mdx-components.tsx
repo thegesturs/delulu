@@ -70,18 +70,13 @@ const components = {
   h6: ({ children }: { children: React.ReactNode }) => (
     <h6 className="mb-1 font-bold text-sm">{children}</h6>
   ),
-  iframe: ({
-    src,
-    title,
-    ...props
-  }: React.IframeHTMLAttributes<HTMLIFrameElement>) => (
+  iframe: ({ src, title }: Record<string, string | undefined>) => (
     <iframe
+      allowFullScreen
       className="mb-4 w-full rounded-md"
       src={src}
+      style={{ aspectRatio: "16 / 9", border: "none" }}
       title={title ?? "Embedded video"}
-      style={{ aspectRatio: "16 / 9" }}
-      allowFullScreen
-      {...props}
     />
   ),
   table: ({ children }: { children: React.ReactNode }) => (
