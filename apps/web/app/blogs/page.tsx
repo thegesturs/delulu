@@ -61,7 +61,7 @@ const BlogIndex = async () => {
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
             {allPosts.map((blog) => (
               <BlogCard blog={blog} key={blog.slug} />
             ))}
