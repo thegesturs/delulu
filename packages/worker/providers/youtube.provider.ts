@@ -351,9 +351,24 @@ const publishContent = (
           console.log(`[YouTube] Processing video with MIME type: ${mimeType}`);
 
           // Prepare metadata for YouTube Shorts
+          // Use title if provided, otherwise truncate text at word boundary
+          let title = firstContent.title;
+          if (!title) {
+            const fullText = firstContent.text || "";
+            title = fullText.slice(0, 80);
+            if (fullText.length > 80) {
+              const lastSpace = title.lastIndexOf(" ");
+              if (lastSpace > 20) {
+                title = `${title.slice(0, lastSpace)}...`;
+              } else {
+                title = `${title}...`;
+              }
+            }
+          }
+
           const metadata: YouTubeVideoMetadata = {
             snippet: {
-              title: firstContent.text.slice(0, 100) || "YouTube Short",
+              title: title || "YouTube Short",
               description: firstContent.text || "",
               tags: firstContent.tags || [],
               categoryId: "24", // Entertainment
@@ -361,6 +376,7 @@ const publishContent = (
             },
             status: {
               privacyStatus: "public",
+              selfDeclaredMadeForKids: false,
             },
           };
 

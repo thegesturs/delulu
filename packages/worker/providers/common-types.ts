@@ -135,6 +135,7 @@ export interface YouTubeVideoMetadata {
   };
   status: {
     privacyStatus: "public" | "private" | "unlisted";
+    selfDeclaredMadeForKids?: boolean;
   };
 }
 

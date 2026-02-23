@@ -44,7 +44,9 @@ export default $config({
     // ============================================================================
     // SOCIAL POSTS QUEUE
     // ============================================================================
-    const queue = new sst.aws.Queue("SocialPostsQueue");
+    const queue = new sst.aws.Queue("SocialPostsQueue", {
+      visibilityTimeout: "15 minutes",
+    });
 
     const SECRET_KEY = new sst.Secret("LAMBDA_SECRET_KEY");
     const INSTAGRAM_APP_SECRET = new sst.Secret("INSTAGRAM_APP_SECRET");
