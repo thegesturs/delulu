@@ -20,6 +20,7 @@
     "@delulu/validators": "workspace:*",
     "@delulu/worker": "workspace:*",
     "convex": "^1.28.2",
+    "dotenv": "^16.4.7",
     "sst": "^3.17.10",
     "typescript": "catalog:"
   },

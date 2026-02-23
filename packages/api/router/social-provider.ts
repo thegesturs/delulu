@@ -140,6 +140,16 @@ export const socialProviderRouter = {
         });
       }
 
+      // Set post to PROCESSING so the worker accepts it
+      await fetchMutation(
+        api.posts.updatePost,
+        {
+          id: input.postId as Id<"posts">,
+          status: "PROCESSING",
+        },
+        { token: ctx.token }
+      );
+
       await createPostInQueue(post);
       return {
         success: true,
