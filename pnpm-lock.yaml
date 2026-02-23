@@ -1209,6 +1209,9 @@ importers:
       convex:
         specifier: ^1.28.2
         version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
       sst:
         specifier: ^3.17.10
         version: 3.17.10
