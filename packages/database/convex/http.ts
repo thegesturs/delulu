@@ -63,6 +63,56 @@ http.route({
   }),
 });
 
+/**
+ * HTTP endpoint to receive scheduled video media cleanup requests from CallMeLater
+ * Called 7 days after a post is published to clean up R2 video files
+ */
+http.route({
+  path: "/deleteVideoMedia",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as { bucketKeys?: string[] };
+      const { bucketKeys } = body;
+
+      if (!bucketKeys || bucketKeys.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Missing bucketKeys in request body" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      await ctx.runAction(internal.mediaCleanup.deleteVideosFromR2, {
+        bucketKeys,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, deleted: bucketKeys.length }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error("Error in deleteVideoMedia HTTP endpoint:", error);
+
+      return new Response(
+        JSON.stringify({
+          error: "Failed to delete video media",
+          message: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
 http.route({
   path: "/clerk-users-webhook",
   method: "POST",

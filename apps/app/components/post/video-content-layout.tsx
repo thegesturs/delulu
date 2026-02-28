@@ -153,9 +153,11 @@ export function VideoContentLayout({
     : 0;
 
   const videoUrl = useMediaUrl(videoMedia?.bucketKey, videoMedia?.url);
-  const hasThumbnail = videoMedia
-    ? videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey
-    : false;
+  const hasCustomThumbnailImage = !!(
+    videoMedia?.thumbnailBucketUrl || videoMedia?.thumbnailBucketKey
+  );
+  const hasTimestampThumbnail = videoMedia?.thumbnailTimestamp !== undefined;
+  const hasThumbnail = hasCustomThumbnailImage || hasTimestampThumbnail;
   const thumbnailUrl = useMediaUrl(
     videoMedia?.thumbnailBucketKey,
     videoMedia?.thumbnailBucketUrl
@@ -172,23 +174,12 @@ export function VideoContentLayout({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Thumbnail Preview</Label>
-                <div className="flex items-center gap-2">
-                  {hasThumbnail && (
-                    <Badge className="gap-1" variant="secondary">
-                      <Icon icon={Image01Icon} size={12} />
-                      Set
-                    </Badge>
-                  )}
-                  <Button
-                    className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={onRemoveVideo}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Icon icon={Delete01Icon} size={14} />
-                  </Button>
-                </div>
+                {hasThumbnail && (
+                  <Badge className="gap-1" variant="secondary">
+                    <Icon icon={Image01Icon} size={12} />
+                    Set
+                  </Badge>
+                )}
               </div>
               <button
                 className={cn(
@@ -199,15 +190,45 @@ export function VideoContentLayout({
                 onClick={() => setIsThumbnailDialogOpen(true)}
                 type="button"
               >
-                {hasThumbnail ? (
+                {hasCustomThumbnailImage ? (
                   <>
-                    {/* Show thumbnail */}
+                    {/* Show custom thumbnail image */}
                     <img
                       alt="Video thumbnail"
                       className="h-full w-full object-cover"
                       src={thumbnailUrl!}
                     />
-                    {/* Edit overlay on hover */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
+                        <div className="flex items-center gap-2">
+                          <Icon icon={PencilEdit01Icon} size={16} />
+                          <span className="font-medium text-sm">
+                            Change Thumbnail
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : hasTimestampThumbnail ? (
+                  <>
+                    {/* Show video with timestamp badge */}
+                    <video
+                      className="h-full w-full object-cover"
+                      muted
+                      playsInline
+                      src={videoUrl}
+                    >
+                      <track kind="captions" />
+                    </video>
+                    <div className="absolute right-2 bottom-2">
+                      <Badge className="gap-1" variant="secondary">
+                        Frame at{" "}
+                        {Math.floor(videoMedia!.thumbnailTimestamp! / 60)}:
+                        {Math.floor(videoMedia!.thumbnailTimestamp! % 60)
+                          .toString()
+                          .padStart(2, "0")}
+                      </Badge>
+                    </div>
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
@@ -230,7 +251,6 @@ export function VideoContentLayout({
                     >
                       <track kind="captions" />
                     </video>
-                    {/* Overlay with instruction */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
@@ -254,6 +274,18 @@ export function VideoContentLayout({
               >
                 <Icon className="mr-2" icon={Image01Icon} size={16} />
                 {hasThumbnail ? "Change Thumbnail" : "Select Thumbnail"}
+              </Button>
+
+              {/* Remove Video button */}
+              <Button
+                className="w-full"
+                onClick={onRemoveVideo}
+                size="sm"
+                type="button"
+                variant="destructive"
+              >
+                <Icon className="mr-2" icon={Delete01Icon} size={14} />
+                Remove Video
               </Button>
             </div>
           ) : (

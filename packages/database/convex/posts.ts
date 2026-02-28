@@ -12,6 +12,32 @@ import {
 } from "./_generated/server";
 import { postsByUserStatus } from "./stats";
 
+/**
+ * Extract all video bucket keys from post content and alternative content
+ */
+function extractVideoBucketKeys(post: Doc<"posts">): string[] {
+  const keys: string[] = [];
+
+  const extractFromContent = (content: Doc<"posts">["content"]) => {
+    for (const item of content) {
+      for (const media of item.media) {
+        if (media.mediaType === "VIDEO" && media.bucketKey) {
+          keys.push(media.bucketKey);
+        }
+      }
+    }
+  };
+
+  extractFromContent(post.content);
+  if (post.alternativeContent) {
+    for (const alt of post.alternativeContent) {
+      extractFromContent(alt.content);
+    }
+  }
+
+  return [...new Set(keys)]; // deduplicate
+}
+
 // Helper function to extract searchable text from post content
 function extractSearchableText(
   content: Doc<"posts">["content"],
@@ -693,6 +719,21 @@ export const updatePostPublishStatus = mutation({
           instagramMediaId: args.platformPostData.platformPostId,
           socialProviderId: args.platformPostData.socialProviderId,
         });
+      }
+
+      // Schedule video cleanup 7 days after publish
+      if (args.status === "PUBLISHED") {
+        const videoBucketKeys = extractVideoBucketKeys(post);
+        if (videoBucketKeys.length > 0) {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.callmelater.scheduleVideoCleanupAction,
+            {
+              bucketKeys: videoBucketKeys,
+              postId: args.postId,
+            }
+          );
+        }
       }
     }
 

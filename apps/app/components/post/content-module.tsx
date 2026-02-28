@@ -16,7 +16,11 @@ import {
   shouldDefaultUseVideoLayout,
   shouldShowYouTubeTitle,
 } from "@/lib/platform-rules";
-import { useSelectedSocialProviders, useStore } from "@/store/post";
+import {
+  useIsMediaUploading,
+  useSelectedSocialProviders,
+  useStore,
+} from "@/store/post";
 import { MediaUploader } from "./media-uploader";
 import { VideoContentLayout } from "./video-content-layout";
 
@@ -35,6 +39,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     }))
   );
   const selectedSocialProviders = useSelectedSocialProviders();
+  const isMediaUploading = useIsMediaUploading();
 
   const isGlobal = socialType === SocialTypes.DEFAULT;
   const isTwitter = socialType === SocialTypes.TWITTER;
@@ -69,16 +74,16 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const handleTextChange = useCallback(
     (text: string, order: number) => {
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: post.content.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
             item.order === order ? { ...item, text } : item
           ),
-        });
+        }));
       } else if (socialId) {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) =>
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
@@ -90,16 +95,14 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                 }
               : item
           ),
-        });
+        }));
       }
     },
-    [isGlobal, post, setPost, socialId]
+    [isGlobal, setPost, socialId]
   );
 
   const addTweet = useCallback(
     (afterOrder: number) => {
-      // Find all tweets after this order and increment their order
-      const tweetsToUpdate = content.filter((item) => item.order > afterOrder);
       const newOrder = afterOrder + 1;
 
       const newTweet = {
@@ -112,126 +115,124 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
         socialId,
       };
 
-      const updatedContent = [
-        ...content
-          .filter((item) => item.order <= afterOrder)
-          .map((item) => ({ ...item })),
-        newTweet,
-        ...tweetsToUpdate.map((item) => ({
-          ...item,
-          order: item.order + 1,
-        })),
-      ].sort((a, b) => a.order - b.order);
-
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: updatedContent,
+        setPost((currentPost) => {
+          const currentContent = currentPost.content;
+          const updatedContent = [
+            ...currentContent
+              .filter((item) => item.order <= afterOrder)
+              .map((item) => ({ ...item })),
+            newTweet,
+            ...currentContent
+              .filter((item) => item.order > afterOrder)
+              .map((item) => ({ ...item, order: item.order + 1 })),
+          ].sort((a, b) => a.order - b.order);
+          return { ...currentPost, content: updatedContent };
         });
       } else {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
-            item.socialProvider.socialId === socialId
-              ? {
-                  ...item,
-                  content: updatedContent,
-                }
-              : item
-          ),
-        });
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) => {
+            if (item.socialProvider.socialId !== socialId) {
+              return item;
+            }
+            const currentContent = item.content;
+            const updatedContent = [
+              ...currentContent
+                .filter((c) => c.order <= afterOrder)
+                .map((c) => ({ ...c })),
+              newTweet,
+              ...currentContent
+                .filter((c) => c.order > afterOrder)
+                .map((c) => ({ ...c, order: c.order + 1 })),
+            ].sort((a, b) => a.order - b.order);
+            return { ...item, content: updatedContent };
+          }),
+        }));
       }
     },
-    [content, isGlobal, post, setPost, socialId]
+    [isGlobal, setPost, socialId]
   );
 
   const removeTweet = useCallback(
     (order: number) => {
-      if (content.length <= 1) {
-        return; // Don't remove the last tweet
-      }
-
-      // Reorder remaining tweets to ensure sequential order
-      const updatedContent = content
-        .filter((item) => item.order !== order)
-        .map((item, index) => ({
-          ...item,
-          order: index,
-        }))
-        .sort((a, b) => a.order - b.order);
+      const reorder = (items: typeof content) => {
+        if (items.length <= 1) {
+          return items; // Don't remove the last tweet
+        }
+        return items
+          .filter((item) => item.order !== order)
+          .map((item, index) => ({ ...item, order: index }))
+          .sort((a, b) => a.order - b.order);
+      };
 
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: updatedContent,
+        setPost((currentPost) => {
+          const updatedContent = reorder(currentPost.content);
+          if (updatedContent.length === currentPost.content.length) {
+            return currentPost;
+          }
+          return { ...currentPost, content: updatedContent };
         });
       } else {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
-            item.socialProvider.socialId === socialId
-              ? {
-                  ...item,
-                  content: updatedContent,
-                }
-              : item
-          ),
-        });
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) => {
+            if (item.socialProvider.socialId !== socialId) {
+              return item;
+            }
+            const updatedContent = reorder(item.content);
+            if (updatedContent.length === item.content.length) {
+              return item;
+            }
+            return { ...item, content: updatedContent };
+          }),
+        }));
       }
     },
-    [content, isGlobal, post, setPost, socialId]
+    [isGlobal, setPost, socialId]
   );
 
   const handleThumbnailUpdate = useCallback(
     (
       order: number,
       thumbnail: {
-        // For video frame selection: only thumbnailTimestamp (platforms extract the frame)
-        // For custom image upload: thumbnailBucketUrl + thumbnailBucketKey
         thumbnailBucketUrl?: string;
         thumbnailBucketKey?: string;
-        thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
+        thumbnailTimestamp?: number;
       }
     ) => {
-      // Determine thumbnail type and set fields accordingly:
-      // - Video frame: only thumbnailTimestamp (clear URL fields)
-      // - Custom image: only URL fields (clear timestamp)
       const isCustomImage = !!thumbnail.thumbnailBucketUrl;
       const thumbnailFields = isCustomImage
         ? {
             thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
             thumbnailBucketKey: thumbnail.thumbnailBucketKey,
-            thumbnailTimestamp: undefined, // Clear timestamp for custom images
+            thumbnailTimestamp: undefined,
           }
         : {
-            thumbnailBucketUrl: undefined, // Clear URL for video frames
+            thumbnailBucketUrl: undefined,
             thumbnailBucketKey: undefined,
             thumbnailTimestamp: thumbnail.thumbnailTimestamp,
           };
 
+      const applyThumbnail = <T extends { mediaType: string }>(media: T[]) =>
+        media.map((m) =>
+          m.mediaType === "VIDEO" ? { ...m, ...thumbnailFields } : m
+        );
+
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: post.content.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
             item.order === order
-              ? {
-                  ...item,
-                  media: item.media.map((media) =>
-                    media.mediaType === "VIDEO"
-                      ? {
-                          ...media,
-                          ...thumbnailFields,
-                        }
-                      : media
-                  ),
-                }
+              ? { ...item, media: applyThumbnail(item.media) }
               : item
           ),
-        });
+        }));
       } else {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) =>
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
@@ -239,39 +240,32 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                     contentItem.order === order
                       ? {
                           ...contentItem,
-                          media: contentItem.media.map((media) =>
-                            media.mediaType === "VIDEO"
-                              ? {
-                                  ...media,
-                                  ...thumbnailFields,
-                                }
-                              : media
-                          ),
+                          media: applyThumbnail(contentItem.media),
                         }
                       : contentItem
                   ),
                 }
               : item
           ),
-        });
+        }));
       }
     },
-    [isGlobal, post, setPost, socialId]
+    [isGlobal, setPost, socialId]
   );
 
   const handleRemoveVideo = useCallback(
     (order: number) => {
       if (isGlobal) {
-        setPost({
-          ...post,
-          content: post.content.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
             item.order === order ? { ...item, media: [] } : item
           ),
-        });
+        }));
       } else {
-        setPost({
-          ...post,
-          alternativeContent: post.alternativeContent.map((item) =>
+        setPost((currentPost) => ({
+          ...currentPost,
+          alternativeContent: currentPost.alternativeContent.map((item) =>
             item.socialProvider.socialId === socialId
               ? {
                   ...item,
@@ -283,14 +277,19 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                 }
               : item
           ),
-        });
+        }));
       }
     },
-    [isGlobal, post, setPost, socialId]
+    [isGlobal, setPost, socialId]
   );
 
   // Check if we should use video-only layout
   const shouldShowVideoLayout = (() => {
+    // Never switch layout while media is uploading — prevents destroying MediaUploader state
+    if (isMediaUploading) {
+      return false;
+    }
+
     // For DEFAULT tab, check if all platforms in default are video platforms
     if (isGlobal) {
       return shouldDefaultUseVideoLayout(platformsInDefault);
@@ -302,15 +301,6 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
       socialType === SocialTypes.YOUTUBE
     ) {
       return true;
-    }
-
-    // Instagram: Only show when video exists
-    if (socialType === SocialTypes.INSTAGRAM) {
-      return (
-        content.length > 0 &&
-        content[0].media.length > 0 &&
-        content[0].media[0].mediaType === "VIDEO"
-      );
     }
 
     return false;
@@ -339,28 +329,29 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
           showYouTubeTitle
             ? (title) => {
                 if (isGlobal) {
-                  setPost({
-                    ...post,
-                    content: post.content.map((item) =>
+                  setPost((currentPost) => ({
+                    ...currentPost,
+                    content: currentPost.content.map((item) =>
                       item.order === 0 ? { ...item, title } : item
                     ),
-                  });
+                  }));
                 } else {
-                  setPost({
-                    ...post,
-                    alternativeContent: post.alternativeContent.map((item) =>
-                      item.socialProvider.socialId === socialId
-                        ? {
-                            ...item,
-                            content: item.content.map((contentItem) =>
-                              contentItem.order === 0
-                                ? { ...contentItem, title }
-                                : contentItem
-                            ),
-                          }
-                        : item
+                  setPost((currentPost) => ({
+                    ...currentPost,
+                    alternativeContent: currentPost.alternativeContent.map(
+                      (item) =>
+                        item.socialProvider.socialId === socialId
+                          ? {
+                              ...item,
+                              content: item.content.map((contentItem) =>
+                                contentItem.order === 0
+                                  ? { ...contentItem, title }
+                                  : contentItem
+                              ),
+                            }
+                          : item
                     ),
-                  });
+                  }));
                 }
               }
             : undefined
@@ -382,6 +373,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                 altText?: string;
                 thumbnailBucketUrl?: string;
                 thumbnailBucketKey?: string;
+                thumbnailTimestamp?: number;
               }
             | undefined
         }

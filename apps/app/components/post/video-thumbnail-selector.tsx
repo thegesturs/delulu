@@ -77,6 +77,15 @@ export function VideoThumbnailSelector({
     currentThumbnail?.url
   );
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setThumbnailPreviews([]);
+      setSelectedFrame(null);
+      setCustomThumbnail(null);
+    }
+  }, [isOpen]);
+
   // Get the video source (prefer videoFile for local files)
   const videoSource = videoFile || videoUrl;
 
