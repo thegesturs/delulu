@@ -25,6 +25,9 @@ export function StoreProvider({ children }: StoreProviderProps) {
     // Rehydrate from localStorage
     useStore.persist.rehydrate();
 
+    // Force reset transient upload state — it may be stuck from a previous session
+    useStore.setState({ isMediaUploading: false });
+
     // Get current state after rehydration
     const state = useStore.getState();
 
