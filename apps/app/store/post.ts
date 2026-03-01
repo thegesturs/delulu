@@ -266,6 +266,17 @@ export const useStore = create<PostState & PostActions>()(
         name: "post-storage",
         storage: createJSONStorage(() => localStorage),
         skipHydration: true,
+        partialize: (state) => {
+          // Exclude transient state that should never persist across sessions
+          const { isMediaUploading, ...rest } = state;
+          return rest;
+        },
+        merge: (persistedState, currentState) => ({
+          ...currentState,
+          ...(persistedState as Partial<PostState & PostActions>),
+          // Always reset transient upload state on hydration
+          isMediaUploading: false,
+        }),
       }
     )
   )
