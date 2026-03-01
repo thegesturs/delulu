@@ -89,6 +89,7 @@ export function useMediaUrl(bucketKey?: string, url?: string): string {
 
   useEffect(() => {
     if (!key) {
+      setResolved("");
       return;
     }
 

@@ -156,8 +156,6 @@ export function VideoContentLayout({
   const hasCustomThumbnailImage = !!(
     videoMedia?.thumbnailBucketUrl || videoMedia?.thumbnailBucketKey
   );
-  const hasTimestampThumbnail = videoMedia?.thumbnailTimestamp !== undefined;
-  const hasThumbnail = hasCustomThumbnailImage || hasTimestampThumbnail;
   const thumbnailUrl = useMediaUrl(
     videoMedia?.thumbnailBucketKey,
     videoMedia?.thumbnailBucketUrl
@@ -174,7 +172,7 @@ export function VideoContentLayout({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Thumbnail Preview</Label>
-                {hasThumbnail && (
+                {hasCustomThumbnailImage && (
                   <Badge className="gap-1" variant="secondary">
                     <Icon icon={Image01Icon} size={12} />
                     Set
@@ -198,37 +196,6 @@ export function VideoContentLayout({
                       className="h-full w-full object-cover"
                       src={thumbnailUrl!}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                      <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
-                        <div className="flex items-center gap-2">
-                          <Icon icon={PencilEdit01Icon} size={16} />
-                          <span className="font-medium text-sm">
-                            Change Thumbnail
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : hasTimestampThumbnail ? (
-                  <>
-                    {/* Show video with timestamp badge */}
-                    <video
-                      className="h-full w-full object-cover"
-                      muted
-                      playsInline
-                      src={videoUrl}
-                    >
-                      <track kind="captions" />
-                    </video>
-                    <div className="absolute right-2 bottom-2">
-                      <Badge className="gap-1" variant="secondary">
-                        Frame at{" "}
-                        {Math.floor(videoMedia!.thumbnailTimestamp! / 60)}:
-                        {Math.floor(videoMedia!.thumbnailTimestamp! % 60)
-                          .toString()
-                          .padStart(2, "0")}
-                      </Badge>
-                    </div>
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
@@ -273,7 +240,9 @@ export function VideoContentLayout({
                 variant="outline"
               >
                 <Icon className="mr-2" icon={Image01Icon} size={16} />
-                {hasThumbnail ? "Change Thumbnail" : "Select Thumbnail"}
+                {hasCustomThumbnailImage
+                  ? "Change Thumbnail"
+                  : "Select Thumbnail"}
               </Button>
 
               {/* Remove Video button */}

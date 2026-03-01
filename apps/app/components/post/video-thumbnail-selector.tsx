@@ -11,7 +11,6 @@ import {
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
-  Image01Icon,
   Loading03Icon,
   Upload01Icon,
   VideoIcon,
@@ -25,7 +24,6 @@ import {
   blobToFile,
   extractVideoFrame,
   formatTimestamp,
-  generateThumbnailPreviews,
   type VideoFrameResult,
 } from "@/lib/video-frames";
 
@@ -62,10 +60,7 @@ export function VideoThumbnailSelector({
   const [selectedFrame, setSelectedFrame] = useState<VideoFrameResult | null>(
     null
   );
-  const [thumbnailPreviews, setThumbnailPreviews] = useState<
-    VideoFrameResult[]
-  >([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [customThumbnail, setCustomThumbnail] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -80,50 +75,14 @@ export function VideoThumbnailSelector({
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setThumbnailPreviews([]);
       setSelectedFrame(null);
       setCustomThumbnail(null);
+      setIsCapturing(false);
     }
   }, [isOpen]);
 
   // Get the video source (prefer videoFile for local files)
   const videoSource = videoFile || videoUrl;
-
-  // Generate thumbnail previews when dialog opens
-  useEffect(() => {
-    // Only generate if dialog is open and we don't have previews yet
-    if (!(isOpen && videoSource) || thumbnailPreviews.length > 0) {
-      return;
-    }
-
-    const generatePreviews = async () => {
-      setIsGenerating(true);
-      try {
-        const previews = await generateThumbnailPreviews(videoSource, 6);
-        setThumbnailPreviews(previews);
-
-        // Set first preview as default if no thumbnail exists
-        if (!currentThumbnail && previews.length > 0) {
-          setSelectedFrame(previews[0]);
-        }
-      } catch (error) {
-        console.error("Failed to generate thumbnail previews:", error);
-        // Only show error if dialog is still open
-        if (isOpen) {
-          toast.error("Failed to generate thumbnail previews");
-        }
-      } finally {
-        setIsGenerating(false);
-      }
-    };
-
-    // Add a small delay to ensure video element is ready
-    const timeoutId = setTimeout(() => {
-      generatePreviews();
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [isOpen, videoSource, currentThumbnail, thumbnailPreviews.length]);
 
   // Extract frame at current video time
   const handleExtractCurrentFrame = useCallback(async () => {
@@ -131,6 +90,7 @@ export function VideoThumbnailSelector({
       return;
     }
 
+    setIsCapturing(true);
     try {
       const currentTime = videoRef.current.currentTime;
       const frame = await extractVideoFrame(videoSource, currentTime);
@@ -140,6 +100,8 @@ export function VideoThumbnailSelector({
     } catch (error) {
       console.error("Failed to extract frame:", error);
       toast.error("Failed to extract frame");
+    } finally {
+      setIsCapturing(false);
     }
   }, [videoSource]);
 
@@ -199,16 +161,28 @@ export function VideoThumbnailSelector({
         setIsUploading(false);
       }
     } else if (selectedFrame) {
-      // Video frame - just save timestamp, no upload needed
-      // TikTok uses video_cover_timestamp_ms, Instagram uses thumb_offset
-      onThumbnailUpdate({
-        thumbnailTimestamp: selectedFrame.timestamp,
-      });
-
-      toast.success(
-        `Thumbnail set to ${formatTimestamp(selectedFrame.timestamp)}`
-      );
-      onClose();
+      // Upload the captured frame as an image so it renders as <img> in the main view
+      setIsUploading(true);
+      try {
+        const thumbnailToUpload = blobToFile(
+          selectedFrame.blob,
+          `thumbnail-${Date.now()}.jpg`
+        );
+        const result = await uploadAndSaveMedia(thumbnailToUpload);
+        onThumbnailUpdate({
+          thumbnailBucketUrl: result.url,
+          thumbnailBucketKey: result.bucketKey,
+        });
+        toast.success(
+          `Thumbnail set to ${formatTimestamp(selectedFrame.timestamp)}`
+        );
+        onClose();
+      } catch (error) {
+        console.error("Failed to upload thumbnail:", error);
+        toast.error("Failed to upload thumbnail");
+      } finally {
+        setIsUploading(false);
+      }
     } else {
       toast.error("No thumbnail selected");
     }
@@ -222,8 +196,6 @@ export function VideoThumbnailSelector({
 
   const displayThumbnail = customThumbnail || selectedFrame?.dataUrl;
   const hasCustomImage = currentThumbnail?.url || currentThumbnail?.bucketKey;
-  const hasTimestamp = currentThumbnail?.thumbnailTimestamp !== undefined;
-  const hasThumbnail = hasCustomImage || hasTimestamp;
   const videoAspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
@@ -259,76 +231,31 @@ export function VideoThumbnailSelector({
             {/* Extract Frame Button */}
             <Button
               className="w-full"
-              disabled={!videoSource}
+              disabled={!videoSource || isCapturing}
               onClick={handleExtractCurrentFrame}
               type="button"
               variant="outline"
             >
-              <Icon className="mr-2" icon={VideoIcon} size={16} />
-              Capture Current Frame
+              {isCapturing ? (
+                <>
+                  <Icon
+                    className="mr-2 animate-spin"
+                    icon={Loading03Icon}
+                    size={16}
+                  />
+                  Capturing...
+                </>
+              ) : (
+                <>
+                  <Icon className="mr-2" icon={VideoIcon} size={16} />
+                  Capture Current Frame
+                </>
+              )}
             </Button>
           </div>
 
           {/* Right Column - Thumbnail Options */}
           <div className="space-y-4">
-            {/* Thumbnail Previews Grid */}
-            {isGenerating ? (
-              <div className="flex items-center justify-center py-12">
-                <Icon
-                  className="animate-spin text-muted-foreground"
-                  icon={Loading03Icon}
-                  size={24}
-                />
-              </div>
-            ) : (
-              thumbnailPreviews.length > 0 && (
-                <div className="space-y-3">
-                  <p className="font-medium text-sm">
-                    Select from generated previews:
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {thumbnailPreviews.map((preview, index) => (
-                      <button
-                        className={cn(
-                          "group relative overflow-hidden rounded-lg border-2 transition-all hover:scale-105",
-                          isVertical ? "aspect-[9/16]" : "aspect-video",
-                          selectedFrame === preview && !customThumbnail
-                            ? "border-primary ring-2 ring-primary ring-offset-2"
-                            : "border-border hover:border-input"
-                        )}
-                        key={index}
-                        onClick={() => {
-                          setSelectedFrame(preview);
-                          setCustomThumbnail(null);
-                        }}
-                        type="button"
-                      >
-                        <img
-                          alt={`Frame at ${formatTimestamp(preview.timestamp)}`}
-                          className="h-full w-full object-cover"
-                          src={preview.dataUrl}
-                        />
-                        <div className="absolute right-1 bottom-1 rounded bg-black/70 px-1.5 py-0.5 text-white text-xs">
-                          {formatTimestamp(preview.timestamp)}
-                        </div>
-                        {selectedFrame === preview && !customThumbnail && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
-                            <div className="rounded-full bg-primary p-1">
-                              <Icon
-                                className="text-primary-foreground"
-                                icon={Image01Icon}
-                                size={12}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            )}
-
             {/* Custom Thumbnail Upload */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
@@ -399,32 +326,21 @@ export function VideoThumbnailSelector({
             )}
 
             {/* Current Thumbnail Display */}
-            {hasThumbnail && !displayThumbnail && (
+            {hasCustomImage && !displayThumbnail && (
               <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
                 <p className="font-medium text-sm">Current thumbnail:</p>
-                {hasCustomImage ? (
-                  <div
-                    className={cn(
-                      "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border border-border",
-                      videoAspectClass
-                    )}
-                  >
-                    <img
-                      alt="Current thumbnail"
-                      className="h-full w-full object-cover"
-                      src={resolvedThumbnailUrl}
-                    />
-                  </div>
-                ) : hasTimestamp ? (
-                  <div className="flex items-center justify-center rounded-lg border border-border border-dashed bg-muted/30 p-6">
-                    <p className="text-muted-foreground text-sm">
-                      Frame at{" "}
-                      <span className="font-medium text-foreground">
-                        {formatTimestamp(currentThumbnail!.thumbnailTimestamp!)}
-                      </span>
-                    </p>
-                  </div>
-                ) : null}
+                <div
+                  className={cn(
+                    "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border border-border",
+                    videoAspectClass
+                  )}
+                >
+                  <img
+                    alt="Current thumbnail"
+                    className="h-full w-full object-cover"
+                    src={resolvedThumbnailUrl}
+                  />
+                </div>
               </div>
             )}
           </div>
