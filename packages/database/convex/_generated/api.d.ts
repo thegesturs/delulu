@@ -17,6 +17,7 @@ import type * as dodo from "../dodo.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
+import type * as mediaCleanup from "../mediaCleanup.js";
 import type * as posts from "../posts.js";
 import type * as repairs from "../repairs.js";
 import type * as schemas_articles from "../schemas/articles.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   index: typeof index;
   media: typeof media;
+  mediaCleanup: typeof mediaCleanup;
   posts: typeof posts;
   repairs: typeof repairs;
   "schemas/articles": typeof schemas_articles;
