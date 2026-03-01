@@ -24,7 +24,6 @@ import {
   blobToFile,
   extractVideoFrame,
   formatTimestamp,
-  type VideoFrameResult,
 } from "@/lib/video-frames";
 
 interface VideoThumbnailSelectorProps {
@@ -57,9 +56,6 @@ export function VideoThumbnailSelector({
   onClose,
   isVertical = true, // Default to vertical for shorts/reels/tiktok
 }: VideoThumbnailSelectorProps) {
-  const [selectedFrame, setSelectedFrame] = useState<VideoFrameResult | null>(
-    null
-  );
   const [isCapturing, setIsCapturing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [customThumbnail, setCustomThumbnail] = useState<string | null>(null);
@@ -75,7 +71,6 @@ export function VideoThumbnailSelector({
   // Reset state when dialog closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedFrame(null);
       setCustomThumbnail(null);
       setIsCapturing(false);
     }
@@ -84,7 +79,7 @@ export function VideoThumbnailSelector({
   // Get the video source (prefer videoFile for local files)
   const videoSource = videoFile || videoUrl;
 
-  // Extract frame at current video time
+  // Extract frame, upload to R2, and save — all in one action
   const handleExtractCurrentFrame = useCallback(async () => {
     if (!(videoRef.current && videoSource)) {
       return;
@@ -94,16 +89,24 @@ export function VideoThumbnailSelector({
     try {
       const currentTime = videoRef.current.currentTime;
       const frame = await extractVideoFrame(videoSource, currentTime);
-      setSelectedFrame(frame);
-      setCustomThumbnail(null); // Clear custom thumbnail when selecting from video
-      toast.success(`Frame captured at ${formatTimestamp(currentTime)}`);
+      const thumbnailToUpload = blobToFile(
+        frame.blob,
+        `thumbnail-${Date.now()}.jpg`
+      );
+      const result = await uploadAndSaveMedia(thumbnailToUpload);
+      onThumbnailUpdate({
+        thumbnailBucketUrl: result.url,
+        thumbnailBucketKey: result.bucketKey,
+      });
+      toast.success(`Thumbnail set to ${formatTimestamp(currentTime)}`);
+      onClose();
     } catch (error) {
-      console.error("Failed to extract frame:", error);
-      toast.error("Failed to extract frame");
+      console.error("Failed to capture frame:", error);
+      toast.error("Failed to capture frame");
     } finally {
       setIsCapturing(false);
     }
-  }, [videoSource]);
+  }, [videoSource, uploadAndSaveMedia, onThumbnailUpdate, onClose]);
 
   // Handle custom thumbnail upload
   const handleCustomThumbnail = useCallback(
@@ -122,115 +125,81 @@ export function VideoThumbnailSelector({
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
         setCustomThumbnail(dataUrl);
-        setSelectedFrame(null); // Clear video frame when uploading custom
-        toast.success("Custom thumbnail uploaded");
       };
       reader.readAsDataURL(file);
     },
     []
   );
 
-  // Save selected thumbnail
-  // For video frames: only save timestamp (TikTok/Instagram extract the frame themselves)
-  // For custom images: upload to S3 and save URL (for Instagram's cover_url)
+  // Save custom uploaded image
   const handleSaveThumbnail = useCallback(async () => {
-    if (customThumbnail) {
-      // Custom image - needs upload for Instagram's cover_url feature
-      setIsUploading(true);
-      try {
-        const response = await fetch(customThumbnail);
-        const blob = await response.blob();
-        const thumbnailToUpload = blobToFile(
-          blob,
-          `thumbnail-${Date.now()}.jpg`
-        );
-        const result = await uploadAndSaveMedia(thumbnailToUpload);
-
-        onThumbnailUpdate({
-          thumbnailBucketUrl: result.url,
-          thumbnailBucketKey: result.bucketKey,
-          // No timestamp for custom images
-        });
-
-        toast.success("Custom thumbnail uploaded");
-        onClose();
-      } catch (error) {
-        console.error("Failed to upload custom thumbnail:", error);
-        toast.error("Failed to upload thumbnail");
-      } finally {
-        setIsUploading(false);
-      }
-    } else if (selectedFrame) {
-      // Upload the captured frame as an image so it renders as <img> in the main view
-      setIsUploading(true);
-      try {
-        const thumbnailToUpload = blobToFile(
-          selectedFrame.blob,
-          `thumbnail-${Date.now()}.jpg`
-        );
-        const result = await uploadAndSaveMedia(thumbnailToUpload);
-        onThumbnailUpdate({
-          thumbnailBucketUrl: result.url,
-          thumbnailBucketKey: result.bucketKey,
-        });
-        toast.success(
-          `Thumbnail set to ${formatTimestamp(selectedFrame.timestamp)}`
-        );
-        onClose();
-      } catch (error) {
-        console.error("Failed to upload thumbnail:", error);
-        toast.error("Failed to upload thumbnail");
-      } finally {
-        setIsUploading(false);
-      }
-    } else {
-      toast.error("No thumbnail selected");
+    if (!customThumbnail) {
+      return;
     }
-  }, [
-    customThumbnail,
-    selectedFrame,
-    uploadAndSaveMedia,
-    onThumbnailUpdate,
-    onClose,
-  ]);
 
-  const displayThumbnail = customThumbnail || selectedFrame?.dataUrl;
+    setIsUploading(true);
+    try {
+      const response = await fetch(customThumbnail);
+      const blob = await response.blob();
+      const thumbnailToUpload = blobToFile(blob, `thumbnail-${Date.now()}.jpg`);
+      const result = await uploadAndSaveMedia(thumbnailToUpload);
+
+      onThumbnailUpdate({
+        thumbnailBucketUrl: result.url,
+        thumbnailBucketKey: result.bucketKey,
+      });
+
+      toast.success("Thumbnail saved");
+      onClose();
+    } catch (error) {
+      console.error("Failed to upload thumbnail:", error);
+      toast.error("Failed to upload thumbnail");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [customThumbnail, uploadAndSaveMedia, onThumbnailUpdate, onClose]);
+
   const hasCustomImage = currentThumbnail?.url || currentThumbnail?.bucketKey;
   const videoAspectClass = isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
     <Dialog onOpenChange={onClose} open={isOpen}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[calc(100%-5rem)]">
+      <DialogContent
+        className={cn(
+          "max-h-[90vh] overflow-y-auto",
+          isVertical ? "sm:max-w-sm" : "sm:max-w-md"
+        )}
+      >
         <DialogHeader>
-          <DialogTitle>Select Video Thumbnail</DialogTitle>
+          <DialogTitle>Select Thumbnail</DialogTitle>
           <DialogDescription>
-            Choose a frame from your video or upload a custom thumbnail
+            Scrub to a frame and capture it, or upload an image
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(200px,320px)_1fr]">
-          {/* Left Column - Video Player (Fixed size on larger screens) */}
-          <div className="space-y-3">
-            <div
-              className={cn(
-                "relative mx-auto w-full max-w-[280px] overflow-hidden rounded-lg bg-black md:max-w-none",
-                videoAspectClass
-              )}
+        <div className="space-y-4">
+          {/* Video Player */}
+          <div
+            className={cn(
+              "relative mx-auto w-full overflow-hidden rounded-lg bg-black",
+              videoAspectClass
+            )}
+          >
+            <video
+              className="h-full w-full object-contain"
+              controls
+              playsInline
+              ref={videoRef}
+              src={resolvedVideoUrl}
             >
-              <video
-                className="h-full w-full object-contain"
-                controls
-                playsInline
-                ref={videoRef}
-                src={resolvedVideoUrl}
-              >
-                <track kind="captions" />
-              </video>
-            </div>
+              <track kind="captions" />
+            </video>
+          </div>
 
-            {/* Extract Frame Button */}
+          {/* Action Buttons */}
+          <div className="flex gap-2">
             <Button
-              className="w-full"
+              className="flex-1"
               disabled={!videoSource || isCapturing}
               onClick={handleExtractCurrentFrame}
               type="button"
@@ -248,102 +217,89 @@ export function VideoThumbnailSelector({
               ) : (
                 <>
                   <Icon className="mr-2" icon={VideoIcon} size={16} />
-                  Capture Current Frame
+                  Capture Frame
                 </>
               )}
             </Button>
+
+            <input
+              accept="image/*"
+              className="hidden"
+              onChange={handleCustomThumbnail}
+              ref={fileInputRef}
+              type="file"
+            />
+
+            <Button
+              className="flex-1"
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              variant="outline"
+            >
+              <Icon className="mr-2" icon={Upload01Icon} size={16} />
+              Upload Image
+            </Button>
           </div>
 
-          {/* Right Column - Thumbnail Options */}
-          <div className="space-y-4">
-            {/* Custom Thumbnail Upload */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 border-border border-t" />
-                <span className="px-2 text-muted-foreground text-xs">OR</span>
-                <div className="flex-1 border-border border-t" />
+          {/* Custom Image Preview + Save */}
+          {customThumbnail && (
+            <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-3">
+              <p className="font-medium text-sm">Preview</p>
+              <div
+                className={cn(
+                  "relative mx-auto max-w-[160px] overflow-hidden rounded-md border-2 border-primary",
+                  videoAspectClass
+                )}
+              >
+                <img
+                  alt="Custom thumbnail preview"
+                  className="h-full w-full object-cover"
+                  src={customThumbnail}
+                />
               </div>
-
-              <input
-                accept="image/*"
-                className="hidden"
-                onChange={handleCustomThumbnail}
-                ref={fileInputRef}
-                type="file"
-              />
 
               <Button
                 className="w-full"
-                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                onClick={handleSaveThumbnail}
                 type="button"
-                variant="outline"
               >
-                <Icon className="mr-2" icon={Upload01Icon} size={16} />
-                Upload Custom Thumbnail
+                {isUploading ? (
+                  <>
+                    <Icon
+                      className="mr-2 animate-spin"
+                      icon={Loading03Icon}
+                      size={16}
+                    />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Thumbnail"
+                )}
               </Button>
             </div>
+          )}
 
-            {/* Selected Thumbnail Preview */}
-            {displayThumbnail && (
-              <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
-                <p className="font-medium text-sm">Selected thumbnail:</p>
-                <div
-                  className={cn(
-                    "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border-2 border-primary",
-                    videoAspectClass
-                  )}
-                >
-                  <img
-                    alt="Selected thumbnail"
-                    className="h-full w-full object-cover"
-                    src={displayThumbnail}
-                  />
-                </div>
-
-                <Button
-                  className="w-full"
-                  disabled={isUploading}
-                  onClick={handleSaveThumbnail}
-                  type="button"
-                >
-                  {isUploading ? (
-                    <>
-                      <Icon
-                        className="mr-2 animate-spin"
-                        icon={Loading03Icon}
-                        size={16}
-                      />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Icon className="mr-2" icon={Upload01Icon} size={16} />
-                      Save Thumbnail
-                    </>
-                  )}
-                </Button>
+          {/* Current Thumbnail Display */}
+          {hasCustomImage && !customThumbnail && (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 p-3">
+              <div
+                className={cn(
+                  "w-12 shrink-0 overflow-hidden rounded border border-border",
+                  videoAspectClass
+                )}
+              >
+                <img
+                  alt="Current thumbnail"
+                  className="h-full w-full object-cover"
+                  src={resolvedThumbnailUrl}
+                />
               </div>
-            )}
-
-            {/* Current Thumbnail Display */}
-            {hasCustomImage && !displayThumbnail && (
-              <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
-                <p className="font-medium text-sm">Current thumbnail:</p>
-                <div
-                  className={cn(
-                    "relative mx-auto max-w-[200px] overflow-hidden rounded-lg border border-border",
-                    videoAspectClass
-                  )}
-                >
-                  <img
-                    alt="Current thumbnail"
-                    className="h-full w-full object-cover"
-                    src={resolvedThumbnailUrl}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+              <p className="text-muted-foreground text-xs">
+                Current thumbnail set. Capture a new frame or upload to replace.
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
