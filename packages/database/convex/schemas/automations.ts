@@ -286,6 +286,6 @@ export type AutomationContact = Infer<typeof automationContactSchema>;
 
 export const DM_PLAN_LIMITS = {
   FREE: 100,
-  ECHO: -1, // Unlimited
-  VIBE: 10_000,
+  ECHO: 10_000,
+  VIBE: -1, // Unlimited
 } as const;
