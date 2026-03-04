@@ -26,7 +26,7 @@ import {
   PLANS,
   type PlanType,
 } from "@delulu/payments";
-import { SparklesIcon, Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -298,44 +298,14 @@ export function PricingCards({
                       auto-DMs/month
                     </span>
                   </li>
-                  {plan.features.analytics && (
+                  {plan.features.postScheduling && (
                     <li className="flex items-start gap-2">
                       <Icon
                         className="mt-0.5 flex-shrink-0 text-primary"
                         icon={Tick01Icon}
                         size={16}
                       />
-                      <span>Advanced analytics</span>
-                    </li>
-                  )}
-                  {plan.features.aiContentGeneration && (
-                    <li className="flex items-start gap-2">
-                      <Icon
-                        className="mt-0.5 flex-shrink-0 text-primary"
-                        icon={SparklesIcon}
-                        size={16}
-                      />
-                      <span>AI content generation</span>
-                    </li>
-                  )}
-                  {plan.features.collaboration && (
-                    <li className="flex items-start gap-2">
-                      <Icon
-                        className="mt-0.5 flex-shrink-0 text-primary"
-                        icon={Tick01Icon}
-                        size={16}
-                      />
-                      <span>Team collaboration</span>
-                    </li>
-                  )}
-                  {plan.features.whiteLabel && (
-                    <li className="flex items-start gap-2">
-                      <Icon
-                        className="mt-0.5 flex-shrink-0 text-primary"
-                        icon={Tick01Icon}
-                        size={16}
-                      />
-                      <span>White-label</span>
+                      <span>Post scheduling</span>
                     </li>
                   )}
                   {plan.features.prioritySupport && (

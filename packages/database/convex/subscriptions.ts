@@ -88,16 +88,7 @@ export const getSubscriptionById = query({
  */
 export const checkFeatureAccess = query({
   args: {
-    feature: v.union(
-      v.literal("aiContentGeneration"),
-      v.literal("analytics"),
-      v.literal("collaboration"),
-      v.literal("whiteLabel"),
-      v.literal("prioritySupport"),
-      v.literal("customBranding"),
-      v.literal("advancedScheduling"),
-      v.literal("bulkUpload")
-    ),
+    feature: v.union(v.literal("postScheduling"), v.literal("prioritySupport")),
   },
   returns: v.object({
     hasAccess: v.boolean(),

@@ -8,15 +8,7 @@ import { api } from "@delulu/database/convex/_generated/api";
 import type { PlanType } from "@delulu/payments";
 import { useQuery } from "convex/react";
 
-export type Feature =
-  | "aiContentGeneration"
-  | "analytics"
-  | "collaboration"
-  | "whiteLabel"
-  | "prioritySupport"
-  | "customBranding"
-  | "advancedScheduling"
-  | "bulkUpload";
+export type Feature = "postScheduling" | "prioritySupport";
 
 export interface UseFeatureAccessReturn {
   hasAccess: boolean;
