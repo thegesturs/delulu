@@ -1,0 +1,22 @@
+{
+  "name": "@delulu/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "delulu-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "catalog:"
+  }
+}

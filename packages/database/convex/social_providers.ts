@@ -1,7 +1,12 @@
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api.js";
-import type { Doc } from "./_generated/dataModel.js";
-import { internalMutation, mutation, query } from "./_generated/server.js";
+import type { Doc, Id } from "./_generated/dataModel.js";
+import {
+  internalMutation,
+  mutation,
+  type QueryCtx,
+  query,
+} from "./_generated/server.js";
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
@@ -9,6 +14,19 @@ import {
 } from "./schemas/index";
 import { getCurrentUser } from "./users";
 import { decryptData, encryptData, getCurrentTimestamp } from "./utils";
+
+// Core helper — no auth dependency
+export async function getConnectedAccountsCore(
+  ctx: QueryCtx,
+  userId: Id<"users">
+) {
+  const providers = await ctx.db
+    .query("socialProviders")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .collect();
+  providers.sort((a, b) => b._creationTime - a._creationTime);
+  return providers;
+}
 
 export const getConnectedAccounts = query({
   args: {},
@@ -18,15 +36,7 @@ export const getConnectedAccounts = query({
     if (!user) {
       return [];
     }
-
-    const providers = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .collect();
-    // Sort by creation date (newest first)
-    providers.sort((a, b) => b._creationTime - a._creationTime);
-
-    return providers;
+    return getConnectedAccountsCore(ctx, user._id);
   },
 });
 
@@ -457,5 +467,29 @@ export const upsertSocialProviderFromOAuth = mutation({
     });
 
     return "created";
+  },
+});
+
+// ============================================================================
+// PUBLIC API VARIANTS (for REST API / MCP server)
+// ============================================================================
+
+export const apiGetConnectedAccounts = query({
+  args: { userId: v.id("users") },
+  returns: v.array(socialProviderSchema),
+  handler: async (ctx, args) => {
+    return getConnectedAccountsCore(ctx, args.userId);
+  },
+});
+
+export const apiGetAccountById = query({
+  args: { userId: v.id("users"), accountId: v.id("socialProviders") },
+  returns: v.union(socialProviderSchema, v.null()),
+  handler: async (ctx, args) => {
+    const provider = await ctx.db.get(args.accountId);
+    if (!provider || provider.userId !== args.userId) {
+      return null;
+    }
+    return provider;
   },
 });
