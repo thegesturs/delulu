@@ -336,6 +336,54 @@ export const bulkDeleteMedia = mutation({
   },
 });
 
+// API mutation — accepts explicit userId (no Clerk auth)
+export const apiCreateMedia = mutation({
+  args: {
+    userId: v.id("users"),
+    bucketKey: mediaCreateSchema.fields.bucketKey,
+    url: mediaCreateSchema.fields.url,
+    mediaType: mediaCreateSchema.fields.mediaType,
+    originalFilename: mediaCreateSchema.fields.originalFilename,
+    size: mediaCreateSchema.fields.size,
+    extension: mediaCreateSchema.fields.extension,
+    altText: mediaCreateSchema.fields.altText,
+    bucketUrl: mediaCreateSchema.fields.bucketUrl,
+    thumbnailBucketUrl: mediaCreateSchema.fields.thumbnailBucketUrl,
+    thumbnailBucketKey: mediaCreateSchema.fields.thumbnailBucketKey,
+  },
+  returns: v.id("media"),
+  handler: async (ctx, args) => {
+    if (!isValidUrl(args.url)) {
+      throw new Error("Invalid media URL");
+    }
+    if (args.bucketUrl && !isValidUrl(args.bucketUrl)) {
+      throw new Error("Invalid bucket URL");
+    }
+    if (args.thumbnailBucketUrl && !isValidUrl(args.thumbnailBucketUrl)) {
+      throw new Error("Invalid thumbnail bucket URL");
+    }
+
+    const now = getCurrentTimestamp();
+    const { userId, ...mediaFields } = args;
+
+    return await ctx.db.insert("media", {
+      userId,
+      bucketKey: mediaFields.bucketKey,
+      url: mediaFields.url,
+      mediaType: mediaFields.mediaType,
+      originalFilename: mediaFields.originalFilename,
+      size: mediaFields.size,
+      extension: mediaFields.extension,
+      altText: mediaFields.altText,
+      bucketUrl: mediaFields.bucketUrl,
+      thumbnailBucketUrl: mediaFields.thumbnailBucketUrl,
+      thumbnailBucketKey: mediaFields.thumbnailBucketKey,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
 // Internal function to clean up media for deleted users
 export const cleanupMediaForDeletedUser = internalMutation({
   args: { userId: v.id("users") },
