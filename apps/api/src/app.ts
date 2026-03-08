@@ -1,8 +1,10 @@
+import { apiReference } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authMiddleware } from "./middleware/auth";
 import { errorHandler } from "./middleware/error-handler";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { openApiSpec } from "./openapi";
 import v1 from "./routes/v1";
 import type { ApiKeyData, Env } from "./types";
 
@@ -19,6 +21,16 @@ export function createApp() {
 
   // Health check (no auth needed)
   app.get("/health", (c) => c.json({ status: "ok" }));
+
+  // OpenAPI spec + docs (no auth needed)
+  app.get("/openapi.json", (c) => c.json(openApiSpec));
+  app.get(
+    "/docs",
+    apiReference({
+      url: "/openapi.json",
+      theme: "kepler",
+    })
+  );
 
   // Auth + rate limiting for all /v1 routes
   app.use("/v1/*", authMiddleware);

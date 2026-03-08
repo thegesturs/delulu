@@ -15,12 +15,14 @@ export function YouTubePreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("YOUTUBE");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame>
       {/* YouTube Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 pt-10 pb-2">
+      <div className="flex items-center justify-between border-gray-200 border-b bg-white px-4 pt-10 pb-2">
         <div className="flex items-center gap-1">
           <div className="flex h-6 w-8 items-center justify-center rounded bg-red-600">
             <div className="h-0 w-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-white" />
@@ -44,7 +46,12 @@ export function YouTubePreview() {
                 src={mediaUrl}
               />
             ) : (
-              <Image alt="Preview" className="object-cover" fill src={mediaUrl} />
+              <Image
+                alt="Preview"
+                className="object-cover"
+                fill
+                src={mediaUrl}
+              />
             )
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -83,9 +90,14 @@ export function YouTubePreview() {
             <p className="truncate font-medium text-sm">
               {provider?.fullName || provider?.username || "Channel Name"}
             </p>
-            <p className="text-gray-500 text-xs">{formatNumber(24_500)} subscribers</p>
+            <p className="text-gray-500 text-xs">
+              {formatNumber(24_500)} subscribers
+            </p>
           </div>
-          <button className="rounded-full bg-black px-4 py-1.5 font-medium text-white text-xs" type="button">
+          <button
+            className="rounded-full bg-black px-4 py-1.5 font-medium text-white text-xs"
+            type="button"
+          >
             Subscribe
           </button>
         </div>
@@ -93,20 +105,29 @@ export function YouTubePreview() {
         {/* Actions */}
         <div className="mt-3 flex items-center gap-2 overflow-x-auto px-3 pb-3">
           <div className="flex items-center rounded-full bg-gray-100">
-            <button className="flex items-center gap-1 rounded-l-full px-4 py-2" type="button">
+            <button
+              className="flex items-center gap-1 rounded-l-full px-4 py-2"
+              type="button"
+            >
               <Icon icon={FavouriteIcon} size={18} />
-              <span className="text-sm">{formatNumber(3_421)}</span>
+              <span className="text-sm">{formatNumber(3421)}</span>
             </button>
             <div className="h-6 w-px bg-gray-300" />
             <button className="rounded-r-full px-3 py-2" type="button">
               <Icon icon={ThumbsDownIcon} size={18} />
             </button>
           </div>
-          <button className="flex items-center gap-1 rounded-full bg-gray-100 px-4 py-2" type="button">
+          <button
+            className="flex items-center gap-1 rounded-full bg-gray-100 px-4 py-2"
+            type="button"
+          >
             <Icon icon={ShareIcon} size={18} />
             <span className="text-sm">Share</span>
           </button>
-          <button className="flex items-center gap-1 rounded-full bg-gray-100 px-4 py-2" type="button">
+          <button
+            className="flex items-center gap-1 rounded-full bg-gray-100 px-4 py-2"
+            type="button"
+          >
             <Icon icon={BookmarkIcon} size={18} />
             <span className="text-sm">Save</span>
           </button>

@@ -14,17 +14,22 @@ export function FacebookPreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("FACEBOOK");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame>
       {/* Facebook Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 pt-10 pb-2">
+      <div className="flex items-center justify-between border-gray-200 border-b bg-white px-4 pt-10 pb-2">
         <span className="font-bold text-[#1877F2] text-xl">facebook</span>
       </div>
 
       {/* Post */}
-      <div className="overflow-y-auto bg-gray-100" style={{ height: "calc(100% - 55px)" }}>
+      <div
+        className="overflow-y-auto bg-gray-100"
+        style={{ height: "calc(100% - 55px)" }}
+      >
         <div className="mt-2 bg-white">
           {/* Post Header */}
           <div className="flex items-center gap-3 px-4 pt-3">
@@ -71,16 +76,23 @@ export function FacebookPreview() {
                   src={mediaUrl}
                 />
               ) : (
-                <Image alt="Preview" className="object-cover" fill src={mediaUrl} />
+                <Image
+                  alt="Preview"
+                  className="object-cover"
+                  fill
+                  src={mediaUrl}
+                />
               )}
             </div>
           )}
 
           {/* Reactions + Counts */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2">
+          <div className="flex items-center justify-between border-gray-200 border-b px-4 py-2">
             <div className="flex items-center gap-1">
               <span className="text-sm">👍❤️😂</span>
-              <span className="text-gray-500 text-sm">{formatNumber(2_341)}</span>
+              <span className="text-gray-500 text-sm">
+                {formatNumber(2341)}
+              </span>
             </div>
             <div className="flex gap-3 text-gray-500 text-sm">
               <span>{formatNumber(89)} comments</span>
@@ -90,15 +102,24 @@ export function FacebookPreview() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-around px-2 py-1">
-            <button className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100" type="button">
+            <button
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              type="button"
+            >
               <Icon icon={FavouriteIcon} size={20} />
               <span className="text-sm">Like</span>
             </button>
-            <button className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100" type="button">
+            <button
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              type="button"
+            >
               <Icon icon={Comment01Icon} size={20} />
               <span className="text-sm">Comment</span>
             </button>
-            <button className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100" type="button">
+            <button
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              type="button"
+            >
               <Icon icon={ShareIcon} size={20} />
               <span className="text-sm">Share</span>
             </button>

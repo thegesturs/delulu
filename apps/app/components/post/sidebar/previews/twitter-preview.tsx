@@ -15,17 +15,22 @@ export function TwitterPreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("TWITTER");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame>
       {/* Header */}
-      <div className="flex items-center justify-center border-b border-gray-200 px-4 pt-10 pb-2">
+      <div className="flex items-center justify-center border-gray-200 border-b px-4 pt-10 pb-2">
         <span className="font-bold text-lg">𝕏</span>
       </div>
 
       {/* Tweet */}
-      <div className="overflow-y-auto px-4 pt-3" style={{ height: "calc(100% - 55px)" }}>
+      <div
+        className="overflow-y-auto px-4 pt-3"
+        style={{ height: "calc(100% - 55px)" }}
+      >
         <div className="flex gap-3">
           {/* Avatar */}
           {provider?.profileImage ? (
@@ -96,7 +101,7 @@ export function TwitterPreview() {
               </div>
               <div className="flex items-center gap-1">
                 <Icon icon={FavouriteIcon} size={18} />
-                <span className="text-xs">{formatNumber(1_203)}</span>
+                <span className="text-xs">{formatNumber(1203)}</span>
               </div>
               <Icon icon={ShareIcon} size={18} />
             </div>

@@ -6,11 +6,13 @@ compatibility_date = "2024-12-01"
 CONVEX_URL = ""
 
 # Secrets (set via wrangler secret put):
-# UPSTASH_REDIS_REST_URL
-# UPSTASH_REDIS_REST_TOKEN
 # R2_ACCOUNT_ID
 # R2_ACCESS_KEY_ID
 # R2_SECRET_ACCESS_KEY
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "<KV_NAMESPACE_ID>"
 
 [[r2_buckets]]
 binding = "DELULU_SOCIAL_BUCKET"

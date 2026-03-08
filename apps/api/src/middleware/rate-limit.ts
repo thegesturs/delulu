@@ -1,5 +1,3 @@
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
 import { createMiddleware } from "hono/factory";
 import type { ApiKeyData, Env } from "../types";
 
@@ -21,26 +19,21 @@ export const rateLimitMiddleware = createMiddleware<RateLimitEnv>(
     const apiKey = c.get("apiKey");
     const limits = RATE_LIMITS[apiKey.planType] || RATE_LIMITS.FREE;
 
-    const redis = new Redis({
-      url: c.env.UPSTASH_REDIS_REST_URL,
-      token: c.env.UPSTASH_REDIS_REST_TOKEN,
-    });
+    const windowTs = Math.floor(Date.now() / 60_000);
+    const key = `min:${apiKey.apiKeyId}:${windowTs}`;
+    const kv = c.env.RATE_LIMIT_KV;
 
-    const minuteLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(limits.perMinute, "1 m"),
-      prefix: "api:rate:min",
-    });
-
-    const identifier = apiKey.apiKeyId;
-    const { success, limit, remaining, reset } =
-      await minuteLimiter.limit(identifier);
+    const current = Number.parseInt((await kv.get(key)) || "0", 10);
+    const limit = limits.perMinute;
+    const reset = (windowTs + 1) * 60_000;
+    const remaining = Math.max(0, limit - current - 1);
 
     c.header("X-RateLimit-Limit", limit.toString());
     c.header("X-RateLimit-Remaining", remaining.toString());
     c.header("X-RateLimit-Reset", reset.toString());
 
-    if (!success) {
+    if (current >= limit) {
+      c.header("X-RateLimit-Remaining", "0");
       return c.json(
         {
           error: {
@@ -51,6 +44,8 @@ export const rateLimitMiddleware = createMiddleware<RateLimitEnv>(
         429
       );
     }
+
+    await kv.put(key, (current + 1).toString(), { expirationTtl: 60 });
 
     await next();
   }

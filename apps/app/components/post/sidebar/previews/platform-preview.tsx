@@ -4,18 +4,20 @@ import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-c
 import { FacebookPreview } from "./facebook-preview";
 import { InstagramPreview } from "./instagram-preview";
 import { LinkedInPreview } from "./linkedin-preview";
+import { usePreviewData } from "./preview-utils";
 import { ThreadsPreview } from "./threads-preview";
 import { TikTokPreview } from "./tiktok-preview";
 import { TwitterPreview } from "./twitter-preview";
 import { YouTubePreview } from "./youtube-preview";
-import { usePreviewData } from "./preview-utils";
 
 function GenericPreview({ socialType }: { socialType: string }) {
   const { content, mediaUrl, hasImage, hasVideo, media } = usePreviewData(
     socialType as SupportedSocialPlatform
   );
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center p-6">
@@ -36,7 +38,11 @@ function GenericPreview({ socialType }: { socialType: string }) {
                 src={mediaUrl}
               />
             ) : (
-              <img alt="Preview" className="w-full object-cover" src={mediaUrl} />
+              <img
+                alt="Preview"
+                className="w-full object-cover"
+                src={mediaUrl}
+              />
             )}
           </div>
         )}

@@ -8,9 +8,9 @@ import {
 } from "@delulu/design-system/components/ui/animated-tabs";
 import { Card } from "@delulu/design-system/components/ui/card";
 import {
+  type SupportedSocialPlatform,
   socialDisplayNames,
   socialIcons,
-  type SupportedSocialPlatform,
 } from "@delulu/design-system/lib/social-config";
 import { useState } from "react";
 import { useSelectedSocialProviders } from "@/store/post";
@@ -29,8 +29,9 @@ export function PostSidebar() {
     activePreviewPlatform &&
     socialProviders.some((p) => p.socialType === activePreviewPlatform)
       ? activePreviewPlatform
-      : (socialProviders[0]?.socialType as SupportedSocialPlatform | undefined) ??
-        null;
+      : ((socialProviders[0]?.socialType as
+          | SupportedSocialPlatform
+          | undefined) ?? null);
 
   return (
     <Card className="w-full lg:w-[500px]">
@@ -68,16 +69,18 @@ export function PostSidebar() {
                     const isActive = platform === currentPlatform;
                     return (
                       <button
-                        key={provider.socialId}
-                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium text-xs transition-colors ${
                           isActive
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border bg-background text-muted-foreground hover:bg-accent"
                         }`}
+                        key={provider.socialId}
                         onClick={() => setActivePreviewPlatform(platform)}
                         type="button"
                       >
-                        {IconComponent && <IconComponent className="h-3.5 w-3.5" />}
+                        {IconComponent && (
+                          <IconComponent className="h-3.5 w-3.5" />
+                        )}
                         {socialDisplayNames[platform] || platform}
                       </button>
                     );

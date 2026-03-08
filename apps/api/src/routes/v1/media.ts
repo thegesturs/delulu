@@ -33,7 +33,7 @@ media.post("/upload-url", requireScope("media:write"), async (c) => {
     fileSize?: number;
   };
 
-  if (!fileName || !contentType) {
+  if (!(fileName && contentType)) {
     return c.json(
       {
         error: {
@@ -62,8 +62,7 @@ media.post("/upload-url", requireScope("media:write"), async (c) => {
       {
         error: {
           code: "BAD_REQUEST",
-          message:
-            "contentType must start with image/ or video/",
+          message: "contentType must start with image/ or video/",
         },
       },
       400
@@ -93,23 +92,17 @@ media.post("/", requireScope("media:write"), async (c) => {
   const apiKey = c.get("apiKey");
   const body = await c.req.json();
 
-  const {
-    bucketKey,
-    mediaType,
-    originalFilename,
-    size,
-    extension,
-    altText,
-  } = body as {
-    bucketKey?: string;
-    mediaType?: string;
-    originalFilename?: string;
-    size?: number;
-    extension?: string;
-    altText?: string;
-  };
+  const { bucketKey, mediaType, originalFilename, size, extension, altText } =
+    body as {
+      bucketKey?: string;
+      mediaType?: string;
+      originalFilename?: string;
+      size?: number;
+      extension?: string;
+      altText?: string;
+    };
 
-  if (!bucketKey || !mediaType) {
+  if (!(bucketKey && mediaType)) {
     return c.json(
       {
         error: {

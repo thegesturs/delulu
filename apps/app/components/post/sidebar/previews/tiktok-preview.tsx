@@ -21,7 +21,9 @@ export function TikTokPreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("TIKTOK");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame darkMode>
@@ -127,7 +129,9 @@ export function TikTokPreview() {
           </div>
           <div className="flex flex-col items-center">
             <Icon className="text-white" icon={FavouriteCircleIcon} size={32} />
-            <span className="text-white/80 text-xs">{formatNumber(12_300)}</span>
+            <span className="text-white/80 text-xs">
+              {formatNumber(12_300)}
+            </span>
           </div>
           <div className="flex flex-col items-center">
             <Icon className="text-white" icon={MessageIcon} size={32} />

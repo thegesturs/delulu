@@ -1,7 +1,6 @@
 export interface Env {
   CONVEX_URL: string;
-  UPSTASH_REDIS_REST_URL: string;
-  UPSTASH_REDIS_REST_TOKEN: string;
+  RATE_LIMIT_KV: KVNamespace;
   DELULU_SOCIAL_BUCKET: R2Bucket;
   R2_ACCOUNT_ID: string;
   R2_ACCESS_KEY_ID: string;

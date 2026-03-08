@@ -1,10 +1,10 @@
 "use client";
 
 import { api } from "@delulu/database/convex/_generated/api";
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import { useQuery } from "convex-helpers/react/cache";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
-import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 
 export function formatNumber(num: number) {
   if (num >= 1_000_000) {

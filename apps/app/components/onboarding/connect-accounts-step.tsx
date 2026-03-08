@@ -57,7 +57,9 @@ const itemVariants = {
 
 export function ConnectAccountsStep() {
   const { handleNextStep } = useOnboarding();
-  const setAccountsConnected = useOnboardingStore((s) => s.setAccountsConnected);
+  const setAccountsConnected = useOnboardingStore(
+    (s) => s.setAccountsConnected
+  );
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const accounts = useQuery(ConvexApi.social_providers.getConnectedAccounts);
   const accountCount = limitCheck?.currentCount || 0;

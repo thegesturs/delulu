@@ -2,6 +2,7 @@
 
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
+  Add01Icon,
   BookmarkIcon,
   Comment01Icon,
   FavouriteIcon,
@@ -10,7 +11,6 @@ import {
   Sent02Icon,
   UserIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { Add01Icon } from "@hugeicons-pro/core-solid-rounded";
 import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
@@ -19,12 +19,14 @@ export function InstagramPreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("INSTAGRAM");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame>
       {/* Instagram Header */}
-      <div className="flex h-11 items-center justify-between border-b border-gray-200 px-4 pt-10">
+      <div className="flex h-11 items-center justify-between border-gray-200 border-b px-4 pt-10">
         <span className="font-semibold text-lg">Instagram</span>
         <div className="flex items-center gap-4">
           <Icon icon={FavouriteIcon} size={24} />
@@ -65,7 +67,12 @@ export function InstagramPreview() {
                 src={mediaUrl}
               />
             ) : (
-              <Image alt="Preview" className="object-cover" fill src={mediaUrl} />
+              <Image
+                alt="Preview"
+                className="object-cover"
+                fill
+                src={mediaUrl}
+              />
             )
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -89,7 +96,7 @@ export function InstagramPreview() {
 
         {/* Likes */}
         <div className="px-3">
-          <p className="font-semibold text-sm">{formatNumber(4_821)} likes</p>
+          <p className="font-semibold text-sm">{formatNumber(4821)} likes</p>
         </div>
 
         {/* Caption */}
@@ -105,7 +112,7 @@ export function InstagramPreview() {
       </div>
 
       {/* Bottom Nav */}
-      <div className="absolute right-0 bottom-0 left-0 flex h-12 items-center justify-around border-t border-gray-200 bg-white">
+      <div className="absolute right-0 bottom-0 left-0 flex h-12 items-center justify-around border-gray-200 border-t bg-white">
         <Icon icon={Home01Icon} size={24} />
         <Icon icon={Search01Icon} size={24} />
         <Icon icon={Add01Icon} size={24} />

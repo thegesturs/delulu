@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Input } from "@delulu/design-system/components/ui/input";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { useOnboardingStore } from "@/store/onboarding";
 
 const surveyOptions = [
@@ -27,7 +27,9 @@ export function SurveyStep() {
     }
   };
 
-  const selectedValue = surveyAnswer?.startsWith("other") ? "other" : surveyAnswer;
+  const selectedValue = surveyAnswer?.startsWith("other")
+    ? "other"
+    : surveyAnswer;
 
   return (
     <div className="space-y-8 text-center">
@@ -48,7 +50,6 @@ export function SurveyStep() {
       <div className="mx-auto max-w-md space-y-3">
         {surveyOptions.map((option, index) => (
           <motion.button
-            key={option.value}
             animate={{ opacity: 1, y: 0 }}
             className={`flex w-full items-center rounded-lg border p-4 text-left transition-colors ${
               selectedValue === option.value
@@ -56,6 +57,7 @@ export function SurveyStep() {
                 : "border-border bg-card text-card-foreground hover:bg-accent/50"
             }`}
             initial={{ opacity: 0, y: 10 }}
+            key={option.value}
             onClick={() => handleSelect(option.value)}
             transition={{ delay: index * 0.05, duration: 0.3, ease: "easeOut" }}
             type="button"

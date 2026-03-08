@@ -19,7 +19,11 @@ async function hmacSha256(
     false,
     ["sign"]
   );
-  return crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(message));
+  return crypto.subtle.sign(
+    "HMAC",
+    cryptoKey,
+    new TextEncoder().encode(message)
+  );
 }
 
 async function calculateSignature(

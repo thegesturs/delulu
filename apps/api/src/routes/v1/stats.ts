@@ -26,9 +26,9 @@ stats.get("/usage", requireScope("stats:read"), async (c) => {
 stats.get("/subscription", requireScope("stats:read"), async (c) => {
   const apiKey = c.get("apiKey");
   const convex = createConvexClient(c.env);
-  // biome-ignore lint/suspicious/noExplicitAny: Convex doc shape
   const result = (await convex.query(api.subscriptions.apiGetSubscription, {
     userId: apiKey.userId as Id<"users">,
+    // biome-ignore lint/suspicious/noExplicitAny: Convex doc shape
   })) as any;
 
   if (!result) {

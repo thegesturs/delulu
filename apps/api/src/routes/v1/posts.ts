@@ -21,7 +21,6 @@ posts.get("/", requireScope("posts:read"), async (c) => {
   const limit = Math.min(Number(c.req.query("limit")) || 20, 100);
 
   const convex = createConvexClient(c.env);
-  // biome-ignore lint/suspicious/noExplicitAny: Convex pagination response
   const result = (await convex.query(api.posts.apiGetPosts, {
     userId: apiKey.userId as Id<"users">,
     status: (status || undefined) as
@@ -34,6 +33,7 @@ posts.get("/", requireScope("posts:read"), async (c) => {
       | undefined,
     isDeleted: false,
     paginationOpts: { numItems: limit, cursor },
+    // biome-ignore lint/suspicious/noExplicitAny: Convex pagination response
   })) as any;
 
   return c.json({

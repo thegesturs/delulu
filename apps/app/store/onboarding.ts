@@ -54,7 +54,9 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       setAccountsConnected: (count: number) =>
         set(
           (state) => {
-            if (state.accountsConnected === count) return state;
+            if (state.accountsConnected === count) {
+              return state;
+            }
             return { accountsConnected: count };
           },
           false,

@@ -8,7 +8,11 @@ interface PhoneFrameProps {
   className?: string;
 }
 
-export function PhoneFrame({ children, darkMode = false, className }: PhoneFrameProps) {
+export function PhoneFrame({
+  children,
+  darkMode = false,
+  className,
+}: PhoneFrameProps) {
   return (
     <div className={`flex items-center justify-center p-6 ${className ?? ""}`}>
       <div className="relative mx-auto w-[350px]">

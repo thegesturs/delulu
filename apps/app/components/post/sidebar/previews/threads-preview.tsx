@@ -15,17 +15,22 @@ export function ThreadsPreview() {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
     usePreviewData("THREADS");
 
-  if (!content) return null;
+  if (!content) {
+    return null;
+  }
 
   return (
     <PhoneFrame>
       {/* Threads Header */}
-      <div className="flex items-center justify-center border-b border-gray-200 px-4 pt-10 pb-2">
+      <div className="flex items-center justify-center border-gray-200 border-b px-4 pt-10 pb-2">
         <span className="font-bold text-xl">@</span>
       </div>
 
       {/* Post */}
-      <div className="overflow-y-auto px-4 pt-3" style={{ height: "calc(100% - 55px)" }}>
+      <div
+        className="overflow-y-auto px-4 pt-3"
+        style={{ height: "calc(100% - 55px)" }}
+      >
         <div className="flex gap-3">
           {/* Avatar + Thread Line */}
           <div className="flex flex-col items-center">

@@ -65,7 +65,9 @@ export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
     .mutation(api.api_keys.updateLastUsed, {
       keyId: (result as ApiKeyData).apiKeyId as Id<"apiKeys">,
     })
-    .catch(() => {});
+    .catch(() => {
+      console.error("Failed to update last used API key");
+    });
 
   await next();
 });
