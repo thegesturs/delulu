@@ -11,7 +11,14 @@
 
 import { PLANS } from "@delulu/payments/plans";
 import { v } from "convex/values";
-import { action, internalMutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+  query,
+} from "./_generated/server";
 import { checkout, customerPortal } from "./dodo";
 import {
   billingPeriod,
@@ -19,6 +26,7 @@ import {
   subscriptionSchema,
   subscriptionStatus,
 } from "./schemas";
+import { postsByUserStatus } from "./stats";
 import { getCurrentTimestamp } from "./utils";
 
 // ============================================================================
@@ -332,6 +340,110 @@ export const getUserUsage = query({
       monthlyPosts: postsThisMonth.length,
       mediaStorage: Math.round(totalStorageMB),
       teamMembers: 1, // TODO: Implement team member counting when org feature is added
+    };
+  },
+});
+
+// ============================================================================
+// CORE HELPERS (shared by public queries and internal API variants)
+// ============================================================================
+
+async function getPlanTypeForUser(
+  ctx: QueryCtx,
+  userId: Id<"users">
+): Promise<"FREE" | "ECHO" | "VIBE"> {
+  const user = await ctx.db.get(userId);
+  if (!user?.subscriptionId) {
+    return "FREE";
+  }
+
+  const subscription = await ctx.db.get(user.subscriptionId);
+  if (subscription && subscription.status === "ACTIVE") {
+    return subscription.planType;
+  }
+  return "FREE";
+}
+
+export async function getSubscriptionByUserIdCore(
+  ctx: QueryCtx,
+  userId: Id<"users">
+) {
+  const user = await ctx.db.get(userId);
+  if (!user?.subscriptionId) {
+    return null;
+  }
+  return ctx.db.get(user.subscriptionId);
+}
+
+export async function getUserUsageCore(ctx: QueryCtx, userId: Id<"users">) {
+  const socialAccounts = await ctx.db
+    .query("socialProviders")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .filter((q) => q.eq(q.field("isActive"), true))
+    .collect();
+
+  // Use aggregator for efficient post counting instead of fetching all posts
+  const totalPosts = await postsByUserStatus.count(ctx, {
+    bounds: { prefix: [userId] },
+  });
+  const deletedPosts = await postsByUserStatus.count(ctx, {
+    bounds: { prefix: [userId, "DELETED"] },
+  });
+  const monthlyPosts = totalPosts - deletedPosts;
+
+  const mediaFiles = await ctx.db
+    .query("media")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .collect();
+
+  const totalStorageMB =
+    mediaFiles.reduce((sum, media) => sum + (media.size ?? 0), 0) /
+    (1024 * 1024);
+
+  return {
+    socialAccounts: socialAccounts.length,
+    monthlyPosts,
+    mediaStorage: Math.round(totalStorageMB),
+    teamMembers: 1,
+  };
+}
+
+// ============================================================================
+// PUBLIC API VARIANTS (for REST API / MCP server)
+// ============================================================================
+
+export const apiGetSubscription = query({
+  args: { userId: v.id("users") },
+  returns: v.union(subscriptionSchema, v.null()),
+  handler: async (ctx, args) => {
+    return getSubscriptionByUserIdCore(ctx, args.userId);
+  },
+});
+
+export const apiGetUsage = query({
+  args: { userId: v.id("users") },
+  returns: v.object({
+    socialAccounts: v.number(),
+    monthlyPosts: v.number(),
+    mediaStorage: v.number(),
+    teamMembers: v.number(),
+    planType: planTypes,
+    limits: v.object({
+      socialAccounts: v.number(),
+      monthlyPosts: v.number(),
+      mediaStorage: v.number(),
+      teamMembers: v.number(),
+    }),
+  }),
+  handler: async (ctx, args) => {
+    const usage = await getUserUsageCore(ctx, args.userId);
+    const planType = await getPlanTypeForUser(ctx, args.userId);
+    const plan = PLANS[planType];
+
+    return {
+      ...usage,
+      planType,
+      limits: plan.limits,
     };
   },
 });

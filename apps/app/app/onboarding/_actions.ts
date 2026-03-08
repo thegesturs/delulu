@@ -14,7 +14,7 @@ export const updateOnboardingStep = async (data: {
   }
 
   // VALIDATION: Check step bounds
-  if (data.currentStep < 1 || data.currentStep > 3) {
+  if (data.currentStep < 1 || data.currentStep > 4) {
     return { error: "Invalid step number" };
   }
 
@@ -91,10 +91,10 @@ export const completeOnboarding = async () => {
     );
 
     // Get current step data and ensure final step is marked as completed
-    const currentStep = (cleanMetadata.currentStep as number) || 3;
+    const currentStep = (cleanMetadata.currentStep as number) || 4;
     const currentStepsCompleted =
       (cleanMetadata.stepsCompleted as string[]) || [];
-    const stepNames = { 1: "welcome", 2: "connect", 3: "pricing" };
+    const stepNames = { 1: "welcome", 2: "connect", 3: "pricing", 4: "survey" };
     const finalStepName =
       stepNames[currentStep as keyof typeof stepNames] || "pricing";
 
@@ -164,6 +164,44 @@ export const completeTour = async (dismissed = false) => {
   } catch (error) {
     console.error("Error updating tour status:", error);
     return { error: "Failed to update tour status" };
+  }
+};
+
+export const saveSurveyAnswer = async (referralSource: string) => {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Not authenticated" };
+  }
+
+  const client = await clerkClient();
+
+  try {
+    const user = await client.users.getUser(userId);
+    const currentMetadata = user.publicMetadata as Record<string, unknown>;
+
+    const cleanMetadata = Object.entries(currentMetadata).reduce(
+      (acc, [key, value]) => {
+        if (!Number.isNaN(Number(key))) {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      },
+      {} as Record<string, unknown>
+    );
+
+    await client.users.updateUser(userId, {
+      publicMetadata: {
+        ...cleanMetadata,
+        referralSource,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error saving survey answer:", error);
+    return { error: "Failed to save survey answer" };
   }
 };
 

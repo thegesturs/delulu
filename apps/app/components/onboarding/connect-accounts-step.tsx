@@ -17,7 +17,7 @@ import {
 import { useQuery } from "convex-helpers/react/cache";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { useOnboardingStore } from "@/store/onboarding";
 import { api } from "@/trpc/react";
@@ -57,32 +57,32 @@ const itemVariants = {
 
 export function ConnectAccountsStep() {
   const { handleNextStep } = useOnboarding();
-  const { setAccountsConnected } = useOnboardingStore();
+  const setAccountsConnected = useOnboardingStore((s) => s.setAccountsConnected);
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const accounts = useQuery(ConvexApi.social_providers.getConnectedAccounts);
   const accountCount = limitCheck?.currentCount || 0;
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastAccountCount, setLastAccountCount] = useState(0);
+  const lastAccountCountRef = useRef(0);
 
   // Update store when accounts change + auto-advance on first connection
   useEffect(() => {
     setAccountsConnected(accountCount);
 
     // Show brief refresh indicator when account count increases
-    if (accountCount > lastAccountCount) {
+    if (accountCount > lastAccountCountRef.current) {
       setIsRefreshing(true);
       setTimeout(() => setIsRefreshing(false), 1000);
 
       // Auto-advance to step 3 after first account is connected
-      if (accountCount === 1 && lastAccountCount === 0) {
+      if (accountCount === 1 && lastAccountCountRef.current === 0) {
         // Give user 2 seconds to see success state, then advance
         setTimeout(() => {
           handleNextStep();
         }, 2000);
       }
     }
-    setLastAccountCount(accountCount);
-  }, [accountCount, setAccountsConnected, lastAccountCount, handleNextStep]);
+    lastAccountCountRef.current = accountCount;
+  }, [accountCount, setAccountsConnected, handleNextStep]);
 
   // CRITICAL FIX: Auto-refresh when page becomes visible (after OAuth redirect)
   // Convex useQuery automatically refetches when page visibility changes

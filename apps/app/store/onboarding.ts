@@ -3,8 +3,9 @@ import { devtools } from "zustand/middleware";
 
 // Define the store's state types
 interface OnboardingState {
-  currentStep: number; // 1, 2, or 3
+  currentStep: number; // 1, 2, 3, or 4
   accountsConnected: number; // Real-time count for Step 2
+  surveyAnswer: string | null;
 }
 
 // Define the store's actions
@@ -13,12 +14,14 @@ interface OnboardingActions {
   nextStep: () => void;
   previousStep: () => void;
   setAccountsConnected: (count: number) => void;
+  setSurveyAnswer: (answer: string | null) => void;
   reset: () => void;
 }
 
 const initialState: OnboardingState = {
   currentStep: 1,
   accountsConnected: 0,
+  surveyAnswer: null,
 };
 
 // Create the Zustand store
@@ -33,7 +36,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       nextStep: () =>
         set(
           (state) => ({
-            currentStep: Math.min(state.currentStep + 1, 3),
+            currentStep: Math.min(state.currentStep + 1, 4),
           }),
           false,
           "onboarding/nextStep"
@@ -50,10 +53,16 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
 
       setAccountsConnected: (count: number) =>
         set(
-          { accountsConnected: count },
+          (state) => {
+            if (state.accountsConnected === count) return state;
+            return { accountsConnected: count };
+          },
           false,
           "onboarding/setAccountsConnected"
         ),
+
+      setSurveyAnswer: (answer: string | null) =>
+        set({ surveyAnswer: answer }, false, "onboarding/setSurveyAnswer"),
 
       reset: () => set(initialState, false, "onboarding/reset"),
     }),

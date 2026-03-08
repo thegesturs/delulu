@@ -7,17 +7,30 @@ import {
   AnimatedTabsTrigger as TabsTrigger,
 } from "@delulu/design-system/components/ui/animated-tabs";
 import { Card } from "@delulu/design-system/components/ui/card";
+import {
+  socialDisplayNames,
+  socialIcons,
+  type SupportedSocialPlatform,
+} from "@delulu/design-system/lib/social-config";
+import { useState } from "react";
 import { useSelectedSocialProviders } from "@/store/post";
 import { BasicSettings } from "./basic-settings";
-import { TikTokPreview } from "./tiktok-preview";
+import { PlatformPreview } from "./previews";
 
 export function PostSidebar() {
   const socialProviders = useSelectedSocialProviders();
+  const [activePreviewPlatform, setActivePreviewPlatform] =
+    useState<SupportedSocialPlatform | null>(null);
 
-  // Check if TikTok is selected
-  const hasTikTokSelected = socialProviders.some(
-    (provider) => provider.socialType === "TIKTOK"
-  );
+  const hasProviders = socialProviders.length > 0;
+
+  // Default to first selected provider if none active
+  const currentPlatform =
+    activePreviewPlatform &&
+    socialProviders.some((p) => p.socialType === activePreviewPlatform)
+      ? activePreviewPlatform
+      : (socialProviders[0]?.socialType as SupportedSocialPlatform | undefined) ??
+        null;
 
   return (
     <Card className="w-full lg:w-[500px]">
@@ -31,7 +44,7 @@ export function PostSidebar() {
           </TabsTrigger>
           <TabsTrigger
             className="rounded-none border-0 border-transparent border-b-2 bg-transparent px-0 py-2 font-medium text-muted-foreground text-sm data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:text-current"
-            disabled={!hasTikTokSelected}
+            disabled={!hasProviders}
             value="preview"
           >
             Preview
@@ -43,7 +56,37 @@ export function PostSidebar() {
         </TabsContent>
 
         <TabsContent className="mt-0 space-y-0" value="preview">
-          {hasTikTokSelected && <TikTokPreview />}
+          {hasProviders && currentPlatform && (
+            <>
+              {/* Platform selector pills */}
+              {socialProviders.length > 1 && (
+                <div className="flex flex-wrap gap-2 px-2 pt-3">
+                  {socialProviders.map((provider) => {
+                    const platform =
+                      provider.socialType as SupportedSocialPlatform;
+                    const IconComponent = socialIcons[platform];
+                    const isActive = platform === currentPlatform;
+                    return (
+                      <button
+                        key={provider.socialId}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          isActive
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-accent"
+                        }`}
+                        onClick={() => setActivePreviewPlatform(platform)}
+                        type="button"
+                      >
+                        {IconComponent && <IconComponent className="h-3.5 w-3.5" />}
+                        {socialDisplayNames[platform] || platform}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <PlatformPreview socialType={currentPlatform} />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </Card>

@@ -13,6 +13,7 @@ import { useOnboarding } from "@/hooks/use-onboarding";
 import { ConnectAccountsStep } from "./connect-accounts-step";
 import { OnboardingProgress } from "./onboarding-progress";
 import { PricingStep } from "./pricing-step";
+import { SurveyStep } from "./survey-step";
 import { WelcomeStep } from "./welcome-step";
 
 export function OnboardingStepper() {
@@ -28,7 +29,7 @@ export function OnboardingStepper() {
   } = useOnboarding();
 
   const isFirstStep = currentStep === 1;
-  const isLastStep = currentStep === 3;
+  const isLastStep = currentStep === 4;
   const canContinue = currentStep === 2 ? accountsConnected >= 1 : true;
 
   const handleContinue = async () => {
@@ -62,6 +63,9 @@ export function OnboardingStepper() {
     if (currentStep === 2) {
       return canContinue ? "Continue" : "Connect at least 1 account";
     }
+    if (currentStep === 3) {
+      return "Continue";
+    }
     return "Get Started";
   };
 
@@ -69,7 +73,7 @@ export function OnboardingStepper() {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-3xl space-y-8">
         {/* Progress Indicator */}
-        <OnboardingProgress currentStep={currentStep} totalSteps={3} />
+        <OnboardingProgress currentStep={currentStep} totalSteps={4} />
 
         {/* Step Content */}
         <div className="relative min-h-[400px]">
@@ -85,6 +89,7 @@ export function OnboardingStepper() {
               {currentStep === 1 && <WelcomeStep />}
               {currentStep === 2 && <ConnectAccountsStep />}
               {currentStep === 3 && <PricingStep />}
+              {currentStep === 4 && <SurveyStep />}
             </motion.div>
           </AnimatePresence>
         </div>
