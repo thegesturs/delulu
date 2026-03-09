@@ -11,8 +11,8 @@ CONVEX_URL = ""
 # R2_SECRET_ACCESS_KEY
 
 [[kv_namespaces]]
-binding = "RATE_LIMIT_KV"
-id = "<KV_NAMESPACE_ID>"
+binding = "DELULU_RATE_LIMIT_KV"
+id = "0fa4faf775ec4ab28e259c8a5503dc3c"
 
 [[r2_buckets]]
 binding = "DELULU_SOCIAL_BUCKET"

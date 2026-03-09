@@ -19,6 +19,9 @@ export function createApp() {
   // CORS
   app.use("*", cors());
 
+  // Redirect root to docs
+  app.get("/", (c) => c.redirect("/docs"));
+
   // Health check (no auth needed)
   app.get("/health", (c) => c.json({ status: "ok" }));
 

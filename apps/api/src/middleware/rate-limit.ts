@@ -21,7 +21,7 @@ export const rateLimitMiddleware = createMiddleware<RateLimitEnv>(
 
     const windowTs = Math.floor(Date.now() / 60_000);
     const key = `min:${apiKey.apiKeyId}:${windowTs}`;
-    const kv = c.env.RATE_LIMIT_KV;
+    const kv = c.env.DELULU_RATE_LIMIT_KV;
 
     const current = Number.parseInt((await kv.get(key)) || "0", 10);
     const limit = limits.perMinute;
