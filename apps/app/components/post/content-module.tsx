@@ -7,7 +7,7 @@ import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { type SocialType, SocialTypes } from "@delulu/validators/post";
 import { Add01Icon, Remove01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useShallow } from "zustand/shallow";
 import {
   getDefaultCharacterLimit,
@@ -283,27 +283,35 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     [isGlobal, setPost, socialId]
   );
 
-  // Check if we should use video-only layout
+  // Freeze layout during upload to prevent destroying MediaUploader state
+  const frozenLayoutRef = useRef<boolean | null>(null);
+
   const shouldShowVideoLayout = (() => {
-    // Never switch layout while media is uploading — prevents destroying MediaUploader state
-    if (isMediaUploading) {
+    // Compute what the layout WOULD be based on platform type
+    const computedLayout = (() => {
+      if (isGlobal) {
+        return shouldDefaultUseVideoLayout(platformsInDefault);
+      }
+      if (
+        socialType === SocialTypes.TIKTOK ||
+        socialType === SocialTypes.YOUTUBE
+      ) {
+        return true;
+      }
       return false;
+    })();
+
+    // While uploading, freeze layout to whatever it was when upload started
+    if (isMediaUploading) {
+      if (frozenLayoutRef.current === null) {
+        frozenLayoutRef.current = computedLayout;
+      }
+      return frozenLayoutRef.current;
     }
 
-    // For DEFAULT tab, check if all platforms in default are video platforms
-    if (isGlobal) {
-      return shouldDefaultUseVideoLayout(platformsInDefault);
-    }
-
-    // TikTok/YouTube: Always show video layout (even without video to guide user)
-    if (
-      socialType === SocialTypes.TIKTOK ||
-      socialType === SocialTypes.YOUTUBE
-    ) {
-      return true;
-    }
-
-    return false;
+    // Not uploading — clear freeze and use computed value
+    frozenLayoutRef.current = null;
+    return computedLayout;
   })();
 
   if (shouldShowVideoLayout) {
