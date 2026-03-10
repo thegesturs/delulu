@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@delulu/design-system/components/ui/sidebar";
-import { Pencil } from "@delulu/design-system/icons";
+import { CreditCard, Pencil } from "@delulu/design-system/icons";
 import { cn } from "@delulu/design-system/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -204,7 +204,15 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                     },
                   }}
                   showName={sidebar?.state !== "collapsed"}
-                />
+                >
+                  <UserButton.MenuItems>
+                    <UserButton.Link
+                      href="/billing"
+                      label="Billing"
+                      labelIcon={<CreditCard className="h-4 w-4" />}
+                    />
+                  </UserButton.MenuItems>
+                </UserButton>
               </div>
               <div className="flex shrink-0 items-center gap-px">
                 <ModeToggle />

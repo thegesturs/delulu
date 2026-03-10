@@ -57,7 +57,7 @@ export function PostPreviewDialog({
           <DialogTitle>Post Preview</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="max-h-[70vh] space-y-6 overflow-y-auto">
           {/* Status and Schedule */}
           <div className="flex items-center justify-between">
             <Badge variant={statusColors[post.status]}>{post.status}</Badge>
