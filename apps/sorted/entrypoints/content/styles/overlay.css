@@ -243,6 +243,26 @@
   }
 }
 
+/* Takeover Container — replaces Instagram's content area */
+#sorted-takeover {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+#sorted-takeover::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sorted-takeover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sorted-takeover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
 /* Results Grid Updates */
 .sorted-grid-container {
   width: 100%;
@@ -399,6 +419,252 @@
   opacity: 1;
 }
 
+/* Transcribe Button — Floating top right, below download */
+.sorted-reel-transcribe {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+}
+
+.sorted-reel-card:hover .sorted-reel-transcribe {
+  opacity: 1;
+}
+
+.sorted-reel-transcribe:hover {
+  background: rgba(99, 102, 241, 0.8);
+}
+
+.sorted-reel-transcribe.loading {
+  opacity: 1;
+  background: rgba(99, 102, 241, 0.6);
+  cursor: wait;
+}
+
+/* Transcription error tooltip */
+.sorted-transcription-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 4;
+  text-align: center;
+  max-width: 80%;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Reel Page Floating Transcribe Button */
+.sorted-reel-fab {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+}
+
+.sorted-reel-fab:hover {
+  background: rgba(0, 0, 0, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.sorted-reel-fab.loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.sorted-reel-fab.error {
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.sorted-reel-fab.done {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+/* Transcription Modal */
+.sorted-transcription-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.sorted-transcription-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sorted-transcription-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sorted-transcription-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sorted-transcription-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.sorted-transcription-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sorted-transcription-badge {
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.sorted-transcription-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.sorted-transcription-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #333;
+}
+
+.sorted-transcription-text {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 60px;
+}
+
+.sorted-transcription-actions {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sorted-transcription-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sorted-transcription-copy:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Script toggle (Devanagari / Roman) */
+.sorted-transcription-script-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.sorted-transcription-script-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  transition: all 0.15s;
+  line-height: 1.4;
+  border-radius: 6px;
+}
+
+.sorted-transcription-script-btn.active {
+  background: #1a1a1a;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.sorted-transcription-script-btn:not(.active):hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.04);
+}
+
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -432,5 +698,13 @@
   .sorted-compact-reset:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
+  }
+
+  #sorted-takeover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  #sorted-takeover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
   }
 }

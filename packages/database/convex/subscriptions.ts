@@ -21,10 +21,12 @@ import {
 } from "./_generated/server";
 import { checkout, customerPortal } from "./dodo";
 import {
+  addonType as addonTypeValidator,
   billingPeriod,
   planTypes,
   subscriptionSchema,
   subscriptionStatus,
+  subscriptionType,
 } from "./schemas";
 import { postsByUserStatus } from "./stats";
 import { getCurrentTimestamp } from "./utils";
@@ -84,6 +86,38 @@ export const getSubscriptionById = query({
   returns: v.union(subscriptionSchema, v.null()),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+/**
+ * Get current user's addon subscription by addon type
+ */
+export const getAddonSubscription = query({
+  args: { addonType: v.string() },
+  returns: v.union(subscriptionSchema, v.null()),
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
+      .unique();
+
+    if (!user?.addonSubscriptionIds?.length) {
+      return null;
+    }
+
+    for (const subId of user.addonSubscriptionIds) {
+      const sub = await ctx.db.get(subId);
+      if (sub?.type === "addon" && sub.addonType === args.addonType) {
+        return sub;
+      }
+    }
+
+    return null;
   },
 });
 
@@ -462,6 +496,8 @@ export const createSubscription = internalMutation({
     dodoSubscriptionId: v.optional(v.string()),
     planType: planTypes,
     status: subscriptionStatus,
+    type: v.optional(subscriptionType),
+    addonType: v.optional(addonTypeValidator),
     billingPeriod: v.optional(billingPeriod),
     currentPeriodStart: v.optional(v.number()),
     currentPeriodEnd: v.optional(v.number()),
@@ -482,11 +518,22 @@ export const createSubscription = internalMutation({
     // Update user with subscription reference
     const user = await ctx.db.get(args.userId);
     if (user) {
-      await ctx.db.patch(args.userId, {
-        subscriptionId,
-        dodoCustomerId: args.dodoCustomerId,
-        updatedAt: getCurrentTimestamp(),
-      });
+      if (args.type === "addon") {
+        // For addon subscriptions, append to addonSubscriptionIds
+        const existingAddonIds = user.addonSubscriptionIds ?? [];
+        await ctx.db.patch(args.userId, {
+          addonSubscriptionIds: [...existingAddonIds, subscriptionId],
+          dodoCustomerId: args.dodoCustomerId,
+          updatedAt: getCurrentTimestamp(),
+        });
+      } else {
+        // For plan subscriptions, set subscriptionId
+        await ctx.db.patch(args.userId, {
+          subscriptionId,
+          dodoCustomerId: args.dodoCustomerId,
+          updatedAt: getCurrentTimestamp(),
+        });
+      }
     }
 
     return subscriptionId;

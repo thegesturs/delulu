@@ -134,6 +134,16 @@ export interface SetPreferencesMessage extends BaseMessage {
 }
 
 /**
+ * Transcription result from Lambda API
+ */
+export interface TranscriptionResult {
+  text: string;
+  altText?: string;
+  language: string;
+  durationSeconds: number;
+}
+
+/**
  * Union type for all messages
  */
 export type ExtensionMessage =

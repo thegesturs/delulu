@@ -1,540 +1,336 @@
-# Chrome Web Store Listing Copy
+# Chrome Web Store Listing — Sorted v2.0.0
 
-**Complete copy for Sorted - Instagram Reel Sorter extension listing**
-
-Use this document when filling out the Chrome Web Store submission form. All text has been optimized for character limits, SEO, and conversion.
+Complete copy for Chrome Web Store submission. All text optimized for character limits and review requirements.
 
 ---
 
 ## Basic Information
 
-### Extension Name
-**Character Limit:** 45 characters
-**Current:** 34 characters ✅
+### Extension Name (45 char limit)
 
 ```
 Sorted - Instagram Reel Sorter
 ```
 
-**Alternatives** (if needed):
-- `Sorted: Sort Instagram Reels by Likes` (39 chars)
-- `Instagram Reel Sorter by Delulu` (32 chars)
-- `Sorted - Sort Reels by Engagement` (34 chars)
+(34 characters)
+
+### Summary / Short Description (132 char limit)
+
+```
+Sort Instagram reels by likes, views, or comments. Transcribe reel audio to text with AI. Free tier included.
+```
+
+(111 characters)
 
 ---
 
-### Summary / Short Description
-**Character Limit:** 132 characters
-**Current:** 119 characters ✅
+### Detailed Description (16,000 char limit)
 
 ```
-Sort Instagram reels by likes, views, or comments. Find the most engaging content instantly with beautiful UI.
+Sort and analyze Instagram reels by engagement metrics. Transcribe reel audio to text with AI — including Hindi to Hinglish transliteration.
+
+KEY FEATURES
+
+Sort Reels by Engagement
+- Sort by Most Liked, Most Viewed, Most Commented, or Oldest
+- Process 25, 50, or all reels on any profile
+- Rank badges show top-performing content (#1, #2, #3...)
+- One-click reset to restore Instagram's original order
+
+AI Transcription
+- Transcribe any reel's audio to text with one click
+- Hindi reels automatically get Hinglish (Roman script) version
+- Toggle between Devanagari and Roman script
+- Copy transcription text with one click
+- Full transcription history saved to your account
+
+Beautiful Interface
+- Modern, clean design that blends with Instagram
+- Responsive grid layout (adapts to screen size)
+- Smooth animations and loading states
+- Seamless integration with Instagram's native interface
+
+HOW TO USE
+
+1. Sign in with your Delulu account (free)
+2. Navigate to any Instagram profile's Reels tab
+3. The sort panel appears above the reels grid automatically
+4. Select your sorting metric and quantity
+5. Click "Sort Reels" to reorder by engagement
+6. Hover over any reel to download or transcribe audio
+7. View transcription history in the extension popup
+
+PRICING
+
+- Free: 10 transcriptions per month
+- Pro:  $2/mo [0.02 per transcription] (cheapest in the market)
+- Sorting is always free and unlimited
+- Up to 1,000 transcriptions/month
+- Overage is charged based on usage — you only pay for what you use
+
+PRIVACY & PERMISSIONS
+
+Sorted requires these permissions:
+
+Storage — Saves sorting preferences, authentication state, and active transcription status locally on your device.
+
+Cookies — Required for secure authentication with your Delulu account via Clerk.
+
+Active Tab — Detects when you're on an Instagram reels tab to show the sort panel.
+
+Instagram Access (host_permissions) — Reads reel engagement metrics from Instagram pages and injects the sorting UI.
+
+Clerk & Delulu Access (host_permissions) — Authenticates your account securely for transcription and subscription features.
+
+What happens with your data:
+- Reel audio is sent to our secure transcription API for processing
+- Transcription text is stored in your account for history access
+- Account information (email, user ID) is used for authentication only
+- Sorting data (likes, views, comments) is processed locally in your browser
+- We do NOT access your Instagram credentials
+- We do NOT read DMs, stories, or feed posts
+- We do NOT sell or share your data with third parties
+
+Read our full privacy policy: https://delulu.social/legal/extension-privacy
+
+SUPPORT
+
+- Website: https://delulu.social
+- Email: support@delulu.social
+
+IMPORTANT NOTES
+
+- Works on Instagram profile reels tabs (not home feed or explore)
+- Transcription requires a free Delulu account
+- Not affiliated with Instagram or Meta Platforms, Inc.
+
+Made by Delulu Social | https://delulu.social
 ```
-
-**Alternatives:**
-- `Discover top Instagram reels! Sort by likes, views, comments, or date. Fast, private, and beautiful interface.` (120 chars)
-- `Sort Instagram reels by engagement metrics. See which reels perform best with rank badges and detailed stats.` (119 chars)
-
----
-
-### Detailed Description
-**Character Limit:** 16,000 characters
-**Current:** ~3,500 characters ✅
-
-```markdown
-Discover the most engaging Instagram reels with one click. Sorted helps you analyze and organize reels by engagement metrics, making it easy to find top-performing content.
-
-## ✨ KEY FEATURES
-
-### 🎯 Multiple Sorting Options
-• Sort by Most Liked - Find reels with the highest like counts
-• Sort by Most Viewed - Discover the most-watched content
-• Sort by Most Commented - See which reels spark conversations
-• Sort by Oldest - View content chronologically from earliest to latest
-
-### 📊 Detailed Engagement Metrics
-• See likes, views, and comments at a glance
-• Hover over reels to view engagement statistics
-• Rank badges show content performance (#1, #2, #3...)
-• Monospace formatting for easy metric comparison
-
-### 🎨 Beautiful Professional Interface
-• Modern design with indigo branding (#6366f1)
-• Responsive grid layout (adapts to 2-5 columns)
-• Smooth animations and loading states with progress indicators
-• Seamless integration with Instagram's native interface
-
-### ⚡ Fast & Efficient Performance
-• Process 25, 50, or all reels on any profile
-• Real-time data collection via GraphQL interception
-• Instant sorting with visual feedback and progress updates
-• One-click reset to restore Instagram's original order
-
-### 🔒 Privacy-Focused Design
-• ZERO data collection - we collect absolutely no personal information
-• No external servers or API calls - everything runs locally
-• All processing happens in your browser only
-• Uses Chrome's local storage only for your sorting preferences
-• No analytics, tracking, or telemetry
-
-## 🚀 HOW TO USE
-
-1. **Navigate** to any Instagram profile (e.g., instagram.com/instagram)
-2. **Click** on the Reels tab to view their reel grid
-3. **Open** the Sorted extension from your Chrome toolbar
-4. **Select** your sorting metric (likes, views, comments, or oldest)
-5. **Choose** quantity (25 reels, 50 reels, or all available reels)
-6. **Click** "Sort Reels" and watch the magic happen
-7. **Hover** over reels to see detailed engagement metrics
-8. **Reset** with one click to return to Instagram's default view
-
-## 💼 PERFECT FOR
-
-✓ Content creators analyzing competitor content and trends
-✓ Social media managers researching high-performing reels
-✓ Marketers finding inspiration for campaign ideas
-✓ Influencers studying successful content strategies
-✓ Brands identifying viral content patterns
-✓ Anyone discovering engaging Instagram content
-
-## 🔐 PRIVACY & PERMISSIONS
-
-We take your privacy seriously. Sorted requires these minimal permissions:
-
-**Storage** - Saves your sorting preferences between sessions (sort type, quantity)
-**Active Tab** - Detects when you're viewing Instagram reels to show active status
-**Instagram Access** - Reads reel metrics from Instagram pages you visit
-
-**What We DON'T Do:**
-❌ Collect any personal information
-❌ Track your browsing activity
-❌ Send data to external servers
-❌ Use analytics or telemetry
-❌ Access your Instagram credentials
-❌ Interfere with Instagram's functionality
-
-All analysis happens locally in your browser. No data ever leaves your device.
-
-Read our full privacy policy: delulu.social/legal/extension-privacy
-
-## 💻 TECHNICAL DETAILS
-
-• Built with modern web technologies (React 19, TypeScript, Manifest V3)
-• Uses Chrome's latest extension APIs for enhanced security
-• Responsive design works on all screen sizes
-• Optimized performance for large accounts (500+ reels)
-• Open source - view our code on GitHub
-
-## 🆘 SUPPORT & FEEDBACK
-
-Need help or have suggestions?
-• Visit: delulu.social
-• Email: support@delulu.social
-• Report bugs: github.com/delulu/sorted/issues
-
-## ⚠️ IMPORTANT NOTES
-
-• Works only on Instagram profile reels tabs (not home feed or explore)
-• Requires Instagram to load reels progressively
-• Large accounts (100+ reels) may take 20-30 seconds to sort
-• Not affiliated with Instagram or Meta Platforms, Inc.
-
-## 🌟 WHY CHOOSE SORTED?
-
-Unlike other Instagram tools, Sorted is:
-✓ Completely free with no premium tiers or upsells
-✓ Privacy-focused with zero data collection
-✓ Open source for full transparency
-✓ Actively maintained and updated
-✓ Beautiful, professional interface
-✓ Fast and efficient performance
-
-## 🎓 MADE BY CREATORS, FOR CREATORS
-
-Sorted is built by the team at Delulu Social, a platform dedicated to helping content creators and social media professionals succeed. We understand the challenges of analyzing social media content, which is why we created Sorted - a simple, powerful tool to discover what content resonates with audiences.
-
-## 📝 CHANGELOG
-
-See what's new in the latest version at delulu.social
-
----
-
-**Ready to discover the most engaging reels?**
-
-Install Sorted today and start sorting Instagram reels by engagement metrics with just one click!
-
-Made with ❤️ by Delulu Social | delulu.social
-```
-
-**Character Count:** ~3,485 characters (well under 16,000 limit)
 
 ---
 
 ## Store Listing Fields
 
 ### Category
-**Primary Category:** Social & Communication
-**Justification:** Extension enhances social media content discovery and analysis
-
-**Alternative Categories** (if needed):
-- Productivity
-- Developer Tools (if applicable)
-
----
+Social & Communication
 
 ### Language
-**Primary:** English (US)
-
-**Future Languages** (v2.0):
-- Spanish
-- French
-- German
-- Portuguese
-
----
+English (US)
 
 ### Mature Content Rating
-**Rating:** Everyone
-
-**Justification:** Extension displays publicly available Instagram content. No adult, violent, or inappropriate content generated by the extension itself.
-
----
+Everyone
 
 ### Website URL
-**Homepage:** https://delulu.social
-
-**Alternative URLs:**
-- Extension-specific page: https://delulu.social/products/sorted (create after launch)
-- Documentation: https://delulu.social/docs/sorted (create after launch)
-
----
+https://delulu.social
 
 ### Support URL
-**Primary:** https://delulu.social
-**Email:** support@delulu.social
-**GitHub Issues:** https://github.com/delulu/sorted/issues
+https://delulu.social
 
----
+### Support Email
+support@delulu.social
 
 ### Privacy Policy URL
-**Required:** https://delulu.social/legal/extension-privacy
-
-**Important:** Must be accessible before submission. Verify URL is live.
+https://delulu.social/legal/extension-privacy
 
 ---
 
-## Privacy Practices (Disclosure)
+## Privacy Practices (Chrome Web Store Disclosure)
 
-### Single Purpose Description
-**Character Limit:** 200 characters
-**Current:** 89 characters ✅
+### Single Purpose Description (200 char limit)
 
 ```
-Sorting Instagram reels by engagement metrics (likes, views, comments, or chronological order).
+Sort Instagram reels by engagement metrics and transcribe reel audio to text using AI.
+```
+
+(87 characters)
+
+### Does this extension collect user data?
+**Yes**
+
+### Data Usage Disclosures
+
+#### 1. Authentication Information
+- **Field:** Personally identifiable information
+- **Usage:** Used for authenticating users via Clerk to enable transcription features and subscription management
+- **Collected?** Yes — email address and user ID from Clerk authentication
+- **Transmitted off device?** Yes — to Clerk (authentication provider) and Convex (database)
+- **Sold to third parties?** No
+- **Used for purposes unrelated to extension?** No
+
+#### 2. User Activity
+- **Field:** User activity (transcription history)
+- **Usage:** Stores transcription results so users can access their history
+- **Collected?** Yes — transcription text, reel URLs, timestamps
+- **Transmitted off device?** Yes — to Convex (database) and our transcription API (AWS Lambda)
+- **Sold to third parties?** No
+- **Used for purposes unrelated to extension?** No
+
+#### 3. Website Content
+- **Field:** Website content
+- **Usage:** Reel audio is sent to our API for transcription. Reel engagement metrics (likes, views, comments) are read for sorting.
+- **Collected?** Partially — audio is processed and discarded; transcription text is stored. Engagement metrics are processed locally only.
+- **Transmitted off device?** Yes — reel audio to transcription API
+- **Sold to third parties?** No
+- **Used for purposes unrelated to extension?** No
+
+### Certification Statement
+
+```
+This extension collects authentication data (email, user ID via Clerk) and user-generated transcription data (transcribed text, reel URLs). Reel audio is transmitted to our secure API for AI transcription and is not retained after processing. Transcription results are stored in the user's account. Reel engagement metrics (likes, views, comments) used for sorting are processed entirely in the browser and never transmitted. We do not sell any data to third parties.
+```
+
+### Does this extension use remote code?
+**No** — All code is bundled within the extension package.
+
+---
+
+## Permission Justifications
+
+### 1. `storage` Permission
+
+```
+Stores user authentication state, sorting preferences (sort type, quantity), and active transcription status locally. Also caches the authenticated session token for API requests. No sensitive credentials are stored — only session references managed by Clerk.
+```
+
+### 2. `cookies` Permission
+
+```
+Required for Clerk authentication. The extension reads authentication cookies set by clerk.delulu.social to maintain the user's signed-in session across extension popup opens. Without this permission, users would need to re-authenticate every time they open the popup.
+```
+
+### 3. `activeTab` Permission
+
+```
+Detects when the user is viewing an Instagram profile's reels tab to inject the sorting UI and show active status in the popup. Also used to identify the current page URL for reel detection.
+```
+
+### 4. Host Permissions — `instagram.com`
+
+```
+Required to inject the sorting UI into Instagram's reels grid, intercept GraphQL API responses containing reel engagement metrics (likes, views, comments), and add hover overlays for download/transcribe actions. Content scripts run only on Instagram pages.
+```
+
+### 5. Host Permissions — `clerk.delulu.social`, `solulu.delulu.social`
+
+```
+Required for user authentication. clerk.delulu.social handles the Clerk authentication flow. solulu.delulu.social is the FAPI sync host that maintains session state between the extension and the Delulu platform. Users sign in via these domains to access transcription features.
+```
+
+### 6. Host Permissions — `rapid-doe-87.clerk.accounts.dev`
+
+```
+Clerk's development authentication endpoint used during testing. Required for the authentication SDK to function correctly across environments.
+```
+
+### 7. Host Permissions — `localhost`
+
+```
+Used during development only. Can be removed in production if desired, but has no effect on end users as no localhost services are accessed in production.
 ```
 
 ---
 
-### Permission Justifications
-
-#### 1. Storage Permission
-**Justification:**
+## Test Instructions (for Chrome Web Store Reviewers)
 
 ```
-Used to save user preferences for sorting options (sort type: likes/views/comments/oldest, and quantity: 25/50/all). No personal data is stored. Settings can be cleared via browser settings or by uninstalling the extension.
-```
+Test: [EMAIL] [PASSWORD]
 
-#### 2. ActiveTab Permission
-**Justification:**
+Sort:
+1. Go to instagram.com/natgeo/reels/
+2. Sort panel appears above grid — select Most Liked, click Sort Reels
+3. Reels reorder with rank badges
 
-```
-Detects when the user is viewing an Instagram profile's reels tab to display the appropriate active/inactive state in the extension popup. Does not access browsing history or other tabs.
-```
+Transcribe:
+1. Sign in with Delulu
+2. Hover any reel, click mic icon
+3. Modal shows "Transcribing..." — after 10–30s text appears
+4. Copy; check Sorted popup for Recent Transcriptions
 
-#### 3. Host Permissions (instagram.com)
-**Justification:**
-
-```
-Required to access Instagram page content and intercept GraphQL API responses containing reel engagement metrics (likes, views, comments). All data processing happens locally in the user's browser - no data is transmitted to external servers.
+Notes:
+- Test account has [X] free transcriptions remaining
+- Extension only activates on Instagram profile reels tabs
 ```
 
 ---
 
-### Data Usage Certification
+## What to Update in Privacy Policy
 
-**Question:** Does this extension collect user data?
-**Answer:** ✅ **No**
+The extension privacy policy at `https://delulu.social/legal/extension-privacy` needs these updates for v2:
 
-**Certification Statement:**
+### Remove / Change
+- Remove all "ZERO data collection" claims
+- Remove "No external servers or API calls"
+- Remove "does not communicate with external servers"
+- Remove "No third-party services"
+- Change "Does NOT use cookies" to explain cookie usage
+
+### Add — Authentication
 ```
-This extension does NOT collect, store, or transmit any user data. All processing happens locally in the user's browser. We do not use analytics, tracking, or telemetry. The only data stored is user preferences (sorting options) via Chrome's local storage API.
+Sorted uses Clerk (https://clerk.com) for authentication. When you sign in:
+- Your email address and user ID are stored by Clerk
+- A session cookie is set on clerk.delulu.social to maintain your login
+- Your Clerk user ID is associated with your transcription history
+- Clerk's privacy policy: https://clerk.com/legal/privacy
+```
+
+### Add — Transcription Data
+```
+When you transcribe a reel:
+- The reel's audio is extracted and sent to our secure transcription API hosted on AWS
+- Audio is processed by Groq's Whisper AI model for speech-to-text conversion
+- The audio is NOT stored — it is discarded after transcription
+- The resulting text, reel URL, and timestamp are stored in your account via Convex
+- For Hindi audio, an additional Hinglish (Roman script) version is generated and stored
+- You can view your transcription history in the extension popup
+```
+
+### Add — Database / Convex
+```
+Sorted uses Convex (https://convex.dev) as its database:
+- Stores transcription text, reel URLs, timestamps, and usage counts
+- Data is associated with your authenticated user ID
+- Convex servers are located in the United States
+- Convex's privacy policy: https://www.convex.dev/legal/privacy
+```
+
+### Add — Payments
+```
+Sorted uses Dodo Payments for subscription billing:
+- Payment is processed entirely on Dodo Payments' hosted checkout page
+- We do not see or store your payment card details
+- We receive subscription status (active/canceled) and plan information
+- Dodo Payments' privacy policy: https://dodopayments.com/legal/privacy
+```
+
+### Add — Cookies Section (replace old one)
+```
+The Extension uses cookies for authentication:
+- Authentication cookies are set by Clerk on clerk.delulu.social
+- These cookies maintain your signed-in session
+- Session cookies expire when you sign out or after the session timeout
+- No tracking cookies, advertising cookies, or third-party cookies are used
+- The "cookies" Chrome permission is required solely for reading Clerk auth cookies
+```
+
+### Add — Storage Section (update old one)
+```
+Chrome's storage.local API is used to store:
+- Sorting preferences (sort type, quantity)
+- Active transcription state (which reel is currently being transcribed)
+- Authentication session references
+
+Storage size: Less than 10 KB
+All storage is local to your Chrome browser profile.
 ```
 
 ---
 
-### Remote Code Hosting
-**Question:** Does this extension use remote code?
-**Answer:** ✅ **No**
-
-**Certification:**
-```
-All code is bundled within the extension package. No remote code is loaded or executed. The extension is fully self-contained and does not communicate with external servers.
-```
-
----
-
-## SEO & Discoverability
-
-### Keywords / Tags
-
-**Primary Keywords** (8-10 recommended):
-1. instagram
-2. reels
-3. sorter
-4. engagement
-5. likes
-6. views
-7. social media
-8. analytics
-9. content creator
-10. influencer
-
-**Note:** Chrome Web Store doesn't have an explicit keyword field, but these terms should appear naturally in your description for SEO.
-
----
-
-### Search Terms to Target
-
-Users searching for:
-- "instagram reel sorter"
-- "sort instagram reels"
-- "instagram engagement metrics"
-- "instagram reels by likes"
-- "analyze instagram reels"
-- "instagram content analysis"
-- "social media tools"
-- "instagram analytics"
-
-**Optimization:** Description already includes these terms naturally.
-
----
-
-## Pricing
-
+## Pricing (Store Field)
 **Distribution:** Free
-
-**In-App Purchases:** None
-
-**Future Monetization** (v2.0+, if needed):
-- Premium features (export data, historical tracking)
-- Freemium model (basic free, advanced paid)
-- One-time purchase ($4.99 lifetime)
-
-**Current Status:** 100% free with no ads
+**In-App Purchases:** Yes (Pro subscription via external checkout)
 
 ---
 
-## Distribution Settings
-
-### Regions
-**Availability:** All regions
-
-**Why worldwide:**
-- Instagram is global
-- No region-specific features
-- Privacy-focused (GDPR/CCPA compliant)
-- English UI (will add translations later)
-
-**Regions to Monitor:**
-- EU: GDPR compliance (already met)
-- California: CCPA compliance (already met)
-- China: Instagram is blocked (extension won't work)
-
----
-
-### Visibility
-**Setting:** Public
-
-**Launch Strategy:**
-- Public listing from day one
-- No staged rollout (extension is stable)
-- Monitor first 100 installs closely
-- Gather feedback via reviews
-
-**Future:** Consider "Featured" badge application after 1000+ installs and 4.5+ rating
-
----
-
-## Review & Feedback Strategy
-
-### Encouraging Reviews
-
-**In-Extension Prompts** (v1.1.0):
-- After 10 successful sorts: "Enjoying Sorted? Leave a review!"
-- Non-intrusive, dismissible
-- Link to Chrome Web Store review page
-
-**Email Campaign** (post-launch):
-- To delulu.social mailing list
-- Ask for reviews and feedback
-- Offer support for any issues
-
-### Responding to Reviews
-
-**Response Time:** Within 48 hours
-
-**Positive Reviews (5 stars):**
-```
-Thank you for the kind words! We're thrilled Sorted is helping you discover engaging reels. If you have any feature suggestions, let us know at support@delulu.social! 💙
-```
-
-**Constructive Criticism (3-4 stars):**
-```
-Thanks for your feedback! We're always looking to improve. Could you share more details about [specific issue] at support@delulu.social? We'd love to make this right! 🛠️
-```
-
-**Negative Reviews (1-2 stars):**
-```
-We're sorry to hear about your experience. We take all feedback seriously. Please email us at support@delulu.social with details so we can resolve this ASAP. We're here to help! 🙏
-```
-
-**Bug Reports:**
-```
-Thank you for reporting this! We're investigating the issue and will release a fix soon. Please check for updates in chrome://extensions/ or email support@delulu.social for status updates.
-```
-
----
-
-## Launch Checklist
-
-Before clicking "Submit for Review":
-
-- [ ] Extension name is compelling and under 45 characters
-- [ ] Summary/short description is under 132 characters
-- [ ] Detailed description is comprehensive (2000+ characters)
-- [ ] Description includes key features, use cases, and privacy info
-- [ ] All permission justifications are written
-- [ ] Privacy policy URL is live and accessible
-- [ ] Website URL (delulu.social) is accessible
-- [ ] Support email (support@delulu.social) is monitored
-- [ ] Category is set to "Social & Communication"
-- [ ] Language is set to "English (US)"
-- [ ] Mature content rating is "Everyone"
-- [ ] Single purpose statement is clear
-- [ ] Data usage is certified (No data collection)
-- [ ] Remote code hosting is certified (No remote code)
-- [ ] Distribution is set to "All regions"
-- [ ] Visibility is set to "Public"
-- [ ] Screenshots are uploaded (2-5 images)
-- [ ] Promotional tiles are uploaded (optional but recommended)
-- [ ] Extension package (.zip) is uploaded and validated
-- [ ] Test installation from uploaded package works
-- [ ] All links in description are correct and clickable
-
----
-
-## Post-Submission Monitoring
-
-### First 24 Hours
-- Check email for Chrome Web Store notifications
-- Monitor submission status in developer console
-- Prepare for potential rejection (have fixes ready)
-
-### First Week
-- Respond to all reviews within 48 hours
-- Monitor install count and uninstall rate
-- Check for crash reports or errors
-- Gather user feedback via email
-
-### First Month
-- Analyze user behavior (which features are used most)
-- Plan v1.1.0 updates based on feedback
-- Consider adding more languages
-- Optimize store listing based on conversion data
-
----
-
-## A/B Testing Ideas (Future)
-
-### Extension Name Variants
-Test different names to see which gets more installs:
-- Current: "Sorted - Instagram Reel Sorter"
-- Test: "Instagram Reel Analyzer"
-- Test: "Reel Rank - Instagram Sorter"
-
-### Description Headlines
-Test different opening lines:
-- Current: "Discover the most engaging Instagram reels with one click."
-- Test: "Find viral Instagram reels instantly."
-- Test: "Sort Instagram reels by likes, views, and comments."
-
-### Screenshot Order
-Test different screenshot sequences:
-- Current: Popup → Controls → Grid → Metrics → Loading
-- Test: Grid → Metrics → Controls → Popup → Loading
-- Test: Loading → Grid → Metrics → Popup → Controls
-
-**Note:** Chrome Web Store doesn't have built-in A/B testing, but you can update listings and track install rate changes.
-
----
-
-## Competitive Analysis
-
-### Similar Extensions
-
-Research competitors for inspiration (not copying):
-1. "Instagram Download Video Photo Reel Story IGTV" - 1M+ users
-2. "Instagram Downloader + Upload photo to Instagram" - 500K+ users
-3. Various Instagram analytics tools
-
-**Our Advantages:**
-- ✅ Privacy-focused (zero data collection)
-- ✅ Open source (transparent)
-- ✅ Better UI/UX (indigo branding, smooth animations)
-- ✅ Specific use case (sorting reels, not downloading)
-- ✅ Free forever (no premium tiers)
-
----
-
-## Success Metrics
-
-### Key Performance Indicators (KPIs)
-
-**Week 1:**
-- Target: 50 installs
-- Target: 4.0+ star rating
-- Target: 0 critical bugs
-
-**Month 1:**
-- Target: 500 installs
-- Target: 4.5+ star rating
-- Target: 50+ reviews
-- Target: <10% uninstall rate
-
-**Month 3:**
-- Target: 2,000 installs
-- Target: 4.5+ star rating
-- Target: 150+ reviews
-- Target: Feature consideration by Chrome editors
-
-**Year 1:**
-- Target: 10,000 installs
-- Target: 4.5+ star rating
-- Target: 500+ reviews
-- Target: Top 10 in "Instagram tools" search
-
----
-
-## Additional Resources
-
-- Chrome Web Store Developer Program Policies: https://developer.chrome.com/docs/webstore/program-policies
-- Best Practices for Store Listings: https://developer.chrome.com/docs/webstore/best-practices
-- Extension Quality Guidelines: https://developer.chrome.com/docs/webstore/review-process
-
----
-
-<div align="center">
-  <p><strong>Ready to launch Sorted on Chrome Web Store!</strong></p>
-  <p>All copy is optimized and ready to paste into submission form</p>
-  <p>Last Updated: January 19, 2026</p>
-</div>
+## Distribution
+**Regions:** All regions
+**Visibility:** Public

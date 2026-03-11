@@ -11,6 +11,7 @@ import {
   baseSocialProviderSchema,
   baseSubscriptionSchema,
   baseTransactionSchema,
+  baseTranscriptionSchema,
   baseUserSchema,
 } from "./schemas";
 
@@ -76,7 +77,8 @@ export default defineSchema({
     .index("by_dodo_subscription_id", ["dodoSubscriptionId"])
     .index("by_plan_type", ["planType"])
     .index("by_status", ["status"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_type", ["userId", "type"]),
 
   // Transactions table for payment history
   transactions: defineTable(baseTransactionSchema.fields)
@@ -111,4 +113,14 @@ export default defineSchema({
   automationContacts: defineTable(baseAutomationContactSchema.fields)
     .index("by_social_provider", ["socialProviderId"])
     .index("by_instagram_user", ["socialProviderId", "instagramUserId"]),
+
+  // Transcriptions table for reel audio transcriptions (Sorted extension)
+  transcriptions: defineTable(baseTranscriptionSchema.fields)
+    .index("by_user_id", ["userId"])
+    .index("by_reel_id", ["reelId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .searchIndex("search_text", {
+      searchField: "text",
+      filterFields: ["userId"],
+    }),
 });

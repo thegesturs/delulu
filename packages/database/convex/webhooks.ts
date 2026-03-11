@@ -174,6 +174,90 @@ export const handleSubscriptionActivated = internalMutation({
 });
 
 /**
+ * Handle Sorted extension subscription activation
+ * Creates a real addon subscription record so status can be tracked properly
+ */
+export const handleSortedSubscription = internalMutation({
+  args: {
+    customerEmail: v.string(),
+    customerId: v.string(),
+    subscriptionId: v.string(),
+    productId: v.string(),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+  },
+  handler: async (ctx, args) => {
+    console.log("[Webhook] Sorted subscription for:", args.customerEmail);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
+      .first();
+
+    if (!user) {
+      console.error("[Webhook] User not found for email:", args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
+    }
+
+    // Set dodoCustomerId if not already set
+    if (!user.dodoCustomerId) {
+      await ctx.db.patch(user._id, {
+        dodoCustomerId: args.customerId,
+      });
+    }
+
+    // Check if subscription already exists (handles renewals)
+    const existingSubscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_dodo_subscription_id", (q) =>
+        q.eq("dodoSubscriptionId", args.subscriptionId)
+      )
+      .first();
+
+    if (existingSubscription) {
+      // Update existing subscription
+      await ctx.db.patch(existingSubscription._id, {
+        status: "ACTIVE",
+        currentPeriodStart: args.currentPeriodStart,
+        currentPeriodEnd: args.currentPeriodEnd,
+        metadata: { productId: args.productId },
+        updatedAt: getCurrentTimestamp(),
+      });
+      console.log(
+        "[Webhook] Sorted subscription updated:",
+        existingSubscription._id
+      );
+    } else {
+      // Create new addon subscription record
+      const subscriptionId = await ctx.db.insert("subscriptions", {
+        userId: user._id,
+        dodoCustomerId: args.customerId,
+        dodoSubscriptionId: args.subscriptionId,
+        planType: "FREE", // addon doesn't map to a plan
+        status: "ACTIVE",
+        type: "addon",
+        addonType: "sorted",
+        currentPeriodStart: args.currentPeriodStart,
+        currentPeriodEnd: args.currentPeriodEnd,
+        metadata: { productId: args.productId },
+        updatedAt: getCurrentTimestamp(),
+      });
+
+      // Append to user's addonSubscriptionIds
+      const existingAddonIds = user.addonSubscriptionIds ?? [];
+      await ctx.db.patch(user._id, {
+        addonSubscriptionIds: [...existingAddonIds, subscriptionId],
+        updatedAt: getCurrentTimestamp(),
+      });
+
+      console.log("[Webhook] Sorted subscription created:", subscriptionId);
+    }
+  },
+});
+
+/**
  * Handle subscription cancelled event
  * Called when a subscription is cancelled
  */

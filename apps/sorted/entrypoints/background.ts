@@ -2,6 +2,23 @@
  * Background service worker
  */
 
+import { createClerkClient } from "@clerk/chrome-extension/background";
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const SYNC_HOST = import.meta.env.VITE_CLERK_SYNC_HOST;
+
+async function getSessionToken(): Promise<string | null> {
+  try {
+    const clerk = await createClerkClient({
+      publishableKey: PUBLISHABLE_KEY,
+      syncHost: SYNC_HOST,
+    });
+    return (await clerk.session?.getToken()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default defineBackground(() => {
   console.log("[Sorted Background] Service worker initialized", {
     id: browser.runtime.id,
@@ -12,23 +29,26 @@ export default defineBackground(() => {
     console.log("[Sorted Background] Extension installed/updated", details);
 
     if (details.reason === "install") {
-      // Show onboarding/welcome page
       console.log("[Sorted Background] First install - showing welcome");
-      // Could open a welcome page or show notification
     } else if (details.reason === "update") {
       console.log("[Sorted Background] Extension updated");
-      // Could show update notes
     }
   });
 
   // Handle messages from content scripts or popup
-  browser.runtime.onMessage.addListener((message, sender, _sendResponse) => {
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(
       "[Sorted Background] Received message:",
       message,
       "from:",
       sender
     );
+
+    // Handle auth token request from content script
+    if (message.type === "GET_AUTH_TOKEN") {
+      getSessionToken().then((token) => sendResponse({ token }));
+      return true; // Keep channel open for async response
+    }
 
     // Handle different message types
     if (message.type === "OPEN_OVERLAY") {
@@ -38,7 +58,6 @@ export default defineBackground(() => {
       }
     }
 
-    // Return true to indicate we'll send a response asynchronously
     return true;
   });
 

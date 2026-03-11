@@ -5,6 +5,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { LoadingOverlay } from "./content/components/loading-overlay";
+import { ReelPageFab } from "./content/components/reel-page-fab";
 import { SortPanel } from "./content/components/sort-panel";
 import { SortedGrid } from "./content/components/sorted-grid";
 // Import styles inline to ensure they are injected
@@ -16,7 +17,11 @@ import {
   scrollAndLoadReels,
 } from "./content/utils/infinite-scroll";
 import { validateScrapingCapability } from "./content/utils/instagram-scraper";
-import { isReelsTab, monitorUrlChanges } from "./content/utils/url-detector";
+import {
+  isReelPage,
+  isReelsTab,
+  monitorUrlChanges,
+} from "./content/utils/url-detector";
 import type { ExportFormat, ReelData, SortMetric } from "./shared/types";
 
 export default defineContentScript({
@@ -50,7 +55,7 @@ export default defineContentScript({
     // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
     let loadingRoot: any = null;
     let _cleanupUrlMonitor: (() => void) | null = null;
-    let originalGrid: HTMLElement | null = null;
+    let takeoverTarget: HTMLElement | null = null;
     let reelsObserver: MutationObserver | null = null;
     let isSorting = false;
     let isActive = false;
@@ -58,6 +63,9 @@ export default defineContentScript({
     let currentReels: ReelData[] = [];
     let currentMetric: SortMetric = "views";
     let currentQuantity: number = 25;
+    let fabContainer: HTMLElement | null = null;
+    // biome-ignore lint/suspicious/noExplicitAny: React root types are complex
+    let fabRoot: any = null;
 
     /**
      * Handle export action
@@ -250,20 +258,6 @@ export default defineContentScript({
     }
 
     /**
-     * Remove sort panel
-     */
-    function removeSortPanel() {
-      if (panelRoot) {
-        panelRoot.unmount();
-        panelRoot = null;
-      }
-      if (panelContainer) {
-        panelContainer.remove();
-        panelContainer = null;
-      }
-    }
-
-    /**
      * Handle sort action
      */
     async function handleSort(metric: SortMetric, quantity: number) {
@@ -352,7 +346,7 @@ export default defineContentScript({
         }
 
         // Replace Instagram grid with sorted grid
-        const gridReplaced = replaceGrid();
+        const gridReplaced = takeoverContent();
         if (!gridReplaced) {
           // biome-ignore lint/suspicious/noAlert: browser extension requires alert for user feedback
           alert("Failed to replace grid. Reels container not found.");
@@ -374,48 +368,64 @@ export default defineContentScript({
     }
 
     /**
-     * Replace Instagram's grid with our sorted grid
+     * Take over Instagram's content area, replacing it entirely with our sorted grid.
+     * This kills Instagram's scroll listeners, IntersectionObservers, and React internals
+     * by clearing the DOM subtree that hosts them.
      * @returns true if successful, false otherwise
      */
-    function replaceGrid(): boolean {
+    function takeoverContent(): boolean {
       const reelsContainer = findReelsContainer();
       if (!reelsContainer) {
         return false;
       }
 
-      // Capture original width before hiding to match sorted grid dimensions
-      const originalWidth = reelsContainer.offsetWidth;
-
-      // Prevent scrollbar jitter during swap
-      const prevOverflow = document.documentElement.style.overflowY;
-      document.documentElement.style.overflowY = "scroll";
-
-      // Hide original grid
-      if (!originalGrid) {
-        originalGrid = reelsContainer;
-      }
-      originalGrid.style.display = "none";
-
-      // Create our grid container if it doesn't exist
-      if (!gridContainer) {
-        gridContainer = document.createElement("div");
-        gridContainer.id = "sorted-grid";
-        originalGrid.parentElement?.insertBefore(
-          gridContainer,
-          originalGrid.nextSibling
-        );
+      // Walk up to the parent that holds tabs + grid — this is our takeover target
+      const target = reelsContainer.parentElement;
+      if (!target) {
+        return false;
       }
 
-      // Match original grid width to prevent layout shift
+      // Capture width before clearing
+      const originalWidth = target.offsetWidth;
+
+      // Nuke Instagram's DOM subtree — detaches all event listeners, observers, React fibers
+      takeoverTarget = target;
+      target.innerHTML = "";
+
+      // Style the takeover container for self-contained scrolling
+      target.style.overflowY = "auto";
+      target.style.height = "calc(100vh - 80px)";
+      target.id = "sorted-takeover";
+
+      // Kill the page-level scrollbar so only our container scrolls
+      document.documentElement.style.overflow = "hidden";
+
+      // Create and append panel container
+      panelContainer = document.createElement("div");
+      panelContainer.id = "sorted-panel";
+      target.appendChild(panelContainer);
+
+      // Create and append grid container
+      gridContainer = document.createElement("div");
+      gridContainer.id = "sorted-grid";
       if (originalWidth > 0) {
         gridContainer.style.width = `${originalWidth}px`;
       }
+      target.appendChild(gridContainer);
 
-      // Render sorted grid
-      if (!gridRoot) {
-        gridRoot = createRoot(gridContainer);
-      }
+      // Mount React roots
+      panelRoot = createRoot(panelContainer);
+      panelRoot.render(
+        React.createElement(SortPanel, {
+          onSort: handleSort,
+          isSorting,
+          onReset: handleReset,
+          isActive: true,
+          onExport: onExportReels,
+        })
+      );
 
+      gridRoot = createRoot(gridContainer);
       gridRoot.render(
         React.createElement(SortedGrid, {
           reels: currentReels,
@@ -424,37 +434,34 @@ export default defineContentScript({
         })
       );
 
-      // Restore scrollbar after render settles
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          document.documentElement.style.overflowY = prevOverflow;
-        });
-      });
+      // Signal interceptor to suppress further reel-loading XHR
+      window.postMessage({ type: "SORTED_TAKEOVER" }, "*");
 
       return true;
     }
 
     /**
-     * Reset to original Instagram grid
+     * Reset to original Instagram grid — reload the page since we nuked Instagram's DOM
      */
     function handleReset() {
-      if (originalGrid) {
-        originalGrid.style.display = "";
-      }
-
+      // Unmount React roots to avoid memory leaks
       if (gridRoot) {
         gridRoot.unmount();
         gridRoot = null;
       }
-
-      if (gridContainer) {
-        gridContainer.remove();
-        gridContainer = null;
+      if (panelRoot) {
+        panelRoot.unmount();
+        panelRoot = null;
       }
 
       isActive = false;
       currentReels = [];
-      updatePanel();
+      takeoverTarget = null;
+      gridContainer = null;
+      panelContainer = null;
+
+      // Reload page to restore Instagram's original state
+      window.location.reload();
     }
 
     /**
@@ -475,18 +482,52 @@ export default defineContentScript({
     }
 
     /**
-     * Handle URL changes
+     * Create floating transcribe button for individual reel pages
      */
-    function handleUrlChange(newUrl: string) {
-      if (isReelsTab(newUrl)) {
-        waitForReelsAndCreatePanel();
-      } else {
-        cleanup();
+    function createReelPageFab() {
+      if (fabContainer) {
+        return;
+      }
+      fabContainer = document.createElement("div");
+      fabContainer.id = "sorted-reel-fab-container";
+      document.body.appendChild(fabContainer);
+      fabRoot = createRoot(fabContainer);
+      fabRoot.render(React.createElement(ReelPageFab));
+    }
+
+    /**
+     * Remove floating transcribe button
+     */
+    function removeReelPageFab() {
+      if (fabRoot) {
+        fabRoot.unmount();
+        fabRoot = null;
+      }
+      if (fabContainer) {
+        fabContainer.remove();
+        fabContainer = null;
       }
     }
 
     /**
-     * Cleanup
+     * Handle URL changes
+     */
+    function handleUrlChange(newUrl: string) {
+      if (isReelsTab(newUrl)) {
+        removeReelPageFab();
+        waitForReelsAndCreatePanel();
+      } else if (isReelPage(newUrl)) {
+        cleanup();
+        createReelPageFab();
+      } else {
+        cleanup();
+        removeReelPageFab();
+      }
+    }
+
+    /**
+     * Soft cleanup for SPA navigation — unmount roots and clear state without page reload.
+     * Instagram's own navigation handles the page transition.
      */
     function cleanup() {
       isCancelled = true;
@@ -495,8 +536,24 @@ export default defineContentScript({
         reelsObserver = null;
       }
       hideLoadingOverlay();
-      removeSortPanel();
-      handleReset();
+
+      // Unmount React roots
+      if (panelRoot) {
+        panelRoot.unmount();
+        panelRoot = null;
+      }
+      if (gridRoot) {
+        gridRoot.unmount();
+        gridRoot = null;
+      }
+
+      // Clear references (DOM will be cleaned up by Instagram's navigation)
+      panelContainer = null;
+      gridContainer = null;
+      takeoverTarget = null;
+      isActive = false;
+      isSorting = false;
+      currentReels = [];
     }
 
     /**
@@ -506,6 +563,8 @@ export default defineContentScript({
       const startObserving = () => {
         if (isReelsTab()) {
           waitForReelsAndCreatePanel();
+        } else if (isReelPage()) {
+          createReelPageFab();
         }
         _cleanupUrlMonitor = monitorUrlChanges(handleUrlChange);
       };

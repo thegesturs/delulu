@@ -1,4 +1,5 @@
 import type { WebhookEvent } from "@clerk/backend";
+import { ALL_SORTED_PRODUCT_IDS } from "@delulu/payments/product-ids";
 import { createDodoWebhookHandler } from "@dodopayments/convex";
 import { httpRouter } from "convex/server";
 import { Webhook } from "svix";
@@ -200,6 +201,40 @@ http.route({
         "[Dodo Webhook] Subscription activated:",
         payload.data.subscription_id
       );
+
+      // Check if this is a Sorted extension metered subscription
+      if (
+        ALL_SORTED_PRODUCT_IDS.includes(
+          payload.data.product_id as (typeof ALL_SORTED_PRODUCT_IDS)[number]
+        )
+      ) {
+        console.log(
+          "[Dodo Webhook] Sorted extension subscription — creating addon subscription record"
+        );
+
+        // Calculate period dates (same logic as regular subscriptions below)
+        let sortedPeriodStart = Date.now();
+        if (payload.data.previous_billing_date) {
+          sortedPeriodStart = new Date(
+            payload.data.previous_billing_date
+          ).getTime();
+        } else if (payload.data.created_at) {
+          sortedPeriodStart = new Date(payload.data.created_at).getTime();
+        }
+        const sortedPeriodEnd = payload.data.next_billing_date
+          ? new Date(payload.data.next_billing_date).getTime()
+          : Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+        await ctx.runMutation(internal.webhooks.handleSortedSubscription, {
+          customerEmail: payload.data.customer?.email || "",
+          customerId: payload.data.customer.customer_id,
+          subscriptionId: payload.data.subscription_id,
+          productId: payload.data.product_id,
+          currentPeriodStart: sortedPeriodStart,
+          currentPeriodEnd: sortedPeriodEnd,
+        });
+        return;
+      }
 
       // Calculate period start from previous billing date, created date, or current time
       let periodStart = Date.now();

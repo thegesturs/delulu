@@ -1,8 +1,8 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
-  - 'turbo/*'
-  - 'scripts'
+  - apps/*
+  - packages/*
+  - turbo/*
+  - scripts
 
 catalog:
   '@trpc/client': 11.1.0
@@ -19,9 +19,8 @@ catalogs:
   react19:
     react: 19.2.3
     react-dom: 19.2.3
-    "@types/react": 19.1.0
-    "@types/react-dom": 19.1.0
-  
+    '@types/react': 19.1.0
+    '@types/react-dom': 19.1.0
 
 ignoredBuiltDependencies:
   - '@biomejs/biome'
@@ -33,3 +32,6 @@ ignoredBuiltDependencies:
   - esbuild
   - sharp
   - workerd
+
+patchedDependencies:
+  '@clerk/chrome-extension@2.9.2': patches/@clerk__chrome-extension@2.9.2.patch

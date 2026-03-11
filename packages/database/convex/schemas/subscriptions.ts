@@ -23,6 +23,12 @@ export const subscriptionStatus = v.union(
 // Billing period enum
 export const billingPeriod = v.union(v.literal("MONTHLY"), v.literal("YEARLY"));
 
+// Subscription type enum (plan vs addon)
+export const subscriptionType = v.union(v.literal("plan"), v.literal("addon"));
+
+// Addon type enum
+export const addonType = v.union(v.literal("sorted"));
+
 // Transaction status enum
 export const transactionStatus = v.union(
   v.literal("SUCCEEDED"),
@@ -38,6 +44,8 @@ export const baseSubscriptionSchema = v.object({
   dodoSubscriptionId: v.optional(v.string()), // Dodo Payments subscription ID (optional for free plans)
   planType: planTypes,
   status: subscriptionStatus,
+  type: v.optional(subscriptionType), // "plan" or "addon", optional for backward compat
+  addonType: v.optional(addonType), // "sorted" etc., only set when type === "addon"
   billingPeriod: v.optional(billingPeriod), // Only for paid plans
   currentPeriodStart: v.optional(v.number()), // Timestamp
   currentPeriodEnd: v.optional(v.number()), // Timestamp
@@ -68,6 +76,8 @@ export const subscriptionCreateSchema = v.object({
   dodoSubscriptionId: v.optional(v.string()),
   planType: planTypes,
   status: subscriptionStatus,
+  type: v.optional(subscriptionType),
+  addonType: v.optional(addonType),
   billingPeriod: v.optional(billingPeriod),
   currentPeriodStart: v.optional(v.number()),
   currentPeriodEnd: v.optional(v.number()),
@@ -87,6 +97,8 @@ export const subscriptionUpdateSchema = v.object({
   dodoSubscriptionId: v.optional(v.string()),
   planType: v.optional(planTypes),
   status: v.optional(subscriptionStatus),
+  type: v.optional(subscriptionType),
+  addonType: v.optional(addonType),
   billingPeriod: v.optional(billingPeriod),
   currentPeriodStart: v.optional(v.number()),
   currentPeriodEnd: v.optional(v.number()),
