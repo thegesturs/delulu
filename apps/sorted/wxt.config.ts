@@ -9,7 +9,7 @@ export default defineConfig({
   },
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu+cZSTBVKamxqcobsVTOIjWTEzWS7lPJMVKD/gJ4fqCO5/ftGu6ivr0VA/gyxfA0pWKy0IcFmbTDzeDIsEEogDfWpw9sZoA/Gcq3d+pKU0Gc1RQws6JqmQaSiZtwrqrzDbMZwC+0bKlcqMkOCrPz98HTYQERulJBv3l74w+0jJwsx2/X3NDvq5utnAc0Bb8FPaXCQQ7uXcqF6WhZsFdeDZ6n8UW6kFZYnf4/AMXBQXyZzf9efcjNJef/rkLR76P+H1uDSoRGT2Rr5Zs1xeXQ2yLW5KDEOBisJ5YzVY0Ye3h49rQm1dV2unGLqpW6HL9SGR+GQQDTcvZaCHkQLX3YvwIDAQAB",
+    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj/u/XDdjlDyw7gHEtaaasZ9GdG8WOKAyJzXd8HFrDtz2Jcuy7er7MtWvHgNDA0bwpznbI5YdZeV4UfCEsA4SrA5b3MnWTHwA1bgbiDM+L9rrqvcadcKuOlTeN48Q0ijmhHlNFbTzvT9W0zw/GKv8LgXAHggxtmHQ/Z9PP2QNF5O8rUHHSL4AJ6hNcEKSBVSmbbjeVm4gSXDuED5r0nwxvRtupDxGYp8IZpP5KlExqNu1nbkPc+igCTIB6XsqijagzxewUHCdovmkb2JNtskx/PMIEv+TvWIx2BzqGp71gSh/dV7SJ3rClvWd2xj8dtxG8FfAWDTIIi0qZXWn2QhizQIDAQAB",
     name: "Sorted - Instagram Reel Sorter",
     description:
       "Sort Instagram reels by likes, views, or comments. Find the most engaging content instantly.",
@@ -19,9 +19,8 @@ export default defineConfig({
     host_permissions: [
       "*://www.instagram.com/*",
       "*://instagram.com/*",
-      "https://clerk.delulu.social/*",
+      "https://*.delulu.social/*",
       "https://rapid-doe-87.clerk.accounts.dev/*",
-      "https://solulu.delulu.social/*",
     ],
     action: {
       default_title: "Sorted - Instagram Reel Sorter",

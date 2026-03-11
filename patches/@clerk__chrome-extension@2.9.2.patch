@@ -1,0 +1,13 @@
+diff --git a/dist/esm/chunk-3LGXNEQ5.js b/dist/esm/chunk-3LGXNEQ5.js
+index 97866ec2fa083fd2d4bc4d36993631182aada16f..da02aa79be20ea6413b52a79b56ebb53c8b6a844 100644
+--- a/dist/esm/chunk-3LGXNEQ5.js
++++ b/dist/esm/chunk-3LGXNEQ5.js
+@@ -283,7 +283,7 @@ var AUTH_HEADER = {
+   DEVELOPMENT: "Clerk-Db-Jwt"
+ };
+ var CLIENT_JWT_KEY = "__client";
+-var CLIENT_UAT_KEY = "__clerk_uat";
++var CLIENT_UAT_KEY = "__client_uat";
+ var DEFAULT_LOCAL_HOST_PERMISSION = "http://localhost";
+ var STORAGE_KEY_CLIENT_JWT = "__clerk_client_jwt";
+ 

@@ -5,10 +5,14 @@
 import { createClerkClient } from "@clerk/chrome-extension/background";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const SYNC_HOST = import.meta.env.VITE_CLERK_SYNC_HOST;
 
 async function getSessionToken(): Promise<string | null> {
   try {
-    const clerk = await createClerkClient({ publishableKey: PUBLISHABLE_KEY });
+    const clerk = await createClerkClient({
+      publishableKey: PUBLISHABLE_KEY,
+      syncHost: SYNC_HOST,
+    });
     return (await clerk.session?.getToken()) ?? null;
   } catch {
     return null;

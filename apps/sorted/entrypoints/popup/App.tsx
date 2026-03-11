@@ -211,7 +211,7 @@ function App() {
               className="popup-signin-button"
               onClick={() =>
                 chrome.tabs.create({
-                  url: `${SYNC_HOST}/sign-in?redirect_url=/extension-auth-success`,
+                  url: `${import.meta.env.VITE_CLERK_APP_URL ?? SYNC_HOST}/sign-in?redirect_url=/extension-auth-success`,
                 })
               }
               type="button"
@@ -309,7 +309,7 @@ function App() {
 
       {/* Footer */}
       <div className="popup-footer">
-        <p className="popup-version">v1.2.0</p>
+        <p className="popup-version">v2.0.0</p>
         <a
           className="popup-footer-link"
           href="https://delulu.social"
