@@ -81,6 +81,26 @@ export const PROD_PRODUCT_IDS_INR: Record<
 };
 
 /**
+ * Sorted Extension Add-on Product IDs (metered, single product)
+ */
+export const SORTED_TEST_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
+export const SORTED_PROD_PRODUCT_ID = "pdt_0NaHY46JcpB8ELVhB3zVh";
+
+/** All Sorted product IDs for webhook matching */
+export const ALL_SORTED_PRODUCT_IDS = [
+  SORTED_TEST_PRODUCT_ID,
+  SORTED_PROD_PRODUCT_ID,
+] as const;
+
+/**
+ * Get the Sorted product ID for the current environment
+ */
+export function getSortedProductId(): string {
+  const env = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT ?? "test_mode";
+  return env === "live_mode" ? SORTED_PROD_PRODUCT_ID : SORTED_TEST_PRODUCT_ID;
+}
+
+/**
  * Get product IDs based on environment and currency
  * Checks DODO_PAYMENTS_ENVIRONMENT to determine which set to use
  */

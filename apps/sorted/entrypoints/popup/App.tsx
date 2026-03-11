@@ -48,7 +48,7 @@ function App() {
       convex.setAuth(token);
       const { checkout_url } = await convex.action(
         api.subscriptions.createCheckoutSession,
-        { productId: "pdt_0NYbkcEzkjqKXheG8mvVT" }
+        { productId: import.meta.env.VITE_SORTED_PRODUCT_ID }
       );
       chrome.tabs.create({ url: checkout_url });
     } catch (err) {

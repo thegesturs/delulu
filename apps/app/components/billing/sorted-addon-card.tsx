@@ -11,11 +11,12 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Progress } from "@delulu/design-system/components/ui/progress";
+import { getSortedProductId } from "@delulu/payments/product-ids";
 import { useAction, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-const SORTED_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
+const SORTED_PRODUCT_ID = getSortedProductId();
 
 export function SortedAddonCard() {
   const usage = useQuery(api.transcriptions.getMyTranscriptionUsage);

@@ -1,4 +1,5 @@
 import type { WebhookEvent } from "@clerk/backend";
+import { ALL_SORTED_PRODUCT_IDS } from "@delulu/payments/product-ids";
 import { createDodoWebhookHandler } from "@dodopayments/convex";
 import { httpRouter } from "convex/server";
 import { Webhook } from "svix";
@@ -152,8 +153,11 @@ http.route({
       );
 
       // Check if this is a Sorted extension metered subscription
-      const SORTED_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
-      if (payload.data.product_id === SORTED_PRODUCT_ID) {
+      if (
+        ALL_SORTED_PRODUCT_IDS.includes(
+          payload.data.product_id as (typeof ALL_SORTED_PRODUCT_IDS)[number]
+        )
+      ) {
         console.log(
           "[Dodo Webhook] Sorted extension subscription — creating addon subscription record"
         );
