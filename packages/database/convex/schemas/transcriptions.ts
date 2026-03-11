@@ -10,6 +10,7 @@ export const baseTranscriptionSchema = v.object({
   reelId: v.string(),
   reelUrl: v.string(),
   text: v.string(),
+  altText: v.optional(v.string()),
   language: v.string(),
   durationSeconds: v.number(),
   createdAt: v.number(),

@@ -95,6 +95,7 @@ export async function handler(event: LambdaEvent) {
     if (cached) {
       return jsonResponse(200, {
         text: cached.text,
+        altText: cached.altText,
         language: cached.language,
         durationSeconds: cached.durationSeconds,
         cached: true,
@@ -110,7 +111,7 @@ export async function handler(event: LambdaEvent) {
       }
     );
 
-    if (usage.used >= usage.limit && !usage.dodoCustomerId) {
+    if (usage.used >= usage.limit && !usage.isSortedActive) {
       return jsonResponse(402, {
         error: "quota_exceeded",
         message: "Free transcription limit reached. Upgrade to continue.",
@@ -121,7 +122,7 @@ export async function handler(event: LambdaEvent) {
 
     // 5b. Hard limit for paid users (safety cap)
     const PAID_TRANSCRIPTION_HARD_LIMIT = 1000;
-    if (usage.dodoCustomerId && usage.used >= PAID_TRANSCRIPTION_HARD_LIMIT) {
+    if (usage.isSortedActive && usage.used >= PAID_TRANSCRIPTION_HARD_LIMIT) {
       return jsonResponse(402, {
         error: "hard_limit_reached",
         message:
@@ -169,6 +170,35 @@ export async function handler(event: LambdaEvent) {
       `[Transcription] Whisper returned: ${text.length} chars, language=${language}, duration=${durationSeconds}s`
     );
 
+    // 7b. If Hindi, transliterate Devanagari → Roman script via Groq LLM
+    let altText: string | undefined;
+    if (language.toLowerCase() === "hindi") {
+      try {
+        console.log(
+          "[Transcription] Hindi detected — transliterating to Roman script..."
+        );
+        const transliteration = await groq.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a transliterator. Convert Hindi (Devanagari script) text to Roman/Latin script (Hinglish). Keep any English words as-is. Only output the transliterated text, nothing else.",
+            },
+            { role: "user", content: text },
+          ],
+          temperature: 0,
+          max_tokens: 2048,
+        });
+        altText = transliteration.choices[0]?.message?.content?.trim();
+        console.log(
+          `[Transcription] Transliteration: ${altText?.length ?? 0} chars`
+        );
+      } catch (e) {
+        console.error("[Transcription] Transliteration failed (non-fatal):", e);
+      }
+    }
+
     // 8. Store transcription in Convex
     await convex.mutation(api.transcriptions.createTranscription, {
       webhookSecret,
@@ -176,6 +206,7 @@ export async function handler(event: LambdaEvent) {
       reelId: body.reelId,
       reelUrl: body.reelUrl,
       text,
+      altText,
       language,
       durationSeconds,
     });
@@ -187,7 +218,7 @@ export async function handler(event: LambdaEvent) {
     });
 
     // 10. Log to Dodo Payments metering (fire-and-forget)
-    if (usage.dodoCustomerId) {
+    if (usage.isSortedActive && usage.dodoCustomerId) {
       try {
         await fetch("https://test.dodopayments.com/events/ingest", {
           method: "POST",
@@ -218,6 +249,7 @@ export async function handler(event: LambdaEvent) {
     // 11. Return result
     return jsonResponse(200, {
       text,
+      altText,
       language,
       durationSeconds,
       cached: false,

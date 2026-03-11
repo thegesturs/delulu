@@ -19,11 +19,14 @@ const SORTED_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
 
 export function SortedAddonCard() {
   const usage = useQuery(api.transcriptions.getMyTranscriptionUsage);
+  const addonSubscription = useQuery(api.subscriptions.getAddonSubscription, {
+    addonType: "sorted",
+  });
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const getPortal = useAction(api.subscriptions.getCustomerPortal);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isSubscribed = usage?.isSubscribed ?? false;
+  const isSubscribed = addonSubscription?.status === "ACTIVE";
   const used = usage?.used ?? 0;
   const hardLimit = usage?.paidHardLimit ?? 1000;
   const freeLimit = usage?.limit ?? 10;
@@ -58,7 +61,7 @@ export function SortedAddonCard() {
     }
   };
 
-  if (usage === undefined) {
+  if (usage === undefined || addonSubscription === undefined) {
     return (
       <Card>
         <CardHeader>

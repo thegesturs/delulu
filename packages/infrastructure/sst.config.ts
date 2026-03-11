@@ -90,7 +90,7 @@ export default $config({
         url: {
           cors: {
             allowOrigins: ["*"],
-            allowMethods: ["POST"],
+            allowMethods: ["*"],
             allowHeaders: ["Content-Type", "Authorization"],
           },
         },

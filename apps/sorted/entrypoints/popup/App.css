@@ -419,6 +419,33 @@ body {
   border-radius: 4px;
 }
 
+.popup-history-script-toggle {
+  display: inline-flex;
+  background: var(--system-gray-6);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 1px;
+}
+
+.popup-history-script-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  line-height: 1.4;
+  border-radius: 4px;
+}
+
+.popup-history-script-btn.active {
+  background: var(--text-primary);
+  color: var(--system-background);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 .popup-history-duration {
   font-size: 12px;
   color: var(--text-secondary);
@@ -756,6 +783,15 @@ body {
   .popup-history-lang {
     color: #818cf8;
     background: rgba(129, 140, 248, 0.15);
+  }
+
+  .popup-history-script-toggle {
+    background: #2c2c2e;
+  }
+
+  .popup-history-script-btn.active {
+    background: #e5e5ea;
+    color: #1c1c1e;
   }
 
   .popup-history-copy {

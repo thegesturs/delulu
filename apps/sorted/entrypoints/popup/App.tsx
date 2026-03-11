@@ -69,10 +69,14 @@ function extractReelLabel(reelUrl: string): string {
 function HistoryItem({ item }: { item: Transcription }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const hasAlt = !!item.altText;
+  const [showRoman, setShowRoman] = useState(true);
+
+  const displayText = hasAlt && showRoman ? item.altText! : item.text;
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(item.text);
+    navigator.clipboard.writeText(displayText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -90,6 +94,32 @@ function HistoryItem({ item }: { item: Transcription }) {
           <span className="popup-history-lang">
             {item.language.toUpperCase()}
           </span>
+          {hasAlt && (
+            <span className="popup-history-script-toggle">
+              <button
+                className={`popup-history-script-btn ${showRoman ? "" : "active"}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowRoman(false);
+                }}
+                title="Devanagari"
+                type="button"
+              >
+                हिंदी
+              </button>
+              <button
+                className={`popup-history-script-btn ${showRoman ? "active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowRoman(true);
+                }}
+                title="Hinglish"
+                type="button"
+              >
+                Aa
+              </button>
+            </span>
+          )}
           <span className="popup-history-duration">
             {formatDuration(item.durationSeconds)}
           </span>
@@ -112,7 +142,7 @@ function HistoryItem({ item }: { item: Transcription }) {
         </button>
       </div>
       <p className={`popup-history-text ${expanded ? "expanded" : ""}`}>
-        {item.text}
+        {displayText}
       </p>
     </div>
   );

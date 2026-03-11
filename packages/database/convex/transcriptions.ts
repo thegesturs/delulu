@@ -42,11 +42,24 @@ export const getUserTranscriptionUsage = query({
     // If period has expired, usage resets to 0
     const used = now > periodEnd ? 0 : (user.usage.transcriptionsUsed ?? 0);
 
+    // Check if user has an active Sorted addon subscription
+    let isSortedActive = false;
+    if (user.addonSubscriptionIds?.length) {
+      for (const subId of user.addonSubscriptionIds) {
+        const sub = await ctx.db.get(subId);
+        if (sub?.addonType === "sorted" && sub.status === "ACTIVE") {
+          isSortedActive = true;
+          break;
+        }
+      }
+    }
+
     return {
       used,
       limit: FREE_TRANSCRIPTION_LIMIT,
       periodEnd: now > periodEnd ? now + PERIOD_MS : periodEnd,
       userId: user._id,
+      isSortedActive,
       dodoCustomerId: user.dodoCustomerId ?? null,
     };
   },
@@ -88,6 +101,7 @@ export const getTranscriptionByReelId = query({
 
     return {
       text: existing.text,
+      altText: existing.altText,
       language: existing.language,
       durationSeconds: existing.durationSeconds,
     };
@@ -108,6 +122,7 @@ export const createTranscription = mutation({
     reelId: v.string(),
     reelUrl: v.string(),
     text: v.string(),
+    altText: v.optional(v.string()),
     language: v.string(),
     durationSeconds: v.number(),
   },
@@ -130,6 +145,7 @@ export const createTranscription = mutation({
       reelId: args.reelId,
       reelUrl: args.reelUrl,
       text: args.text,
+      ...(args.altText ? { altText: args.altText } : {}),
       language: args.language,
       durationSeconds: args.durationSeconds,
       createdAt: getCurrentTimestamp(),
@@ -239,10 +255,22 @@ export const getMyTranscriptionUsage = query({
     const periodEnd = periodStart + PERIOD_MS;
     const used = now > periodEnd ? 0 : (user.usage.transcriptionsUsed ?? 0);
 
+    // Check if user has an active Sorted addon subscription
+    let isSortedActive = false;
+    if (user.addonSubscriptionIds?.length) {
+      for (const subId of user.addonSubscriptionIds) {
+        const sub = await ctx.db.get(subId);
+        if (sub?.addonType === "sorted" && sub.status === "ACTIVE") {
+          isSortedActive = true;
+          break;
+        }
+      }
+    }
+
     return {
       used,
       limit: FREE_TRANSCRIPTION_LIMIT,
-      isSubscribed: !!user.dodoCustomerId,
+      isSubscribed: isSortedActive,
       paidSoftLimit: PAID_TRANSCRIPTION_SOFT_LIMIT,
       paidHardLimit: PAID_TRANSCRIPTION_HARD_LIMIT,
     };

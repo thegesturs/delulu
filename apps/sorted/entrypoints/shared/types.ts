@@ -138,6 +138,7 @@ export interface SetPreferencesMessage extends BaseMessage {
  */
 export interface TranscriptionResult {
   text: string;
+  altText?: string;
   language: string;
   durationSeconds: number;
 }

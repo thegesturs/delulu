@@ -15,16 +15,21 @@ export function TranscriptionModal({
   onClose,
 }: TranscriptionModalProps) {
   const [copied, setCopied] = useState(false);
+  const hasAlt = !!result.altText;
+  // Default to Roman script ("A") when altText exists
+  const [showRoman, setShowRoman] = useState(true);
+
+  const displayText = hasAlt && showRoman ? result.altText! : result.text;
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(result.text);
+      await navigator.clipboard.writeText(displayText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback
       const textarea = document.createElement("textarea");
-      textarea.value = result.text;
+      textarea.value = displayText;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -60,6 +65,26 @@ export function TranscriptionModal({
               <span className="sorted-transcription-badge">
                 {result.language.toUpperCase()}
               </span>
+              {hasAlt && (
+                <div className="sorted-transcription-script-toggle">
+                  <button
+                    className={`sorted-transcription-script-btn ${showRoman ? "" : "active"}`}
+                    onClick={() => setShowRoman(false)}
+                    title="Devanagari script"
+                    type="button"
+                  >
+                    हिंदी
+                  </button>
+                  <button
+                    className={`sorted-transcription-script-btn ${showRoman ? "active" : ""}`}
+                    onClick={() => setShowRoman(true)}
+                    title="Roman script (Hinglish)"
+                    type="button"
+                  >
+                    Aa
+                  </button>
+                </div>
+              )}
               <span className="sorted-transcription-badge">
                 {formatDuration(result.durationSeconds)}
               </span>
@@ -84,7 +109,7 @@ export function TranscriptionModal({
         </div>
 
         {/* Text */}
-        <div className="sorted-transcription-text">{result.text}</div>
+        <div className="sorted-transcription-text">{displayText}</div>
 
         {/* Actions */}
         <div className="sorted-transcription-actions">

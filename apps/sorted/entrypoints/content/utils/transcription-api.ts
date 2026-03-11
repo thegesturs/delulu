@@ -77,6 +77,7 @@ export async function transcribeReel(
 
   return {
     text: data.text,
+    altText: data.altText,
     language: data.language,
     durationSeconds: data.durationSeconds,
   };

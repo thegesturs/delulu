@@ -64,7 +64,8 @@ export default defineSchema({
     .index("by_dodo_subscription_id", ["dodoSubscriptionId"])
     .index("by_plan_type", ["planType"])
     .index("by_status", ["status"])
-    .index("by_user_status", ["userId", "status"]),
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_type", ["userId", "type"]),
 
   // Transactions table for payment history
   transactions: defineTable(baseTransactionSchema.fields)

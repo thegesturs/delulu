@@ -32,7 +32,8 @@ export const baseUserSchema = v.object({
   image: v.optional(v.string()),
   // Subscription-related fields
   dodoCustomerId: v.optional(v.string()), // Dodo Payments customer ID
-  subscriptionId: v.optional(v.id("subscriptions")), // Link to current subscription
+  subscriptionId: v.optional(v.id("subscriptions")), // Link to current plan subscription
+  addonSubscriptionIds: v.optional(v.array(v.id("subscriptions"))), // Links to addon subscriptions (e.g. Sorted)
   updatedAt: v.number(),
 });
 
@@ -53,6 +54,7 @@ export const userCreateSchema = v.object({
   image: v.optional(v.string()),
   dodoCustomerId: v.optional(v.string()),
   subscriptionId: v.optional(v.id("subscriptions")),
+  addonSubscriptionIds: v.optional(v.array(v.id("subscriptions"))),
 });
 
 // User update schema (partial)
@@ -65,5 +67,6 @@ export const userUpdateSchema = v.object({
   image: v.optional(v.string()),
   dodoCustomerId: v.optional(v.string()),
   subscriptionId: v.optional(v.id("subscriptions")),
+  addonSubscriptionIds: v.optional(v.array(v.id("subscriptions"))),
   updatedAt: v.optional(v.number()),
 });
