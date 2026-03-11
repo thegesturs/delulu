@@ -104,7 +104,7 @@ importers:
         version: 0.10.0(hono@4.7.4)
       convex:
         specifier: ^1.25.4
-        version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       hono:
         specifier: ^4.7.0
         version: 4.7.4
@@ -117,7 +117,7 @@ importers:
         version: 5.8.3
       wrangler:
         specifier: ^4.0.0
-        version: 4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)
+        version: 4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
   apps/app:
     dependencies:
@@ -198,7 +198,7 @@ importers:
         version: 1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       convex-helpers:
         specifier: ^0.1.104
-        version: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67)
+        version: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -357,7 +357,7 @@ importers:
     dependencies:
       '@clerk/chrome-extension':
         specifier: 2.9.2
-        version: 2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)
+        version: 2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)
       '@delulu/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -569,7 +569,7 @@ importers:
         version: 1.10.0
       convex:
         specifier: ^1.21.0
-        version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -773,7 +773,7 @@ importers:
         version: link:../cloudflare-types
       '@google/genai':
         specifier: ^1.0.1
-        version: 1.7.0(bufferutil@4.0.9)
+        version: 1.7.0(@modelcontextprotocol/sdk@1.27.1(zod@3.25.67))(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@opennextjs/cloudflare':
         specifier: 1.6.0
         version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
@@ -933,7 +933,7 @@ importers:
         version: 0.2.9(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))
       '@convex-dev/resend':
         specifier: ^0.1.4
-        version: 0.1.4(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 0.1.4(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)
       '@delulu/email':
         specifier: workspace:*
         version: link:../email
@@ -1266,7 +1266,13 @@ importers:
         version: link:../worker
       convex:
         specifier: ^1.28.2
-        version: 1.28.2(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      groq-sdk:
+        specifier: ^0.12.0
+        version: 0.12.0
       sst:
         specifier: ^3.17.10
         version: 3.17.10
@@ -9379,6 +9385,19 @@ packages:
       supports-color:
         optional: true
 
+  debug@4.4.3:
+    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
+    engines: {node: '>=6.0'}
+    peerDependencies:
+      supports-color: '*'
+    peerDependenciesMeta:
+      supports-color:
+        optional: true
+
+  decamelize@1.2.0:
+    resolution: {integrity: sha512-z2S+W9X73hAUUki+N+9Za2lBlun89zigOyGrsax+KUQ6wKW4ZoWpEYBkGhQjwAjjDCkWxhY0VKEhk8wzY7F5cA==}
+    engines: {node: '>=0.10.0'}
+
   decimal.js-light@2.5.1:
     resolution: {integrity: sha512-qIMFpTMZmny+MMIitAB6D7iVPEorVw6YQRWkvarTkT4tBeSLLiHzcwj6q0MmYSFCiVpiqPJTJEYIrpcPzVEIvg==}
 
@@ -14348,6 +14367,13 @@ packages:
   symbol-tree@3.2.4:
     resolution: {integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==}
 
+  tabbable@6.4.0:
+    resolution: {integrity: sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg==}
+
+  tagged-tag@1.0.0:
+    resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
+    engines: {node: '>=20'}
+
   tailwind-merge@3.3.1:
     resolution: {integrity: sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g==}
 
@@ -17998,15 +18024,15 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@base-org/account@2.0.1(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@base-org/account@2.0.1(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       '@noble/hashes': 1.4.0
       clsx: 1.2.1
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
-      ox: 0.6.9(typescript@5.8.3)(zod@3.25.76)
+      ox: 0.6.9(typescript@5.8.3)(zod@4.3.6)
       preact: 10.24.2
-      viem: 2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      viem: 2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       zustand: 5.0.3(@types/react@19.1.0)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
     transitivePeerDependencies:
       - '@types/react'
@@ -18130,9 +18156,9 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/chrome-extension@2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@clerk/chrome-extension@2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@clerk/clerk-js': 5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@clerk/clerk-js': 5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)
       '@clerk/clerk-react': 5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@clerk/shared': 3.45.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
@@ -18152,9 +18178,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@clerk/clerk-js@5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)':
+  '@clerk/clerk-js@5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@base-org/account': 2.0.1(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@base-org/account': 2.0.1(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)
       '@clerk/localizations': 3.35.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@clerk/shared': 3.45.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@coinbase/wallet-sdk': 4.3.0
@@ -18403,11 +18429,11 @@ snapshots:
     optionalDependencies:
       react: 19.2.3
 
-  '@convex-dev/resend@0.1.4(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)':
+  '@convex-dev/resend@0.1.4(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@convex-dev/rate-limiter': 0.2.11(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)
-      '@convex-dev/workpool': 0.2.17(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))
-      convex: 1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@convex-dev/rate-limiter': 0.2.11(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@convex-dev/workpool': 0.2.17(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))
+      convex: 1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       remeda: 2.26.0
       svix: 1.68.0
     transitivePeerDependencies:
@@ -18415,10 +18441,10 @@ snapshots:
       - encoding
       - react
 
-  '@convex-dev/workpool@0.2.17(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))':
+  '@convex-dev/workpool@0.2.17(convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67))(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))':
     dependencies:
-      convex: 1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
-      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67)
+      convex: 1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      convex-helpers: 0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67)
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -19066,12 +19092,16 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  '@google/genai@1.7.0(bufferutil@4.0.9)':
+  '@formkit/auto-animate@0.8.4': {}
+
+  '@google/genai@1.7.0(@modelcontextprotocol/sdk@1.27.1(zod@3.25.67))(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:
       google-auth-library: 9.15.1
-      ws: 8.18.3(bufferutil@4.0.9)
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       zod: 3.25.67
       zod-to-json-schema: 3.24.6(zod@3.25.67)
+    optionalDependencies:
+      '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.67)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -24099,10 +24129,10 @@ snapshots:
 
   '@zxcvbn-ts/language-common@3.0.4': {}
 
-  abitype@1.2.3(typescript@5.8.3)(zod@3.25.76):
+  abitype@1.2.3(typescript@5.8.3)(zod@4.3.6):
     optionalDependencies:
       typescript: 5.8.3
-      zod: 3.25.76
+      zod: 4.3.6
 
   abort-controller@3.0.0:
     dependencies:
@@ -25151,7 +25181,7 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.42.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.7.4)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67):
+  convex-helpers@0.1.104(@standard-schema/spec@1.0.0)(convex@1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3))(hono@4.12.5)(react@19.2.3)(typescript@5.8.3)(zod@3.25.67):
     dependencies:
       convex: 1.25.4(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
     optionalDependencies:
@@ -25471,6 +25501,12 @@ snapshots:
   debug@4.4.1:
     dependencies:
       ms: 2.1.3
+
+  debug@4.4.3:
+    dependencies:
+      ms: 2.1.3
+
+  decamelize@1.2.0: {}
 
   decimal.js-light@2.5.1: {}
 
@@ -29503,7 +29539,7 @@ snapshots:
       object-keys: 1.1.1
       safe-push-apply: 1.0.0
 
-  ox@0.12.1(typescript@5.8.3)(zod@3.25.76):
+  ox@0.12.1(typescript@5.8.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -29511,21 +29547,21 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.8.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.8.3
     transitivePeerDependencies:
       - zod
 
-  ox@0.6.9(typescript@5.8.3)(zod@3.25.76):
+  ox@0.6.9(typescript@5.8.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.10.1
       '@noble/curves': 1.9.4
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.8.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.8.3
@@ -31771,6 +31807,10 @@ snapshots:
 
   symbol-tree@3.2.4: {}
 
+  tabbable@6.4.0: {}
+
+  tagged-tag@1.0.0: {}
+
   tailwind-merge@3.3.1: {}
 
   tailwindcss@4.1.11: {}
@@ -32579,15 +32619,15 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  viem@2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.25.76):
+  viem@2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.8.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       isows: 1.0.7(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-      ox: 0.12.1(typescript@5.8.3)(zod@3.25.76)
+      ox: 0.12.1(typescript@5.8.3)(zod@4.3.6)
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
       typescript: 5.8.3
