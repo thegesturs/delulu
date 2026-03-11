@@ -13,6 +13,18 @@ export default defineContentScript({
 
     // Cache for metrics by reel ID
     const metricsCache = new Map();
+    let takeoverActive = false;
+
+    // Listen for takeover signal from content script
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "SORTED_TAKEOVER") {
+        takeoverActive = true;
+        console.log("[Sorted] Takeover active — suppressing reel-loading XHR");
+      }
+      if (event.data?.type === "SORTED_TAKEOVER_RESET") {
+        takeoverActive = false;
+      }
+    });
 
     // Expose cache to isolated world via window
     // biome-ignore lint/suspicious/noExplicitAny: window extension requires any
@@ -49,6 +61,22 @@ export default defineContentScript({
     XMLHttpRequest.prototype.send = function (
       _body?: Document | XMLHttpRequestBodyInit | null
     ) {
+      // Suppress reel-loading XHR after takeover to prevent wasted network traffic
+      // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
+      const requestUrl = (this as any)._url as string | undefined;
+      if (
+        takeoverActive &&
+        requestUrl?.includes("/graphql/query") &&
+        requestUrl?.includes("clips")
+      ) {
+        console.log(
+          "[Sorted] Suppressed reel-loading XHR:",
+          requestUrl.substring(0, 100)
+        );
+        this.abort();
+        return;
+      }
+
       this.addEventListener("load", function () {
         // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
         const url = (this as any)._url;

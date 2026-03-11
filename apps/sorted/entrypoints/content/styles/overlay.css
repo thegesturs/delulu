@@ -243,6 +243,26 @@
   }
 }
 
+/* Takeover Container — replaces Instagram's content area */
+#sorted-takeover {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+#sorted-takeover::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sorted-takeover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sorted-takeover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
 /* Results Grid Updates */
 .sorted-grid-container {
   width: 100%;
@@ -533,5 +553,13 @@
   .sorted-compact-reset:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
+  }
+
+  #sorted-takeover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  #sorted-takeover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
   }
 }

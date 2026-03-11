@@ -4,8 +4,6 @@
 /** biome-ignore-all lint/performance/useTopLevelRegex: <explanation> */
 
 import {
-  SignedIn,
-  SignedOut,
   SignInButton,
   UserButton,
   useAuth,
@@ -121,7 +119,7 @@ function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const { user } = useUser();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [active, setActive] = useState<ActiveTranscription | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
@@ -252,16 +250,14 @@ function App() {
               <p className="popup-subtitle">Instagram Reel Sorter</p>
             </div>
           </div>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
+          {isSignedIn && <UserButton />}
         </div>
       </div>
 
       {/* Content */}
       <div className="popup-content">
-        {/* Auth Section */}
-        <SignedOut>
+        {/* Auth Section — show sign-in when signed out OR when Clerk is still loading */}
+        {!isSignedIn && (
           <div className="popup-auth-card">
             <div className="popup-auth-icon">🔑</div>
             <h3>Sign in to unlock transcription</h3>
@@ -269,86 +265,96 @@ function App() {
               Transcribe reel audio to text with AI. Get 10 free transcriptions
               per month.
             </p>
-            <SignInButton mode="modal">
-              <button className="popup-signin-button" type="button">
-                Sign in with Delulu
+            {isAuthLoaded ? (
+              <SignInButton mode="modal">
+                <button className="popup-signin-button" type="button">
+                  Sign in with Delulu
+                </button>
+              </SignInButton>
+            ) : (
+              <button className="popup-signin-button" disabled type="button">
+                Loading...
               </button>
-            </SignInButton>
-          </div>
-        </SignedOut>
-
-        <SignedIn>
-          {/* Usage Meter */}
-          <div className="popup-usage-card">
-            <div className="popup-usage-header">
-              <span className="popup-usage-label">Transcriptions</span>
-              <span className="popup-usage-count">
-                {usage ? `${usage.used}/${usage.limit}` : "–/10"} free
-              </span>
-            </div>
-            <div className="popup-usage-bar-bg">
-              <div
-                className="popup-usage-bar-fill"
-                style={{
-                  width: `${Math.min(((usage?.used ?? 0) / (usage?.limit ?? 10)) * 100, 100)}%`,
-                }}
-              />
-            </div>
-            {usage && usage.used >= usage.limit && (
-              <p className="popup-usage-limit-msg">
-                Free limit reached.{" "}
-                <a
-                  href="https://delulu.social/pricing"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Upgrade to continue
-                </a>
-              </p>
             )}
           </div>
+        )}
 
-          {/* Active Transcription */}
-          {active && (
-            <div className="popup-active-card">
-              <div className="popup-active-dot" />
-              <div className="popup-active-content">
-                <span className="popup-active-label">
-                  Transcribing a reel...
-                </span>
-                <span className="popup-active-sublabel">
-                  This may take up to a minute
+        {isSignedIn && (
+          <>
+            {/* Usage Meter */}
+            <div className="popup-usage-card">
+              <div className="popup-usage-header">
+                <span className="popup-usage-label">Transcriptions</span>
+                <span className="popup-usage-count">
+                  {usage ? `${usage.used}/${usage.limit}` : "–/10"} free
                 </span>
               </div>
-            </div>
-          )}
-
-          {/* Transcription History */}
-          {hasHistory && (
-            <div className="popup-history-section">
-              <div className="popup-history-section-header">
-                <h4 className="popup-history-header">Recent Transcriptions</h4>
-                {hasMore && (
-                  <button
-                    className="popup-history-show-more"
-                    onClick={() => setShowAllHistory(true)}
-                    type="button"
+              <div className="popup-usage-bar-bg">
+                <div
+                  className="popup-usage-bar-fill"
+                  style={{
+                    width: `${Math.min(((usage?.used ?? 0) / (usage?.limit ?? 10)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+              {usage && usage.used >= usage.limit && (
+                <p className="popup-usage-limit-msg">
+                  Free limit reached.{" "}
+                  <a
+                    href="https://delulu.social/pricing"
+                    rel="noopener noreferrer"
+                    target="_blank"
                   >
-                    Show all
-                  </button>
-                )}
-              </div>
-              <div className="popup-history-list">
-                {previewItems.map((item) => (
-                  <HistoryItem
-                    item={item}
-                    key={`${item.reelId}-${item.createdAt}`}
-                  />
-                ))}
-              </div>
+                    Upgrade to continue
+                  </a>
+                </p>
+              )}
             </div>
-          )}
-        </SignedIn>
+
+            {/* Active Transcription */}
+            {active && (
+              <div className="popup-active-card">
+                <div className="popup-active-dot" />
+                <div className="popup-active-content">
+                  <span className="popup-active-label">
+                    Transcribing a reel...
+                  </span>
+                  <span className="popup-active-sublabel">
+                    This may take up to a minute
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Transcription History */}
+            {hasHistory && (
+              <div className="popup-history-section">
+                <div className="popup-history-section-header">
+                  <h4 className="popup-history-header">
+                    Recent Transcriptions
+                  </h4>
+                  {hasMore && (
+                    <button
+                      className="popup-history-show-more"
+                      onClick={() => setShowAllHistory(true)}
+                      type="button"
+                    >
+                      Show all
+                    </button>
+                  )}
+                </div>
+                <div className="popup-history-list">
+                  {previewItems.map((item) => (
+                    <HistoryItem
+                      item={item}
+                      key={`${item.reelId}-${item.createdAt}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Status */}
         <div className={`popup-status ${isOnReelsTab ? "active" : ""}`}>
