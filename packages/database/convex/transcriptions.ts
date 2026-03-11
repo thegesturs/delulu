@@ -4,6 +4,8 @@ import { transcriptionSchema } from "./schemas";
 import { getCurrentTimestamp } from "./utils";
 
 const FREE_TRANSCRIPTION_LIMIT = 10;
+const PAID_TRANSCRIPTION_SOFT_LIMIT = 100;
+const PAID_TRANSCRIPTION_HARD_LIMIT = 1000;
 const PERIOD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // ============================================================================
@@ -240,6 +242,9 @@ export const getMyTranscriptionUsage = query({
     return {
       used,
       limit: FREE_TRANSCRIPTION_LIMIT,
+      isSubscribed: !!user.dodoCustomerId,
+      paidSoftLimit: PAID_TRANSCRIPTION_SOFT_LIMIT,
+      paidHardLimit: PAID_TRANSCRIPTION_HARD_LIMIT,
     };
   },
 });

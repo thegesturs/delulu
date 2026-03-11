@@ -163,7 +163,13 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
       if (message === "NOT_SIGNED_IN") {
         setTranscriptionError("Sign in via the Sorted popup to transcribe");
       } else if (message === "QUOTA_EXCEEDED") {
-        setTranscriptionError("Free limit reached — upgrade in the popup");
+        setTranscriptionError(
+          "Free limit reached — subscribe in the Sorted popup"
+        );
+      } else if (message === "HARD_LIMIT_REACHED") {
+        setTranscriptionError(
+          "Monthly limit (1,000) reached — contact support@delulu.social"
+        );
       } else {
         setTranscriptionError(message);
       }

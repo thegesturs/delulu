@@ -119,6 +119,18 @@ export async function handler(event: LambdaEvent) {
       });
     }
 
+    // 5b. Hard limit for paid users (safety cap)
+    const PAID_TRANSCRIPTION_HARD_LIMIT = 1000;
+    if (usage.dodoCustomerId && usage.used >= PAID_TRANSCRIPTION_HARD_LIMIT) {
+      return jsonResponse(402, {
+        error: "hard_limit_reached",
+        message:
+          "Monthly transcription limit (1,000) reached. Contact support@delulu.social for higher limits.",
+        used: usage.used,
+        limit: PAID_TRANSCRIPTION_HARD_LIMIT,
+      });
+    }
+
     // 6. Download video from Instagram CDN
     console.log(`[Transcription] Downloading video for reel ${body.reelId}`);
     const videoResponse = await fetch(body.videoUrl);

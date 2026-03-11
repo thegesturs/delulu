@@ -29,6 +29,9 @@ interface ActiveTranscription {
 interface UsageData {
   used: number;
   limit: number;
+  isSubscribed: boolean;
+  paidSoftLimit: number;
+  paidHardLimit: number;
 }
 
 // Infer the transcription type from the Convex query
@@ -120,11 +123,33 @@ const PREVIEW_LIMIT = 5;
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showBilling, setShowBilling] = useState(false);
   const { user } = useUser();
   const { getToken } = useAuth();
   const [active, setActive] = useState<ActiveTranscription | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async () => {
+    try {
+      setSubscribing(true);
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        return;
+      }
+      convex.setAuth(token);
+      const { checkout_url } = await convex.action(
+        api.subscriptions.createCheckoutSession,
+        { productId: "pdt_0NYbkcEzkjqKXheG8mvVT" }
+      );
+      chrome.tabs.create({ url: checkout_url });
+    } catch (err) {
+      console.error("Checkout failed:", err);
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -195,6 +220,109 @@ function App() {
   const previewItems = transcriptions.slice(0, PREVIEW_LIMIT);
   const hasMore = transcriptions.length > PREVIEW_LIMIT;
 
+  // Billing page view
+  if (showBilling) {
+    return (
+      <div className="popup-container">
+        <div className="popup-header">
+          <div className="popup-header-top">
+            <button
+              className="popup-back-button"
+              onClick={() => setShowBilling(false)}
+              type="button"
+            >
+              <svg
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                width="16"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back
+            </button>
+            <span className="popup-header-title">Sorted Pro</span>
+            <div style={{ width: 52 }} />
+          </div>
+        </div>
+        <div className="popup-content">
+          {/* CTA — top of page */}
+          {usage?.isSubscribed ? (
+            <div className="popup-billing-subscribed">
+              <span className="popup-billing-subscribed-icon">✓</span>
+              You're on the Pro plan
+            </div>
+          ) : (
+            <button
+              className="popup-billing-cta"
+              disabled={subscribing}
+              onClick={handleSubscribe}
+              type="button"
+            >
+              {subscribing ? "Loading..." : "Subscribe — $2/mo"}
+            </button>
+          )}
+
+          {/* Pro tier info */}
+          <div className="popup-billing-card popup-billing-card-pro">
+            <div className="popup-billing-tier">
+              <span className="popup-billing-tier-name">
+                Pro <span className="popup-pro-badge">Recommended</span>
+              </span>
+              <span className="popup-billing-tier-price">$2/mo</span>
+            </div>
+            <p className="popup-billing-detail popup-billing-detail-highlight">
+              $0.02 per transcription
+            </p>
+            <p className="popup-billing-detail">
+              Overage is charged based on usage — you only pay for what you use
+            </p>
+            <p className="popup-billing-detail">
+              Up to 1,000 transcriptions/month
+            </p>
+            <p className="popup-billing-detail">
+              Need more? Contact us at support@delulu.social
+            </p>
+          </div>
+
+          {/* How billing works */}
+          <div className="popup-billing-card">
+            <h4 className="popup-billing-section-title">How it works</h4>
+            <div className="popup-billing-steps">
+              <div className="popup-billing-step">
+                <span className="popup-billing-step-num">1</span>
+                <span>Subscribe for $2/mo base fee</span>
+              </div>
+              <div className="popup-billing-step">
+                <span className="popup-billing-step-num">2</span>
+                <span>Each transcription beyond the base costs $0.02</span>
+              </div>
+              <div className="popup-billing-step">
+                <span className="popup-billing-step-num">3</span>
+                <span>Usage is metered and billed at end of cycle</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Free tier info */}
+          <div className="popup-billing-card">
+            <div className="popup-billing-tier">
+              <span className="popup-billing-tier-name">Free</span>
+              <span className="popup-billing-tier-price">$0/mo</span>
+            </div>
+            <p className="popup-billing-detail">10 transcriptions per month</p>
+            <p className="popup-billing-detail">Sort reels by any metric</p>
+            <p className="popup-billing-detail">Download reel videos</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Full-page history view
   if (showAllHistory) {
     return (
@@ -246,7 +374,7 @@ function App() {
       <div className="popup-header">
         <div className="popup-header-top">
           <div className="popup-header-left">
-            <div className="popup-icon">📊</div>
+            <img alt="Sorted" className="popup-icon-img" src="/icon/48.png" />
             <div>
               <h1 className="popup-title">Sorted</h1>
               <p className="popup-subtitle">Instagram Reel Sorter</p>
@@ -287,29 +415,56 @@ function App() {
           {/* Usage Meter */}
           <div className="popup-usage-card">
             <div className="popup-usage-header">
-              <span className="popup-usage-label">Transcriptions</span>
+              <span className="popup-usage-label">
+                Transcriptions
+                {usage?.isSubscribed && (
+                  <span className="popup-pro-badge">Pro</span>
+                )}
+              </span>
               <span className="popup-usage-count">
-                {usage ? `${usage.used}/${usage.limit}` : "–/10"} free
+                {usage
+                  ? usage.isSubscribed
+                    ? `${usage.used.toLocaleString()}/${usage.paidHardLimit.toLocaleString()}`
+                    : `${usage.used}/${usage.limit} free`
+                  : "–/10 free"}
               </span>
             </div>
             <div className="popup-usage-bar-bg">
               <div
                 className="popup-usage-bar-fill"
                 style={{
-                  width: `${Math.min(((usage?.used ?? 0) / (usage?.limit ?? 10)) * 100, 100)}%`,
+                  width: `${Math.min(
+                    ((usage?.used ?? 0) /
+                      (usage?.isSubscribed
+                        ? (usage?.paidHardLimit ?? 1000)
+                        : (usage?.limit ?? 10))) *
+                      100,
+                    100
+                  )}%`,
                 }}
               />
             </div>
-            {usage && usage.used >= usage.limit && (
+            {usage && !usage.isSubscribed && usage.used >= usage.limit && (
               <p className="popup-usage-limit-msg">
                 Free limit reached.{" "}
+                {/* biome-ignore lint/a11y/useValidAnchor: acts as navigation link */}
                 <a
-                  href="https://delulu.social/pricing"
-                  rel="noopener noreferrer"
-                  target="_blank"
+                  className="popup-usage-limit-link"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowBilling(true);
+                  }}
                 >
-                  Upgrade to continue
+                  Subscribe to continue
                 </a>
+              </p>
+            )}
+            {usage?.isSubscribed && usage.used >= 900 && (
+              <p className="popup-usage-limit-msg">
+                {usage.used >= usage.paidHardLimit
+                  ? "Monthly limit reached. Contact support@delulu.social for higher limits."
+                  : `Approaching monthly limit — ${(usage.paidHardLimit - usage.used).toLocaleString()} transcriptions remaining`}
               </p>
             )}
           </div>

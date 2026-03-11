@@ -60,7 +60,11 @@ export async function transcribeReel(
   if (!response.ok) {
     await chrome.storage.local.remove("activeTranscription");
     if (response.status === 402) {
-      throw new Error("QUOTA_EXCEEDED");
+      throw new Error(
+        data.error === "hard_limit_reached"
+          ? "HARD_LIMIT_REACHED"
+          : "QUOTA_EXCEEDED"
+      );
     }
     if (response.status === 401) {
       throw new Error("NOT_SIGNED_IN");
