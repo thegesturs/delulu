@@ -484,6 +484,30 @@ body {
   text-decoration: underline;
 }
 
+.popup-history-load-more {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--system-blue);
+  background: var(--system-gray-6);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.popup-history-load-more:hover {
+  background: var(--system-gray-5);
+}
+
+.popup-history-load-more:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .popup-history-copy {
   border: none;
   border-radius: 6px;

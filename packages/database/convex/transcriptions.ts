@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { transcriptionSchema } from "./schemas";
@@ -199,15 +200,18 @@ export const incrementTranscriptionUsage = mutation({
 // ============================================================================
 
 /**
- * Get recent transcriptions for the current user.
+ * Get transcriptions with pagination and optional search.
+ * Called via ConvexHttpClient with manual cursor tracking.
  */
 export const getUserTranscriptions = query({
-  args: { limit: v.optional(v.number()) },
-  returns: v.array(transcriptionSchema),
+  args: {
+    paginationOpts: paginationOptsValidator,
+    searchTerm: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      return [];
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
     const user = await ctx.db
@@ -216,16 +220,23 @@ export const getUserTranscriptions = query({
       .unique();
 
     if (!user) {
-      return [];
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
-    const transcriptions = await ctx.db
+    if (args.searchTerm) {
+      return await ctx.db
+        .query("transcriptions")
+        .withSearchIndex("search_text", (q) =>
+          q.search("text", args.searchTerm!).eq("userId", user._id)
+        )
+        .paginate(args.paginationOpts);
+    }
+
+    return await ctx.db
       .query("transcriptions")
       .withIndex("by_user_created", (q) => q.eq("userId", user._id))
       .order("desc")
-      .take(args.limit ?? 50);
-
-    return transcriptions;
+      .paginate(args.paginationOpts);
   },
 });
 

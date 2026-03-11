@@ -105,5 +105,9 @@ export default defineSchema({
   transcriptions: defineTable(baseTranscriptionSchema.fields)
     .index("by_user_id", ["userId"])
     .index("by_reel_id", ["reelId"])
-    .index("by_user_created", ["userId", "createdAt"]),
+    .index("by_user_created", ["userId", "createdAt"])
+    .searchIndex("search_text", {
+      searchField: "text",
+      filterFields: ["userId"],
+    }),
 });

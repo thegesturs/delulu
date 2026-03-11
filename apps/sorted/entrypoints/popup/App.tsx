@@ -34,12 +34,13 @@ interface UsageData {
   paidHardLimit: number;
 }
 
-// Infer the transcription type from the Convex query
-type Transcription = Awaited<
+// Infer the transcription type from the paginated Convex query
+type TranscriptionPage = Awaited<
   ReturnType<
     typeof convex.query<typeof api.transcriptions.getUserTranscriptions>
   >
->[number];
+>;
+type Transcription = TranscriptionPage["page"][number];
 
 function formatDuration(seconds: number): string {
   if (seconds >= 60) {
@@ -148,7 +149,7 @@ function HistoryItem({ item }: { item: Transcription }) {
   );
 }
 
-const PREVIEW_LIMIT = 5;
+const PAGE_SIZE = 10;
 
 function App() {
   const [isOnReelsTab, setIsOnReelsTab] = useState(false);
@@ -158,6 +159,9 @@ function App() {
   const { getToken } = useAuth();
   const [active, setActive] = useState<ActiveTranscription | null>(null);
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [isDone, setIsDone] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [subscribing, setSubscribing] = useState(false);
 
@@ -190,7 +194,7 @@ function App() {
     });
   }, []);
 
-  // Fetch transcription data from Convex via HTTP (no WebSocket)
+  // Fetch first page of transcriptions + usage from Convex via HTTP
   const fetchConvexData = useCallback(async () => {
     if (!user) {
       return;
@@ -201,16 +205,46 @@ function App() {
         return;
       }
       convex.setAuth(token);
-      const [txns, usageData] = await Promise.all([
-        convex.query(api.transcriptions.getUserTranscriptions, {}),
+      const [result, usageData] = await Promise.all([
+        convex.query(api.transcriptions.getUserTranscriptions, {
+          paginationOpts: { numItems: PAGE_SIZE, cursor: null },
+        }),
         convex.query(api.transcriptions.getMyTranscriptionUsage, {}),
       ]);
-      setTranscriptions(txns);
+      setTranscriptions(result.page);
+      setCursor(result.continueCursor);
+      setIsDone(result.isDone);
       setUsage(usageData);
     } catch {
       // Auth not ready yet or query failed — ignore
     }
   }, [user, getToken]);
+
+  // Load next page of transcriptions
+  const loadMore = useCallback(async () => {
+    if (isDone || loadingMore || !cursor) {
+      return;
+    }
+    setLoadingMore(true);
+    try {
+      const token = await getToken({ template: "convex" });
+      if (!token) {
+        return;
+      }
+      convex.setAuth(token);
+      const result = await convex.query(
+        api.transcriptions.getUserTranscriptions,
+        { paginationOpts: { numItems: PAGE_SIZE, cursor } }
+      );
+      setTranscriptions((prev) => [...prev, ...result.page]);
+      setCursor(result.continueCursor);
+      setIsDone(result.isDone);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [isDone, loadingMore, cursor, getToken]);
 
   useEffect(() => {
     fetchConvexData();
@@ -247,8 +281,6 @@ function App() {
   }, [user, fetchConvexData]);
 
   const hasHistory = transcriptions.length > 0;
-  const previewItems = transcriptions.slice(0, PREVIEW_LIMIT);
-  const hasMore = transcriptions.length > PREVIEW_LIMIT;
 
   // Billing page view
   if (showBilling) {
@@ -392,6 +424,16 @@ function App() {
                 />
               ))}
             </div>
+            {!isDone && (
+              <button
+                className="popup-history-load-more"
+                disabled={loadingMore}
+                onClick={loadMore}
+                type="button"
+              >
+                {loadingMore ? "Loading..." : "Load more"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -519,7 +561,7 @@ function App() {
             <div className="popup-history-section">
               <div className="popup-history-section-header">
                 <h4 className="popup-history-header">Recent Transcriptions</h4>
-                {hasMore && (
+                {!isDone && (
                   <button
                     className="popup-history-show-more"
                     onClick={() => setShowAllHistory(true)}
@@ -530,7 +572,7 @@ function App() {
                 )}
               </div>
               <div className="popup-history-list">
-                {previewItems.map((item) => (
+                {transcriptions.slice(0, PAGE_SIZE).map((item) => (
                   <HistoryItem
                     item={item}
                     key={`${item.reelId}-${item.createdAt}`}
