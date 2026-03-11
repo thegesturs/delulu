@@ -16,7 +16,8 @@ export default $config({
     };
   },
   // biome-ignore lint/suspicious/useAwait: SST config requires async run
-  async run() {
+  async run(input) {
+    const isProduction = input?.stage === "production";
     // ============================================================================
     // COMMENTED OUT — keeping for potential future large upload support (2GB+ YT videos)
     // ============================================================================
@@ -123,6 +124,9 @@ export default $config({
         ],
         timeout: "120 seconds",
         memory: "1024 MB",
+        environment: {
+          ENVIRONMENT: isProduction ? "production" : "development",
+        },
       }
     );
 

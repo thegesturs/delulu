@@ -1,13 +1,31 @@
+import { SORTED_LIMITS } from "@delulu/payments/product-ids";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { transcriptionSchema } from "./schemas";
 import { getCurrentTimestamp } from "./utils";
 
-const FREE_TRANSCRIPTION_LIMIT = 10;
-const PAID_TRANSCRIPTION_SOFT_LIMIT = 100;
-const PAID_TRANSCRIPTION_HARD_LIMIT = 1000;
-const PERIOD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const {
+  FREE_TRANSCRIPTION_LIMIT,
+  PAID_TRANSCRIPTION_SOFT_LIMIT,
+  PAID_TRANSCRIPTION_HARD_LIMIT,
+  PERIOD_MS,
+} = SORTED_LIMITS;
+
+async function isSortedAddonActive(
+  ctx: QueryCtx,
+  user: Doc<"users">
+): Promise<boolean> {
+  for (const subId of user.addonSubscriptionIds ?? []) {
+    const sub = await ctx.db.get(subId);
+    if (sub?.addonType === "sorted" && sub.status === "ACTIVE") {
+      return true;
+    }
+  }
+  return false;
+}
 
 // ============================================================================
 // WEBHOOK QUERIES (called by Lambda, require webhookSecret)
@@ -43,17 +61,7 @@ export const getUserTranscriptionUsage = query({
     // If period has expired, usage resets to 0
     const used = now > periodEnd ? 0 : (user.usage.transcriptionsUsed ?? 0);
 
-    // Check if user has an active Sorted addon subscription
-    let isSortedActive = false;
-    if (user.addonSubscriptionIds?.length) {
-      for (const subId of user.addonSubscriptionIds) {
-        const sub = await ctx.db.get(subId);
-        if (sub?.addonType === "sorted" && sub.status === "ACTIVE") {
-          isSortedActive = true;
-          break;
-        }
-      }
-    }
+    const isSortedActive = await isSortedAddonActive(ctx, user);
 
     return {
       used,
@@ -90,13 +98,13 @@ export const getTranscriptionByReelId = query({
       return null;
     }
 
-    // Check if this reel was already transcribed
+    // Check if this reel was already transcribed (shared cache across users)
     const existing = await ctx.db
       .query("transcriptions")
       .withIndex("by_reel_id", (q) => q.eq("reelId", args.reelId))
       .first();
 
-    if (!existing || existing.userId !== user._id) {
+    if (!existing) {
       return null;
     }
 
@@ -105,6 +113,7 @@ export const getTranscriptionByReelId = query({
       altText: existing.altText,
       language: existing.language,
       durationSeconds: existing.durationSeconds,
+      isOwnCache: existing.userId === user._id,
     };
   },
 });
@@ -266,17 +275,7 @@ export const getMyTranscriptionUsage = query({
     const periodEnd = periodStart + PERIOD_MS;
     const used = now > periodEnd ? 0 : (user.usage.transcriptionsUsed ?? 0);
 
-    // Check if user has an active Sorted addon subscription
-    let isSortedActive = false;
-    if (user.addonSubscriptionIds?.length) {
-      for (const subId of user.addonSubscriptionIds) {
-        const sub = await ctx.db.get(subId);
-        if (sub?.addonType === "sorted" && sub.status === "ACTIVE") {
-          isSortedActive = true;
-          break;
-        }
-      }
-    }
+    const isSortedActive = await isSortedAddonActive(ctx, user);
 
     return {
       used,

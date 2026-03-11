@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 
 export default function ExtensionAuthSuccessPage() {
@@ -9,8 +7,8 @@ export default function ExtensionAuthSuccessPage() {
         <div className="text-6xl">🎉</div>
         <h1 className="font-bold text-2xl tracking-tight">You're signed in!</h1>
         <p className="text-muted-foreground">
-          You have been signed into the Sorted extension. You can close this tab
-          and return to the extension popup.
+          You have been signed into the Sorted extension. You can safely close
+          this tab and return to the extension popup.
         </p>
         <div className="flex flex-col items-center gap-3">
           <Link
@@ -19,13 +17,6 @@ export default function ExtensionAuthSuccessPage() {
           >
             Go to Delulu Social
           </Link>
-          <button
-            className="text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground"
-            onClick={() => window.close()}
-            type="button"
-          >
-            Close this tab
-          </button>
         </div>
       </div>
     </div>

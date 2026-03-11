@@ -163,6 +163,16 @@ export function getPlanFromProductId(productId: string): {
 }
 
 /**
+ * Sorted Extension usage limits
+ */
+export const SORTED_LIMITS = {
+  FREE_TRANSCRIPTION_LIMIT: 10,
+  PAID_TRANSCRIPTION_SOFT_LIMIT: 100,
+  PAID_TRANSCRIPTION_HARD_LIMIT: 1000,
+  PERIOD_MS: 30 * 24 * 60 * 60 * 1000, // 30 days
+} as const;
+
+/**
  * Get all product IDs as a flat array (useful for validation)
  */
 export function getAllProductIds(): string[] {

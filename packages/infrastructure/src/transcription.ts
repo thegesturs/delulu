@@ -1,5 +1,6 @@
 import { verifyToken } from "@clerk/backend";
 import { api } from "@delulu/database/convex/_generated/api";
+import { SORTED_LIMITS } from "@delulu/payments/product-ids";
 import { ConvexHttpClient } from "convex/browser";
 import Groq from "groq-sdk";
 import { Resource } from "sst";
@@ -93,6 +94,13 @@ export async function handler(event: LambdaEvent) {
     );
 
     if (cached) {
+      // Cross-user cache hit: still count against the requesting user's quota
+      if (!cached.isOwnCache) {
+        await convex.mutation(api.transcriptions.incrementTranscriptionUsage, {
+          webhookSecret,
+          externalId: clerkUserId,
+        });
+      }
       return jsonResponse(200, {
         text: cached.text,
         altText: cached.altText,
@@ -121,24 +129,45 @@ export async function handler(event: LambdaEvent) {
     }
 
     // 5b. Hard limit for paid users (safety cap)
-    const PAID_TRANSCRIPTION_HARD_LIMIT = 1000;
-    if (usage.isSortedActive && usage.used >= PAID_TRANSCRIPTION_HARD_LIMIT) {
+    if (
+      usage.isSortedActive &&
+      usage.used >= SORTED_LIMITS.PAID_TRANSCRIPTION_HARD_LIMIT
+    ) {
       return jsonResponse(402, {
         error: "hard_limit_reached",
         message:
           "Monthly transcription limit (1,000) reached. Contact support@delulu.social for higher limits.",
         used: usage.used,
-        limit: PAID_TRANSCRIPTION_HARD_LIMIT,
+        limit: SORTED_LIMITS.PAID_TRANSCRIPTION_HARD_LIMIT,
       });
     }
 
     // 6. Download video from Instagram CDN
+    const parsedUrl = new URL(body.videoUrl);
+    if (
+      !(
+        parsedUrl.hostname.includes("cdninstagram.com") ||
+        parsedUrl.hostname.includes("fbcdn.net")
+      )
+    ) {
+      return jsonResponse(400, { error: "Invalid video URL" });
+    }
+
     console.log(`[Transcription] Downloading video for reel ${body.reelId}`);
     const videoResponse = await fetch(body.videoUrl);
     if (!videoResponse.ok) {
       return jsonResponse(502, {
         error: "Failed to download video from Instagram",
       });
+    }
+
+    const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+    const contentLength = Number.parseInt(
+      videoResponse.headers.get("content-length") ?? "0",
+      10
+    );
+    if (contentLength > MAX_VIDEO_SIZE) {
+      return jsonResponse(413, { error: "Video too large to transcribe" });
     }
 
     const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
@@ -220,7 +249,11 @@ export async function handler(event: LambdaEvent) {
     // 10. Log to Dodo Payments metering (fire-and-forget)
     if (usage.isSortedActive && usage.dodoCustomerId) {
       try {
-        await fetch("https://test.dodopayments.com/events/ingest", {
+        const isProduction = process.env.ENVIRONMENT === "production";
+        const dodoBaseUrl = isProduction
+          ? "https://api.dodopayments.com"
+          : "https://test.dodopayments.com";
+        await fetch(`${dodoBaseUrl}/events/ingest`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${Resource.DODO_PAYMENTS_API_KEY.value}`,
@@ -255,10 +288,7 @@ export async function handler(event: LambdaEvent) {
       cached: false,
     });
   } catch (error) {
-    console.error("[Transcription] Error:", error);
-    return jsonResponse(500, {
-      error: "Internal server error",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error("[Transcription] Unexpected error:", error);
+    return jsonResponse(500, { error: "Internal server error" });
   }
 }
