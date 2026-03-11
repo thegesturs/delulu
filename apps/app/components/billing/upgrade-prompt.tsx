@@ -114,28 +114,10 @@ export function UpgradePrompt({
         <div className="space-y-2">
           <p className="font-medium text-sm">With {plan.name}, you get:</p>
           <ul className="space-y-1 text-muted-foreground text-sm">
-            {plan.features.aiContentGeneration && (
+            {plan.features.postScheduling && (
               <li className="flex items-center gap-2">
                 <Icon className="text-primary" icon={SparklesIcon} size={16} />
-                AI Content Generation
-              </li>
-            )}
-            {plan.features.analytics && (
-              <li className="flex items-center gap-2">
-                <Icon className="text-primary" icon={SparklesIcon} size={16} />
-                Advanced Analytics
-              </li>
-            )}
-            {plan.features.advancedScheduling && (
-              <li className="flex items-center gap-2">
-                <Icon className="text-primary" icon={SparklesIcon} size={16} />
-                Advanced Scheduling
-              </li>
-            )}
-            {plan.features.collaboration && (
-              <li className="flex items-center gap-2">
-                <Icon className="text-primary" icon={SparklesIcon} size={16} />
-                Team Collaboration
+                Post Scheduling
               </li>
             )}
             <li className="flex items-center gap-2">
@@ -145,6 +127,12 @@ export function UpgradePrompt({
                 : `${plan.limits.monthlyPosts}`}{" "}
               posts per month
             </li>
+            {plan.features.prioritySupport && (
+              <li className="flex items-center gap-2">
+                <Icon className="text-primary" icon={SparklesIcon} size={16} />
+                Priority Support
+              </li>
+            )}
           </ul>
         </div>
 

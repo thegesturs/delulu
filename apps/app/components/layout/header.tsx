@@ -9,6 +9,7 @@ import {
 } from "@delulu/design-system/components/ui/breadcrumb";
 import { Separator } from "@delulu/design-system/components/ui/separator";
 import { SidebarTrigger } from "@delulu/design-system/components/ui/sidebar";
+import { CreditCard } from "@delulu/design-system/icons";
 import { Fragment, type ReactNode } from "react";
 
 interface HeaderProps {
@@ -43,7 +44,15 @@ export const Header = ({ pages, page, children }: HeaderProps) => (
     <div className="flex items-center gap-2">
       {children}
       <div className="md:hidden">
-        <UserButton />
+        <UserButton>
+          <UserButton.MenuItems>
+            <UserButton.Link
+              href="/billing"
+              label="Billing"
+              labelIcon={<CreditCard className="h-4 w-4" />}
+            />
+          </UserButton.MenuItems>
+        </UserButton>
       </div>
     </div>
   </header>

@@ -70,6 +70,36 @@ const components = {
   h6: ({ children }: { children: React.ReactNode }) => (
     <h6 className="mb-1 font-bold text-sm">{children}</h6>
   ),
+  iframe: ({ src, title }: Record<string, string | undefined>) => (
+    <iframe
+      allowFullScreen
+      className="mb-4 w-full rounded-md"
+      src={src}
+      style={{ aspectRatio: "16 / 9", border: "none" }}
+      title={title ?? "Embedded video"}
+    />
+  ),
+  table: ({ children }: { children: React.ReactNode }) => (
+    <div className="mb-4 overflow-x-auto">
+      <table className="w-full border-collapse text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: { children: React.ReactNode }) => (
+    <thead className="border-b">{children}</thead>
+  ),
+  tbody: ({ children }: { children: React.ReactNode }) => (
+    <tbody>{children}</tbody>
+  ),
+  tr: ({ children }: { children: React.ReactNode }) => (
+    <tr className="border-b">{children}</tr>
+  ),
+  th: ({ children }: { children: React.ReactNode }) => (
+    <th className="px-4 py-2 text-left font-semibold">{children}</th>
+  ),
+  td: ({ children }: { children: React.ReactNode }) => (
+    <td className="px-4 py-2">{children}</td>
+  ),
+  hr: () => <hr className="my-8 border-neutral-300" />,
 };
 
 export { components };

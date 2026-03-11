@@ -140,6 +140,24 @@ export const socialProviderRouter = {
         });
       }
 
+      // Prevent re-queuing if already processing
+      if (post.status === "PROCESSING") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Post is already being processed",
+        });
+      }
+
+      // Set post to PROCESSING so the worker accepts it
+      await fetchMutation(
+        api.posts.updatePost,
+        {
+          id: input.postId as Id<"posts">,
+          status: "PROCESSING",
+        },
+        { token: ctx.token }
+      );
+
       await createPostInQueue(post);
       return {
         success: true,

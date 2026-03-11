@@ -175,32 +175,11 @@ export function CurrentPlanCard() {
           <div>
             <h4 className="mb-3 font-medium">Premium Features:</h4>
             <div className="flex flex-wrap gap-2">
-              {plan.features.aiContentGeneration && (
-                <Badge variant="secondary">
-                  <Icon className="mr-1" icon={SparklesIcon} size={12} />
-                  AI Generation
-                </Badge>
-              )}
-              {plan.features.analytics && (
-                <Badge variant="secondary">Analytics</Badge>
-              )}
-              {plan.features.collaboration && (
-                <Badge variant="secondary">Collaboration</Badge>
-              )}
-              {plan.features.advancedScheduling && (
-                <Badge variant="secondary">Advanced Scheduling</Badge>
-              )}
-              {plan.features.bulkUpload && (
-                <Badge variant="secondary">Bulk Upload</Badge>
+              {plan.features.postScheduling && (
+                <Badge variant="secondary">Post Scheduling</Badge>
               )}
               {plan.features.prioritySupport && (
                 <Badge variant="secondary">Priority Support</Badge>
-              )}
-              {plan.features.whiteLabel && (
-                <Badge variant="secondary">White Label</Badge>
-              )}
-              {plan.features.customBranding && (
-                <Badge variant="secondary">Custom Branding</Badge>
               )}
             </div>
           </div>

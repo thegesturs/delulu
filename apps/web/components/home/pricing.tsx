@@ -164,29 +164,11 @@ const getFeatureList = (plan: Plan): string[] => {
   }
 
   // Features
-  if (plan.features.advancedScheduling) {
-    features.push("Advanced scheduling");
-  }
-  if (plan.features.analytics) {
-    features.push("Advanced analytics");
-  }
-  if (plan.features.aiContentGeneration) {
-    features.push("AI content generation");
-  }
-  if (plan.features.collaboration) {
-    features.push("Team collaboration");
+  if (plan.features.postScheduling) {
+    features.push("Post scheduling");
   }
   if (plan.features.prioritySupport) {
     features.push("Priority support");
-  }
-  if (plan.features.whiteLabel) {
-    features.push("White-label branding");
-  }
-  if (plan.features.customBranding) {
-    features.push("Custom branding");
-  }
-  if (plan.features.bulkUpload) {
-    features.push("Bulk upload");
   }
 
   return features;

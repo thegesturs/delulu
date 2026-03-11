@@ -5,19 +5,20 @@ import { toast } from "sonner";
 import {
   completeOnboarding,
   completeTour,
+  saveSurveyAnswer,
   updateOnboardingStep,
 } from "@/app/onboarding/_actions";
 import { useOnboardingStore } from "@/store/onboarding";
 
 export function useOnboarding() {
   const { user } = useUser();
-  const {
-    currentStep,
-    setCurrentStep,
-    nextStep,
-    previousStep,
-    accountsConnected,
-  } = useOnboardingStore();
+  const currentStep = useOnboardingStore((s) => s.currentStep);
+  const setCurrentStep = useOnboardingStore((s) => s.setCurrentStep);
+  const nextStep = useOnboardingStore((s) => s.nextStep);
+  const previousStep = useOnboardingStore((s) => s.previousStep);
+  const accountsConnected = useOnboardingStore((s) => s.accountsConnected);
+  const surveyAnswer = useOnboardingStore((s) => s.surveyAnswer);
+  const setSurveyAnswer = useOnboardingStore((s) => s.setSurveyAnswer);
   const [isLoading, setIsLoading] = useState(false);
 
   // Get onboarding metadata from Clerk user
@@ -181,6 +182,14 @@ export function useOnboarding() {
         onboarding_completion_date: new Date().toISOString(),
       });
 
+      // Save survey answer if provided
+      if (surveyAnswer) {
+        await saveSurveyAnswer(surveyAnswer);
+        posthog.capture("onboarding_survey_completed", {
+          referralSource: surveyAnswer,
+        });
+      }
+
       // Mark onboarding complete in Clerk
       const result = await completeOnboarding();
 
@@ -229,6 +238,7 @@ export function useOnboarding() {
     // State
     currentStep,
     accountsConnected,
+    surveyAnswer,
     stepsCompleted,
     skippedSteps,
     isLoading,
@@ -236,6 +246,7 @@ export function useOnboarding() {
 
     // Actions
     setCurrentStep,
+    setSurveyAnswer,
     handleNextStep,
     handleSkipStep,
     handlePreviousStep,
@@ -250,6 +261,7 @@ function getStepName(step: number): string {
     1: "welcome",
     2: "connect",
     3: "pricing",
+    4: "survey",
   };
   return stepNames[step as keyof typeof stepNames] || "unknown";
 }

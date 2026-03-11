@@ -5,7 +5,7 @@ import { SocialTypes } from "@delulu/validators/post";
 // import { processMessage } from '@delulu/worker/client';
 
 const LAMBDA_URL =
-  "https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/";
+  "https://xikjne7ewghcn3eeeiat6fklxi0wpqbd.lambda-url.us-east-1.on.aws/";
 
 export const createPostInQueue = async (post: GetPostByIdSchema) => {
   console.log("[PostService] createPostInQueue called with post:", {

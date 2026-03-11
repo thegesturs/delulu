@@ -266,6 +266,17 @@ export const useStore = create<PostState & PostActions>()(
         name: "post-storage",
         storage: createJSONStorage(() => localStorage),
         skipHydration: true,
+        partialize: (state) => {
+          // Exclude transient state that should never persist across sessions
+          const { isMediaUploading, ...rest } = state;
+          return rest;
+        },
+        merge: (persistedState, currentState) => ({
+          ...currentState,
+          ...(persistedState as Partial<PostState & PostActions>),
+          // Always reset transient upload state on hydration
+          isMediaUploading: false,
+        }),
       }
     )
   )
@@ -312,17 +323,25 @@ export const postActions = {
       selectedSocialProviders: [...state.selectedSocialProviders, provider],
     })),
   removeSocialProvider: (socialId: string) =>
-    useStore.setState((state) => ({
-      selectedSocialProviders: state.selectedSocialProviders.filter(
-        (provider) => provider.socialId !== socialId
-      ),
-      post: {
-        ...state.post,
-        alternativeContent: state.post.alternativeContent.filter(
-          (content) => content.socialProvider.socialId !== socialId
+    useStore.setState((state) => {
+      const { [socialId]: _ps, ...restProviderSettings } =
+        state.providerSettings;
+      const { [socialId]: _ac, ...restAutomationConfigs } =
+        state.automationConfigs;
+      return {
+        selectedSocialProviders: state.selectedSocialProviders.filter(
+          (provider) => provider.socialId !== socialId
         ),
-      },
-    })),
+        post: {
+          ...state.post,
+          alternativeContent: state.post.alternativeContent.filter(
+            (content) => content.socialProvider.socialId !== socialId
+          ),
+        },
+        providerSettings: restProviderSettings,
+        automationConfigs: restAutomationConfigs,
+      };
+    }),
   updatePost: (updates: Partial<FullPostType>) =>
     useStore.setState((state) => ({
       post: { ...state.post, ...updates },

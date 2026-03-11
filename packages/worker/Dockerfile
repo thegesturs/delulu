@@ -12,7 +12,7 @@ RUN apt-get update -y && \
 RUN npm install -g pnpm@10.8.0
 
 # Copy root package files
-COPY package.json pnpm-*.yaml ./
+COPY package.json pnpm-*.yaml .npmrc ./
 
 # Copy package files
 COPY packages/worker/package.json ./packages/worker/
@@ -46,6 +46,7 @@ COPY packages/worker/.env.prod ./packages/worker/.env.prod
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV NODE_PATH=/app/node_modules/.pnpm/node_modules
 
 # Start the worker
 CMD ["sh", "-c", "cd packages/worker && NODE_OPTIONS='--experimental-global-webcrypto' pnpm dev"] 

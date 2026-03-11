@@ -1,22 +1,32 @@
-import { allBlogs, type Blog, type Legal } from "content-collections";
+import { allBlogs } from "content-collections";
 import { format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa";
+import { adaptContentCollectionsBlog } from "@/types/blog";
 import { BlogCardVertical } from "./blog-card";
 
-type BlogWithType = Blog & { type: "blog" };
-type LegalWithType = Legal & { type: "legal" };
-type ContentType = BlogWithType | LegalWithType;
+interface BlogLike {
+  type: "blog" | "legal";
+  title: string;
+  date: string;
+  image?: string;
+  categories?: string[];
+  author?: string;
+  authorAvatar?: string;
+}
 
 export async function BlogLayout({
   blog,
   children,
 }: {
-  blog: ContentType;
+  blog: BlogLike;
   children: React.ReactNode;
 }) {
-  const relatedBlogs = blog.type === "blog" ? allBlogs.slice(0, 3) : [];
+  const relatedBlogs =
+    blog.type === "blog"
+      ? allBlogs.slice(0, 3).map(adaptContentCollectionsBlog)
+      : [];
 
   return (
     <div className="mx-auto mt-16 max-w-6xl px-4 lg:mt-14">
@@ -41,7 +51,7 @@ export async function BlogLayout({
         </div>
       ) : null}
       <div className="xl:relative">
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-5xl">
           <article className="pt-8 pb-8">
             {blog.type === "blog" && blog.categories && (
               <div className="flex flex-wrap gap-4">
@@ -60,7 +70,7 @@ export async function BlogLayout({
                 {blog.title}
               </h1>
             </header>
-            <div className="prose prose-sm mt-8" data-mdx-content>
+            <div className="prose prose-lg mt-8 max-w-none" data-mdx-content>
               {children}
             </div>
             <div className="mt-12 flex items-center space-x-2 border-gray-200 border-t pt-12">
@@ -69,10 +79,10 @@ export async function BlogLayout({
                   <div className="flex items-center space-x-2">
                     {blog.authorAvatar && (
                       <Image
-                        alt={blog.author}
+                        alt={blog.author ?? ""}
                         className="h-5 w-5 rounded-full"
                         height={20}
-                        src={blog.authorAvatar}
+                        src={blog.authorAvatar ?? ""}
                         width={20}
                       />
                     )}

@@ -5,12 +5,39 @@ import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   type MutationCtx,
   mutation,
   type QueryCtx,
   query,
 } from "./_generated/server";
 import { postsByUserStatus } from "./stats";
+
+/**
+ * Extract all video bucket keys from post content and alternative content
+ */
+function extractVideoBucketKeys(post: Doc<"posts">): string[] {
+  const keys: string[] = [];
+
+  const extractFromContent = (content: Doc<"posts">["content"]) => {
+    for (const item of content) {
+      for (const media of item.media) {
+        if (media.mediaType === "VIDEO" && media.bucketKey) {
+          keys.push(media.bucketKey);
+        }
+      }
+    }
+  };
+
+  extractFromContent(post.content);
+  if (post.alternativeContent) {
+    for (const alt of post.alternativeContent) {
+      extractFromContent(alt.content);
+    }
+  }
+
+  return [...new Set(keys)]; // deduplicate
+}
 
 // Helper function to extract searchable text from post content
 function extractSearchableText(
@@ -53,62 +80,322 @@ const findPostById = async (
   return post;
 };
 
-// Post queries
+// ============================================================================
+// SHARED CORE HELPERS (used by both public mutations and internal API variants)
+// ============================================================================
+
+/**
+ * Enrich a post with its social providers and alternative content.
+ * Shared by getPostById, getPosts, getScheduledPostsByDateRange.
+ */
+export async function enrichPost(ctx: QueryCtx, post: Doc<"posts">) {
+  const socialProviders = await Promise.all(
+    post.socialProviderIds.map(async (id) => {
+      const provider = await ctx.db.get(id);
+      return provider;
+    })
+  );
+
+  const validSocialProviders = socialProviders.filter(
+    (p): p is NonNullable<typeof p> => p !== null
+  );
+
+  const alternativeContent = post.alternativeContent || [];
+  const alternativeContentWithProviders = await Promise.all(
+    alternativeContent.map(async (alt) => {
+      const provider = await ctx.db.get(alt.socialProviderId);
+      if (!provider) {
+        return null;
+      }
+      return {
+        content: alt.content,
+        socialProviderId: alt.socialProviderId,
+        socialProvider: provider,
+      };
+    })
+  );
+
+  const validAlternativeContent = alternativeContentWithProviders.filter(
+    (a): a is NonNullable<typeof a> => a !== null
+  );
+
+  return {
+    ...post,
+    socialProviders: validSocialProviders,
+    alternativeContent: validAlternativeContent,
+  };
+}
+
+interface CreatePostArgs {
+  organizationId?: string;
+  status: Doc<"posts">["status"];
+  scheduledAt?: number;
+  reviewStatus?: Doc<"posts">["reviewStatus"];
+  privacyStatus?: Doc<"posts">["privacyStatus"];
+  content: Doc<"posts">["content"];
+  alternativeContent?: Doc<"posts">["alternativeContent"];
+  socialProviderIds: Id<"socialProviders">[];
+  tiktokSettings?: Doc<"posts">["tiktokSettings"];
+  providerSettings?: Doc<"posts">["providerSettings"];
+}
+
+export async function createPostCore(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  args: CreatePostArgs
+): Promise<Id<"posts">> {
+  const now = getCurrentTimestamp();
+
+  if (args.scheduledAt && args.scheduledAt <= now) {
+    throw new Error("Scheduled date must be in the future");
+  }
+
+  const postStatus = args.scheduledAt ? "SCHEDULED" : args.status || "SAVED";
+
+  const newPostId = await ctx.db.insert("posts", {
+    userId,
+    organizationId: args.organizationId,
+    status: postStatus,
+    scheduledAt: args.scheduledAt,
+    reviewStatus: args.reviewStatus || "PENDING",
+    isDeleted: false,
+    privacyStatus: args.privacyStatus || "UNLISTED",
+    content: args.content,
+    alternativeContent: args.alternativeContent,
+    socialProviderIds: args.socialProviderIds,
+    searchableText: extractSearchableText(
+      args.content,
+      args.alternativeContent
+    ),
+    createdAt: now,
+    updatedAt: now,
+    retryCount: 0,
+  });
+
+  const newPost = await ctx.db.get(newPostId);
+  if (newPost) {
+    await postsByUserStatus.insert(ctx, newPost);
+  }
+
+  if (args.scheduledAt) {
+    await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+      postId: newPostId,
+      scheduledAt: args.scheduledAt,
+    });
+  }
+
+  return newPostId;
+}
+
+interface UpdatePostArgs {
+  status?: Doc<"posts">["status"];
+  scheduledAt?: number;
+  reviewStatus?: Doc<"posts">["reviewStatus"];
+  privacyStatus?: Doc<"posts">["privacyStatus"];
+  content?: Doc<"posts">["content"];
+  alternativeContent?: Doc<"posts">["alternativeContent"];
+  socialProviderIds?: Id<"socialProviders">[];
+  tiktokSettings?: Doc<"posts">["tiktokSettings"];
+  providerSettings?: Doc<"posts">["providerSettings"];
+  postFailureReason?: string;
+  publishedAt?: number;
+  lastFailedAt?: number;
+  retryCount?: number;
+}
+
+export async function updatePostCore(
+  ctx: MutationCtx,
+  postId: Id<"posts">,
+  args: UpdatePostArgs
+): Promise<boolean> {
+  const oldPost = await findPostById(ctx, postId);
+
+  if (args.scheduledAt && args.scheduledAt <= getCurrentTimestamp()) {
+    throw new Error("Scheduled date must be in the future");
+  }
+
+  let newStatus = args.status;
+  if (args.scheduledAt && !newStatus) {
+    newStatus = "SCHEDULED";
+  } else if (!args.scheduledAt && oldPost.status === "SCHEDULED") {
+    newStatus = "SAVED";
+  }
+
+  await ctx.db.patch(postId, {
+    ...args,
+    ...(newStatus && { status: newStatus }),
+    updatedAt: getCurrentTimestamp(),
+  });
+
+  const newPost = await ctx.db.get(postId);
+  if (newPost) {
+    await postsByUserStatus.replace(ctx, oldPost, newPost);
+  }
+
+  if (args.scheduledAt) {
+    if (oldPost.callMeLaterScheduleId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        { scheduleId: oldPost.callMeLaterScheduleId }
+      );
+    }
+    await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
+      postId,
+      scheduledAt: args.scheduledAt,
+    });
+  }
+
+  return true;
+}
+
+export async function softDeletePostCore(
+  ctx: MutationCtx,
+  postId: Id<"posts">
+): Promise<boolean> {
+  const oldPost = await findPostById(ctx, postId);
+
+  if (oldPost.callMeLaterScheduleId) {
+    await ctx.scheduler.runAfter(0, internal.callmelater.cancelScheduleAction, {
+      scheduleId: oldPost.callMeLaterScheduleId,
+    });
+  }
+
+  await ctx.db.patch(oldPost._id, {
+    isDeleted: true,
+    status: "DELETED",
+    updatedAt: getCurrentTimestamp(),
+  });
+
+  const newPost = await ctx.db.get(postId);
+  if (newPost) {
+    await postsByUserStatus.replace(ctx, oldPost, newPost);
+  }
+
+  return true;
+}
+
+export async function getPostByIdCore(ctx: QueryCtx, postId: Id<"posts">) {
+  const post = await ctx.db
+    .query("posts")
+    .withIndex("by_id", (q) => q.eq("_id", postId))
+    .unique();
+
+  if (!post) {
+    return null;
+  }
+  return enrichPost(ctx, post);
+}
+
+export async function getPostsCore(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  args: {
+    status?: Doc<"posts">["status"];
+    privacyStatus?: Doc<"posts">["privacyStatus"];
+    reviewStatus?: Doc<"posts">["reviewStatus"];
+    organizationId?: string;
+    isDeleted?: boolean;
+    searchTerm?: string;
+    paginationOpts: { numItems: number; cursor: string | null };
+  }
+) {
+  let paginationResult: PaginationResult<Doc<"posts">>;
+
+  if (args.searchTerm) {
+    let searchQuery = ctx.db
+      .query("posts")
+      .withSearchIndex("search_content", (q) => {
+        let sq = q
+          .search("searchableText", args.searchTerm!)
+          .eq("userId", userId)
+          .eq("isDeleted", args.isDeleted ?? false);
+
+        if (args.status) {
+          sq = sq.eq("status", args.status);
+        }
+        if (args.organizationId) {
+          sq = sq.eq("organizationId", args.organizationId);
+        }
+
+        return sq;
+      });
+
+    if (args.privacyStatus) {
+      searchQuery = searchQuery.filter((q) =>
+        q.eq(q.field("privacyStatus"), args.privacyStatus)
+      );
+    }
+    if (args.reviewStatus) {
+      searchQuery = searchQuery.filter((q) =>
+        q.eq(q.field("reviewStatus"), args.reviewStatus)
+      );
+    }
+
+    paginationResult = await searchQuery.paginate(args.paginationOpts);
+  } else {
+    let query = ctx.db
+      .query("posts")
+      .withIndex("by_user_created", (q) => q.eq("userId", userId));
+
+    if (args.status && args.organizationId) {
+      const status = args.status;
+      query = ctx.db.query("posts").withIndex("by_organization_status", (q) =>
+        q
+          .eq("organizationId", args.organizationId)
+          .eq("status", status)
+          .eq("isDeleted", args.isDeleted ?? false)
+      );
+    } else {
+      if (args.status) {
+        query = query.filter((q) => q.eq(q.field("status"), args.status));
+      }
+      if (args.organizationId) {
+        query = query.filter((q) =>
+          q.eq(q.field("organizationId"), args.organizationId)
+        );
+      }
+      if (args.isDeleted !== undefined) {
+        query = query.filter((q) => q.eq(q.field("isDeleted"), args.isDeleted));
+      } else {
+        query = query.filter((q) => q.eq(q.field("isDeleted"), false));
+      }
+    }
+
+    if (args.privacyStatus) {
+      query = query.filter((q) =>
+        q.eq(q.field("privacyStatus"), args.privacyStatus)
+      );
+    }
+    if (args.reviewStatus) {
+      query = query.filter((q) =>
+        q.eq(q.field("reviewStatus"), args.reviewStatus)
+      );
+    }
+
+    paginationResult = await query.order("desc").paginate(args.paginationOpts);
+  }
+
+  const enrichedPosts = await Promise.all(
+    paginationResult.page.map((post) => enrichPost(ctx, post))
+  );
+
+  return {
+    page: enrichedPosts,
+    isDone: paginationResult.isDone,
+    continueCursor: paginationResult.continueCursor,
+  };
+}
+
+// ============================================================================
+// PUBLIC QUERIES & MUTATIONS (Clerk-authenticated, unchanged API)
+// ============================================================================
+
 export const getPostById = query({
   args: { id: v.id("posts") },
   returns: v.union(getPostByIdSchema, v.null()),
   handler: async (ctx, args) => {
-    const post = await ctx.db
-      .query("posts")
-      .withIndex("by_id", (q) => q.eq("_id", args.id))
-      .unique();
-
-    if (!post) {
-      return null;
-    }
-
-    // Get social providers for the post
-    const socialProviders = await Promise.all(
-      post.socialProviderIds.map(async (id) => {
-        const provider = await ctx.db.get(id);
-        if (!provider) {
-          return null;
-        }
-        return provider;
-      })
-    );
-
-    // Filter out any null providers
-    const validSocialProviders = socialProviders.filter(
-      (p): p is NonNullable<typeof p> => p !== null
-    );
-
-    // Get alternative content with their social providers
-    const alternativeContent = post.alternativeContent || [];
-    const alternativeContentWithProviders = await Promise.all(
-      alternativeContent.map(async (alt) => {
-        const provider = await ctx.db.get(alt.socialProviderId);
-        if (!provider) {
-          return null;
-        }
-        return {
-          content: alt.content,
-          socialProviderId: alt.socialProviderId,
-          socialProvider: provider,
-        };
-      })
-    );
-
-    // Filter out any null alternative content
-    const validAlternativeContent = alternativeContentWithProviders.filter(
-      (a): a is NonNullable<typeof a> => a !== null
-    );
-
-    return {
-      ...post,
-      socialProviders: validSocialProviders,
-      alternativeContent: validAlternativeContent,
-    };
+    return getPostByIdCore(ctx, args.id);
   },
 });
 
@@ -116,57 +403,11 @@ export const createPost = mutation({
   args: postCreateSchema.fields,
   returns: v.id("posts"),
   handler: async (ctx, args) => {
-    const now = getCurrentTimestamp();
-
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new Error("User not found");
     }
-
-    // Validate scheduled date if provided
-    if (args.scheduledAt && args.scheduledAt <= now) {
-      throw new Error("Scheduled date must be in the future");
-    }
-
-    // Determine status based on whether scheduling is requested
-    const postStatus = args.scheduledAt ? "SCHEDULED" : args.status || "SAVED";
-
-    const newPostId = await ctx.db.insert("posts", {
-      userId: user._id,
-      organizationId: args.organizationId,
-      status: postStatus,
-      scheduledAt: args.scheduledAt,
-      reviewStatus: args.reviewStatus || "PENDING",
-      isDeleted: false,
-      privacyStatus: args.privacyStatus || "UNLISTED",
-      content: args.content,
-      alternativeContent: args.alternativeContent,
-      socialProviderIds: args.socialProviderIds,
-      searchableText: extractSearchableText(
-        args.content,
-        args.alternativeContent
-      ),
-      createdAt: now,
-      updatedAt: now,
-      retryCount: 0,
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(newPostId);
-    if (newPost) {
-      await postsByUserStatus.insert(ctx, newPost);
-    }
-
-    // Schedule the post for publishing if scheduledAt is provided
-    if (args.scheduledAt) {
-      // Use scheduler to call the action immediately
-      await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
-        postId: newPostId,
-        scheduledAt: args.scheduledAt,
-      });
-    }
-
-    return newPostId;
+    return createPostCore(ctx, user._id, args);
   },
 });
 
@@ -177,57 +418,8 @@ export const updatePost = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.id);
-
-    // Validate scheduled date if provided
-    if (args.scheduledAt && args.scheduledAt <= getCurrentTimestamp()) {
-      throw new Error("Scheduled date must be in the future");
-    }
-
-    // Handle status changes for scheduling
-    let newStatus = args.status;
-    if (args.scheduledAt && !newStatus) {
-      // If scheduledAt is provided but no status, set to SCHEDULED
-      newStatus = "SCHEDULED";
-    } else if (!args.scheduledAt && oldPost.status === "SCHEDULED") {
-      // If removing scheduledAt from a scheduled post, set to SAVED
-      newStatus = "SAVED";
-    }
-
-    // Patch with args and include updatedAt
-    await ctx.db.patch(args.id, {
-      ...args,
-      ...(newStatus && { status: newStatus }),
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.id);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-    }
-
-    // Handle scheduling changes
-    if (args.scheduledAt) {
-      // Cancel old schedule if it exists
-      if (oldPost.callMeLaterScheduleId) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.callmelater.cancelScheduleAction,
-          {
-            scheduleId: oldPost.callMeLaterScheduleId,
-          }
-        );
-      }
-
-      // Create new schedule
-      await ctx.scheduler.runAfter(0, internal.callmelater.schedulePostAction, {
-        postId: args.id,
-        scheduledAt: args.scheduledAt,
-      });
-    }
-
-    return true;
+    const { id, ...updateArgs } = args;
+    return updatePostCore(ctx, id, updateArgs);
   },
 });
 
@@ -375,21 +567,7 @@ export const softDeletePost = mutation({
   args: { id: v.id("posts") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const oldPost = await findPostById(ctx, args.id);
-
-    await ctx.db.patch(oldPost._id, {
-      isDeleted: true,
-      status: "DELETED",
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.id);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-    }
-
-    return true;
+    return softDeletePostCore(ctx, args.id);
   },
 });
 
@@ -430,148 +608,7 @@ export const getPosts = query({
       };
     }
 
-    const userId = user._id;
-
-    let paginationResult: PaginationResult<Doc<"posts">>;
-
-    // Use search index when search term is provided
-    if (args.searchTerm) {
-      let searchQuery = ctx.db
-        .query("posts")
-        .withSearchIndex("search_content", (q) => {
-          let sq = q
-            .search("searchableText", args.searchTerm!)
-            .eq("userId", userId)
-            .eq("isDeleted", args.isDeleted ?? false);
-
-          if (args.status) {
-            sq = sq.eq("status", args.status);
-          }
-          if (args.organizationId) {
-            sq = sq.eq("organizationId", args.organizationId);
-          }
-
-          return sq;
-        });
-
-      // Apply additional filters not in search index
-      if (args.privacyStatus) {
-        searchQuery = searchQuery.filter((q) =>
-          q.eq(q.field("privacyStatus"), args.privacyStatus)
-        );
-      }
-      if (args.reviewStatus) {
-        searchQuery = searchQuery.filter((q) =>
-          q.eq(q.field("reviewStatus"), args.reviewStatus)
-        );
-      }
-
-      paginationResult = await searchQuery.paginate(args.paginationOpts);
-    } else {
-      // Use regular index when no search term
-      let query = ctx.db
-        .query("posts")
-        .withIndex("by_user_created", (q) => q.eq("userId", userId));
-
-      // If we have both status and org filters, switch to the compound index
-      if (args.status && args.organizationId) {
-        const status = args.status;
-        query = ctx.db.query("posts").withIndex("by_organization_status", (q) =>
-          q
-            .eq("organizationId", args.organizationId)
-            .eq("status", status)
-            .eq("isDeleted", args.isDeleted ?? false)
-        );
-      } else {
-        // Apply filters individually
-        if (args.status) {
-          query = query.filter((q) => q.eq(q.field("status"), args.status));
-        }
-        if (args.organizationId) {
-          query = query.filter((q) =>
-            q.eq(q.field("organizationId"), args.organizationId)
-          );
-        }
-        if (args.isDeleted !== undefined) {
-          query = query.filter((q) =>
-            q.eq(q.field("isDeleted"), args.isDeleted)
-          );
-        } else {
-          query = query.filter((q) => q.eq(q.field("isDeleted"), false));
-        }
-      }
-
-      // Apply remaining filters that aren't part of any index
-      if (args.privacyStatus) {
-        query = query.filter((q) =>
-          q.eq(q.field("privacyStatus"), args.privacyStatus)
-        );
-      }
-      if (args.reviewStatus) {
-        query = query.filter((q) =>
-          q.eq(q.field("reviewStatus"), args.reviewStatus)
-        );
-      }
-
-      // Order by creation date (newest first) and paginate
-      paginationResult = await query
-        .order("desc")
-        .paginate(args.paginationOpts);
-    }
-
-    // Enrich each post with social providers and alternative content
-    const enrichedPosts = await Promise.all(
-      paginationResult.page.map(async (post: Doc<"posts">) => {
-        // Get social providers for the post
-        const socialProviders = await Promise.all(
-          post.socialProviderIds.map(async (id) => {
-            const provider = await ctx.db.get(id);
-            if (!provider) {
-              return null;
-            }
-            return provider;
-          })
-        );
-
-        // Filter out any null providers
-        const validSocialProviders = socialProviders.filter(
-          (p): p is NonNullable<typeof p> => p !== null
-        );
-
-        // Get alternative content with their social providers
-        const alternativeContent = post.alternativeContent || [];
-        const alternativeContentWithProviders = await Promise.all(
-          alternativeContent.map(async (alt) => {
-            const provider = await ctx.db.get(alt.socialProviderId);
-            if (!provider) {
-              return null;
-            }
-            return {
-              content: alt.content,
-              socialProviderId: alt.socialProviderId,
-              socialProvider: provider,
-            };
-          })
-        );
-
-        // Filter out any null alternative content
-        const validAlternativeContent = alternativeContentWithProviders.filter(
-          (a): a is NonNullable<typeof a> => a !== null
-        );
-
-        return {
-          ...post,
-          socialProviders: validSocialProviders,
-          alternativeContent: validAlternativeContent,
-        };
-      })
-    );
-
-    return {
-      page: enrichedPosts,
-      isDone: paginationResult.isDone,
-      continueCursor: paginationResult.continueCursor,
-    };
+    return getPostsCore(ctx, user._id, args);
   },
 });
 
@@ -595,30 +632,7 @@ export const deletePost = mutation({
       throw new Error("Post not found or access denied");
     }
 
-    // Cancel scheduled post if it exists
-    if (oldPost.callMeLaterScheduleId) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.callmelater.cancelScheduleAction,
-        {
-          scheduleId: oldPost.callMeLaterScheduleId,
-        }
-      );
-    }
-
-    // Soft delete the post
-    await ctx.db.patch(oldPost._id, {
-      isDeleted: true,
-      status: "DELETED",
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    // Update aggregates
-    const newPost = await ctx.db.get(args.postId);
-    if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
-    }
-
+    await softDeletePostCore(ctx, args.postId);
     return { success: true };
   },
 });
@@ -693,6 +707,21 @@ export const updatePostPublishStatus = mutation({
           instagramMediaId: args.platformPostData.platformPostId,
           socialProviderId: args.platformPostData.socialProviderId,
         });
+      }
+
+      // Schedule video cleanup 7 days after publish
+      if (args.status === "PUBLISHED") {
+        const videoBucketKeys = extractVideoBucketKeys(post);
+        if (videoBucketKeys.length > 0) {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.callmelater.scheduleVideoCleanupAction,
+            {
+              bucketKeys: videoBucketKeys,
+              postId: args.postId,
+            }
+          );
+        }
       }
     }
 
@@ -814,12 +843,17 @@ export const updatePostStatus = internalMutation({
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
 
+    const oldPost = await ctx.db.get(args.postId);
     await ctx.db.patch(args.postId, {
       status: args.status,
       ...(args.failureReason && { postFailureReason: args.failureReason }),
       ...(args.status === "FAILED" && { lastFailedAt: now }),
       updatedAt: now,
     });
+    const newPost = await ctx.db.get(args.postId);
+    if (oldPost && newPost) {
+      await postsByUserStatus.replace(ctx, oldPost, newPost);
+    }
 
     return true;
   },
@@ -919,47 +953,94 @@ export const getScheduledPostsByDateRange = query({
 
     // Populate social providers for each post
     const postsWithProviders = await Promise.all(
-      posts.map(async (post) => {
-        // Get social providers
-        const socialProviders = await Promise.all(
-          post.socialProviderIds.map(async (id) => {
-            const provider = await ctx.db.get(id);
-            return provider;
-          })
-        );
-
-        const validSocialProviders = socialProviders.filter(
-          (p): p is NonNullable<typeof p> => p !== null
-        );
-
-        // Get alternative content with providers
-        const alternativeContent = post.alternativeContent || [];
-        const alternativeContentWithProviders = await Promise.all(
-          alternativeContent.map(async (alt) => {
-            const provider = await ctx.db.get(alt.socialProviderId);
-            if (!provider) {
-              return null;
-            }
-            return {
-              content: alt.content,
-              socialProviderId: alt.socialProviderId,
-              socialProvider: provider,
-            };
-          })
-        );
-
-        const validAlternativeContent = alternativeContentWithProviders.filter(
-          (a): a is NonNullable<typeof a> => a !== null
-        );
-
-        return {
-          ...post,
-          socialProviders: validSocialProviders,
-          alternativeContent: validAlternativeContent,
-        };
-      })
+      posts.map((post) => enrichPost(ctx, post))
     );
 
     return postsWithProviders;
+  },
+});
+
+// ============================================================================
+// PUBLIC API VARIANTS (for REST API / MCP server)
+// ============================================================================
+
+export const apiGetPostById = query({
+  args: { userId: v.id("users"), postId: v.id("posts") },
+  handler: async (ctx, args) => {
+    const post = await getPostByIdCore(ctx, args.postId);
+    if (!post || post.userId !== args.userId) {
+      return null;
+    }
+    return post;
+  },
+});
+
+export const apiGetPosts = query({
+  args: {
+    userId: v.id("users"),
+    status: postFiltersSchema.fields.status,
+    isDeleted: v.optional(v.boolean()),
+    paginationOpts: v.object({
+      numItems: v.number(),
+      cursor: v.union(v.string(), v.null()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const { userId, ...rest } = args;
+    return getPostsCore(ctx, userId, rest);
+  },
+});
+
+export const apiCreatePost = mutation({
+  args: {
+    userId: v.id("users"),
+    organizationId: postCreateSchema.fields.organizationId,
+    status: postCreateSchema.fields.status,
+    scheduledAt: postCreateSchema.fields.scheduledAt,
+    reviewStatus: postCreateSchema.fields.reviewStatus,
+    privacyStatus: postCreateSchema.fields.privacyStatus,
+    content: postCreateSchema.fields.content,
+    alternativeContent: postCreateSchema.fields.alternativeContent,
+    socialProviderIds: postCreateSchema.fields.socialProviderIds,
+    tiktokSettings: postCreateSchema.fields.tiktokSettings,
+    providerSettings: postCreateSchema.fields.providerSettings,
+  },
+  returns: v.id("posts"),
+  handler: async (ctx, args) => {
+    const { userId, ...createArgs } = args;
+    return createPostCore(ctx, userId, createArgs);
+  },
+});
+
+export const apiUpdatePost = mutation({
+  args: {
+    userId: v.id("users"),
+    postId: v.id("posts"),
+    ...postUpdateSchema.fields,
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const { userId, postId, ...updateArgs } = args;
+    // Verify ownership
+    const post = await findPostById(ctx, postId);
+    if (post.userId !== userId) {
+      throw new Error("Post not found or access denied");
+    }
+    return updatePostCore(ctx, postId, updateArgs);
+  },
+});
+
+export const apiSoftDeletePost = mutation({
+  args: {
+    userId: v.id("users"),
+    postId: v.id("posts"),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const post = await findPostById(ctx, args.postId);
+    if (post.userId !== args.userId) {
+      throw new Error("Post not found or access denied");
+    }
+    return softDeletePostCore(ctx, args.postId);
   },
 });

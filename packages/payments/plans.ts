@@ -4,9 +4,7 @@
  * Defines the limits and features for each subscription tier:
  * - FREE: Basic tier with limited features (1 social, 10 posts/month)
  * - ECHO: Entry-level paid tier (5 socials, 30 posts/month) - $4.99/mo
- * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.90/mo
- *
- * Note: Pricing matches production environment ($9.90/$99.0 for VIBE)
+ * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.99/mo
  */
 
 export type PlanType = "FREE" | "VIBE" | "ECHO";
@@ -26,14 +24,8 @@ export interface PlanLimits {
 }
 
 export interface PlanFeatures {
-  aiContentGeneration: boolean;
-  analytics: boolean;
-  collaboration: boolean;
-  whiteLabel: boolean;
+  postScheduling: boolean;
   prioritySupport: boolean;
-  customBranding: boolean;
-  advancedScheduling: boolean;
-  bulkUpload: boolean;
 }
 
 export interface Plan {
@@ -71,14 +63,8 @@ export const PLANS: Record<PlanType, Plan> = {
       teamMembers: 1,
     },
     features: {
-      aiContentGeneration: false,
-      analytics: false,
-      collaboration: false,
-      whiteLabel: false,
+      postScheduling: true,
       prioritySupport: false,
-      customBranding: false,
-      advancedScheduling: false,
-      bulkUpload: false,
     },
   },
   ECHO: {
@@ -96,14 +82,8 @@ export const PLANS: Record<PlanType, Plan> = {
       teamMembers: 1,
     },
     features: {
-      aiContentGeneration: false,
-      analytics: true,
-      collaboration: false,
-      whiteLabel: false,
+      postScheduling: true,
       prioritySupport: false,
-      customBranding: false,
-      advancedScheduling: true,
-      bulkUpload: false,
     },
   },
   VIBE: {
@@ -121,14 +101,8 @@ export const PLANS: Record<PlanType, Plan> = {
       teamMembers: 10,
     },
     features: {
-      aiContentGeneration: true,
-      analytics: true,
-      collaboration: true,
-      whiteLabel: true,
+      postScheduling: true,
       prioritySupport: true,
-      customBranding: true,
-      advancedScheduling: true,
-      bulkUpload: true,
     },
     popular: true, // Highlight as most popular
   },

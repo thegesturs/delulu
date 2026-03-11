@@ -16,7 +16,7 @@ import {
   PencilEdit01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import { useCallback, useState } from "react";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import { MediaUploader } from "./media-uploader";
 import { VideoThumbnailSelector } from "./video-thumbnail-selector";
 
@@ -152,17 +152,14 @@ export function VideoContentLayout({
     ? config.titleMaxLength - title.length
     : 0;
 
-  const videoUrl = videoMedia ? getMediaUrlFromObject(videoMedia) : "";
-  const hasThumbnail = videoMedia
-    ? videoMedia.thumbnailBucketUrl || videoMedia.thumbnailBucketKey
-    : false;
-  const thumbnailUrl =
-    hasThumbnail && videoMedia
-      ? getMediaUrlFromObject({
-          url: videoMedia.thumbnailBucketUrl,
-          bucketKey: videoMedia.thumbnailBucketKey,
-        })
-      : null;
+  const videoUrl = useMediaUrl(videoMedia?.bucketKey, videoMedia?.url);
+  const hasCustomThumbnailImage = !!(
+    videoMedia?.thumbnailBucketUrl || videoMedia?.thumbnailBucketKey
+  );
+  const thumbnailUrl = useMediaUrl(
+    videoMedia?.thumbnailBucketKey,
+    videoMedia?.thumbnailBucketUrl
+  );
 
   const videoAspectClass = config.isVertical ? "aspect-[9/16]" : "aspect-video";
 
@@ -175,23 +172,12 @@ export function VideoContentLayout({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Thumbnail Preview</Label>
-                <div className="flex items-center gap-2">
-                  {hasThumbnail && (
-                    <Badge className="gap-1" variant="secondary">
-                      <Icon icon={Image01Icon} size={12} />
-                      Set
-                    </Badge>
-                  )}
-                  <Button
-                    className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={onRemoveVideo}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Icon icon={Delete01Icon} size={14} />
-                  </Button>
-                </div>
+                {hasCustomThumbnailImage && (
+                  <Badge className="gap-1" variant="secondary">
+                    <Icon icon={Image01Icon} size={12} />
+                    Set
+                  </Badge>
+                )}
               </div>
               <button
                 className={cn(
@@ -202,15 +188,14 @@ export function VideoContentLayout({
                 onClick={() => setIsThumbnailDialogOpen(true)}
                 type="button"
               >
-                {hasThumbnail ? (
+                {hasCustomThumbnailImage ? (
                   <>
-                    {/* Show thumbnail */}
+                    {/* Show custom thumbnail image */}
                     <img
                       alt="Video thumbnail"
                       className="h-full w-full object-cover"
                       src={thumbnailUrl!}
                     />
-                    {/* Edit overlay on hover */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
@@ -233,7 +218,6 @@ export function VideoContentLayout({
                     >
                       <track kind="captions" />
                     </video>
-                    {/* Overlay with instruction */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
                       <div className="rounded-lg bg-background px-4 py-2 text-foreground shadow-lg">
                         <div className="flex items-center gap-2">
@@ -256,7 +240,21 @@ export function VideoContentLayout({
                 variant="outline"
               >
                 <Icon className="mr-2" icon={Image01Icon} size={16} />
-                {hasThumbnail ? "Change Thumbnail" : "Select Thumbnail"}
+                {hasCustomThumbnailImage
+                  ? "Change Thumbnail"
+                  : "Select Thumbnail"}
+              </Button>
+
+              {/* Remove Video button */}
+              <Button
+                className="w-full"
+                onClick={onRemoveVideo}
+                size="sm"
+                type="button"
+                variant="destructive"
+              >
+                <Icon className="mr-2" icon={Delete01Icon} size={14} />
+                Remove Video
               </Button>
             </div>
           ) : (

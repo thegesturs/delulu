@@ -1,0 +1,22 @@
+{
+  "name": "@delulu/public-api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@delulu/database": "workspace:*",
+    "@scalar/hono-api-reference": "^0.10.0",
+    "convex": "^1.25.4",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "typescript": "catalog:",
+    "wrangler": "^4.0.0"
+  }
+}

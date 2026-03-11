@@ -14,6 +14,12 @@ import { ConvexHttpClient } from "convex/browser";
 import { Resource } from "sst";
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const CONVEX_ID_RE = /^[a-z0-9]{20,40}$/;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -819,7 +825,14 @@ async function processMessageEvent(
     return;
   }
 
-  const automationId = payloadParts[0] as Id<"automations">;
+  const rawAutomationId = payloadParts[0];
+  if (!CONVEX_ID_RE.test(rawAutomationId)) {
+    console.log(
+      `[message] Ignoring non-application payload (automationId="${rawAutomationId}"): "${event.quickReplyPayload}"`
+    );
+    return;
+  }
+  const automationId = rawAutomationId as Id<"automations">;
   const buttonPayload = payloadParts.slice(1).join(":");
 
   // Look up the session

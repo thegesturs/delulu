@@ -19,7 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useShallow } from "zustand/shallow";
 import { useMediaStorage } from "@/hooks/use-media-storage";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import {
   canAddMediaType,
   canUploadMore as canUploadMoreUtil,
@@ -63,11 +63,10 @@ export function MediaPreview({
   onRemove,
   getPreviewAspectRatio,
 }: MediaPreviewProps) {
-  // Use environment-aware URL for saved media, fallback to previewUrl for local uploads
+  // Use presigned URL for saved media, fallback to previewUrl for local uploads
+  const presignedUrl = useMediaUrl(media.bucketKey, media.url);
   const mediaUrl =
-    media.bucketKey || media.url
-      ? getMediaUrlFromObject(media)
-      : media.previewUrl;
+    media.bucketKey || media.url ? presignedUrl : media.previewUrl;
 
   return (
     <motion.div

@@ -64,6 +64,56 @@ http.route({
   }),
 });
 
+/**
+ * HTTP endpoint to receive scheduled video media cleanup requests from CallMeLater
+ * Called 7 days after a post is published to clean up R2 video files
+ */
+http.route({
+  path: "/deleteVideoMedia",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = (await request.json()) as { bucketKeys?: string[] };
+      const { bucketKeys } = body;
+
+      if (!bucketKeys || bucketKeys.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Missing bucketKeys in request body" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      await ctx.runAction(internal.mediaCleanup.deleteVideosFromR2, {
+        bucketKeys,
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, deleted: bucketKeys.length }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error("Error in deleteVideoMedia HTTP endpoint:", error);
+
+      return new Response(
+        JSON.stringify({
+          error: "Failed to delete video media",
+          message: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
 http.route({
   path: "/clerk-users-webhook",
   method: "POST",
@@ -240,6 +290,106 @@ http.route({
         currency: payload.data.currency,
       });
     },
+  }),
+});
+
+/**
+ * Outrank Webhook Handler
+ * Receives publish_articles events and upserts articles into the articles table.
+ */
+http.route({
+  path: "/outrank-webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // Validate Bearer token
+    const authHeader = request.headers.get("Authorization");
+    const expectedSecret = process.env.OUTRANK_WEBHOOK_SECRET;
+
+    if (
+      !(expectedSecret && authHeader) ||
+      authHeader !== `Bearer ${expectedSecret}`
+    ) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    try {
+      const body = (await request.json()) as {
+        event_type: string;
+        timestamp?: string;
+        data?: {
+          articles?: Array<{
+            id: string;
+            title: string;
+            slug: string;
+            content_markdown: string;
+            content_html: string;
+            meta_description: string;
+            image_url?: string | null;
+            tags?: string[];
+            created_at: string;
+          }>;
+        };
+      };
+
+      // Only handle publish_articles event
+      if (body.event_type !== "publish_articles") {
+        return new Response(
+          JSON.stringify({ message: `Ignored event type: ${body.event_type}` }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const webhookTimestamp = body.timestamp
+        ? new Date(body.timestamp).getTime()
+        : Date.now();
+
+      const rawArticles = body.data?.articles ?? [];
+
+      // Transform snake_case payload to camelCase
+      const articles = rawArticles.map((a) => ({
+        outrankId: a.id,
+        title: a.title,
+        slug: a.slug,
+        contentMarkdown: a.content_markdown,
+        contentHtml: a.content_html,
+        metaDescription: a.meta_description,
+        imageUrl: a.image_url ?? undefined,
+        tags: a.tags ?? [],
+        outrankCreatedAt: new Date(a.created_at).getTime(),
+        publishedAt: webhookTimestamp,
+      }));
+
+      await ctx.runMutation(internal.articles.upsertArticles, { articles });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          processed: articles.length,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error("Error in outrank-webhook:", error);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to process webhook",
+          message: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   }),
 });
 

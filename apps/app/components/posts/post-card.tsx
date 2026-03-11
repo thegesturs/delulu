@@ -33,7 +33,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import { api as TrpcApi } from "@/trpc/react";
 import DeletePostAlert from "../alerts/delete-post";
 import { PostPreviewDialog } from "./post-preview-dialog";
@@ -181,6 +181,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
   const firstContent = postContent[0];
   const firstMedia = firstContent?.media?.[0];
+  const firstMediaUrl = useMediaUrl(firstMedia?.bucketKey, firstMedia?.url);
 
   const ActionButtons = () => (
     <div className="flex items-center gap-1">
@@ -331,12 +332,12 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
                             setImageLoading(false);
                             if (process.env.NODE_ENV === "development") {
                               console.error(
-                                `[DEBUG] Failed to load image: ${getMediaUrlFromObject(firstMedia)}`
+                                `[DEBUG] Failed to load image: ${firstMediaUrl}`
                               );
                             }
                           }}
                           onLoad={() => setImageLoading(false)}
-                          src={getMediaUrlFromObject(firstMedia)}
+                          src={firstMediaUrl}
                         />
                       )
                     ) : (
@@ -347,12 +348,12 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
                         onError={() => {
                           if (process.env.NODE_ENV === "development") {
                             console.error(
-                              `[DEBUG] Failed to load video: ${getMediaUrlFromObject(firstMedia)}`
+                              `[DEBUG] Failed to load video: ${firstMediaUrl}`
                             );
                           }
                         }}
                         playsInline
-                        src={getMediaUrlFromObject(firstMedia)}
+                        src={firstMediaUrl}
                       />
                     )}
                     {(firstContent?.media?.length || 0) > 1 && (

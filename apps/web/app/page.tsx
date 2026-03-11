@@ -1,6 +1,8 @@
 import { createMetadata } from "@delulu/seo/metadata";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
+import { BlogSection } from "@/components/home/blog-section";
 import CTA from "@/components/home/cta";
 import { FAQ } from "@/components/home/faq";
 import { Hero } from "@/components/home/hero";
@@ -43,6 +45,9 @@ const Home = () => {
       <MascotBenefits />
       {/* <MascotSocialProof /> */}
       <Pricing />
+      <Suspense>
+        <BlogSection />
+      </Suspense>
       <FAQ />
       <CTA />
     </main>

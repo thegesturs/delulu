@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  CreditCard,
   Draft,
   Home,
   Network,
   Pencil,
+  Robot,
 } from "@delulu/design-system/icons";
 import { cn } from "@delulu/design-system/lib/utils";
 import Link from "next/link";
@@ -32,9 +32,9 @@ export function MobileBottomTabs() {
       isPrimary: true,
     },
     {
-      title: "Billing",
-      url: "/billing",
-      icon: CreditCard,
+      title: "DMs",
+      url: "/automations",
+      icon: Robot,
     },
     {
       title: "Accounts",

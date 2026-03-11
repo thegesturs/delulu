@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as api_keys from "../api_keys.js";
+import type * as articles from "../articles.js";
 import type * as automationLogs from "../automationLogs.js";
 import type * as automations from "../automations.js";
 import type * as callmelater from "../callmelater.js";
@@ -16,7 +18,11 @@ import type * as dodo from "../dodo.js";
 import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as media from "../media.js";
+import type * as mediaCleanup from "../mediaCleanup.js";
 import type * as posts from "../posts.js";
+import type * as repairs from "../repairs.js";
+import type * as schemas_api_keys from "../schemas/api_keys.js";
+import type * as schemas_articles from "../schemas/articles.js";
 import type * as schemas_automations from "../schemas/automations.js";
 import type * as schemas_enums from "../schemas/enums.js";
 import type * as schemas_index from "../schemas/index.js";
@@ -49,6 +55,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  api_keys: typeof api_keys;
+  articles: typeof articles;
   automationLogs: typeof automationLogs;
   automations: typeof automations;
   callmelater: typeof callmelater;
@@ -57,7 +65,11 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   index: typeof index;
   media: typeof media;
+  mediaCleanup: typeof mediaCleanup;
   posts: typeof posts;
+  repairs: typeof repairs;
+  "schemas/api_keys": typeof schemas_api_keys;
+  "schemas/articles": typeof schemas_articles;
   "schemas/automations": typeof schemas_automations;
   "schemas/enums": typeof schemas_enums;
   "schemas/index": typeof schemas_index;

@@ -69,8 +69,9 @@ export async function generatePresignedDownloadUrl(
   objectKey: string,
   expiresIn = 900
 ): Promise<string> {
-  const { accountId, bucketName, accessKeyId, secretAccessKey } = config;
-  const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+  const { accessKeyId, secretAccessKey } = config;
+  // Use custom domain — already bound to the bucket, so no bucket name in path
+  const endpoint = "https://media.delulu.social";
   const region = "auto";
   const service = "s3";
 
@@ -78,7 +79,7 @@ export async function generatePresignedDownloadUrl(
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
   const dateStamp = amzDate.slice(0, 8);
 
-  const canonicalUri = `/${bucketName}/${objectKey}`;
+  const canonicalUri = `/${objectKey}`;
   const canonicalQuerystring = [
     "X-Amz-Algorithm=AWS4-HMAC-SHA256",
     `X-Amz-Credential=${encodeURIComponent(`${accessKeyId}/${dateStamp}/${region}/${service}/aws4_request`)}`,

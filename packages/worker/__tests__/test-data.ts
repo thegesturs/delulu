@@ -10,7 +10,7 @@ export const SOCIAL_PROVIDER_DATA = [
 ];
 
 export const LAMBDA_URL =
-  "https://s6zm4w4r5xrwk5ejhdwcjiy7ry0rhvch.lambda-url.us-east-1.on.aws/";
+  "https://xikjne7ewghcn3eeeiat6fklxi0wpqbd.lambda-url.us-east-1.on.aws/";
 
 // Test content data with real Delulu Social media URLs
 export const TEST_CONTENT = {

@@ -21,7 +21,7 @@ import { useQuery } from "convex/react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getMediaUrlFromObject } from "@/lib/media-url";
+import { useMediaUrl } from "@/hooks/use-media-url";
 import {
   canAddMediaType,
   getDynamicMediaLimits,
@@ -46,6 +46,108 @@ interface MediaSelectionDialogProps {
   onSelect: (media: MediaItem[]) => void;
   socialType: SocialType;
   currentMedia: MediaItem[];
+}
+
+function MediaGridItem({
+  media,
+  isSelected,
+  canSelect,
+  onMediaSelect,
+}: {
+  media: MediaItem;
+  isSelected: boolean;
+  canSelect: boolean;
+  onMediaSelect: (media: MediaItem) => void;
+}) {
+  const mediaUrl = useMediaUrl(media.bucketKey, media.url);
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, scale: 1 }}
+      className={cn(
+        "group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted",
+        {
+          "cursor-pointer border-primary": isSelected,
+          "cursor-pointer border-border hover:border-input":
+            canSelect && !isSelected,
+          "cursor-not-allowed border-border opacity-50": !(
+            canSelect || isSelected
+          ),
+        }
+      )}
+      initial={{ opacity: 0, scale: 0.9 }}
+      onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
+      onMouseEnter={(e) => {
+        if (media.mediaType === "VIDEO") {
+          const video = e.currentTarget.querySelector("video");
+          if (video) {
+            video.play().catch((error) => {
+              console.error("Error playing video:", error);
+            });
+          }
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (media.mediaType === "VIDEO") {
+          const video = e.currentTarget.querySelector("video");
+          if (video) {
+            video.pause();
+            video.currentTime = 0;
+          }
+        }
+      }}
+    >
+      {media.mediaType === "IMAGE" ? (
+        <Image
+          alt={media.altText || "Media"}
+          className="object-cover"
+          fill
+          sizes="(max-width: 768px) 25vw, 200px"
+          src={mediaUrl}
+        />
+      ) : (
+        <div className="relative h-full w-full">
+          <video
+            className="h-full w-full object-cover"
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            src={mediaUrl}
+          />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
+            <div className="rounded-full bg-black bg-opacity-50 p-2">
+              <Icon className="text-white" icon={VideoIcon} size={16} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSelected && (
+        <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
+          <svg
+            className="h-3 w-3 text-primary-foreground"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              clipRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              fillRule="evenodd"
+            />
+          </svg>
+        </div>
+      )}
+
+      <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
+        {media.mediaType === "IMAGE" ? (
+          <Icon icon={Image01Icon} size={12} />
+        ) : (
+          <Icon icon={VideoIcon} size={12} />
+        )}
+      </div>
+    </motion.div>
+  );
 }
 
 interface MediaGridProps {
@@ -104,94 +206,13 @@ function MediaGrid({
               (media.mediaType === "VIDEO" && canSelectVideos));
 
           return (
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              className={cn(
-                "group relative aspect-square overflow-hidden rounded-lg border-2 bg-muted",
-                {
-                  "cursor-pointer border-primary": isSelected,
-                  "cursor-pointer border-border hover:border-input":
-                    canSelect && !isSelected,
-                  "cursor-not-allowed border-border opacity-50": !(
-                    canSelect || isSelected
-                  ),
-                }
-              )}
-              initial={{ opacity: 0, scale: 0.9 }}
+            <MediaGridItem
+              canSelect={canSelect}
+              isSelected={isSelected}
               key={media.id}
-              onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
-              onMouseEnter={(e) => {
-                if (media.mediaType === "VIDEO") {
-                  const video = e.currentTarget.querySelector("video");
-                  if (video) {
-                    video.play().catch(() => {
-                      // Ignore play errors
-                    });
-                  }
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (media.mediaType === "VIDEO") {
-                  const video = e.currentTarget.querySelector("video");
-                  if (video) {
-                    video.pause();
-                    video.currentTime = 0;
-                  }
-                }
-              }}
-            >
-              {media.mediaType === "IMAGE" ? (
-                <Image
-                  alt={media.altText || "Media"}
-                  className="object-cover"
-                  fill
-                  sizes="(max-width: 768px) 25vw, 200px"
-                  src={getMediaUrlFromObject(media)}
-                />
-              ) : (
-                <div className="relative h-full w-full">
-                  <video
-                    className="h-full w-full object-cover"
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
-                    src={getMediaUrlFromObject(media)}
-                  />
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 transition-opacity group-hover:opacity-0">
-                    <div className="rounded-full bg-black bg-opacity-50 p-2">
-                      <Icon className="text-white" icon={VideoIcon} size={16} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Selection indicator */}
-              {isSelected && (
-                <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
-                  <svg
-                    className="h-3 w-3 text-primary-foreground"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      clipRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      fillRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              )}
-
-              {/* Media type indicator */}
-              <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5">
-                {media.mediaType === "IMAGE" ? (
-                  <Icon icon={Image01Icon} size={12} />
-                ) : (
-                  <Icon icon={VideoIcon} size={12} />
-                )}
-              </div>
-            </motion.div>
+              media={media}
+              onMediaSelect={onMediaSelect}
+            />
           );
         })}
       </div>

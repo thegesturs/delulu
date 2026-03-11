@@ -8,7 +8,7 @@ export default function NetworkPage() {
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto bg-background">
       <Header page="Connected Accounts" pages={["Settings"]} />
-      <div className="mx-auto w-full max-w-6xl p-6">
+      <div className="mx-auto w-full max-w-6xl p-4 sm:p-6">
         <SocialNotifications />
         <ConnectedAccounts />
       </div>

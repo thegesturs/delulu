@@ -23,7 +23,7 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
       <div className="flex items-center gap-3">
         <div>
           <h1 className="font-semibold text-2xl text-foreground tracking-tight">
-            Comment-to-Sale Automations
+            DM Automations
           </h1>
           <p className="mt-1 text-muted-foreground text-sm">
             Turn Instagram comments into sales. Someone comments a keyword →

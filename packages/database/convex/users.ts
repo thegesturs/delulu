@@ -10,6 +10,7 @@ import {
   query,
 } from "./_generated/server";
 import { userSchema } from "./schemas";
+import { postsByUserStatus } from "./stats";
 import { getCurrentTimestamp, isValidEmail } from "./utils";
 
 // User queries
@@ -74,6 +75,7 @@ export const deleteUser = mutation({
       .collect();
 
     for (const post of posts) {
+      await postsByUserStatus.delete(ctx, post);
       await ctx.db.delete(post._id);
     }
 
