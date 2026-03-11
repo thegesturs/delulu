@@ -13,6 +13,7 @@ const publicRoutes = createRouteMatcher([
   "/api/trpc(.*)",
   "/api/callback(.*)", // Add this line - OAuth callbacks must be public
   "/api/transcribe(.*)",
+  "/extension-auth-success(.*)",
 ]);
 
 const authRoutes = createRouteMatcher([
