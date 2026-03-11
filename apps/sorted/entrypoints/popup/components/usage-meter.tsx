@@ -118,7 +118,7 @@ function FreeUsageBar({
           }}
         />
       </div>
-      {usage && usage.used >= usage.limit && (
+      {usage && usage.used >= usage.limit ? (
         <p className="popup-usage-limit-msg">
           Free limit reached.{" "}
           {/* biome-ignore lint/a11y/useValidAnchor: acts as navigation link */}
@@ -132,6 +132,21 @@ function FreeUsageBar({
           >
             Subscribe to continue
           </a>
+        </p>
+      ) : (
+        <p className="popup-usage-upgrade-hint">
+          {/* biome-ignore lint/a11y/useValidAnchor: acts as navigation link */}
+          <a
+            className="popup-usage-limit-link"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              onShowBilling();
+            }}
+          >
+            Upgrade to Pro
+          </a>{" "}
+          for unlimited transcriptions
         </p>
       )}
     </>
