@@ -587,6 +587,7 @@ export const createCheckoutSession = action({
     quantity: v.optional(v.number()),
     returnUrl: v.optional(v.string()),
     billingCurrency: v.optional(v.string()),
+    affonsoReferral: v.optional(v.string()),
   },
   returns: v.object({
     checkout_url: v.string(),
@@ -614,6 +615,11 @@ export const createCheckoutSession = action({
         userName,
       });
 
+      const metadata: Record<string, string> = {};
+      if (args.affonsoReferral && args.affonsoReferral.length <= 128) {
+        metadata.affonso_referral = args.affonsoReferral;
+      }
+
       const session = await checkout(ctx, {
         payload: {
           product_cart: [
@@ -631,6 +637,7 @@ export const createCheckoutSession = action({
           feature_flags: {
             allow_discount_code: true,
           },
+          ...(Object.keys(metadata).length > 0 && { metadata }),
         },
       });
 

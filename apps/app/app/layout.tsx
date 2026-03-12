@@ -13,6 +13,17 @@ interface RootLayoutProperties {
 
 const RootLayout = ({ children }: RootLayoutProperties) => (
   <html className={fonts} lang="en" suppressHydrationWarning>
+    <head>
+      {process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID && (
+        <script
+          async
+          data-affonso={process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID}
+          data-cookie_duration="90"
+          defer
+          src="https://affonso.io/js/pixel.min.js"
+        />
+      )}
+    </head>
     <body>
       <DesignSystemProvider
         privacyUrl="https://delulu.social/legal/privacy-policy"

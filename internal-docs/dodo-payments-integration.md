@@ -492,7 +492,7 @@ NEXT_PUBLIC_DODO_PAYMENTS_PUBLIC_KEY=dodo_pk_...
 ### Future Enhancements
 - [ ] Add annual billing discount banners
 - [ ] Implement usage-based pricing
-- [ ] Add referral program
+- [x] Add referral program (Affonso affiliate integration)
 - [ ] Create admin dashboard for subscription management
 - [ ] Add email notifications for payment events
 - [ ] Implement grace period for failed payments

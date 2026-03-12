@@ -12,6 +12,7 @@ import {
 import { createMetadata } from "@delulu/seo/metadata";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { AffonsoCrossDomain } from "@/components/affonso-cross-domain";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { env } from "@/env";
@@ -43,6 +44,15 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
         <JsonLd code={createOrganizationSchema(baseUrl)} />
         <JsonLd code={createWebSiteSchema(baseUrl)} />
         <JsonLd code={createAISoftwareApplicationSchema(baseUrl)} />
+        {process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID && (
+          <script
+            async
+            data-affonso={process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID}
+            data-cookie_duration="90"
+            defer
+            src="https://affonso.io/js/pixel.min.js"
+          />
+        )}
       </head>
       <body>
         <DesignSystemProvider>
@@ -52,6 +62,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
             <Footer />
           </AnalyticsProvider>
         </DesignSystemProvider>
+        <AffonsoCrossDomain />
         {/* <Toolbar /> */}
       </body>
     </html>

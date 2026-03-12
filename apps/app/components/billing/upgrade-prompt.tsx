@@ -27,6 +27,7 @@ import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface UpgradePromptProps {
   feature: string;
@@ -67,6 +68,7 @@ export function UpgradePrompt({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
         billingCurrency: currency,
+        affonsoReferral: getAffonsoReferral() ?? undefined,
       });
       window.location.href = checkout_url;
     } catch (error) {
@@ -210,6 +212,7 @@ export function InlineUpgradePrompt({
         productId,
         returnUrl: `${window.location.origin}${window.location.pathname}`,
         billingCurrency: currency,
+        affonsoReferral: getAffonsoReferral() ?? undefined,
       });
       window.location.href = checkout_url;
     } catch (error) {

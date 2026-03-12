@@ -9,6 +9,7 @@ import {
   ConnectIcon,
   CreditCard as CreditCardIcon,
   File as FileIcon,
+  Gift as GiftIcon,
   Home as HomeIcon,
   Pencil as PencilIcon,
   Settings as SettingsIcon,
@@ -47,4 +48,8 @@ export const Pencil: ComponentType<{ className?: string }> = (props) => (
 
 export const Robot: ComponentType<{ className?: string }> = (props) => (
   <Icon icon={AiChat02Icon} size={14} {...props} />
+);
+
+export const Affiliate: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={GiftIcon} size={14} {...props} />
 );

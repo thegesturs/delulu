@@ -32,6 +32,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface PricingCardsProps {
   productIds?: Record<PlanType, { monthly: string; yearly: string }>;
@@ -93,6 +94,7 @@ export function PricingCards({
         productId,
         returnUrl: `${window.location.origin}/billing`,
         billingCurrency: currency,
+        affonsoReferral: getAffonsoReferral() ?? undefined,
       });
 
       // Run callback before navigation so analytics/cleanup can complete

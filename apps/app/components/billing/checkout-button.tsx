@@ -16,6 +16,7 @@ import {
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface CheckoutButtonProps
   extends Omit<React.ComponentProps<"button">, "onClick" | "disabled"> {
@@ -45,6 +46,7 @@ export function CheckoutButton({
         productId,
         returnUrl:
           returnUrl || `${window.location.origin}/billing?success=true`,
+        affonsoReferral: getAffonsoReferral() ?? undefined,
       });
 
       // Call success callback before redirect

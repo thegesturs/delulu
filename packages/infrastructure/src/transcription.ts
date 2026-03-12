@@ -94,8 +94,18 @@ export async function handler(event: LambdaEvent) {
     );
 
     if (cached) {
-      // Cross-user cache hit: still count against the requesting user's quota
+      // Cross-user cache hit: create a record for this user and count against their quota
       if (!cached.isOwnCache) {
+        await convex.mutation(api.transcriptions.createTranscription, {
+          webhookSecret,
+          externalId: clerkUserId,
+          reelId: body.reelId,
+          reelUrl: body.reelUrl,
+          text: cached.text,
+          altText: cached.altText,
+          language: cached.language ?? "unknown",
+          durationSeconds: cached.durationSeconds ?? 0,
+        });
         await convex.mutation(api.transcriptions.incrementTranscriptionUsage, {
           webhookSecret,
           externalId: clerkUserId,
