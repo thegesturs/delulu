@@ -4,11 +4,11 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import Link from "next/link";
+import { api } from "@/trpc/react";
 
 const PORTAL_URL = process.env.NEXT_PUBLIC_AFFONSO_PORTAL_URL || "#";
 
@@ -74,105 +74,100 @@ const faqs = [
   },
 ];
 
+function EmbeddedDashboard() {
+  const { data } = api.affiliate.getEmbedToken.useQuery(undefined, {
+    retry: false,
+  });
+
+  if (!data?.token) {
+    return null;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <iframe
+        allow="clipboard-write"
+        className="h-[600px] w-full border-0"
+        src={`https://affonso.io/embed/referrals?token=${data.token}&theme=system`}
+        title="Affiliate Dashboard"
+      />
+    </div>
+  );
+}
+
 export default function AffiliatesClient() {
   return (
-    <div className="container mx-auto h-full max-w-5xl space-y-10 overflow-y-auto px-2 py-8">
+    <div className="mx-auto h-full max-w-5xl space-y-8 overflow-y-auto px-4 py-8">
       {/* Header */}
       <div>
-        <h1 className="font-bold text-3xl tracking-tight">Affiliate Program</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="font-bold text-3xl tracking-tight">Refer & Earn</h1>
+        <p className="mt-1 text-muted-foreground">
           Earn recurring commissions by referring others to Delulu Social
         </p>
       </div>
 
-      {/* CTA Card */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            Start Earning with Delulu Social
-          </CardTitle>
-          <CardDescription className="text-base">
-            Share your unique link, and earn a commission every time someone you
-            refer subscribes. No cap, no catch.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild size="lg">
-            <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
-              Open Affiliate Portal
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Embedded Affiliate Dashboard */}
+      <EmbeddedDashboard />
+
+      {/* CTA */}
+      <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <div className="flex-1">
+          <p className="font-medium">
+            Share your unique link and earn a commission on every referral.
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
+            Open Portal
+          </Link>
+        </Button>
+      </div>
 
       {/* How It Works */}
       <div>
-        <h2 className="mb-6 font-bold text-2xl">How It Works</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <h2 className="mb-4 font-semibold text-xl">How It Works</h2>
+        <div className="grid gap-3 md:grid-cols-3">
           {steps.map((s) => (
-            <Card key={s.step}>
-              <CardHeader>
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
-                  {s.step}
-                </div>
-                <CardTitle className="text-lg">{s.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{s.description}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-lg border p-4" key={s.step}>
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-sm">
+                {s.step}
+              </div>
+              <h3 className="mb-1 font-medium text-sm">{s.title}</h3>
+              <p className="text-muted-foreground text-xs">{s.description}</p>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Benefits */}
+      {/* Why Join */}
       <div>
-        <h2 className="mb-6 font-bold text-2xl">Why Join?</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <h2 className="mb-4 font-semibold text-xl">Why Join?</h2>
+        <div className="grid gap-3 md:grid-cols-2">
           {benefits.map((b) => (
-            <Card key={b.title}>
-              <CardHeader>
-                <CardTitle className="text-base">{b.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{b.description}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-lg border p-4" key={b.title}>
+              <h3 className="mb-1 font-medium text-sm">{b.title}</h3>
+              <p className="text-muted-foreground text-xs">{b.description}</p>
+            </div>
           ))}
         </div>
       </div>
 
       {/* FAQ */}
       <div>
-        <h2 className="mb-6 font-bold text-2xl">Frequently Asked Questions</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <h2 className="mb-4 font-semibold text-xl">FAQ</h2>
+        <div className="grid gap-3 md:grid-cols-2">
           {faqs.map((f) => (
-            <Card key={f.q}>
-              <CardHeader>
-                <CardTitle className="text-base">{f.q}</CardTitle>
+            <Card className="shadow-none" key={f.q}>
+              <CardHeader className="p-4 pb-1">
+                <CardTitle className="text-sm">{f.q}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-sm">{f.a}</p>
+              <CardContent className="px-4 pb-4">
+                <p className="text-muted-foreground text-xs">{f.a}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
-
-      {/* Bottom CTA */}
-      <Card className="text-center">
-        <CardContent className="py-10">
-          <h3 className="mb-2 font-bold text-xl">Ready to Start Earning?</h3>
-          <p className="mb-6 text-muted-foreground">
-            Join the affiliate program and get your referral link today.
-          </p>
-          <Button asChild size="lg">
-            <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
-              Join the Affiliate Program
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

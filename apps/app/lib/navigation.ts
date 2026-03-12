@@ -46,9 +46,10 @@ export const navigationItems = [
     dataTour: undefined,
   },
   {
-    title: "Affiliates",
+    title: "Refer & Earn",
     url: "/affiliates",
     icon: Affiliate,
     dataTour: undefined,
+    flag: "affiliates" as const,
   },
 ];
