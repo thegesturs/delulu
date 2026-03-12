@@ -616,7 +616,7 @@ export const createCheckoutSession = action({
       });
 
       const metadata: Record<string, string> = {};
-      if (args.affonsoReferral) {
+      if (args.affonsoReferral && args.affonsoReferral.length <= 128) {
         metadata.affonso_referral = args.affonsoReferral;
       }
 

@@ -26,8 +26,8 @@ import {
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getAffonsoReferral } from "@/hooks/use-affonso-referral";
 import { useCurrency } from "@/hooks/use-currency";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface UpgradePromptProps {
   feature: string;

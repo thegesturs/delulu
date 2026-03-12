@@ -10,14 +10,16 @@
  * Priority: cookie > URL parameter (cookie is the canonical source).
  */
 export function getAffonsoReferral(): string | null {
-  if (typeof document === "undefined") return null;
+  if (typeof document === "undefined") {
+    return null;
+  }
 
   // 1. Try the first-party cookie set by the Affonso pixel
   const match = document.cookie
     .split("; ")
     .find((row) => row.startsWith("affonso_referral="));
   if (match) {
-    return match.split("=")[1] ?? null;
+    return match.substring(match.indexOf("=") + 1) || null;
   }
 
   // 2. Fall back to a URL parameter (cross-domain hand-off)

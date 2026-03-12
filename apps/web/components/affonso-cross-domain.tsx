@@ -17,18 +17,24 @@ export function AffonsoCrossDomain() {
       .split("; ")
       .find((row) => row.startsWith("affonso_referral="));
 
-    if (!cookie) return;
+    if (!cookie) {
+      return;
+    }
 
-    const referralId = cookie.split("=")[1];
-    if (!referralId) return;
+    const referralId = cookie.substring(cookie.indexOf("=") + 1);
+    if (!referralId) {
+      return;
+    }
 
-    const appHost = process.env.NEXT_PUBLIC_APP_URL ?? "solulu.delulu.social";
+    const appHost =
+      process.env.NEXT_PUBLIC_APP_URL ?? "https://solulu.delulu.social";
+    const appHostname = new URL(appHost).hostname;
 
     const links = document.querySelectorAll<HTMLAnchorElement>("a[href]");
     for (const link of links) {
       try {
         const url = new URL(link.href);
-        if (url.hostname === new URL(appHost).hostname) {
+        if (url.hostname === appHostname) {
           url.searchParams.set("aff", referralId);
           link.href = url.toString();
         }

@@ -17,9 +17,9 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
       {process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID && (
         <script
           async
-          defer
           data-affonso={process.env.NEXT_PUBLIC_AFFONSO_PROGRAM_ID}
           data-cookie_duration="90"
+          defer
           src="https://affonso.io/js/pixel.min.js"
         />
       )}

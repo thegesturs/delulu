@@ -22,8 +22,7 @@ const steps = [
   {
     step: "2",
     title: "Get Your Link",
-    description:
-      "Grab your unique referral link from the affiliate dashboard.",
+    description: "Grab your unique referral link from the affiliate dashboard.",
   },
   {
     step: "3",
@@ -80,9 +79,7 @@ export default function AffiliatesClient() {
     <div className="container mx-auto h-full max-w-5xl space-y-10 overflow-y-auto px-2 py-8">
       {/* Header */}
       <div>
-        <h1 className="font-bold text-3xl tracking-tight">
-          Affiliate Program
-        </h1>
+        <h1 className="font-bold text-3xl tracking-tight">Affiliate Program</h1>
         <p className="mt-2 text-muted-foreground">
           Earn recurring commissions by referring others to Delulu Social
         </p>
@@ -99,15 +96,10 @@ export default function AffiliatesClient() {
             refer subscribes. No cap, no catch.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 sm:flex-row">
+        <CardContent>
           <Button asChild size="lg">
             <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
               Open Affiliate Portal
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
-              Sign Up as Affiliate
             </Link>
           </Button>
         </CardContent>

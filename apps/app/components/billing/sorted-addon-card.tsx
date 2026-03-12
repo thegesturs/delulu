@@ -15,7 +15,7 @@ import { getSortedProductId } from "@delulu/payments/product-ids";
 import { useAction, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getAffonsoReferral } from "@/hooks/use-affonso-referral";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 const SORTED_PRODUCT_ID = getSortedProductId();
 

@@ -16,7 +16,7 @@ import {
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getAffonsoReferral } from "@/hooks/use-affonso-referral";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface CheckoutButtonProps
   extends Omit<React.ComponentProps<"button">, "onClick" | "disabled"> {

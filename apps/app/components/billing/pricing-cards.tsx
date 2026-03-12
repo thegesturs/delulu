@@ -30,9 +30,9 @@ import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { getAffonsoReferral } from "@/hooks/use-affonso-referral";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
+import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface PricingCardsProps {
   productIds?: Record<PlanType, { monthly: string; yearly: string }>;
