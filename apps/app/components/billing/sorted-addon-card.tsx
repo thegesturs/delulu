@@ -15,6 +15,7 @@ import { getSortedProductId } from "@delulu/payments/product-ids";
 import { useAction, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { getAffonsoReferral } from "@/hooks/use-affonso-referral";
 
 const SORTED_PRODUCT_ID = getSortedProductId();
 
@@ -41,6 +42,7 @@ export function SortedAddonCard() {
       const { checkout_url } = await createCheckout({
         productId: SORTED_PRODUCT_ID,
         returnUrl: `${window.location.origin}/billing?status=succeeded`,
+        affonsoReferral: getAffonsoReferral() ?? undefined,
       });
       window.location.href = checkout_url;
     } catch (error) {

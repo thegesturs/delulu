@@ -194,6 +194,23 @@ export function useOnboarding() {
       const result = await completeOnboarding();
 
       if (result.success) {
+        // Track signup with Affonso for affiliate attribution
+        if (
+          typeof window !== "undefined" &&
+          user?.primaryEmailAddress?.emailAddress &&
+          (window as Record<string, unknown>).Affonso
+        ) {
+          try {
+            (
+              (window as Record<string, unknown>).Affonso as {
+                signup: (email: string) => void;
+              }
+            ).signup(user.primaryEmailAddress.emailAddress);
+          } catch {
+            // Affonso tracking is non-critical
+          }
+        }
+
         // Reload user data to get updated metadata
         await user?.reload();
         toast.success("Welcome to Delulu Social! 🎉");
