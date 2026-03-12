@@ -1,4 +1,5 @@
 import {
+  Affiliate,
   Calendar,
   CreditCard,
   Draft,
@@ -42,6 +43,12 @@ export const navigationItems = [
     title: "Billing",
     url: "/billing",
     icon: CreditCard,
+    dataTour: undefined,
+  },
+  {
+    title: "Affiliates",
+    url: "/affiliates",
+    icon: Affiliate,
     dataTour: undefined,
   },
 ];
