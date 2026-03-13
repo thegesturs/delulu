@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
         refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
         profileId: userObject.user_id,
         username: userObject.username,
-        fullName: userObject.name,
+        fullName: userObject.name || userObject.username || "Instagram User",
         profileImage: userObject.profile_picture_url,
         isActive: true,
       },
