@@ -30,23 +30,33 @@ async function subscribeToWebhooks(
   profileId: string,
   accessToken: string
 ): Promise<void> {
+  const url = `https://graph.instagram.com/v24.0/${profileId}/subscribed_apps?subscribed_fields=comments,messages&access_token=${accessToken}`;
+  console.log(
+    `[instagram] Subscribing to webhooks for ${profileId}, url: ${url.replace(accessToken, "REDACTED")}`
+  );
   try {
-    const response = await fetchWithTimeout(
-      `https://graph.instagram.com/v24.0/${profileId}/subscribed_apps?subscribed_fields=comments,messages&access_token=${accessToken}`,
-      { method: "POST" }
+    const response = await fetchWithTimeout(url, { method: "POST" });
+    const body = await response.text();
+
+    console.log(
+      `[instagram] Webhook subscribe response for ${profileId}: status=${response.status} body=${body}`
     );
 
     if (!response.ok) {
-      const text = await response.text();
-      console.warn(
-        `[instagram] Failed to subscribe webhooks for ${profileId}: ${response.status} ${text}`
+      console.error(
+        `[instagram] Failed to subscribe webhooks for ${profileId}: ${response.status} ${body}`
       );
       return;
     }
 
-    console.log(`[instagram] Subscribed to webhooks for ${profileId}`);
+    console.log(
+      `[instagram] Successfully subscribed to webhooks for ${profileId}`
+    );
   } catch (error) {
-    console.warn("[instagram] Error subscribing to webhooks:", error);
+    console.error(
+      "[instagram] Error subscribing to webhooks:",
+      error instanceof Error ? error.message : error
+    );
   }
 }
 
@@ -183,9 +193,15 @@ export async function GET(request: NextRequest) {
     }
 
     const userObject = (await userResponse.json()) as InstagramUserResponse;
+    console.log(
+      `[instagram] User profile fetched: id=${userObject.id} user_id=${userObject.user_id} username=${userObject.username} name=${userObject.name}`
+    );
 
     // Use Convex upsertSocialProvider to handle creation/update and potential account transfers
     // Use user_id (IG_ID) as profileId - works for both API calls and webhook entry.id matching
+    console.log(
+      `[instagram] Upserting social provider for profileId=${userObject.user_id}`
+    );
     const status = await fetchMutation(
       api.social_providers.upsertSocialProvider,
       {
@@ -201,11 +217,20 @@ export async function GET(request: NextRequest) {
       },
       { token }
     );
+    console.log(
+      `[instagram] Upsert result: status=${status} for profileId=${userObject.user_id}`
+    );
 
-    // Subscribe to webhook fields (non-blocking — don't fail the callback)
+    // Subscribe to webhook fields
+    console.log(
+      `[instagram] About to subscribe to webhooks for profileId=${userObject.user_id}`
+    );
     await subscribeToWebhooks(
       userObject.user_id,
       longLivedTokenData.access_token
+    );
+    console.log(
+      `[instagram] Webhook subscription call completed for profileId=${userObject.user_id}`
     );
 
     // Handle different response statuses
