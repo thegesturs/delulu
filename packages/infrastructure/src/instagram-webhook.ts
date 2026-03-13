@@ -195,26 +195,39 @@ async function checkIsFollower(
   accessToken: string,
   instagramUserId: string
 ): Promise<boolean> {
+  console.log(
+    `[follower-check] Checking follower status for user ${instagramUserId}`
+  );
   try {
-    // Use the Instagram Messaging API's user profile endpoint
-    // which includes is_user_follow_business for users in conversation
     const response = await fetch(
       `https://graph.instagram.com/v24.0/${instagramUserId}?fields=is_user_follow_business&access_token=${accessToken}`
     );
+    const body = await response.text();
+
+    console.log(
+      `[follower-check] Response for user ${instagramUserId}: status=${response.status} body=${body}`
+    );
 
     if (!response.ok) {
-      console.warn(
-        `[follower-check] API returned ${response.status} for user ${instagramUserId}`
+      console.error(
+        `[follower-check] API error for user ${instagramUserId}: ${response.status} ${body}`
       );
       return false;
     }
 
-    const data = (await response.json()) as {
+    const data = JSON.parse(body) as {
       is_user_follow_business?: boolean;
     };
-    return data.is_user_follow_business ?? false;
+    const isFollower = data.is_user_follow_business ?? false;
+    console.log(
+      `[follower-check] User ${instagramUserId} is_follower=${isFollower}`
+    );
+    return isFollower;
   } catch (e) {
-    console.warn("[follower-check] Failed to check follower status:", e);
+    console.error(
+      "[follower-check] Failed to check follower status:",
+      e instanceof Error ? e.message : e
+    );
     return false;
   }
 }

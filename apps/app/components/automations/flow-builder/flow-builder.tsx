@@ -119,7 +119,11 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
       firstStepId,
       notes: tNotes,
       nodePositions: tPositions,
-    } = template.buildSteps();
+    } = template.buildSteps({
+      instagramUsername:
+        socialProviders?.find((p) => p.socialType === "INSTAGRAM")?.username ??
+        undefined,
+    });
 
     setSteps(tSteps);
     setNotes(tNotes);
