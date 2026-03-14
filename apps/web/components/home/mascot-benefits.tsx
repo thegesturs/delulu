@@ -30,17 +30,17 @@ export function MascotBenefits() {
     },
     {
       image: "/images/delulu/happy.png",
-      title: "Comments \u2192 DMs \u2192 Sales.",
-      subtitle: "Your posts sell while you sleep.",
+      title: "Comments \u2192 DMs \u2192 Followers.",
+      subtitle: "Your posts grow your audience while you sleep.",
       description:
-        "Set a keyword trigger. When someone comments it, Delulu sends them a DM with your link and replies to their comment. The leads come to you.",
+        "Set a keyword trigger. When someone comments it, Delulu sends them a DM with your link and replies to their comment. The followers come to you.",
       badge: "Superpower #2",
     },
     {
       image: "/images/delulu/shill.png",
       title: `Save ${savings} every month.`,
       subtitle: `Buffer ($15) + ManyChat ($67) = $82. Delulu = ${deluluPrice}.`,
-      description: `That\u2019s ${savingsYearly}/year back in your pocket. Most creators don\u2019t even realize they\u2019re overpaying \u2014 or doing it all manually for free and losing sales.`,
+      description: `That\u2019s ${savingsYearly}/year back in your pocket. Most creators don\u2019t even realize they\u2019re overpaying \u2014 or doing it all manually for free and losing followers.`,
       badge: "The Math",
     },
     {
@@ -70,7 +70,7 @@ export function MascotBenefits() {
               <Balancer>One Tool. Two Superpowers.</Balancer>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-8">
-              <Balancer>Schedule everywhere. Sell on autopilot.</Balancer>
+              <Balancer>Schedule everywhere. Grow on autopilot.</Balancer>
             </p>
           </div>
 
@@ -149,7 +149,7 @@ export function MascotBenefits() {
           <div className="mx-auto mt-20 max-w-3xl text-center">
             <blockquote className="font-medium text-foreground text-xl">
               <Balancer>
-                "The tool that posts your content AND sells your product. For
+                "The tool that posts your content AND grows your audience. For
                 less than a latte."
               </Balancer>
             </blockquote>

@@ -8,9 +8,9 @@ import React from "react";
 import { FaCheck } from "react-icons/fa";
 
 const features = [
-  "Prove your point to a stakeholder",
-  "Validate a hypothesis",
-  "Find topics you need to research",
+  "Grew their following across multiple platforms",
+  "Turned comment sections into communities",
+  "Stopped posting manually and started growing",
 ];
 
 const testimonials = [
@@ -36,7 +36,7 @@ export function Testimonials() {
             </h2>
 
             <p className="max-w-md text-lg text-neutral-600">
-              Creators who stopped posting manually and started selling on
+              Creators who stopped posting manually and started growing on
               autopilot.
             </p>
 

@@ -13,21 +13,21 @@ export function MascotStruggle() {
   const struggles = [
     {
       image: "/images/delulu/drowing-in-tabs.png",
-      title: "You post daily but sales are random.",
+      title: "You post daily but your growth is flat.",
       description:
-        "You're creating content, showing up, doing everything right. But turning followers into buyers? That's a whole different skill \u2014 and it's eating your time.",
+        "You're creating content, showing up, doing everything right. But turning viewers into loyal followers? That's a whole different game \u2014 and it's eating your time.",
     },
     {
       image: "/images/delulu/socials.png",
-      title: "Comments = leads you're ignoring.",
+      title: "Comments = followers you're losing.",
       description:
-        'Someone comments "How much?" or "Link?" on your post. By the time you see it, they\'ve scrolled past. Every missed comment is a missed sale.',
+        'Someone comments "Love this!" or "Send me the link!" on your post. By the time you see it, they\'ve scrolled past. Every missed comment is a missed connection.',
     },
     {
       image: "/images/delulu/laptop.png",
       title: "Copy-paste-post across 6 apps.",
       description:
-        "Instagram, TikTok, LinkedIn, YouTube \u2014 each one needs different formatting. Your \u201cquick post\u201d just became an hour-long chore. And none of it drives DMs.",
+        "Instagram, TikTok, LinkedIn, YouTube \u2014 each one needs different formatting. Your \u201cquick post\u201d just became an hour-long chore. And none of it drives real engagement.",
     },
   ];
 
@@ -48,7 +48,7 @@ export function MascotStruggle() {
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-8">
               <Balancer>
-                The daily grind of every creator who sells on Instagram:
+                The daily grind of every creator trying to grow on Instagram:
               </Balancer>
             </p>
           </div>
@@ -108,7 +108,7 @@ export function MascotStruggle() {
           <div className="mx-auto mt-16 max-w-2xl text-center">
             <p className="font-medium text-foreground text-xl">
               <Balancer>
-                What if posting and selling happened automatically? (It does
+                What if posting and growing happened automatically? (It does
                 now.)
               </Balancer>
             </p>

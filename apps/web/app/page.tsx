@@ -17,21 +17,21 @@ export const generateMetadata = (): Metadata => {
   return createMetadata({
     title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
     description:
-      "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into DM sales. Built for creators who sell. $9.99/mo.",
+      "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
     alternates: {
       canonical: baseUrl,
     },
     openGraph: {
       title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
       description:
-        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into DM sales. Built for creators who sell. $9.99/mo.",
+        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
       description:
-        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into DM sales. Built for creators who sell. $9.99/mo.",
+        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
     },
   });
 };

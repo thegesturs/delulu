@@ -27,9 +27,9 @@ const steps = [
   {
     number: 3,
     image: "/images/delulu/win.png",
-    title: "Comments become customers",
+    title: "Comments become followers",
     description:
-      "Delulu auto-sends them a DM with your link, replies to their comment publicly, and logs everything. You wake up to sales \u2014 not a to-do list.",
+      "Delulu auto-sends them a DM with your link, replies to their comment publicly, and logs everything. You wake up to new followers and conversations \u2014 not a to-do list.",
   },
 ];
 
@@ -55,7 +55,7 @@ export function HowItWorks() {
             </h2>
             <p className="mt-6 text-lg text-muted-foreground leading-8">
               <Balancer>
-                Three steps. Five minutes. You're making money in your sleep.
+                Three steps. Five minutes. You're growing in your sleep.
               </Balancer>
             </p>
           </div>

@@ -20,7 +20,7 @@ export const ctaBenefitsData = [
     alt: "Delulu flipping a coin",
     title: "Schedule + Automate",
     description:
-      "Post across 8 platforms and auto-DM every lead. One tool does what two couldn\u2019t.",
+      "Post across 8 platforms and auto-DM every commenter. One tool does what two couldn\u2019t.",
     imageWidth: "w-24 md:w-28",
   },
   {
@@ -73,7 +73,7 @@ const CTA = () => {
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
               <Balancer>
-                You're Posting Without Selling. Let's Fix That.
+                You're Posting Without Growing. Let's Fix That.
               </Balancer>
             </h2>
           </div>
