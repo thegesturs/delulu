@@ -161,10 +161,10 @@ export function ReelCard({ reel, rank }: ReelCardProps) {
       const message =
         err instanceof Error ? err.message : "Transcription failed";
       if (message === "NOT_SIGNED_IN") {
-        setTranscriptionError("Sign in via the Sorted popup to transcribe");
+        setTranscriptionError("Sign in via the Sorted extension to transcribe");
       } else if (message === "QUOTA_EXCEEDED") {
         setTranscriptionError(
-          "Free limit reached — subscribe in the Sorted popup"
+          "Free limit reached — subscribe in the Sorted extension"
         );
       } else if (message === "HARD_LIMIT_REACHED") {
         setTranscriptionError(

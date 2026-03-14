@@ -36,7 +36,12 @@ export function extractUsername(
   url: string = window.location.href
 ): string | null {
   const match = url.match(USERNAME_REGEX);
-  if (!match || match[1] === "reel" || match[1] === "p") {
+  if (
+    !match ||
+    match[1] === "reel" ||
+    match[1] === "reels" ||
+    match[1] === "p"
+  ) {
     return null;
   }
   return match[1];

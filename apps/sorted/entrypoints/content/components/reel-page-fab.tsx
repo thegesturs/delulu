@@ -8,7 +8,7 @@ import { transcribeReel } from "../utils/transcription-api";
 import { resolveVideoUrl } from "./reel-card";
 
 // Extract reel/post ID from URL like /reel/CODE/ or /p/CODE/
-const REEL_ID_REGEX = /\/(?:reel|p)\/([^/?]+)/;
+const REEL_ID_REGEX = /\/(?:reels?|p)\/([^/?]+)/;
 
 function getReelDataFromUrl(): ReelData | null {
   const match = window.location.href.match(REEL_ID_REGEX);
@@ -52,7 +52,7 @@ export function ReelPageFab() {
         err instanceof Error ? err.message : "Transcription failed";
       setState("error");
       if (message === "NOT_SIGNED_IN") {
-        setErrorMsg("Sign in via the Sorted popup");
+        setErrorMsg("Sign in via the Sorted extension");
       } else if (message === "QUOTA_EXCEEDED") {
         setErrorMsg("Free limit reached");
       } else {
@@ -69,7 +69,7 @@ export function ReelPageFab() {
     state === "loading"
       ? "Transcribing..."
       : state === "done"
-        ? "Done — check popup"
+        ? "Done — check extension"
         : state === "error"
           ? errorMsg
           : "Transcribe";
