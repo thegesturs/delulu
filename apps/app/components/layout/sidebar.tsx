@@ -1,5 +1,6 @@
 "use client";
 import { UserButton } from "@delulu/auth";
+import { Logo, LogoIcon } from "@delulu/design-system/components/logo";
 import { ModeToggle } from "@delulu/design-system/components/mode-toggle";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -76,7 +77,13 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         variant="inset"
       >
         <SidebarHeader className="p-4">
-          {/* <OrganizationSwitcher /> */}
+          <Link
+            className="mb-2 flex items-center group-data-[state=collapsed]:justify-center"
+            href="/"
+          >
+            <Logo className="group-data-[state=collapsed]:hidden" />
+            <LogoIcon className="hidden size-7 group-data-[state=collapsed]:block" />
+          </Link>
           <Button
             asChild
             className="flex w-full items-center group-data-[state=collapsed]:hidden"
