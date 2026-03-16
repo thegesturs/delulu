@@ -54,10 +54,14 @@ export function validateFlow(
     errors.push("Flow must have at least one Send DM step");
   }
 
-  // 5. All Send DM steps must have a message
+  // 5. All Send DM steps must have a message or voice note
   for (const step of sendDmSteps) {
-    if (step.type === "send_dm" && !step.messageTemplate.trim()) {
-      errors.push("All Send DM steps must have a message");
+    if (
+      step.type === "send_dm" &&
+      !step.messageTemplate.trim() &&
+      !step.voiceNoteUrl
+    ) {
+      errors.push("All Send DM steps must have a message or voice note");
       break;
     }
   }
@@ -91,6 +95,15 @@ export function validateFlow(
       }
     }
     if (errors.length > 0) {
+      break;
+    }
+  }
+
+  // 7a. Delay steps must have duration > 0
+  const delaySteps = steps.filter((s) => s.type === "delay");
+  for (const step of delaySteps) {
+    if (step.type === "delay" && step.duration <= 0) {
+      errors.push("Delay steps must have a duration greater than 0");
       break;
     }
   }
@@ -156,6 +169,10 @@ function getReachableSteps(
             stack.push(btn.nextStepId);
           }
         }
+      }
+    } else if (step.type === "delay") {
+      if (step.nextStepId) {
+        stack.push(step.nextStepId);
       }
     }
   }

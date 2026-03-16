@@ -220,13 +220,12 @@ export const deleteFromClerk = internalMutation({
   async handler(ctx, { clerkUserId }) {
     const user = await userByExternalId(ctx, clerkUserId);
 
-    if (user !== null) {
-      // Use existing deleteUser logic for cascade delete
-      await deleteUserInternal(ctx, user._id);
-    } else {
+    if (user === null) {
       // Log warning - user not found for deletion
       throw new Error(`User not found for Clerk user ID: ${clerkUserId}`);
     }
+    // Use existing deleteUser logic for cascade delete
+    await deleteUserInternal(ctx, user._id);
   },
 });
 

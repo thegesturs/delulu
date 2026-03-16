@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import {
   automationCreateSchema,
   automationSchema,
@@ -715,6 +720,149 @@ export const upsertContact = mutation({
 /**
  * Check if a contact has email stored (called by Lambda for has_email condition)
  */
+// ============================================================================
+// Internal Functions (called by scheduledDms actions, no webhook auth needed)
+// ============================================================================
+
+export const getAutomationInternal = internalQuery({
+  args: { automationId: v.id("automations") },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.automationId);
+  },
+});
+
+export const getProviderDataInternal = internalQuery({
+  args: { instagramAccountId: v.string() },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const provider = await ctx.db
+      .query("socialProviders")
+      .withIndex("by_profile_id", (q) =>
+        q.eq("profileId", args.instagramAccountId)
+      )
+      .first();
+
+    if (!provider || provider.socialType !== "INSTAGRAM") {
+      return null;
+    }
+
+    const user = await ctx.db.get(provider.userId!);
+    if (!user) {
+      return null;
+    }
+
+    let planType: "FREE" | "VIBE" | "ECHO" = "FREE";
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription && subscription.status === "ACTIVE") {
+        planType = subscription.planType as "FREE" | "VIBE" | "ECHO";
+      }
+    }
+
+    const accessToken = await decryptData(provider.accessToken);
+
+    return {
+      accessToken,
+      profileId: provider.profileId,
+      userId: user._id,
+      socialProviderId: provider._id,
+      planType,
+    };
+  },
+});
+
+export const recordDMSentInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    automationId: v.id("automations"),
+    sessionId: v.id("automationSessions"),
+    stepId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const now = getCurrentTimestamp();
+
+    const user = await ctx.db.get(args.userId);
+    if (user) {
+      await ctx.db.patch(args.userId, {
+        usage: {
+          ...user.usage,
+          dmsSent: user.usage.dmsSent ? user.usage.dmsSent + 1 : 1,
+        },
+        updatedAt: now,
+      });
+    }
+
+    const automation = await ctx.db.get(args.automationId);
+    if (automation) {
+      await ctx.db.patch(args.automationId, {
+        totalTriggered: automation.totalTriggered + 1,
+        totalDMsSent: automation.totalDMsSent + 1,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.insert("automationLogs", {
+      automationId: args.automationId,
+      userId: args.userId,
+      instagramCommentId: `delayed-dm:${args.sessionId}:${args.stepId}`,
+      status: "DM_SENT",
+      createdAt: now,
+    });
+
+    return null;
+  },
+});
+
+export const updateSessionInternal = internalMutation({
+  args: {
+    sessionId: v.id("automationSessions"),
+    currentStepId: v.optional(v.string()),
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("completed"), v.literal("expired"))
+    ),
+    variables: v.optional(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const now = getCurrentTimestamp();
+    const patch: Record<string, unknown> = { lastActivityAt: now };
+
+    if (args.currentStepId !== undefined) {
+      patch.currentStepId = args.currentStepId;
+    }
+    if (args.status !== undefined) {
+      patch.status = args.status;
+    }
+    if (args.variables !== undefined) {
+      patch.variables = args.variables;
+    }
+
+    await ctx.db.patch(args.sessionId, patch);
+    return null;
+  },
+});
+
+export const saveDelayScheduleId = internalMutation({
+  args: {
+    sessionId: v.id("automationSessions"),
+    scheduleId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (session) {
+      const variables = (session.variables as Record<string, unknown>) || {};
+      await ctx.db.patch(args.sessionId, {
+        variables: { ...variables, _delayScheduleId: args.scheduleId },
+        lastActivityAt: getCurrentTimestamp(),
+      });
+    }
+    return null;
+  },
+});
+
 export const checkContactHasEmail = query({
   args: {
     webhookSecret: v.string(),

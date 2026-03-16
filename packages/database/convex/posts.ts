@@ -355,10 +355,10 @@ export async function getPostsCore(
           q.eq(q.field("organizationId"), args.organizationId)
         );
       }
-      if (args.isDeleted !== undefined) {
-        query = query.filter((q) => q.eq(q.field("isDeleted"), args.isDeleted));
-      } else {
+      if (args.isDeleted === undefined) {
         query = query.filter((q) => q.eq(q.field("isDeleted"), false));
+      } else {
+        query = query.filter((q) => q.eq(q.field("isDeleted"), args.isDeleted));
       }
     }
 

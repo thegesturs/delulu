@@ -12,11 +12,13 @@ import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
 import { ConditionPanel } from "./panels/condition-panel";
+import { DelayPanel } from "./panels/delay-panel";
 import { SendDmPanel } from "./panels/send-dm-panel";
 import { TriggerPanel } from "./panels/trigger-panel";
 import type {
   AutomationStep,
   ConditionStep,
+  DelayStep,
   Note,
   SendDmStep,
   TriggerStep,
@@ -148,7 +150,12 @@ export function FlowSidebarPanel({
     return null;
   }
 
-  const panelTitle = step.type === "condition" ? "Condition" : "Send DM";
+  const panelTitle =
+    step.type === "condition"
+      ? "Condition"
+      : step.type === "delay"
+        ? "Delay"
+        : "Send DM";
 
   return (
     <Sheet onOpenChange={(o) => !o && onClose()} open>
@@ -192,6 +199,12 @@ export function FlowSidebarPanel({
                     : undefined
                 }
                 step={step as SendDmStep}
+              />
+            )}
+            {step.type === "delay" && (
+              <DelayPanel
+                onChange={(updated) => onUpdateStep(step.id, updated)}
+                step={step as DelayStep}
               />
             )}
           </div>

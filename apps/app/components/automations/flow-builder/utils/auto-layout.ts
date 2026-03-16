@@ -1,5 +1,10 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { AutomationStep, SendDmStep, TriggerStep } from "./flow-types";
+import type {
+  AutomationStep,
+  DelayStep,
+  SendDmStep,
+  TriggerStep,
+} from "./flow-types";
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 80;
@@ -143,6 +148,15 @@ export function stepsToFlow(
             });
           }
         }
+      } else if (step.type === "delay") {
+        if (step.nextStepId && positionedIds.has(step.nextStepId)) {
+          edges.push({
+            id: `edge-${step.id}-${step.nextStepId}`,
+            source: step.id,
+            target: step.nextStepId,
+            type: "smoothstep",
+          });
+        }
       } else if (step.type === "condition") {
         if (step.yesStepId && positionedIds.has(step.yesStepId)) {
           edges.push({
@@ -225,6 +239,13 @@ function buildLayoutTree(
         node.children.push(btnChild);
       }
     }
+  } else if (step.type === "delay") {
+    if (step.nextStepId) {
+      const nextChild = buildLayoutTree(step.nextStepId, stepMap, visited);
+      if (nextChild) {
+        node.children.push(nextChild);
+      }
+    }
   }
 
   return node;
@@ -265,7 +286,7 @@ function layoutStepTree(
       return;
     }
 
-    const nodeType = step.type === "condition" ? "condition" : "send_dm";
+    const nodeType = step.type;
     nodes.push({
       id: step.id,
       type: nodeType,
@@ -321,6 +342,16 @@ function layoutStepTree(
           label,
         });
         walk(branch.nextStepId, visited);
+      }
+    } else if (step.type === "delay") {
+      if (step.nextStepId) {
+        edges.push({
+          id: `edge-${step.id}-${step.nextStepId}`,
+          source: step.id,
+          target: step.nextStepId,
+          type: "smoothstep",
+        });
+        walk(step.nextStepId, visited);
       }
     }
   }
@@ -405,6 +436,14 @@ function positionLayoutNodes(nodes: Node[], startX: number, startY: number) {
         maxY = Math.max(maxY, afterChild);
       }
       return maxY;
+    }
+
+    if (step.type === "delay") {
+      const nextY = currentY + NODE_HEIGHT + VERTICAL_GAP;
+      if (step.nextStepId && nodeMap.has(step.nextStepId)) {
+        return positionNode(step.nextStepId, x, nextY);
+      }
+      return nextY;
     }
 
     return currentY + NODE_HEIGHT + VERTICAL_GAP;

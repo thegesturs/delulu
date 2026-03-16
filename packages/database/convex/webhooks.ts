@@ -7,7 +7,7 @@
 import { getPlanFromProductId } from "@delulu/payments/product-ids";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation } from "./_generated/server";
+import { internalAction, internalMutation } from "./_generated/server";
 import { getCurrentTimestamp } from "./utils";
 
 /**
@@ -135,6 +135,21 @@ export const handleSubscriptionActivated = internalMutation({
       .first();
 
     if (existingSubscription) {
+      // If upgrading from Try Delulu, cancel the pending CallMeLater auto-switch
+      if (
+        existingSubscription.metadata?.isTryDelulu &&
+        existingSubscription.metadata?.tryDeluluScheduleId
+      ) {
+        console.log(
+          "[Webhook] Try Delulu subscription upgraded — cancelling CallMeLater job"
+        );
+        await ctx.scheduler.runAfter(
+          0,
+          internal.callmelater.cancelScheduleAction,
+          { scheduleId: existingSubscription.metadata.tryDeluluScheduleId }
+        );
+      }
+
       // Update existing subscription
       await ctx.runMutation(internal.subscriptions.updateSubscription, {
         id: existingSubscription._id,
@@ -285,12 +300,32 @@ export const handleSubscriptionCancelled = internalMutation({
       );
     }
 
+    // If this is a Try Delulu subscription, schedule cleanup of the CallMeLater job
+    if (
+      subscription.metadata?.isTryDelulu &&
+      subscription.metadata?.tryDeluluScheduleId
+    ) {
+      console.log(
+        "[Webhook] Try Delulu subscription cancelled — scheduling CallMeLater cleanup"
+      );
+      // Store scheduleId before updating metadata
+      const scheduleId = subscription.metadata.tryDeluluScheduleId;
+      // Schedule the action to cancel CallMeLater (can't call actions from mutations)
+      await ctx.scheduler.runAfter(
+        0,
+        internal.callmelater.cancelScheduleAction,
+        { scheduleId }
+      );
+    }
+
     // Update subscription status
     await ctx.runMutation(internal.subscriptions.updateSubscription, {
       id: subscription._id,
       status: "CANCELLED",
       metadata: {
         cancelReason: args.cancellationReason,
+        isTryDelulu: undefined,
+        tryDeluluScheduleId: undefined,
       },
     });
 

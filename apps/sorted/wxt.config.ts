@@ -1,5 +1,8 @@
 import { defineConfig } from "wxt";
 
+const EXTENSION_KEY =
+  "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj/u/XDdjlDyw7gHEtaaasZ9GdG8WOKAyJzXd8HFrDtz2Jcuy7er7MtWvHgNDA0bwpznbI5YdZeV4UfCEsA4SrA5b3MnWTHwA1bgbiDM+L9rrqvcadcKuOlTeN48Q0ijmhHlNFbTzvT9W0zw/GKv8LgXAHggxtmHQ/Z9PP2QNF5O8rUHHSL4AJ6hNcEKSBVSmbbjeVm4gSXDuED5r0nwxvRtupDxGYp8IZpP5KlExqNu1nbkPc+igCTIB6XsqijagzxewUHCdovmkb2JNtskx/PMIEv+TvWIx2BzqGp71gSh/dV7SJ3rClvWd2xj8dtxG8FfAWDTIIi0qZXWn2QhizQIDAQAB";
+
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   dev: {
@@ -8,8 +11,13 @@ export default defineConfig({
     },
   },
   modules: ["@wxt-dev/module-react"],
-  manifest: {
-    key: "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj/u/XDdjlDyw7gHEtaaasZ9GdG8WOKAyJzXd8HFrDtz2Jcuy7er7MtWvHgNDA0bwpznbI5YdZeV4UfCEsA4SrA5b3MnWTHwA1bgbiDM+L9rrqvcadcKuOlTeN48Q0ijmhHlNFbTzvT9W0zw/GKv8LgXAHggxtmHQ/Z9PP2QNF5O8rUHHSL4AJ6hNcEKSBVSmbbjeVm4gSXDuED5r0nwxvRtupDxGYp8IZpP5KlExqNu1nbkPc+igCTIB6XsqijagzxewUHCdovmkb2JNtskx/PMIEv+TvWIx2BzqGp71gSh/dV7SJ3rClvWd2xj8dtxG8FfAWDTIIi0qZXWn2QhizQIDAQAB",
+  manifest: ({ mode }) => ({
+    // dev: dev variables, no key needed (WXT handles it)
+    // staging: prod variables + key (for local testing with consistent extension ID)
+    // production: no key (for Web Store uploads)
+    ...(mode === "development" || mode === "staging"
+      ? { key: EXTENSION_KEY }
+      : {}),
     name: "Sorted - Instagram Reel Sorter",
     description:
       "Sort Instagram reels by likes, views, or comments. Find the most engaging content instantly.",
@@ -37,5 +45,5 @@ export default defineConfig({
         matches: ["*://www.instagram.com/*", "*://instagram.com/*"],
       },
     ],
-  },
+  }),
 });

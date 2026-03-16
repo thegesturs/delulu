@@ -15,9 +15,9 @@ export default $config({
       },
     };
   },
-  // biome-ignore lint/suspicious/useAwait: SST config requires async run
-  async run(input) {
-    const isProduction = input?.stage === "production";
+  async run() {
+    const isProduction = $app.stage === "production";
+    console.log("[SST] stage:", $app.stage, "isProduction:", isProduction);
     // ============================================================================
     // COMMENTED OUT — keeping for potential future large upload support (2GB+ YT videos)
     // ============================================================================

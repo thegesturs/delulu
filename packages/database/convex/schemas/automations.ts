@@ -117,6 +117,7 @@ export const sendDmStepSchema = v.object({
   id: v.string(),
   type: v.literal("send_dm"),
   messageTemplate: v.string(),
+  voiceNoteUrl: v.optional(v.string()),
   buttons: v.optional(v.array(dmButtonSchema)), // max 13 quick replies
   commentReply: v.optional(commentReplySchema),
   nextStepId: v.optional(v.string()),
@@ -124,10 +125,22 @@ export const sendDmStepSchema = v.object({
 
 export type SendDmStep = Infer<typeof sendDmStepSchema>;
 
+// Delay step (timed follow-up)
+export const delayStepSchema = v.object({
+  id: v.string(),
+  type: v.literal("delay"),
+  duration: v.number(),
+  unit: v.union(v.literal("minutes"), v.literal("hours"), v.literal("days")),
+  nextStepId: v.optional(v.string()),
+});
+
+export type DelayStep = Infer<typeof delayStepSchema>;
+
 // Union of all non-trigger steps
 export const automationStepSchema = v.union(
   conditionStepSchema,
-  sendDmStepSchema
+  sendDmStepSchema,
+  delayStepSchema
 );
 
 export type AutomationStep = Infer<typeof automationStepSchema>;

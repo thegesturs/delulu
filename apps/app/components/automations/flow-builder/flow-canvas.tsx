@@ -18,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConditionNode } from "./nodes/condition-node";
+import { DelayNode } from "./nodes/delay-node";
 import { NoteNode } from "./nodes/note-node";
 import { SendDmNode } from "./nodes/send-dm-node";
 import { TriggerNode } from "./nodes/trigger-node";
@@ -26,6 +27,7 @@ const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   condition: ConditionNode,
   send_dm: SendDmNode,
+  delay: DelayNode,
   note: NoteNode,
 };
 

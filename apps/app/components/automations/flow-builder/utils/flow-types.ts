@@ -5,6 +5,7 @@ export type {
   AutomationTriggerType,
   CommentReply,
   ConditionStep,
+  DelayStep,
   DmButton,
   KeywordFilter,
   Note,

@@ -4,7 +4,17 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Separator } from "@delulu/design-system/components/ui/separator";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
+import { Icon } from "@delulu/design-system/providers/icon";
+import {
+  Cancel01Icon,
+  Loading03Icon,
+  Upload04Icon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+import { uploadSingleFile } from "@/hooks/use-upload-media";
 import type { DmButton, SendDmStep } from "../utils/flow-types";
+import { AudioRecorder } from "./audio-recorder";
 import { ButtonEditor } from "./button-editor";
 
 const VARIABLES = [
@@ -36,12 +46,50 @@ export function SendDmPanel({
   onCreateStepForButton,
   onRemoveStepForButton,
 }: SendDmPanelProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const insertVariable = (variable: string) => {
     onChange({
       ...step,
       messageTemplate: step.messageTemplate + variable,
     });
   };
+
+  const handleAudioUpload = useCallback(
+    async (file: File) => {
+      setIsUploading(true);
+      try {
+        const result = await uploadSingleFile(file);
+        onChange({ ...step, voiceNoteUrl: result.url });
+      } catch {
+        toast.error("Failed to upload audio");
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [step, onChange]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      if (!file.type.startsWith("audio/")) {
+        toast.error("Please select an audio file");
+        return;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        toast.error("Audio file must be under 25MB");
+        return;
+      }
+      handleAudioUpload(file);
+      e.target.value = "";
+    },
+    [handleAudioUpload]
+  );
 
   const previewText = renderPreview(step.messageTemplate);
   // All buttons render as template buttons (postback + URL), max 3
@@ -86,12 +134,77 @@ export function SendDmPanel({
         />
       </div>
 
+      {/* Voice Note */}
+      <div className="space-y-2">
+        <Label>Voice Note</Label>
+        {step.voiceNoteUrl ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-2">
+            {/* biome-ignore lint/a11y/useMediaCaption: voice note DM preview, no captions needed */}
+            <audio
+              className="h-8 flex-1"
+              controls
+              preload="metadata"
+              src={step.voiceNoteUrl}
+            />
+            <Button
+              className="shrink-0"
+              onClick={() => onChange({ ...step, voiceNoteUrl: undefined })}
+              size="icon"
+              variant="ghost"
+            >
+              <Icon icon={Cancel01Icon} size={14} />
+            </Button>
+          </div>
+        ) : isUploading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Icon className="animate-spin" icon={Loading03Icon} size={14} />
+            Uploading...
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              accept="audio/*"
+              className="hidden"
+              onChange={handleFileSelect}
+              ref={fileInputRef}
+              type="file"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              size="sm"
+              variant="outline"
+            >
+              <Icon className="mr-1" icon={Upload04Icon} size={14} />
+              Upload Audio
+            </Button>
+            <AudioRecorder onRecordingComplete={handleAudioUpload} />
+          </div>
+        )}
+        <p className="text-muted-foreground text-xs">
+          Sent as audio message before the text. Max 60s for recordings.
+        </p>
+      </div>
+
       {/* Instagram DM Preview */}
       <div className="space-y-2">
         <Label>Preview</Label>
         <div className="overflow-hidden rounded-xl border border-border bg-neutral-100 dark:bg-neutral-900">
           {/* Chat area */}
           <div className="flex min-h-[100px] flex-col justify-end gap-1 px-3 py-3">
+            {step.voiceNoteUrl && (
+              <div className="flex items-end gap-1.5">
+                <div className="mb-0.5 h-6 w-6 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-600" />
+                <div className="rounded-2xl rounded-bl-md bg-white px-3 py-2 shadow-sm dark:bg-neutral-800">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/15">
+                      <span className="text-blue-500 text-xs">🎵</span>
+                    </div>
+                    <div className="h-1 w-24 rounded-full bg-neutral-200 dark:bg-neutral-700" />
+                    <span className="text-[10px] text-neutral-400">0:00</span>
+                  </div>
+                </div>
+              </div>
+            )}
             {previewText ? (
               <>
                 {/* Message bubble + buttons as one card */}
@@ -129,7 +242,7 @@ export function SendDmPanel({
                   </div>
                 </div>
               </>
-            ) : (
+            ) : step.voiceNoteUrl ? null : (
               <p className="text-center text-neutral-400 text-xs">
                 Enter a message above to see the preview
               </p>

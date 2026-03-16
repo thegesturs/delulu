@@ -2,6 +2,7 @@ import { z } from "zod";
 import { affiliateRouter } from "./router/affiliate";
 import { mediaRouter } from "./router/media";
 import { socialProviderRouter } from "./router/social-provider";
+import { subscriptionRouter } from "./router/subscription";
 import { createTRPCRouter, publicProcedure } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   affiliate: affiliateRouter,
   socialProvider: socialProviderRouter,
   media: mediaRouter,
+  subscription: subscriptionRouter,
 });
 
 export type AppRouter = typeof appRouter;

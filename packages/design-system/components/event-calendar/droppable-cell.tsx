@@ -35,15 +35,15 @@ export function DroppableCell({
 
   // Format time for display
   const timeText =
-    time !== undefined
-      ? (() => {
+    time === undefined
+      ? format(date, "MMM d")
+      : (() => {
           const hours = Math.floor(time);
           const minutes = Math.round((time - hours) * 60);
           const cellDateTime = new Date(date);
           cellDateTime.setHours(hours, minutes, 0, 0);
           return format(cellDateTime, "h:mm a");
-        })()
-      : format(date, "MMM d");
+        })();
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: This is a droppable cell with onClick for calendar interaction

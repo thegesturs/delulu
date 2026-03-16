@@ -5,6 +5,7 @@ import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
+  Clock01Icon,
   Comment01Icon,
   Edit01Icon,
   Loading03Icon,
@@ -35,6 +36,7 @@ import type { AutomationStep, Note, TriggerStep } from "./utils/flow-types";
 import { validateFlow } from "./utils/flow-validation";
 import {
   createConditionStep,
+  createDelayStep,
   createId,
   createSendDmStep,
 } from "./utils/step-helpers";
@@ -265,6 +267,13 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     setSelectedStepId(newStep.id);
   }, [setSteps, markDirty, setSelectedStepId]);
 
+  const handleAddDelay = useCallback(() => {
+    const newStep = createDelayStep();
+    setSteps((prev) => [...prev, newStep]);
+    markDirty();
+    setSelectedStepId(newStep.id);
+  }, [setSteps, markDirty, setSelectedStepId]);
+
   const handleAddNote = useCallback(() => {
     const note: Note = {
       id: `note_${createId()}`,
@@ -322,6 +331,8 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
         } else {
           updateStepById(source, { nextStepId: target });
         }
+      } else if (sourceStep.type === "delay") {
+        updateStepById(source, { nextStepId: target });
       }
     },
     [triggers, steps, updateTrigger, updateStepById]
@@ -364,6 +375,8 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
         } else {
           updateStepById(source, { nextStepId: undefined });
         }
+      } else if (sourceStep.type === "delay") {
+        updateStepById(source, { nextStepId: undefined });
       }
     },
     [triggers, steps, updateTrigger, updateStepById]
@@ -657,6 +670,17 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
               <Icon className="text-white" icon={MailSend01Icon} size={12} />
             </div>
             Add Send DM
+          </Button>
+          <Button
+            className="gap-1.5 shadow-md"
+            onClick={handleAddDelay}
+            size="sm"
+            variant="outline"
+          >
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-indigo-500 to-violet-500">
+              <Icon className="text-white" icon={Clock01Icon} size={12} />
+            </div>
+            Add Delay
           </Button>
           <Button
             className="gap-1.5 shadow-md"

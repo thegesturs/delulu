@@ -26,6 +26,7 @@ const PricingCard = ({
   cta = "Get Started",
   currencySymbol,
   isINR,
+  tryDeluluPrice,
 }: {
   planId: PlanType;
   tier: string;
@@ -38,9 +39,17 @@ const PricingCard = ({
   cta?: string;
   currencySymbol: string;
   isINR: boolean;
+  tryDeluluPrice?: number;
 }) => {
   const isFree = monthlyPrice === 0;
-  const price = isFree ? monthlyPrice : isYearly ? yearlyPrice : monthlyPrice;
+  const showTryDelulu = tryDeluluPrice && !isYearly;
+  const price = showTryDelulu
+    ? tryDeluluPrice
+    : isFree
+      ? monthlyPrice
+      : isYearly
+        ? yearlyPrice
+        : monthlyPrice;
   const formatNum = (n: number) =>
     isINR ? Math.round(n).toLocaleString("en-IN") : n.toFixed(2);
 
@@ -61,20 +70,36 @@ const PricingCard = ({
             </h3>
             <p className="text-muted-foreground text-sm">{subtitle}</p>
           </div>
-          <div className="mt-4 flex items-baseline">
+          <div className="mt-4 flex items-baseline gap-2">
             {isFree ? (
               <span className="font-bold text-4xl">Free Forever</span>
             ) : (
               <>
-                <span className="font-bold text-4xl">{currencySymbol}</span>
-                <span className="font-bold text-4xl">{formatNum(price)}</span>
-                <span className="ml-1 text-muted-foreground">
-                  /{isYearly ? "year" : "month"}
+                <span className="font-bold text-4xl">
+                  {currencySymbol}
+                  {formatNum(price)}
                 </span>
+                {showTryDelulu && (
+                  <span className="rounded-full bg-primary px-3 py-1 font-semibold text-primary-foreground text-sm">
+                    Popular
+                  </span>
+                )}
+                {!showTryDelulu && (
+                  <span className="text-muted-foreground">
+                    /{isYearly ? "year" : "month"}
+                  </span>
+                )}
               </>
             )}
           </div>
-          {!isFree && (
+          {showTryDelulu && (
+            <p className="mt-2 text-muted-foreground text-sm">
+              Starts at {currencySymbol}
+              {formatNum(tryDeluluPrice)} for first month, then {currencySymbol}
+              {formatNum(monthlyPrice)}
+            </p>
+          )}
+          {!(showTryDelulu || isFree) && (
             <p className="mt-2 text-muted-foreground text-sm">
               {currencySymbol}0 due today, cancel anytime
             </p>
@@ -253,6 +278,7 @@ export default function Pricing() {
             planId={plan.id}
             subtitle={plan.description}
             tier={plan.name}
+            tryDeluluPrice={undefined}
             yearlyPrice={plan.price[currency].yearly}
           />
         ))}

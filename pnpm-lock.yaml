@@ -202,6 +202,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dodopayments:
+        specifier: ^2.23.2
+        version: 2.23.2
       driver.js:
         specifier: ^1.4.0
         version: 1.4.0
@@ -789,6 +792,9 @@ importers:
       ai:
         specifier: ^4.1.54
         version: 4.3.16(react@19.2.3)(zod@3.25.67)
+      dodopayments:
+        specifier: ^2.23.2
+        version: 2.23.2
       dotenv-cli:
         specifier: ^7.4.1
         version: 7.4.4
@@ -9527,6 +9533,10 @@ packages:
   doctrine@3.0.0:
     resolution: {integrity: sha512-yS+Q5i3hBf7GBkd4KG8a7eBNNWNGLTaEwwYWUijIYM7zrlYDM0BFXHjjPWlWZ1Rg7UaddZeIDmi9jF3HmqiQ2w==}
     engines: {node: '>=6.0.0'}
+
+  dodopayments@2.23.2:
+    resolution: {integrity: sha512-KekzwNChglkSWqyiQKg2nAl8Y6KJe9z94CmHVuqkzcl+PsjSqxDql5QuHxd+ni6FAUz+1qDpstPk0Jb4MBT/Mg==}
+    hasBin: true
 
   dodopayments@2.4.3:
     resolution: {integrity: sha512-lmgnEmBJxE+fFJ37lTQOD9PpCIpvvMXRHfWOFfRL4AxeQ42/QsoPDeGgwUoxYRbdP6jtRQcT/pSh2hQz/XvtVw==}
@@ -21260,7 +21270,7 @@ snapshots:
   '@react-native/community-cli-plugin@0.84.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:
       '@react-native/dev-middleware': 0.84.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      debug: 4.4.1
+      debug: 4.4.3
       invariant: 2.2.4
       metro: 0.83.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       metro-config: 0.83.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -21276,7 +21286,7 @@ snapshots:
   '@react-native/debugger-shell@0.84.0':
     dependencies:
       cross-spawn: 7.0.6
-      debug: 4.4.1
+      debug: 4.4.3
       fb-dotslash: 0.5.8
     transitivePeerDependencies:
       - supports-color
@@ -21289,7 +21299,7 @@ snapshots:
       chrome-launcher: 0.15.2
       chromium-edge-launcher: 0.2.0
       connect: 3.7.0
-      debug: 4.4.1
+      debug: 4.4.3
       invariant: 2.2.4
       nullthrows: 1.1.1
       open: 7.4.2
@@ -25623,6 +25633,10 @@ snapshots:
     dependencies:
       esutils: 2.0.3
 
+  dodopayments@2.23.2:
+    dependencies:
+      standardwebhooks: 1.0.0
+
   dodopayments@2.4.3:
     dependencies:
       standardwebhooks: 1.0.0
@@ -28571,7 +28585,7 @@ snapshots:
 
   metro-file-map@0.83.3:
     dependencies:
-      debug: 4.4.1
+      debug: 4.4.3
       fb-watchman: 2.0.2
       flow-enums-runtime: 0.0.6
       graceful-fs: 4.2.11
@@ -28667,7 +28681,7 @@ snapshots:
       chalk: 4.1.2
       ci-info: 2.0.0
       connect: 3.7.0
-      debug: 4.4.1
+      debug: 4.4.3
       error-stack-parser: 2.1.4
       flow-enums-runtime: 0.0.6
       graceful-fs: 4.2.11

@@ -24,6 +24,7 @@ export function SendDmStepCard({
 }: SendDmStepCardProps) {
   const hasMessage = step.messageTemplate.trim().length > 0;
   const hasButtons = step.buttons && step.buttons.length > 0;
+  const hasVoiceNote = !!step.voiceNoteUrl;
   const hasReply =
     step.commentReply?.enabled && step.commentReply.replies.length > 0;
 
@@ -52,12 +53,17 @@ export function SendDmStepCard({
           </p>
         </div>
       </div>
-      {(hasButtons || hasReply) && (
+      {(hasButtons || hasReply || hasVoiceNote) && (
         <div className="mt-2 flex gap-1.5 pl-12">
+          {hasVoiceNote && (
+            <Badge className="text-[10px]" variant="secondary">
+              Voice
+            </Badge>
+          )}
           {hasButtons && (
             <Badge className="text-[10px]" variant="secondary">
               {step.buttons!.length} button
-              {step.buttons!.length !== 1 ? "s" : ""}
+              {step.buttons!.length === 1 ? "" : "s"}
             </Badge>
           )}
           {hasReply && (

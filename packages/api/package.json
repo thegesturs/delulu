@@ -9,7 +9,8 @@
     "worker": "dotenv -e .env -- tsx watch worker/social-posting.ts"
   },
   "exports": {
-    "./providers/r2": "./providers/r2.provider.ts"
+    "./providers/r2": "./providers/r2.provider.ts",
+    "./lib/dodo": "./lib/dodo.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.20",
@@ -22,6 +23,7 @@
     "@trpc/server": "catalog:",
     "@types/node": "^22.15.34",
     "ai": "^4.1.54",
+    "dodopayments": "^2.23.2",
     "dotenv-cli": "^7.4.1",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",

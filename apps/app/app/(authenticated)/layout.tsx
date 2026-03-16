@@ -9,6 +9,8 @@ import { MobileBottomTabs } from "@/components/layout/mobile-bottom-tabs";
 import { FeatureTour } from "@/components/onboarding/feature-tour";
 import { StoreProvider } from "@/providers/store-provider";
 
+export const dynamic = "force-dynamic";
+
 interface AppLayoutProperties {
   readonly children: ReactNode;
 }

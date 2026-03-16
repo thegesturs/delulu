@@ -56,7 +56,8 @@ export const baseSubscriptionSchema = v.object({
       productId: v.optional(v.string()),
       priceId: v.optional(v.string()),
       cancelReason: v.optional(v.string()),
-      // Extensible for additional metadata
+      isTryDelulu: v.optional(v.boolean()),
+      tryDeluluScheduleId: v.optional(v.string()),
     })
   ),
   updatedAt: v.number(),
@@ -88,6 +89,8 @@ export const subscriptionCreateSchema = v.object({
       productId: v.optional(v.string()),
       priceId: v.optional(v.string()),
       cancelReason: v.optional(v.string()),
+      isTryDelulu: v.optional(v.boolean()),
+      tryDeluluScheduleId: v.optional(v.string()),
     })
   ),
 });
@@ -109,6 +112,8 @@ export const subscriptionUpdateSchema = v.object({
       productId: v.optional(v.string()),
       priceId: v.optional(v.string()),
       cancelReason: v.optional(v.string()),
+      isTryDelulu: v.optional(v.boolean()),
+      tryDeluluScheduleId: v.optional(v.string()),
     })
   ),
   updatedAt: v.optional(v.number()),

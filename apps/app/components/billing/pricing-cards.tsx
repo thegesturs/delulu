@@ -28,11 +28,12 @@ import {
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useAction } from "convex/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
 import { getAffonsoReferral } from "@/lib/affonso-referral";
+import { api as trpc } from "@/trpc/react";
 
 interface PricingCardsProps {
   productIds?: Record<PlanType, { monthly: string; yearly: string }>;
@@ -47,13 +48,31 @@ export function PricingCards({
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
   const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
+  const [pendingPlanSwitch, setPendingPlanSwitch] = useState(false);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const {
     planType: currentPlan,
     billingPeriod: currentBillingPeriod,
+    subscription,
+    isActive: hasActiveSubscription,
     isLoading,
   } = useSubscription();
+  const changePlanMutation = trpc.subscription.changePlan.useMutation();
+
+  // Clear pending state when Convex subscription data changes (webhook processed)
+  const prevProductId = useRef(subscription?.metadata?.productId);
+  useEffect(() => {
+    if (
+      pendingPlanSwitch &&
+      subscription?.metadata?.productId !== prevProductId.current
+    ) {
+      setPendingPlanSwitch(false);
+      setUpgradingPlan(null);
+      toast.success("Plan switched successfully!");
+    }
+    prevProductId.current = subscription?.metadata?.productId;
+  }, [subscription?.metadata?.productId, pendingPlanSwitch]);
 
   const plans = getAllPlans();
 
@@ -90,6 +109,17 @@ export function PricingCards({
     try {
       setLastAttemptTime(now);
       setUpgradingPlan(planType);
+
+      // If user already has an active paid subscription, use changePlan instead of checkout
+      if (currentPlan !== "FREE" && hasActiveSubscription) {
+        await changePlanMutation.mutateAsync({ productId });
+        // Keep upgradingPlan set — it clears when the webhook updates the subscription
+        setPendingPlanSwitch(true);
+        await onUpgradeSuccess?.();
+        return;
+      }
+
+      // New subscription — use checkout flow
       const { checkout_url } = await createCheckout({
         productId,
         returnUrl: `${window.location.origin}/billing`,
@@ -103,9 +133,10 @@ export function PricingCards({
       // Navigate to checkout (this will leave the page)
       window.location.href = checkout_url;
     } catch (error) {
-      console.error("Failed to create checkout:", error);
-      toast.error("Failed to start checkout. Please try again.");
+      console.error("Failed to change plan:", error);
+      toast.error("Failed to change plan. Please try again.");
       setUpgradingPlan(null);
+      setPendingPlanSwitch(false);
     }
   };
 
@@ -175,6 +206,9 @@ export function PricingCards({
 
           // Determine button text
           const getButtonText = () => {
+            if (isUpgrading && pendingPlanSwitch) {
+              return "Switching plan...";
+            }
             if (isUpgrading) {
               return "Loading...";
             }
@@ -188,6 +222,11 @@ export function PricingCards({
             // Same plan type but different billing period
             if (plan.id === currentPlan && !isLoading && !isCurrent) {
               return isAnnual ? "Switch to Annual" : "Switch to Monthly";
+            }
+
+            // Different plan — existing paid subscriber switches, free user upgrades
+            if (currentPlan !== "FREE" && hasActiveSubscription) {
+              return "Switch Plan";
             }
 
             return "Upgrade";
@@ -326,7 +365,9 @@ export function PricingCards({
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={isCurrent || isUpgrading || isLoading}
+                  disabled={
+                    isCurrent || isUpgrading || isLoading || pendingPlanSwitch
+                  }
                   onClick={() => handleUpgrade(plan.id)}
                   size="lg"
                   variant={plan.popular ? "default" : "outline"}

@@ -5,6 +5,7 @@ import type {
   AutomationStep,
   CommentReply,
   ConditionStep,
+  DelayStep,
   DmButton,
   KeywordFilter,
   SendDmStep,
@@ -250,8 +251,11 @@ function renderTemplate(
 interface FlowResult {
   message: string;
   buttons?: DmButton[];
+  voiceNoteUrl?: string;
   /** The send_dm step ID that produced this result (for session tracking) */
   stepId: string;
+  /** The next step after this send_dm (for delay scheduling) */
+  nextStepId?: string;
   /** Condition steps that evaluated false (for session creation — e.g. email collection) */
   failedConditions?: Array<{ stepId: string; operator: string }>;
 }
@@ -289,9 +293,18 @@ async function executeStepFlowFromStep(
       return {
         message: renderTemplate(step.messageTemplate, variables),
         buttons: step.buttons,
+        voiceNoteUrl: step.voiceNoteUrl,
         stepId: step.id,
+        nextStepId: step.nextStepId,
         ...(failedConditions.length > 0 ? { failedConditions } : {}),
       };
+    }
+
+    if (step.type === "delay") {
+      // Skip over delay steps — they're handled by the caller via scheduling
+      // Return the next step after the delay
+      currentId = step.nextStepId;
+      continue;
     }
 
     if (step.type === "condition") {
@@ -372,6 +385,101 @@ async function executeStepFlow(
     return null;
   }
   return { result, trigger };
+}
+
+// ============================================================================
+// Delay Step Detection & Scheduling
+// ============================================================================
+
+function getDelayAfterStep(
+  stepId: string | undefined,
+  steps: AutomationStep[]
+): DelayStep | null {
+  if (!stepId) {
+    return null;
+  }
+  const stepMap = new Map(steps.map((s) => [s.id, s]));
+  const nextStep = stepMap.get(stepId);
+  if (!nextStep || nextStep.type !== "delay") {
+    return null;
+  }
+  return nextStep as DelayStep;
+}
+
+function getDelayMs(delay: DelayStep): number {
+  switch (delay.unit) {
+    case "hours":
+      return delay.duration * 60 * 60 * 1000;
+    case "days":
+      return delay.duration * 24 * 60 * 60 * 1000;
+    default:
+      return delay.duration * 60 * 1000;
+  }
+}
+
+/**
+ * After sending a DM, check if the next step is a delay and schedule it.
+ * Creates/updates a session and calls the Convex scheduleDelayedDmAction.
+ */
+async function scheduleDelayIfNeeded(
+  convex: ConvexHttpClient,
+  secretKey: string,
+  result: FlowResult,
+  steps: AutomationStep[],
+  automationId: string,
+  userId: string,
+  instagramUserId: string,
+  instagramAccountId: string,
+  sessionId: string | null,
+  variables: Record<string, string>,
+  triggerCommentId?: string,
+  triggerMediaId?: string,
+  instagramUsername?: string
+): Promise<void> {
+  const delay = getDelayAfterStep(result.nextStepId, steps);
+  if (!delay?.nextStepId) {
+    return;
+  }
+
+  // Ensure there's a session to track the delayed flow
+  let activeSessionId = sessionId;
+  if (!activeSessionId) {
+    try {
+      activeSessionId = await convex.mutation(api.automations.createSession, {
+        webhookSecret: secretKey,
+        automationId: automationId as Id<"automations">,
+        userId: userId as Id<"users">,
+        instagramUserId,
+        instagramUsername,
+        currentStepId: result.stepId,
+        triggerCommentId,
+        triggerMediaId,
+        variables,
+      });
+    } catch (e) {
+      console.error("[delay] Failed to create session for delay:", e);
+      return;
+    }
+  }
+
+  // Schedule the delayed DM via Convex action (which calls CallMeLater)
+  try {
+    await convex.action(api.scheduledDms.scheduleDelayedFollowup, {
+      webhookSecret: secretKey,
+      automationId: automationId as Id<"automations">,
+      sessionId: activeSessionId as Id<"automationSessions">,
+      instagramUserId,
+      instagramAccountId,
+      resumeFromStepId: delay.nextStepId,
+      delayMs: getDelayMs(delay),
+      variables,
+    });
+    console.log(
+      `[delay] Scheduled delayed DM: ${delay.duration} ${delay.unit} → step ${delay.nextStepId}`
+    );
+  } catch (e) {
+    console.error("[delay] Failed to schedule delayed DM:", e);
+  }
 }
 
 // ============================================================================
@@ -513,8 +621,46 @@ async function sendDirectMessage(
   profileId: string,
   recipient: { comment_id: string } | { id: string },
   message: string,
-  buttons?: DmButton[]
+  buttons?: DmButton[],
+  voiceNoteUrl?: string
 ): Promise<boolean> {
+  // Send voice note as a separate audio attachment first
+  if (voiceNoteUrl) {
+    const audioBody = {
+      recipient,
+      message: {
+        attachment: {
+          type: "audio",
+          payload: { url: voiceNoteUrl },
+        },
+      },
+    };
+
+    const audioResponse = await fetch(
+      `https://graph.instagram.com/v24.0/${profileId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(audioBody),
+      }
+    );
+
+    if (!audioResponse.ok) {
+      const data = (await audioResponse.json()) as {
+        error?: { message?: string };
+      };
+      console.error("Instagram API error (audio):", data.error?.message);
+      return false;
+    }
+
+    // If no text message to send, we're done
+    if (!message.trim() && (!buttons || buttons.length === 0)) {
+      return true;
+    }
+  }
   // biome-ignore lint/suspicious/noExplicitAny: Instagram API body varies
   const body: any = {
     recipient,
@@ -691,7 +837,8 @@ async function processComment(
       data.profileId,
       { comment_id: event.commentId },
       message,
-      prefixedButtons
+      prefixedButtons,
+      result.voiceNoteUrl
     );
 
     if (success) {
@@ -742,6 +889,23 @@ async function processComment(
           console.error("[session] Failed to create session:", e);
         }
       }
+
+      // Schedule delay if next step is a delay
+      await scheduleDelayIfNeeded(
+        convex,
+        secretKey,
+        result,
+        automation.steps,
+        automation._id,
+        data.userId,
+        event.fromId,
+        event.instagramAccountId,
+        null, // session may have been created above
+        variables,
+        event.commentId,
+        event.mediaId,
+        event.username
+      );
 
       // Reply to comment if configured on the trigger
       const commentReply = matchedTrigger.commentReply;
@@ -963,7 +1127,8 @@ async function processMessageEvent(
     automation.profileId,
     { id: event.senderId },
     message,
-    prefixedButtons
+    prefixedButtons,
+    result.voiceNoteUrl
   );
 
   if (success) {
@@ -983,6 +1148,23 @@ async function processMessageEvent(
     } catch (e) {
       console.error("[message] Failed to record DM:", e);
     }
+
+    // Schedule delay if next step is a delay
+    await scheduleDelayIfNeeded(
+      convex,
+      secretKey,
+      result,
+      matchingAutomation.steps,
+      automationId,
+      automation.userId,
+      event.senderId,
+      event.instagramAccountId,
+      session._id,
+      variables,
+      session.triggerCommentId,
+      session.triggerMediaId,
+      session.instagramUsername
+    );
 
     // Update or complete the session
     if (hasBranchingButtons(result.buttons)) {
@@ -1009,7 +1191,7 @@ async function processMessageEvent(
 // ============================================================================
 
 function isValidEmail(text: string): boolean {
-  // biome-ignore lint/performance/useTopLevelRegex: <explanation>
+  // biome-ignore lint/performance/useTopLevelRegex: only used in this helper
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
 }
 
@@ -1177,7 +1359,8 @@ async function processTextMessage(
     providerData.profileId,
     { id: event.senderId },
     message,
-    prefixedButtons
+    prefixedButtons,
+    result.voiceNoteUrl
   );
 
   if (success) {
@@ -1197,6 +1380,23 @@ async function processTextMessage(
     } catch (e) {
       console.error("[text] Failed to record DM:", e);
     }
+
+    // Schedule delay if next step is a delay
+    await scheduleDelayIfNeeded(
+      convex,
+      secretKey,
+      result,
+      matchingAutomation.steps,
+      session.automationId,
+      providerData.userId,
+      event.senderId,
+      event.instagramAccountId,
+      session._id,
+      variables,
+      session.triggerCommentId,
+      session.triggerMediaId,
+      session.instagramUsername
+    );
 
     // Mark session completed (or update if there are branching buttons)
     if (hasBranchingButtons(result.buttons)) {

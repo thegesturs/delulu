@@ -81,6 +81,18 @@ export const PROD_PRODUCT_IDS_INR: Record<
 };
 
 /**
+ * Try Delulu Product IDs (₹99/month for 1 month, then switches to regular ECHO)
+ */
+export const TRY_DELULU_TEST_PRODUCT_ID = "pdt_0NaTthXv7R457bOrYeCHP";
+export const TRY_DELULU_PROD_PRODUCT_ID = "pdt_TODO_CREATE_IN_DODO"; // TODO: Create in Dodo dashboard
+
+/** All Try Delulu product IDs for webhook matching */
+export const ALL_TRY_DELULU_PRODUCT_IDS = [
+  TRY_DELULU_TEST_PRODUCT_ID,
+  TRY_DELULU_PROD_PRODUCT_ID,
+] as const;
+
+/**
  * Sorted Extension Add-on Product IDs (metered, single product)
  */
 export const SORTED_TEST_PRODUCT_ID = "pdt_0NYbkcEzkjqKXheG8mvVT";
@@ -134,7 +146,21 @@ export function getProductId(
 export function getPlanFromProductId(productId: string): {
   planType: Exclude<PlanType, "FREE">;
   billingPeriod: "MONTHLY" | "YEARLY";
+  isTryDelulu?: boolean;
 } | null {
+  // Check Try Delulu product IDs first
+  if (
+    ALL_TRY_DELULU_PRODUCT_IDS.includes(
+      productId as (typeof ALL_TRY_DELULU_PRODUCT_IDS)[number]
+    )
+  ) {
+    return {
+      planType: "ECHO",
+      billingPeriod: "MONTHLY",
+      isTryDelulu: true,
+    };
+  }
+
   const allMaps = [
     TEST_PRODUCT_IDS,
     PROD_PRODUCT_IDS,

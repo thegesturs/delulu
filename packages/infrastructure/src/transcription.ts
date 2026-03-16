@@ -257,13 +257,22 @@ export async function handler(event: LambdaEvent) {
     });
 
     // 10. Log to Dodo Payments metering (fire-and-forget)
-    if (usage.isSortedActive && usage.dodoCustomerId) {
+    console.log("[Transcription] Dodo metering check", {
+      dodoCustomerId: usage.dodoCustomerId,
+      environment: process.env.ENVIRONMENT,
+    });
+    if (usage.dodoCustomerId) {
       try {
         const isProduction = process.env.ENVIRONMENT === "production";
         const dodoBaseUrl = isProduction
-          ? "https://api.dodopayments.com"
+          ? "https://live.dodopayments.com"
           : "https://test.dodopayments.com";
-        await fetch(`${dodoBaseUrl}/events/ingest`, {
+        console.log("[Transcription] Sending Dodo metering event", {
+          url: `${dodoBaseUrl}/events/ingest`,
+          customerId: usage.dodoCustomerId,
+          reelId: body.reelId,
+        });
+        const dodoRes = await fetch(`${dodoBaseUrl}/events/ingest`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${Resource.DODO_PAYMENTS_API_KEY.value}`,
@@ -274,7 +283,7 @@ export async function handler(event: LambdaEvent) {
               {
                 event_id: `transcription_${body.reelId}_${Date.now()}`,
                 customer_id: usage.dodoCustomerId,
-                event_name: "transcription.usage",
+                event_name: "transcription",
                 timestamp: new Date().toISOString(),
                 metadata: {
                   duration_seconds: durationSeconds,
@@ -283,6 +292,11 @@ export async function handler(event: LambdaEvent) {
               },
             ],
           }),
+        });
+        const dodoBody = await dodoRes.text();
+        console.log("[Transcription] Dodo metering response", {
+          status: dodoRes.status,
+          body: dodoBody,
         });
       } catch (e) {
         console.error("[Transcription] Failed to log to Dodo metering:", e);

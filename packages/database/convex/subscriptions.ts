@@ -505,6 +505,8 @@ export const createSubscription = internalMutation({
       v.object({
         productId: v.optional(v.string()),
         priceId: v.optional(v.string()),
+        isTryDelulu: v.optional(v.boolean()),
+        tryDeluluScheduleId: v.optional(v.string()),
       })
     ),
   },
@@ -557,6 +559,8 @@ export const updateSubscription = internalMutation({
         productId: v.optional(v.string()),
         priceId: v.optional(v.string()),
         cancelReason: v.optional(v.string()),
+        isTryDelulu: v.optional(v.boolean()),
+        tryDeluluScheduleId: v.optional(v.string()),
       })
     ),
   },

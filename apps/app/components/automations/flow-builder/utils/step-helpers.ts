@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import type {
   AutomationStep,
   ConditionStep,
+  DelayStep,
   SendDmStep,
   TriggerStep,
 } from "./flow-types";
@@ -36,6 +37,16 @@ export function createSendDmStep(overrides?: Partial<SendDmStep>): SendDmStep {
     id: createId(),
     type: "send_dm",
     messageTemplate: "",
+    ...overrides,
+  };
+}
+
+export function createDelayStep(overrides?: Partial<DelayStep>): DelayStep {
+  return {
+    id: createId(),
+    type: "delay",
+    duration: 30,
+    unit: "minutes",
     ...overrides,
   };
 }
@@ -98,6 +109,12 @@ export function removeStep(
           buttons: cleanedButtons,
         };
       }
+      if (s.type === "delay") {
+        return {
+          ...s,
+          nextStepId: s.nextStepId === id ? undefined : s.nextStepId,
+        };
+      }
       return s;
     });
 }
@@ -157,6 +174,10 @@ export function insertStepAfter(
       oldChildId = s.nextStepId;
       return { ...s, nextStepId: newStep.id };
     }
+    if (s.type === "delay") {
+      oldChildId = s.nextStepId;
+      return { ...s, nextStepId: newStep.id };
+    }
     return s;
   });
 
@@ -165,6 +186,8 @@ export function insertStepAfter(
   if (linkedNewStep.type === "condition") {
     linkedNewStep.yesStepId = oldChildId;
   } else if (linkedNewStep.type === "send_dm") {
+    linkedNewStep.nextStepId = oldChildId;
+  } else if (linkedNewStep.type === "delay") {
     linkedNewStep.nextStepId = oldChildId;
   }
 
