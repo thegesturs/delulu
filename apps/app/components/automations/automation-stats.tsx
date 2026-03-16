@@ -51,24 +51,43 @@ export function AutomationStats({ stats }: AutomationStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {statItems.map((item) => (
-        <Card className="background-blue-sm border-border/50" key={item.label}>
-          <CardContent className="flex items-center gap-3 p-4">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}
-            >
-              <Icon className={item.color} icon={item.icon} size={20} />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground text-xl">
-                {item.value}
-              </p>
-              <p className="text-muted-foreground text-xs">{item.label}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <>
+      {/* Mobile: inline badges */}
+      <div className="flex flex-wrap gap-2 md:hidden">
+        {statItems.map((item) => (
+          <div
+            className={`flex items-center gap-1.5 rounded-full ${item.bgColor} px-2.5 py-1`}
+            key={item.label}
+          >
+            <Icon className={item.color} icon={item.icon} size={12} />
+            <span className="font-medium text-xs">{item.value}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: cards */}
+      <div className="hidden gap-3 md:grid md:grid-cols-4">
+        {statItems.map((item) => (
+          <Card className="border-border/50" key={item.label}>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-lg ${item.bgColor}`}
+              >
+                <Icon className={item.color} icon={item.icon} size={20} />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-xl">
+                  {item.value}
+                </p>
+                <p className="text-muted-foreground text-xs">{item.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }

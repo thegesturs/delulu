@@ -131,8 +131,8 @@ export default function ConnectedAccounts() {
   }
 
   return (
-    <div className="h-screen bg-background">
-      <div className="mx-auto flex max-w-6xl flex-col space-y-6">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <div className="mx-auto flex max-w-6xl flex-col space-y-3 p-4 md:space-y-6 md:p-0">
         <ConnectedAccountsHeader />
         <AccountStats stats={stats} />
         <AccountFilters

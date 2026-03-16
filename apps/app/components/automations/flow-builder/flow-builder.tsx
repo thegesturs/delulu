@@ -3,6 +3,7 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { useIsMobile } from "@delulu/design-system/hooks/use-mobile";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Comment01Icon,
@@ -28,6 +29,7 @@ import { FlowSidebarPanel } from "./flow-sidebar-panel";
 import { FlowToolbar } from "./flow-toolbar";
 import type { NodePositions } from "./hooks/use-automation-state";
 import { useAutomationState } from "./hooks/use-automation-state";
+import { MobileFlowEditor } from "./mobile-flow-editor";
 import { getTemplateBySlug } from "./templates/automation-templates";
 import { TriggerWizard } from "./trigger-wizard/trigger-wizard";
 import { stepsToFlow } from "./utils/auto-layout";
@@ -48,6 +50,7 @@ interface FlowBuilderProps {
 
 function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const { isFree: isFreePlan } = useSubscription();
   const isNew = !automationId;
   const [isSaving, setIsSaving] = useState(false);
@@ -614,6 +617,18 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     );
   }
 
+  if (isMobile) {
+    return (
+      <MobileFlowEditor
+        instagramProviders={instagramProviders}
+        isNew={isNew}
+        isSaving={isSaving}
+        onSave={handleSave}
+        state={state}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <FlowToolbar
@@ -707,6 +722,17 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
 }
 
 export function FlowBuilder({ automationId, templateSlug }: FlowBuilderProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <FlowBuilderInner
+        automationId={automationId}
+        templateSlug={templateSlug}
+      />
+    );
+  }
+
   return (
     <ReactFlowProvider>
       <FlowBuilderInner

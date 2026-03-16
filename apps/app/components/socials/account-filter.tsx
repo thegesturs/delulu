@@ -39,66 +39,62 @@ export function AccountFilters({
   setViewMode,
 }: AccountFiltersProps) {
   return (
-    <div className="rounded-xl border-border bg-card/60 p-4 backdrop-blur-sm">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-          <div className="relative max-w-sm flex-1">
-            <Icon
-              className="absolute top-1/2 left-3 -translate-y-1/2 transform text-muted-foreground"
-              icon={Search01Icon}
-              size={16}
-            />
-            <Input
-              className="border-input bg-background/80 pl-10"
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search accounts..."
-              value={searchQuery}
-            />
-          </div>
+    <div className="flex items-center gap-2">
+      <div className="relative min-w-0 flex-1">
+        <Icon
+          className="absolute top-1/2 left-3 -translate-y-1/2 transform text-muted-foreground"
+          icon={Search01Icon}
+          size={16}
+        />
+        <Input
+          className="pl-9"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search..."
+          value={searchQuery}
+        />
+      </div>
 
-          <Select onValueChange={setFilterPlatform} value={filterPlatform}>
-            <SelectTrigger className="w-full border-input bg-background/80 sm:w-40">
-              <SelectValue placeholder="Platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="TWITTER">Twitter</SelectItem>
-              <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
-            </SelectContent>
-          </Select>
+      <Select onValueChange={setFilterPlatform} value={filterPlatform}>
+        <SelectTrigger className="hidden w-40 sm:flex">
+          <SelectValue placeholder="Platform" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Platforms</SelectItem>
+          <SelectItem value="TWITTER">Twitter</SelectItem>
+          <SelectItem value="LINKEDIN">LinkedIn</SelectItem>
+        </SelectContent>
+      </Select>
 
-          <Select onValueChange={setFilterStatus} value={filterStatus}>
-            <SelectTrigger className="w-full border-input bg-background/80 sm:w-32">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-              <SelectItem value="expiring">Expiring</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <Select onValueChange={setFilterStatus} value={filterStatus}>
+        <SelectTrigger className="hidden w-32 sm:flex">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="expired">Expired</SelectItem>
+          <SelectItem value="expiring">Expiring</SelectItem>
+          <SelectItem value="inactive">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
 
-        <div className="flex items-center gap-2">
-          <Button
-            className="h-9 w-9 p-0"
-            onClick={() => setViewMode("list")}
-            size="sm"
-            variant={viewMode === "list" ? "default" : "outline"}
-          >
-            <Icon className="" icon={Menu01Icon} size={16} />
-          </Button>
-          <Button
-            className="h-9 w-9 p-0"
-            onClick={() => setViewMode("grid")}
-            size="sm"
-            variant={viewMode === "grid" ? "default" : "outline"}
-          >
-            <Icon className="" icon={GridViewIcon} size={16} />
-          </Button>
-        </div>
+      <div className="hidden items-center gap-1 rounded-lg border border-border bg-background p-1 md:flex">
+        <Button
+          className="h-8 px-3"
+          onClick={() => setViewMode("list")}
+          size="sm"
+          variant={viewMode === "list" ? "secondary" : "ghost"}
+        >
+          <Icon icon={Menu01Icon} size={16} />
+        </Button>
+        <Button
+          className="h-8 px-3"
+          onClick={() => setViewMode("grid")}
+          size="sm"
+          variant={viewMode === "grid" ? "secondary" : "ghost"}
+        >
+          <Icon icon={GridViewIcon} size={16} />
+        </Button>
       </div>
     </div>
   );

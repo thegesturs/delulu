@@ -126,12 +126,12 @@ export function ConnectedAccountsHeader() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-3xl text-foreground tracking-tight">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-bold text-foreground text-xl tracking-tight md:text-3xl">
             Connected Accounts
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-0.5 hidden text-muted-foreground text-sm md:block">
             Manage your social media connections and sync settings
           </p>
         </div>

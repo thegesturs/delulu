@@ -38,51 +38,49 @@ export function AutomationFilters({
   setViewMode,
 }: AutomationFiltersProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card/60 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-        {/* Search */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Icon
-            className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-            icon={Search01Icon}
-            size={16}
-          />
-          <Input
-            className="pl-9"
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search automations..."
-            value={searchQuery}
-          />
-        </div>
-
-        {/* Status Filter */}
-        <Select onValueChange={setFilterStatus} value={filterStatus}>
-          <SelectTrigger className="w-full sm:w-32">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Trigger Type Filter */}
-        <Select onValueChange={setFilterTrigger} value={filterTrigger}>
-          <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder="Trigger" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Triggers</SelectItem>
-            <SelectItem value="COMMENT">Comment</SelectItem>
-            <SelectItem value="MENTION">Mention</SelectItem>
-            <SelectItem value="STORY_REPLY">Story Reply</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="flex items-center gap-2">
+      {/* Search */}
+      <div className="relative min-w-0 flex-1">
+        <Icon
+          className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          icon={Search01Icon}
+          size={16}
+        />
+        <Input
+          className="pl-9"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search..."
+          value={searchQuery}
+        />
       </div>
 
+      {/* Status Filter */}
+      <Select onValueChange={setFilterStatus} value={filterStatus}>
+        <SelectTrigger className="hidden w-32 sm:flex">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="inactive">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Trigger Type Filter */}
+      <Select onValueChange={setFilterTrigger} value={filterTrigger}>
+        <SelectTrigger className="hidden w-36 sm:flex">
+          <SelectValue placeholder="Trigger" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Triggers</SelectItem>
+          <SelectItem value="COMMENT">Comment</SelectItem>
+          <SelectItem value="MENTION">Mention</SelectItem>
+          <SelectItem value="STORY_REPLY">Story Reply</SelectItem>
+        </SelectContent>
+      </Select>
+
       {/* View Mode Toggle */}
-      <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+      <div className="hidden items-center gap-1 rounded-lg border border-border bg-background p-1 md:flex">
         <Button
           className="h-8 px-3"
           onClick={() => setViewMode("list")}

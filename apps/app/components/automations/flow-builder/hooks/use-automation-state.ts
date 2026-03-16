@@ -16,6 +16,8 @@ import {
 
 export type NodePositions = Record<string, { x: number; y: number }>;
 
+export type UseAutomationStateReturn = ReturnType<typeof useAutomationState>;
+
 export function useAutomationState() {
   const [triggers, setTriggers] = useState<TriggerStep[]>([]);
   const [steps, setSteps] = useState<AutomationStep[]>([]);

@@ -81,7 +81,7 @@ export function AutomationAnalytics({
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-background">
+    <div className="min-h-screen overflow-y-auto bg-background pb-20 md:pb-0">
       <div className="mx-auto max-w-6xl p-6">
         {/* Header */}
         <div className="mb-6 flex items-center gap-4">

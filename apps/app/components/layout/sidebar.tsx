@@ -247,7 +247,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="max-h-[98vh] flex-grow overflow-hidden pb-16 md:pb-0 dark:border">
+      <SidebarInset className="min-h-[100dvh] flex-grow pb-20 md:max-h-[98vh] md:overflow-hidden md:pb-0 dark:border">
         {children}
       </SidebarInset>
     </>
