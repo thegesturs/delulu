@@ -126,39 +126,39 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
   const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
 
   return (
-    <Card className="group background-blue-sm background-blur shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-card/80 hover:shadow-md">
-      <CardContent className="p-4 py-2">
-        <div className="flex items-center gap-3">
+    <Card className="group gap-0 rounded-none border-x-0 border-t-0 border-b py-2 shadow-none last:border-b-0 hover:bg-muted/30">
+      <CardContent className="px-3 py-1.5 md:px-4 md:py-2.5">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Social Platform Icon */}
           <div className="relative">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+              className={`flex h-7 w-7 items-center justify-center rounded-lg md:h-10 md:w-10 md:rounded-xl ${
                 socialBackgroundColors[
                   account.socialType as keyof typeof socialBackgroundColors
                 ]
               } shadow-sm`}
             >
-              <SocialIcon className="h-5 w-5 text-white" />
+              <SocialIcon className="h-3.5 w-3.5 text-white md:h-5 md:w-5" />
             </div>
             {isAccountExpired && (
-              <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive">
+              <div className="absolute -top-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-destructive md:-top-1 md:-right-1 md:h-4 md:w-4">
                 <Icon
                   className="text-destructive-foreground"
                   icon={Alert01Icon}
-                  size={10}
+                  size={8}
                 />
               </div>
             )}
           </div>
 
           {/* Profile Info */}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Avatar className="size-12 border-2 border-background shadow-sm">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+            <Avatar className="hidden size-8 border border-background md:flex md:size-12 md:border-2 md:shadow-sm">
               <AvatarImage
                 alt={account.fullName || ""}
                 src={account.profileImage || "/placeholder.svg"}
               />
-              <AvatarFallback className="bg-muted text-xs">
+              <AvatarFallback className="bg-muted text-[10px] md:text-xs">
                 {account.fullName
                   ?.split(" ")
                   .map((n) => n[0])
@@ -167,66 +167,57 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
             </Avatar>
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate font-medium text-foreground text-sm">
+              <div className="flex items-center gap-1.5">
+                <p className="truncate font-medium text-foreground text-xs md:text-sm">
                   {account.fullName}
                 </p>
                 {account.isActive && !isAccountExpired ? (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Icon
-                          className="flex-shrink-0 text-green-600 dark:text-green-400"
-                          icon={TickDouble01Icon}
-                          size={14}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          Last synced{" "}
-                          {formatTimeAgo(
-                            account.lastSyncedAt ?? account.updatedAt
-                          )}{" "}
-                          and is active
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Icon
+                    className="flex-shrink-0 text-green-600 dark:text-green-400"
+                    icon={TickDouble01Icon}
+                    size={12}
+                  />
                 ) : (
                   <Icon
                     className="flex-shrink-0 text-muted-foreground"
                     icon={ClockIcon}
-                    size={14}
+                    size={12}
                   />
                 )}
               </div>
-              <p className="truncate text-muted-foreground text-xs">
+              <p className="truncate text-[11px] text-muted-foreground md:text-xs">
                 {account.username}
               </p>
             </div>
           </div>
 
           {/* Status and Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2">
             <div className="text-right">
               {isAccountExpired ? (
-                <Badge className="px-2 py-0.5 text-xs" variant="destructive">
+                <Badge
+                  className="px-1.5 py-0 text-[10px] md:px-2 md:py-0.5 md:text-xs"
+                  variant="destructive"
+                >
                   Expired
                 </Badge>
               ) : isAccountExpiringSoon ? (
-                <Badge className="bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800 hover:bg-yellow-200">
-                  Expires soon
+                <Badge className="bg-yellow-100 px-1.5 py-0 text-[10px] text-yellow-800 hover:bg-yellow-200 md:px-2 md:py-0.5 md:text-xs">
+                  Expiring
                 </Badge>
               ) : account.isActive ? (
-                <Badge className="bg-green-100 px-2 py-0.5 text-green-800 text-xs hover:bg-green-200">
+                <Badge className="bg-green-100 px-1.5 py-0 text-[10px] text-green-800 hover:bg-green-200 md:px-2 md:py-0.5 md:text-xs">
                   Active
                 </Badge>
               ) : (
-                <Badge className="px-2 py-0.5 text-xs" variant="secondary">
+                <Badge
+                  className="px-1.5 py-0 text-[10px] md:px-2 md:py-0.5 md:text-xs"
+                  variant="secondary"
+                >
                   Inactive
                 </Badge>
               )}
-              <p className="mt-1 text-muted-foreground text-xs">
+              <p className="mt-0.5 hidden text-muted-foreground text-xs md:block">
                 {formatTimeAgo(account.lastSyncedAt ?? account.updatedAt)}
               </p>
             </div>
@@ -235,11 +226,11 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-foreground/80 group-hover:opacity-100"
+                  className="h-7 w-7 text-muted-foreground md:h-8 md:w-8 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                   size="icon"
                   variant="ghost"
                 >
-                  <Icon className="" icon={MoreHorizontalIcon} size={16} />
+                  <Icon icon={MoreHorizontalIcon} size={14} />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>

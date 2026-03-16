@@ -4,7 +4,7 @@
  */
 
 import {
-  AiChat02Icon,
+  AiMail01Icon,
   Calendar as CalendarIcon,
   ConnectIcon,
   CreditCard as CreditCardIcon,
@@ -47,7 +47,7 @@ export const Pencil: ComponentType<{ className?: string }> = (props) => (
 );
 
 export const Robot: ComponentType<{ className?: string }> = (props) => (
-  <Icon icon={AiChat02Icon} size={14} {...props} />
+  <Icon icon={AiMail01Icon} size={14} {...props} />
 );
 
 export const Affiliate: ComponentType<{ className?: string }> = (props) => (

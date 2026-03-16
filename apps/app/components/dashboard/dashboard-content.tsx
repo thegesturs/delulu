@@ -63,30 +63,32 @@ export function DashboardContent({
       <PlatformHealthAlert expiredTokens={dashboardStats?.expiredTokens || 0} />
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        <Link href="/automations/new">
-          <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium text-xs transition-colors hover:bg-muted/50">
-            <Icon className="text-primary" icon={MailSend01Icon} size={13} />
-            {hasAutomations ? "New DM Automation" : "Set up DM Automation"}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Link className="block" href="/automations/new">
+          <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
+            <Icon className="text-primary" icon={MailSend01Icon} size={16} />
+            <span className="flex-1">
+              {hasAutomations ? "New DM Automation" : "Set up DM Automation"}
+            </span>
             <Icon
               className="text-muted-foreground"
               icon={ArrowRight01Icon}
-              size={12}
+              size={14}
             />
           </div>
         </Link>
         {hasAutomations && (
-          <Link href="/automations">
-            <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium text-xs transition-colors hover:bg-muted/50">
-              Automations
-              <span className="text-muted-foreground">
+          <Link className="block" href="/automations">
+            <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
+              <span className="flex-1">Automations</span>
+              <span className="text-muted-foreground text-xs">
                 {automations.filter((a) => a.isActive).length}/
                 {automations.length}
               </span>
               <Icon
                 className="text-muted-foreground"
                 icon={ArrowRight01Icon}
-                size={12}
+                size={14}
               />
             </div>
           </Link>

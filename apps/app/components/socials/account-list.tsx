@@ -20,7 +20,7 @@ export function AccountList({
 }: AccountListProps) {
   if (accounts.length === 0) {
     return (
-      <div className="py-6 text-center">
+      <div className="py-2 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <Icon
             className="text-muted-foreground"
@@ -41,8 +41,8 @@ export function AccountList({
       className={cn(
         viewMode === "grid" &&
           "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3",
-        viewMode === "list" && "space-y-3",
-        "max-h-[calc(100vh-370px)] space-y-2 overflow-auto py-2"
+        viewMode === "list" && "overflow-hidden rounded-lg border",
+        "max-h-[calc(100vh-300px)] overflow-auto"
       )}
     >
       {accounts.map((account) => (

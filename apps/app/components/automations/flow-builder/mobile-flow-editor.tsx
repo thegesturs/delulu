@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Separator } from "@delulu/design-system/components/ui/separator";
 import { cn } from "@delulu/design-system/lib/utils";
@@ -12,9 +11,11 @@ import {
   Loading03Icon,
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
+import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
+import { api as TrpcApi } from "@/trpc/react";
 import type { UseAutomationStateReturn } from "./hooks/use-automation-state";
 import { CommentReplyEditor } from "./panels/comment-reply-editor";
 import { SendDmPanel } from "./panels/send-dm-panel";
@@ -78,6 +79,21 @@ export function MobileFlowEditor({
   const dmStep = steps.find((s) => s.type === "send_dm") as
     | SendDmStep
     | undefined;
+
+  // Fetch posts for review preview
+  const { data: allPosts } = TrpcApi.socialProvider.getInstagramPosts.useQuery(
+    { socialProviderId: automationMeta.socialProviderId! },
+    { enabled: !!automationMeta.socialProviderId && currentStep === 4 }
+  );
+
+  const selectedPosts = useMemo(() => {
+    if (!(allPosts && trigger?.targetPostIds?.length)) {
+      return [];
+    }
+    return allPosts.filter((p: { id: string }) =>
+      trigger.targetPostIds.includes(p.id)
+    );
+  }, [allPosts, trigger?.targetPostIds]);
 
   const handleSelectTriggerType = useCallback(
     (type: AutomationTriggerType) => {
@@ -317,90 +333,162 @@ export function MobileFlowEditor({
           )}
 
           {currentStep === 4 && (
-            <div className="space-y-3">
-              <div>
-                <h3 className="font-semibold">Review & Launch</h3>
-                <p className="text-muted-foreground text-xs">
-                  Let&apos;s review once before we launch.
-                </p>
-              </div>
+            <div className="space-y-4">
+              <h3 className="font-semibold text-base">
+                Awesome! Let&apos;s review once before we launch!
+              </h3>
 
-              {/* Narrative review - SuperProfile style */}
-              <div className="space-y-3 text-sm">
-                <p className="font-medium">When someone...</p>
+              {/* When someone... */}
+              <div className="space-y-2 text-sm">
+                <p className="font-semibold">When someone...</p>
                 <p className="text-muted-foreground">
                   {triggerLabel === "Comment"
-                    ? "comments on your post"
+                    ? "comments on this specific post"
                     : triggerLabel === "Story Reply"
                       ? "replies to your story"
-                      : "mentions you"}{" "}
-                  ({trigger?.targetPostIds?.length ?? 0} selected)
+                      : "mentions you"}
                 </p>
 
-                {trigger?.keywordFilter &&
-                  trigger.keywordFilter.operator !== "always" && (
-                    <div className="ml-4 border-border border-l-2 pl-3">
-                      <p className="text-muted-foreground">
-                        and <strong>{trigger.keywordFilter.operator}</strong>{" "}
-                        the keyword{" "}
-                        <Badge
-                          className="font-mono text-xs"
-                          variant="secondary"
-                        >
-                          {trigger.keywordFilter.value}
-                        </Badge>
-                      </p>
-                    </div>
-                  )}
-
-                {trigger?.commentReply?.enabled && (
-                  <div className="ml-4 border-border border-l-2 pl-3">
-                    <p className="text-muted-foreground">
-                      reply to their comment
-                    </p>
-                    <div className="mt-1.5 rounded-lg border bg-muted/30 px-3 py-2">
-                      <p className="text-muted-foreground text-xs italic">
-                        &quot;{trigger.commentReply.replies[0]}&quot;
-                        {trigger.commentReply.replies.length > 1 && (
-                          <span>
-                            {" "}
-                            (+{trigger.commentReply.replies.length - 1} more)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <p className="pt-1 font-medium">Then send a DM...</p>
-
-                {dmStep?.messageTemplate && (
-                  <div className="ml-4 border-border border-l-2 pl-3">
-                    <div className="rounded-lg border bg-muted/30 px-3 py-2">
-                      <p className="whitespace-pre-wrap text-xs leading-relaxed">
-                        {renderPreview(dmStep.messageTemplate)}
-                      </p>
-                      {isFreePlan && (
-                        <p className="mt-1.5 border-border border-t pt-1.5 text-[10px] text-muted-foreground">
-                          - - -<br />
-                          Sent via @delulu.social
-                        </p>
+                {/* Post preview */}
+                {selectedPosts.length > 0 ? (
+                  <div className="ml-5 space-y-2">
+                    {selectedPosts
+                      .slice(0, 3)
+                      .map(
+                        (post: {
+                          id: string;
+                          thumbnailUrl?: string;
+                          caption?: string;
+                        }) => (
+                          <div className="flex items-start gap-2" key={post.id}>
+                            <span className="mt-1 text-muted-foreground/50">
+                              ↳
+                            </span>
+                            <div className="flex items-center gap-2.5 rounded-lg border bg-muted/20 px-2.5 py-2">
+                              {post.thumbnailUrl && (
+                                <Image
+                                  alt=""
+                                  className="h-12 w-12 shrink-0 rounded-md object-cover"
+                                  height={48}
+                                  src={post.thumbnailUrl}
+                                  width={48}
+                                />
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-medium text-[10px] text-muted-foreground uppercase tracking-wider">
+                                  Caption
+                                </p>
+                                <p className="line-clamp-2 text-xs">
+                                  {post.caption || "No caption"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
                       )}
-                    </div>
-                    {(dmStep.buttons?.length ?? 0) > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {dmStep.buttons?.map((btn, i) => (
-                          <Badge
-                            className="text-[10px]"
-                            key={`btn-${i}`}
-                            variant="outline"
-                          >
-                            {btn.title || "Button"}
-                          </Badge>
-                        ))}
-                      </div>
+                    {selectedPosts.length > 3 && (
+                      <p className="ml-7 text-[11px] text-muted-foreground">
+                        +{selectedPosts.length - 3} more post(s)
+                      </p>
                     )}
                   </div>
+                ) : (trigger?.targetPostIds?.length ?? 0) > 0 ? (
+                  <div className="ml-5 flex items-start gap-2">
+                    <span className="mt-1 text-muted-foreground/50">↳</span>
+                    <div className="rounded-lg border bg-muted/20 px-3 py-2 text-muted-foreground text-xs">
+                      {trigger!.targetPostIds.length} post(s) selected
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Keywords */}
+                {trigger?.keywordFilter &&
+                  trigger.keywordFilter.operator !== "always" && (
+                    <>
+                      <p className="text-muted-foreground">
+                        and <strong>includes</strong> the following keywords in
+                        their comment
+                      </p>
+                      <div className="ml-5 flex items-center gap-2">
+                        <span className="text-muted-foreground/50">↳</span>
+                        <span className="rounded-full border px-3 py-0.5 font-mono text-xs">
+                          {trigger.keywordFilter.value}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                {/* Comment reply */}
+                {trigger?.commentReply?.enabled && (
+                  <>
+                    <p className="text-muted-foreground">
+                      leave a reply to their comment on the post
+                    </p>
+                    <div className="ml-5 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground/50">↳</span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
+                            <span className="text-[10px]">👤</span>
+                          </div>
+                          <span className="font-medium text-xs">User</span>
+                          <span className="text-muted-foreground text-xs">
+                            This is a comment
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-8 flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                          <span className="text-[10px]">🤖</span>
+                        </div>
+                        <span className="font-medium text-xs">You</span>
+                        <span className="text-primary text-xs">@user</span>
+                        <span className="text-muted-foreground text-xs">
+                          {trigger.commentReply.replies[0]}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* DM section */}
+                {dmStep?.messageTemplate && (
+                  <>
+                    <p className="pt-1 text-muted-foreground">
+                      {trigger?.commentReply?.enabled
+                        ? "after they click the button, send the primary DM"
+                        : "then send the primary DM"}
+                    </p>
+                    <div className="ml-5 flex items-start gap-2">
+                      <span className="mt-1 text-muted-foreground/50">↳</span>
+                      <div className="min-w-0 flex-1">
+                        {/* Instagram DM-style bubble */}
+                        <div className="rounded-2xl rounded-bl-md border bg-muted/30 px-3.5 py-2.5">
+                          <p className="whitespace-pre-wrap text-xs leading-relaxed">
+                            {renderPreview(dmStep.messageTemplate)}
+                          </p>
+                          {isFreePlan && (
+                            <p className="mt-2 border-border border-t pt-2 text-[10px] text-muted-foreground">
+                              - - -<br />
+                              Sent via @delulu.social
+                            </p>
+                          )}
+                          {(dmStep.buttons?.length ?? 0) > 0 && (
+                            <div className="mt-2 grid gap-1">
+                              {dmStep.buttons?.map((btn, i) => (
+                                <span
+                                  className="flex items-center justify-center rounded-md bg-muted px-2 py-1 text-[11px]"
+                                  key={`btn-${i}`}
+                                >
+                                  {btn.title || "Button"}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -409,7 +497,7 @@ export function MobileFlowEditor({
       </div>
 
       {/* Fixed footer — tall enough to clear tab bar */}
-      <div className="fixed inset-x-0 bottom-0 z-[55] border-t bg-background px-4 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-[55] border-t bg-background px-4 pt-3 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">
         <div className="flex gap-3">
           {currentStep > 1 && (
             <Button className="h-11 flex-1" onClick={goBack} variant="outline">

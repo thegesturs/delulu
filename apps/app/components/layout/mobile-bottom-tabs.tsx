@@ -32,7 +32,7 @@ export function MobileBottomTabs() {
       isPrimary: true,
     },
     {
-      title: "DMs",
+      title: "AutoDMs",
       url: "/automations",
       icon: Robot,
     },

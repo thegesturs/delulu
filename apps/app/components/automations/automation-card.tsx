@@ -1,7 +1,6 @@
 "use client";
 
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import {
@@ -12,6 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@delulu/design-system/components/ui/dropdown-menu";
 import { Switch } from "@delulu/design-system/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@delulu/design-system/components/ui/tooltip";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AnalyticsUpIcon,
@@ -111,88 +116,114 @@ export function AutomationCard({
     }
   };
 
+  // Get DM preview text
+  const dmStep = automation.steps.find((s) => s.type === "send_dm");
+  const dmPreview =
+    dmStep?.type === "send_dm" && dmStep.messageTemplate
+      ? dmStep.messageTemplate.slice(0, 60) +
+        (dmStep.messageTemplate.length > 60 ? "..." : "")
+      : null;
+
   if (viewMode === "list") {
     return (
-      <Card className="group background-blue-sm transition-all duration-200 hover:bg-card/80">
-        <CardContent className="flex items-center gap-4 p-4">
-          {/* Trigger Icon */}
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-purple-600">
-            <Icon className="text-white" icon={TriggerIcon} size={20} />
-          </div>
+      <Card className="group relative gap-0 rounded-none border-x-0 border-t-0 border-b py-2 shadow-none last:border-b-0 hover:bg-muted/30">
+        {/* Status dot — absolute top-right */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="absolute top-2.5 right-3 md:right-4">
+                <span
+                  className={`block h-2 w-2 rounded-full ${
+                    automation.isActive ? "bg-green-500" : "bg-red-400"
+                  }`}
+                />
+                {automation.isActive && (
+                  <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-40" />
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              {automation.isActive ? "Active" : "Inactive"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-          {/* Main Info */}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="truncate font-medium text-foreground">
-                {automation.name}
-              </h3>
-              <Badge
-                className="text-xs"
-                variant={automation.isActive ? "default" : "secondary"}
-              >
-                {automation.isActive ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-            <p className="mt-0.5 truncate text-muted-foreground text-sm">
-              {triggerTypeLabels[primaryTriggerType]} •{" "}
-              {formatStepsSummary(automation)}
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="hidden items-center gap-6 md:flex">
-            <div className="text-center">
-              <p className="font-medium text-foreground">
-                {automation.totalDMsSent}
+        <CardContent className="px-3 py-1.5 pr-8 md:px-4 md:py-2.5 md:pr-10">
+          <div className="flex items-center gap-2.5 md:gap-4">
+            {/* Main Info */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate font-medium text-foreground text-xs md:text-sm">
+                  {dmPreview || automation.name}
+                </h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      className="h-6 w-6 shrink-0 md:h-8 md:w-8 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Icon icon={MoreHorizontalIcon} size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={`/automations/${automation._id}`}>
+                        <Icon className="mr-2" icon={Edit01Icon} size={16} />
+                        Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={`/automations/${automation._id}/analytics`}>
+                        <Icon
+                          className="mr-2"
+                          icon={AnalyticsUpIcon}
+                          size={16}
+                        />
+                        View Analytics
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Icon className="mr-2" icon={Delete01Icon} size={16} />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground md:text-xs">
+                {triggerTypeLabels[primaryTriggerType]}
+                {automation.triggers[0]?.targetPostIds?.length
+                  ? ` • ${automation.triggers[0].targetPostIds.length} post(s)`
+                  : ""}
+                {" • "}
+                {formatStepsSummary(automation)}
               </p>
-              <p className="text-muted-foreground text-xs">DMs Sent</p>
             </div>
-            <div className="text-center">
-              <p className="font-medium text-foreground">{successRate}%</p>
-              <p className="text-muted-foreground text-xs">Success</p>
-            </div>
-          </div>
 
-          {/* Toggle and Actions */}
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={automation.isActive}
-              disabled={isToggling}
-              onCheckedChange={handleToggle}
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
-                  size="icon"
-                  variant="ghost"
-                >
-                  <Icon icon={MoreHorizontalIcon} size={16} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href={`/automations/${automation._id}`}>
-                    <Icon className="mr-2" icon={Edit01Icon} size={16} />
-                    Edit
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href={`/automations/${automation._id}/analytics`}>
-                    <Icon className="mr-2" icon={AnalyticsUpIcon} size={16} />
-                    View Analytics
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Icon className="mr-2" icon={Delete01Icon} size={16} />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Stats + toggle — desktop only */}
+            <div className="hidden items-center gap-6 md:flex">
+              <div className="text-center">
+                <p className="font-medium text-foreground text-sm">
+                  {automation.totalDMsSent}
+                </p>
+                <p className="text-muted-foreground text-xs">DMs Sent</p>
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-foreground text-sm">
+                  {successRate}%
+                </p>
+                <p className="text-muted-foreground text-xs">Success</p>
+              </div>
+              <Switch
+                checked={automation.isActive}
+                disabled={isToggling}
+                onCheckedChange={handleToggle}
+              />
+            </div>
           </div>
         </CardContent>
         <DeleteAlertDialog
@@ -212,20 +243,35 @@ export function AutomationCard({
 
   // Grid View
   return (
-    <Card className="group background-blue-sm flex h-full flex-col transition-all duration-200 hover:bg-card/80">
+    <Card className="group background-blue-sm relative flex h-full flex-col transition-all duration-200 hover:bg-card/80">
+      {/* Status dot — absolute top-right */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="absolute top-3 right-3">
+              <span
+                className={`block h-2 w-2 rounded-full ${
+                  automation.isActive ? "bg-green-500" : "bg-red-400"
+                }`}
+              />
+              {automation.isActive && (
+                <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-40" />
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {automation.isActive ? "Active" : "Inactive"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       <CardContent className="flex flex-1 flex-col p-4">
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-purple-600">
-            <Icon className="text-white" icon={TriggerIcon} size={20} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+            <Icon className="text-primary" icon={TriggerIcon} size={20} />
           </div>
           <div className="flex items-center gap-2">
-            <Badge
-              className="text-xs"
-              variant={automation.isActive ? "default" : "secondary"}
-            >
-              {automation.isActive ? "Active" : "Inactive"}
-            </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="h-8 w-8" size="icon" variant="ghost">

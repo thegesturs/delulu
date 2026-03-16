@@ -19,7 +19,7 @@ export function AutomationList({
 }: AutomationListProps) {
   if (automations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-border border-dashed bg-card/30 py-16">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-border border-dashed bg-card/30 py-8 md:py-16">
         <div className="mb-4 rounded-full bg-muted/50 p-4">
           <svg
             className="h-8 w-8 text-muted-foreground"
@@ -51,7 +51,7 @@ export function AutomationList({
       className={
         viewMode === "grid"
           ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-          : "flex flex-col gap-3"
+          : "overflow-hidden rounded-lg border"
       }
     >
       {automations.map((automation) => (
