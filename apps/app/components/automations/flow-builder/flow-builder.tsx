@@ -625,6 +625,8 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
         isSaving={isSaving}
         onSave={handleSave}
         state={state}
+        templateFirstStepId={templateFirstStepRef.current}
+        templateTriggerType={templateTriggerType}
       />
     );
   }

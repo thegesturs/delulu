@@ -47,6 +47,8 @@ interface MobileFlowEditorProps {
   isNew: boolean;
   isSaving: boolean;
   onSave: () => Promise<void>;
+  templateTriggerType?: "COMMENT" | "STORY_REPLY";
+  templateFirstStepId?: string;
 }
 
 export function MobileFlowEditor({
@@ -55,6 +57,8 @@ export function MobileFlowEditor({
   isNew,
   isSaving,
   onSave,
+  templateTriggerType,
+  templateFirstStepId,
 }: MobileFlowEditorProps) {
   const { isFree: isFreePlan } = useSubscription();
   const {
@@ -100,19 +104,41 @@ export function MobileFlowEditor({
       if (hasTrigger && trigger) {
         updateTrigger(trigger.id, { triggerType: type });
       } else {
-        const newDmStep = createSendDmStep();
-        const newTrigger = createTrigger({
-          triggerType: type,
-          nextStepId: newDmStep.id,
-        });
-        if (instagramProviders.length > 0) {
-          setAutomationMeta((prev) => ({
-            ...prev,
-            socialProviderId: instagramProviders[0]._id,
-          }));
+        // If template already set up steps, link to the first one
+        const existingFirstStep =
+          templateFirstStepId && steps.some((s) => s.id === templateFirstStepId)
+            ? templateFirstStepId
+            : steps.length > 0
+              ? steps[0].id
+              : undefined;
+
+        if (existingFirstStep) {
+          const newTrigger = createTrigger({
+            triggerType: type,
+            nextStepId: existingFirstStep,
+          });
+          if (instagramProviders.length > 0) {
+            setAutomationMeta((prev) => ({
+              ...prev,
+              socialProviderId: instagramProviders[0]._id,
+            }));
+          }
+          addTrigger(newTrigger);
+        } else {
+          const newDmStep = createSendDmStep();
+          const newTrigger = createTrigger({
+            triggerType: type,
+            nextStepId: newDmStep.id,
+          });
+          if (instagramProviders.length > 0) {
+            setAutomationMeta((prev) => ({
+              ...prev,
+              socialProviderId: instagramProviders[0]._id,
+            }));
+          }
+          addTrigger(newTrigger);
+          setSteps([newDmStep]);
         }
-        addTrigger(newTrigger);
-        setSteps([newDmStep]);
       }
     },
     [
@@ -121,6 +147,8 @@ export function MobileFlowEditor({
       updateTrigger,
       addTrigger,
       setSteps,
+      steps,
+      templateFirstStepId,
       instagramProviders,
       setAutomationMeta,
     ]
@@ -267,7 +295,9 @@ export function MobileFlowEditor({
             <div className="space-y-4">
               <TriggerTypeStep
                 onSelect={handleSelectTriggerType}
-                selectedType={trigger?.triggerType ?? null}
+                selectedType={
+                  trigger?.triggerType ?? templateTriggerType ?? null
+                }
               />
               {trigger?.triggerType && automationMeta.socialProviderId && (
                 <>
