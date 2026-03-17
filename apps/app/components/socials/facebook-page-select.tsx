@@ -61,7 +61,6 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
         analytics.capture(SOCIAL_ACCOUNT_CONNECTED, {
           provider: "facebook",
         });
-        analytics.people?.increment("social_accounts_connected", 1);
         router.push("/socials?success=true&provider=facebook");
       },
       onError: (error) => {

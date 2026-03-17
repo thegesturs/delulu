@@ -103,7 +103,6 @@ function SocialNotificationsContent() {
       analytics.capture(SOCIAL_ACCOUNT_CONNECTED, {
         provider: provider.toLowerCase(),
       });
-      analytics.people?.increment("social_accounts_connected", 1);
     } else if (error && provider) {
       trackedRef.current = true;
       analytics.capture(SOCIAL_ACCOUNT_CONNECTION_FAILED, {
