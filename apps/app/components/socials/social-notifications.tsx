@@ -1,7 +1,12 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  SOCIAL_ACCOUNT_CONNECTED,
+  SOCIAL_ACCOUNT_CONNECTION_FAILED,
+} from "@delulu/analytics/events";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/trpc/react";
 import { SocialError } from "../error/social-error";
 
@@ -71,12 +76,15 @@ function SocialNotificationsContent() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const analytics = useAnalytics();
+  const trackedRef = useRef(false);
 
   // Reset visibility when search params change
   useEffect(() => {
     setVisible(true);
   }, []);
 
+  const success = searchParams.get("success");
   const error = searchParams.get("error");
   const notification = searchParams.get("notification");
   const provider = searchParams.get("provider") as
@@ -84,6 +92,26 @@ function SocialNotificationsContent() {
     | "LINKEDIN"
     | "YOUTUBE"
     | null;
+
+  // Track social account connection/failure via PostHog
+  useEffect(() => {
+    if (trackedRef.current) {
+      return;
+    }
+    if (success === "true" && provider) {
+      trackedRef.current = true;
+      analytics.capture(SOCIAL_ACCOUNT_CONNECTED, {
+        provider: provider.toLowerCase(),
+      });
+      analytics.people?.increment("social_accounts_connected", 1);
+    } else if (error && provider) {
+      trackedRef.current = true;
+      analytics.capture(SOCIAL_ACCOUNT_CONNECTION_FAILED, {
+        provider: provider.toLowerCase(),
+        error_type: error,
+      });
+    }
+  }, [success, error, provider, analytics]);
 
   // Fetch the connect URL if we have a provider and might need to retry
   const { data: connectUrl } =

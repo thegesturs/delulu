@@ -1,5 +1,11 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  AUTOMATION_CREATED,
+  AUTOMATION_UPDATED,
+  AUTOMATION_TOGGLED,
+} from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
@@ -52,6 +58,7 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const { isFree: isFreePlan } = useSubscription();
+  const analytics = useAnalytics();
   const isNew = !automationId;
   const [isSaving, setIsSaving] = useState(false);
   const [showTriggerWizard, setShowTriggerWizard] = useState(false);
@@ -381,10 +388,14 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
           return;
         }
       }
+      analytics.capture(AUTOMATION_TOGGLED, {
+        automation_id: automationId,
+        is_active: active,
+      });
       setAutomationMeta((prev) => ({ ...prev, isActive: active }));
       markDirty();
     },
-    [triggers, steps, setAutomationMeta, markDirty]
+    [triggers, steps, setAutomationMeta, markDirty, analytics, automationId]
   );
 
   const handleMetaChange = useCallback(
@@ -460,6 +471,18 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
           nodePositions:
             Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
         });
+
+        analytics.capture(AUTOMATION_CREATED, {
+          automation_id: id,
+          trigger_count: processedTriggers.length,
+          step_count: steps.length,
+          trigger_types: processedTriggers.map((t) => t.triggerType),
+          step_types: steps.map((s) => s.type),
+          is_active: automationMeta.isActive,
+          from_template: !!templateSlug,
+          template_slug: templateSlug,
+        });
+
         toast.success("Automation created");
         router.push(`/automations/${id}`);
       } else {
@@ -474,6 +497,16 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
           nodePositions:
             Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
         });
+
+        analytics.capture(AUTOMATION_UPDATED, {
+          automation_id: automationId,
+          trigger_count: processedTriggers.length,
+          step_count: steps.length,
+          trigger_types: processedTriggers.map((t) => t.triggerType),
+          step_types: steps.map((s) => s.type),
+          is_active: automationMeta.isActive,
+        });
+
         toast.success("Automation saved");
         resetDirty(triggers, steps, notes, nodePositions);
       }

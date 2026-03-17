@@ -1,4 +1,9 @@
 "use client";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  SOCIAL_ACCOUNT_CONNECTED,
+  SOCIAL_ACCOUNT_CONNECTION_FAILED,
+} from "@delulu/analytics/events";
 import {
   Avatar,
   AvatarFallback,
@@ -48,13 +53,22 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
+  const analytics = useAnalytics();
 
   const { mutate: connectPage, isPending } =
     api.socialProvider.connectFacebookPage.useMutation({
       onSuccess: () => {
+        analytics.capture(SOCIAL_ACCOUNT_CONNECTED, {
+          provider: "facebook",
+        });
+        analytics.people?.increment("social_accounts_connected", 1);
         router.push("/socials?success=true&provider=facebook");
       },
       onError: (error) => {
+        analytics.capture(SOCIAL_ACCOUNT_CONNECTION_FAILED, {
+          provider: "facebook",
+          error_type: String(error),
+        });
         router.push(
           `/socials?error=${error}&code=FACEBOOK_006&provider=facebook`
         );

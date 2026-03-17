@@ -1,3 +1,5 @@
+import { analytics } from "@delulu/analytics/posthog/server";
+import { SOCIAL_ACCOUNT_CONNECTED } from "@delulu/analytics/events";
 import { auth } from "@delulu/auth/server";
 import { api } from "@delulu/database/convex/_generated/api";
 import { fetchMutation } from "@delulu/database/server";
@@ -176,6 +178,15 @@ export async function GET(request: NextRequest) {
         },
       });
     }
+
+    analytics.capture({
+      distinctId: userId,
+      event: SOCIAL_ACCOUNT_CONNECTED,
+      properties: {
+        provider: "threads",
+        username: userObject.username,
+      },
+    });
 
     return new NextResponse(null, {
       status: 302,
