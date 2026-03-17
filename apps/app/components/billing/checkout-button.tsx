@@ -6,6 +6,8 @@
  * A reusable button that initiates a Dodo Payments checkout session
  */
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { CHECKOUT_INITIATED } from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -37,10 +39,15 @@ export function CheckoutButton({
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
+  const analytics = useAnalytics();
 
   const handleCheckout = async () => {
     try {
       setIsLoading(true);
+
+      analytics.capture(CHECKOUT_INITIATED, {
+        product_id: productId,
+      });
 
       const { checkout_url } = await createCheckout({
         productId,

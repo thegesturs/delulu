@@ -1,5 +1,11 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  POST_DELETED,
+  POST_PUBLISHED,
+  POST_PUBLISH_RETRIED,
+} from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
@@ -50,6 +56,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
   const router = useRouter();
+  const analytics = useAnalytics();
 
   const softDeletePost = useMutation(api.posts.deletePost);
   const createPostFromPostIdMutation =
@@ -75,6 +82,10 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
     setIsDeleting(true);
     try {
       await softDeletePost({ postId });
+      analytics.capture(POST_DELETED, {
+        post_id: postId,
+        post_status: postStatus,
+      });
       setOpenDeletePost(false);
       toast.success("Post deleted successfully");
     } catch (error) {
@@ -99,12 +110,14 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
   const handlePublish = async (id: string) => {
     toast.loading("Publishing post...");
+    analytics.capture(POST_PUBLISHED, { post_id: id });
     await createPostFromPostIdMutation.mutateAsync({ postId: id });
     toast.dismiss();
   };
 
   const handleRetry = async (id: string) => {
     toast.loading("Retrying post...");
+    analytics.capture(POST_PUBLISH_RETRIED, { post_id: id });
     await createPostFromPostIdMutation.mutateAsync({ postId: id });
     toast.dismiss();
   };

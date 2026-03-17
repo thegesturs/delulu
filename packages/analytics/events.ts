@@ -23,6 +23,9 @@ export const POST_SCHEDULED = "post_scheduled";
 export const POST_SAVED_AS_DRAFT = "post_saved_as_draft";
 export const POST_UPDATED = "post_updated";
 export const POST_DELETED = "post_deleted";
+export const POST_PUBLISHED = "post_published";
+export const POST_PUBLISH_RETRIED = "post_publish_retried";
+export const POST_RESCHEDULED = "post_rescheduled";
 
 // ─── Social Media Connections ───
 export const SOCIAL_ACCOUNT_CONNECTED = "social_account_connected";
@@ -34,6 +37,13 @@ export const AUTOMATION_CREATED = "automation_created";
 export const AUTOMATION_UPDATED = "automation_updated";
 export const AUTOMATION_DELETED = "automation_deleted";
 export const AUTOMATION_TOGGLED = "automation_toggled";
+
+// ─── Billing ───
+export const CHECKOUT_INITIATED = "checkout_initiated";
+export const SUBSCRIPTION_UPGRADED = "subscription_upgraded";
+
+// ─── Media ───
+export const MEDIA_UPLOADED = "media_uploaded";
 
 // ─── Feature Usage ───
 export const FEATURE_USED = "feature_used";

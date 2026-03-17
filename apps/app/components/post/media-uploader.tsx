@@ -1,5 +1,7 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { MEDIA_UPLOADED } from "@delulu/analytics/events";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -282,6 +284,7 @@ export function MediaUploader({
   );
 
   const { uploadAndSaveMedia } = useMediaStorage();
+  const analytics = useAnalytics();
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -499,7 +502,17 @@ export function MediaUploader({
           }
         });
 
-        await Promise.all(uploadPromises);
+        const results = await Promise.all(uploadPromises);
+        const successCount = results.filter(Boolean).length;
+        if (successCount > 0) {
+          analytics.capture(MEDIA_UPLOADED, {
+            count: successCount,
+            media_types: validatedFiles.map((f) =>
+              f.type.startsWith("image/") ? "IMAGE" : "VIDEO"
+            ),
+            platform: socialType,
+          });
+        }
       } catch (_error) {
         // Upload process failed - individual errors already handled
       } finally {
@@ -507,7 +520,7 @@ export function MediaUploader({
         setIsMediaUploading(false);
       }
     },
-    [mediaFiles, socialType, uploadAndSaveMedia, setIsMediaUploading]
+    [mediaFiles, socialType, uploadAndSaveMedia, setIsMediaUploading, analytics]
   );
 
   const handleDrop = useCallback(
