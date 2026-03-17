@@ -4,7 +4,6 @@ import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   SIGNUP_COMPLETED,
   SESSION_STARTED,
-  PAGE_VIEWED,
   FEATURE_USED,
 } from "@delulu/analytics/events";
 import { useUser } from "@delulu/auth";

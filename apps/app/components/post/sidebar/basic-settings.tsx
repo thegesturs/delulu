@@ -6,8 +6,6 @@ import {
   POST_SCHEDULED,
   POST_SAVED_AS_DRAFT,
   POST_UPDATED,
-  AUTOMATION_CREATED,
-  AUTOMATION_UPDATED,
 } from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
