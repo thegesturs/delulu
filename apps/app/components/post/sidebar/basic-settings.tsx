@@ -1,5 +1,12 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  POST_CREATED,
+  POST_SCHEDULED,
+  POST_SAVED_AS_DRAFT,
+  POST_UPDATED,
+} from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
@@ -45,6 +52,7 @@ export function BasicSettings() {
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
   const { getProviderSettings } = useStore();
+  const analytics = useAnalytics();
 
   // Get all TikTok providers from selected social providers
   const tiktokProviders = socialProviders.filter(
@@ -143,6 +151,16 @@ export function BasicSettings() {
         status: "PROCESSING",
       });
       await createAutomationsForPost(savedPostId);
+
+      analytics.capture(POST_CREATED, {
+        post_id: savedPostId,
+        is_edit: !!postId,
+        platforms: socialProviders.map((sp) => sp.socialType),
+        platform_count: socialProviders.length,
+        has_alternative_content: post.alternativeContent.length > 0,
+        content_length: post.content.length,
+      });
+
       useStore.getState().reset();
       toast.success(
         "Post sent for processing, will be published shortly. You can close this window now."
@@ -189,6 +207,19 @@ export function BasicSettings() {
         status: "SCHEDULED",
       });
       await createAutomationsForPost(savedPostId);
+
+      analytics.capture(POST_SCHEDULED, {
+        post_id: savedPostId,
+        is_edit: !!postId,
+        platforms: socialProviders.map((sp) => sp.socialType),
+        platform_count: socialProviders.length,
+        scheduled_at: date.toISOString(),
+        hours_until_publish: Math.round(
+          (date.getTime() - Date.now()) / (1000 * 60 * 60)
+        ),
+        content_length: post.content.length,
+      });
+
       useStore.getState().reset();
       toast.success("Post scheduled successfully");
       router.push("/posts?status=SCHEDULED");
@@ -220,6 +251,15 @@ export function BasicSettings() {
         status: "SAVED",
       });
       await createAutomationsForPost(savedPostId);
+
+      analytics.capture(postId ? POST_UPDATED : POST_SAVED_AS_DRAFT, {
+        post_id: savedPostId,
+        is_edit: !!postId,
+        platforms: socialProviders.map((sp) => sp.socialType),
+        platform_count: socialProviders.length,
+        content_length: post.content.length,
+      });
+
       useStore.getState().reset();
       toast.success(
         postId ? "Post updated successfully" : "Post saved successfully"

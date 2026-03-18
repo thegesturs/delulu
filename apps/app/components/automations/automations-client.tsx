@@ -1,5 +1,10 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  AUTOMATION_DELETED,
+  AUTOMATION_TOGGLED,
+} from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -17,6 +22,7 @@ import { TemplatePickerDialog } from "./flow-builder/templates/template-picker-d
 
 export default function AutomationsClient() {
   const router = useRouter();
+  const analytics = useAnalytics();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTrigger, setFilterTrigger] = useState<string>("all");
@@ -80,6 +86,9 @@ export default function AutomationsClient() {
   const handleDelete = async (automationId: Id<"automations">) => {
     try {
       await deleteAutomationMutation({ id: automationId });
+      analytics.capture(AUTOMATION_DELETED, {
+        automation_id: automationId,
+      });
       toast.success("Automation deleted successfully");
     } catch (error) {
       toast.error("Failed to delete automation");
@@ -90,6 +99,10 @@ export default function AutomationsClient() {
   const handleToggle = async (automationId: Id<"automations">) => {
     try {
       const newState = await toggleAutomationMutation({ id: automationId });
+      analytics.capture(AUTOMATION_TOGGLED, {
+        automation_id: automationId,
+        is_active: newState,
+      });
       toast.success(newState ? "Automation enabled" : "Automation disabled");
     } catch (error) {
       toast.error("Failed to toggle automation");

@@ -1,4 +1,6 @@
 "use client";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { SOCIAL_ACCOUNT_DISCONNECTED } from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -37,6 +39,7 @@ export default function ConnectedAccounts() {
   const [filterPlatform, setFilterPlatform] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const analytics = useAnalytics();
 
   const accounts = useQuery(api.social_providers.getConnectedAccounts);
   const isLoadingAccounts = accounts === undefined;
@@ -91,10 +94,14 @@ export default function ConnectedAccounts() {
   }, [accounts]);
 
   const handleDeleteSocial = (socialId: Id<"socialProviders">) => {
+    const account = accounts?.find((a) => a._id === socialId);
     deleteSocialMutation.mutate(
       { socialProviderId: socialId },
       {
         onSuccess: () => {
+          analytics.capture(SOCIAL_ACCOUNT_DISCONNECTED, {
+            provider: account?.socialType?.toLowerCase() ?? "unknown",
+          });
           postActions.removeSocialProvider(socialId);
           toast.success("Account deleted successfully");
         },

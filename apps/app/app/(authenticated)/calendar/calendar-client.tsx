@@ -1,5 +1,7 @@
 "use client";
 
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { POST_RESCHEDULED, POST_DELETED } from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import type { CalendarEvent } from "@delulu/design-system/components/event-calendar";
@@ -19,6 +21,7 @@ import {
 
 export function CalendarClient() {
   const router = useRouter();
+  const analytics = useAnalytics();
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -67,6 +70,10 @@ export function CalendarClient() {
           id: updateData.id as Id<"posts">,
           scheduledAt: updateData.scheduledAt,
         });
+        analytics.capture(POST_RESCHEDULED, {
+          post_id: updateData.id,
+          new_scheduled_at: new Date(updateData.scheduledAt).toISOString(),
+        });
       } catch (error) {
         console.error("Failed to reschedule post:", error);
         toast.error("Failed to reschedule post", {
@@ -75,7 +82,7 @@ export function CalendarClient() {
         });
       }
     },
-    [updatePostScheduledTime]
+    [updatePostScheduledTime, analytics]
   );
 
   // Handle event delete
@@ -84,6 +91,10 @@ export function CalendarClient() {
       try {
         await softDeletePost({
           id: eventId as Id<"posts">,
+        });
+        analytics.capture(POST_DELETED, {
+          post_id: eventId,
+          source: "calendar",
         });
 
         toast.success("Post deleted");
@@ -94,7 +105,7 @@ export function CalendarClient() {
         toast.error("Failed to delete post");
       }
     },
-    [softDeletePost]
+    [softDeletePost, analytics]
   );
 
   // Navigate to post creation page
