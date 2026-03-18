@@ -61,9 +61,9 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
       </div>
 
       {/* Instagram DM bubble editor */}
-      <div className="rounded-2xl bg-neutral-800 p-4 dark:bg-neutral-900">
+      <div className="rounded-2xl bg-muted/60 p-4 dark:bg-neutral-900">
         <textarea
-          className="w-full resize-none bg-transparent text-sm text-white leading-relaxed placeholder:text-neutral-500 focus:outline-none"
+          className="w-full resize-none bg-transparent text-foreground text-sm leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none"
           onChange={(e) =>
             onChange({ ...step, messageTemplate: e.target.value })
           }
@@ -73,7 +73,7 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
         />
 
         {isFreePlan && step.messageTemplate && (
-          <p className="mt-2 border-neutral-700 border-t pt-2 text-[10px] text-neutral-500">
+          <p className="mt-2 border-border border-t pt-2 text-[10px] text-muted-foreground">
             - - -
             <br />
             Sent via @delulu.social
@@ -91,7 +91,7 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
                 {/* Button title + delete */}
                 <div className="flex items-center gap-1.5">
                   <input
-                    className="flex-1 rounded-lg bg-neutral-700 px-3 py-2 text-center text-sm text-white placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+                    className="flex-1 rounded-lg bg-background/80 px-3 py-2 text-center text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring dark:bg-neutral-700"
                     maxLength={20}
                     onChange={(e) => {
                       const newButtons = [...(step.buttons ?? [])];
@@ -102,7 +102,7 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
                     value={btn.title}
                   />
                   <button
-                    className="shrink-0 rounded-full p-1.5 text-neutral-500 transition-colors hover:text-neutral-300"
+                    className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                     onClick={() => {
                       const newButtons = (step.buttons ?? []).filter(
                         (_, idx) => idx !== i
@@ -117,16 +117,16 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
 
                 {/* Action selector */}
                 <div className="flex items-center gap-2 px-1">
-                  <span className="text-[10px] text-neutral-500">
+                  <span className="text-[10px] text-muted-foreground">
                     When tapped:
                   </span>
-                  <div className="flex rounded-full bg-neutral-700/60 p-0.5">
+                  <div className="flex rounded-full bg-background/60 p-0.5 dark:bg-neutral-700/60">
                     <button
                       className={cn(
                         "rounded-full px-2.5 py-0.5 font-medium text-[10px] transition-colors",
                         btn.type === "quick_reply"
-                          ? "bg-neutral-600 text-white shadow-sm"
-                          : "text-neutral-400"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground"
                       )}
                       onClick={() => {
                         const newButtons = [...(step.buttons ?? [])];
@@ -145,8 +145,8 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
                       className={cn(
                         "rounded-full px-2.5 py-0.5 font-medium text-[10px] transition-colors",
                         btn.type === "url"
-                          ? "bg-neutral-600 text-white shadow-sm"
-                          : "text-neutral-400"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground"
                       )}
                       onClick={() => {
                         const newButtons = [...(step.buttons ?? [])];
@@ -168,12 +168,12 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
                 {btn.type === "url" && (
                   <div className="flex items-center gap-2 px-1">
                     <Icon
-                      className="shrink-0 text-neutral-500"
+                      className="shrink-0 text-muted-foreground"
                       icon={Link01Icon}
                       size={12}
                     />
                     <input
-                      className="flex-1 rounded-md bg-neutral-700/50 px-2.5 py-1.5 text-neutral-300 text-xs placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+                      className="flex-1 rounded-md bg-background/60 px-2.5 py-1.5 text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring dark:bg-neutral-700/50"
                       onChange={(e) => {
                         const newButtons = [...(step.buttons ?? [])];
                         newButtons[i] = { ...btn, url: e.target.value };
@@ -192,7 +192,7 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
         {/* Add button */}
         {(step.buttons?.length ?? 0) < 3 && (
           <button
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-neutral-600 border-dashed px-3 py-2 text-neutral-400 text-xs transition-colors hover:border-neutral-500 hover:text-neutral-300"
+            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border border-dashed px-3 py-2 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
             onClick={() => {
               const newBtn: DmButton = {
                 type: "quick_reply",
@@ -218,12 +218,12 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
           <p className="font-medium text-[11px] text-muted-foreground">
             Preview
           </p>
-          <div className="rounded-2xl rounded-bl-md bg-neutral-800 px-4 py-3 dark:bg-neutral-900">
-            <p className="whitespace-pre-wrap text-sm text-white leading-relaxed">
+          <div className="rounded-2xl rounded-bl-md bg-muted/60 px-4 py-3 dark:bg-neutral-900">
+            <p className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">
               {renderPreview(step.messageTemplate)}
             </p>
             {isFreePlan && (
-              <p className="mt-2 border-neutral-700 border-t pt-2 text-[10px] text-neutral-500">
+              <p className="mt-2 border-border border-t pt-2 text-[10px] text-muted-foreground">
                 - - -
                 <br />
                 Sent via @delulu.social
@@ -233,7 +233,7 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
               <div className="mt-2.5 space-y-1.5">
                 {step.buttons?.map((btn, i) => (
                   <div
-                    className="flex items-center justify-center rounded-lg bg-neutral-700 px-3 py-2 text-sm text-white"
+                    className="flex items-center justify-center rounded-lg bg-background/80 px-3 py-2 text-foreground text-sm dark:bg-neutral-700"
                     key={`preview-btn-${i}`}
                   >
                     {btn.title || "Button"}
