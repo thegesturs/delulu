@@ -18,7 +18,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { api as TrpcApi } from "@/trpc/react";
 import type { UseAutomationStateReturn } from "./hooks/use-automation-state";
 import { CommentReplyEditor } from "./panels/comment-reply-editor";
-import { SendDmPanel } from "./panels/send-dm-panel";
+import { DmComposer } from "./panels/dm-composer";
 import { KeywordFilterStep } from "./trigger-wizard/keyword-filter-step";
 import { PostSelectorStep } from "./trigger-wizard/post-selector-step";
 import { TriggerTypeStep } from "./trigger-wizard/trigger-type-step";
@@ -332,18 +332,15 @@ export function MobileFlowEditor({
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-4">
+            <div>
               {dmStep ? (
-                <SendDmPanel
+                <DmComposer
                   isFreePlan={isFreePlan}
                   onChange={handleDmChange}
                   step={dmStep}
                 />
               ) : (
-                <div className="space-y-2 py-8 text-center">
-                  <p className="text-muted-foreground text-sm">
-                    No DM step found.
-                  </p>
+                <div className="py-4 text-center">
                   <Button
                     onClick={() => {
                       const newDm = createSendDmStep();
