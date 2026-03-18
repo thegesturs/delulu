@@ -287,3 +287,6 @@ packages/database/generated
 
 .output
 .wxt
+
+# Claude Code worktrees
+.claude/worktrees/
