@@ -1,10 +1,10 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   SOCIAL_ACCOUNT_CONNECTED,
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { api } from "@/trpc/react";

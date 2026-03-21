@@ -1,11 +1,11 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   AUTOMATION_CREATED,
-  AUTOMATION_UPDATED,
   AUTOMATION_TOGGLED,
+  AUTOMATION_UPDATED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";

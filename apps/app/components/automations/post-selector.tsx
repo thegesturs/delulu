@@ -396,7 +396,7 @@ export function PostSelector({
       {!allPostsSelected && selectedPostIds.length > 0 && (
         <p className="text-center text-muted-foreground text-sm">
           {selectedPostIds.length} item
-          {selectedPostIds.length !== 1 ? "s" : ""} selected
+          {selectedPostIds.length === 1 ? "" : "s"} selected
           {selectedScheduledCount > 0 &&
             ` (${selectedScheduledCount} scheduled)`}
         </p>

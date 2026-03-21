@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { components } from "./_generated/api";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { getAuthContext } from "./lib/auth";
 import { getCurrentUser } from "./users";
 import { getCurrentTimestamp } from "./utils";
 
@@ -190,7 +191,8 @@ export const getUserStreakStats = query({
 // AGGREGATES
 // ============================================================================
 
-// Aggregate for posts by user and status - enables user-specific status filtering
+// Aggregate for posts by user and status — personal workspace only
+// For org context, we use direct indexed queries (bounded by org size)
 export const postsByUserStatus = new TableAggregate<{
   Key: [Id<"users"> | null, string]; // [userId, status]
   DataModel: DataModel;
@@ -199,12 +201,12 @@ export const postsByUserStatus = new TableAggregate<{
   sortKey: (doc) => [doc.userId ?? null, doc.status],
 });
 
-// Query to get comprehensive dashboard stats
+// Query to get comprehensive dashboard stats (org-aware)
 export const getDashboardStats = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return {
         totalPosts: 0,
         publishedCount: 0,
@@ -223,33 +225,62 @@ export const getDashboardStats = query({
       };
     }
 
-    // Get total posts for user using aggregator
-    const totalPosts = await postsByUserStatus.count(ctx, {
-      bounds: {
-        prefix: [user._id],
-      },
-    });
+    const orgId = authCtx.organizationId;
 
-    // Get counts by specific status using aggregator
-    const publishedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, "PUBLISHED"] },
-    });
+    let totalPosts: number;
+    let publishedCount: number;
+    let scheduledCount: number;
+    let failedCount: number;
+    let savedCount: number;
+    let processingCount: number;
 
-    const scheduledCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, "SCHEDULED"] },
-    });
+    if (orgId) {
+      // Org context — direct indexed query (bounded by org size)
+      const allOrgPosts = await ctx.db
+        .query("posts")
+        .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
+        .collect();
 
-    const failedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, "FAILED"] },
-    });
-
-    const savedCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, "SAVED"] },
-    });
-
-    const processingCount = await postsByUserStatus.count(ctx, {
-      bounds: { prefix: [user._id, "PROCESSING"] },
-    });
+      totalPosts = allOrgPosts.length;
+      publishedCount = allOrgPosts.filter(
+        (p) => p.status === "PUBLISHED"
+      ).length;
+      scheduledCount = allOrgPosts.filter(
+        (p) => p.status === "SCHEDULED"
+      ).length;
+      failedCount = allOrgPosts.filter((p) => p.status === "FAILED").length;
+      savedCount = allOrgPosts.filter((p) => p.status === "SAVED").length;
+      processingCount = allOrgPosts.filter(
+        (p) => p.status === "PROCESSING"
+      ).length;
+    } else {
+      // Personal — use aggregator
+      [
+        totalPosts,
+        publishedCount,
+        scheduledCount,
+        failedCount,
+        savedCount,
+        processingCount,
+      ] = await Promise.all([
+        postsByUserStatus.count(ctx, { bounds: { prefix: [authCtx.userId] } }),
+        postsByUserStatus.count(ctx, {
+          bounds: { prefix: [authCtx.userId, "PUBLISHED"] },
+        }),
+        postsByUserStatus.count(ctx, {
+          bounds: { prefix: [authCtx.userId, "SCHEDULED"] },
+        }),
+        postsByUserStatus.count(ctx, {
+          bounds: { prefix: [authCtx.userId, "FAILED"] },
+        }),
+        postsByUserStatus.count(ctx, {
+          bounds: { prefix: [authCtx.userId, "SAVED"] },
+        }),
+        postsByUserStatus.count(ctx, {
+          bounds: { prefix: [authCtx.userId, "PROCESSING"] },
+        }),
+      ]);
+    }
 
     // Calculate time ranges
     const now = Date.now();
@@ -257,10 +288,22 @@ export const getDashboardStats = query({
     const thisWeekStart = now - 7 * 24 * 60 * 60 * 1000;
     const lastWeekStart = thisWeekStart - 7 * 24 * 60 * 60 * 1000;
 
-    // Get upcoming scheduled posts using direct query (more accurate than aggregator)
-    const upcomingScheduledPosts = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+    // Helper to get posts query for the active context
+    const queryPosts = () => {
+      if (orgId) {
+        return ctx.db
+          .query("posts")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", orgId)
+          );
+      }
+      return ctx.db
+        .query("posts")
+        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId));
+    };
+
+    // Get upcoming scheduled posts
+    const upcomingScheduledPosts = await queryPosts()
       .filter((q) =>
         q.and(
           q.eq(q.field("status"), "SCHEDULED"),
@@ -272,10 +315,8 @@ export const getDashboardStats = query({
       .collect();
     const upcomingPosts = upcomingScheduledPosts.length;
 
-    // Get weekly trends using direct queries
-    const thisWeekPostsResult = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+    // Get weekly trends
+    const thisWeekPostsResult = await queryPosts()
       .filter((q) =>
         q.and(
           q.eq(q.field("isDeleted"), false),
@@ -286,9 +327,7 @@ export const getDashboardStats = query({
       .collect();
     const thisWeekPosts = thisWeekPostsResult.length;
 
-    const lastWeekPostsResult = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+    const lastWeekPostsResult = await queryPosts()
       .filter((q) =>
         q.and(
           q.eq(q.field("isDeleted"), false),
@@ -306,19 +345,30 @@ export const getDashboardStats = query({
         ? Math.round((publishedCount / totalAttempted) * 100)
         : 0;
 
-    // Get connected accounts count
-    const socialProviders = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+    // Get connected accounts count (org or personal)
+    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
+    let socialProviders;
+    if (orgId) {
+      socialProviders = await ctx.db
+        .query("socialProviders")
+        .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect();
+    } else {
+      socialProviders = await ctx.db
+        .query("socialProviders")
+        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect();
+    }
 
     // Count expired tokens
     const expiredTokens = socialProviders.filter(
       (sp) => sp.refreshTokenExpiresIn && sp.refreshTokenExpiresIn < now
     ).length;
 
-    // Get streak information using new streak system
+    // Get streak information
+    const user = authCtx.user as Doc<"users">;
     const publishDates = user.stats?.publishDates || [];
     const streakStats = calculateStreak(publishDates);
 
@@ -341,12 +391,12 @@ export const getDashboardStats = query({
   },
 });
 
-// Query to get upcoming scheduled posts with details
+// Query to get upcoming scheduled posts with details (org-aware)
 export const getUpcomingPosts = query({
   args: { days: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
 
@@ -354,9 +404,17 @@ export const getUpcomingPosts = query({
     const daysAhead = args.days || 7;
     const futureDate = now + daysAhead * 24 * 60 * 60 * 1000;
 
-    const upcomingPosts = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+    const postsQuery = authCtx.organizationId
+      ? ctx.db
+          .query("posts")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", authCtx.organizationId)
+          )
+      : ctx.db
+          .query("posts")
+          .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId));
+
+    const upcomingPosts = await postsQuery
       .filter((q) =>
         q.and(
           q.eq(q.field("status"), "SCHEDULED"),
@@ -388,21 +446,40 @@ export const getUpcomingPosts = query({
   },
 });
 
-// Query to get failed posts that need attention
+// Query to get failed posts that need attention (org-aware)
 export const getFailedPosts = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
 
-    const failedPosts = await ctx.db
-      .query("posts")
-      .withIndex("by_user_status", (q) =>
-        q.eq("userId", user._id).eq("status", "FAILED").eq("isDeleted", false)
-      )
-      .collect();
+    const postsQuery = authCtx.organizationId
+      ? ctx.db
+          .query("posts")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", authCtx.organizationId)
+          )
+      : ctx.db
+          .query("posts")
+          .withIndex("by_user_status", (q) =>
+            q
+              .eq("userId", authCtx.userId)
+              .eq("status", "FAILED")
+              .eq("isDeleted", false)
+          );
+
+    const failedPosts = authCtx.organizationId
+      ? await postsQuery
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("status"), "FAILED"),
+              q.eq(q.field("isDeleted"), false)
+            )
+          )
+          .collect()
+      : await postsQuery.collect();
 
     // Sort by most recent first
     failedPosts.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -426,20 +503,28 @@ export const getFailedPosts = query({
   },
 });
 
-// Query to get platform distribution stats
+// Query to get platform distribution stats (org-aware)
 export const getPlatformStats = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
 
-    const socialProviders = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+    const socialProviders = authCtx.organizationId
+      ? await ctx.db
+          .query("socialProviders")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", authCtx.organizationId)
+          )
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .collect()
+      : await ctx.db
+          .query("socialProviders")
+          .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .collect();
 
     const platformCounts = socialProviders.reduce(
       (acc, provider) => {

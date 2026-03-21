@@ -48,7 +48,7 @@ export function SendDmNode({ data, selected }: NodeProps) {
           {hasButtons && (
             <Badge className="text-[10px]" variant="secondary">
               {step.buttons!.length} button
-              {step.buttons!.length !== 1 ? "s" : ""}
+              {step.buttons!.length === 1 ? "" : "s"}
             </Badge>
           )}
           {hasReply && (

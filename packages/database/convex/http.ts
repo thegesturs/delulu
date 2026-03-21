@@ -137,6 +137,39 @@ http.route({
         break;
       }
 
+      // Organization events
+      case "organization.created":
+      case "organization.updated":
+        await ctx.runMutation(internal.organizations.upsertFromClerk, {
+          data: event.data,
+        });
+        break;
+
+      case "organization.deleted":
+        await ctx.runMutation(internal.organizations.deleteFromClerk, {
+          clerkOrgId: event.data.id!,
+        });
+        break;
+
+      // Organization membership events
+      case "organizationMembership.created":
+        await ctx.runMutation(internal.organizations.addMember, {
+          data: event.data,
+        });
+        break;
+
+      case "organizationMembership.deleted":
+        await ctx.runMutation(internal.organizations.removeMember, {
+          data: event.data,
+        });
+        break;
+
+      case "organizationMembership.updated":
+        await ctx.runMutation(internal.organizations.updateMemberRole, {
+          data: event.data,
+        });
+        break;
+
       default:
       // Ignore unhandled webhook events
     }

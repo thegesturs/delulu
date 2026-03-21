@@ -33,7 +33,11 @@ export type UniqueIdsType =
  */
 function str2ab(str: string): ArrayBuffer {
   const encoder = new TextEncoder();
-  return encoder.encode(str);
+  const bytes = encoder.encode(str);
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  );
 }
 
 /**
@@ -80,10 +84,15 @@ async function getKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
     ["deriveKey"]
   );
 
+  const saltBuffer = salt.buffer.slice(
+    salt.byteOffset,
+    salt.byteOffset + salt.byteLength
+  ) as ArrayBuffer;
+
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt,
+      salt: saltBuffer,
       iterations: 100_000,
       hash: "SHA-256",
     },

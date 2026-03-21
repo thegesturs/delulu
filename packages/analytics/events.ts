@@ -30,7 +30,8 @@ export const POST_RESCHEDULED = "post_rescheduled";
 // ─── Social Media Connections ───
 export const SOCIAL_ACCOUNT_CONNECTED = "social_account_connected";
 export const SOCIAL_ACCOUNT_DISCONNECTED = "social_account_disconnected";
-export const SOCIAL_ACCOUNT_CONNECTION_FAILED = "social_account_connection_failed";
+export const SOCIAL_ACCOUNT_CONNECTION_FAILED =
+  "social_account_connection_failed";
 
 // ─── Automations / Auto DMs ───
 export const AUTOMATION_CREATED = "automation_created";

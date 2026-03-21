@@ -22,7 +22,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { navigationItems } from "@/lib/navigation";
 
-// import { OrganizationSwitcher } from './organization-switcher';
+import { OrganizationSwitcher } from "./organization-switcher";
 
 // Custom hook to detect screens below lg breakpoint (1024px)
 const useIsSmallScreen = () => {
@@ -84,6 +84,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             <Logo className="group-data-[state=collapsed]:hidden" />
             <LogoIcon className="hidden size-7 group-data-[state=collapsed]:block" />
           </Link>
+          <div className="mb-2 group-data-[state=collapsed]:hidden">
+            <OrganizationSwitcher />
+          </div>
           <Button
             asChild
             className="flex w-full items-center group-data-[state=collapsed]:hidden"

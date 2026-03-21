@@ -1,7 +1,7 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { MEDIA_UPLOADED } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";

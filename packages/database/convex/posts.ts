@@ -53,6 +53,12 @@ function extractSearchableText(
   return [...mainText, ...altText].join(" ").trim();
 }
 
+import { getAuthContext } from "./lib/auth";
+import {
+  adjustUsage,
+  getUsageOwnerId,
+  resolveUsageOwnerFromDoc,
+} from "./lib/usage";
 import {
   getPostByIdSchema,
   postCreateSchema,
@@ -137,6 +143,7 @@ interface CreatePostArgs {
   socialProviderIds: Id<"socialProviders">[];
   tiktokSettings?: Doc<"posts">["tiktokSettings"];
   providerSettings?: Doc<"posts">["providerSettings"];
+  usageOwnerId?: Id<"users">;
 }
 
 export async function createPostCore(
@@ -175,6 +182,11 @@ export async function createPostCore(
   const newPost = await ctx.db.get(newPostId);
   if (newPost) {
     await postsByUserStatus.insert(ctx, newPost);
+  }
+
+  // Increment monthly posts counter
+  if (args.usageOwnerId) {
+    await adjustUsage(ctx, args.usageOwnerId, "monthlyPosts", 1);
   }
 
   if (args.scheduledAt) {
@@ -259,6 +271,12 @@ export async function softDeletePostCore(
     await ctx.scheduler.runAfter(0, internal.callmelater.cancelScheduleAction, {
       scheduleId: oldPost.callMeLaterScheduleId,
     });
+  }
+
+  // Decrement monthly posts counter (resolve owner from the post doc)
+  if (oldPost.status !== "DELETED") {
+    const ownerId = await resolveUsageOwnerFromDoc(ctx, oldPost);
+    await adjustUsage(ctx, ownerId, "monthlyPosts", -1);
   }
 
   await ctx.db.patch(oldPost._id, {
@@ -355,10 +373,10 @@ export async function getPostsCore(
           q.eq(q.field("organizationId"), args.organizationId)
         );
       }
-      if (args.isDeleted !== undefined) {
-        query = query.filter((q) => q.eq(q.field("isDeleted"), args.isDeleted));
-      } else {
+      if (args.isDeleted === undefined) {
         query = query.filter((q) => q.eq(q.field("isDeleted"), false));
+      } else {
+        query = query.filter((q) => q.eq(q.field("isDeleted"), args.isDeleted));
       }
     }
 
@@ -403,11 +421,16 @@ export const createPost = mutation({
   args: postCreateSchema.fields,
   returns: v.id("posts"),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
-    return createPostCore(ctx, user._id, args);
+    const usageOwnerId = await getUsageOwnerId(ctx, authCtx);
+    return createPostCore(ctx, authCtx.userId, {
+      ...args,
+      organizationId: authCtx.organizationId ?? args.organizationId,
+      usageOwnerId,
+    });
   },
 });
 
@@ -481,11 +504,12 @@ export const upsertPost = mutation({
   returns: v.id("posts"),
   handler: async (ctx, args) => {
     const now = getCurrentTimestamp();
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       throw new Error("User not found");
     }
+    const user = authCtx.user;
 
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= now) {
@@ -525,7 +549,8 @@ export const upsertPost = mutation({
       // Create new post
       postId = await ctx.db.insert("posts", {
         ...postData,
-        userId: user._id,
+        userId: user._id as Id<"users">,
+        organizationId: authCtx.organizationId ?? postData.organizationId,
         status: finalStatus,
         reviewStatus: postData.reviewStatus || "PENDING",
         isDeleted: false,
@@ -544,6 +569,10 @@ export const upsertPost = mutation({
       if (newPost) {
         await postsByUserStatus.insert(ctx, newPost);
       }
+
+      // Increment monthly posts counter
+      const usageOwnerId = await getUsageOwnerId(ctx, authCtx);
+      await adjustUsage(ctx, usageOwnerId, "monthlyPosts", 1);
     }
 
     if (finalStatus === "PROCESSING") {
@@ -577,6 +606,12 @@ export const hardDeletePost = mutation({
   handler: async (ctx, args) => {
     const post = await findPostById(ctx, args.id);
 
+    // Decrement monthly posts counter only if not already soft-deleted
+    if (post.status !== "DELETED") {
+      const ownerId = await resolveUsageOwnerFromDoc(ctx, post);
+      await adjustUsage(ctx, ownerId, "monthlyPosts", -1);
+    }
+
     // Remove from aggregates before deleting
     await postsByUserStatus.delete(ctx, post);
 
@@ -598,9 +633,9 @@ export const getPosts = query({
     continueCursor: v.string(),
   }),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       return {
         page: [],
         isDone: true,
@@ -608,7 +643,11 @@ export const getPosts = query({
       };
     }
 
-    return getPostsCore(ctx, user._id, args);
+    // Pass org context to core query — org posts when org is active, personal otherwise
+    return getPostsCore(ctx, authCtx.userId, {
+      ...args,
+      organizationId: authCtx.organizationId ?? args.organizationId,
+    });
   },
 });
 
@@ -621,14 +660,14 @@ export const deletePost = mutation({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("Unauthorized");
     }
 
-    // Verify ownership
+    // Verify ownership (personal) or org membership
     const oldPost = await findPostById(ctx, args.postId);
-    if (!oldPost || oldPost.userId !== user._id) {
+    if (!oldPost || oldPost.userId !== authCtx.userId) {
       throw new Error("Post not found or access denied");
     }
 
@@ -877,8 +916,8 @@ export const saveCallMeLaterScheduleId = internalMutation({
 export const getScheduledPostsByProvider = query({
   args: { socialProviderId: v.id("socialProviders") },
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
 
@@ -887,7 +926,7 @@ export const getScheduledPostsByProvider = query({
       .query("posts")
       .withIndex("by_user_status", (q) =>
         q
-          .eq("userId", user._id)
+          .eq("userId", authCtx.userId)
           .eq("status", "SCHEDULED")
           .eq("isDeleted", false)
       )
@@ -916,18 +955,20 @@ export const getScheduledPostsByDateRange = query({
   },
   returns: v.array(getPostByIdSchema),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       return [];
     }
+
+    const orgId = authCtx.organizationId ?? args.organizationId;
 
     // Query posts by user and filter by scheduled date range
     const query = ctx.db
       .query("posts")
       .withIndex("by_user_status", (q) =>
         q
-          .eq("userId", user._id)
+          .eq("userId", authCtx.userId)
           .eq("status", "SCHEDULED")
           .eq("isDeleted", false)
       );
@@ -940,11 +981,8 @@ export const getScheduledPostsByDateRange = query({
           q.lte(q.field("scheduledAt"), args.endDate)
         );
 
-        if (args.organizationId) {
-          filter = q.and(
-            filter,
-            q.eq(q.field("organizationId"), args.organizationId)
-          );
+        if (orgId) {
+          filter = q.and(filter, q.eq(q.field("organizationId"), orgId));
         }
 
         return filter;

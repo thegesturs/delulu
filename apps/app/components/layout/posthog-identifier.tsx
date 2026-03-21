@@ -1,11 +1,11 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
-  SIGNUP_COMPLETED,
-  SESSION_STARTED,
   FEATURE_USED,
+  SESSION_STARTED,
+  SIGNUP_COMPLETED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { useUser } from "@delulu/auth";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
@@ -94,7 +94,7 @@ function PostHogIdentifierContent() {
 
   // Track session start (once per page load / app open)
   useEffect(() => {
-    if (!user || !analytics || sessionTracked.current) {
+    if (!(user && analytics) || sessionTracked.current) {
       return;
     }
     sessionTracked.current = true;

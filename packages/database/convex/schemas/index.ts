@@ -4,6 +4,7 @@ export * from "./api_keys";
 export * from "./articles";
 export * from "./automations";
 export * from "./enums";
+export * from "./organizations";
 export * from "./posts_media";
 export * from "./social_providers";
 export * from "./subscriptions";

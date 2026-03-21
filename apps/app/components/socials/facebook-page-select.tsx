@@ -1,9 +1,9 @@
 "use client";
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   SOCIAL_ACCOUNT_CONNECTED,
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   Avatar,
   AvatarFallback,

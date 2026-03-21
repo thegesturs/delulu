@@ -281,7 +281,15 @@ export function CalendarDndProvider({
       const newStart = new Date(date);
 
       // If time is provided (for week/day views), set the hours and minutes
-      if (time !== undefined) {
+      if (time === undefined) {
+        // For month view, preserve the original time from currentTime
+        newStart.setHours(
+          currentTime.getHours(),
+          currentTime.getMinutes(),
+          currentTime.getSeconds(),
+          currentTime.getMilliseconds()
+        );
+      } else {
         const hours = Math.floor(time);
         const fractionalHour = time - hours;
 
@@ -298,14 +306,6 @@ export function CalendarDndProvider({
         }
 
         newStart.setHours(hours, minutes, 0, 0);
-      } else {
-        // For month view, preserve the original time from currentTime
-        newStart.setHours(
-          currentTime.getHours(),
-          currentTime.getMinutes(),
-          currentTime.getSeconds(),
-          currentTime.getMilliseconds()
-        );
       }
 
       // Validate: Cannot schedule in the past (minimum 30 minutes from now)

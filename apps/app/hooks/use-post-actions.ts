@@ -24,7 +24,7 @@ export function usePostActions() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const user = useQuery(api.users.current);
-  const monthlyPostsCount = user?.usage?.generatedPosts || 0;
+  const monthlyPostsCount = user?.usage?.monthlyPosts || 0;
   const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
   const isAtPostLimit = !(
     monthlyPostsLimit.isUnlimited || monthlyPostsLimit.allowed

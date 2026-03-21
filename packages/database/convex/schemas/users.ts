@@ -13,12 +13,16 @@ const statsSchema = v.object({
 // Usage tracking schema for user limits and analytics
 const usageSchema = v.object({
   socialAccounts: v.number(),
-  generatedPosts: v.number(),
-  drafts: v.number(),
-  organization: v.number(),
+  monthlyPosts: v.optional(v.number()),
+  monthlyPostsPeriodStart: v.optional(v.number()),
+  mediaStorageBytes: v.optional(v.number()),
   dmsSent: v.optional(v.number()),
   transcriptionsUsed: v.optional(v.number()),
   transcriptionPeriodStart: v.optional(v.number()),
+  // DEPRECATED — kept optional for backward compat, no longer read
+  generatedPosts: v.optional(v.number()),
+  drafts: v.optional(v.number()),
+  organization: v.optional(v.number()),
 });
 
 // Base user schema without system fields

@@ -21,6 +21,7 @@ export interface PlanLimits {
   monthlyPosts: number; // Number of posts that can be scheduled per month
   mediaStorage: number; // Media storage in MB
   teamMembers: number; // Number of team members
+  organizations: number; // Number of organizations the user can create
 }
 
 export interface PlanFeatures {
@@ -61,6 +62,7 @@ export const PLANS: Record<PlanType, Plan> = {
       monthlyPosts: 10,
       mediaStorage: 100, // 100 MB
       teamMembers: 1,
+      organizations: 0, // No org creation on free plan
     },
     features: {
       postScheduling: true,
@@ -80,6 +82,7 @@ export const PLANS: Record<PlanType, Plan> = {
       monthlyPosts: 30,
       mediaStorage: 1000, // 1 GB
       teamMembers: 1,
+      organizations: 0, // No org creation on Echo
     },
     features: {
       postScheduling: true,
@@ -99,6 +102,7 @@ export const PLANS: Record<PlanType, Plan> = {
       monthlyPosts: -1, // Unlimited
       mediaStorage: -1, // Unlimited
       teamMembers: 10,
+      organizations: 3,
     },
     features: {
       postScheduling: true,

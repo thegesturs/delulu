@@ -107,14 +107,13 @@ function UsageStatItem({
 export function UsageStats() {
   const subscription = useSubscription();
 
-  // Fetch actual usage from queries
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
-  const user = useQuery(api.users.current);
+  // Fetch actual usage from pre-computed counters
+  const usage = useQuery(api.subscriptions.getUserUsage);
 
-  // Calculate usage for each limit type
-  const socialAccountsCount = socialProviders?.length || 0;
-  const monthlyPostsCount = user?.usage?.generatedPosts || 0; // You might want a more accurate count
-  const _draftsCount = user?.usage?.drafts || 0;
+  const socialAccountsCount = usage?.socialAccounts ?? 0;
+  const monthlyPostsCount = usage?.monthlyPosts ?? 0;
+  const mediaStorageMB = usage?.mediaStorage ?? 0;
+  const teamMemberCount = usage?.teamMembers ?? 1;
 
   // Get limit checks
   const socialAccountsLimit = useUsageLimit(
@@ -122,8 +121,8 @@ export function UsageStats() {
     socialAccountsCount
   );
   const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
-  // Media storage would need actual calculation
-  const teamMembersLimit = useUsageLimit("teamMembers", 1); // Update with actual team size
+  const mediaStorageLimit = useUsageLimit("mediaStorage", mediaStorageMB);
+  const teamMembersLimit = useUsageLimit("teamMembers", teamMemberCount);
 
   if (subscription.isLoading) {
     return (
@@ -195,7 +194,7 @@ export function UsageStats() {
 
         {/* Media Storage */}
         <UsageStatItem
-          current={0}
+          current={mediaStorageMB}
           icon={
             <Icon
               className="text-muted-foreground"
@@ -203,15 +202,15 @@ export function UsageStats() {
               size={16}
             />
           }
-          isUnlimited={subscription.isVibe} // TODO: Calculate actual storage usage
-          label="Media Storage" // Placeholder
-          limit={100}
-          percentageUsed={0}
+          isUnlimited={mediaStorageLimit.isUnlimited}
+          label="Media Storage (MB)"
+          limit={mediaStorageLimit.limit}
+          percentageUsed={mediaStorageLimit.percentageUsed}
         />
 
         {/* Team Members */}
         <UsageStatItem
-          current={1}
+          current={teamMemberCount}
           icon={
             <Icon
               className="text-muted-foreground"
@@ -278,12 +277,11 @@ export function UsageStats() {
  * Compact usage stats for dashboards
  */
 export function CompactUsageStats() {
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
-  const user = useQuery(api.users.current);
+  const usage = useQuery(api.subscriptions.getUserUsage);
   const subscription = useSubscription();
 
-  const socialAccountsCount = socialProviders?.length || 0;
-  const monthlyPostsCount = user?.usage?.generatedPosts || 0;
+  const socialAccountsCount = usage?.socialAccounts ?? 0;
+  const monthlyPostsCount = usage?.monthlyPosts ?? 0;
 
   const socialAccountsLimit = useUsageLimit(
     "socialAccounts",

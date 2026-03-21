@@ -1,6 +1,12 @@
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { getAuthContext } from "./lib/auth";
+import {
+  adjustUsage,
+  getUsageOwnerId,
+  resolveUsageOwnerFromDoc,
+} from "./lib/usage";
 import {
   mediaCreateSchema,
   mediaFiltersSchema,
@@ -36,23 +42,34 @@ export const getMedia = query({
     hasMore: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
     const limit = Math.min(args.limit ?? 50, 100); // Cap at 100 per page
 
-    // Build query using composite index for efficient pagination
-    let query = ctx.db
-      .query("media")
-      .withIndex("by_userId_createdAt", (q) =>
-        args.cursor
-          ? q.eq("userId", user._id).lt("createdAt", args.cursor)
-          : q.eq("userId", user._id)
-      )
-      .order("desc"); // Sort by createdAt DESC (newest first)
+    // In org context, query by org; in personal, query by user
+    // biome-ignore lint/suspicious/noImplicitAnyLet: query type inferred from branches
+    let query;
+    if (authCtx.organizationId) {
+      query = ctx.db
+        .query("media")
+        .withIndex("by_organization_id", (q) =>
+          q.eq("organizationId", authCtx.organizationId)
+        )
+        .order("desc");
+    } else {
+      query = ctx.db
+        .query("media")
+        .withIndex("by_userId_createdAt", (q) =>
+          args.cursor
+            ? q.eq("userId", authCtx.userId).lt("createdAt", args.cursor)
+            : q.eq("userId", authCtx.userId)
+        )
+        .order("desc");
+    }
 
     // Apply mediaType filter at database level if specified
     if (args.mediaType) {
@@ -109,15 +126,15 @@ export const createMedia = mutation({
 
     const now = getCurrentTimestamp();
 
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
     const newMediaId = await ctx.db.insert("media", {
-      userId: user._id,
-      organizationId: args.organizationId,
+      userId: authCtx.userId,
+      organizationId: authCtx.organizationId ?? args.organizationId,
       bucketKey: args.bucketKey,
       url: args.url,
       mediaType: args.mediaType,
@@ -131,6 +148,12 @@ export const createMedia = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Increment media storage counter
+    if (args.size) {
+      const ownerId = await getUsageOwnerId(ctx, authCtx);
+      await adjustUsage(ctx, ownerId, "mediaStorageBytes", args.size);
+    }
 
     return newMediaId;
   },
@@ -213,6 +236,12 @@ export const deleteMedia = mutation({
       throw new Error("Media not found");
     }
 
+    // Decrement media storage counter
+    if (media.size) {
+      const ownerId = await resolveUsageOwnerFromDoc(ctx, media);
+      await adjustUsage(ctx, ownerId, "mediaStorageBytes", -media.size);
+    }
+
     await ctx.db.delete(media._id);
 
     return true;
@@ -257,29 +286,24 @@ export const searchMedia = query({
   handler: async (ctx, args) => {
     let mediaItems: Doc<"media">[];
 
-    const user = await getCurrentUser(ctx);
+    const authCtx = await getAuthContext(ctx);
 
-    if (!user) {
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
-    const organizationId = args.organizationId;
-
-    if (user._id) {
-      mediaItems = await ctx.db
-        .query("media")
-        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-        .collect();
-    } else if (organizationId) {
+    if (authCtx.organizationId) {
       mediaItems = await ctx.db
         .query("media")
         .withIndex("by_organization_id", (q) =>
-          q.eq("organizationId", args.organizationId)
+          q.eq("organizationId", authCtx.organizationId)
         )
         .collect();
     } else {
-      // Search all media if no user or organization specified
-      mediaItems = await ctx.db.query("media").collect();
+      mediaItems = await ctx.db
+        .query("media")
+        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
+        .collect();
     }
 
     // Filter by search term (search in filename, alt text, and extension)
@@ -319,6 +343,8 @@ export const bulkDeleteMedia = mutation({
   returns: v.number(),
   handler: async (ctx, args) => {
     let deletedCount = 0;
+    // Track total bytes per usage owner for batch decrement
+    const bytesByOwner = new Map<string, number>();
 
     for (const id of args.ids) {
       const media = await ctx.db
@@ -327,9 +353,26 @@ export const bulkDeleteMedia = mutation({
         .unique();
 
       if (media) {
+        if (media.size) {
+          const ownerId = await resolveUsageOwnerFromDoc(ctx, media);
+          bytesByOwner.set(
+            ownerId,
+            (bytesByOwner.get(ownerId) ?? 0) + media.size
+          );
+        }
         await ctx.db.delete(media._id);
         deletedCount++;
       }
+    }
+
+    // Batch decrement storage counters per owner
+    for (const [ownerId, totalBytes] of bytesByOwner) {
+      await adjustUsage(
+        ctx,
+        ownerId as Id<"users">,
+        "mediaStorageBytes",
+        -totalBytes
+      );
     }
 
     return deletedCount;
@@ -366,7 +409,7 @@ export const apiCreateMedia = mutation({
     const now = getCurrentTimestamp();
     const { userId, ...mediaFields } = args;
 
-    return await ctx.db.insert("media", {
+    const newMediaId = await ctx.db.insert("media", {
       userId,
       bucketKey: mediaFields.bucketKey,
       url: mediaFields.url,
@@ -381,6 +424,13 @@ export const apiCreateMedia = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Increment media storage counter
+    if (mediaFields.size) {
+      await adjustUsage(ctx, userId, "mediaStorageBytes", mediaFields.size);
+    }
+
+    return newMediaId;
   },
 });
 

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { getAuthContext } from "./lib/auth";
 import {
   automationCreateSchema,
   automationSchema,
@@ -25,8 +26,8 @@ export const getAutomations = query({
   },
   returns: v.array(automationSchema),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
 
@@ -39,10 +40,17 @@ export const getAutomations = query({
           q.eq("socialProviderId", args.socialProviderId!)
         )
         .collect();
+    } else if (authCtx.organizationId) {
+      automations = await ctx.db
+        .query("automations")
+        .withIndex("by_organization_id", (q) =>
+          q.eq("organizationId", authCtx.organizationId)
+        )
+        .collect();
     } else {
       automations = await ctx.db
         .query("automations")
-        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
         .collect();
     }
 
@@ -60,13 +68,13 @@ export const getAutomation = query({
   args: { id: v.id("automations") },
   returns: v.union(automationSchema, v.null()),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return null;
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== user._id) {
+    if (!automation || automation.userId !== authCtx.userId) {
       return null;
     }
 
@@ -348,14 +356,14 @@ export const createAutomation = mutation({
   args: automationCreateSchema.fields,
   returns: v.id("automations"),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
-    // Verify user owns the social provider
+    // Verify user owns the social provider (or it belongs to the org)
     const socialProvider = await ctx.db.get(args.socialProviderId);
-    if (!socialProvider || socialProvider.userId !== user._id) {
+    if (!socialProvider || socialProvider.userId !== authCtx.userId) {
       throw new Error("Social provider not found or access denied");
     }
 
@@ -367,8 +375,8 @@ export const createAutomation = mutation({
     const now = getCurrentTimestamp();
 
     const automationId = await ctx.db.insert("automations", {
-      userId: user._id,
-      organizationId: args.organizationId,
+      userId: authCtx.userId,
+      organizationId: authCtx.organizationId ?? args.organizationId,
       socialProviderId: args.socialProviderId,
       name: args.name,
       description: args.description,
@@ -398,13 +406,13 @@ export const updateAutomation = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== user._id) {
+    if (!automation || automation.userId !== authCtx.userId) {
       throw new Error("Automation not found or access denied");
     }
 
@@ -426,13 +434,13 @@ export const deleteAutomation = mutation({
   args: { id: v.id("automations") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== user._id) {
+    if (!automation || automation.userId !== authCtx.userId) {
       throw new Error("Automation not found or access denied");
     }
 
@@ -448,13 +456,13 @@ export const toggleAutomation = mutation({
   args: { id: v.id("automations") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== user._id) {
+    if (!automation || automation.userId !== authCtx.userId) {
       throw new Error("Automation not found or access denied");
     }
 

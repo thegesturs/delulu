@@ -7,6 +7,8 @@ import {
   baseAutomationSchema,
   baseAutomationSessionSchema,
   baseMediaTableSchema,
+  baseOrganizationMemberSchema,
+  baseOrganizationSchema,
   basePostSchema,
   baseSocialProviderSchema,
   baseSubscriptionSchema,
@@ -113,6 +115,20 @@ export default defineSchema({
   automationContacts: defineTable(baseAutomationContactSchema.fields)
     .index("by_social_provider", ["socialProviderId"])
     .index("by_instagram_user", ["socialProviderId", "instagramUserId"]),
+
+  // Organizations table (synced from Clerk)
+  organizations: defineTable(baseOrganizationSchema.fields)
+    .index("by_clerk_org_id", ["clerkOrgId"])
+    .index("by_slug", ["slug"])
+    .index("by_created_by", ["createdBy"]),
+
+  // Organization members table (synced from Clerk)
+  organizationMembers: defineTable(baseOrganizationMemberSchema.fields)
+    .index("by_organization_id", ["organizationId"])
+    .index("by_clerk_org_id", ["clerkOrgId"])
+    .index("by_user_id", ["userId"])
+    .index("by_org_user", ["organizationId", "userId"])
+    .index("by_clerk_org_user", ["clerkOrgId", "clerkUserId"]),
 
   // Transcriptions table for reel audio transcriptions (Sorted extension)
   transcriptions: defineTable(baseTranscriptionSchema.fields)

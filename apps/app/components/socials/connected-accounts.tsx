@@ -1,6 +1,6 @@
 "use client";
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { SOCIAL_ACCOUNT_DISCONNECTED } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Icon } from "@delulu/design-system/providers/icon";

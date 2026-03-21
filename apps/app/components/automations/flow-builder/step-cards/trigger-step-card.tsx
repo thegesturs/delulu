@@ -48,7 +48,7 @@ export function TriggerStepCard({
         <p className="text-muted-foreground text-xs">
           {postCount === 0
             ? "No posts selected"
-            : `${postCount} post${postCount !== 1 ? "s" : ""}`}
+            : `${postCount} post${postCount === 1 ? "" : "s"}`}
         </p>
       </div>
       {canRemove && onRemove && (

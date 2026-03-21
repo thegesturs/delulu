@@ -1,12 +1,12 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   POST_CREATED,
-  POST_SCHEDULED,
   POST_SAVED_AS_DRAFT,
+  POST_SCHEDULED,
   POST_UPDATED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
@@ -71,7 +71,7 @@ export function BasicSettings() {
 
   // Get current user and monthly post count for usage limits
   const user = useQuery(api.users.current);
-  const monthlyPostsCount = user?.usage?.generatedPosts || 0;
+  const monthlyPostsCount = user?.usage?.monthlyPosts || 0;
 
   // Check monthly post limit
   const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);

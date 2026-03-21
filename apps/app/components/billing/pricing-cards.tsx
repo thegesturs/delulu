@@ -300,6 +300,23 @@ export function PricingCards({
                       auto-DMs/month
                     </span>
                   </li>
+                  {plan.limits.organizations > 0 && (
+                    <li className="flex items-start gap-2">
+                      <Icon
+                        className="mt-0.5 flex-shrink-0 text-primary"
+                        icon={Tick01Icon}
+                        size={16}
+                      />
+                      <span>
+                        {plan.limits.organizations === -1
+                          ? "Unlimited"
+                          : `Up to ${plan.limits.organizations}`}{" "}
+                        {plan.limits.organizations === 1
+                          ? "organization"
+                          : "organizations"}
+                      </span>
+                    </li>
+                  )}
                   {plan.features.postScheduling && (
                     <li className="flex items-start gap-2">
                       <Icon

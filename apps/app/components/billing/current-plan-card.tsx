@@ -167,6 +167,16 @@ export function CurrentPlanCard() {
                   : plan.limits.teamMembers}
               </span>
             </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Organizations</span>
+              <span className="font-medium">
+                {plan.limits.organizations === -1
+                  ? "Unlimited"
+                  : plan.limits.organizations === 0
+                    ? "None"
+                    : plan.limits.organizations}
+              </span>
+            </li>
           </ul>
         </div>
 

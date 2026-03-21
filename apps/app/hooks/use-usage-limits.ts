@@ -12,7 +12,8 @@ export type LimitType =
   | "socialAccounts"
   | "monthlyPosts"
   | "mediaStorage"
-  | "teamMembers";
+  | "teamMembers"
+  | "organizations";
 
 export interface UseUsageLimitReturn {
   allowed: boolean;

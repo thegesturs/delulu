@@ -7,6 +7,8 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server.js";
+import { getAuthContext } from "./lib/auth";
+import { adjustUsage, getUsageOwnerId } from "./lib/usage";
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
@@ -32,11 +34,24 @@ export const getConnectedAccounts = query({
   args: {},
   returns: v.array(socialProviderSchema),
   handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return [];
     }
-    return getConnectedAccountsCore(ctx, user._id);
+
+    // In org context, show org's social providers; in personal, show user's
+    if (authCtx.organizationId) {
+      const providers = await ctx.db
+        .query("socialProviders")
+        .withIndex("by_organization_id", (q) =>
+          q.eq("organizationId", authCtx.organizationId)
+        )
+        .collect();
+      providers.sort((a, b) => b._creationTime - a._creationTime);
+      return providers;
+    }
+
+    return getConnectedAccountsCore(ctx, authCtx.userId);
   },
 });
 
@@ -151,6 +166,9 @@ export const connectFacebookPage = mutation({
       updatedAt: now,
     });
 
+    // Increment social accounts counter on the user
+    await adjustUsage(ctx, args.userId, "socialAccounts", 1);
+
     return { status: "connected" as const };
   },
 });
@@ -246,8 +264,8 @@ export const deleteSocialProvider = mutation({
   args: { id: v.id("socialProviders") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       throw new Error("User not found");
     }
 
@@ -260,11 +278,15 @@ export const deleteSocialProvider = mutation({
       throw new Error("Social provider not found");
     }
 
-    if (provider.userId !== user._id) {
+    if (provider.userId !== authCtx.userId) {
       throw new Error(
         "You are not allowed to delete this social provider, it belongs to another user"
       );
     }
+
+    // Decrement social accounts counter on usage owner
+    const ownerId = await getUsageOwnerId(ctx, authCtx);
+    await adjustUsage(ctx, ownerId, "socialAccounts", -1);
 
     // Clean up posts that reference this social provider
     await ctx.runMutation(
@@ -292,11 +314,11 @@ export const upsertSocialProvider = mutation({
   ),
   handler: async (ctx, args) => {
     try {
-      const user = await getCurrentUser(ctx);
-      if (!user) {
+      const authCtx = await getAuthContext(ctx);
+      if (!authCtx) {
         throw new Error("User not found");
       }
-      const userId = user._id;
+      const userId = authCtx.userId;
       const now = getCurrentTimestamp();
       // Encrypt tokens once
       const encryptedAccessToken = await encryptData(args.accessToken);
@@ -325,15 +347,20 @@ export const upsertSocialProvider = mutation({
         return "updated";
       }
 
-      // Create new provider
+      // Create new provider — auto-set org from auth context
       await ctx.db.insert("socialProviders", {
         ...args,
         userId,
+        organizationId: authCtx.organizationId ?? args.organizationId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         updatedAt: now,
         isActive: args.isActive ?? true,
       });
+
+      // Increment social accounts counter on usage owner
+      const ownerId = await getUsageOwnerId(ctx, authCtx);
+      await adjustUsage(ctx, ownerId, "socialAccounts", 1);
 
       return "created";
     } catch (_error) {
@@ -465,6 +492,9 @@ export const upsertSocialProviderFromOAuth = mutation({
       updatedAt: now,
       isActive: providerData.isActive ?? true,
     });
+
+    // Increment social accounts counter on the user
+    await adjustUsage(ctx, userId, "socialAccounts", 1);
 
     return "created";
   },

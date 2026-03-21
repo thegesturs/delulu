@@ -155,6 +155,14 @@ const getFeatureList = (plan: Plan): string[] => {
     features.push(`${plan.limits.teamMembers} team members`);
   }
 
+  if (plan.limits.organizations > 0) {
+    features.push(
+      plan.limits.organizations === -1
+        ? "Unlimited organizations"
+        : `Up to ${plan.limits.organizations} organization${plan.limits.organizations === 1 ? "" : "s"}`
+    );
+  }
+
   // DM automation limits
   const dmLimit = DM_PLAN_LIMITS[plan.id];
   if (dmLimit === -1) {

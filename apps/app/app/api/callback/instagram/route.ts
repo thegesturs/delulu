@@ -1,5 +1,5 @@
-import { analytics } from "@delulu/analytics/posthog/server";
 import { SOCIAL_ACCOUNT_CONNECTED } from "@delulu/analytics/events";
+import { analytics } from "@delulu/analytics/posthog/server";
 import { auth } from "@delulu/auth/server";
 import { api } from "@delulu/database/convex/_generated/api";
 import { fetchMutation } from "@delulu/database/server";

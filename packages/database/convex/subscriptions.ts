@@ -21,6 +21,11 @@ import {
 } from "./_generated/server";
 import { checkout, customerPortal } from "./dodo";
 import {
+  getAuthContext,
+  getEffectivePlanOwner,
+  getEffectivePlanType,
+} from "./lib/auth";
+import {
   addonType as addonTypeValidator,
   billingPeriod,
   planTypes,
@@ -28,7 +33,6 @@ import {
   subscriptionStatus,
   subscriptionType,
 } from "./schemas";
-import { postsByUserStatus } from "./stats";
 import { getCurrentTimestamp } from "./utils";
 
 // ============================================================================
@@ -42,22 +46,18 @@ export const getCurrentSubscription = query({
   args: {},
   returns: v.union(subscriptionSchema, v.null()),
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return null;
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
-      .unique();
-
-    if (!user?.subscriptionId) {
+    // In org context, resolve the org admin's subscription
+    const owner = await getEffectivePlanOwner(ctx, authCtx);
+    if (!owner?.subscriptionId) {
       return null;
     }
 
-    const subscription = await ctx.db.get(user.subscriptionId);
-    return subscription;
+    return await ctx.db.get(owner.subscriptionId);
   },
 });
 
@@ -138,26 +138,11 @@ export const checkFeatureAccess = query({
     needsUpgrade: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
+    const authCtx = await getAuthContext(ctx);
+    const planType = authCtx
+      ? await getEffectivePlanType(ctx, authCtx)
+      : "FREE";
 
-    if (identity) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_external_id", (q) =>
-          q.eq("externalId", identity.subject)
-        )
-        .unique();
-
-      if (user?.subscriptionId) {
-        const subscription = await ctx.db.get(user.subscriptionId);
-        if (subscription) {
-          planType = subscription.planType;
-        }
-      }
-    }
-
-    // Get plan features from single source of truth
     const plan = PLANS[planType];
     const hasAccess = plan.features[args.feature];
 
@@ -178,7 +163,8 @@ export const checkUsageLimit = query({
       v.literal("socialAccounts"),
       v.literal("monthlyPosts"),
       v.literal("mediaStorage"),
-      v.literal("teamMembers")
+      v.literal("teamMembers"),
+      v.literal("organizations")
     ),
     currentValue: v.number(),
   },
@@ -189,26 +175,11 @@ export const checkUsageLimit = query({
     planType: planTypes,
   }),
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
+    const authCtx = await getAuthContext(ctx);
+    const planType = authCtx
+      ? await getEffectivePlanType(ctx, authCtx)
+      : "FREE";
 
-    if (identity) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_external_id", (q) =>
-          q.eq("externalId", identity.subject)
-        )
-        .unique();
-
-      if (user?.subscriptionId) {
-        const subscription = await ctx.db.get(user.subscriptionId);
-        if (subscription) {
-          planType = subscription.planType;
-        }
-      }
-    }
-
-    // Get plan limits from single source of truth
     const plan = PLANS[planType];
     const limit = plan.limits[args.limitType];
     const allowed = limit === -1 || args.currentValue < limit;
@@ -225,8 +196,8 @@ export const checkUsageLimit = query({
 });
 
 /**
- * Check social account limit with current count in one query
- * Replaces the pattern of calling getConnectedAccounts + checkUsageLimit separately
+ * Check social account limit with current count in one query.
+ * Reads from pre-computed usage counters instead of scanning the table.
  */
 export const checkSocialAccountLimit = query({
   args: {},
@@ -238,23 +209,8 @@ export const checkSocialAccountLimit = query({
     remaining: v.number(),
   }),
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return {
-        currentCount: 0,
-        limit: 1, // FREE plan default
-        allowed: true,
-        planType: "FREE" as const,
-        remaining: 1,
-      };
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
-      .unique();
-
-    if (!user) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return {
         currentCount: 0,
         limit: 1,
@@ -264,23 +220,10 @@ export const checkSocialAccountLimit = query({
       };
     }
 
-    // Get plan type
-    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
-    if (user.subscriptionId) {
-      const subscription = await ctx.db.get(user.subscriptionId);
-      if (subscription) {
-        planType = subscription.planType;
-      }
-    }
+    const owner = await getEffectivePlanOwner(ctx, authCtx);
+    const planType = await getEffectivePlanType(ctx, authCtx);
 
-    // Count current social accounts in ONE query
-    const currentAccounts = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
-
-    const currentCount = currentAccounts.length;
+    const currentCount = owner?.usage.socialAccounts ?? 0;
     const plan = PLANS[planType];
     const limit = plan.limits.socialAccounts;
     const allowed = limit === -1 || currentCount < limit;
@@ -297,8 +240,70 @@ export const checkSocialAccountLimit = query({
 });
 
 /**
- * Get current user's actual usage
- * Counts social accounts, monthly posts, and media storage
+ * Check if the current user can create a new organization.
+ * Uses the user's personal plan (not org context) and counts orgs they've created.
+ */
+export const checkCanCreateOrganization = query({
+  args: {},
+  returns: v.object({
+    allowed: v.boolean(),
+    currentCount: v.number(),
+    limit: v.number(),
+    planType: planTypes,
+  }),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        allowed: false,
+        currentCount: 0,
+        limit: 0,
+        planType: "FREE" as const,
+      };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
+      .unique();
+    if (!user) {
+      return {
+        allowed: false,
+        currentCount: 0,
+        limit: 0,
+        planType: "FREE" as const,
+      };
+    }
+
+    // Get user's personal plan type (not org-resolved)
+    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription?.status === "ACTIVE") {
+        planType = subscription.planType;
+      }
+    }
+
+    const plan = PLANS[planType];
+    const limit = plan.limits.organizations;
+
+    // Count orgs this user has created (by their Clerk user ID)
+    const orgs = await ctx.db
+      .query("organizations")
+      .withIndex("by_created_by", (q) => q.eq("createdBy", identity.subject))
+      .collect();
+
+    const currentCount = orgs.length;
+    const allowed = limit === -1 || currentCount < limit;
+
+    return { allowed, currentCount, limit, planType };
+  },
+});
+
+/**
+ * Get current user's actual usage.
+ * Reads from pre-computed counters on the plan owner's user record.
+ * Only teamMembers still requires a small indexed query.
  */
 export const getUserUsage = query({
   args: {},
@@ -309,8 +314,8 @@ export const getUserUsage = query({
     teamMembers: v.number(),
   }),
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
       return {
         socialAccounts: 0,
         monthlyPosts: 0,
@@ -319,12 +324,8 @@ export const getUserUsage = query({
       };
     }
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
-      .unique();
-
-    if (!user) {
+    const owner = await getEffectivePlanOwner(ctx, authCtx);
+    if (!owner) {
       return {
         socialAccounts: 0,
         monthlyPosts: 0,
@@ -333,14 +334,7 @@ export const getUserUsage = query({
       };
     }
 
-    // Count social accounts
-    const socialAccounts = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
-
-    // Count posts created this month
+    // Check if monthly posts period needs rollover
     const now = Date.now();
     const monthStart = new Date(
       new Date(now).getFullYear(),
@@ -348,32 +342,40 @@ export const getUserUsage = query({
       1
     ).getTime();
 
-    const postsThisMonth = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .filter((q) =>
-        q.and(
-          q.gte(q.field("createdAt"), monthStart),
-          q.eq(q.field("isDeleted"), false)
+    let monthlyPosts = owner.usage.monthlyPosts ?? 0;
+    const periodStart = owner.usage.monthlyPostsPeriodStart ?? 0;
+    if (periodStart < monthStart) {
+      // Period has rolled over — counter should be 0 for this month
+      monthlyPosts = 0;
+    }
+
+    const totalStorageMB = (owner.usage.mediaStorageBytes ?? 0) / (1024 * 1024);
+
+    // teamMembers: small indexed query
+    let teamMemberCount = 1;
+    if (authCtx.organizationId) {
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_clerk_org_id", (q) =>
+          q.eq("clerkOrgId", authCtx.organizationId!)
         )
-      )
-      .collect();
-
-    // Calculate media storage (sum of all media file sizes in MB)
-    const mediaFiles = await ctx.db
-      .query("media")
-      .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-      .collect();
-
-    const totalStorageMB =
-      mediaFiles.reduce((sum, media) => sum + (media.size ?? 0), 0) /
-      (1024 * 1024); // Convert bytes to MB
+        .unique();
+      if (org) {
+        const members = await ctx.db
+          .query("organizationMembers")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", org._id)
+          )
+          .collect();
+        teamMemberCount = members.length;
+      }
+    }
 
     return {
-      socialAccounts: socialAccounts.length,
-      monthlyPosts: postsThisMonth.length,
+      socialAccounts: owner.usage.socialAccounts ?? 0,
+      monthlyPosts,
       mediaStorage: Math.round(totalStorageMB),
-      teamMembers: 1, // TODO: Implement team member counting when org feature is added
+      teamMembers: teamMemberCount,
     };
   },
 });
@@ -410,32 +412,34 @@ export async function getSubscriptionByUserIdCore(
 }
 
 export async function getUserUsageCore(ctx: QueryCtx, userId: Id<"users">) {
-  const socialAccounts = await ctx.db
-    .query("socialProviders")
-    .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .filter((q) => q.eq(q.field("isActive"), true))
-    .collect();
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    return {
+      socialAccounts: 0,
+      monthlyPosts: 0,
+      mediaStorage: 0,
+      teamMembers: 1,
+    };
+  }
 
-  // Use aggregator for efficient post counting instead of fetching all posts
-  const totalPosts = await postsByUserStatus.count(ctx, {
-    bounds: { prefix: [userId] },
-  });
-  const deletedPosts = await postsByUserStatus.count(ctx, {
-    bounds: { prefix: [userId, "DELETED"] },
-  });
-  const monthlyPosts = totalPosts - deletedPosts;
+  // Check if monthly posts period needs rollover
+  const now = Date.now();
+  const monthStart = new Date(
+    new Date(now).getFullYear(),
+    new Date(now).getMonth(),
+    1
+  ).getTime();
 
-  const mediaFiles = await ctx.db
-    .query("media")
-    .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .collect();
+  let monthlyPosts = user.usage.monthlyPosts ?? 0;
+  const periodStart = user.usage.monthlyPostsPeriodStart ?? 0;
+  if (periodStart < monthStart) {
+    monthlyPosts = 0;
+  }
 
-  const totalStorageMB =
-    mediaFiles.reduce((sum, media) => sum + (media.size ?? 0), 0) /
-    (1024 * 1024);
+  const totalStorageMB = (user.usage.mediaStorageBytes ?? 0) / (1024 * 1024);
 
   return {
-    socialAccounts: socialAccounts.length,
+    socialAccounts: user.usage.socialAccounts ?? 0,
     monthlyPosts,
     mediaStorage: Math.round(totalStorageMB),
     teamMembers: 1,

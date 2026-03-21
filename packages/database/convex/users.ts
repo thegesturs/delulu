@@ -112,9 +112,8 @@ export const getUserUsage = query({
   returns: v.union(
     v.object({
       socialAccounts: v.number(),
-      generatedPosts: v.number(),
-      drafts: v.number(),
-      organization: v.number(),
+      monthlyPosts: v.number(),
+      mediaStorageBytes: v.number(),
     }),
     v.null()
   ),
@@ -124,50 +123,15 @@ export const getUserUsage = query({
       .withIndex("by_id", (q) => q.eq("_id", args.id))
       .unique();
 
-    return user?.usage || null;
-  },
-});
-
-export const updateUserUsage = mutation({
-  args: {
-    id: v.id("users"),
-    socialAccounts: v.optional(v.number()),
-    generatedPosts: v.optional(v.number()),
-    drafts: v.optional(v.number()),
-    organization: v.optional(v.number()),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_id", (q) => q.eq("_id", args.id))
-      .unique();
-
     if (!user) {
-      throw new Error("User not found");
+      return null;
     }
 
-    const updatedUsage = { ...user.usage };
-
-    if (args.socialAccounts !== undefined) {
-      updatedUsage.socialAccounts = args.socialAccounts;
-    }
-    if (args.generatedPosts !== undefined) {
-      updatedUsage.generatedPosts = args.generatedPosts;
-    }
-    if (args.drafts !== undefined) {
-      updatedUsage.drafts = args.drafts;
-    }
-    if (args.organization !== undefined) {
-      updatedUsage.organization = args.organization;
-    }
-
-    await ctx.db.patch(user._id, {
-      usage: updatedUsage,
-      updatedAt: getCurrentTimestamp(),
-    });
-
-    return true;
+    return {
+      socialAccounts: user.usage.socialAccounts,
+      monthlyPosts: user.usage.monthlyPosts ?? 0,
+      mediaStorageBytes: user.usage.mediaStorageBytes ?? 0,
+    };
   },
 });
 
@@ -196,9 +160,9 @@ export const upsertFromClerk = internalMutation({
       image: data.image_url || undefined,
       usage: {
         socialAccounts: 0,
-        generatedPosts: 0,
-        drafts: 0,
-        organization: 0,
+        monthlyPosts: 0,
+        monthlyPostsPeriodStart: Date.now(),
+        mediaStorageBytes: 0,
       },
       updatedAt: getCurrentTimestamp(),
     };
@@ -220,13 +184,12 @@ export const deleteFromClerk = internalMutation({
   async handler(ctx, { clerkUserId }) {
     const user = await userByExternalId(ctx, clerkUserId);
 
-    if (user !== null) {
-      // Use existing deleteUser logic for cascade delete
-      await deleteUserInternal(ctx, user._id);
-    } else {
+    if (user === null) {
       // Log warning - user not found for deletion
       throw new Error(`User not found for Clerk user ID: ${clerkUserId}`);
     }
+    // Use existing deleteUser logic for cascade delete
+    await deleteUserInternal(ctx, user._id);
   },
 });
 

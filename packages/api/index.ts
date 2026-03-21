@@ -32,8 +32,8 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 export * as superjson from "superjson";
+export type { AppRouter } from "./root";
 export { appRouter } from "./root";
 export { createTRPCContext } from "./trpc";
-export { createCaller };
-export type { AppRouter } from "./root";
 export type { RouterInputs, RouterOutputs };
+export { createCaller };

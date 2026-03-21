@@ -1,7 +1,7 @@
 "use client";
 
+import { POST_DELETED, POST_RESCHEDULED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { POST_RESCHEDULED, POST_DELETED } from "@delulu/analytics/events";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import type { CalendarEvent } from "@delulu/design-system/components/event-calendar";

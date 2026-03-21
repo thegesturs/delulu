@@ -1,11 +1,11 @@
 "use client";
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import {
   POST_DELETED,
-  POST_PUBLISHED,
   POST_PUBLISH_RETRIED,
+  POST_PUBLISHED,
 } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";

@@ -41,7 +41,7 @@ export function TriggerNode({ data, selected }: NodeProps) {
           <p className="truncate text-muted-foreground text-xs">
             {postCount === 0
               ? "No posts selected"
-              : `${postCount} post${postCount !== 1 ? "s" : ""} | ${keywordLabel}`}
+              : `${postCount} post${postCount === 1 ? "" : "s"} | ${keywordLabel}`}
           </p>
         </div>
       </div>

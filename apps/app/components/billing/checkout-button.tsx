@@ -6,8 +6,8 @@
  * A reusable button that initiates a Dodo Payments checkout session
  */
 
-import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { CHECKOUT_INITIATED } from "@delulu/analytics/events";
+import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
