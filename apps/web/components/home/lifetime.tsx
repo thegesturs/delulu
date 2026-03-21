@@ -5,7 +5,7 @@ import { cn } from "@delulu/design-system/lib/utils";
 import {
   CURRENCY_SYMBOLS,
   type CurrencyCode,
-  LIFETIME_TIERS,
+  LIFETIME_PRICE,
 } from "@delulu/payments";
 import { Check, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -50,10 +50,7 @@ const DEALS_REMAINING = 18;
 // Data
 // ---------------------------------------------------------------------------
 
-const LIFETIME_TIERS_UI = LIFETIME_TIERS.map((tier, i) => ({
-  ...tier,
-  highlighted: i === 1, // middle tier (Team) is highlighted
-}));
+// No multi-tier — single Solo LTD for now
 
 const FEATURE_CATEGORIES = [
   {
@@ -349,6 +346,20 @@ function PricingTiersSection({
   formatNum: (n: number) => string;
   isINR: boolean;
 }) {
+  const price = LIFETIME_PRICE[currency];
+  const monthlyEquiv = `= ${currencySymbol}${isINR ? Math.round(price / 60).toLocaleString("en-IN") : (price / 60).toFixed(2)}/mo over 5 years`;
+
+  const features = [
+    "Everything in VIBE plan",
+    "Unlimited social accounts",
+    "Unlimited posts per month",
+    "Unlimited media storage",
+    "Priority support",
+    "1,000 free transcriptions",
+    "All future features & updates",
+    "No recurring fees — ever",
+  ];
+
   return (
     <section
       className="relative flex w-full flex-col items-center justify-center border-t"
@@ -363,108 +374,68 @@ function PricingTiersSection({
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="mb-4 font-bold text-4xl">
               <Balancer>
-                Choose Your <span className="text-primary">Lifetime</span> Plan
+                The <span className="text-primary">Lifetime</span> Deal
               </Balancer>
             </h2>
             <p className="text-muted-foreground">
-              One payment. Lifetime access. All future updates included.
+              One payment. Lifetime access. Every feature. Every update.
+              Forever.
             </p>
           </div>
 
           <LineSvg className="mb-2 h-px w-full" />
 
-          <div className="mx-auto grid max-w-6xl gap-4 px-2 md:grid-cols-3">
-            {LIFETIME_TIERS_UI.map((tier) => {
-              const price = tier.price[currency];
-              const perSeat =
-                tier.seats > 1
-                  ? `${currencySymbol}${formatNum(Math.round(price / tier.seats))}/seat`
-                  : null;
-              const monthlyEquiv = `= ${currencySymbol}${isINR ? Math.round(price / 60).toLocaleString("en-IN") : (price / 60).toFixed(2)}/mo over 5 years`;
+          <div className="mx-auto max-w-md px-2">
+            <div className="relative flex flex-col gap-3 rounded-[37px] border border-primary bg-gradient-to-b from-primary/20 via-primary/10 to-primary/5 p-4">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 font-semibold text-primary-foreground text-xs">
+                {DEALS_REMAINING} OF 20 LEFT
+              </div>
 
-              const features = [
-                "Everything in VIBE plan",
-                `${tier.seats} team seat${tier.seats > 1 ? "s" : ""}`,
-                "Unlimited social accounts",
-                "Unlimited posts",
-                "Unlimited storage",
-                "Priority support",
-                "1,000 free transcriptions",
-                "All future updates",
-                "No recurring fees",
-              ];
-
-              return (
-                <div
-                  className={cn(
-                    "relative flex flex-col gap-3 rounded-[37px] p-4",
-                    tier.highlighted
-                      ? "border border-primary bg-gradient-to-b from-primary/20 via-primary/10 to-primary/5"
-                      : "bg-card"
-                  )}
-                  key={tier.name}
-                >
-                  {tier.highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 font-semibold text-primary-foreground text-xs">
-                      BEST VALUE
-                    </div>
-                  )}
-
-                  <div className="space-y-8 rounded-[28px] bg-background p-4 px-4 pb-20 shadow-lg">
-                    <div className="flex flex-col">
-                      <div className="space-y-2">
-                        <h3 className="flex w-fit items-center justify-center rounded-full border bg-background px-4 py-1 font-medium text-lg">
-                          {tier.name}
-                        </h3>
-                        <p className="text-muted-foreground text-sm">
-                          {tier.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 flex items-baseline">
-                        <span className="font-bold text-4xl">
-                          {currencySymbol}
-                        </span>
-                        <span className="font-bold text-4xl">
-                          {formatNum(price)}
-                        </span>
-                        <span className="ml-1 text-muted-foreground">
-                          /lifetime
-                        </span>
-                      </div>
-
-                      {perSeat && (
-                        <p className="mt-1 font-medium text-primary text-sm">
-                          {perSeat}
-                        </p>
-                      )}
-                      <p className="mt-1 text-muted-foreground text-xs">
-                        {monthlyEquiv}
-                      </p>
-                    </div>
-
-                    <Button
-                      asChild
-                      className="w-full px-6 py-4 font-medium text-md"
-                      variant={tier.highlighted ? "default" : "outline"}
-                    >
-                      <Link href={SIGN_IN_URL}>Get {tier.name}</Link>
-                    </Button>
-
-                    <ul className="space-y-4">
-                      {features.map((feature) => (
-                        <li className="flex items-center" key={feature}>
-                          <CheckIcon highlighted={tier.highlighted} />
-                          <span className="text-muted-foreground text-sm">
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+              <div className="space-y-8 rounded-[28px] bg-background p-4 px-4 pb-20 shadow-lg">
+                <div className="flex flex-col">
+                  <div className="space-y-2">
+                    <h3 className="flex w-fit items-center justify-center rounded-full border bg-background px-4 py-1 font-medium text-lg">
+                      Lifetime Access
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Full VIBE plan — pay once, use forever
+                    </p>
                   </div>
+
+                  <div className="mt-4 flex items-baseline">
+                    <span className="font-bold text-4xl">{currencySymbol}</span>
+                    <span className="font-bold text-4xl">
+                      {formatNum(price)}
+                    </span>
+                    <span className="ml-1 text-muted-foreground">
+                      /lifetime
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    {monthlyEquiv}
+                  </p>
                 </div>
-              );
-            })}
+
+                <Button
+                  asChild
+                  className="w-full px-6 py-4 font-medium text-md"
+                >
+                  <Link href={SIGN_IN_URL}>Get Lifetime Access</Link>
+                </Button>
+
+                <ul className="space-y-4">
+                  {features.map((feature) => (
+                    <li className="flex items-center" key={feature}>
+                      <CheckIcon highlighted />
+                      <span className="text-muted-foreground text-sm">
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
 
           <LineSvg className="mt-2 h-px w-full" />
@@ -597,7 +568,7 @@ function ComparisonSection({
   currencySymbol: string;
   formatNum: (n: number) => string;
 }) {
-  const deluluPrice = LIFETIME_TIERS[0].price[currency]; // Solo tier
+  const deluluPrice = LIFETIME_PRICE[currency];
 
   return (
     <section className="w-full border-t py-20">
@@ -840,7 +811,7 @@ function FinalCtaSection({
   formatNum: (n: number) => string;
   currency: CurrencyCode;
 }) {
-  const soloPrice = LIFETIME_TIERS[0].price[currency];
+  const soloPrice = LIFETIME_PRICE[currency];
 
   return (
     <section className="relative flex w-full flex-col items-center justify-center border-t">

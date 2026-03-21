@@ -4,11 +4,7 @@
  * This file contains mutation handlers for Dodo Payments webhook events
  */
 
-import {
-  getLifetimeTierFromProductId,
-  getPlanFromProductId,
-  LIFETIME_SEATS,
-} from "@delulu/payments/product-ids";
+import { getPlanFromProductId } from "@delulu/payments/product-ids";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
@@ -339,17 +335,7 @@ export const handleLifetimePurchase = internalMutation({
       });
     }
 
-    // Determine the lifetime tier
-    const tier = getLifetimeTierFromProductId(args.productId);
-    if (!tier) {
-      console.error("[Webhook] Unknown lifetime product ID:", args.productId);
-      throw new Error(`Unknown lifetime product ID: ${args.productId}`);
-    }
-
-    const seats = LIFETIME_SEATS[tier];
-    console.log(
-      `[Webhook] Lifetime tier: ${tier}, seats: ${seats}, user: ${user._id}`
-    );
+    console.log(`[Webhook] Lifetime purchase for user: ${user._id}`);
 
     // Set period end to 100 years from now (effectively forever)
     const now = Date.now();
@@ -381,7 +367,7 @@ export const handleLifetimePurchase = internalMutation({
       amount: args.amount,
       currency: args.currency,
       status: "SUCCEEDED",
-      description: `Lifetime Deal - ${tier} (${seats} seat${seats > 1 ? "s" : ""})`,
+      description: "Lifetime Deal - VIBE plan",
       paidAt: now,
       metadata: {
         productId: args.productId,
