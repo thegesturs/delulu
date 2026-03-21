@@ -105,30 +105,40 @@ export function CurrentPlanCard() {
         <div>
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-3xl">
-              {plan.price[currency].monthly === 0
-                ? "Free"
-                : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
+              {subscription.isLifetime
+                ? "Lifetime"
+                : plan.price[currency].monthly === 0
+                  ? "Free"
+                  : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
             </span>
-            {plan.price[currency].monthly > 0 && (
+            {!subscription.isLifetime && plan.price[currency].monthly > 0 && (
               <span className="text-muted-foreground">/month</span>
             )}
           </div>
-          {subscription.isPaid && subscription.currentPeriodEnd && (
+          {subscription.isLifetime && (
             <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
               <Icon icon={Calendar01Icon} size={16} />
-              {subscription.cancelAtPeriodEnd ? (
-                <span>
-                  Expires on{" "}
-                  {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
-                </span>
-              ) : (
-                <span>
-                  Renews on{" "}
-                  {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
-                </span>
-              )}
+              <span>Lifetime access — no renewal needed</span>
             </div>
           )}
+          {subscription.isPaid &&
+            !subscription.isLifetime &&
+            subscription.currentPeriodEnd && (
+              <div className="mt-2 flex items-center gap-2 text-muted-foreground text-sm">
+                <Icon icon={Calendar01Icon} size={16} />
+                {subscription.cancelAtPeriodEnd ? (
+                  <span>
+                    Expires on{" "}
+                    {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
+                  </span>
+                ) : (
+                  <span>
+                    Renews on{" "}
+                    {format(subscription.currentPeriodEnd, "MMM dd, yyyy")}
+                  </span>
+                )}
+              </div>
+            )}
         </div>
 
         {/* Plan Features */}

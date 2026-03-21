@@ -4,7 +4,11 @@
  * This file contains mutation handlers for Dodo Payments webhook events
  */
 
-import { getPlanFromProductId } from "@delulu/payments/product-ids";
+import {
+  getLifetimeTierFromProductId,
+  getPlanFromProductId,
+  LIFETIME_SEATS,
+} from "@delulu/payments/product-ids";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
@@ -295,6 +299,103 @@ export const handleSubscriptionCancelled = internalMutation({
     });
 
     console.log("[Webhook] Subscription status updated to CANCELLED");
+  },
+});
+
+/**
+ * Handle lifetime deal purchase
+ * Called when a one-time LTD payment succeeds (no subscription_id)
+ */
+export const handleLifetimePurchase = internalMutation({
+  args: {
+    paymentId: v.string(),
+    customerId: v.string(),
+    customerEmail: v.string(),
+    productId: v.string(),
+    amount: v.number(),
+    currency: v.string(),
+    webhookPayload: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    console.log("[Webhook] Lifetime deal purchase:", args.paymentId);
+
+    // Find user by email
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.customerEmail))
+      .first();
+
+    if (!user) {
+      console.error("[Webhook] User not found for email:", args.customerEmail);
+      throw new Error(
+        `User not found for email ${args.customerEmail}. Webhook will be retried by Dodo.`
+      );
+    }
+
+    // Update user with Dodo customer ID if not already set
+    if (!user.dodoCustomerId) {
+      await ctx.db.patch(user._id, {
+        dodoCustomerId: args.customerId,
+      });
+    }
+
+    // Determine the lifetime tier
+    const tier = getLifetimeTierFromProductId(args.productId);
+    if (!tier) {
+      console.error("[Webhook] Unknown lifetime product ID:", args.productId);
+      throw new Error(`Unknown lifetime product ID: ${args.productId}`);
+    }
+
+    const seats = LIFETIME_SEATS[tier];
+    console.log(
+      `[Webhook] Lifetime tier: ${tier}, seats: ${seats}, user: ${user._id}`
+    );
+
+    // Set period end to 100 years from now (effectively forever)
+    const now = Date.now();
+    const foreverEnd = now + 100 * 365 * 24 * 60 * 60 * 1000;
+
+    // Create subscription with LIFETIME billing period
+    const subscriptionId = await ctx.runMutation(
+      internal.subscriptions.createSubscription,
+      {
+        userId: user._id,
+        dodoCustomerId: args.customerId,
+        planType: "VIBE",
+        status: "ACTIVE",
+        billingPeriod: "LIFETIME",
+        currentPeriodStart: now,
+        currentPeriodEnd: foreverEnd,
+        metadata: {
+          productId: args.productId,
+        },
+      }
+    );
+
+    // Create transaction record
+    await ctx.db.insert("transactions", {
+      userId: user._id,
+      subscriptionId,
+      dodoPaymentId: args.paymentId,
+      dodoCustomerId: args.customerId,
+      amount: args.amount,
+      currency: args.currency,
+      status: "SUCCEEDED",
+      description: `Lifetime Deal - ${tier} (${seats} seat${seats > 1 ? "s" : ""})`,
+      paidAt: now,
+      metadata: {
+        productId: args.productId,
+        webhookPayload: args.webhookPayload,
+      },
+      updatedAt: now,
+    });
+
+    console.log(
+      "[Webhook] Lifetime subscription created:",
+      subscriptionId,
+      "for user:",
+      user._id
+    );
   },
 });
 

@@ -80,6 +80,127 @@ export const PROD_PRODUCT_IDS_INR: Record<
   },
 };
 
+// ============================================================================
+// LIFETIME DEAL PRODUCT IDS
+// ============================================================================
+
+export interface LifetimeProductIdConfig {
+  solo: string; // 1 seat
+  team: string; // 3 seats
+  agency: string; // 5 seats
+}
+
+export type LifetimeTier = "solo" | "team" | "agency";
+
+export const LIFETIME_SEATS: Record<LifetimeTier, number> = {
+  solo: 1,
+  team: 3,
+  agency: 5,
+};
+
+/**
+ * Test Mode Lifetime Deal Product IDs (USD)
+ * TODO: Create these one-time products on Dodo Payments dashboard and paste IDs here
+ */
+export const TEST_LIFETIME_PRODUCT_IDS: LifetimeProductIdConfig = {
+  solo: "pdt_LIFETIME_TEST_SOLO", // $149 one-time (test)
+  team: "pdt_LIFETIME_TEST_TEAM", // $299 one-time (test)
+  agency: "pdt_LIFETIME_TEST_AGENCY", // $449 one-time (test)
+};
+
+/**
+ * Production Lifetime Deal Product IDs (USD)
+ * TODO: Create these one-time products on Dodo Payments dashboard and paste IDs here
+ */
+export const PROD_LIFETIME_PRODUCT_IDS: LifetimeProductIdConfig = {
+  solo: "pdt_LIFETIME_PROD_SOLO", // $149 one-time (prod)
+  team: "pdt_LIFETIME_PROD_TEAM", // $299 one-time (prod)
+  agency: "pdt_LIFETIME_PROD_AGENCY", // $449 one-time (prod)
+};
+
+/**
+ * Test Mode Lifetime Deal Product IDs (INR)
+ * TODO: Create these one-time products on Dodo Payments dashboard and paste IDs here
+ */
+export const TEST_LIFETIME_PRODUCT_IDS_INR: LifetimeProductIdConfig = {
+  solo: "pdt_LIFETIME_TEST_INR_SOLO", // ₹9,999 one-time (test)
+  team: "pdt_LIFETIME_TEST_INR_TEAM", // ₹19,999 one-time (test)
+  agency: "pdt_LIFETIME_TEST_INR_AGENCY", // ₹29,999 one-time (test)
+};
+
+/**
+ * Production Lifetime Deal Product IDs (INR)
+ * TODO: Create these one-time products on Dodo Payments dashboard and paste IDs here
+ */
+export const PROD_LIFETIME_PRODUCT_IDS_INR: LifetimeProductIdConfig = {
+  solo: "pdt_LIFETIME_PROD_INR_SOLO", // ₹9,999 one-time (prod)
+  team: "pdt_LIFETIME_PROD_INR_TEAM", // ₹19,999 one-time (prod)
+  agency: "pdt_LIFETIME_PROD_INR_AGENCY", // ₹29,999 one-time (prod)
+};
+
+/** All Lifetime product IDs for webhook matching */
+export const ALL_LIFETIME_PRODUCT_IDS = [
+  ...Object.values(TEST_LIFETIME_PRODUCT_IDS),
+  ...Object.values(PROD_LIFETIME_PRODUCT_IDS),
+  ...Object.values(TEST_LIFETIME_PRODUCT_IDS_INR),
+  ...Object.values(PROD_LIFETIME_PRODUCT_IDS_INR),
+] as const;
+
+/**
+ * Check if a product ID is a lifetime deal product
+ */
+export function isLifetimeProductId(productId: string): boolean {
+  return (ALL_LIFETIME_PRODUCT_IDS as readonly string[]).includes(productId);
+}
+
+/**
+ * Get the lifetime tier from a product ID
+ */
+export function getLifetimeTierFromProductId(
+  productId: string
+): LifetimeTier | null {
+  const allMaps = [
+    TEST_LIFETIME_PRODUCT_IDS,
+    PROD_LIFETIME_PRODUCT_IDS,
+    TEST_LIFETIME_PRODUCT_IDS_INR,
+    PROD_LIFETIME_PRODUCT_IDS_INR,
+  ];
+
+  for (const map of allMaps) {
+    for (const [tier, id] of Object.entries(map)) {
+      if (id === productId) {
+        return tier as LifetimeTier;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get lifetime product IDs based on environment and currency
+ */
+export function getLifetimeProductIds(
+  currency: CurrencyCode = "USD"
+): LifetimeProductIdConfig {
+  const env = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT ?? "test_mode";
+  if (currency === "INR") {
+    return env === "live_mode"
+      ? PROD_LIFETIME_PRODUCT_IDS_INR
+      : TEST_LIFETIME_PRODUCT_IDS_INR;
+  }
+  return env === "live_mode"
+    ? PROD_LIFETIME_PRODUCT_IDS
+    : TEST_LIFETIME_PRODUCT_IDS;
+}
+
+/** Lifetime transcription limit (included free with LTD) */
+export const LIFETIME_TRANSCRIPTION_LIMIT = 1000;
+
+// ============================================================================
+// SORTED EXTENSION PRODUCT IDS
+// ============================================================================
+
 /**
  * Sorted Extension Add-on Product IDs (metered, single product)
  */

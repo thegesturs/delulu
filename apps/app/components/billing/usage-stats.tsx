@@ -154,6 +154,7 @@ export function UsageStats() {
             <Badge variant="secondary">
               <Icon className="mr-1" icon={BarChartIcon} size={12} />
               {subscription.planType}
+              {subscription.isLifetime && " (Lifetime)"}
             </Badge>
           )}
         </div>

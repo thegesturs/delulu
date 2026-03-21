@@ -46,6 +46,37 @@ export interface Plan {
 }
 
 /**
+ * Lifetime deal tier configuration
+ */
+export interface LifetimeTierConfig {
+  name: string;
+  seats: number;
+  price: Record<CurrencyCode, number>;
+  description: string;
+}
+
+export const LIFETIME_TIERS: LifetimeTierConfig[] = [
+  {
+    name: "Solo",
+    seats: 1,
+    price: { USD: 149, INR: 9999 },
+    description: "Perfect for solo creators",
+  },
+  {
+    name: "Team",
+    seats: 3,
+    price: { USD: 299, INR: 19_999 },
+    description: "For small teams and agencies",
+  },
+  {
+    name: "Agency",
+    seats: 5,
+    price: { USD: 449, INR: 29_999 },
+    description: "For growing agencies",
+  },
+];
+
+/**
  * Plan configuration with limits and features
  */
 export const PLANS: Record<PlanType, Plan> = {

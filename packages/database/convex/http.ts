@@ -1,5 +1,8 @@
 import type { WebhookEvent } from "@clerk/backend";
-import { ALL_SORTED_PRODUCT_IDS } from "@delulu/payments/product-ids";
+import {
+  ALL_SORTED_PRODUCT_IDS,
+  isLifetimeProductId,
+} from "@delulu/payments/product-ids";
 import { createDodoWebhookHandler } from "@dodopayments/convex";
 import { httpRouter } from "convex/server";
 import { Webhook } from "svix";
@@ -206,7 +209,28 @@ http.route({
     onPaymentSucceeded: async (ctx, payload) => {
       console.log("[Dodo Webhook] Payment succeeded:", payload.data.payment_id);
 
-      // Skip webhook if no subscription_id (one-off payment)
+      const productId = payload.data.product_cart?.[0]?.product_id ?? "";
+
+      // Check if this is a lifetime deal purchase (one-time, no subscription)
+      if (!payload.data.subscription_id && isLifetimeProductId(productId)) {
+        console.log(
+          "[Dodo Webhook] Lifetime deal purchase detected:",
+          productId
+        );
+
+        await ctx.runMutation(internal.webhooks.handleLifetimePurchase, {
+          paymentId: payload.data.payment_id,
+          customerId: payload.data.customer.customer_id,
+          customerEmail: payload.data.customer?.email || "",
+          productId,
+          amount: payload.data.total_amount,
+          currency: payload.data.currency,
+          webhookPayload: JSON.stringify(payload),
+        });
+        return;
+      }
+
+      // Skip webhook if no subscription_id (non-LTD one-off payment)
       if (!payload.data.subscription_id) {
         console.log(
           "[Dodo Webhook] Skipping payment without subscription_id (one-off charge)"

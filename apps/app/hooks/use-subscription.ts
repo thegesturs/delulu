@@ -12,7 +12,7 @@ import { useQuery } from "convex-helpers/react/cache";
 export interface UseSubscriptionReturn {
   subscription: Doc<"subscriptions"> | null | undefined;
   planType: PlanType;
-  billingPeriod: "MONTHLY" | "YEARLY" | null;
+  billingPeriod: "MONTHLY" | "YEARLY" | "LIFETIME" | null;
   isActive: boolean;
   isPastDue: boolean;
   isCancelled: boolean;
@@ -21,6 +21,7 @@ export interface UseSubscriptionReturn {
   isVibe: boolean;
   isEcho: boolean;
   isPaid: boolean;
+  isLifetime: boolean;
   isLoading: boolean;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean | undefined;
@@ -44,6 +45,7 @@ export function useSubscription(): UseSubscriptionReturn {
     isVibe: planType === "VIBE",
     isEcho: planType === "ECHO",
     isPaid: planType !== "FREE",
+    isLifetime: subscription?.billingPeriod === "LIFETIME",
     isLoading,
     currentPeriodEnd: subscription?.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)

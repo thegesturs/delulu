@@ -52,6 +52,7 @@ export function PricingCards({
   const {
     planType: currentPlan,
     billingPeriod: currentBillingPeriod,
+    isLifetime,
     isLoading,
   } = useSubscription();
 
@@ -177,6 +178,9 @@ export function PricingCards({
           const getButtonText = () => {
             if (isUpgrading) {
               return "Loading...";
+            }
+            if (isLifetime && plan.id === "VIBE") {
+              return "Lifetime Plan";
             }
             if (isCurrent) {
               return "Current Plan";
@@ -343,7 +347,7 @@ export function PricingCards({
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={isCurrent || isUpgrading || isLoading}
+                  disabled={isCurrent || isUpgrading || isLoading || isLifetime}
                   onClick={() => handleUpgrade(plan.id)}
                   size="lg"
                   variant={plan.popular ? "default" : "outline"}

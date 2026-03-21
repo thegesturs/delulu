@@ -21,7 +21,11 @@ export const subscriptionStatus = v.union(
 );
 
 // Billing period enum
-export const billingPeriod = v.union(v.literal("MONTHLY"), v.literal("YEARLY"));
+export const billingPeriod = v.union(
+  v.literal("MONTHLY"),
+  v.literal("YEARLY"),
+  v.literal("LIFETIME")
+);
 
 // Subscription type enum (plan vs addon)
 export const subscriptionType = v.union(v.literal("plan"), v.literal("addon"));
