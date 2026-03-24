@@ -8,7 +8,11 @@ import {
   query,
 } from "./_generated/server.js";
 import { getAuthContext } from "./lib/auth";
-import { adjustUsage, getUsageOwnerId } from "./lib/usage";
+import {
+  adjustUsage,
+  getUsageOwnerId,
+  resolveUsageOwnerFromDoc,
+} from "./lib/usage";
 import {
   socialProviderCreateSchema,
   socialProviderSchema,
@@ -497,6 +501,71 @@ export const upsertSocialProviderFromOAuth = mutation({
     await adjustUsage(ctx, userId, "socialAccounts", 1);
 
     return "created";
+  },
+});
+
+// Transfer a social provider to/from an organization
+export const transferSocialProvider = mutation({
+  args: {
+    id: v.id("socialProviders"),
+    targetOrganizationId: v.optional(v.string()), // undefined = move to personal
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
+      throw new Error("Unauthorized");
+    }
+
+    const provider = await ctx.db.get(args.id);
+    if (!provider) {
+      throw new Error("Social provider not found");
+    }
+
+    // Must own the provider
+    if (provider.userId !== authCtx.userId) {
+      throw new Error("You don't own this social provider");
+    }
+
+    const sourceOrgId = provider.organizationId;
+    const targetOrgId = args.targetOrganizationId;
+
+    // No-op if already in the target
+    if (sourceOrgId === targetOrgId) {
+      return true;
+    }
+
+    // Resolve source usage owner
+    const sourceOwnerId = await resolveUsageOwnerFromDoc(ctx, provider);
+
+    // Resolve target usage owner
+    let targetOwnerId = authCtx.userId;
+    if (targetOrgId) {
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", targetOrgId))
+        .unique();
+      if (!org) {
+        throw new Error("Organization not found");
+      }
+      const creator = await ctx.db
+        .query("users")
+        .withIndex("by_external_id", (q) => q.eq("externalId", org.createdBy))
+        .unique();
+      targetOwnerId = creator?._id ?? authCtx.userId;
+    }
+
+    // Update the provider
+    await ctx.db.patch(args.id, {
+      organizationId: targetOrgId,
+      updatedAt: getCurrentTimestamp(),
+    });
+
+    // Adjust usage counters
+    await adjustUsage(ctx, sourceOwnerId, "socialAccounts", -1);
+    await adjustUsage(ctx, targetOwnerId, "socialAccounts", 1);
+
+    return true;
   },
 });
 

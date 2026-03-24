@@ -1,5 +1,6 @@
 "use client";
 
+import { api as convexApi } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   Avatar,
@@ -14,6 +15,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@delulu/design-system/components/ui/dropdown-menu";
 import {
@@ -29,14 +33,18 @@ import {
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Alert01Icon,
+  ArrowRight01Icon,
   ClockIcon,
   Delete01Icon,
   MoreHorizontalIcon,
   Reload,
   TickDouble01Icon,
+  UserIcon,
 } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/trpc/react";
 import type { SocialProvider } from "@/types/convex";
 import DeleteAlertDialog from "../alerts/delete-post";
@@ -120,6 +128,11 @@ interface AccountCardProps {
 export function AccountCard({ account, onDelete }: AccountCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const orgs = useQuery(convexApi.organizations.getUserOrganizations);
+  const transferMutation = useMutation(
+    convexApi.social_providers.transferSocialProvider
+  );
+  const isInOrg = !!account.organizationId;
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
@@ -234,8 +247,59 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-52">
                 <ReconnectMenuItem socialType={account.socialType} />
+                {isInOrg ? (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        await transferMutation({
+                          id: account._id,
+                          targetOrganizationId: undefined,
+                        });
+                        toast.success("Moved to personal workspace");
+                      } catch {
+                        toast.error("Failed to move account");
+                      }
+                    }}
+                  >
+                    <Icon className="mr-2" icon={UserIcon} size={16} />
+                    Move to Personal
+                  </DropdownMenuItem>
+                ) : orgs && orgs.length > 0 ? (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer">
+                      <Icon
+                        className="mr-2"
+                        icon={ArrowRight01Icon}
+                        size={16}
+                      />
+                      Move to Organization
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {orgs.map((org) => (
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          key={org._id}
+                          onClick={async () => {
+                            try {
+                              await transferMutation({
+                                id: account._id,
+                                targetOrganizationId: org.clerkOrgId,
+                              });
+                              toast.success(`Moved to ${org.name}`);
+                            } catch {
+                              toast.error("Failed to move account");
+                            }
+                          }}
+                        >
+                          {org.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer text-destructive focus:text-destructive"
