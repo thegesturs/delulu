@@ -3,6 +3,15 @@
 import { api as convexApi } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@delulu/design-system/components/ui/alert-dialog";
+import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -24,6 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@delulu/design-system/components/ui/dropdown-menu";
+import { Separator } from "@delulu/design-system/components/ui/separator";
 import {
   socialBackgroundColors,
   socialIcons,
@@ -34,6 +44,7 @@ import {
   ArrowMoveDownRightIcon,
   ClockIcon,
   Delete01Icon,
+  Loader,
   MoreHorizontalIcon,
   Reload,
   TickDouble01Icon,
@@ -51,22 +62,18 @@ function formatTimeAgo(timestamp: number | null | undefined): string {
   if (!timestamp) {
     return "Never";
   }
-
   const now = Date.now();
   const diffInMinutes = Math.floor((now - timestamp) / (1000 * 60));
-
   if (diffInMinutes < 1) {
     return "Just now";
   }
   if (diffInMinutes < 60) {
     return `${diffInMinutes}m ago`;
   }
-
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
     return `${diffInHours}h ago`;
   }
-
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays}d ago`;
 }
@@ -125,32 +132,38 @@ interface AccountCardProps {
 
 export function AccountCard({ account, onDelete }: AccountCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{
+    id: string | undefined;
+    label: string;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+
   const orgs = useQuery(convexApi.organizations.getUserOrganizations);
   const transferMutation = useMutation(
     convexApi.social_providers.transferSocialProvider
   );
+
   const currentOrgId = account.organizationId;
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
   const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
 
-  const handleTransfer = async (targetOrgId: string | undefined) => {
+  const handleTransfer = async () => {
+    if (!confirmTarget) {
+      return;
+    }
     setIsTransferring(true);
     try {
       await transferMutation({
         id: account._id,
-        targetOrganizationId: targetOrgId,
+        targetOrganizationId: confirmTarget.id,
       });
-      toast.success(
-        targetOrgId
-          ? `Moved to ${orgs?.find((o) => o.clerkOrgId === targetOrgId)?.name}`
-          : "Moved to personal workspace"
-      );
-      setTransferDialogOpen(false);
+      toast.success(`Moved to ${confirmTarget.label}`);
+      setConfirmTarget(null);
+      setPickerOpen(false);
     } catch {
       toast.error("Failed to switch workspace");
     } finally {
@@ -158,23 +171,24 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
     }
   };
 
-  // Build list of destinations (personal + orgs, excluding current)
-  const destinations: {
-    id: string | undefined;
-    label: string;
-    isCurrent: boolean;
-  }[] = [
-    {
-      id: undefined,
-      label: "Personal Workspace",
-      isCurrent: !currentOrgId,
-    },
-    ...(orgs ?? []).map((org) => ({
-      id: org.clerkOrgId,
+  // Available destinations (exclude current workspace)
+  const personalOption = currentOrgId
+    ? {
+        id: undefined as string | undefined,
+        label: "Personal Workspace",
+        imageUrl: undefined as string | undefined,
+      }
+    : null;
+
+  const orgOptions = (orgs ?? [])
+    .filter((org) => org.clerkOrgId !== currentOrgId)
+    .map((org) => ({
+      id: org.clerkOrgId as string | undefined,
       label: org.name,
-      isCurrent: org.clerkOrgId === currentOrgId,
-    })),
-  ];
+      imageUrl: org.imageUrl,
+    }));
+
+  const hasDestinations = !!personalOption || orgOptions.length > 0;
 
   return (
     <Card className="group gap-0 rounded-none border-x-0 border-t-0 border-b py-2 shadow-none last:border-b-0 hover:bg-muted/30">
@@ -287,10 +301,10 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <ReconnectMenuItem socialType={account.socialType} />
-                {orgs && orgs.length > 0 && (
+                {hasDestinations && (
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => setTransferDialogOpen(true)}
+                    onClick={() => setPickerOpen(true)}
                   >
                     <Icon
                       className="mr-2"
@@ -314,52 +328,110 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
         </div>
       </CardContent>
 
-      {/* Switch Workspace Dialog */}
-      <Dialog onOpenChange={setTransferDialogOpen} open={transferDialogOpen}>
+      {/* Step 1: Workspace Picker Dialog */}
+      <Dialog onOpenChange={setPickerOpen} open={pickerOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Switch Workspace</DialogTitle>
             <DialogDescription>
-              Choose where{" "}
+              Move{" "}
               <span className="font-medium text-foreground">
                 {account.fullName}
               </span>{" "}
-              should live.
+              to a different workspace.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1 pt-2">
-            {destinations.map((dest) => (
+
+          <div className="pt-1">
+            {/* Personal workspace option */}
+            {personalOption && (
               <button
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                  dest.isCurrent
-                    ? "cursor-default bg-muted text-muted-foreground"
-                    : "cursor-pointer hover:bg-muted"
-                }`}
-                disabled={dest.isCurrent || isTransferring}
-                key={dest.id ?? "personal"}
-                onClick={() => handleTransfer(dest.id)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
+                onClick={() => {
+                  setConfirmTarget(personalOption);
+                  setPickerOpen(false);
+                }}
                 type="button"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  {dest.id ? (
-                    <span className="font-semibold text-primary text-xs">
-                      {dest.label.charAt(0).toUpperCase()}
-                    </span>
-                  ) : (
+                <Avatar className="size-8 border">
+                  <AvatarFallback className="bg-primary/10">
                     <Icon className="text-primary" icon={UserIcon} size={14} />
-                  )}
-                </div>
-                <span className="flex-1 font-medium">{dest.label}</span>
-                {dest.isCurrent && (
-                  <Badge className="text-[10px]" variant="secondary">
-                    Current
-                  </Badge>
-                )}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex-1 font-medium">Personal Workspace</span>
+              </button>
+            )}
+
+            {/* Separator between personal and orgs */}
+            {personalOption && orgOptions.length > 0 && (
+              <div className="px-3 py-2">
+                <Separator />
+              </div>
+            )}
+
+            {/* Organization options */}
+            {orgOptions.map((org) => (
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
+                key={org.id}
+                onClick={() => {
+                  setConfirmTarget(org);
+                  setPickerOpen(false);
+                }}
+                type="button"
+              >
+                <Avatar className="size-8 border">
+                  <AvatarImage alt={org.label} src={org.imageUrl} />
+                  <AvatarFallback className="bg-primary/10 font-semibold text-primary text-xs">
+                    {org.label.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex-1 font-medium">{org.label}</span>
               </button>
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Step 2: Confirmation Dialog */}
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmTarget(null);
+          }
+        }}
+        open={!!confirmTarget}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm move</AlertDialogTitle>
+            <AlertDialogDescription>
+              Move{" "}
+              <span className="font-medium text-foreground">
+                {account.fullName}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-foreground">
+                {confirmTarget?.label}
+              </span>
+              ? The account will no longer appear in your current workspace.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              className="flex items-center gap-2"
+              disabled={isTransferring}
+              onClick={handleTransfer}
+            >
+              {isTransferring && (
+                <Icon className="animate-spin" icon={Loader} size={16} />
+              )}
+              Move
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DeleteAlertDialog
         description="Are you sure you want to delete this account? This action cannot be undone."
