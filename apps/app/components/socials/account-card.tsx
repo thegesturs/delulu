@@ -132,7 +132,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
   const transferMutation = useMutation(
     convexApi.social_providers.transferSocialProvider
   );
-  const isInOrg = !!account.organizationId;
+  const currentOrgId = account.organizationId;
   const SocialIcon =
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
@@ -249,25 +249,7 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <ReconnectMenuItem socialType={account.socialType} />
-                {isInOrg ? (
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={async () => {
-                      try {
-                        await transferMutation({
-                          id: account._id,
-                          targetOrganizationId: undefined,
-                        });
-                        toast.success("Moved to personal workspace");
-                      } catch {
-                        toast.error("Failed to move account");
-                      }
-                    }}
-                  >
-                    <Icon className="mr-2" icon={UserIcon} size={16} />
-                    Move to Personal
-                  </DropdownMenuItem>
-                ) : orgs && orgs.length > 0 ? (
+                {orgs && orgs.length > 0 && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="cursor-pointer">
                       <Icon
@@ -275,31 +257,52 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
                         icon={ArrowRight01Icon}
                         size={16}
                       />
-                      Move to Organization
+                      Move to...
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                      {orgs.map((org) => (
+                      {currentOrgId && (
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          key={org._id}
                           onClick={async () => {
                             try {
                               await transferMutation({
                                 id: account._id,
-                                targetOrganizationId: org.clerkOrgId,
+                                targetOrganizationId: undefined,
                               });
-                              toast.success(`Moved to ${org.name}`);
+                              toast.success("Moved to personal workspace");
                             } catch {
                               toast.error("Failed to move account");
                             }
                           }}
                         >
-                          {org.name}
+                          <Icon className="mr-2" icon={UserIcon} size={16} />
+                          Personal
                         </DropdownMenuItem>
-                      ))}
+                      )}
+                      {orgs
+                        .filter((org) => org.clerkOrgId !== currentOrgId)
+                        .map((org) => (
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            key={org._id}
+                            onClick={async () => {
+                              try {
+                                await transferMutation({
+                                  id: account._id,
+                                  targetOrganizationId: org.clerkOrgId,
+                                });
+                                toast.success(`Moved to ${org.name}`);
+                              } catch {
+                                toast.error("Failed to move account");
+                              }
+                            }}
+                          >
+                            {org.name}
+                          </DropdownMenuItem>
+                        ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
-                ) : null}
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer text-destructive focus:text-destructive"

@@ -22,16 +22,23 @@ import { getCurrentUser } from "./users";
 import { decryptData, encryptData, getCurrentTimestamp } from "./utils";
 
 // Core helper — no auth dependency
+// When personalOnly=true, excludes accounts that belong to an org
 export async function getConnectedAccountsCore(
   ctx: QueryCtx,
-  userId: Id<"users">
+  userId: Id<"users">,
+  personalOnly = false
 ) {
   const providers = await ctx.db
     .query("socialProviders")
     .withIndex("by_user_id", (q) => q.eq("userId", userId))
     .collect();
-  providers.sort((a, b) => b._creationTime - a._creationTime);
-  return providers;
+
+  const filtered = personalOnly
+    ? providers.filter((p) => !p.organizationId)
+    : providers;
+
+  filtered.sort((a, b) => b._creationTime - a._creationTime);
+  return filtered;
 }
 
 export const getConnectedAccounts = query({
