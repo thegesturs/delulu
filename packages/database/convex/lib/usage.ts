@@ -12,10 +12,13 @@ type UsageField = "socialAccounts" | "monthlyPosts" | "mediaStorageBytes";
  */
 export async function adjustUsage(
   ctx: MutationCtx,
-  userId: Id<"users">,
+  userId: Id<"users"> | null,
   field: UsageField,
   delta: number
 ) {
+  if (!userId) {
+    return;
+  }
   const user = await ctx.db.get(userId);
   if (!user) {
     return;
@@ -50,10 +53,10 @@ export async function getUsageOwnerId(
  */
 export async function resolveUsageOwnerFromDoc(
   ctx: QueryCtx,
-  doc: { userId: Id<"users">; organizationId?: string }
-): Promise<Id<"users">> {
+  doc: { userId?: Id<"users">; organizationId?: string }
+): Promise<Id<"users"> | null> {
   if (!doc.organizationId) {
-    return doc.userId;
+    return doc.userId ?? null;
   }
 
   // Find the org by its Clerk org ID
@@ -65,7 +68,7 @@ export async function resolveUsageOwnerFromDoc(
     .unique();
 
   if (!org) {
-    return doc.userId;
+    return doc.userId ?? null;
   }
 
   // Get the org creator's user record
@@ -74,5 +77,5 @@ export async function resolveUsageOwnerFromDoc(
     .withIndex("by_external_id", (q) => q.eq("externalId", org.createdBy))
     .unique();
 
-  return creator?._id ?? doc.userId;
+  return creator?._id ?? doc.userId ?? null;
 }
