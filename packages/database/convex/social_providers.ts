@@ -498,7 +498,7 @@ export const upsertSocialProviderFromOAuth = mutation({
     });
 
     // Increment social accounts counter on the user
-    await adjustUsage(ctx, userId, "socialAccounts", 1);
+    await adjustUsage(ctx, userId ?? null, "socialAccounts", 1);
 
     return "created";
   },

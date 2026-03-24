@@ -355,10 +355,12 @@ export const bulkDeleteMedia = mutation({
       if (media) {
         if (media.size) {
           const ownerId = await resolveUsageOwnerFromDoc(ctx, media);
-          bytesByOwner.set(
-            ownerId,
-            (bytesByOwner.get(ownerId) ?? 0) + media.size
-          );
+          if (ownerId) {
+            bytesByOwner.set(
+              ownerId,
+              (bytesByOwner.get(ownerId) ?? 0) + media.size
+            );
+          }
         }
         await ctx.db.delete(media._id);
         deletedCount++;
