@@ -529,9 +529,13 @@ export const transferSocialProvider = mutation({
       throw new Error("Social provider not found");
     }
 
-    // Must own the provider
-    if (provider.userId !== authCtx.userId) {
-      throw new Error("You don't own this social provider");
+    // Must own the provider (personal) or be in the same org
+    const ownsPersonal = provider.userId === authCtx.userId;
+    const ownsViaOrg =
+      provider.organizationId &&
+      provider.organizationId === authCtx.organizationId;
+    if (!(ownsPersonal || ownsViaOrg)) {
+      throw new Error("You don't have access to this social provider");
     }
 
     const sourceOrgId = provider.organizationId;
@@ -562,9 +566,10 @@ export const transferSocialProvider = mutation({
       targetOwnerId = creator?._id ?? authCtx.userId;
     }
 
-    // Update the provider
+    // Update the provider: move to org clears userId, move to personal sets userId
     await ctx.db.patch(args.id, {
       organizationId: targetOrgId,
+      userId: targetOrgId ? undefined : authCtx.userId,
       updatedAt: getCurrentTimestamp(),
     });
 
