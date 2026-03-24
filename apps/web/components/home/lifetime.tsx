@@ -1,19 +1,28 @@
 "use client";
 
 import { Button } from "@delulu/design-system/components/ui/button";
-import { cn } from "@delulu/design-system/lib/utils";
+import { Icon } from "@delulu/design-system/providers/icon";
 import {
   CURRENCY_SYMBOLS,
   type CurrencyCode,
   LIFETIME_PRICE,
 } from "@delulu/payments";
-import { Check, Plus, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import {
+  ArrowDown01Icon,
+  BubbleChatIcon,
+  Cancel01Icon,
+  CheckmarkCircle02Icon,
+  FlashIcon,
+  Globe02Icon,
+  SparklesIcon,
+  Tick02Icon,
+  UserMultipleIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { AnimatePresence, motion, useInView } from "motion/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Balancer from "react-wrap-balancer";
 import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
-import LineSvg from "@/components/ui/line-svg";
 import { useCurrency } from "@/hooks/use-currency";
 
 // ---------------------------------------------------------------------------
@@ -45,95 +54,74 @@ function useCountdown() {
 }
 
 const DEALS_REMAINING = 18;
+const DEALS_TOTAL = 20;
 
 // ---------------------------------------------------------------------------
 // Data
 // ---------------------------------------------------------------------------
 
-// No multi-tier — single Solo LTD for now
+const FEATURES = [
+  "Unlimited social accounts",
+  "Unlimited posts per month",
+  "Unlimited media storage",
+  "Priority support",
+  "1,000 free transcriptions",
+  "All future features & updates",
+  "No recurring fees — ever",
+];
 
 const FEATURE_CATEGORIES = [
   {
-    title: "Publishing",
-    icon: "publish",
-    features: [
-      "Post to 8+ platforms at once",
-      "Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, Threads",
-      "Unlimited scheduled posts",
-      "Unlimited media storage",
-      "Carousel & video support",
-    ],
+    icon: Globe02Icon,
+    title: "8+ Platforms",
+    description:
+      "Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, Threads — all from one dashboard.",
   },
   {
+    icon: BubbleChatIcon,
     title: "DM Automation",
-    icon: "dm",
-    features: [
-      "Keyword-triggered auto-DMs",
-      "Automatic comment replies",
-      "Custom DM templates",
-      "Unlimited automations",
-    ],
+    description:
+      "Auto-DM anyone who comments a keyword. Auto-reply to comments. Unlimited automations.",
   },
   {
-    title: "Team & Collaboration",
-    icon: "team",
-    features: [
-      "Up to 5 team seats (Agency tier)",
-      "Real-time collaborative editing",
-      "Organization management",
-      "Role-based access",
-    ],
+    icon: FlashIcon,
+    title: "AI-Powered",
+    description:
+      "Generate captions, transcribe videos, repurpose content across platforms with built-in AI.",
   },
   {
-    title: "Lifetime Bonus",
-    icon: "bonus",
-    features: [
-      "1,000 free transcriptions (Sorted)",
-      "All future features included",
-      "Priority support forever",
-      "No recurring fees — ever",
-    ],
+    icon: UserMultipleIcon,
+    title: "Team Ready",
+    description:
+      "Real-time collaborative editing, organization management, and role-based access control.",
   },
 ];
 
 const COMPETITORS = [
-  {
-    name: "Buffer",
-    monthly: 15,
-    platforms: 3,
-    dms: false,
-    scheduling: true,
-    seats: 1,
-  },
+  { name: "Buffer", monthly: 15, platforms: 3, dms: false, scheduling: true },
   {
     name: "Hootsuite",
     monthly: 99,
     platforms: 10,
     dms: false,
     scheduling: true,
-    seats: 1,
   },
-  {
-    name: "Later",
-    monthly: 25,
-    platforms: 4,
-    dms: false,
-    scheduling: true,
-    seats: 1,
-  },
+  { name: "Later", monthly: 25, platforms: 4, dms: false, scheduling: true },
   {
     name: "ManyChat",
     monthly: 67,
     platforms: 1,
     dms: true,
     scheduling: false,
-    seats: 1,
   },
 ];
 
 function getLtdFaqs(currency: CurrencyCode) {
   const symbol = CURRENCY_SYMBOLS[currency];
-  const soloPrice = currency === "INR" ? "9,999" : "149";
+  const price =
+    currency === "INR"
+      ? LIFETIME_PRICE.INR.toLocaleString("en-IN")
+      : LIFETIME_PRICE.USD.toString();
   return [
     {
       question: "What exactly do I get with the lifetime deal?",
@@ -142,17 +130,12 @@ function getLtdFaqs(currency: CurrencyCode) {
     },
     {
       question: "Is this really a one-time payment?",
-      answer: `Yes. You pay ${symbol}${soloPrice} once (Solo tier) and never see another charge from us. No monthly fees. No annual renewals. No sneaky price increases. One payment, lifetime access.`,
+      answer: `Yes. You pay ${symbol}${price} once and never see another charge from us. No monthly fees. No annual renewals. No sneaky price increases. One payment, lifetime access.`,
     },
     {
       question: "What happens if Delulu Social shuts down?",
       answer:
         "We're backed, profitable on unit economics, and building for the long haul. But worst case — you'll always be able to export your data, and your LTD will have paid for itself within months compared to any competitor's monthly pricing.",
-    },
-    {
-      question: "Can I upgrade my seat count later?",
-      answer:
-        "Yes. You can upgrade from Solo to Team or Agency anytime by paying the difference. We'll never charge you more than the listed upgrade price.",
     },
     {
       question: "Do I get all future features?",
@@ -162,7 +145,7 @@ function getLtdFaqs(currency: CurrencyCode) {
     {
       question: "What are the 1,000 transcriptions?",
       answer:
-        "Our Sorted extension transcribes audio and video content — great for repurposing podcasts, reels, and YouTube videos into text posts. You get 1,000 transcriptions included with your LTD. After that, you can purchase more at standard rates.",
+        "Our Sorted extension transcribes audio and video content — great for repurposing podcasts, reels, and YouTube videos into text posts. You get 1,000 transcriptions included with your LTD.",
     },
     {
       question: "What's the refund policy?",
@@ -177,59 +160,87 @@ function getLtdFaqs(currency: CurrencyCode) {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
 const SIGN_IN_URL = "https://solulu.delulu.social/sign-in";
 
-const CheckIcon = ({ highlighted = false }: { highlighted?: boolean }) => (
-  <svg
-    className={cn(
-      "mr-3 h-5 w-5 shrink-0",
-      highlighted ? "text-primary" : "text-muted-foreground"
-    )}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-  >
-    <path
-      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-      fillRule="evenodd"
-    />
-  </svg>
-);
-
 // ---------------------------------------------------------------------------
-// Section 1: Hero
+// Shared Components
 // ---------------------------------------------------------------------------
 
-function CountdownTimer() {
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    <div className="flex flex-col items-center">
+      <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 font-bold font-mono text-2xl text-destructive tabular-nums sm:px-4 sm:py-3 sm:text-4xl">
+        {pad(value)}
+      </div>
+      <span className="mt-1.5 font-medium text-[10px] text-muted-foreground uppercase tracking-[0.2em]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function CountdownTimer({ compact = false }: { compact?: boolean }) {
   const { hours, minutes, seconds, expired } = useCountdown();
 
   if (expired) {
     return (
-      <span className="font-bold font-mono text-destructive">DEAL EXPIRED</span>
+      <div className="rounded-md border border-destructive/30 bg-destructive/10 px-6 py-3">
+        <span className="font-bold text-destructive text-lg uppercase tracking-wider">
+          Deal Expired
+        </span>
+      </div>
     );
   }
 
-  const pad = (n: number) => n.toString().padStart(2, "0");
+  if (compact) {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return (
+      <span className="font-bold font-mono text-destructive tabular-nums">
+        {pad(hours)}:{pad(minutes)}:{pad(seconds)}
+      </span>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-1 font-mono text-lg">
-      <div className="rounded-md bg-foreground/10 px-2 py-1 font-bold">
-        {pad(hours)}h
-      </div>
-      <span className="text-muted-foreground">:</span>
-      <div className="rounded-md bg-foreground/10 px-2 py-1 font-bold">
-        {pad(minutes)}m
-      </div>
-      <span className="text-muted-foreground">:</span>
-      <div className="rounded-md bg-foreground/10 px-2 py-1 font-bold">
-        {pad(seconds)}s
-      </div>
+    <div className="flex items-center gap-2 sm:gap-3">
+      <CountdownUnit label="Hours" value={hours} />
+      <span className="mb-5 font-bold text-destructive/40 text-xl">:</span>
+      <CountdownUnit label="Minutes" value={minutes} />
+      <span className="mb-5 font-bold text-destructive/40 text-xl">:</span>
+      <CountdownUnit label="Seconds" value={seconds} />
     </div>
   );
 }
+
+function StaggerReveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+
+  return (
+    <motion.div
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+      className={className}
+      initial={{ opacity: 0, y: 24 }}
+      ref={ref}
+      transition={{ duration: 0.5, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section 1: Hero
+// ---------------------------------------------------------------------------
 
 function HeroSection({
   currencySymbol,
@@ -240,102 +251,110 @@ function HeroSection({
   formatNum: (n: number) => string;
   isINR: boolean;
 }) {
-  const fiveYearCost = isINR ? 44_495 : 495;
-  const startingPrice = isINR ? 9999 : 149;
+  const fiveYearCost = isINR ? 53_940 : 495;
+  const price = LIFETIME_PRICE[isINR ? "INR" : "USD"];
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col items-center px-4 pt-40 pb-20 text-center">
-      {/* Countdown + Scarcity */}
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-        initial={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-      >
-        <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-destructive/30 bg-destructive/5 px-8 py-4 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-destructive" />
+    <div className="relative overflow-hidden">
+      <div className="relative mx-auto flex max-w-5xl flex-col items-center px-4 pt-32 pb-24 text-center sm:pt-40 sm:pb-32">
+        {/* Countdown Banner */}
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10"
+          initial={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex flex-col items-center gap-4 rounded-lg border border-border/60 bg-card/50 px-6 py-5 backdrop-blur-md sm:px-10 sm:py-6">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+              </span>
+              <span className="font-semibold text-xs uppercase tracking-[0.15em]">
+                48-Hour Flash Sale
+              </span>
+              <span className="text-border">|</span>
+              <span className="font-semibold text-destructive text-xs uppercase tracking-[0.15em]">
+                {DEALS_REMAINING} of {DEALS_TOTAL} left
+              </span>
+            </div>
+            <CountdownTimer />
+          </div>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 font-extrabold text-[clamp(2.5rem,7vw,5rem)] leading-[0.95] tracking-[-0.04em]"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+        >
+          <Balancer>
+            <span className="block text-foreground">Pay once.</span>
+            <span className="block bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
+              Post forever.
             </span>
-            <span className="font-bold text-destructive text-sm uppercase tracking-wider">
-              48-Hour Flash Sale — {DEALS_REMAINING} deals left
+          </Balancer>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mb-12 max-w-xl text-base text-muted-foreground sm:text-lg"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.25 }}
+        >
+          <Balancer>
+            We&apos;re releasing just {DEALS_TOTAL} lifetime licenses to Delulu
+            Social&apos;s unlimited plan. 2 are already gone. When the timer
+            hits zero — this page disappears.
+          </Balancer>
+        </motion.p>
+
+        {/* Price anchor + CTA */}
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-5"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
+        >
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground/60 line-through decoration-2 decoration-destructive/40">
+              {currencySymbol}
+              {formatNum(fiveYearCost)}
+            </span>
+            <span className="font-extrabold text-4xl tracking-tight sm:text-5xl">
+              {currencySymbol}
+              {formatNum(price)}
+            </span>
+            <span className="rounded bg-primary/10 px-3 py-1 font-semibold text-primary text-xs">
+              {Math.round(((fiveYearCost - price) / fiveYearCost) * 100)}% OFF
             </span>
           </div>
-          <CountdownTimer />
-        </div>
-      </motion.div>
 
-      {/* Headline */}
-      <motion.h1
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
-        initial={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <Balancer>Pay Once. Post Forever.</Balancer>
-      </motion.h1>
+          <Button
+            asChild
+            className="h-14 px-10 font-semibold text-base"
+            size="lg"
+          >
+            <Link href="#pricing">Get Lifetime Access</Link>
+          </Button>
 
-      {/* Subtitle */}
-      <motion.p
-        animate={{ opacity: 1, y: 0 }}
-        className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground md:text-xl"
-        initial={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-      >
-        <Balancer>
-          We&apos;re selling just 20 lifetime licenses to Delulu Social&apos;s
-          unlimited plan. 2 are already gone. When the timer hits zero or the
-          last deal sells — this page disappears.
-        </Balancer>
-      </motion.p>
-
-      {/* Price anchor */}
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex flex-col items-center gap-2"
-        initial={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-      >
-        <p className="text-muted-foreground text-sm">
-          VIBE plan over 5 years:{" "}
-          <span className="text-destructive line-through">
-            {currencySymbol}
-            {formatNum(fiveYearCost)}
-          </span>
-        </p>
-        <p className="font-bold text-4xl text-foreground">
-          From {currencySymbol}
-          {formatNum(startingPrice)}
-          <span className="ml-2 font-normal text-lg text-muted-foreground">
-            one-time
-          </span>
-        </p>
-      </motion.div>
-
-      {/* CTA */}
-      <motion.div
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center gap-3"
-        initial={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.6, delay: 0.5 }}
-      >
-        <Button asChild className="h-14 px-8 text-lg" size="lg">
-          <Link href="#pricing">Grab the Lifetime Deal</Link>
-        </Button>
-        <p className="text-muted-foreground text-xs">
-          One-time payment · No recurring charges · 60-day money-back guarantee
-        </p>
-      </motion.div>
+          <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+            <Icon icon={CheckmarkCircle02Icon} size={12} />
+            One-time payment · 60-day money-back guarantee
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section 2: Pricing Tiers
+// Section 2: Pricing Card
 // ---------------------------------------------------------------------------
 
-function PricingTiersSection({
+function PricingSection({
   currency,
   currencySymbol,
   formatNum,
@@ -347,207 +366,132 @@ function PricingTiersSection({
   isINR: boolean;
 }) {
   const price = LIFETIME_PRICE[currency];
-  const monthlyEquiv = `= ${currencySymbol}${isINR ? Math.round(price / 60).toLocaleString("en-IN") : (price / 60).toFixed(2)}/mo over 5 years`;
-
-  const features = [
-    "Everything in VIBE plan",
-    "Unlimited social accounts",
-    "Unlimited posts per month",
-    "Unlimited media storage",
-    "Priority support",
-    "1,000 free transcriptions",
-    "All future features & updates",
-    "No recurring fees — ever",
-  ];
+  const monthlyEquiv = isINR
+    ? Math.round(price / 60).toLocaleString("en-IN")
+    : (price / 60).toFixed(2);
 
   return (
-    <section
-      className="relative flex w-full flex-col items-center justify-center border-t"
-      id="pricing"
-    >
-      <div className="relative mx-14 border-border border-x border-dashed">
-        {/* Diagonal patterns */}
-        <div className="absolute top-0 -left-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-left-14 md:w-14" />
-        <div className="absolute top-0 -right-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-right-14 md:w-14" />
-
-        <div className="h-full w-full border-border border-b py-16">
-          <div className="mx-auto mb-16 max-w-2xl text-center">
-            <h2 className="mb-4 font-bold text-4xl">
-              <Balancer>
-                The <span className="text-primary">Lifetime</span> Deal
-              </Balancer>
-            </h2>
-            <p className="text-muted-foreground">
-              One payment. Lifetime access. Every feature. Every update.
-              Forever.
+    <section className="relative border-t py-24" id="pricing">
+      <div className="relative mx-auto max-w-lg px-4">
+        <StaggerReveal>
+          <div className="mb-12 text-center">
+            <p className="mb-3 font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+              Limited Offer
             </p>
+            <h2 className="font-bold text-3xl tracking-tight sm:text-4xl">
+              <Balancer>The Lifetime Deal</Balancer>
+            </h2>
           </div>
+        </StaggerReveal>
 
-          <LineSvg className="mb-2 h-px w-full" />
-
-          <div className="mx-auto max-w-md px-2">
-            <div className="relative flex flex-col gap-3 rounded-[37px] border border-primary bg-gradient-to-b from-primary/20 via-primary/10 to-primary/5 p-4">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 font-semibold text-primary-foreground text-xs">
-                {DEALS_REMAINING} OF 20 LEFT
+        <StaggerReveal delay={0.1}>
+          <div className="relative">
+            <div className="overflow-hidden rounded-lg border border-primary/30 bg-card">
+              {/* Top badge */}
+              <div className="flex items-center justify-center gap-2 border-primary/10 border-b bg-primary/5 py-2.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                </span>
+                <span className="font-bold text-[11px] uppercase tracking-[0.15em]">
+                  {DEALS_REMAINING} of {DEALS_TOTAL} remaining
+                </span>
               </div>
 
-              <div className="space-y-8 rounded-[28px] bg-background p-4 px-4 pb-20 shadow-lg">
-                <div className="flex flex-col">
-                  <div className="space-y-2">
-                    <h3 className="flex w-fit items-center justify-center rounded-full border bg-background px-4 py-1 font-medium text-lg">
-                      Lifetime Access
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      Full VIBE plan — pay once, use forever
-                    </p>
-                  </div>
-
-                  <div className="mt-4 flex items-baseline">
-                    <span className="font-bold text-4xl">{currencySymbol}</span>
-                    <span className="font-bold text-4xl">
+              <div className="p-8 sm:p-10">
+                {/* Price */}
+                <div className="mb-8 text-center">
+                  <p className="mb-1 font-medium text-muted-foreground text-sm">
+                    Full VIBE plan — forever
+                  </p>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="font-extrabold text-5xl tracking-tight sm:text-6xl">
+                      {currencySymbol}
                       {formatNum(price)}
                     </span>
-                    <span className="ml-1 text-muted-foreground">
-                      /lifetime
-                    </span>
                   </div>
-
-                  <p className="mt-1 text-muted-foreground text-xs">
-                    {monthlyEquiv}
+                  <p className="mt-2 text-muted-foreground text-sm">
+                    That&apos;s just {currencySymbol}
+                    {monthlyEquiv}/mo over 5 years
                   </p>
                 </div>
 
+                {/* CTA */}
                 <Button
                   asChild
-                  className="w-full px-6 py-4 font-medium text-md"
+                  className="mb-8 h-14 w-full font-semibold text-base"
+                  size="lg"
                 >
                   <Link href={SIGN_IN_URL}>Get Lifetime Access</Link>
                 </Button>
 
-                <ul className="space-y-4">
-                  {features.map((feature) => (
-                    <li className="flex items-center" key={feature}>
-                      <CheckIcon highlighted />
-                      <span className="text-muted-foreground text-sm">
+                {/* Features */}
+                <ul className="space-y-3.5">
+                  {FEATURES.map((feature) => (
+                    <li className="flex items-center gap-3" key={feature}>
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <Icon
+                          className="text-primary"
+                          icon={Tick02Icon}
+                          size={14}
+                        />
+                      </div>
+                      <span className="text-foreground/80 text-sm">
                         {feature}
                       </span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              {/* Bottom trust strip */}
+              <div className="border-border/50 border-t bg-muted/30 px-8 py-4">
+                <p className="text-center text-muted-foreground text-xs">
+                  60-day money-back guarantee · Instant access · No card tricks
+                </p>
+              </div>
             </div>
           </div>
-
-          <LineSvg className="mt-2 h-px w-full" />
-        </div>
+        </StaggerReveal>
       </div>
     </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section 3: What You're Getting
+// Section 3: Features
 // ---------------------------------------------------------------------------
-
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  publish: (
-    <svg
-      className="h-6 w-6 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  dm: (
-    <svg
-      className="h-6 w-6 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  team: (
-    <svg
-      className="h-6 w-6 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-  bonus: (
-    <svg
-      className="h-6 w-6 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-};
 
 function FeaturesSection() {
   return (
-    <section className="w-full py-20">
+    <section className="border-t py-24">
       <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 font-bold text-4xl">
-            What You&apos;re <span className="text-primary">Getting</span>
-          </h2>
-          <p className="text-muted-foreground">
-            Everything you need to dominate social media — included forever.
-          </p>
-        </div>
+        <StaggerReveal>
+          <div className="mb-16 text-center">
+            <p className="mb-3 font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+              Everything Included
+            </p>
+            <h2 className="font-bold text-3xl tracking-tight sm:text-4xl">
+              <Balancer>One tool to replace them all</Balancer>
+            </h2>
+          </div>
+        </StaggerReveal>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {FEATURE_CATEGORIES.map((category) => (
-            <div
-              className="rounded-xl border bg-card p-6 transition-colors hover:bg-card/80"
-              key={category.title}
-            >
-              <div className="mb-4 flex items-center gap-3">
-                {CATEGORY_ICONS[category.icon]}
-                <h3 className="font-semibold text-foreground text-lg">
-                  {category.title}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {FEATURE_CATEGORIES.map((cat, i) => (
+            <StaggerReveal delay={i * 0.08} key={cat.title}>
+              <div className="group relative h-full rounded-lg border border-border/60 bg-card/50 p-6 transition-colors duration-300 hover:border-primary/20 hover:bg-card sm:p-8">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                  <Icon icon={cat.icon} size={20} />
+                </div>
+                <h3 className="mb-2 font-semibold text-foreground text-lg">
+                  {cat.title}
                 </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {cat.description}
+                </p>
               </div>
-              <ul className="space-y-3">
-                {category.features.map((feature) => (
-                  <li className="flex items-start gap-2" key={feature}>
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span className="text-muted-foreground text-sm">
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </StaggerReveal>
           ))}
         </div>
       </div>
@@ -571,141 +515,161 @@ function ComparisonSection({
   const deluluPrice = LIFETIME_PRICE[currency];
 
   return (
-    <section className="w-full border-t py-20">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 font-bold text-4xl">
-            How Delulu <span className="text-primary">Stacks Up</span>
-          </h2>
-          <p className="text-muted-foreground">
-            Compare what you&apos;d pay over 5 years. Spoiler: it&apos;s not
-            even close.
-          </p>
-        </div>
+    <section className="border-t py-24">
+      <div className="mx-auto max-w-4xl px-4">
+        <StaggerReveal>
+          <div className="mb-16 text-center">
+            <p className="mb-3 font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+              The Math
+            </p>
+            <h2 className="mb-4 font-bold text-3xl tracking-tight sm:text-4xl">
+              <Balancer>5-year cost comparison</Balancer>
+            </h2>
+            <p className="mx-auto max-w-md text-muted-foreground">
+              What you&apos;d pay over 5 years with each tool. The numbers speak
+              for themselves.
+            </p>
+          </div>
+        </StaggerReveal>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="px-4 py-3 font-medium text-muted-foreground" />
-                {COMPETITORS.map((c) => (
-                  <th
-                    className="px-4 py-3 font-medium text-muted-foreground"
-                    key={c.name}
-                  >
-                    {c.name}
-                  </th>
-                ))}
-                <th className="rounded-t-lg bg-primary/5 px-4 py-3 font-semibold text-primary">
-                  Delulu LTD
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="px-4 py-3 font-medium text-foreground">
-                  Monthly price
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3 text-muted-foreground" key={c.name}>
-                    ${c.monthly}/mo
-                  </td>
-                ))}
-                <td className="bg-primary/5 px-4 py-3 font-semibold text-primary">
-                  {currencySymbol}
-                  {formatNum(deluluPrice)} once
-                </td>
-              </tr>
-              <tr className="border-b">
-                <td className="px-4 py-3 font-medium text-foreground">
-                  5-year cost
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3 text-muted-foreground" key={c.name}>
-                    ${(c.monthly * 60).toLocaleString()}
-                  </td>
-                ))}
-                <td className="bg-primary/5 px-4 py-3 font-semibold text-primary">
-                  {currencySymbol}
-                  {formatNum(deluluPrice)}
-                </td>
-              </tr>
-              <tr className="border-b">
-                <td className="px-4 py-3 font-medium text-foreground">
-                  Platforms
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3 text-muted-foreground" key={c.name}>
-                    {c.platforms}
-                  </td>
-                ))}
-                <td className="bg-primary/5 px-4 py-3 font-semibold text-primary">
-                  8+
-                </td>
-              </tr>
-              <tr className="border-b">
-                <td className="px-4 py-3 font-medium text-foreground">
-                  DM Automation
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3" key={c.name}>
-                    {c.dms ? (
-                      <Check className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <X className="h-4 w-4 text-muted-foreground/50" />
-                    )}
-                  </td>
-                ))}
-                <td className="bg-primary/5 px-4 py-3">
-                  <Check className="h-4 w-4 text-primary" />
-                </td>
-              </tr>
-              <tr className="border-b">
-                <td className="px-4 py-3 font-medium text-foreground">
-                  Scheduling
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3" key={c.name}>
-                    {c.scheduling ? (
-                      <Check className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <X className="h-4 w-4 text-muted-foreground/50" />
-                    )}
-                  </td>
-                ))}
-                <td className="bg-primary/5 px-4 py-3">
-                  <Check className="h-4 w-4 text-primary" />
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 font-medium text-foreground">
-                  Team seats
-                </td>
-                {COMPETITORS.map((c) => (
-                  <td className="px-4 py-3 text-muted-foreground" key={c.name}>
-                    {c.seats}
-                  </td>
-                ))}
-                <td className="rounded-b-lg bg-primary/5 px-4 py-3 font-semibold text-primary">
-                  Up to 5
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <StaggerReveal delay={0.1}>
+          <div className="overflow-hidden rounded-lg border border-border/60 bg-card/50">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-border/60 border-b">
+                    <th className="px-5 py-4 text-left font-medium text-muted-foreground" />
+                    {COMPETITORS.map((c) => (
+                      <th
+                        className="px-4 py-4 text-center font-medium text-muted-foreground"
+                        key={c.name}
+                      >
+                        {c.name}
+                      </th>
+                    ))}
+                    <th className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center font-bold text-primary">
+                      Delulu
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  <tr>
+                    <td className="px-5 py-4 font-medium">Monthly</td>
+                    {COMPETITORS.map((c) => (
+                      <td
+                        className="px-4 py-4 text-center text-muted-foreground"
+                        key={c.name}
+                      >
+                        ${c.monthly}
+                      </td>
+                    ))}
+                    <td className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center font-semibold text-primary">
+                      {currencySymbol}
+                      {formatNum(deluluPrice)}
+                      <span className="ml-1 text-xs opacity-70">once</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-4 font-medium">5-year cost</td>
+                    {COMPETITORS.map((c) => (
+                      <td
+                        className="px-4 py-4 text-center font-semibold text-destructive"
+                        key={c.name}
+                      >
+                        ${(c.monthly * 60).toLocaleString()}
+                      </td>
+                    ))}
+                    <td className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center font-bold text-primary">
+                      {currencySymbol}
+                      {formatNum(deluluPrice)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-4 font-medium">Platforms</td>
+                    {COMPETITORS.map((c) => (
+                      <td
+                        className="px-4 py-4 text-center text-muted-foreground"
+                        key={c.name}
+                      >
+                        {c.platforms}
+                      </td>
+                    ))}
+                    <td className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center font-semibold text-primary">
+                      8+
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-4 font-medium">DM Automation</td>
+                    {COMPETITORS.map((c) => (
+                      <td className="px-4 py-4 text-center" key={c.name}>
+                        {c.dms ? (
+                          <Icon
+                            className="mx-auto text-muted-foreground"
+                            icon={Tick02Icon}
+                            size={16}
+                          />
+                        ) : (
+                          <Icon
+                            className="mx-auto text-muted-foreground/30"
+                            icon={Cancel01Icon}
+                            size={16}
+                          />
+                        )}
+                      </td>
+                    ))}
+                    <td className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center">
+                      <Icon
+                        className="mx-auto text-primary"
+                        icon={Tick02Icon}
+                        size={16}
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-5 py-4 font-medium">Scheduling</td>
+                    {COMPETITORS.map((c) => (
+                      <td className="px-4 py-4 text-center" key={c.name}>
+                        {c.scheduling ? (
+                          <Icon
+                            className="mx-auto text-muted-foreground"
+                            icon={Tick02Icon}
+                            size={16}
+                          />
+                        ) : (
+                          <Icon
+                            className="mx-auto text-muted-foreground/30"
+                            icon={Cancel01Icon}
+                            size={16}
+                          />
+                        )}
+                      </td>
+                    ))}
+                    <td className="border-primary/10 border-l bg-primary/[0.03] px-4 py-4 text-center">
+                      <Icon
+                        className="mx-auto text-primary"
+                        icon={Tick02Icon}
+                        size={16}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </StaggerReveal>
 
-        <div className="mt-8 text-center">
-          <p className="text-muted-foreground text-sm">
-            You&apos;d spend{" "}
-            <span className="font-semibold text-foreground">$5,940</span> on
-            Hootsuite over 5 years. Or{" "}
+        <StaggerReveal delay={0.15}>
+          <p className="mt-6 text-center text-muted-foreground text-sm">
+            Hootsuite alone costs{" "}
+            <span className="font-semibold text-foreground">$5,940</span> over 5
+            years. Delulu costs{" "}
             <span className="font-semibold text-primary">
               {currencySymbol}
               {formatNum(deluluPrice)}
-            </span>{" "}
-            once on Delulu. Your call.
+            </span>
+            . Once.
           </p>
-        </div>
+        </StaggerReveal>
       </div>
     </section>
   );
@@ -720,77 +684,87 @@ function FaqSection({ currency }: { currency: CurrencyCode }) {
   const faqs = getLtdFaqs(currency);
 
   return (
-    <section className="w-full py-20">
-      <div className="mx-auto max-w-4xl px-4">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 font-semibold text-4xl">
-            Got <span className="text-primary">questions</span>?
-          </h2>
-          <p className="mx-auto max-w-3xl text-muted-foreground">
-            Here are the answers you need before pulling the trigger:
-          </p>
-        </div>
+    <section className="border-t py-24">
+      <div className="mx-auto max-w-3xl px-4">
+        <StaggerReveal>
+          <div className="mb-14 text-center">
+            <p className="mb-3 font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+              FAQ
+            </p>
+            <h2 className="font-bold text-3xl tracking-tight sm:text-4xl">
+              <Balancer>Questions before you commit?</Balancer>
+            </h2>
+          </div>
+        </StaggerReveal>
 
-        <div className="space-y-4 rounded-[22px] bg-muted p-4">
+        <div className="space-y-2">
           {faqs.map((faq, index) => (
-            <div
-              className="overflow-hidden rounded-[17px] border bg-gradient-to-b from-card via-background to-card shadow-lg"
-              key={index}
-            >
-              <button
-                className="flex w-full items-center gap-2 px-6 py-5 text-left"
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                type="button"
-              >
-                <motion.div
-                  animate={{ rotate: openIndex === index ? 45 : 0 }}
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            <StaggerReveal delay={index * 0.04} key={index}>
+              <div className="overflow-hidden rounded-lg border border-border/60 bg-card/50 transition-colors hover:bg-card">
+                <button
+                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+                  onClick={() =>
+                    setOpenIndex(openIndex === index ? null : index)
+                  }
+                  type="button"
                 >
-                  <Plus className="text-primary" size={20} />
-                </motion.div>
-                <span className="text-foreground text-lg">{faq.question}</span>
-              </button>
-              <AnimatePresence mode="sync">
-                {openIndex === index && (
+                  <span className="font-medium text-[15px] text-foreground">
+                    {faq.question}
+                  </span>
                   <motion.div
-                    animate="open"
-                    className="overflow-hidden px-6"
-                    exit="collapsed"
-                    initial="collapsed"
-                    key={`content-${index}`}
-                    variants={{
-                      open: {
-                        height: "auto",
-                        opacity: 1,
-                        transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 40,
-                          mass: 1,
-                        },
-                      },
-                      collapsed: {
-                        height: 0,
-                        opacity: 0,
-                        transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 40,
-                          mass: 1,
-                        },
-                      },
-                    }}
+                    animate={{ rotate: openIndex === index ? 180 : 0 }}
+                    className="shrink-0"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   >
-                    <div className="pb-5">
-                      <p className="whitespace-pre-line text-muted-foreground">
-                        {faq.answer}
-                      </p>
-                    </div>
+                    <Icon
+                      className="text-muted-foreground"
+                      icon={ArrowDown01Icon}
+                      size={16}
+                    />
                   </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                </button>
+                <AnimatePresence mode="sync">
+                  {openIndex === index && (
+                    <motion.div
+                      animate="open"
+                      className="overflow-hidden"
+                      exit="collapsed"
+                      initial="collapsed"
+                      key={`content-${index}`}
+                      variants={{
+                        open: {
+                          height: "auto",
+                          opacity: 1,
+                          transition: {
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 40,
+                            mass: 1,
+                          },
+                        },
+                        collapsed: {
+                          height: 0,
+                          opacity: 0,
+                          transition: {
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 40,
+                            mass: 1,
+                          },
+                        },
+                      }}
+                    >
+                      <div className="border-border/40 border-t px-6 py-5">
+                        <p className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </StaggerReveal>
           ))}
         </div>
       </div>
@@ -811,62 +785,74 @@ function FinalCtaSection({
   formatNum: (n: number) => string;
   currency: CurrencyCode;
 }) {
-  const soloPrice = LIFETIME_PRICE[currency];
+  const price = LIFETIME_PRICE[currency];
 
   return (
-    <section className="relative flex w-full flex-col items-center justify-center border-t">
-      <div className="relative mx-14 border-border border-x border-dashed">
-        <div className="absolute top-0 -left-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-left-14 md:w-14" />
-        <div className="absolute top-0 -right-4 h-full w-4 bg-[size:10px_10px] text-primary/5 [background-image:repeating-linear-gradient(315deg,currentColor_0_1px,#0000_0_50%)] md:-right-14 md:w-14" />
+    <section className="relative overflow-hidden border-t">
+      {/* Canvas background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <CanvasRevealEffect
+          animationSpeed={0.8}
+          colors={[[99, 102, 241]]}
+          dotSize={2}
+        />
+        <div className="absolute inset-0 bg-radial/[in_oklch] from-background/70 via-background/90 to-background" />
+      </div>
 
-        <div className="relative h-full w-full border-border border-b py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="mb-6 font-bold text-3xl text-foreground tracking-tight sm:text-4xl">
-              <Balancer>Stop Paying Monthly. Own It Forever.</Balancer>
+      <div className="relative py-28 sm:py-36">
+        <div className="mx-auto max-w-2xl px-4 text-center">
+          <StaggerReveal>
+            <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-destructive/20 bg-destructive/5 px-5 py-2.5">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+              </span>
+              <span className="font-semibold text-xs uppercase tracking-[0.15em]">
+                {DEALS_REMAINING} of {DEALS_TOTAL} left
+              </span>
+              <span className="text-border">|</span>
+              <CountdownTimer compact />
+            </div>
+          </StaggerReveal>
+
+          <StaggerReveal delay={0.1}>
+            <h2 className="mb-6 font-extrabold text-3xl tracking-tight sm:text-5xl">
+              <Balancer>
+                Stop renting.
+                <br />
+                <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  Start owning.
+                </span>
+              </Balancer>
             </h2>
+          </StaggerReveal>
 
-            <p className="mb-8 text-muted-foreground">
-              From{" "}
-              <span className="font-bold text-2xl text-foreground">
+          <StaggerReveal delay={0.15}>
+            <p className="mb-10 text-lg text-muted-foreground">
+              <span className="font-bold text-foreground">
                 {currencySymbol}
-                {formatNum(soloPrice)}
+                {formatNum(price)}
               </span>{" "}
-              one-time — that&apos;s less than 2 months of Hootsuite.
+              once — less than 2 months of Hootsuite.
             </p>
+          </StaggerReveal>
 
+          <StaggerReveal delay={0.2}>
             <div className="flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive" />
-                  </span>
-                  <span className="font-bold text-destructive text-xs uppercase tracking-wider">
-                    {DEALS_REMAINING} of 20 deals remaining
-                  </span>
-                </div>
-                <CountdownTimer />
-              </div>
-
-              <Button asChild className="h-14 px-8 text-lg" size="lg">
-                <Link href="#pricing">Get Lifetime Access</Link>
+              <Button
+                asChild
+                className="h-14 px-10 font-semibold text-base"
+                size="lg"
+              >
+                <Link href={SIGN_IN_URL}>Get Lifetime Access</Link>
               </Button>
 
-              <p className="text-muted-foreground text-xs">
+              <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                <Icon icon={SparklesIcon} size={12} />
                 60-day money-back guarantee · One-time payment · Instant access
               </p>
             </div>
-          </div>
-
-          {/* Canvas Effect */}
-          <div className="absolute bottom-0 left-1/2 -z-10 mx-auto flex w-full max-w-3xl -translate-x-1/2 items-center justify-center rounded-full">
-            <CanvasRevealEffect
-              animationSpeed={1}
-              colors={[[255, 107, 43]]}
-              dotSize={3}
-            />
-            <div className="absolute inset-0 h-full bg-radial/[in_oklch] from-background/80 via-background/90 to-background" />
-          </div>
+          </StaggerReveal>
         </div>
       </div>
     </section>
@@ -891,7 +877,7 @@ export default function Lifetime() {
         formatNum={formatNum}
         isINR={isINR}
       />
-      <PricingTiersSection
+      <PricingSection
         currency={currency}
         currencySymbol={currencySymbol}
         formatNum={formatNum}
