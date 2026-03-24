@@ -1,3 +1,5 @@
+"use client";
+
 import { UserButton } from "@delulu/auth";
 import {
   Breadcrumb,
@@ -46,10 +48,12 @@ export const Header = ({ pages, page, children }: HeaderProps) => (
       <div className="md:hidden">
         <UserButton>
           <UserButton.MenuItems>
-            <UserButton.Link
-              href="/billing"
+            <UserButton.Action
               label="Billing"
               labelIcon={<CreditCard className="h-4 w-4" />}
+              onClick={() => {
+                window.location.href = "/billing";
+              }}
             />
           </UserButton.MenuItems>
         </UserButton>

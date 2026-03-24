@@ -11,21 +11,19 @@ import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@delulu/design-system/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@delulu/design-system/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@delulu/design-system/components/ui/tooltip";
 import {
   socialBackgroundColors,
   socialIcons,
@@ -33,7 +31,7 @@ import {
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Alert01Icon,
-  ArrowRight01Icon,
+  ArrowMoveDownRightIcon,
   ClockIcon,
   Delete01Icon,
   MoreHorizontalIcon,
@@ -127,7 +125,9 @@ interface AccountCardProps {
 
 export function AccountCard({ account, onDelete }: AccountCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
   const orgs = useQuery(convexApi.organizations.getUserOrganizations);
   const transferMutation = useMutation(
     convexApi.social_providers.transferSocialProvider
@@ -137,6 +137,44 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
     socialIcons[account.socialType as keyof typeof socialIcons];
   const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
   const isAccountExpiringSoon = isExpiringSoon(account.refreshTokenExpiresIn);
+
+  const handleTransfer = async (targetOrgId: string | undefined) => {
+    setIsTransferring(true);
+    try {
+      await transferMutation({
+        id: account._id,
+        targetOrganizationId: targetOrgId,
+      });
+      toast.success(
+        targetOrgId
+          ? `Moved to ${orgs?.find((o) => o.clerkOrgId === targetOrgId)?.name}`
+          : "Moved to personal workspace"
+      );
+      setTransferDialogOpen(false);
+    } catch {
+      toast.error("Failed to switch workspace");
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  // Build list of destinations (personal + orgs, excluding current)
+  const destinations: {
+    id: string | undefined;
+    label: string;
+    isCurrent: boolean;
+  }[] = [
+    {
+      id: undefined,
+      label: "Personal Workspace",
+      isCurrent: !currentOrgId,
+    },
+    ...(orgs ?? []).map((org) => ({
+      id: org.clerkOrgId,
+      label: org.name,
+      isCurrent: org.clerkOrgId === currentOrgId,
+    })),
+  ];
 
   return (
     <Card className="group gap-0 rounded-none border-x-0 border-t-0 border-b py-2 shadow-none last:border-b-0 hover:bg-muted/30">
@@ -250,58 +288,17 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
               <DropdownMenuContent align="end" className="w-52">
                 <ReconnectMenuItem socialType={account.socialType} />
                 {orgs && orgs.length > 0 && (
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer">
-                      <Icon
-                        className="mr-2"
-                        icon={ArrowRight01Icon}
-                        size={16}
-                      />
-                      Move to...
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      {currentOrgId && (
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={async () => {
-                            try {
-                              await transferMutation({
-                                id: account._id,
-                                targetOrganizationId: undefined,
-                              });
-                              toast.success("Moved to personal workspace");
-                            } catch {
-                              toast.error("Failed to move account");
-                            }
-                          }}
-                        >
-                          <Icon className="mr-2" icon={UserIcon} size={16} />
-                          Personal
-                        </DropdownMenuItem>
-                      )}
-                      {orgs
-                        .filter((org) => org.clerkOrgId !== currentOrgId)
-                        .map((org) => (
-                          <DropdownMenuItem
-                            className="cursor-pointer"
-                            key={org._id}
-                            onClick={async () => {
-                              try {
-                                await transferMutation({
-                                  id: account._id,
-                                  targetOrganizationId: org.clerkOrgId,
-                                });
-                                toast.success(`Moved to ${org.name}`);
-                              } catch {
-                                toast.error("Failed to move account");
-                              }
-                            }}
-                          >
-                            {org.name}
-                          </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setTransferDialogOpen(true)}
+                  >
+                    <Icon
+                      className="mr-2"
+                      icon={ArrowMoveDownRightIcon}
+                      size={16}
+                    />
+                    Switch Workspace
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -316,6 +313,54 @@ export function AccountCard({ account, onDelete }: AccountCardProps) {
           </div>
         </div>
       </CardContent>
+
+      {/* Switch Workspace Dialog */}
+      <Dialog onOpenChange={setTransferDialogOpen} open={transferDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Switch Workspace</DialogTitle>
+            <DialogDescription>
+              Choose where{" "}
+              <span className="font-medium text-foreground">
+                {account.fullName}
+              </span>{" "}
+              should live.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1 pt-2">
+            {destinations.map((dest) => (
+              <button
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                  dest.isCurrent
+                    ? "cursor-default bg-muted text-muted-foreground"
+                    : "cursor-pointer hover:bg-muted"
+                }`}
+                disabled={dest.isCurrent || isTransferring}
+                key={dest.id ?? "personal"}
+                onClick={() => handleTransfer(dest.id)}
+                type="button"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  {dest.id ? (
+                    <span className="font-semibold text-primary text-xs">
+                      {dest.label.charAt(0).toUpperCase()}
+                    </span>
+                  ) : (
+                    <Icon className="text-primary" icon={UserIcon} size={14} />
+                  )}
+                </div>
+                <span className="flex-1 font-medium">{dest.label}</span>
+                {dest.isCurrent && (
+                  <Badge className="text-[10px]" variant="secondary">
+                    Current
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <DeleteAlertDialog
         description="Are you sure you want to delete this account? This action cannot be undone."
         isLoading={isDeleting}
