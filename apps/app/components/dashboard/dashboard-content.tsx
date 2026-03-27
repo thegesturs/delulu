@@ -12,6 +12,7 @@ import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardStatsClient } from "@/components/dashboard/dashboard-stats";
+import { PendingReviews } from "@/components/dashboard/pending-reviews";
 import { PlatformHealthAlert } from "@/components/dashboard/platform-health-alert";
 import { UpcomingSchedule } from "@/components/dashboard/upcoming-schedule";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -58,6 +59,9 @@ export function DashboardContent({
           </div>
         </div>
       )}
+
+      {/* Pending Reviews — shown prominently for admins, and for editors/members with submissions */}
+      <PendingReviews />
 
       {/* Alerts Section */}
       <PlatformHealthAlert expiredTokens={dashboardStats?.expiredTokens || 0} />

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getAuthContext } from "./lib/auth";
+import { canManageSocials } from "./lib/permissions";
+import { resolveUsageOwnerFromDoc } from "./lib/usage";
 import {
   automationCreateSchema,
   automationSchema,
@@ -74,7 +76,11 @@ export const getAutomation = query({
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== authCtx.userId) {
+    const ownsPersonal = automation?.userId === authCtx.userId;
+    const ownsViaOrg =
+      automation?.organizationId &&
+      automation.organizationId === authCtx.organizationId;
+    if (!(automation && (ownsPersonal || ownsViaOrg))) {
       return null;
     }
 
@@ -165,7 +171,11 @@ export const getForWebhook = query({
     }
 
     // 3. Get user + subscription for plan limits
-    const user = await ctx.db.get(provider.userId!);
+    const ownerId = await resolveUsageOwnerFromDoc(ctx, provider);
+    if (!ownerId) {
+      return null;
+    }
+    const user = await ctx.db.get(ownerId);
     if (!user) {
       return null;
     }
@@ -360,10 +370,17 @@ export const createAutomation = mutation({
     if (!authCtx) {
       throw new Error("User not found");
     }
+    if (!canManageSocials(authCtx)) {
+      throw new Error("You do not have permission to manage automations");
+    }
 
-    // Verify user owns the social provider (or it belongs to the org)
+    // Verify user owns the social provider (or it belongs to their active org)
     const socialProvider = await ctx.db.get(args.socialProviderId);
-    if (!socialProvider || socialProvider.userId !== authCtx.userId) {
+    const ownsPersonal = socialProvider?.userId === authCtx.userId;
+    const ownsViaOrg =
+      socialProvider?.organizationId &&
+      socialProvider.organizationId === authCtx.organizationId;
+    if (!(socialProvider && (ownsPersonal || ownsViaOrg))) {
       throw new Error("Social provider not found or access denied");
     }
 
@@ -375,7 +392,7 @@ export const createAutomation = mutation({
     const now = getCurrentTimestamp();
 
     const automationId = await ctx.db.insert("automations", {
-      userId: authCtx.userId,
+      userId: authCtx.organizationId ? undefined : authCtx.userId,
       organizationId: authCtx.organizationId ?? args.organizationId,
       socialProviderId: args.socialProviderId,
       name: args.name,
@@ -410,9 +427,16 @@ export const updateAutomation = mutation({
     if (!authCtx) {
       throw new Error("User not found");
     }
+    if (!canManageSocials(authCtx)) {
+      throw new Error("You do not have permission to manage automations");
+    }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== authCtx.userId) {
+    const ownsPersonal = automation?.userId === authCtx.userId;
+    const ownsViaOrg =
+      automation?.organizationId &&
+      automation.organizationId === authCtx.organizationId;
+    if (!(automation && (ownsPersonal || ownsViaOrg))) {
       throw new Error("Automation not found or access denied");
     }
 
@@ -438,9 +462,16 @@ export const deleteAutomation = mutation({
     if (!authCtx) {
       throw new Error("User not found");
     }
+    if (!canManageSocials(authCtx)) {
+      throw new Error("You do not have permission to manage automations");
+    }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== authCtx.userId) {
+    const ownsPersonal = automation?.userId === authCtx.userId;
+    const ownsViaOrg =
+      automation?.organizationId &&
+      automation.organizationId === authCtx.organizationId;
+    if (!(automation && (ownsPersonal || ownsViaOrg))) {
       throw new Error("Automation not found or access denied");
     }
 
@@ -462,7 +493,11 @@ export const toggleAutomation = mutation({
     }
 
     const automation = await ctx.db.get(args.id);
-    if (!automation || automation.userId !== authCtx.userId) {
+    const ownsPersonal = automation?.userId === authCtx.userId;
+    const ownsViaOrg =
+      automation?.organizationId &&
+      automation.organizationId === authCtx.organizationId;
+    if (!(automation && (ownsPersonal || ownsViaOrg))) {
       throw new Error("Automation not found or access denied");
     }
 

@@ -148,6 +148,14 @@ export const socialProviderRouter = {
         });
       }
 
+      // For org posts, verify approval before publishing
+      if (post.organizationId && post.reviewStatus !== "APPROVED") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This post has not been approved yet",
+        });
+      }
+
       // Set post to PROCESSING so the worker accepts it
       await fetchMutation(
         api.posts.updatePost,
@@ -252,7 +260,8 @@ export const socialProviderRouter = {
       await fetchMutation(
         api.social_providers.connectFacebookPage,
         {
-          userId,
+          userId: ctx.orgId ? undefined : userId,
+          organizationId: ctx.orgId,
           pageId: input.pageId,
           pageName: input.pageName,
           accessToken: pageAccessToken,
@@ -645,8 +654,12 @@ export const socialProviderRouter = {
         });
       }
 
-      // Verify ownership (check that the social provider belongs to the current user)
-      if (socialProvider.userId !== ctx.userId) {
+      // Verify ownership (personal or org)
+      const ownsPersonal = socialProvider.userId === ctx.userId;
+      const ownsViaOrg =
+        socialProvider.organizationId &&
+        socialProvider.organizationId === ctx.orgId;
+      if (!(ownsPersonal || ownsViaOrg)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission to delete this account",

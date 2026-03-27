@@ -147,7 +147,7 @@ export type Note = Infer<typeof noteSchema>;
 
 // Base automation schema without system fields
 export const baseAutomationSchema = v.object({
-  userId: v.id("users"),
+  userId: v.optional(v.id("users")),
   organizationId: v.optional(v.string()),
   socialProviderId: v.id("socialProviders"),
   name: v.string(),

@@ -5,6 +5,7 @@ export * from "./articles";
 export * from "./automations";
 export * from "./enums";
 export * from "./organizations";
+export * from "./post_reviews";
 export * from "./posts_media";
 export * from "./social_providers";
 export * from "./subscriptions";

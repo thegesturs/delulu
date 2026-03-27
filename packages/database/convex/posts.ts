@@ -55,10 +55,17 @@ function extractSearchableText(
 
 import { getAuthContext } from "./lib/auth";
 import {
+  canCreatePosts,
+  canPublishDirectly,
+  isViewer,
+  requiresApproval,
+} from "./lib/permissions";
+import {
   adjustUsage,
   getUsageOwnerId,
   resolveUsageOwnerFromDoc,
 } from "./lib/usage";
+import { submitForReviewCore } from "./post_reviews";
 import {
   getPostByIdSchema,
   postCreateSchema,
@@ -425,6 +432,12 @@ export const createPost = mutation({
     if (!authCtx) {
       throw new Error("User not found");
     }
+    if (isViewer(authCtx)) {
+      throw new Error("Viewers cannot create posts");
+    }
+    if (!canCreatePosts(authCtx)) {
+      throw new Error("You do not have permission to create posts");
+    }
     const usageOwnerId = await getUsageOwnerId(ctx, authCtx);
     return createPostCore(ctx, authCtx.userId, {
       ...args,
@@ -454,6 +467,17 @@ export const updatePostScheduledTime = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
+    const authCtx = await getAuthContext(ctx);
+    if (authCtx && !canPublishDirectly(authCtx)) {
+      // Allow if the post is already approved
+      const existingPost = await ctx.db.get(args.id);
+      if (existingPost?.reviewStatus !== "APPROVED") {
+        throw new Error(
+          "You do not have permission to schedule posts directly"
+        );
+      }
+    }
+
     const oldPost = await findPostById(ctx, args.id);
 
     // Validate scheduled date must be in the future (minimum 30 minutes from now)
@@ -511,14 +535,46 @@ export const upsertPost = mutation({
     }
     const user = authCtx.user;
 
+    // Permission checks
+    if (isViewer(authCtx)) {
+      throw new Error("Viewers cannot create or edit posts");
+    }
+    if (!canCreatePosts(authCtx)) {
+      throw new Error("You do not have permission to create posts");
+    }
+
     // Validate scheduled date if provided
     if (args.scheduledAt && args.scheduledAt <= now) {
       throw new Error("Scheduled date must be in the future");
     }
 
     // Determine status based on scheduling
-    const finalStatus =
-      args.status || (args.scheduledAt ? "SCHEDULED" : "SAVED");
+    let finalStatus = args.status || (args.scheduledAt ? "SCHEDULED" : "SAVED");
+
+    // Non-admin in org context: intercept publish/schedule attempts unless approved
+    const memberNeedsApproval = requiresApproval(authCtx);
+    let shouldSubmitForReview = false;
+
+    if (
+      memberNeedsApproval &&
+      (finalStatus === "PROCESSING" || finalStatus === "SCHEDULED")
+    ) {
+      // Check if existing post was already approved — if so, allow publishing
+      let isAlreadyApproved = false;
+      if (args.id) {
+        const existingPost = await ctx.db.get(args.id);
+        isAlreadyApproved = existingPost?.reviewStatus === "APPROVED";
+      }
+
+      if (!isAlreadyApproved) {
+        // Override to SAVED — the post won't be published/scheduled
+        finalStatus = "SAVED";
+        shouldSubmitForReview = true;
+      }
+    }
+
+    // Admin publishing: auto-approve
+    const autoApprove = !authCtx.isPersonal && canPublishDirectly(authCtx);
 
     const { id, ...postData } = args;
 
@@ -573,6 +629,19 @@ export const upsertPost = mutation({
       // Increment monthly posts counter
       const usageOwnerId = await getUsageOwnerId(ctx, authCtx);
       await adjustUsage(ctx, usageOwnerId, "monthlyPosts", 1);
+    }
+
+    // Handle approval workflow
+    if (shouldSubmitForReview && authCtx.organizationId) {
+      await submitForReviewCore(
+        ctx,
+        postId,
+        authCtx.organizationId,
+        authCtx.userId
+      );
+    } else if (autoApprove) {
+      // Admin/editor in org: mark as approved
+      await ctx.db.patch(postId, { reviewStatus: "APPROVED" });
     }
 
     if (finalStatus === "PROCESSING") {
@@ -788,6 +857,14 @@ export const publishScheduledPost = internalAction({
       if (post.status !== "SCHEDULED" && post.status !== "PROCESSING") {
         console.warn(
           `Post ${args.postId} is no longer scheduled (status: ${post.status})`
+        );
+        return false;
+      }
+
+      // For org posts, verify the post has been approved
+      if (post.organizationId && post.reviewStatus !== "APPROVED") {
+        console.warn(
+          `Post ${args.postId} has not been approved (reviewStatus: ${post.reviewStatus})`
         );
         return false;
       }

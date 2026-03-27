@@ -25,6 +25,7 @@ import { Header } from "../layout/header";
 import { ContentModule } from "./content-module";
 import { MobilePostHeader } from "./mobile-post-header";
 import { AlternativeContentSelector } from "./network-selector";
+import { ReviewBanner } from "./review-banner";
 import { PostSidebar } from "./sidebar/post-sidebar";
 import { SocialIcon } from "./sidebar/social-icon";
 
@@ -184,6 +185,17 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
             </p>
           </div>
         )}
+
+        {/* Review status banner for org posts */}
+        {postData?.organizationId && (
+          <div className="mb-4">
+            <ReviewBanner
+              organizationId={postData.organizationId}
+              postId={postData._id}
+              reviewStatus={postData.reviewStatus}
+            />
+          </div>
+        )}
         <div className="hidden lg:block">
           <Header
             page={postId ? "Edit Post" : "Create Post"}
@@ -253,7 +265,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         </Tabs>
       </div>
       <div className="hidden lg:block">
-        <PostSidebar />
+        <PostSidebar
+          organizationId={postData?.organizationId}
+          postId={postId}
+        />
       </div>
     </div>
   );

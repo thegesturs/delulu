@@ -19,6 +19,7 @@ import {
   GridViewIcon,
   Loading03Icon,
   Menu01Icon,
+  TaskDone01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import { usePaginatedQuery } from "convex/react";
@@ -27,7 +28,9 @@ import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import React, { useEffect } from "react";
 import { PostsView } from "@/components/posts/posts-view";
+import { ReviewQueue } from "@/components/posts/review-queue";
 import type { PostLayout } from "@/components/posts/types";
+import { usePermissions } from "@/hooks/use-permissions";
 import PostLoading from "./post-loading";
 
 const ITEMS_PER_PAGE = 10;
@@ -43,9 +46,15 @@ export default function PostsClient() {
       "PUBLISHED",
       "FAILED",
       "PROCESSING",
+      "REVIEW",
     ] as const).withDefault("SAVED")
   );
   const [layout, setLayout] = React.useState<PostLayout>("list");
+  const { canApprove, isPersonal, isViewer, canCreate } = usePermissions();
+  const showReviewTab = canApprove && !isPersonal;
+
+  // Pending review count for badge
+  const pendingReviewCount = useQuery(api.post_reviews.getPendingReviewCount);
 
   // Debounce search term to avoid too many queries
   React.useEffect(() => {
@@ -56,12 +65,17 @@ export default function PostsClient() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // REVIEW is a UI-only tab, not a real post status — skip the query for it
+  const postStatusFilter = statusFilter === "REVIEW" ? undefined : statusFilter;
+
   const { results, status, loadMore } = usePaginatedQuery(
     api.posts.getPosts,
-    {
-      status: statusFilter,
-      searchTerm: debouncedSearchTerm.trim() || undefined,
-    },
+    postStatusFilter
+      ? {
+          status: postStatusFilter,
+          searchTerm: debouncedSearchTerm.trim() || undefined,
+        }
+      : "skip",
     { initialNumItems: ITEMS_PER_PAGE }
   );
 
@@ -283,74 +297,96 @@ export default function PostsClient() {
                   </Badge>
                 )}
               </AnimatedTabsTrigger>
+              {showReviewTab && (
+                <AnimatedTabsTrigger
+                  className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
+                  value="REVIEW"
+                >
+                  <Icon icon={TaskDone01Icon} size={16} />
+                  <span>Review</span>
+                  {(pendingReviewCount ?? 0) > 0 && (
+                    <Badge className="ml-1.5" variant="secondary">
+                      {pendingReviewCount}
+                    </Badge>
+                  )}
+                </AnimatedTabsTrigger>
+              )}
             </AnimatedTabsList>
           </AnimatedTabs>
 
-          <Button
-            asChild
-            className="mx-2 ml-auto"
-            size={"sm"}
-            variant={"secondary"}
-          >
-            <Link href={"/posts/create"}>
-              <Icon className="mr-1" icon={Add01Icon} size={16} />
-              Add Post
-            </Link>
-          </Button>
+          {canCreate && (
+            <Button
+              asChild
+              className="mx-2 ml-auto"
+              size={"sm"}
+              variant={"secondary"}
+            >
+              <Link href={"/posts/create"}>
+                <Icon className="mr-1" icon={Add01Icon} size={16} />
+                Add Post
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 space-y-4 overflow-auto p-4">
-        <div className="flex items-center justify-between gap-4">
-          <Input
-            className="max-w-sm"
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search posts..."
-            value={searchTerm}
-          />
-          <div className="flex items-center gap-1 rounded-lg border p-1">
-            <Toggle
-              aria-label="Grid view"
-              onPressedChange={() => setLayout("grid")}
-              pressed={layout === "grid"}
-              size="sm"
-            >
-              <Icon icon={GridViewIcon} size={16} />
-            </Toggle>
-            <Toggle
-              aria-label="List view"
-              onPressedChange={() => setLayout("list")}
-              pressed={layout === "list"}
-              size="sm"
-            >
-              <Icon icon={Menu01Icon} size={16} />
-            </Toggle>
-          </div>
-        </div>
-
-        {posts.length === 0 && !isLoading && (
-          <div className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No posts found. Try creating a new post.
-            </p>
-          </div>
-        )}
-        {posts.length > 0 && (
+        {statusFilter === "REVIEW" ? (
+          <ReviewQueue />
+        ) : (
           <>
-            <PostsView layout={layout} posts={posts} />
-            {/* Loading indicator */}
-            {status === "LoadingMore" && (
-              <div className="py-4">
-                <PostLoading layout={layout} />
+            <div className="flex items-center justify-between gap-4">
+              <Input
+                className="max-w-sm"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search posts..."
+                value={searchTerm}
+              />
+              <div className="flex items-center gap-1 rounded-lg border p-1">
+                <Toggle
+                  aria-label="Grid view"
+                  onPressedChange={() => setLayout("grid")}
+                  pressed={layout === "grid"}
+                  size="sm"
+                >
+                  <Icon icon={GridViewIcon} size={16} />
+                </Toggle>
+                <Toggle
+                  aria-label="List view"
+                  onPressedChange={() => setLayout("list")}
+                  pressed={layout === "list"}
+                  size="sm"
+                >
+                  <Icon icon={Menu01Icon} size={16} />
+                </Toggle>
+              </div>
+            </div>
+
+            {posts.length === 0 && !isLoading && (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">
+                  No posts found. Try creating a new post.
+                </p>
               </div>
             )}
-            {/* Intersection observer target */}
-            {hasMore && (
-              <div
-                aria-hidden="true"
-                className="h-4 w-full"
-                ref={observerTarget}
-              />
+            {posts.length > 0 && (
+              <>
+                <PostsView layout={layout} posts={posts} />
+                {/* Loading indicator */}
+                {status === "LoadingMore" && (
+                  <div className="py-4">
+                    <PostLoading layout={layout} />
+                  </div>
+                )}
+                {/* Intersection observer target */}
+                {hasMore && (
+                  <div
+                    aria-hidden="true"
+                    className="h-4 w-full"
+                    ref={observerTarget}
+                  />
+                )}
+              </>
             )}
           </>
         )}
