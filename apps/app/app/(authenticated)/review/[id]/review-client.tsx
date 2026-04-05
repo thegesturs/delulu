@@ -77,7 +77,7 @@ function MediaPreview({
 export function ReviewClient({ postId }: ReviewClientProps) {
   const { canApprove } = usePermissions();
   const post = useQuery(api.posts.getPostById, {
-    postId: postId as Id<"posts">,
+    id: postId as Id<"posts">,
   });
   const review = useQuery(
     api.post_reviews.getReviewForPost,
