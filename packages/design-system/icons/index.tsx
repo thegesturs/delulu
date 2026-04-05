@@ -6,11 +6,13 @@
 import {
   AiMail01Icon,
   Calendar as CalendarIcon,
+  CheckmarkBadge01Icon,
   ConnectIcon,
   CreditCard as CreditCardIcon,
   File as FileIcon,
   Gift as GiftIcon,
   Home as HomeIcon,
+  Key01Icon,
   Pencil as PencilIcon,
   Settings as SettingsIcon,
 } from "@hugeicons-pro/core-solid-rounded";
@@ -52,4 +54,12 @@ export const Robot: ComponentType<{ className?: string }> = (props) => (
 
 export const Affiliate: ComponentType<{ className?: string }> = (props) => (
   <Icon icon={GiftIcon} size={14} {...props} />
+);
+
+export const ReviewBadge: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={CheckmarkBadge01Icon} size={14} {...props} />
+);
+
+export const ApiKey: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={Key01Icon} size={14} {...props} />
 );

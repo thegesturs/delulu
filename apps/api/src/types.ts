@@ -1,5 +1,6 @@
 export interface Env {
   CONVEX_URL: string;
+  DELULU_APP_URL?: string;
   DELULU_RATE_LIMIT_KV: KVNamespace;
   DELULU_SOCIAL_BUCKET: R2Bucket;
   R2_ACCOUNT_ID: string;
@@ -12,6 +13,7 @@ export interface ApiKeyData {
   scopes: string[];
   planType: "FREE" | "ECHO" | "VIBE";
   apiKeyId: string;
+  organizationId?: string;
 }
 
 export interface AppContext {

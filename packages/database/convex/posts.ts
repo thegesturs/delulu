@@ -148,6 +148,7 @@ interface CreatePostArgs {
   content: Doc<"posts">["content"];
   alternativeContent?: Doc<"posts">["alternativeContent"];
   socialProviderIds: Id<"socialProviders">[];
+  externalSubmissionId?: string;
   tiktokSettings?: Doc<"posts">["tiktokSettings"];
   providerSettings?: Doc<"posts">["providerSettings"];
   usageOwnerId?: Id<"users">;
@@ -177,6 +178,7 @@ export async function createPostCore(
     content: args.content,
     alternativeContent: args.alternativeContent,
     socialProviderIds: args.socialProviderIds,
+    externalSubmissionId: args.externalSubmissionId,
     searchableText: extractSearchableText(
       args.content,
       args.alternativeContent
@@ -1124,6 +1126,42 @@ export const apiCreatePost = mutation({
   handler: async (ctx, args) => {
     const { userId, ...createArgs } = args;
     return createPostCore(ctx, userId, createArgs);
+  },
+});
+
+export const apiCreatePostWithReview = mutation({
+  args: {
+    userId: v.id("users"),
+    organizationId: v.string(),
+    content: postCreateSchema.fields.content,
+    socialProviderIds: postCreateSchema.fields.socialProviderIds,
+    alternativeContent: postCreateSchema.fields.alternativeContent,
+    scheduledAt: postCreateSchema.fields.scheduledAt,
+    providerSettings: postCreateSchema.fields.providerSettings,
+    privacyStatus: postCreateSchema.fields.privacyStatus,
+    externalSubmissionId: v.optional(v.string()),
+  },
+  returns: v.object({
+    postId: v.id("posts"),
+    reviewStatus: v.literal("PENDING"),
+  }),
+  handler: async (ctx, args) => {
+    const { userId, organizationId, externalSubmissionId, ...createArgs } =
+      args;
+
+    // Create post as SAVED with PENDING review (never publish directly via API)
+    const postId = await createPostCore(ctx, userId, {
+      ...createArgs,
+      organizationId,
+      externalSubmissionId,
+      status: "SAVED",
+      reviewStatus: "PENDING",
+    });
+
+    // Submit for review atomically in the same transaction
+    await submitForReviewCore(ctx, postId, organizationId, userId);
+
+    return { postId, reviewStatus: "PENDING" as const };
   },
 });
 

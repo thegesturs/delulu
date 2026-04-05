@@ -1,5 +1,6 @@
 import {
   Affiliate,
+  ApiKey,
   Calendar,
   CreditCard,
   Draft,
@@ -38,6 +39,12 @@ export const navigationItems = [
     url: "/automations",
     icon: Robot,
     dataTour: "automations-nav",
+  },
+  {
+    title: "API Keys",
+    url: "/api-keys",
+    icon: ApiKey,
+    dataTour: undefined,
   },
   {
     title: "Billing",

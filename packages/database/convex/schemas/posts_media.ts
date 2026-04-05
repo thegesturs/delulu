@@ -52,6 +52,7 @@ export const basePostSchema = v.object({
       })
     )
   ),
+  externalSubmissionId: v.optional(v.string()),
   platformPosts: v.optional(v.array(embeddedPlatformPostSchema)),
   searchableText: v.optional(v.string()),
   createdAt: v.number(),
@@ -92,6 +93,7 @@ export const postCreateSchema = v.object({
   content: v.array(contentSchema),
   alternativeContent: v.optional(v.array(alternativeContentSchema)),
   socialProviderIds: v.array(v.id("socialProviders")),
+  externalSubmissionId: v.optional(v.string()),
   tiktokSettings: v.optional(tikTokSettingsSchema), // @deprecated - use providerSettings
   providerSettings: v.optional(
     v.array(

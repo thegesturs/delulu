@@ -82,6 +82,10 @@ function toInternalInput(body: AnyInput) {
     internal.scheduledAt = body.scheduled_at;
   }
 
+  if (body.privacy_status !== undefined) {
+    internal.privacyStatus = body.privacy_status;
+  }
+
   return internal;
 }
 
@@ -145,6 +149,35 @@ posts.post("/", requireScope("posts:write"), async (c) => {
   const internal = toInternalInput(body);
 
   const convex = createConvexClient(c.env);
+
+  // Org-scoped API key: create post with review flow (atomic)
+  if (apiKey.organizationId) {
+    const result = await convex.mutation(api.posts.apiCreatePostWithReview, {
+      userId: apiKey.userId as Id<"users">,
+      organizationId: apiKey.organizationId,
+      content: internal.content,
+      socialProviderIds: internal.socialProviderIds || [],
+      alternativeContent: internal.alternativeContent,
+      scheduledAt: internal.scheduledAt,
+      providerSettings: internal.providerSettings,
+      privacyStatus: internal.privacyStatus,
+      externalSubmissionId: body.external_submission_id,
+    });
+
+    const appUrl = c.env.DELULU_APP_URL || "https://app.delulu.social";
+    return c.json(
+      {
+        data: {
+          id: result.postId,
+          review_status: result.reviewStatus,
+          review_url: `${appUrl}/review/${result.postId}`,
+        },
+      },
+      201
+    );
+  }
+
+  // Personal API key: create post without review flow (existing behavior)
   const result = await convex.mutation(api.posts.apiCreatePost, {
     userId: apiKey.userId as Id<"users">,
     status: (internal.status || "SAVED") as "SAVED" | "PUBLISHED" | "SCHEDULED",
@@ -156,6 +189,27 @@ posts.post("/", requireScope("posts:write"), async (c) => {
   });
 
   return c.json({ data: { id: result } }, 201);
+});
+
+// Get review status for a post
+posts.get("/:id/review", requireScope("reviews:read"), async (c) => {
+  const apiKey = c.get("apiKey");
+  const postId = c.req.param("id");
+
+  const convex = createConvexClient(c.env);
+  const result = await convex.query(api.post_reviews.apiGetReviewForPost, {
+    userId: apiKey.userId as Id<"users">,
+    postId: postId as Id<"posts">,
+  });
+
+  if (!result) {
+    return c.json(
+      { error: { code: "NOT_FOUND", message: "Review not found" } },
+      404
+    );
+  }
+
+  return c.json({ data: result });
 });
 
 // Update a post

@@ -8,7 +8,8 @@ export const apiKeyScopeSchema = v.union(
   v.literal("posts:read"),
   v.literal("posts:write"),
   v.literal("accounts:read"),
-  v.literal("stats:read")
+  v.literal("stats:read"),
+  v.literal("reviews:read")
 );
 
 export const baseApiKeySchema = v.object({
@@ -17,6 +18,7 @@ export const baseApiKeySchema = v.object({
   keyHash: v.string(),
   keyPrefix: v.string(),
   scopes: v.array(apiKeyScopeSchema),
+  organizationId: v.optional(v.string()),
   lastUsedAt: v.optional(v.number()),
   revokedAt: v.optional(v.number()),
   expiresAt: v.optional(v.number()),

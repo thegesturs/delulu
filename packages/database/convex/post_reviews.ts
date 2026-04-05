@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
 import { getAuthContext, getAuthContextOrThrow } from "./lib/auth";
 import { assertCanApprove, canApprove } from "./lib/permissions";
@@ -112,6 +112,11 @@ export const submitForReview = mutation({
     if (!post.organizationId) {
       throw new Error("Approval is only required for organization posts");
     }
+    if (post.organizationId !== authCtx.organizationId) {
+      throw new Error(
+        "Not authorized to submit posts for review in this organization"
+      );
+    }
 
     await submitForReviewCore(
       ctx,
@@ -143,6 +148,9 @@ export const reviewPost = mutation({
 
     if (!review) {
       throw new Error("No review record found for this post");
+    }
+    if (review.organizationId !== authCtx.organizationId) {
+      throw new Error("Not authorized to review posts in this organization");
     }
     if (review.status !== "PENDING") {
       throw new Error("This post has already been reviewed");
@@ -187,6 +195,11 @@ export const addReviewComment = mutation({
 
     if (!review) {
       throw new Error("No review record found for this post");
+    }
+    if (review.organizationId !== authCtx.organizationId) {
+      throw new Error(
+        "Not authorized to comment on reviews in this organization"
+      );
     }
 
     await addActivity(ctx, {
@@ -305,6 +318,154 @@ export const getReviewActivity = query({
 
     // Sort oldest first (timeline order)
     return enriched.sort((a, b) => a.createdAt - b.createdAt);
+  },
+});
+
+// ============================================================================
+// API Queries (used by Hono REST API, no Clerk auth context)
+// ============================================================================
+
+export const apiGetReviewForPost = query({
+  args: {
+    userId: v.id("users"),
+    postId: v.id("posts"),
+  },
+  handler: async (ctx, args) => {
+    // Verify post ownership
+    const post = await ctx.db.get(args.postId);
+    if (!post || post.isDeleted) {
+      return null;
+    }
+    if (post.userId !== args.userId) {
+      return null;
+    }
+
+    const review = await ctx.db
+      .query("postReviews")
+      .withIndex("by_post_id", (q) => q.eq("postId", args.postId))
+      .unique();
+
+    if (!review) {
+      return null;
+    }
+
+    // Get reviewer info if reviewed
+    let reviewerName: string | undefined;
+    if (review.reviewedBy) {
+      const reviewer = await ctx.db.get(review.reviewedBy);
+      reviewerName = reviewer?.name || reviewer?.email;
+    }
+
+    // Get activity/comments
+    const activities = await ctx.db
+      .query("reviewActivity")
+      .withIndex("by_post_id", (q) => q.eq("postId", args.postId))
+      .collect();
+
+    const enrichedActivities = await Promise.all(
+      activities.map(async (activity) => {
+        const user = await ctx.db.get(activity.userId);
+        return {
+          type: activity.type,
+          comment: activity.comment,
+          userName: user?.name || user?.email || "Unknown",
+          createdAt: activity.createdAt,
+        };
+      })
+    );
+
+    return {
+      status: review.status,
+      rejectionReason: review.rejectionReason,
+      submittedAt: review.submittedAt,
+      reviewedAt: review.reviewedAt,
+      reviewerName,
+      activities: enrichedActivities.sort((a, b) => a.createdAt - b.createdAt),
+    };
+  },
+});
+
+export const apiGetReviewsByOrg = query({
+  args: {
+    userId: v.id("users"),
+    organizationId: v.string(),
+    status: v.optional(
+      v.union(
+        v.literal("PENDING"),
+        v.literal("APPROVED"),
+        v.literal("REJECTED")
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Verify the user is a member of this org
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) =>
+        q.eq("clerkOrgId", args.organizationId)
+      )
+      .unique();
+
+    if (!org) {
+      return [];
+    }
+
+    const member = await ctx.db
+      .query("organizationMembers")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", args.userId)
+      )
+      .unique();
+
+    if (!member) {
+      return [];
+    }
+
+    // biome-ignore lint/suspicious/noImplicitAnyLet: type inferred from query result
+    let reviews;
+    if (args.status) {
+      reviews = await ctx.db
+        .query("postReviews")
+        .withIndex("by_organization_status", (q) =>
+          q.eq("organizationId", args.organizationId).eq("status", args.status!)
+        )
+        .collect();
+    } else {
+      reviews = await ctx.db
+        .query("postReviews")
+        .filter((q) => q.eq(q.field("organizationId"), args.organizationId))
+        .collect();
+    }
+
+    const enrichedReviews = await Promise.all(
+      reviews.map(async (review) => {
+        const post = (await ctx.db.get(review.postId)) as Doc<"posts"> | null;
+        if (!post || post.isDeleted) {
+          return null;
+        }
+
+        const submitter = (await ctx.db.get(
+          review.submittedBy
+        )) as Doc<"users"> | null;
+        const firstContent = post.content[0];
+
+        return {
+          reviewId: review._id,
+          postId: review.postId,
+          status: review.status,
+          rejectionReason: review.rejectionReason,
+          submittedAt: review.submittedAt,
+          reviewedAt: review.reviewedAt,
+          submitterName: submitter?.name || submitter?.email || "Unknown",
+          postPreview: firstContent?.text?.slice(0, 200) || "",
+          externalSubmissionId: post.externalSubmissionId,
+        };
+      })
+    );
+
+    return enrichedReviews
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => b.submittedAt - a.submittedAt);
   },
 });
 
