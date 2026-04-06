@@ -24,6 +24,7 @@ export const validateApiKey = query({
         v.literal("VIBE")
       ),
       apiKeyId: v.id("apiKeys"),
+      organizationId: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -61,6 +62,7 @@ export const validateApiKey = query({
       scopes: apiKey.scopes,
       planType,
       apiKeyId: apiKey._id,
+      organizationId: apiKey.organizationId,
     };
   },
 });
@@ -94,12 +96,36 @@ export const createApiKey = mutation({
     keyPrefix: v.string(),
     scopes: v.array(apiKeyScopeSchema),
     expiresAt: v.optional(v.number()),
+    organizationId: v.optional(v.string()),
   },
   returns: v.id("apiKeys"),
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new Error("Unauthorized");
+    }
+
+    // If org-scoped, verify the user is a member of the org
+    if (args.organizationId) {
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_clerk_org_id", (q) =>
+          q.eq("clerkOrgId", args.organizationId!)
+        )
+        .unique();
+      if (!org) {
+        throw new Error("Organization not found");
+      }
+
+      const member = await ctx.db
+        .query("organizationMembers")
+        .withIndex("by_org_user", (q) =>
+          q.eq("organizationId", org._id).eq("userId", user._id)
+        )
+        .unique();
+      if (!member) {
+        throw new Error("You are not a member of this organization");
+      }
     }
 
     const now = getCurrentTimestamp();
@@ -109,6 +135,7 @@ export const createApiKey = mutation({
       keyHash: args.keyHash,
       keyPrefix: args.keyPrefix,
       scopes: args.scopes,
+      organizationId: args.organizationId,
       expiresAt: args.expiresAt,
       createdAt: now,
       updatedAt: now,

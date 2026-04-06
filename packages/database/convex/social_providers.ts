@@ -8,6 +8,7 @@ import {
   query,
 } from "./_generated/server.js";
 import { getAuthContext } from "./lib/auth";
+import { canManageSocials } from "./lib/permissions";
 import {
   adjustUsage,
   getUsageOwnerId,
@@ -107,7 +108,8 @@ export const deleteSocial = mutation({
 
 export const connectFacebookPage = mutation({
   args: {
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
+    organizationId: v.optional(v.string()),
     accessToken: v.string(), // Real access token from tRPC
     pageId: v.string(),
     pageName: v.string(),
@@ -128,10 +130,15 @@ export const connectFacebookPage = mutation({
     const now = getCurrentTimestamp();
     const twoMonthsFromNow = now + 2 * 30 * 24 * 60 * 60 * 1000;
 
-    if (existingProvider && existingProvider.userId !== args.userId) {
+    if (
+      existingProvider &&
+      existingProvider.userId !== args.userId &&
+      existingProvider.organizationId !== args.organizationId
+    ) {
       // Transfer ownership
       await ctx.db.patch(existingProvider._id, {
-        userId: args.userId,
+        userId: args.organizationId ? undefined : args.userId,
+        organizationId: args.organizationId,
         accessToken: encryptedAccessToken,
         fullName: args.pageName,
         username: args.pageName,
@@ -145,7 +152,11 @@ export const connectFacebookPage = mutation({
       return { status: "transferred" as const };
     }
 
-    if (existingProvider && existingProvider.userId === args.userId) {
+    if (
+      existingProvider &&
+      (existingProvider.userId === args.userId ||
+        existingProvider.organizationId === args.organizationId)
+    ) {
       // Update existing
       await ctx.db.patch(existingProvider._id, {
         accessToken: encryptedAccessToken,
@@ -163,7 +174,8 @@ export const connectFacebookPage = mutation({
 
     // Create new connection
     await ctx.db.insert("socialProviders", {
-      userId: args.userId,
+      userId: args.organizationId ? undefined : args.userId,
+      organizationId: args.organizationId,
       socialType: "FACEBOOK",
       accessToken: encryptedAccessToken,
       profileId: args.pageId,
@@ -177,8 +189,12 @@ export const connectFacebookPage = mutation({
       updatedAt: now,
     });
 
-    // Increment social accounts counter on the user
-    await adjustUsage(ctx, args.userId, "socialAccounts", 1);
+    // Increment social accounts counter on the usage owner
+    const ownerId = await resolveUsageOwnerFromDoc(ctx, {
+      userId: args.organizationId ? undefined : args.userId,
+      organizationId: args.organizationId,
+    });
+    await adjustUsage(ctx, ownerId, "socialAccounts", 1);
 
     return { status: "connected" as const };
   },
@@ -219,14 +235,25 @@ export const getSocialProviderWithDecryptedTokens = query({
 
 // Internal function to clean up posts when social provider is deleted
 export const cleanupPostsForDeletedSocialProvider = internalMutation({
-  args: { socialProviderId: v.id("socialProviders"), userId: v.id("users") },
+  args: {
+    socialProviderId: v.id("socialProviders"),
+    userId: v.optional(v.id("users")),
+    organizationId: v.optional(v.string()),
+  },
   returns: v.number(),
   handler: async (ctx, args) => {
     // Find all posts that reference this social provider
-    const posts = await ctx.db
-      .query("posts")
-      .withIndex("by_user_id", (q) => q.eq("userId", args.userId))
-      .collect();
+    const posts = args.organizationId
+      ? await ctx.db
+          .query("posts")
+          .withIndex("by_organization_id", (q) =>
+            q.eq("organizationId", args.organizationId)
+          )
+          .collect()
+      : await ctx.db
+          .query("posts")
+          .withIndex("by_user_id", (q) => q.eq("userId", args.userId!))
+          .collect();
 
     let updatedPostsCount = 0;
 
@@ -279,6 +306,9 @@ export const deleteSocialProvider = mutation({
     if (!authCtx) {
       throw new Error("User not found");
     }
+    if (!canManageSocials(authCtx)) {
+      throw new Error("You do not have permission to manage social accounts");
+    }
 
     const provider = await ctx.db
       .query("socialProviders")
@@ -289,7 +319,11 @@ export const deleteSocialProvider = mutation({
       throw new Error("Social provider not found");
     }
 
-    if (provider.userId !== authCtx.userId) {
+    const ownsPersonal = provider.userId === authCtx.userId;
+    const ownsViaOrg =
+      provider.organizationId &&
+      provider.organizationId === authCtx.organizationId;
+    if (!(ownsPersonal || ownsViaOrg)) {
       throw new Error(
         "You are not allowed to delete this social provider, it belongs to another user"
       );
@@ -305,6 +339,7 @@ export const deleteSocialProvider = mutation({
       {
         socialProviderId: args.id,
         userId: provider.userId,
+        organizationId: provider.organizationId,
       }
     );
 
@@ -329,6 +364,9 @@ export const upsertSocialProvider = mutation({
       if (!authCtx) {
         throw new Error("User not found");
       }
+      if (!canManageSocials(authCtx)) {
+        throw new Error("You do not have permission to manage social accounts");
+      }
       const userId = authCtx.userId;
       const now = getCurrentTimestamp();
       // Encrypt tokens once
@@ -347,7 +385,8 @@ export const upsertSocialProvider = mutation({
         // Update existing provider
         await ctx.db.patch(existingProvider._id, {
           ...args,
-          userId,
+          userId: authCtx.organizationId ? undefined : userId,
+          organizationId: authCtx.organizationId ?? args.organizationId,
           accessToken: encryptedAccessToken,
           refreshToken: encryptedRefreshToken,
           updatedAt: now,
@@ -361,7 +400,7 @@ export const upsertSocialProvider = mutation({
       // Create new provider — auto-set org from auth context
       await ctx.db.insert("socialProviders", {
         ...args,
-        userId,
+        userId: authCtx.organizationId ? undefined : userId,
         organizationId: authCtx.organizationId ?? args.organizationId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
@@ -522,6 +561,9 @@ export const transferSocialProvider = mutation({
     const authCtx = await getAuthContext(ctx);
     if (!authCtx) {
       throw new Error("Unauthorized");
+    }
+    if (!canManageSocials(authCtx)) {
+      throw new Error("You do not have permission to manage social accounts");
     }
 
     const provider = await ctx.db.get(args.id);

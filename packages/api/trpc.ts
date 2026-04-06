@@ -110,7 +110,7 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-  const { userId, getToken } = await auth();
+  const { userId, orgId, getToken } = await auth();
   if (!userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -142,6 +142,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       ...ctx,
       userId: user?._id,
       externalId: userId,
+      orgId: orgId ?? undefined,
       token,
     },
   });

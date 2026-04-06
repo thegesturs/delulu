@@ -40,9 +40,11 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import { useMediaUrl } from "@/hooks/use-media-url";
+import { usePermissions } from "@/hooks/use-permissions";
 import { api as TrpcApi } from "@/trpc/react";
 import DeletePostAlert from "../alerts/delete-post";
 import { PostPreviewDialog } from "./post-preview-dialog";
+import { ReviewActions } from "./review-actions";
 import { type Post, type PostLayout, statusColors } from "./types";
 
 interface PostCardProps {
@@ -57,6 +59,9 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
   const [imageLoading, setImageLoading] = React.useState(true);
   const router = useRouter();
   const analytics = useAnalytics();
+
+  const { canPublish, canApprove, requiresApproval, isViewer } =
+    usePermissions();
 
   const softDeletePost = useMutation(api.posts.deletePost);
   const createPostFromPostIdMutation =
@@ -122,31 +127,46 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
     toast.dismiss();
   };
 
+  const reviewStatus = post.reviewStatus;
+  const isPending = reviewStatus === "PENDING" && !!post.organizationId;
+  const isRejected = reviewStatus === "REJECTED" && !!post.organizationId;
+  const isApproved = reviewStatus === "APPROVED";
+
   const renderActionItems = () => {
-    const items = [];
+    const items: React.ReactNode[] = [];
+
+    // Viewers get no actions except preview
+    if (isViewer) {
+      return items;
+    }
 
     switch (postStatus) {
       case "SAVED":
         items.push(
           <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
-            Edit
-          </DropdownMenuItem>,
-          <DropdownMenuItem
-            disabled={createPostFromPostIdMutation.isPending}
-            key="publish"
-            onClick={() => handlePublish(postId)}
-          >
-            {createPostFromPostIdMutation.isPending
-              ? "Publishing..."
-              : "Publish now"}
-          </DropdownMenuItem>,
-          <DropdownMenuItem
-            key="schedule"
-            onClick={() => handleScheduleChange(postId)}
-          >
-            Schedule
+            {isRejected && requiresApproval ? "Edit & Re-submit" : "Edit"}
           </DropdownMenuItem>
         );
+        // Can publish if: admin OR post is approved (for editors/members)
+        if (canPublish || isApproved) {
+          items.push(
+            <DropdownMenuItem
+              disabled={createPostFromPostIdMutation.isPending}
+              key="publish"
+              onClick={() => handlePublish(postId)}
+            >
+              {createPostFromPostIdMutation.isPending
+                ? "Publishing..."
+                : "Publish now"}
+            </DropdownMenuItem>,
+            <DropdownMenuItem
+              key="schedule"
+              onClick={() => handleScheduleChange(postId)}
+            >
+              Schedule
+            </DropdownMenuItem>
+          );
+        }
         break;
       case "SCHEDULED":
         items.push(
@@ -232,10 +252,27 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
           {layout === "list" ? (
             <div className="flex w-full items-center gap-x-4">
               {/* Status */}
-              <div className="flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-1.5">
                 <Badge className="text-xs" variant={statusColors[postStatus]}>
                   {postStatus}
                 </Badge>
+                {isPending && (
+                  <Badge className="text-xs" variant="amber">
+                    Awaiting Approval
+                  </Badge>
+                )}
+                {isRejected && (
+                  <Badge className="text-xs" variant="destructive">
+                    Declined
+                  </Badge>
+                )}
+                {isApproved &&
+                  !!post.organizationId &&
+                  postStatus === "SAVED" && (
+                    <Badge className="text-xs" variant="green">
+                      Approved
+                    </Badge>
+                  )}
               </div>
 
               {/* Content (Text) */}
@@ -390,9 +427,23 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
               {/* Status and Actions */}
               <div className="flex items-center justify-between">
-                <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
+                  {isPending && (
+                    <Badge variant="amber">Awaiting Approval</Badge>
+                  )}
+                  {isRejected && <Badge variant="destructive">Declined</Badge>}
+                  {isApproved &&
+                    !!post.organizationId &&
+                    postStatus === "SAVED" && (
+                      <Badge variant="green">Approved</Badge>
+                    )}
+                </div>
                 <ActionButtons />
               </div>
+
+              {/* Review actions for admins/editors on pending posts */}
+              {isPending && canApprove && <ReviewActions postId={postId} />}
 
               {/* Content */}
               <div className="min-w-0 flex-1">

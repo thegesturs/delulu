@@ -250,6 +250,8 @@ export const getUserOrganizations = query({
       memberships.map((m) => ctx.db.get(m.organizationId))
     );
 
+    console.log(orgs, "orgs");
+
     return orgs.filter((o): o is NonNullable<typeof o> => o !== null);
   },
 });

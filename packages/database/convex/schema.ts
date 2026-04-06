@@ -9,7 +9,9 @@ import {
   baseMediaTableSchema,
   baseOrganizationMemberSchema,
   baseOrganizationSchema,
+  basePostReviewSchema,
   basePostSchema,
+  baseReviewActivitySchema,
   baseSocialProviderSchema,
   baseSubscriptionSchema,
   baseTransactionSchema,
@@ -129,6 +131,17 @@ export default defineSchema({
     .index("by_user_id", ["userId"])
     .index("by_org_user", ["organizationId", "userId"])
     .index("by_clerk_org_user", ["clerkOrgId", "clerkUserId"]),
+
+  // Post Reviews table (approval workflow for org members)
+  postReviews: defineTable(basePostReviewSchema.fields)
+    .index("by_post_id", ["postId"])
+    .index("by_organization_status", ["organizationId", "status"]),
+
+  // Review Activity table (Linear-style activity feed per review)
+  reviewActivity: defineTable(baseReviewActivitySchema.fields)
+    .index("by_review_id", ["reviewId"])
+    .index("by_post_id", ["postId"])
+    .index("by_organization", ["organizationId", "createdAt"]),
 
   // Transcriptions table for reel audio transcriptions (Sorted extension)
   transcriptions: defineTable(baseTranscriptionSchema.fields)

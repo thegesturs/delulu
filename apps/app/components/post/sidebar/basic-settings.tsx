@@ -30,6 +30,7 @@ import { FaBookmark } from "react-icons/fa";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { toast } from "sonner";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
 import {
   getProviderSettingsForConvex,
@@ -68,6 +69,8 @@ export function BasicSettings() {
     api.automations.updateAutomation
   );
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const { requiresApproval, isViewer, canCreate } = usePermissions();
 
   // Get current user and monthly post count for usage limits
   const user = useQuery(api.users.current);
@@ -162,10 +165,15 @@ export function BasicSettings() {
       });
 
       useStore.getState().reset();
-      toast.success(
-        "Post sent for processing, will be published shortly. You can close this window now."
-      );
-      router.push("/posts?status=PROCESSING");
+      if (requiresApproval) {
+        toast.success("Post submitted for approval");
+        router.push("/posts?status=SAVED");
+      } else {
+        toast.success(
+          "Post sent for processing, will be published shortly. You can close this window now."
+        );
+        router.push("/posts?status=PROCESSING");
+      }
     } catch {
       toast.error("Failed to publish post");
     } finally {
@@ -221,8 +229,13 @@ export function BasicSettings() {
       });
 
       useStore.getState().reset();
-      toast.success("Post scheduled successfully");
-      router.push("/posts?status=SCHEDULED");
+      if (requiresApproval) {
+        toast.success("Post submitted for approval");
+        router.push("/posts?status=SAVED");
+      } else {
+        toast.success("Post scheduled successfully");
+        router.push("/posts?status=SCHEDULED");
+      }
     } catch {
       toast.error("Failed to schedule post");
     } finally {
@@ -314,11 +327,23 @@ export function BasicSettings() {
         <Button
           aria-busy={isProcessing || isMediaUploading}
           className="flex-1 justify-center gap-2"
-          disabled={isProcessing || isMediaUploading || isAtPostLimit}
+          disabled={
+            isProcessing || isMediaUploading || isAtPostLimit || isViewer
+          }
           onClick={date ? handleSchedulePost : handlePostNow}
-          title={isAtPostLimit ? "Monthly post limit reached" : undefined}
+          title={
+            isViewer
+              ? "Viewers cannot create posts"
+              : isAtPostLimit
+                ? "Monthly post limit reached"
+                : undefined
+          }
         >
-          {date ? "Schedule Post" : "Post Now"}
+          {requiresApproval
+            ? "Submit for Approval"
+            : date
+              ? "Schedule Post"
+              : "Post Now"}
           {isProcessing ? (
             <Icon className="animate-spin" icon={Loading03Icon} size={16} />
           ) : (

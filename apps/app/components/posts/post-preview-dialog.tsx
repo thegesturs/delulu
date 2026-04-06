@@ -22,18 +22,21 @@ import {
 import Image from "next/image";
 import React from "react";
 import { useMediaUrl } from "@/hooks/use-media-url";
+import { ReviewActions } from "./review-actions";
 import { type Post, statusColors } from "./types";
 
 interface PostPreviewDialogProps {
   post: Post;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showReviewActions?: boolean;
 }
 
 export function PostPreviewDialog({
   post,
   open,
   onOpenChange,
+  showReviewActions = false,
 }: PostPreviewDialogProps) {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
@@ -241,6 +244,18 @@ export function PostPreviewDialog({
                 </div>
               </div>
             )}
+
+            {/* Review Actions */}
+            {showReviewActions &&
+              post.reviewStatus === "PENDING" &&
+              post.organizationId && (
+                <div className="flex justify-end border-t pt-4">
+                  <ReviewActions
+                    onReviewed={() => onOpenChange(false)}
+                    postId={post._id}
+                  />
+                </div>
+              )}
           </div>
         </div>
       </DialogContent>
