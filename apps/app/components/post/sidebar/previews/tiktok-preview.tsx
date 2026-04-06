@@ -17,9 +17,13 @@ import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
 
-export function TikTokPreview() {
+interface TikTokPreviewProps {
+  postData?: Parameters<typeof usePreviewData>[1];
+}
+
+export function TikTokPreview({ postData }: TikTokPreviewProps = {}) {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
-    usePreviewData("TIKTOK");
+    usePreviewData("TIKTOK", postData);
 
   if (!content) {
     return null;
@@ -42,7 +46,7 @@ export function TikTokPreview() {
 
       {/* Video/Image Container */}
       <div className="relative h-full w-full bg-black">
-        {(hasVideo || hasImage) && media?.url ? (
+        {(hasVideo || hasImage) && mediaUrl ? (
           <div className="relative h-full w-full">
             {hasVideo ? (
               <video

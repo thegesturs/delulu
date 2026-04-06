@@ -10,9 +10,13 @@ import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
 
-export function FacebookPreview() {
+interface FacebookPreviewProps {
+  postData?: Parameters<typeof usePreviewData>[1];
+}
+
+export function FacebookPreview({ postData }: FacebookPreviewProps = {}) {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
-    usePreviewData("FACEBOOK");
+    usePreviewData("FACEBOOK", postData);
 
   if (!content) {
     return null;
@@ -21,16 +25,16 @@ export function FacebookPreview() {
   return (
     <PhoneFrame>
       {/* Facebook Header */}
-      <div className="flex items-center justify-between border-gray-200 border-b bg-white px-4 pt-10 pb-2">
+      <div className="flex items-center justify-between border-neutral-200 border-b bg-white px-4 pt-10 pb-2 dark:border-neutral-700 dark:bg-neutral-900">
         <span className="font-bold text-[#1877F2] text-xl">facebook</span>
       </div>
 
       {/* Post */}
       <div
-        className="overflow-y-auto bg-gray-100"
+        className="overflow-y-auto bg-neutral-100 dark:bg-neutral-950"
         style={{ height: "calc(100% - 55px)" }}
       >
-        <div className="mt-2 bg-white">
+        <div className="mt-2 bg-white dark:bg-neutral-900">
           {/* Post Header */}
           <div className="flex items-center gap-3 px-4 pt-3">
             {provider?.profileImage ? (
@@ -42,13 +46,13 @@ export function FacebookPreview() {
                 width={40}
               />
             ) : (
-              <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-700" />
             )}
             <div>
               <p className="font-semibold text-sm">
                 {provider?.fullName || provider?.username || "Your Name"}
               </p>
-              <div className="flex items-center gap-1 text-gray-500 text-xs">
+              <div className="flex items-center gap-1 text-neutral-500 text-xs">
                 <span>2h</span>
                 <span>·</span>
                 <span>🌐</span>
@@ -64,7 +68,7 @@ export function FacebookPreview() {
           </div>
 
           {/* Media */}
-          {(hasVideo || hasImage) && media?.url && (
+          {(hasVideo || hasImage) && mediaUrl && (
             <div className="relative w-full" style={{ height: 280 }}>
               {hasVideo ? (
                 <video
@@ -87,14 +91,14 @@ export function FacebookPreview() {
           )}
 
           {/* Reactions + Counts */}
-          <div className="flex items-center justify-between border-gray-200 border-b px-4 py-2">
+          <div className="flex items-center justify-between border-neutral-200 border-b px-4 py-2 dark:border-neutral-700">
             <div className="flex items-center gap-1">
               <span className="text-sm">👍❤️😂</span>
-              <span className="text-gray-500 text-sm">
+              <span className="text-neutral-500 text-sm">
                 {formatNumber(2341)}
               </span>
             </div>
-            <div className="flex gap-3 text-gray-500 text-sm">
+            <div className="flex gap-3 text-neutral-500 text-sm">
               <span>{formatNumber(89)} comments</span>
               <span>{formatNumber(34)} shares</span>
             </div>
@@ -103,21 +107,21 @@ export function FacebookPreview() {
           {/* Action Buttons */}
           <div className="flex items-center justify-around px-2 py-1">
             <button
-              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={FavouriteIcon} size={20} />
               <span className="text-sm">Like</span>
             </button>
             <button
-              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={Comment01Icon} size={20} />
               <span className="text-sm">Comment</span>
             </button>
             <button
-              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-gray-600 hover:bg-gray-100"
+              className="flex flex-1 items-center justify-center gap-2 rounded py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={ShareIcon} size={20} />

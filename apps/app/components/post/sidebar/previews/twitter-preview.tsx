@@ -11,9 +11,13 @@ import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
 
-export function TwitterPreview() {
+interface TwitterPreviewProps {
+  postData?: Parameters<typeof usePreviewData>[1];
+}
+
+export function TwitterPreview({ postData }: TwitterPreviewProps = {}) {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
-    usePreviewData("TWITTER");
+    usePreviewData("TWITTER", postData);
 
   if (!content) {
     return null;
@@ -22,7 +26,7 @@ export function TwitterPreview() {
   return (
     <PhoneFrame>
       {/* Header */}
-      <div className="flex items-center justify-center border-gray-200 border-b px-4 pt-10 pb-2">
+      <div className="flex items-center justify-center border-neutral-200 border-b px-4 pt-10 pb-2 dark:border-neutral-700">
         <span className="font-bold text-lg">𝕏</span>
       </div>
 
@@ -42,7 +46,7 @@ export function TwitterPreview() {
               width={40}
             />
           ) : (
-            <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200" />
+            <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-700" />
           )}
 
           <div className="min-w-0 flex-1">
@@ -51,11 +55,11 @@ export function TwitterPreview() {
               <span className="truncate font-bold text-sm">
                 {provider?.fullName || "Display Name"}
               </span>
-              <span className="truncate text-gray-500 text-sm">
+              <span className="truncate text-neutral-500 text-sm">
                 @{provider?.username || "username"}
               </span>
-              <span className="text-gray-500 text-sm">·</span>
-              <span className="text-gray-500 text-sm">2h</span>
+              <span className="text-neutral-500 text-sm">·</span>
+              <span className="text-neutral-500 text-sm">2h</span>
             </div>
 
             {/* Tweet text */}
@@ -64,8 +68,8 @@ export function TwitterPreview() {
             </p>
 
             {/* Media */}
-            {(hasVideo || hasImage) && media?.url && (
-              <div className="mt-3 overflow-hidden rounded-2xl border border-gray-200">
+            {(hasVideo || hasImage) && mediaUrl && (
+              <div className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700">
                 {hasVideo ? (
                   <video
                     autoPlay
@@ -90,7 +94,7 @@ export function TwitterPreview() {
             )}
 
             {/* Action Row */}
-            <div className="mt-3 flex items-center justify-between pb-3 text-gray-500">
+            <div className="mt-3 flex items-center justify-between pb-3 text-neutral-500">
               <div className="flex items-center gap-1">
                 <Icon icon={Comment01Icon} size={18} />
                 <span className="text-xs">{formatNumber(42)}</span>

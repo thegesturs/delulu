@@ -11,9 +11,13 @@ import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
 
-export function ThreadsPreview() {
+interface ThreadsPreviewProps {
+  postData?: Parameters<typeof usePreviewData>[1];
+}
+
+export function ThreadsPreview({ postData }: ThreadsPreviewProps = {}) {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
-    usePreviewData("THREADS");
+    usePreviewData("THREADS", postData);
 
   if (!content) {
     return null;
@@ -22,7 +26,7 @@ export function ThreadsPreview() {
   return (
     <PhoneFrame>
       {/* Threads Header */}
-      <div className="flex items-center justify-center border-gray-200 border-b px-4 pt-10 pb-2">
+      <div className="flex items-center justify-center border-neutral-200 border-b px-4 pt-10 pb-2 dark:border-neutral-700">
         <span className="font-bold text-xl">@</span>
       </div>
 
@@ -43,9 +47,9 @@ export function ThreadsPreview() {
                 width={40}
               />
             ) : (
-              <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-700" />
             )}
-            <div className="mt-2 w-0.5 flex-1 bg-gray-200" />
+            <div className="mt-2 w-0.5 flex-1 bg-neutral-200 dark:bg-neutral-700" />
           </div>
 
           <div className="min-w-0 flex-1 pb-4">
@@ -54,7 +58,7 @@ export function ThreadsPreview() {
               <span className="font-bold text-sm">
                 {provider?.username || "username"}
               </span>
-              <span className="text-gray-500 text-sm">2h</span>
+              <span className="text-neutral-500 text-sm">2h</span>
             </div>
 
             {/* Post text */}
@@ -63,8 +67,8 @@ export function ThreadsPreview() {
             </p>
 
             {/* Media */}
-            {(hasVideo || hasImage) && media?.url && (
-              <div className="mt-3 overflow-hidden rounded-xl border border-gray-200">
+            {(hasVideo || hasImage) && mediaUrl && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
                 {hasVideo ? (
                   <video
                     autoPlay
@@ -89,7 +93,7 @@ export function ThreadsPreview() {
             )}
 
             {/* Action Row */}
-            <div className="mt-3 flex items-center gap-4 text-gray-500">
+            <div className="mt-3 flex items-center gap-4 text-neutral-500">
               <Icon icon={FavouriteIcon} size={20} />
               <Icon icon={Comment01Icon} size={20} />
               <Icon icon={RepeatIcon} size={20} />
@@ -97,7 +101,7 @@ export function ThreadsPreview() {
             </div>
 
             {/* Counts */}
-            <div className="mt-2 flex items-center gap-2 text-gray-400 text-xs">
+            <div className="mt-2 flex items-center gap-2 text-neutral-400 text-xs">
               <span>{formatNumber(47)} replies</span>
               <span>·</span>
               <span>{formatNumber(892)} likes</span>

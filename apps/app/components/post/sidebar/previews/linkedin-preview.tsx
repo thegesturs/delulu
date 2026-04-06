@@ -11,9 +11,13 @@ import Image from "next/image";
 import { PhoneFrame } from "./phone-frame";
 import { formatNumber, usePreviewData } from "./preview-utils";
 
-export function LinkedInPreview() {
+interface LinkedInPreviewProps {
+  postData?: Parameters<typeof usePreviewData>[1];
+}
+
+export function LinkedInPreview({ postData }: LinkedInPreviewProps = {}) {
   const { content, mediaUrl, hasVideo, hasImage, media, provider } =
-    usePreviewData("LINKEDIN");
+    usePreviewData("LINKEDIN", postData);
 
   if (!content) {
     return null;
@@ -22,18 +26,18 @@ export function LinkedInPreview() {
   return (
     <PhoneFrame>
       {/* LinkedIn Header */}
-      <div className="flex items-center justify-between border-gray-200 border-b bg-white px-4 pt-10 pb-2">
+      <div className="flex items-center justify-between border-neutral-200 border-b bg-white px-4 pt-10 pb-2 dark:border-neutral-700 dark:bg-neutral-900">
         <span className="font-bold text-[#0A66C2] text-lg">in</span>
-        <div className="mx-3 h-7 flex-1 rounded-sm bg-gray-100" />
-        <div className="h-6 w-6 rounded-full bg-gray-200" />
+        <div className="mx-3 h-7 flex-1 rounded-sm bg-neutral-100 dark:bg-neutral-800" />
+        <div className="h-6 w-6 rounded-full bg-neutral-200 dark:bg-neutral-700" />
       </div>
 
       {/* Post Card */}
       <div
-        className="overflow-y-auto bg-gray-100"
+        className="overflow-y-auto bg-neutral-100 dark:bg-neutral-950"
         style={{ height: "calc(100% - 55px)" }}
       >
-        <div className="mt-2 bg-white">
+        <div className="mt-2 bg-white dark:bg-neutral-900">
           {/* Post Header */}
           <div className="flex items-start gap-3 px-4 pt-3">
             {provider?.profileImage ? (
@@ -45,16 +49,16 @@ export function LinkedInPreview() {
                 width={48}
               />
             ) : (
-              <div className="h-12 w-12 shrink-0 rounded-full bg-gray-200" />
+              <div className="h-12 w-12 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-700" />
             )}
             <div className="min-w-0">
               <p className="font-semibold text-sm">
                 {provider?.fullName || "Your Name"}
               </p>
-              <p className="truncate text-gray-500 text-xs">
+              <p className="truncate text-neutral-500 text-xs">
                 {provider?.username || "Headline"} · 2h
               </p>
-              <p className="text-gray-400 text-xs">🌐</p>
+              <p className="text-neutral-400 text-xs">🌐</p>
             </div>
           </div>
 
@@ -66,7 +70,7 @@ export function LinkedInPreview() {
           </div>
 
           {/* Media */}
-          {(hasVideo || hasImage) && media?.url && (
+          {(hasVideo || hasImage) && mediaUrl && (
             <div className="relative w-full" style={{ height: 250 }}>
               {hasVideo ? (
                 <video
@@ -89,12 +93,14 @@ export function LinkedInPreview() {
           )}
 
           {/* Reaction Bar */}
-          <div className="flex items-center justify-between border-gray-200 border-b px-4 py-2">
+          <div className="flex items-center justify-between border-neutral-200 border-b px-4 py-2 dark:border-neutral-700">
             <div className="flex items-center gap-1">
               <span className="text-sm">👍❤️🎉</span>
-              <span className="text-gray-500 text-xs">{formatNumber(847)}</span>
+              <span className="text-neutral-500 text-xs">
+                {formatNumber(847)}
+              </span>
             </div>
-            <span className="text-gray-500 text-xs">
+            <span className="text-neutral-500 text-xs">
               {formatNumber(23)} comments
             </span>
           </div>
@@ -102,28 +108,28 @@ export function LinkedInPreview() {
           {/* Action Buttons */}
           <div className="flex items-center justify-around px-2 py-1">
             <button
-              className="flex items-center gap-1 rounded px-3 py-2 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1 rounded px-3 py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={FavouriteIcon} size={18} />
               <span className="text-xs">Like</span>
             </button>
             <button
-              className="flex items-center gap-1 rounded px-3 py-2 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1 rounded px-3 py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={Comment01Icon} size={18} />
               <span className="text-xs">Comment</span>
             </button>
             <button
-              className="flex items-center gap-1 rounded px-3 py-2 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1 rounded px-3 py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={RepeatIcon} size={18} />
               <span className="text-xs">Repost</span>
             </button>
             <button
-              className="flex items-center gap-1 rounded px-3 py-2 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1 rounded px-3 py-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               type="button"
             >
               <Icon icon={Sent02Icon} size={18} />
