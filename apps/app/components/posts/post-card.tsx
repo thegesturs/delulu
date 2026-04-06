@@ -243,7 +243,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
     <>
       <Card
         className={cn(
-          "py-1 hover:bg-muted/30",
+          "overflow-hidden py-1 hover:bg-muted/30",
           layout === "list" &&
             "rounded-none border-b border-none first:rounded-t-lg last:rounded-b-lg last:border-b-0"
         )}
@@ -277,7 +277,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
               {/* Content (Text) */}
               <div className="min-w-0 flex-1">
-                <p className="line-clamp-1 font-medium text-sm">
+                <p className="line-clamp-1 break-words font-medium text-sm">
                   {firstContent?.text || "Untitled Post"}
                 </p>
               </div>
@@ -352,7 +352,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
               </div>
             </div>
           ) : (
-            <div className="flex h-full flex-col gap-3">
+            <div className="flex h-full min-w-0 flex-col gap-3 overflow-hidden">
               {/* Media Preview for Grid */}
               <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
                 {firstMedia ? (
@@ -446,8 +446,8 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
               {isPending && canApprove && <ReviewActions postId={postId} />}
 
               {/* Content */}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-3 text-sm leading-relaxed">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="line-clamp-3 break-words text-sm leading-relaxed">
                   {firstContent?.text || "No content"}
                 </p>
               </div>
