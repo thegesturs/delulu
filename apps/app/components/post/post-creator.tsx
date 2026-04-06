@@ -170,7 +170,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto pb-20 lg:flex-row lg:overflow-visible lg:pb-0">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pb-20 lg:flex-row lg:pb-0">
       <div className="flex-1">
         {/* Show warning if post is already published */}
         {postData && postData.status === "PUBLISHED" && (
