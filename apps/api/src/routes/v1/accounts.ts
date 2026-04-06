@@ -19,7 +19,10 @@ accounts.get("/", requireScope("accounts:read"), async (c) => {
   const convex = createConvexClient(c.env);
   const result = await convex.query(
     api.social_providers.apiGetConnectedAccounts,
-    { userId: apiKey.userId as Id<"users"> }
+    {
+      userId: apiKey.userId as Id<"users">,
+      organizationId: apiKey.organizationId,
+    }
   );
 
   return c.json({
@@ -37,6 +40,7 @@ accounts.get("/:id", requireScope("accounts:read"), async (c) => {
   const result = await convex.query(api.social_providers.apiGetAccountById, {
     userId: apiKey.userId as Id<"users">,
     accountId: accountId as Id<"socialProviders">,
+    organizationId: apiKey.organizationId,
   });
 
   if (!result) {

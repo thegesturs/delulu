@@ -628,19 +628,45 @@ export const transferSocialProvider = mutation({
 // ============================================================================
 
 export const apiGetConnectedAccounts = query({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.id("users"),
+    organizationId: v.optional(v.string()),
+  },
   returns: v.array(socialProviderSchema),
   handler: async (ctx, args) => {
+    // Org-scoped key: return org's social providers
+    if (args.organizationId) {
+      const providers = await ctx.db
+        .query("socialProviders")
+        .withIndex("by_organization_id", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .collect();
+      providers.sort((a, b) => b._creationTime - a._creationTime);
+      return providers;
+    }
     return getConnectedAccountsCore(ctx, args.userId);
   },
 });
 
 export const apiGetAccountById = query({
-  args: { userId: v.id("users"), accountId: v.id("socialProviders") },
+  args: {
+    userId: v.id("users"),
+    accountId: v.id("socialProviders"),
+    organizationId: v.optional(v.string()),
+  },
   returns: v.union(socialProviderSchema, v.null()),
   handler: async (ctx, args) => {
     const provider = await ctx.db.get(args.accountId);
-    if (!provider || provider.userId !== args.userId) {
+    if (!provider) {
+      return null;
+    }
+    // Verify ownership: either org match or user match
+    if (args.organizationId) {
+      if (provider.organizationId !== args.organizationId) {
+        return null;
+      }
+    } else if (provider.userId !== args.userId) {
       return null;
     }
     return provider;
