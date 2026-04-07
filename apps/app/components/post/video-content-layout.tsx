@@ -164,7 +164,7 @@ export function VideoContentLayout({
   const videoAspectClass = config.isVertical ? "aspect-[9/16]" : "aspect-video";
 
   return (
-    <Card className="mt-4 border-none p-4 shadow-sm">
+    <Card className="mt-4 max-h-[calc(100vh-220px)] overflow-y-auto border-none p-4 shadow-sm">
       <div className="grid gap-6 lg:grid-cols-[minmax(200px,320px)_1fr]">
         {/* Left Column - Video Upload or Thumbnail Preview */}
         <div className="space-y-4">

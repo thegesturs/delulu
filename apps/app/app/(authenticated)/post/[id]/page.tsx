@@ -12,8 +12,8 @@ interface PostEditPageProps {
 export default async function PostEditPage({ params }: PostEditPageProps) {
   const postId = (await params).id;
   return (
-    <div className="flex h-full w-full flex-col p-4">
-      <div className="min-h-0 flex-1">
+    <div className="flex h-full w-full flex-col gap-4 p-4">
+      <div className="flex-1">
         <Suspense>
           <PostCreator postId={postId} />
         </Suspense>

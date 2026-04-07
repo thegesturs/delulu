@@ -390,7 +390,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   }
 
   return (
-    <Card className="mt-4 border-none p-4 shadow-sm">
+    <Card className="mt-4 max-h-[calc(100vh-220px)] overflow-y-auto border-none p-4 shadow-sm">
       <div className="space-y-6 border-l-2 border-l-border">
         {content.map((item) => (
           <div className="space-y-4 p-2" key={item.order}>
