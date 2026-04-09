@@ -10,9 +10,7 @@ import { SocialTypes } from "@delulu/validators/post";
 import {
   Add01Icon,
   Cancel01Icon,
-  FolderOpen,
   Image01Icon,
-  Upload01Icon,
   VideoIcon,
 } from "@hugeicons-pro/core-solid-rounded";
 import { AnimatePresence, motion } from "motion/react";
@@ -129,100 +127,6 @@ export function MediaPreview({
           <Icon icon={Image01Icon} size={12} />
         ) : (
           <Icon icon={VideoIcon} size={12} />
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-interface UploadZoneProps {
-  isDragOver: boolean;
-  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  acceptedMimeTypes: string[];
-  instruction: string;
-  platformHint: string;
-  multiple: boolean;
-  onFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  socialType: SocialType;
-}
-
-function UploadZone({
-  isDragOver,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  fileInputRef,
-  acceptedMimeTypes,
-  instruction,
-  platformHint,
-  multiple,
-  onFileInput,
-  socialType,
-}: UploadZoneProps) {
-  // Determine if this platform requires media
-  const requiresVideo =
-    socialType === SocialTypes.TIKTOK || socialType === SocialTypes.YOUTUBE;
-  const requiresEither = socialType === SocialTypes.INSTAGRAM;
-
-  // Convert acceptedMimeTypes array to accept attribute string
-  const acceptString = acceptedMimeTypes.join(",");
-
-  return (
-    <motion.div
-      className={cn(
-        "relative rounded-lg border-2 border-dashed p-6 transition-colors",
-        isDragOver
-          ? "border-primary bg-primary/10"
-          : "border-border hover:border-input"
-      )}
-      onDragLeave={onDragLeave}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      title={platformHint}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      whileHover={{ scale: 1.01 }}
-    >
-      <input
-        accept={acceptString}
-        className="hidden"
-        multiple={multiple}
-        onChange={onFileInput}
-        ref={fileInputRef}
-        type="file"
-      />
-      <div className="text-center">
-        <motion.div
-          animate={{ y: isDragOver ? -5 : 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        >
-          <Icon
-            className="mx-auto mb-2 text-muted-foreground"
-            icon={Upload01Icon}
-            size={32}
-          />
-        </motion.div>
-        <p className="mb-1 text-muted-foreground text-sm">
-          Drag and drop your media here, or{" "}
-          <button
-            className="font-medium text-primary hover:text-primary/80"
-            onClick={() => fileInputRef.current?.click()}
-            type="button"
-          >
-            browse
-          </button>
-        </p>
-        <p className="text-muted-foreground text-xs">{instruction}</p>
-        {(requiresVideo || requiresEither) && (
-          <div className="mt-3 rounded-md bg-muted px-3 py-2">
-            <p className="text-foreground text-xs">
-              {requiresVideo && "⚠️ "}
-              {requiresEither && "ℹ️ "}
-              {platformHint}
-            </p>
-          </div>
         )}
       </div>
     </motion.div>
@@ -595,36 +499,22 @@ export function MediaUploader({
   );
 
   const getAddButtonAspectRatio = () => {
-    if (
-      socialType === "TIKTOK" ||
-      socialType === "YOUTUBE" ||
-      socialType === "INSTAGRAM"
-    ) {
+    if (socialType === "TIKTOK" || socialType === "YOUTUBE") {
+      return "aspect-[9/16]";
+    }
+    if (socialType === "INSTAGRAM") {
       const hasVideo = mediaFiles.some((f) => f.mediaType === "VIDEO");
-      const hasImage = mediaFiles.some((f) => f.mediaType === "IMAGE");
-      if (!(hasVideo || hasImage)) {
-        return "aspect-[9/16]";
-      }
-      if (!hasVideo) {
-        return "aspect-[9/16]"; // Vertical for video platforms
-      }
-      if (!hasImage) {
-        return "aspect-square"; // Square for thumbnail
-      }
+      return hasVideo ? "aspect-[9/16]" : "aspect-[4/5]";
     }
     return "aspect-square";
   };
 
   const getPreviewAspectRatio = (mediaType: "IMAGE" | "VIDEO") => {
-    if (
-      socialType === "TIKTOK" ||
-      socialType === "YOUTUBE" ||
-      socialType === "INSTAGRAM"
-    ) {
-      if (mediaType === "VIDEO") {
-        return "aspect-[9/16]"; // Vertical video
-      }
-      return "aspect-square"; // Square thumbnail
+    if (socialType === "TIKTOK" || socialType === "YOUTUBE") {
+      return mediaType === "VIDEO" ? "aspect-[9/16]" : "aspect-square";
+    }
+    if (socialType === "INSTAGRAM") {
+      return mediaType === "VIDEO" ? "aspect-[9/16]" : "aspect-[4/5]";
     }
     return "aspect-square";
   };
@@ -632,107 +522,115 @@ export function MediaUploader({
   // Check if more media can be uploaded using centralized utility
   const canUploadMore = canUploadMoreUtil(socialType, mediaFiles);
 
+  const allowMultiple = !(
+    socialType === "TIKTOK" ||
+    socialType === "YOUTUBE" ||
+    mediaFiles.some((f) => f.mediaType === "VIDEO")
+  );
+
+  const dragHandlers = {
+    onDragLeave: () => setIsDragOver(false),
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(true);
+    },
+    onDrop: handleDrop,
+  };
+
   return (
-    <div className="space-y-4">
-      {canUploadMore && (
-        <>
-          <UploadZone
-            acceptedMimeTypes={acceptedMimeTypes}
-            fileInputRef={fileInputRef}
-            instruction={instruction}
-            isDragOver={isDragOver}
-            multiple={
-              !(
-                socialType === "TIKTOK" ||
-                socialType === "YOUTUBE" ||
-                (socialType === "INSTAGRAM" &&
-                  mediaFiles.some((f) => f.mediaType === "VIDEO")) ||
-                mediaFiles.some((f) => f.mediaType === "VIDEO")
-              )
-            }
-            onDragLeave={() => setIsDragOver(false)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragOver(true);
-            }}
-            onDrop={handleDrop}
-            onFileInput={handleFileInput}
-            platformHint={platformHint}
-            socialType={socialType}
-          />
+    <div className="space-y-3">
+      <input
+        accept={acceptedMimeTypes.join(",")}
+        className="hidden"
+        multiple={allowMultiple}
+        onChange={handleFileInput}
+        ref={fileInputRef}
+        type="file"
+      />
 
-          <div className="flex items-center space-x-2">
-            <div className="flex-1 border-border border-t" />
-            <span className="px-2 text-muted-foreground text-xs">OR</span>
-            <div className="flex-1 border-border border-t" />
+      {mediaFiles.length === 0 ? (
+        /* Empty state — plus icon, acts as drop zone */
+        <motion.button
+          className={cn(
+            "flex w-full items-center justify-center rounded-lg border-2 border-dashed transition-colors",
+            isDragOver
+              ? "border-primary bg-primary/10"
+              : "border-border hover:border-input hover:bg-muted/50",
+            "aspect-[3/1]"
+          )}
+          onClick={() => fileInputRef.current?.click()}
+          title={platformHint}
+          type="button"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          {...dragHandlers}
+        >
+          <div className="flex flex-col items-center gap-1">
+            <Icon
+              className="text-muted-foreground"
+              icon={Add01Icon}
+              size={28}
+            />
+            <span className="text-muted-foreground text-xs">{instruction}</span>
           </div>
+        </motion.button>
+      ) : (
+        /* Has media — grid of thumbnails + plus icon to add more */
+        <>
+          <AnimatePresence>
+            <motion.div
+              animate={{ opacity: 1, height: "auto" }}
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
+              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <AnimatePresence>
+                {mediaFiles.map((media) => (
+                  <MediaPreview
+                    getPreviewAspectRatio={getPreviewAspectRatio}
+                    key={media.id}
+                    media={media}
+                    onRemove={removeFile}
+                  />
+                ))}
+              </AnimatePresence>
 
-          <Button
-            className="w-full"
-            onClick={() => setIsDialogOpen(true)}
-            type="button"
-            variant="outline"
-          >
-            <Icon className="mr-2" icon={FolderOpen} size={16} />
-            Select from existing media
-          </Button>
+              {canUploadMore && (
+                <motion.button
+                  animate={{ opacity: 1, scale: 1 }}
+                  className={cn(
+                    "flex items-center justify-center rounded-lg border-2 border-border border-dashed transition-colors hover:border-input hover:bg-muted/50",
+                    isDragOver && "border-primary bg-primary/10",
+                    getAddButtonAspectRatio()
+                  )}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  onClick={() => fileInputRef.current?.click()}
+                  title={platformHint}
+                  type="button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  {...dragHandlers}
+                >
+                  <Icon
+                    className="text-muted-foreground"
+                    icon={Add01Icon}
+                    size={24}
+                  />
+                </motion.button>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence>
+            <MediaStats
+              mediaFiles={mediaFiles}
+              onClearAll={clearAllFiles}
+              platformHint={platformHint}
+            />
+          </AnimatePresence>
         </>
       )}
-
-      <AnimatePresence>
-        {mediaFiles.length > 0 && (
-          <motion.div
-            animate={{ opacity: 1, height: "auto" }}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4"
-            exit={{ opacity: 0, height: 0 }}
-            initial={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <AnimatePresence>
-              {mediaFiles.map((media) => (
-                <MediaPreview
-                  getPreviewAspectRatio={getPreviewAspectRatio}
-                  key={media.id}
-                  media={media}
-                  onRemove={removeFile}
-                />
-              ))}
-            </AnimatePresence>
-
-            {canUploadMore && mediaFiles.length > 0 && (
-              <motion.button
-                animate={{ opacity: 1, scale: 1 }}
-                className={cn(
-                  "flex items-center justify-center rounded-lg border-2 border-border border-dashed bg-muted/50 transition-colors hover:border-input hover:bg-muted",
-                  getAddButtonAspectRatio()
-                )}
-                initial={{ opacity: 0, scale: 0.8 }}
-                onClick={() => fileInputRef.current?.click()}
-                title={platformHint}
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Icon
-                  className="text-muted-foreground"
-                  icon={Add01Icon}
-                  size={24}
-                />
-              </motion.button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {mediaFiles.length > 0 && (
-          <MediaStats
-            mediaFiles={mediaFiles}
-            onClearAll={clearAllFiles}
-            platformHint={platformHint}
-          />
-        )}
-      </AnimatePresence>
 
       <MediaSelectionDialog
         currentMedia={mediaFiles.map((m) => ({

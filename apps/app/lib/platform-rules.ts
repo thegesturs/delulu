@@ -223,11 +223,7 @@ export function shouldDefaultUseVideoLayout(
     return false;
   }
 
-  const videoPlatforms = [
-    SocialTypes.TIKTOK,
-    SocialTypes.YOUTUBE,
-    SocialTypes.INSTAGRAM, // Instagram Reels
-  ] as const;
+  const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
 
   return platformsInDefault.every((platform) =>
     (videoPlatforms as readonly SocialType[]).includes(platform)

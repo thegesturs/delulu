@@ -53,6 +53,7 @@ export function usePreviewData(
     const mediaUrl = useMediaUrl(media?.bucketKey, media?.url);
     const hasVideo = media?.mediaType === "VIDEO";
     const hasImage = media?.mediaType === "IMAGE";
+    const allMedia = content?.media ?? [];
 
     const provider = postData.socialProviders?.find(
       (p) => p.socialType === socialType
@@ -64,6 +65,7 @@ export function usePreviewData(
       mediaUrl,
       hasVideo,
       hasImage,
+      allMedia,
       provider: provider
         ? (connectedAccounts?.find((a) => a._id === provider._id) ?? provider)
         : undefined,
@@ -83,6 +85,7 @@ export function usePreviewData(
   const mediaUrl = useMediaUrl(media?.bucketKey, media?.url);
   const hasVideo = media?.mediaType === "VIDEO";
   const hasImage = media?.mediaType === "IMAGE";
+  const allMedia = content?.media ?? [];
 
   return {
     content,
@@ -90,6 +93,7 @@ export function usePreviewData(
     mediaUrl,
     hasVideo,
     hasImage,
+    allMedia,
     provider,
   };
 }
