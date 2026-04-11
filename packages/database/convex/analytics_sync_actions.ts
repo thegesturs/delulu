@@ -17,13 +17,18 @@ interface ActionCtx {
 
 const IG_API_BASE = "https://graph.instagram.com/v24.0";
 
-// Confirmed metrics from docs
+// Confirmed metrics from official docs (developers.facebook.com)
 const ACCOUNT_METRICS = "impressions,reach,profile_views";
-const MEDIA_METRICS = "engagement,impressions,reach";
 const PROFILE_FIELDS = "followers_count,follows_count,media_count";
 const MEDIA_LIST_FIELDS =
   "id,caption,media_type,timestamp,permalink,thumbnail_url,media_url";
 const MEDIA_LIST_LIMIT = 25;
+
+// Per-media-type metrics (v24 — impressions deprecated for media after July 2024)
+const FEED_METRICS =
+  "views,reach,likes,comments,saved,shares,total_interactions,follows,profile_visits";
+const REELS_METRICS =
+  "views,reach,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time";
 
 // ============================================================================
 // SYNC ACTION
@@ -315,9 +320,14 @@ async function fetchAndStoreMediaInsights(
 
   // Fetch insights for each media item
   for (const media of mediaData.data) {
+    // Use correct metrics based on media type
+    // Instagram returns reels as media_type "VIDEO"
+    const isReel = media.media_type === "VIDEO";
+    const metricsParam = isReel ? REELS_METRICS : FEED_METRICS;
+
     try {
       const insightsData = await igFetch<{ data?: IGInsightMetric[] }>(
-        `${IG_API_BASE}/${media.id}/insights?metric=${MEDIA_METRICS}`,
+        `${IG_API_BASE}/${media.id}/insights?metric=${metricsParam}`,
         accessToken
       );
 
@@ -330,6 +340,19 @@ async function fetchAndStoreMediaInsights(
         }
       }
 
+      // Build platform-specific metrics for reels
+      const platformMetrics: Record<string, number | undefined> = {};
+      if (media.media_type === "VIDEO") {
+        platformMetrics.avgWatchTime = metrics.ig_reels_avg_watch_time;
+        platformMetrics.totalViewTime = metrics.ig_reels_video_view_total_time;
+      }
+      if (metrics.follows !== undefined) {
+        platformMetrics.follows = metrics.follows;
+      }
+      if (metrics.profile_visits !== undefined) {
+        platformMetrics.profileVisits = metrics.profile_visits;
+      }
+
       await ctx.runMutation(internal.analytics.storeMediaInsights, {
         socialProviderId,
         platformPostId: media.id,
@@ -337,12 +360,18 @@ async function fetchAndStoreMediaInsights(
         organizationId,
         mediaType: media.media_type,
         permalink: media.permalink,
-        caption: media.caption?.slice(0, 300), // Truncate long captions
+        caption: media.caption?.slice(0, 300),
         postedAt: new Date(media.timestamp).getTime(),
         thumbnailUrl: media.thumbnail_url || media.media_url,
-        views: metrics.impressions,
+        views: metrics.views,
         reach: metrics.reach,
-        engagement: metrics.engagement,
+        likes: metrics.likes,
+        comments: metrics.comments,
+        shares: metrics.shares,
+        saves: metrics.saved,
+        engagement: metrics.total_interactions,
+        platformMetrics:
+          Object.keys(platformMetrics).length > 0 ? platformMetrics : undefined,
         snapshotDate,
         fetchedAt: now,
       });
