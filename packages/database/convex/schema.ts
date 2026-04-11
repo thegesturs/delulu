@@ -1,11 +1,14 @@
 import { defineSchema, defineTable } from "convex/server";
 import {
+  baseAccountInsightsSchema,
+  baseAnalyticsSyncStateSchema,
   baseApiKeySchema,
   baseArticleSchema,
   baseAutomationContactSchema,
   baseAutomationLogSchema,
   baseAutomationSchema,
   baseAutomationSessionSchema,
+  baseMediaInsightsSchema,
   baseMediaTableSchema,
   baseOrganizationMemberSchema,
   baseOrganizationSchema,
@@ -142,6 +145,30 @@ export default defineSchema({
     .index("by_review_id", ["reviewId"])
     .index("by_post_id", ["postId"])
     .index("by_organization", ["organizationId", "createdAt"]),
+
+  // Analytics: Account-level daily snapshots (platform-agnostic)
+  accountInsights: defineTable(baseAccountInsightsSchema.fields)
+    .index("by_provider_date", ["socialProviderId", "date"])
+    .index("by_user_id", ["userId"])
+    .index("by_organization_id", ["organizationId"]),
+
+  // Analytics: Post-level metrics snapshots (platform-agnostic)
+  mediaInsights: defineTable(baseMediaInsightsSchema.fields)
+    .index("by_provider_platform_post", [
+      "socialProviderId",
+      "platformPostId",
+      "snapshotDate",
+    ])
+    .index("by_provider_snapshot", ["socialProviderId", "snapshotDate"])
+    .index("by_post_id", ["postId"])
+    .index("by_user_id", ["userId"])
+    .index("by_organization_id", ["organizationId"]),
+
+  // Analytics: Per-account sync tracking
+  analyticsSyncState: defineTable(baseAnalyticsSyncStateSchema.fields).index(
+    "by_social_provider_id",
+    ["socialProviderId"]
+  ),
 
   // Transcriptions table for reel audio transcriptions (Sorted extension)
   transcriptions: defineTable(baseTranscriptionSchema.fields)
