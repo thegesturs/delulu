@@ -18,11 +18,13 @@ import { useQuery } from "convex-helpers/react/cache";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { useOnboardingStore } from "@/store/onboarding";
 import { api } from "@/trpc/react";
 
-const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
+const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
+  "TWITTER",
   "LINKEDIN",
   "TIKTOK",
   "INSTAGRAM",
@@ -59,6 +61,10 @@ export function ConnectAccountsStep() {
   const { handleNextStep } = useOnboarding();
   const setAccountsConnected = useOnboardingStore(
     (s) => s.setAccountsConnected
+  );
+  const twitterEnabled = useFeatureFlag("twitter");
+  const SOCIAL_PLATFORMS = ALL_SOCIAL_PLATFORMS.filter(
+    (p) => p !== "TWITTER" || twitterEnabled
   );
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const accounts = useQuery(ConvexApi.social_providers.getConnectedAccounts);

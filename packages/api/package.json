@@ -29,7 +29,7 @@
     "node": "^20.19.4",
     "openai": "^4.67.3",
     "superjson": "2.2.5",
-    "twitter-api-sdk": "^1.2.1",
+    "@xdevplatform/xdk": "^0.5.0",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -4,10 +4,11 @@ import { useUser } from "@delulu/auth";
 
 const ADMIN_EMAILS = ["rajswaraj.r@gmail.com", "mrfranklinstein@gmail.com"];
 
-type FeatureFlag = "affiliates";
+type FeatureFlag = "affiliates" | "twitter";
 
 const FLAG_CONFIG: Record<FeatureFlag, { adminOnly: boolean }> = {
   affiliates: { adminOnly: true },
+  twitter: { adminOnly: true },
 };
 
 export function useFeatureFlag(flag: FeatureFlag): boolean {

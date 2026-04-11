@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 
-type FeatureFlag = "affiliates";
+type FeatureFlag = "affiliates" | "twitter";
 
 export function FeatureGate({
   flag,

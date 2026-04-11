@@ -1,17 +1,5 @@
 import { keys } from "@delulu/api/keys";
 import { nanoid } from "nanoid";
-import { auth } from "twitter-api-sdk";
-
-// Define TwitterError locally since we only need this one error
-class TwitterError extends Error {
-  readonly code = "TWITTER_ERROR";
-  readonly provider = "Twitter";
-
-  constructor(message: string) {
-    super(message);
-    this.name = "TwitterError";
-  }
-}
 
 export interface ConnectUrlProvider {
   connectUrl: () => string;
@@ -21,24 +9,23 @@ export interface ConnectUrlProvider {
  * Generate Twitter OAuth URL
  */
 const generateTwitterConnectUrl = (): string => {
-  try {
-    const authClient = new auth.OAuth2User({
-      client_id: keys().TWITTER_CLIENT_ID,
-      client_secret: keys().TWITTER_CLIENT_SECRET,
-      callback: keys().TWITTER_CALLBACK_URL,
-      scopes: ["users.read", "tweet.read", "offline.access", "tweet.write"],
-    });
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: keys().TWITTER_CLIENT_ID,
+    redirect_uri: keys().TWITTER_CALLBACK_URL,
+    scope: [
+      "users.read",
+      "tweet.read",
+      "offline.access",
+      "tweet.write",
+      "media.write",
+    ].join(" "),
+    state: keys().TWITTER_STATE,
+    code_challenge: "challenge",
+    code_challenge_method: "plain",
+  });
 
-    const url = authClient.generateAuthURL({
-      state: keys().TWITTER_STATE,
-      code_challenge_method: "plain",
-      code_challenge: "challenge",
-    });
-
-    return url;
-  } catch {
-    throw new TwitterError("Failed to generate OAuth URL");
-  }
+  return `https://x.com/i/oauth2/authorize?${params.toString()}`;
 };
 
 export const connectUrlRegistry = {

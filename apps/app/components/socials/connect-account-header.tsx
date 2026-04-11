@@ -21,10 +21,11 @@ import { Plus } from "@hugeicons-pro/core-solid-rounded";
 import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { api } from "@/trpc/react";
 
-const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
-  // 'TWITTER',
+const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
+  "TWITTER",
   "LINKEDIN",
   "TIKTOK",
   "INSTAGRAM",
@@ -34,6 +35,11 @@ const SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   // 'FARCASTER',
   "YOUTUBE",
 ];
+
+function useSocialPlatforms() {
+  const twitterEnabled = useFeatureFlag("twitter");
+  return ALL_SOCIAL_PLATFORMS.filter((p) => p !== "TWITTER" || twitterEnabled);
+}
 
 function ConnectPlatformButton({
   platform,
@@ -123,6 +129,7 @@ export function ConnectedAccountsHeader() {
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const isAtLimit = !limitCheck?.allowed;
   const _accountCount = limitCheck?.currentCount || 0;
+  const platforms = useSocialPlatforms();
 
   return (
     <div className="space-y-4">
@@ -155,7 +162,7 @@ export function ConnectedAccountsHeader() {
               {isAtLimit ? (
                 <InlineUpgradePrompt feature="socialAccounts" />
               ) : (
-                SOCIAL_PLATFORMS.map((platform) => (
+                platforms.map((platform) => (
                   <ConnectPlatformButton key={platform} platform={platform} />
                 ))
               )}
