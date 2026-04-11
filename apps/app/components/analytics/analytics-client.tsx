@@ -5,6 +5,7 @@ import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { useEffect, useRef, useState } from "react";
+import { FeatureGate } from "@/components/feature-gate";
 import { AnalyticsContent } from "./analytics-content";
 
 export function AnalyticsClient() {
@@ -81,16 +82,25 @@ export function AnalyticsClient() {
   };
 
   return (
-    <AnalyticsContent
-      accounts={instagramAccounts ?? []}
-      days={days}
-      isLoading={overview === undefined && !!selectedProviderId}
-      onChangeDays={setDays}
-      onSelectProvider={setSelectedProviderId}
-      onSync={handleManualSync}
-      overview={overview ?? null}
-      selectedProviderId={selectedProviderId}
-      topPosts={topPosts ?? []}
-    />
+    <FeatureGate
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <p className="text-muted-foreground">Page not found</p>
+        </div>
+      }
+      flag="analytics"
+    >
+      <AnalyticsContent
+        accounts={instagramAccounts ?? []}
+        days={days}
+        isLoading={overview === undefined && !!selectedProviderId}
+        onChangeDays={setDays}
+        onSelectProvider={setSelectedProviderId}
+        onSync={handleManualSync}
+        overview={overview ?? null}
+        selectedProviderId={selectedProviderId}
+        topPosts={topPosts ?? []}
+      />
+    </FeatureGate>
   );
 }

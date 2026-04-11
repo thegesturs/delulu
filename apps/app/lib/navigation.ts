@@ -40,6 +40,7 @@ export const navigationItems = [
     url: "/analytics",
     icon: Analytics,
     dataTour: "analytics-nav",
+    flag: "analytics" as const,
   },
   {
     title: "DM Automations",

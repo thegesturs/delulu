@@ -53,13 +53,22 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const pathname = usePathname();
   const isSmallScreen = useIsSmallScreen();
   const affiliatesEnabled = useFeatureFlag("affiliates");
+  const analyticsEnabled = useFeatureFlag("analytics");
   const visibleNavItems = useMemo(
     () =>
-      navigationItems.filter(
-        (item) =>
-          !item.flag || (item.flag === "affiliates" && affiliatesEnabled)
-      ),
-    [affiliatesEnabled]
+      navigationItems.filter((item) => {
+        if (!item.flag) {
+          return true;
+        }
+        if (item.flag === "affiliates") {
+          return affiliatesEnabled;
+        }
+        if (item.flag === "analytics") {
+          return analyticsEnabled;
+        }
+        return false;
+      }),
+    [affiliatesEnabled, analyticsEnabled]
   );
 
   // Auto-collapse sidebar when screen size goes below lg breakpoint (1024px)
