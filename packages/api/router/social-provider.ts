@@ -39,8 +39,25 @@ export const socialProviderRouter = {
         });
       }
 
+      // Check if user has analytics feature flag (admin emails only)
+      const ANALYTICS_EMAILS = [
+        "rajswaraj.r@gmail.com",
+        "mrfranklinstein@gmail.com",
+      ];
+      const user = await fetchQuery(
+        api.users.getUserByExternalId,
+        { externalId: ctx.externalId },
+        { token: ctx.token }
+      );
+      const includeInsights =
+        input.provider === "INSTAGRAM" &&
+        !!user?.email &&
+        ANALYTICS_EMAILS.includes(user.email);
+
       // Generate connect URL only if within limit
-      const link = connectUrlRegistry[input.provider].connectUrl();
+      const link = connectUrlRegistry[input.provider].connectUrl({
+        includeInsights,
+      });
       return link;
     }),
   // createPost: protectedProcedure
