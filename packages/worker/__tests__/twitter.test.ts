@@ -6,7 +6,10 @@ const twitterProvider = SOCIAL_PROVIDER_DATA.find(
   (p) => p.socialType === "TWITTER"
 )!;
 
-describe("Twitter Provider Tests", () => {
+const isConfigured =
+  twitterProvider?.id && !twitterProvider.id.startsWith("REPLACE_WITH");
+
+describe.skipIf(!isConfigured)("Twitter Provider Tests", () => {
   it("should execute real Twitter provider with single image", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({

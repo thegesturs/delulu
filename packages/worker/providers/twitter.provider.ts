@@ -130,16 +130,16 @@ const refreshAccessToken = (
     const updatedProfile = {
       ...profile,
       accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: new Date(Date.now() + data.expires_in * 1000),
+      refreshToken: data.refresh_token ?? profile.refreshToken,
+      expiresIn: new Date(Date.now() + (data.expires_in ?? 7200) * 1000),
     };
 
     return ResultAsync.fromPromise(
       convex.mutation(api.social_providers.updateSocialProvider, {
         id: profile.id as Id<"socialProviders">,
         accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresIn: Date.now() + data.expires_in * 1000,
+        refreshToken: data.refresh_token ?? profile.refreshToken,
+        expiresIn: Date.now() + (data.expires_in ?? 7200) * 1000,
       }),
       () => new TwitterError("Failed to update token in database")
     ).map(() => updatedProfile);
@@ -360,7 +360,7 @@ const waitForProcessing = (
       return;
     }
 
-    const waitMs = (status.checkAfterSecs ?? 10) * 1000;
+    const waitMs = Math.max((status.checkAfterSecs ?? 10) * 1000, 1000);
     await new Promise((resolve) => setTimeout(resolve, waitMs));
     return poll(attempts + 1);
   };

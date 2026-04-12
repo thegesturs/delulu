@@ -24,7 +24,7 @@
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
     "neverthrow": "^8.2.0",
-    "@xdevplatform/xdk": "^0.5.0",
+    "@xdevplatform/xdk": "0.5.0",
     "zod": "catalog:"
   },
   "devDependencies": {
