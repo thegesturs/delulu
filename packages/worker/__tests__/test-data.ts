@@ -1,6 +1,7 @@
 // Social provider IDs and types mapping (updated with real IDs from database)
 // cspell:disable-next-line
 export const SOCIAL_PROVIDER_DATA = [
+  { id: "REPLACE_WITH_REAL_TWITTER_PROVIDER_ID", socialType: "TWITTER" },
   { id: "jd700er0g06x9dvnc7tk22hfcn7zy70f", socialType: "TIKTOK" }, // Real production TikTok account
   { id: "js734bks5yxa8s93yn908x2tqd7pwrv5", socialType: "YOUTUBE" },
   { id: "js72nvt36ep43bpq7qssjy879d7p6atg", socialType: "THREADS" },
@@ -67,6 +68,44 @@ export const TEST_CONTENT = {
         },
       ],
       text: "some posting stuff\n\nnice post and stuff",
+      tags: [],
+    },
+  ],
+
+  thread: [
+    {
+      order: 0,
+      name: "DEFAULT",
+      media: [
+        {
+          bucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/cba8367f-a208-45fd-b935-162c2f92fec2.png",
+          mediaType: "IMAGE" as const,
+        },
+      ],
+      text: "First tweet in the thread",
+      tags: [],
+    },
+    {
+      order: 1,
+      name: "DEFAULT",
+      media: [],
+      text: "Second tweet in the thread - text only reply",
+      tags: [],
+    },
+    {
+      order: 2,
+      name: "DEFAULT",
+      media: [
+        {
+          bucketKey:
+            "user_30F1kYDnbGXB26mXlyhYQv7XgBn/03eb6890-68c0-466a-86dc-71ffc1f91297.png",
+          url: "https://media.delulu.social/user_30F1kYDnbGXB26mXlyhYQv7XgBn/03eb6890-68c0-466a-86dc-71ffc1f91297.png",
+          mediaType: "IMAGE" as const,
+        },
+      ],
+      text: "Third tweet with an image",
       tags: [],
     },
   ],
