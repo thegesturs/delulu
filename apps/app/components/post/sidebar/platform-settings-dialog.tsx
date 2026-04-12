@@ -51,7 +51,7 @@ export function PlatformSettingsDialog({
   };
 
   return (
-    <Dialog onOpenChange={onClose} open={isOpen}>
+    <Dialog modal={false} onOpenChange={onClose} open={isOpen}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{platformName} Settings</DialogTitle>
