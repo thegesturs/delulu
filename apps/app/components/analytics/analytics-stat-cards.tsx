@@ -8,10 +8,10 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
-  Comment01Icon,
   DocumentAttachmentIcon,
-  FavouriteIcon,
+  UserMultipleIcon,
   ViewIcon,
+  WifiConnected01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 
 interface Totals {
@@ -86,7 +86,7 @@ export function AnalyticsStatCards({
       label: "Reach",
       value: v(currentTotals?.reach),
       change: calcChange(currentTotals?.reach ?? 0, prevTotals?.reach ?? 0),
-      icon: ViewIcon,
+      icon: WifiConnected01Icon,
       color: "text-purple-600 dark:text-purple-400",
     },
     {
@@ -96,7 +96,7 @@ export function AnalyticsStatCards({
         currentTotals?.profileViews ?? 0,
         prevTotals?.profileViews ?? 0
       ),
-      icon: FavouriteIcon,
+      icon: UserMultipleIcon,
       color: "text-orange-600 dark:text-orange-400",
     },
     {

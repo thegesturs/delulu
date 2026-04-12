@@ -40,6 +40,7 @@ export const socialProviderRouter = {
       }
 
       // Check if user has analytics feature flag (admin emails only)
+      // Keep in sync with ADMIN_EMAILS in apps/app/hooks/use-feature-flag.ts
       const ANALYTICS_EMAILS = [
         "rajswaraj.r@gmail.com",
         "mrfranklinstein@gmail.com",
