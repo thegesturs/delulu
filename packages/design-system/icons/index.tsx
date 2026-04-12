@@ -5,6 +5,7 @@
 
 import {
   AiMail01Icon,
+  Analytics01Icon,
   Calendar as CalendarIcon,
   CheckmarkBadge01Icon,
   ConnectIcon,
@@ -62,4 +63,8 @@ export const ReviewBadge: ComponentType<{ className?: string }> = (props) => (
 
 export const ApiKey: ComponentType<{ className?: string }> = (props) => (
   <Icon icon={Key01Icon} size={14} {...props} />
+);
+
+export const Analytics: ComponentType<{ className?: string }> = (props) => (
+  <Icon icon={Analytics01Icon} size={14} {...props} />
 );

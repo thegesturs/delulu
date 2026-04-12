@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { affiliateRouter } from "./router/affiliate";
+import { analyticsRouter } from "./router/analytics";
 import { mediaRouter } from "./router/media";
 import { socialProviderRouter } from "./router/social-provider";
 import { createTRPCRouter, publicProcedure } from "./trpc";
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
       };
     }),
   affiliate: affiliateRouter,
+  analytics: analyticsRouter,
   socialProvider: socialProviderRouter,
   media: mediaRouter,
 });

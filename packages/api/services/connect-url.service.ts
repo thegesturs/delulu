@@ -1,8 +1,12 @@
 import { keys } from "@delulu/api/keys";
 import { nanoid } from "nanoid";
 
+export interface ConnectUrlOptions {
+  includeInsights?: boolean;
+}
+
 export interface ConnectUrlProvider {
-  connectUrl: () => string;
+  connectUrl: (options?: ConnectUrlOptions) => string;
 }
 
 /**
@@ -60,17 +64,23 @@ export const connectUrlRegistry = {
     },
   },
   INSTAGRAM: {
-    connectUrl: () => {
+    connectUrl: (options?: ConnectUrlOptions) => {
+      const scopes = [
+        "instagram_business_basic",
+        "instagram_business_content_publish",
+        "instagram_business_manage_messages",
+        "instagram_business_manage_comments",
+      ];
+
+      if (options?.includeInsights) {
+        scopes.push("instagram_business_manage_insights");
+      }
+
       const params = new URLSearchParams({
         client_id: keys().INSTAGRAM_CLIENT_ID,
         redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
         response_type: "code",
-        scope: [
-          "instagram_business_basic",
-          "instagram_business_content_publish",
-          "instagram_business_manage_messages",
-          "instagram_business_manage_comments",
-        ].join(","),
+        scope: scopes.join(","),
         state: nanoid(),
       });
 

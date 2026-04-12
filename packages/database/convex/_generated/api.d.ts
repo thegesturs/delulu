@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
+import type * as analytics_sync_actions from "../analytics_sync_actions.js";
 import type * as api_keys from "../api_keys.js";
 import type * as articles from "../articles.js";
 import type * as automationLogs from "../automationLogs.js";
@@ -27,6 +29,7 @@ import type * as organizations from "../organizations.js";
 import type * as post_reviews from "../post_reviews.js";
 import type * as posts from "../posts.js";
 import type * as repairs from "../repairs.js";
+import type * as schemas_analytics from "../schemas/analytics.js";
 import type * as schemas_api_keys from "../schemas/api_keys.js";
 import type * as schemas_articles from "../schemas/articles.js";
 import type * as schemas_automations from "../schemas/automations.js";
@@ -63,6 +66,8 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
+  analytics_sync_actions: typeof analytics_sync_actions;
   api_keys: typeof api_keys;
   articles: typeof articles;
   automationLogs: typeof automationLogs;
@@ -82,6 +87,7 @@ declare const fullApi: ApiFromModules<{
   post_reviews: typeof post_reviews;
   posts: typeof posts;
   repairs: typeof repairs;
+  "schemas/analytics": typeof schemas_analytics;
   "schemas/api_keys": typeof schemas_api_keys;
   "schemas/articles": typeof schemas_articles;
   "schemas/automations": typeof schemas_automations;

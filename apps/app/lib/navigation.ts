@@ -1,5 +1,6 @@
 import {
   Affiliate,
+  Analytics,
   ApiKey,
   Calendar,
   CreditCard,
@@ -33,6 +34,13 @@ export const navigationItems = [
     url: "/socials",
     icon: Network,
     dataTour: "accounts-nav",
+  },
+  {
+    title: "Analytics",
+    url: "/analytics",
+    icon: Analytics,
+    dataTour: "analytics-nav",
+    flag: "analytics" as const,
   },
   {
     title: "DM Automations",
