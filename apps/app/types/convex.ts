@@ -44,3 +44,16 @@ export type FailedPost = NonNullable<
 export type UpcomingPost = NonNullable<
   FunctionReturnType<typeof api.stats.getUpcomingPosts>
 >[0];
+
+// Analytics types
+export type AccountInsight = Doc<"accountInsights">;
+export type MediaInsight = Doc<"mediaInsights">;
+export type AnalyticsSyncState = Doc<"analyticsSyncState">;
+
+export type AccountOverview = NonNullable<
+  FunctionReturnType<typeof api.analytics.getAccountOverview>
+>;
+
+export type TopPosts = NonNullable<
+  FunctionReturnType<typeof api.analytics.getTopPosts>
+>;

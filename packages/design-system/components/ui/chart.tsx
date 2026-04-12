@@ -351,3 +351,6 @@ export {
   ChartLegendContent,
   ChartStyle,
 }
+
+// Re-export Recharts primitives so consuming apps don't need recharts as a direct dependency
+export { RechartsPrimitive }
