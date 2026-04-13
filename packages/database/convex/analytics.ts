@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
   internalMutation,
@@ -8,7 +7,7 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server";
-import { getAuthContext, getAuthContextOrThrow } from "./lib/auth";
+import { getAuthContext } from "./lib/auth";
 import { analyticsSyncStatusSchema } from "./schemas/analytics";
 import { decryptData, getCurrentTimestamp } from "./utils";
 
@@ -17,7 +16,6 @@ import { decryptData, getCurrentTimestamp } from "./utils";
 // ============================================================================
 
 const STALE_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours
-const MANUAL_REFRESH_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 const STALE_SYNCING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 
 // ============================================================================
@@ -32,32 +30,6 @@ function toMidnightUTC(timestamp: number): number {
 }
 
 /** Check if the user owns or has access to this social provider */
-async function assertProviderAccess(
-  ctx: QueryCtx,
-  socialProviderId: Id<"socialProviders">
-) {
-  const authCtx = await getAuthContextOrThrow(ctx);
-  const provider = await ctx.db.get(socialProviderId);
-  if (!provider) {
-    throw new Error("Social provider not found");
-  }
-
-  // In org context, check org matches
-  if (authCtx.organizationId) {
-    if (provider.organizationId !== authCtx.organizationId) {
-      throw new Error("Unauthorized: provider belongs to a different org");
-    }
-  } else if (
-    provider.userId?.toString() !== authCtx.userId.toString() ||
-    provider.organizationId
-  ) {
-    // Personal workspace — check user owns it
-    throw new Error("Unauthorized: provider belongs to a different user");
-  }
-
-  return { authCtx, provider };
-}
-
 // ============================================================================
 // QUERIES
 // ============================================================================
@@ -249,76 +221,8 @@ export const getSyncState = query({
   },
 });
 
-// ============================================================================
-// MUTATIONS — User-facing
-// ============================================================================
-
-/**
- * Trigger an analytics sync for a social provider.
- * Called by the frontend when data is stale or user clicks "Sync".
- */
-export const triggerSync = mutation({
-  args: {
-    socialProviderId: v.id("socialProviders"),
-  },
-  handler: async (ctx, args) => {
-    const { provider } = await assertProviderAccess(ctx, args.socialProviderId);
-
-    // Check if already syncing
-    const syncState = await ctx.db
-      .query("analyticsSyncState")
-      .withIndex("by_social_provider_id", (q) =>
-        q.eq("socialProviderId", args.socialProviderId)
-      )
-      .unique();
-
-    const now = getCurrentTimestamp();
-
-    if (syncState?.syncStatus === "SYNCING") {
-      // Allow re-trigger if stuck
-      if (
-        syncState.updatedAt &&
-        now - syncState.updatedAt < STALE_SYNCING_THRESHOLD_MS
-      ) {
-        return { status: "ALREADY_SYNCING" as const };
-      }
-    }
-
-    // Enforce manual refresh cooldown
-    if (
-      syncState?.lastAccountInsightsFetchedAt &&
-      now - syncState.lastAccountInsightsFetchedAt < MANUAL_REFRESH_COOLDOWN_MS
-    ) {
-      return { status: "COOLDOWN" as const };
-    }
-
-    // Upsert sync state to SYNCING
-    if (syncState) {
-      await ctx.db.patch(syncState._id, {
-        syncStatus: "SYNCING",
-        lastSyncError: undefined,
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("analyticsSyncState", {
-        socialProviderId: args.socialProviderId,
-        syncStatus: "SYNCING",
-        updatedAt: now,
-      });
-    }
-
-    // Schedule the sync action
-    await ctx.scheduler.runAfter(
-      0,
-      internal.analytics_sync_actions.syncInsights,
-      {
-        socialProviderId: args.socialProviderId,
-      }
-    );
-
-    return { status: "STARTED" as const };
-  },
-});
+// NOTE: triggerSync moved to tRPC (packages/api/router/analytics.ts)
+// All Instagram API calls happen in tRPC, not Convex actions.
 
 // ============================================================================
 // INTERNAL MUTATIONS — Called by sync actions
@@ -328,7 +232,7 @@ export const triggerSync = mutation({
  * Store account-level insights (one row per day).
  * Upserts — if a row for the same provider+date exists, it patches.
  */
-export const storeAccountInsights = internalMutation({
+export const storeAccountInsights = mutation({
   args: {
     socialProviderId: v.id("socialProviders"),
     userId: v.optional(v.id("users")),
@@ -374,7 +278,7 @@ export const storeAccountInsights = internalMutation({
  * Store media-level insights (one row per post per snapshot day).
  * Upserts — if a row for the same provider+platformPostId+snapshotDate exists, it patches.
  */
-export const storeMediaInsights = internalMutation({
+export const storeMediaInsights = mutation({
   args: {
     socialProviderId: v.id("socialProviders"),
     postId: v.optional(v.id("posts")),
@@ -436,7 +340,7 @@ export const storeMediaInsights = internalMutation({
 /**
  * Update sync state after a sync attempt.
  */
-export const updateSyncState = internalMutation({
+export const updateSyncState = mutation({
   args: {
     socialProviderId: v.id("socialProviders"),
     syncStatus: analyticsSyncStatusSchema,
@@ -539,7 +443,7 @@ export const getProviderWithTokens = internalQuery({
 /**
  * Internal mutation to update a social provider's access token after refresh.
  */
-export const updateProviderToken = internalMutation({
+export const updateProviderToken = mutation({
   args: {
     socialProviderId: v.id("socialProviders"),
     encryptedAccessToken: v.string(),

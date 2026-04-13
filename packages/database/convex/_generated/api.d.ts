@@ -9,7 +9,6 @@
  */
 
 import type * as analytics from "../analytics.js";
-import type * as analytics_sync_actions from "../analytics_sync_actions.js";
 import type * as api_keys from "../api_keys.js";
 import type * as articles from "../articles.js";
 import type * as automationLogs from "../automationLogs.js";
@@ -67,7 +66,6 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
-  analytics_sync_actions: typeof analytics_sync_actions;
   api_keys: typeof api_keys;
   articles: typeof articles;
   automationLogs: typeof automationLogs;
