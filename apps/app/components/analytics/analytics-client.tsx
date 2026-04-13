@@ -2,10 +2,10 @@
 
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import { useEffect, useRef, useState } from "react";
 import { FeatureGate } from "@/components/feature-gate";
+import { api as trpcApi } from "@/trpc/react";
 import { AnalyticsContent } from "./analytics-content";
 
 export function AnalyticsClient() {
@@ -28,7 +28,7 @@ export function AnalyticsClient() {
     }
   }, [instagramAccounts, selectedProviderId]);
 
-  // Fetch analytics data for selected account
+  // Fetch analytics data for selected account (Convex — reactive)
   const overview = useQuery(
     api.analytics.getAccountOverview,
     selectedProviderId
@@ -50,8 +50,8 @@ export function AnalyticsClient() {
       : "skip"
   );
 
-  // Auto-trigger sync when data is stale
-  const triggerSync = useMutation(api.analytics.triggerSync);
+  // Sync via tRPC (runs on Cloudflare Workers, not Convex)
+  const triggerSync = trpcApi.analytics.triggerSync.useMutation();
   const hasSynced = useRef(false);
 
   useEffect(() => {
@@ -59,11 +59,12 @@ export function AnalyticsClient() {
       overview?.isStale &&
       overview.syncStatus !== "SYNCING" &&
       selectedProviderId &&
-      !hasSynced.current
+      !hasSynced.current &&
+      !triggerSync.isPending
     ) {
       hasSynced.current = true;
-      triggerSync({
-        socialProviderId: selectedProviderId as Id<"socialProviders">,
+      triggerSync.mutate({
+        socialProviderId: selectedProviderId,
       });
     }
   }, [overview, selectedProviderId, triggerSync]);
@@ -74,9 +75,9 @@ export function AnalyticsClient() {
   }, [selectedProviderId]);
 
   const handleManualSync = () => {
-    if (selectedProviderId) {
-      triggerSync({
-        socialProviderId: selectedProviderId as Id<"socialProviders">,
+    if (selectedProviderId && !triggerSync.isPending) {
+      triggerSync.mutate({
+        socialProviderId: selectedProviderId,
       });
     }
   };
