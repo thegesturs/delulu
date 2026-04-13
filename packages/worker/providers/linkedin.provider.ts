@@ -409,6 +409,14 @@ interface BuildLinkedInPostDataOptions {
 
 type PostContentType = "TEXT_ONLY" | "SINGLE_IMAGE" | "MULTI_IMAGE" | "VIDEO";
 
+// LinkedIn's "little text format" requires reserved characters to be escaped.
+// See: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/little-text-format
+const LITTLE_TEXT_RESERVED = /[|{}@[\]()<>#\\*_~]/g;
+
+function escapeLinkedInText(text: string): string {
+  return text.replace(LITTLE_TEXT_RESERVED, (char) => `\\${char}`);
+}
+
 function buildLinkedInPostData(
   authorUrn: string,
   text: string,
@@ -418,7 +426,7 @@ function buildLinkedInPostData(
 ) {
   const basePost = {
     author: authorUrn,
-    commentary: text,
+    commentary: escapeLinkedInText(text),
     visibility: options?.visibility || "PUBLIC",
     distribution: {
       feedDistribution: "MAIN_FEED",
