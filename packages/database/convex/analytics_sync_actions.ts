@@ -17,8 +17,9 @@ interface ActionCtx {
 
 const IG_API_BASE = "https://graph.instagram.com/v24.0";
 
-// Confirmed metrics from official docs (developers.facebook.com)
-const ACCOUNT_METRICS = "impressions,reach,profile_views";
+// Confirmed from live API — impressions is deprecated, use views instead
+const ACCOUNT_METRICS =
+  "views,reach,profile_views,follower_count,website_clicks,accounts_engaged,total_interactions,follows_and_unfollows";
 const PROFILE_FIELDS = "followers_count,follows_count,media_count";
 const MEDIA_LIST_FIELDS =
   "id,caption,media_type,timestamp,permalink,thumbnail_url,media_url";
@@ -220,7 +221,16 @@ async function fetchAndStoreAccountInsights(
   // Group values by end_time to create per-day rows
   const dayMap = new Map<
     string,
-    { impressions?: number; reach?: number; profileViews?: number }
+    {
+      impressions?: number;
+      reach?: number;
+      profileViews?: number;
+      followersGained?: number;
+      engagements?: number;
+      websiteClicks?: number;
+      accountsEngaged?: number;
+      followsAndUnfollows?: number;
+    }
   >();
 
   for (const metric of data.data) {
@@ -231,7 +241,7 @@ async function fetchAndStoreAccountInsights(
       const key = val.end_time;
       const day = dayMap.get(key) ?? {};
 
-      if (metric.name === "impressions") {
+      if (metric.name === "views") {
         day.impressions = val.value;
       }
       if (metric.name === "reach") {
@@ -239,6 +249,21 @@ async function fetchAndStoreAccountInsights(
       }
       if (metric.name === "profile_views") {
         day.profileViews = val.value;
+      }
+      if (metric.name === "follower_count") {
+        day.followersGained = val.value;
+      }
+      if (metric.name === "total_interactions") {
+        day.engagements = val.value;
+      }
+      if (metric.name === "website_clicks") {
+        day.websiteClicks = val.value;
+      }
+      if (metric.name === "accounts_engaged") {
+        day.accountsEngaged = val.value;
+      }
+      if (metric.name === "follows_and_unfollows") {
+        day.followsAndUnfollows = val.value;
       }
 
       dayMap.set(key, day);
@@ -258,6 +283,13 @@ async function fetchAndStoreAccountInsights(
       impressions: metrics.impressions,
       reach: metrics.reach,
       profileViews: metrics.profileViews,
+      followersGained: metrics.followersGained,
+      engagements: metrics.engagements,
+      platformMetrics: {
+        websiteClicks: metrics.websiteClicks,
+        accountsEngaged: metrics.accountsEngaged,
+        followsAndUnfollows: metrics.followsAndUnfollows,
+      },
       fetchedAt: now,
     });
   }
