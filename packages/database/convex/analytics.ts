@@ -7,7 +7,7 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server";
-import { getAuthContext } from "./lib/auth";
+import { getAuthContext, getAuthContextOrThrow } from "./lib/auth";
 import { analyticsSyncStatusSchema } from "./schemas/analytics";
 import { decryptData, getCurrentTimestamp } from "./utils";
 
@@ -27,6 +27,28 @@ function toMidnightUTC(timestamp: number): number {
   const date = new Date(timestamp);
   date.setUTCHours(0, 0, 0, 0);
   return date.getTime();
+}
+
+/** Verify the authenticated user owns this social provider */
+async function assertProviderOwnership(
+  ctx: QueryCtx,
+  socialProviderId: Id<"socialProviders">
+) {
+  const authCtx = await getAuthContextOrThrow(ctx);
+  const provider = await ctx.db.get(socialProviderId);
+  if (!provider) {
+    throw new Error("Social provider not found");
+  }
+  if (authCtx.organizationId) {
+    if (provider.organizationId !== authCtx.organizationId) {
+      throw new Error("Unauthorized");
+    }
+  } else if (
+    provider.userId?.toString() !== authCtx.userId.toString() ||
+    provider.organizationId
+  ) {
+    throw new Error("Unauthorized");
+  }
 }
 
 /** Check if the user owns or has access to this social provider */
@@ -249,6 +271,7 @@ export const storeAccountInsights = mutation({
     fetchError: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertProviderOwnership(ctx, args.socialProviderId);
     const existing = await ctx.db
       .query("accountInsights")
       .withIndex("by_provider_date", (q) =>
@@ -283,6 +306,7 @@ export const storeMediaInsights = mutation({
     socialProviderId: v.id("socialProviders"),
     postId: v.optional(v.id("posts")),
     platformPostId: v.string(),
+    // userId/organizationId passed for storage but auth checked via socialProviderId
     userId: v.optional(v.id("users")),
     organizationId: v.optional(v.string()),
     mediaType: v.optional(v.string()),
@@ -303,6 +327,7 @@ export const storeMediaInsights = mutation({
     fetchError: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await assertProviderOwnership(ctx, args.socialProviderId);
     const existing = await ctx.db
       .query("mediaInsights")
       .withIndex("by_provider_platform_post", (q) =>
@@ -351,6 +376,7 @@ export const updateSyncState = mutation({
     rateLimitResetAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await assertProviderOwnership(ctx, args.socialProviderId);
     const existing = await ctx.db
       .query("analyticsSyncState")
       .withIndex("by_social_provider_id", (q) =>
@@ -450,6 +476,7 @@ export const updateProviderToken = mutation({
     expiresIn: v.number(),
   },
   handler: async (ctx, args) => {
+    await assertProviderOwnership(ctx, args.socialProviderId);
     await ctx.db.patch(args.socialProviderId, {
       accessToken: args.encryptedAccessToken,
       expiresIn: args.expiresIn,

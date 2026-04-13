@@ -89,18 +89,22 @@ export async function syncInstagramInsights(ctx: SyncContext): Promise<void> {
 // TOKEN REFRESH
 // ============================================================================
 
+/**
+ * Refresh an Instagram token. Returns the new access token so the caller
+ * can use it immediately. Throws on failure so the sync can handle it.
+ */
 export async function refreshInstagramToken(
   socialProviderId: Id<"socialProviders">,
   currentAccessToken: string,
   token: string
-): Promise<void> {
+): Promise<string> {
   const response = await fetch(
     `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${currentAccessToken}`
   );
 
   if (!response.ok) {
-    console.error("Token refresh failed:", response.status);
-    return;
+    const body = await response.text().catch(() => "");
+    throw new Error(`Token refresh failed: ${response.status} ${body}`);
   }
 
   const data = (await response.json()) as {
@@ -120,6 +124,8 @@ export async function refreshInstagramToken(
     },
     { token }
   );
+
+  return data.access_token;
 }
 
 // ============================================================================

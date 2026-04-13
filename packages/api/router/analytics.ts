@@ -166,9 +166,10 @@ export const analyticsRouter = createTRPCRouter({
 
       try {
         // Check if token needs refresh (within 7 days of expiry)
+        let accessToken = provider.accessToken;
         const tokenExpiresAt = provider.updatedAt + provider.expiresIn * 1000;
         if (tokenExpiresAt - now < 7 * 24 * 60 * 60 * 1000) {
-          await refreshInstagramToken(
+          accessToken = await refreshInstagramToken(
             socialProviderId,
             provider.accessToken,
             ctx.token
@@ -179,7 +180,7 @@ export const analyticsRouter = createTRPCRouter({
         await syncInstagramInsights({
           socialProviderId,
           profileId: provider.profileId,
-          accessToken: provider.accessToken,
+          accessToken,
           userId: provider.userId ?? undefined,
           organizationId: provider.organizationId ?? undefined,
           token: ctx.token,
