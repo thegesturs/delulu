@@ -10,6 +10,15 @@ import type {
 } from "@delulu/validators/post";
 import { SocialTypes } from "@delulu/validators/post";
 
+// Document MIME types supported by LinkedIn
+export const LINKEDIN_DOCUMENT_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
 // ============================================================================
 // MEDIA REQUIREMENTS
 // ============================================================================
@@ -351,7 +360,7 @@ export interface ValidationResult {
  */
 export function validatePlatformMedia(
   socialType: SocialType,
-  media: { mediaType: "IMAGE" | "VIDEO" }[]
+  media: { mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }[]
 ): ValidationResult {
   const rules = PLATFORM_MEDIA_RULES[socialType];
   const errors: string[] = [];
@@ -619,6 +628,7 @@ export function formatDuration(seconds: number): string {
 export interface MediaState {
   images: number;
   videos: number;
+  documents: number;
   totalCount: number;
 }
 
@@ -651,15 +661,17 @@ export interface MediaAdditionValidation {
  * Calculate current media state from media array
  */
 export function getMediaState(
-  media: Array<{ mediaType: "IMAGE" | "VIDEO" }>
+  media: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): MediaState {
   const images = media.filter((m) => m.mediaType === "IMAGE").length;
   const videos = media.filter((m) => m.mediaType === "VIDEO").length;
+  const documents = media.filter((m) => m.mediaType === "DOCUMENT").length;
 
   return {
     images,
     videos,
-    totalCount: images + videos,
+    documents,
+    totalCount: images + videos + documents,
   };
 }
 
@@ -669,7 +681,7 @@ export function getMediaState(
  */
 export function getDynamicMediaLimits(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): DynamicMediaLimits {
   const state = getMediaState(currentMedia);
   const platformName = getPlatformDisplayName(socialType);
@@ -789,8 +801,79 @@ export function getDynamicMediaLimits(
     };
   }
 
+  // LinkedIn: Multiple images OR single video OR single document (can't mix)
+  if (socialType === SocialTypes.LINKEDIN) {
+    if (state.documents > 0) {
+      // Document mode - no more media
+      return {
+        maxImages: 0,
+        maxVideos: 0,
+        remainingImages: 0,
+        remainingVideos: 0,
+        canAddImages: false,
+        canAddVideos: false,
+        canMixTypes: false,
+        acceptedMimeTypes: [],
+        instruction: `${platformName}: Maximum 1 document reached`,
+        platformHint: "Document mode",
+      };
+    }
+
+    if (state.videos > 0) {
+      return {
+        maxImages: 0,
+        maxVideos: 1,
+        remainingImages: 0,
+        remainingVideos: 0,
+        canAddImages: false,
+        canAddVideos: false,
+        canMixTypes: false,
+        acceptedMimeTypes: [],
+        instruction: `${platformName}: Maximum 1 video reached`,
+        platformHint: "Video mode",
+      };
+    }
+
+    if (state.images > 0) {
+      const remaining = Math.max(0, baseMaxImages - state.images);
+      return {
+        maxImages: baseMaxImages,
+        maxVideos: 0,
+        remainingImages: remaining,
+        remainingVideos: 0,
+        canAddImages: remaining > 0,
+        canAddVideos: false,
+        canMixTypes: false,
+        acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
+        instruction:
+          remaining > 0
+            ? `${platformName}: Add up to ${remaining} more ${remaining === 1 ? "image" : "images"}`
+            : `${platformName}: Maximum ${baseMaxImages} images reached`,
+        platformHint: "Image mode",
+      };
+    }
+
+    // Empty state - allow images, video, or document
+    return {
+      maxImages: baseMaxImages,
+      maxVideos: 1,
+      remainingImages: baseMaxImages,
+      remainingVideos: 1,
+      canAddImages: true,
+      canAddVideos: true,
+      canMixTypes: false,
+      acceptedMimeTypes: [
+        "image/*",
+        "video/*",
+        ...LINKEDIN_DOCUMENT_MIME_TYPES,
+      ],
+      instruction: `${platformName}: Up to ${baseMaxImages} images, 1 video, or 1 document`,
+      platformHint: "Choose format",
+    };
+  }
+
   // Other platforms: Multiple images OR single video (can't mix)
-  // Twitter (4), LinkedIn (4), Facebook (10), Pinterest (5), etc.
+  // Twitter (4), Facebook (10), Pinterest (5), etc.
   if (state.videos > 0) {
     // Video mode - no more media
     return {
@@ -847,8 +930,8 @@ export function getDynamicMediaLimits(
  */
 export function canAddMediaType(
   socialType: SocialType,
-  mediaTypeToAdd: "IMAGE" | "VIDEO",
-  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
+  mediaTypeToAdd: "IMAGE" | "VIDEO" | "DOCUMENT",
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): MediaAdditionValidation {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   const platformName = getPlatformDisplayName(socialType);
@@ -914,6 +997,36 @@ export function canAddMediaType(
     };
   }
 
+  if (mediaTypeToAdd === "DOCUMENT") {
+    if (socialType !== SocialTypes.LINKEDIN) {
+      return {
+        canAdd: false,
+        reason: "Documents are only supported on LinkedIn.",
+      };
+    }
+
+    const state = getMediaState(currentMedia);
+
+    if (state.images > 0 || state.videos > 0) {
+      return {
+        canAdd: false,
+        reason: `${platformName} doesn't allow mixing documents with images or videos. Remove existing media first.`,
+      };
+    }
+
+    if (state.documents > 0) {
+      return {
+        canAdd: false,
+        reason: `${platformName} allows maximum 1 document per post.`,
+      };
+    }
+
+    return {
+      canAdd: true,
+      updatedLimits: limits,
+    };
+  }
+
   return {
     canAdd: false,
     reason: "Unknown media type",
@@ -925,7 +1038,7 @@ export function canAddMediaType(
  */
 export function getMediaCountInstruction(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): string {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   return limits.instruction;
@@ -936,7 +1049,7 @@ export function getMediaCountInstruction(
  */
 export function canUploadMore(
   socialType: SocialType,
-  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" }>
+  currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): boolean {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   return limits.canAddImages || limits.canAddVideos;

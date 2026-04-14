@@ -15,7 +15,7 @@ interface PostData {
     media: Array<{
       url?: string;
       bucketKey?: string;
-      mediaType: "IMAGE" | "VIDEO";
+      mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
       altText?: string;
     }>;
   }>;

@@ -10,6 +10,7 @@ import { SocialTypes } from "@delulu/validators/post";
 import {
   Add01Icon,
   Cancel01Icon,
+  File02Icon,
   Image01Icon,
   VideoIcon,
 } from "@hugeicons-pro/core-solid-rounded";
@@ -32,7 +33,7 @@ import { MediaSelectionDialog } from "./media-selection-dialog";
 interface MediaFile {
   id: string;
   file?: File;
-  mediaType: "IMAGE" | "VIDEO";
+  mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
   previewUrl: string;
   bucketKey?: string;
   url?: string;
@@ -46,6 +47,16 @@ interface MediaFile {
   thumbnailBucketKey?: string;
 }
 
+function getMediaTypeFromFile(file: File): "IMAGE" | "VIDEO" | "DOCUMENT" {
+  if (file.type.startsWith("image/")) {
+    return "IMAGE";
+  }
+  if (file.type.startsWith("video/")) {
+    return "VIDEO";
+  }
+  return "DOCUMENT";
+}
+
 interface MediaUploaderProps {
   socialType: SocialType;
   socialId: string;
@@ -55,7 +66,7 @@ interface MediaUploaderProps {
 interface MediaPreviewProps {
   media: MediaFile;
   onRemove: (id: string) => void;
-  getPreviewAspectRatio: (mediaType: "IMAGE" | "VIDEO") => string;
+  getPreviewAspectRatio: (mediaType: "IMAGE" | "VIDEO" | "DOCUMENT") => string;
 }
 
 export function MediaPreview({
@@ -85,7 +96,7 @@ export function MediaPreview({
           className="h-full w-full object-cover"
           src={mediaUrl}
         />
-      ) : (
+      ) : media.mediaType === "VIDEO" ? (
         <div className="relative h-full w-full">
           <video
             className="h-full w-full object-cover"
@@ -99,6 +110,15 @@ export function MediaPreview({
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 group-hover:hidden">
             <Icon className="text-white" icon={VideoIcon} size={24} />
           </div>
+        </div>
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted p-4">
+          <Icon className="text-muted-foreground" icon={File02Icon} size={32} />
+          <span className="max-w-full truncate text-center text-muted-foreground text-xs">
+            {media.originalFilename ||
+              media.extension?.toUpperCase() ||
+              "Document"}
+          </span>
         </div>
       )}
 
@@ -125,8 +145,10 @@ export function MediaPreview({
       <div className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-foreground">
         {media.mediaType === "IMAGE" ? (
           <Icon icon={Image01Icon} size={12} />
-        ) : (
+        ) : media.mediaType === "VIDEO" ? (
           <Icon icon={VideoIcon} size={12} />
+        ) : (
+          <Icon icon={File02Icon} size={12} />
         )}
       </div>
     </motion.div>
@@ -160,6 +182,15 @@ function MediaStats({ mediaFiles, onClearAll, platformHint }: MediaStatsProps) {
             {mediaFiles.filter((f) => f.mediaType === "VIDEO").length} video(s)
           </span>
         </span>
+        {mediaFiles.some((f) => f.mediaType === "DOCUMENT") && (
+          <span className="flex items-center space-x-1">
+            <Icon icon={File02Icon} size={12} />
+            <span>
+              {mediaFiles.filter((f) => f.mediaType === "DOCUMENT").length}{" "}
+              doc(s)
+            </span>
+          </span>
+        )}
       </div>
       <Button
         className="h-auto px-2 py-1 text-xs"
@@ -284,13 +315,11 @@ export function MediaUploader({
 
       // Validate each file using centralized validation
       for (const file of incomingFiles) {
-        const mediaType = file.type.startsWith("image/") ? "IMAGE" : "VIDEO";
+        const mediaType = getMediaTypeFromFile(file);
         const validation = canAddMediaType(socialType, mediaType, [
           ...mediaFiles,
           ...validatedFiles.map((f) => ({
-            mediaType: f.type.startsWith("image/")
-              ? ("IMAGE" as const)
-              : ("VIDEO" as const),
+            mediaType: getMediaTypeFromFile(f),
           })),
         ]);
 
@@ -339,12 +368,11 @@ export function MediaUploader({
         return {
           id: crypto.randomUUID(),
           file,
-          mediaType: file.type.startsWith("image/")
-            ? ("IMAGE" as const)
-            : ("VIDEO" as const),
+          mediaType: getMediaTypeFromFile(file),
           previewUrl: URL.createObjectURL(file),
           size: file.size,
           extension,
+          originalFilename: file.name,
           isUploading: true,
         };
       });
@@ -411,9 +439,7 @@ export function MediaUploader({
         if (successCount > 0) {
           analytics.capture(MEDIA_UPLOADED, {
             count: successCount,
-            media_types: validatedFiles.map((f) =>
-              f.type.startsWith("image/") ? "IMAGE" : "VIDEO"
-            ),
+            media_types: validatedFiles.map((f) => getMediaTypeFromFile(f)),
             platform: socialType,
           });
         }
@@ -471,7 +497,7 @@ export function MediaUploader({
         id: string;
         url: string;
         bucketKey: string;
-        mediaType: "IMAGE" | "VIDEO";
+        mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
         originalFilename?: string | null;
         size?: number | null;
         extension?: string | null;
@@ -509,7 +535,7 @@ export function MediaUploader({
     return "aspect-square";
   };
 
-  const getPreviewAspectRatio = (mediaType: "IMAGE" | "VIDEO") => {
+  const getPreviewAspectRatio = (mediaType: "IMAGE" | "VIDEO" | "DOCUMENT") => {
     if (socialType === "TIKTOK" || socialType === "YOUTUBE") {
       return mediaType === "VIDEO" ? "aspect-[9/16]" : "aspect-square";
     }

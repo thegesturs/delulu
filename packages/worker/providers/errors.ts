@@ -55,9 +55,9 @@ export class InvalidMediaError extends SocialProviderError {
 export class MediaUploadError extends SocialProviderError {
   readonly code = "MEDIA_UPLOAD_FAILED";
   readonly provider: string;
-  readonly mediaType: "IMAGE" | "VIDEO";
+  readonly mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
 
-  constructor(provider: string, mediaType: "IMAGE" | "VIDEO") {
+  constructor(provider: string, mediaType: "IMAGE" | "VIDEO" | "DOCUMENT") {
     super(`Failed to upload ${mediaType.toLowerCase()} to ${provider}`);
     this.name = "MediaUploadError";
     this.provider = provider;

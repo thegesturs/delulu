@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const videoTypes = ["MP4", "MOV", "MKV", "WEBM"];
 export const allowedImageTypes = ["JPEG", "GIF", "PNG", "HEIC", "WEBP"];
+export const documentTypes = ["PDF", "PPT", "PPTX", "DOC", "DOCX"];
 
 export const allowedImageMimeTypes = new Set([
   "image/jpeg",
@@ -67,7 +68,7 @@ export type SocialProviderType = z.infer<typeof SocialProviderSchema>;
 
 export const mediaSchema = z.object({
   url: z.string().optional(),
-  mediaType: z.enum(["IMAGE", "VIDEO"]),
+  mediaType: z.enum(["IMAGE", "VIDEO", "DOCUMENT"]),
   bucketUrl: z.string().optional(),
   bucketKey: z.string().optional(),
   altText: z.string().optional(),

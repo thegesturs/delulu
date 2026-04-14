@@ -51,7 +51,11 @@ export const privacyStatusSchema = v.union(
   v.literal("UNLISTED")
 );
 
-export const mediaTypeSchema = v.union(v.literal("IMAGE"), v.literal("VIDEO"));
+export const mediaTypeSchema = v.union(
+  v.literal("IMAGE"),
+  v.literal("VIDEO"),
+  v.literal("DOCUMENT")
+);
 
 // ============================================================================
 // MEDIA SCHEMA - Matching validators/post.ts mediaSchema

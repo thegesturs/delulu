@@ -32,7 +32,7 @@ interface MediaItem {
   id: string;
   url: string;
   bucketKey: string;
-  mediaType: "IMAGE" | "VIDEO";
+  mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
   originalFilename?: string | null;
   size?: number | null;
   extension?: string | null;
