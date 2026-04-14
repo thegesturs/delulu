@@ -92,7 +92,7 @@ export function ReviewClient({ postId }: ReviewClientProps) {
       media: (c.media ?? []).map((m) => ({
         url: m.url,
         bucketKey: m.bucketKey,
-        mediaType: m.mediaType as "IMAGE" | "VIDEO",
+        mediaType: m.mediaType as "IMAGE" | "VIDEO" | "DOCUMENT",
         altText: m.altText,
       })),
     })),

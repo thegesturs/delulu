@@ -23,7 +23,9 @@ export function useMediaStorage() {
         url: uploadResult.url,
         mediaType: file.type.startsWith("image/")
           ? ("IMAGE" as const)
-          : ("VIDEO" as const),
+          : file.type.startsWith("video/")
+            ? ("VIDEO" as const)
+            : ("DOCUMENT" as const),
         originalFilename: file.name,
         size: file.size,
         extension,

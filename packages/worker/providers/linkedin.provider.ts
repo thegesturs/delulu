@@ -103,6 +103,68 @@ const uploadImageToLinkedIn = (
   });
 };
 
+// Helper: Upload document (PDF, PPT, DOC, etc.) to LinkedIn and return asset URN
+const uploadDocumentToLinkedIn = (
+  documentUrl: string,
+  profileId: string,
+  accessToken: string,
+  isOrg: boolean = false
+): ResultAsync<string, SocialProviderError> => {
+  const ownerUrn = isOrg
+    ? `urn:li:organization:${profileId}`
+    : `urn:li:person:${profileId}`;
+
+  return ResultAsync.fromPromise(
+    axios.get(documentUrl, { responseType: "arraybuffer" }),
+    () => new InvalidMediaError("LinkedIn", "Failed to download document")
+  ).andThen((response) => {
+    const docBuffer = response.data;
+    const maxSize = 100 * 1024 * 1024; // 100MB
+
+    if (docBuffer.length > maxSize) {
+      return errAsync(
+        new InvalidMediaError(
+          "LinkedIn",
+          `Document file too large: ${(docBuffer.length / 1024 / 1024).toFixed(2)}MB (maximum 100MB)`
+        )
+      );
+    }
+
+    return ResultAsync.fromPromise(
+      axios.post(
+        "https://api.linkedin.com/rest/documents?action=initializeUpload",
+        {
+          initializeUploadRequest: {
+            owner: ownerUrn,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "LinkedIn-Version": "202507",
+            "X-Restli-Protocol-Version": "2.0.0",
+          },
+        }
+      ),
+      (error) => createAPIError("LinkedIn", error)
+    ).andThen((registerRes) => {
+      const uploadUrl = registerRes.data.value.uploadUrl;
+      const documentUrn = registerRes.data.value.document;
+
+      return ResultAsync.fromPromise(
+        axios.put(uploadUrl, docBuffer, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/octet-stream",
+          },
+        }),
+        () => new MediaUploadError("LinkedIn", "DOCUMENT")
+      ).map(() => documentUrn);
+    });
+  });
+};
+
 // Helper: Validate video specifications for LinkedIn
 const validateVideoForLinkedIn = (
   videoBuffer: Buffer,
@@ -398,7 +460,7 @@ const waitForVideoProcessing = (
 // Helper: Build LinkedIn post data for any media type
 interface LinkedInMediaAsset {
   assetUrn: string;
-  type: "IMAGE" | "VIDEO";
+  type: "IMAGE" | "VIDEO" | "DOCUMENT";
   title?: string;
   description?: string;
 }
@@ -407,7 +469,12 @@ interface BuildLinkedInPostDataOptions {
   visibility?: "PUBLIC" | "CONNECTIONS";
 }
 
-type PostContentType = "TEXT_ONLY" | "SINGLE_IMAGE" | "MULTI_IMAGE" | "VIDEO";
+type PostContentType =
+  | "TEXT_ONLY"
+  | "SINGLE_IMAGE"
+  | "MULTI_IMAGE"
+  | "VIDEO"
+  | "DOCUMENT";
 
 // LinkedIn's "little text format" requires reserved characters to be escaped.
 // See: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/little-text-format
@@ -477,6 +544,17 @@ function buildLinkedInPostData(
         },
       };
 
+    case "DOCUMENT":
+      return {
+        ...basePost,
+        content: {
+          media: {
+            title: media[0]?.title || "Document",
+            id: media[0]?.assetUrn,
+          },
+        },
+      };
+
     default:
       return basePost;
   }
@@ -499,6 +577,8 @@ const createAndPublishPost = (
     contentType = "TEXT_ONLY";
   } else if (mediaAssets[0].type === "VIDEO") {
     contentType = "VIDEO";
+  } else if (mediaAssets[0].type === "DOCUMENT") {
+    contentType = "DOCUMENT";
   } else if (mediaAssets.length === 1) {
     contentType = "SINGLE_IMAGE";
   } else {
@@ -551,10 +631,16 @@ const publishContent = (
   const videoMedia = validMedia.filter(
     (media) => media.mediaType === "VIDEO" && media.url
   );
+  const documentMedia = validMedia.filter(
+    (media) => media.mediaType === "DOCUMENT" && media.url
+  );
 
   console.log(
-    "[LinkedIn] Processing video media:",
-    videoMedia.length > 0 ? `${videoMedia.length} video(s)` : "no videos"
+    "[LinkedIn] Processing media:",
+    videoMedia.length > 0 ? `${videoMedia.length} video(s)` : "no videos",
+    documentMedia.length > 0
+      ? `${documentMedia.length} document(s)`
+      : "no documents"
   );
 
   let uploadPromise: ResultAsync<LinkedInMediaAsset[], SocialProviderError>;
@@ -579,6 +665,23 @@ const publishContent = (
         },
       ]);
     });
+  } else if (documentMedia.length > 0) {
+    // Only support one document per post
+    const doc = documentMedia[0];
+
+    uploadPromise = uploadDocumentToLinkedIn(
+      doc.url!,
+      profile.profileId,
+      profile.accessToken,
+      isOrg
+    ).map((assetUrn) => [
+      {
+        assetUrn,
+        type: "DOCUMENT" as const,
+        title: doc.altText || "Document",
+        description: "Document",
+      },
+    ]);
   } else if (imageMedia.length > 0) {
     // Support multiple images
     uploadPromise = ResultAsync.combine(
