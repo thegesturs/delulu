@@ -456,7 +456,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
               <MediaUploader
                 orderId={item.order}
                 socialId={socialId}
-                socialType={socialType}
+                socialType={effectiveSocialType}
               />
             </div>
           </div>
