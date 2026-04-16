@@ -17,6 +17,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AlertCircleIcon,
   Calendar01Icon,
+  File02Icon,
   Link01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import Image from "next/image";
@@ -111,6 +112,17 @@ export function PostPreviewDialog({
                     src={firstMediaUrl}
                   />
                 )
+              ) : firstMedia.mediaType === "DOCUMENT" ? (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
+                  <Icon
+                    className="text-muted-foreground"
+                    icon={File02Icon}
+                    size={32}
+                  />
+                  <span className="text-muted-foreground text-sm">
+                    Document
+                  </span>
+                </div>
               ) : (
                 <video
                   aria-label="Post video content"

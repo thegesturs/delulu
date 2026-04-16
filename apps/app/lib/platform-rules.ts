@@ -642,6 +642,7 @@ export interface DynamicMediaLimits {
   remainingVideos: number;
   canAddImages: boolean;
   canAddVideos: boolean;
+  canAddDocuments: boolean;
   canMixTypes: boolean;
   acceptedMimeTypes: string[];
   instruction: string;
@@ -698,6 +699,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: state.images < 1,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: true,
         acceptedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         instruction:
@@ -717,6 +719,7 @@ export function getDynamicMediaLimits(
         remainingVideos: Math.max(0, 1 - state.videos),
         canAddImages: false,
         canAddVideos: state.videos < 1,
+        canAddDocuments: false,
         canMixTypes: true,
         acceptedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
         instruction:
@@ -735,6 +738,7 @@ export function getDynamicMediaLimits(
       remainingVideos: 1,
       canAddImages: true,
       canAddVideos: true,
+      canAddDocuments: false,
       canMixTypes: true,
       acceptedMimeTypes: [
         "image/*",
@@ -758,6 +762,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: false,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: false,
         acceptedMimeTypes: [],
         instruction: "Instagram Reels: 1 video only",
@@ -775,6 +780,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: remaining > 0,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: false,
         acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
         instruction:
@@ -793,6 +799,7 @@ export function getDynamicMediaLimits(
       remainingVideos: 1,
       canAddImages: true,
       canAddVideos: true,
+      canAddDocuments: false,
       canMixTypes: false,
       acceptedMimeTypes: ["image/*", "video/mp4", "video/quicktime"],
       instruction:
@@ -812,6 +819,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: false,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: false,
         acceptedMimeTypes: [],
         instruction: `${platformName}: Maximum 1 document reached`,
@@ -827,6 +835,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: false,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: false,
         acceptedMimeTypes: [],
         instruction: `${platformName}: Maximum 1 video reached`,
@@ -843,6 +852,7 @@ export function getDynamicMediaLimits(
         remainingVideos: 0,
         canAddImages: remaining > 0,
         canAddVideos: false,
+        canAddDocuments: false,
         canMixTypes: false,
         acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
         instruction:
@@ -861,6 +871,7 @@ export function getDynamicMediaLimits(
       remainingVideos: 1,
       canAddImages: true,
       canAddVideos: true,
+      canAddDocuments: true,
       canMixTypes: false,
       acceptedMimeTypes: [
         "image/*",
@@ -883,6 +894,7 @@ export function getDynamicMediaLimits(
       remainingVideos: 0,
       canAddImages: false,
       canAddVideos: false,
+      canAddDocuments: false,
       canMixTypes: false,
       acceptedMimeTypes: [],
       instruction: `${platformName}: Maximum 1 video reached`,
@@ -900,6 +912,7 @@ export function getDynamicMediaLimits(
       remainingVideos: 0,
       canAddImages: remaining > 0,
       canAddVideos: false,
+      canAddDocuments: false,
       canMixTypes: false,
       acceptedMimeTypes: remaining > 0 ? ["image/*"] : [],
       instruction:
@@ -918,6 +931,7 @@ export function getDynamicMediaLimits(
     remainingVideos: 1,
     canAddImages: true,
     canAddVideos: true,
+    canAddDocuments: false,
     canMixTypes: false,
     acceptedMimeTypes: ["image/*", "video/*"],
     instruction: `${platformName}: Up to ${baseMaxImages} ${baseMaxImages === 1 ? "image" : "images"} OR 1 video`,
@@ -1052,5 +1066,5 @@ export function canUploadMore(
   currentMedia: Array<{ mediaType: "IMAGE" | "VIDEO" | "DOCUMENT" }>
 ): boolean {
   const limits = getDynamicMediaLimits(socialType, currentMedia);
-  return limits.canAddImages || limits.canAddVideos;
+  return limits.canAddImages || limits.canAddVideos || limits.canAddDocuments;
 }

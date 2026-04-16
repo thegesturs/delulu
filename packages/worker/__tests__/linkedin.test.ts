@@ -43,6 +43,21 @@ describe("LinkedIn Provider Tests", () => {
     expect(result?.isOk?.() === true).toBe(true);
   });
 
+  it("should call processMessage for document", async () => {
+    const result = await processMessageTestOnly(
+      JSON.stringify({
+        socialType: linkedinProvider.socialType,
+        socialPublishInput: {
+          content: TEST_CONTENT.document,
+          postId: MOCK_POST_ID,
+          socialProviderId: linkedinProvider.id,
+        },
+      })
+    );
+
+    expect(result?.isOk?.() === true).toBe(true);
+  });
+
   it("should call processMessage for video", async () => {
     const result = await processMessageTestOnly(
       JSON.stringify({

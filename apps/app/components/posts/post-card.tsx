@@ -31,6 +31,7 @@ import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Calendar01Icon,
+  File02Icon,
   MoreHorizontalIcon,
   ViewIcon,
 } from "@hugeicons-pro/core-solid-rounded";
@@ -390,6 +391,17 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
                           src={firstMediaUrl}
                         />
                       )
+                    ) : firstMedia.mediaType === "DOCUMENT" ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
+                        <Icon
+                          className="text-muted-foreground"
+                          icon={File02Icon}
+                          size={24}
+                        />
+                        <span className="text-muted-foreground text-xs">
+                          Document
+                        </span>
+                      </div>
                     ) : (
                       <video
                         className="h-full w-full object-cover"

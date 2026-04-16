@@ -7,7 +7,7 @@ export const SOCIAL_PROVIDER_DATA = [
   { id: "js72nvt36ep43bpq7qssjy879d7p6atg", socialType: "THREADS" },
   { id: "jd71ygsh8e2n10pha52bpmgxsh809fkb", socialType: "INSTAGRAM" },
   { id: "js7bx2a2ca4rmwjryjxfzg8v597p64bx", socialType: "FACEBOOK" },
-  { id: "js762hety6cpas0qx7gtxy38ds7nvg3r", socialType: "LINKEDIN" },
+  { id: "jd71h77wkr462d9fqchhyc74hn84yeeq", socialType: "LINKEDIN" },
 ];
 
 export const LAMBDA_URL =
@@ -145,6 +145,23 @@ export const TEST_CONTENT = {
         },
       ],
       text: "Testing video with custom cover image",
+      tags: [],
+    },
+  ],
+
+  document: [
+    {
+      order: 0,
+      name: "DEFAULT",
+      media: [
+        {
+          bucketKey:
+            "user_38Kg2jxtno5qCAOAR3KvyyrbgGk/958e3f0d-f485-47c6-97dc-6413459bca7e.pdf",
+          url: "https://media.delulu.social/user_38Kg2jxtno5qCAOAR3KvyyrbgGk/958e3f0d-f485-47c6-97dc-6413459bca7e.pdf",
+          mediaType: "DOCUMENT" as const,
+        },
+      ],
+      text: "Testing document post via API",
       tags: [],
     },
   ],
