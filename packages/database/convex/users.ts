@@ -2,6 +2,7 @@ import type { UserJSON } from "@clerk/backend";
 import { type Validator, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import {
+  internalAction,
   internalMutation,
   internalQuery,
   type MutationCtx,
@@ -9,6 +10,7 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server";
+import { postNotification } from "./lib/notify";
 import { userSchema } from "./schemas";
 import { postsByUserStatus } from "./stats";
 import { getCurrentTimestamp, isValidEmail } from "./utils";
@@ -274,5 +276,57 @@ export const getByExternalId = internalQuery({
       .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
       .unique();
     return user;
+  },
+});
+
+// ============================================================================
+// Welcome email (notifications)
+// ============================================================================
+
+/**
+ * Atomic "claim" mutation called by the Worker: if the user has not already
+ * had a welcome email dispatched, stamp welcomeSentAt and return the user's
+ * contact info. Returns null if already sent or user missing — the Worker
+ * treats this as a no-op idempotent success.
+ *
+ * Must be a public mutation (called over HTTP from the Worker via ConvexHttpClient).
+ */
+export const apiClaimWelcomeSend = mutation({
+  args: { clerkUserId: v.string() },
+  returns: v.union(
+    v.object({
+      email: v.string(),
+      name: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await userByExternalId(ctx, args.clerkUserId);
+    if (!user) {
+      return null;
+    }
+    if (user.welcomeSentAt) {
+      return null;
+    }
+    if (!user.email) {
+      return null;
+    }
+    await ctx.db.patch(user._id, { welcomeSentAt: getCurrentTimestamp() });
+    return { email: user.email, name: user.name };
+  },
+});
+
+/**
+ * Scheduled from the Clerk user.created webhook handler. Calls the Worker
+ * which hydrates via apiClaimWelcomeSend and sends the mail.
+ */
+export const notifyWelcome = internalAction({
+  args: { clerkUserId: v.string() },
+  returns: v.null(),
+  handler: async (_ctx, args) => {
+    await postNotification("/v1/notifications/welcome", {
+      clerkUserId: args.clerkUserId,
+    });
+    return null;
   },
 });

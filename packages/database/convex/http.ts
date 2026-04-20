@@ -127,7 +127,16 @@ http.route({
     }
 
     switch (event.type) {
-      case "user.created": // intentional fallthrough
+      case "user.created":
+        await ctx.runMutation(internal.users.upsertFromClerk, {
+          data: event.data,
+        });
+        if (event.data.id) {
+          await ctx.scheduler.runAfter(0, internal.users.notifyWelcome, {
+            clerkUserId: event.data.id,
+          });
+        }
+        break;
       case "user.updated":
         await ctx.runMutation(internal.users.upsertFromClerk, {
           data: event.data,

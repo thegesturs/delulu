@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { ApiKeyData, Env } from "../../types";
 import accounts from "./accounts";
 import media from "./media";
+import notifications from "./notifications";
 import posts from "./posts";
 import reviews from "./reviews";
 import stats from "./stats";
@@ -18,5 +19,6 @@ v1.route("/accounts", accounts);
 v1.route("/stats", stats);
 v1.route("/media", media);
 v1.route("/reviews", reviews);
+v1.route("/notifications", notifications);
 
 export default v1;

@@ -99,6 +99,9 @@ importers:
       '@delulu/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@scalar/hono-api-reference':
         specifier: ^0.10.0
         version: 0.10.0(hono@4.7.4)

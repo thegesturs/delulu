@@ -15,6 +15,6 @@
     },
     "strictNullChecks": true
   },
-  "include": ["./*.ts", "./*.tsx", "templates/**/*"],
+  "include": ["./*.ts", "./*.tsx", "templates/**/*", "cf/**/*"],
   "exclude": ["node_modules"]
 }

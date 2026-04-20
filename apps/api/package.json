@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@delulu/database": "workspace:*",
+    "@delulu/email": "workspace:*",
     "@scalar/hono-api-reference": "^0.10.0",
     "convex": "^1.25.4",
     "hono": "^4.7.0"

@@ -13,6 +13,11 @@ interface AppEnv {
   Variables: { apiKey: ApiKeyData };
 }
 
+// Path prefix for internal service-to-service notification endpoints.
+// These bypass API-key auth and rate limiting; they authenticate via a shared
+// secret header handled inside the notifications router.
+const INTERNAL_PREFIX = "/v1/notifications";
+
 export function createApp() {
   const app = new Hono<AppEnv>();
 
@@ -35,9 +40,20 @@ export function createApp() {
     })
   );
 
-  // Auth + rate limiting for all /v1 routes
-  app.use("/v1/*", authMiddleware);
-  app.use("/v1/*", rateLimitMiddleware);
+  // Auth + rate limiting for all /v1 routes, EXCEPT the internal notifications
+  // subtree which uses its own shared-secret middleware.
+  app.use("/v1/*", async (c, next) => {
+    if (c.req.path.startsWith(INTERNAL_PREFIX)) {
+      return next();
+    }
+    return authMiddleware(c, next);
+  });
+  app.use("/v1/*", async (c, next) => {
+    if (c.req.path.startsWith(INTERNAL_PREFIX)) {
+      return next();
+    }
+    return rateLimitMiddleware(c, next);
+  });
 
   // Mount v1 routes
   app.route("/v1", v1);

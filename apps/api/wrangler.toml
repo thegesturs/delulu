@@ -5,11 +5,14 @@ compatibility_date = "2024-12-01"
 [vars]
 CONVEX_URL = "https://giant-canary-837.convex.cloud"
 DELULU_APP_URL = "https://solulu.delulu.social"
+NOTIFICATION_FROM_EMAIL = "notifications@delulu.social"
+NOTIFICATION_FROM_NAME = "Delulu"
 
 # Secrets (set via wrangler secret put):
 # R2_ACCOUNT_ID
 # R2_ACCESS_KEY_ID
 # R2_SECRET_ACCESS_KEY
+# INTERNAL_NOTIFICATIONS_SECRET
 
 [[kv_namespaces]]
 binding = "DELULU_RATE_LIMIT_KV"
@@ -18,3 +21,9 @@ id = "0fa4faf775ec4ab28e259c8a5503dc3c"
 [[r2_buckets]]
 binding = "DELULU_SOCIAL_BUCKET"
 bucket_name = "delulu-social"
+
+# Cloudflare Email Service (public beta) outbound binding.
+# Requires Workers Paid and a verified sending domain configured in the
+# CF dashboard under Email → Email Service.
+[[send_email]]
+name = "SEND_EMAIL"

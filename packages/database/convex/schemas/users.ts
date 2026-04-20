@@ -38,6 +38,7 @@ export const baseUserSchema = v.object({
   dodoCustomerId: v.optional(v.string()), // Dodo Payments customer ID
   subscriptionId: v.optional(v.id("subscriptions")), // Link to current plan subscription
   addonSubscriptionIds: v.optional(v.array(v.id("subscriptions"))), // Links to addon subscriptions (e.g. Sorted)
+  welcomeSentAt: v.optional(v.number()), // ms timestamp; set when welcome email is dispatched (dedup)
   updatedAt: v.number(),
 });
 
@@ -72,5 +73,6 @@ export const userUpdateSchema = v.object({
   dodoCustomerId: v.optional(v.string()),
   subscriptionId: v.optional(v.id("subscriptions")),
   addonSubscriptionIds: v.optional(v.array(v.id("subscriptions"))),
+  welcomeSentAt: v.optional(v.number()),
   updatedAt: v.optional(v.number()),
 });

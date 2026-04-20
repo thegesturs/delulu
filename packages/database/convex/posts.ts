@@ -54,6 +54,7 @@ function extractSearchableText(
 }
 
 import { getAuthContext } from "./lib/auth";
+import { postNotification } from "./lib/notify";
 import {
   canCreatePosts,
   canPublishDirectly,
@@ -941,8 +942,54 @@ export const publishScheduledPost = internalAction({
           error instanceof Error ? error.message : "Unknown error occurred",
       });
 
+      // Notify the author via the Worker. Best-effort; never blocks.
+      await ctx.scheduler.runAfter(0, internal.posts.notifyPublishFailed, {
+        postId: args.postId,
+      });
+
       return false;
     }
+  },
+});
+
+export const apiGetPostForFailureNotification = query({
+  args: { postId: v.id("posts") },
+  returns: v.union(
+    v.object({
+      authorEmail: v.string(),
+      authorName: v.string(),
+      postPreview: v.string(),
+      failureReason: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const post = (await ctx.db.get(args.postId)) as Doc<"posts"> | null;
+    if (!post || post.isDeleted || !post.userId) {
+      return null;
+    }
+    const author = (await ctx.db.get(post.userId)) as Doc<"users"> | null;
+    if (!author?.email) {
+      return null;
+    }
+    const firstContent = post.content[0];
+    return {
+      authorEmail: author.email,
+      authorName: author.name || author.email,
+      postPreview: (firstContent?.text ?? "").slice(0, 200),
+      failureReason: post.postFailureReason || "Unknown error",
+    };
+  },
+});
+
+export const notifyPublishFailed = internalAction({
+  args: { postId: v.id("posts") },
+  returns: v.null(),
+  handler: async (_ctx, args) => {
+    await postNotification("/v1/notifications/post-publish-failed", {
+      postId: args.postId,
+    });
+    return null;
   },
 });
 
