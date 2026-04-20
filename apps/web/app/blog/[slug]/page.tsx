@@ -25,6 +25,16 @@ const parser = remark()
 
 const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 
+// ISR: pre-render at build, revalidate hourly.
+export const revalidate = 3600;
+// Any slug not in generateStaticParams is rendered on demand (then cached).
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const slugs = await fetchQuery(api.articles.getArticleSlugs, {});
+  return slugs;
+}
+
 export const generateMetadata = async ({
   params,
 }: PageProps): Promise<Metadata> => {
@@ -66,8 +76,10 @@ export const generateMetadata = async ({
     });
   }
 
-  // Fallback to Convex article
-  const article = await fetchQuery(api.articles.getArticleBySlug, { slug });
+  // Fallback to Convex article — metadata only, no body.
+  const article = await fetchQuery(api.articles.getArticleMetadataBySlug, {
+    slug,
+  });
   if (!article) {
     return notFound();
   }

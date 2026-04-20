@@ -2,15 +2,19 @@ import { api } from "@delulu/database/convex/_generated/api";
 import { allBlogs } from "content-collections";
 import { fetchQuery } from "convex/nextjs";
 import { BlogCardVertical } from "@/components/blog/blog-card";
-import { adaptContentCollectionsBlog, adaptConvexArticle } from "@/types/blog";
+import {
+  adaptContentCollectionsBlog,
+  adaptConvexArticlePreview,
+} from "@/types/blog";
 
 export async function BlogSection() {
-  const convexArticles = await fetchQuery(api.articles.getRecentArticles, {
+  // Preview shape only — no article bodies. Cached by ISR on the calling page.
+  const convexArticles = await fetchQuery(api.articles.getArticlesPreviewList, {
     limit: 3,
   });
 
   const ccBlogs = allBlogs.map(adaptContentCollectionsBlog);
-  const outBlogs = convexArticles.map(adaptConvexArticle);
+  const outBlogs = convexArticles.map(adaptConvexArticlePreview);
 
   const recentPosts = [...ccBlogs, ...outBlogs]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

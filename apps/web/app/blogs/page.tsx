@@ -5,7 +5,13 @@ import { allBlogs } from "content-collections";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
-import { adaptContentCollectionsBlog, adaptConvexArticle } from "@/types/blog";
+import {
+  adaptContentCollectionsBlog,
+  adaptConvexArticlePreview,
+} from "@/types/blog";
+
+// ISR: regenerate at most hourly, serve stale in the meantime.
+export const revalidate = 3600;
 
 export const metadata: Metadata = createMetadata({
   title: "Blog",
@@ -20,12 +26,14 @@ const BlogIndex = async () => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
   const blogUrl = `${baseUrl}/blogs`;
 
-  // Fetch Outrank articles from Convex
-  const convexArticles = await fetchQuery(api.articles.getAllArticles);
+  // Preview shape only — no article bodies. Cached by Next.js ISR.
+  const convexArticles = await fetchQuery(api.articles.getArticlesPreviewList, {
+    limit: 100,
+  });
 
   // Adapt both sources to unified type
   const ccBlogs = allBlogs.map(adaptContentCollectionsBlog);
-  const outBlogs = convexArticles.map(adaptConvexArticle);
+  const outBlogs = convexArticles.map(adaptConvexArticlePreview);
 
   // Merge and sort by date descending
   const allPosts = [...ccBlogs, ...outBlogs].sort(
