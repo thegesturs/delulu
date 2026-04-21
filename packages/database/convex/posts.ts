@@ -11,7 +11,11 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server";
-import { postsByUserStatus } from "./stats";
+import {
+  deletePostAggregate,
+  insertPostAggregate,
+  replacePostAggregate,
+} from "./stats";
 
 /**
  * Extract all video bucket keys from post content and alternative content
@@ -190,7 +194,7 @@ export async function createPostCore(
 
   const newPost = await ctx.db.get(newPostId);
   if (newPost) {
-    await postsByUserStatus.insert(ctx, newPost);
+    await insertPostAggregate(ctx, newPost);
   }
 
   // Increment monthly posts counter
@@ -250,7 +254,7 @@ export async function updatePostCore(
 
   const newPost = await ctx.db.get(postId);
   if (newPost) {
-    await postsByUserStatus.replace(ctx, oldPost, newPost);
+    await replacePostAggregate(ctx, oldPost, newPost);
   }
 
   if (args.scheduledAt) {
@@ -296,7 +300,7 @@ export async function softDeletePostCore(
 
   const newPost = await ctx.db.get(postId);
   if (newPost) {
-    await postsByUserStatus.replace(ctx, oldPost, newPost);
+    await replacePostAggregate(ctx, oldPost, newPost);
   }
 
   return true;
@@ -500,7 +504,7 @@ export const updatePostScheduledTime = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(args.id);
     if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await replacePostAggregate(ctx, oldPost, newPost);
     }
 
     // Reschedule the post: cancel old schedule and create new one
@@ -599,7 +603,7 @@ export const upsertPost = mutation({
       // Update aggregates
       const newPost = await ctx.db.get(id);
       if (newPost) {
-        await postsByUserStatus.replace(ctx, oldPost, newPost);
+        await replacePostAggregate(ctx, oldPost, newPost);
       }
 
       postId = id;
@@ -625,7 +629,7 @@ export const upsertPost = mutation({
       // Update aggregates for new post
       const newPost = await ctx.db.get(postId);
       if (newPost) {
-        await postsByUserStatus.insert(ctx, newPost);
+        await insertPostAggregate(ctx, newPost);
       }
 
       // Increment monthly posts counter
@@ -684,7 +688,7 @@ export const hardDeletePost = mutation({
     }
 
     // Remove from aggregates before deleting
-    await postsByUserStatus.delete(ctx, post);
+    await deletePostAggregate(ctx, post);
 
     await ctx.db.delete(post._id);
     return true;
@@ -800,7 +804,7 @@ export const updatePostPublishStatus = mutation({
     // Update aggregates
     const newPost = await ctx.db.get(post._id);
     if (newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await replacePostAggregate(ctx, oldPost, newPost);
 
       // If post was published successfully, update the user's streak
       if (args.status === "PUBLISHED" && post.userId) {
@@ -970,7 +974,7 @@ export const updatePostStatus = internalMutation({
     });
     const newPost = await ctx.db.get(args.postId);
     if (oldPost && newPost) {
-      await postsByUserStatus.replace(ctx, oldPost, newPost);
+      await replacePostAggregate(ctx, oldPost, newPost);
     }
 
     return true;

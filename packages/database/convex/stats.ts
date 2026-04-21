@@ -201,6 +201,55 @@ export const postsByUserStatus = new TableAggregate<{
   sortKey: (doc) => [doc.userId ?? null, doc.status],
 });
 
+// Aggregate for posts by org and status — mirrors postsByUserStatus for org workspaces.
+// Lets getDashboardStats avoid .collect() + JS filter on large org post tables.
+export const postsByOrgStatus = new TableAggregate<{
+  Key: [string | null, string]; // [organizationId, status]
+  DataModel: DataModel;
+  TableName: "posts";
+}>(components.postsByOrgStatus, {
+  sortKey: (doc) => [doc.organizationId ?? null, doc.status],
+});
+
+// Dual-aggregate helpers — call these instead of the individual aggregators
+// so we always keep both in sync. Every post mutation should flow through one
+// of these four functions.
+export async function insertPostAggregate(
+  ctx: Parameters<typeof postsByUserStatus.insert>[0],
+  post: Doc<"posts">
+) {
+  await postsByUserStatus.insert(ctx, post);
+  await postsByOrgStatus.insert(ctx, post);
+}
+export async function replacePostAggregate(
+  ctx: Parameters<typeof postsByUserStatus.replace>[0],
+  oldPost: Doc<"posts">,
+  newPost: Doc<"posts">
+) {
+  await postsByUserStatus.replace(ctx, oldPost, newPost);
+  await postsByOrgStatus.replace(ctx, oldPost, newPost);
+}
+export async function deletePostAggregate(
+  ctx: Parameters<typeof postsByUserStatus.delete>[0],
+  post: Doc<"posts">
+) {
+  await postsByUserStatus.delete(ctx, post);
+  await postsByOrgStatus.delete(ctx, post);
+}
+export async function insertPostAggregateIfAbsent(
+  ctx: Parameters<typeof postsByUserStatus.insertIfDoesNotExist>[0],
+  post: Doc<"posts">
+) {
+  await postsByUserStatus.insertIfDoesNotExist(ctx, post);
+  await postsByOrgStatus.insertIfDoesNotExist(ctx, post);
+}
+export async function clearPostAggregates(
+  ctx: Parameters<typeof postsByUserStatus.clear>[0]
+) {
+  await postsByUserStatus.clear(ctx);
+  await postsByOrgStatus.clear(ctx);
+}
+
 // Query to get comprehensive dashboard stats (org-aware)
 export const getDashboardStats = query({
   args: {},
@@ -227,60 +276,54 @@ export const getDashboardStats = query({
 
     const orgId = authCtx.organizationId;
 
-    let totalPosts: number;
-    let publishedCount: number;
-    let scheduledCount: number;
-    let failedCount: number;
-    let savedCount: number;
-    let processingCount: number;
-
-    if (orgId) {
-      // Org context — direct indexed query (bounded by org size)
-      const allOrgPosts = await ctx.db
-        .query("posts")
-        .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
-        .collect();
-
-      totalPosts = allOrgPosts.length;
-      publishedCount = allOrgPosts.filter(
-        (p) => p.status === "PUBLISHED"
-      ).length;
-      scheduledCount = allOrgPosts.filter(
-        (p) => p.status === "SCHEDULED"
-      ).length;
-      failedCount = allOrgPosts.filter((p) => p.status === "FAILED").length;
-      savedCount = allOrgPosts.filter((p) => p.status === "SAVED").length;
-      processingCount = allOrgPosts.filter(
-        (p) => p.status === "PROCESSING"
-      ).length;
-    } else {
-      // Personal — use aggregator
-      [
-        totalPosts,
-        publishedCount,
-        scheduledCount,
-        failedCount,
-        savedCount,
-        processingCount,
-      ] = await Promise.all([
-        postsByUserStatus.count(ctx, { bounds: { prefix: [authCtx.userId] } }),
-        postsByUserStatus.count(ctx, {
-          bounds: { prefix: [authCtx.userId, "PUBLISHED"] },
-        }),
-        postsByUserStatus.count(ctx, {
-          bounds: { prefix: [authCtx.userId, "SCHEDULED"] },
-        }),
-        postsByUserStatus.count(ctx, {
-          bounds: { prefix: [authCtx.userId, "FAILED"] },
-        }),
-        postsByUserStatus.count(ctx, {
-          bounds: { prefix: [authCtx.userId, "SAVED"] },
-        }),
-        postsByUserStatus.count(ctx, {
-          bounds: { prefix: [authCtx.userId, "PROCESSING"] },
-        }),
-      ]);
-    }
+    // Status counts via aggregator — no full-table scan, O(log n) reads.
+    // Branches kept separate so TS picks the right (non-namespaced) overload.
+    const [
+      totalPosts,
+      publishedCount,
+      scheduledCount,
+      failedCount,
+      savedCount,
+      processingCount,
+    ] = orgId
+      ? await Promise.all([
+          postsByOrgStatus.count(ctx, { bounds: { prefix: [orgId] } }),
+          postsByOrgStatus.count(ctx, {
+            bounds: { prefix: [orgId, "PUBLISHED"] },
+          }),
+          postsByOrgStatus.count(ctx, {
+            bounds: { prefix: [orgId, "SCHEDULED"] },
+          }),
+          postsByOrgStatus.count(ctx, {
+            bounds: { prefix: [orgId, "FAILED"] },
+          }),
+          postsByOrgStatus.count(ctx, {
+            bounds: { prefix: [orgId, "SAVED"] },
+          }),
+          postsByOrgStatus.count(ctx, {
+            bounds: { prefix: [orgId, "PROCESSING"] },
+          }),
+        ])
+      : await Promise.all([
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId] },
+          }),
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId, "PUBLISHED"] },
+          }),
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId, "SCHEDULED"] },
+          }),
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId, "FAILED"] },
+          }),
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId, "SAVED"] },
+          }),
+          postsByUserStatus.count(ctx, {
+            bounds: { prefix: [authCtx.userId, "PROCESSING"] },
+          }),
+        ]);
 
     // Calculate time ranges
     const now = Date.now();
@@ -303,6 +346,11 @@ export const getDashboardStats = query({
     };
 
     // Get upcoming scheduled posts
+    // Time-window counts — capped at 500 to bound DB reads. Any org hitting
+    // 500 scheduled/weekly posts renders as "500+" which is fine for the UI.
+    // (A full fix would add a (owner, scheduledAt) or (owner, createdAt)
+    // aggregator, but the cost/benefit isn't there yet.)
+    const COUNT_CAP = 500;
     const upcomingScheduledPosts = await queryPosts()
       .filter((q) =>
         q.and(
@@ -312,10 +360,9 @@ export const getDashboardStats = query({
           q.lte(q.field("scheduledAt"), nextWeek)
         )
       )
-      .collect();
+      .take(COUNT_CAP);
     const upcomingPosts = upcomingScheduledPosts.length;
 
-    // Get weekly trends
     const thisWeekPostsResult = await queryPosts()
       .filter((q) =>
         q.and(
@@ -324,7 +371,7 @@ export const getDashboardStats = query({
           q.lte(q.field("createdAt"), now)
         )
       )
-      .collect();
+      .take(COUNT_CAP);
     const thisWeekPosts = thisWeekPostsResult.length;
 
     const lastWeekPostsResult = await queryPosts()
@@ -335,7 +382,7 @@ export const getDashboardStats = query({
           q.lt(q.field("createdAt"), thisWeekStart)
         )
       )
-      .collect();
+      .take(COUNT_CAP);
     const lastWeekPosts = lastWeekPostsResult.length;
 
     // Calculate success rate
@@ -345,22 +392,19 @@ export const getDashboardStats = query({
         ? Math.round((publishedCount / totalAttempted) * 100)
         : 0;
 
-    // Get connected accounts count (org or personal)
-    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-    let socialProviders;
-    if (orgId) {
-      socialProviders = await ctx.db
-        .query("socialProviders")
-        .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
-        .filter((q) => q.eq(q.field("isActive"), true))
-        .collect();
-    } else {
-      socialProviders = await ctx.db
-        .query("socialProviders")
-        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
-        .filter((q) => q.eq(q.field("isActive"), true))
-        .collect();
-    }
+    // Get connected accounts. Capped at 500 for safety — no org should have
+    // anywhere near that many socials in practice.
+    const socialProviders = orgId
+      ? await ctx.db
+          .query("socialProviders")
+          .withIndex("by_organization_id", (q) => q.eq("organizationId", orgId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .take(500)
+      : await ctx.db
+          .query("socialProviders")
+          .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .take(500);
 
     // Count expired tokens
     const expiredTokens = socialProviders.filter(

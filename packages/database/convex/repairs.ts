@@ -1,14 +1,14 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
-import { postsByUserStatus } from "./stats";
+import { clearPostAggregates, insertPostAggregateIfAbsent } from "./stats";
 
 // Step 1: Clear the corrupted aggregate
 export const clearPostsAggregate = internalMutation({
   args: {},
   handler: async (ctx) => {
-    await postsByUserStatus.clear(ctx);
-    console.log("postsByUserStatus aggregate cleared");
+    await clearPostAggregates(ctx);
+    console.log("postsByUserStatus + postsByOrgStatus aggregates cleared");
   },
 });
 
@@ -28,7 +28,7 @@ export const backfillPostsAggregate = internalMutation({
     });
 
     for (const post of results.page) {
-      await postsByUserStatus.insertIfDoesNotExist(ctx, post);
+      await insertPostAggregateIfAbsent(ctx, post);
       processed++;
     }
 
