@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as index from "../index.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_trigger_index from "../lib/trigger_index.js";
 import type * as lib_usage from "../lib/usage.js";
 import type * as media from "../media.js";
 import type * as mediaCleanup from "../mediaCleanup.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   index: typeof index;
   "lib/auth": typeof lib_auth;
   "lib/permissions": typeof lib_permissions;
+  "lib/trigger_index": typeof lib_trigger_index;
   "lib/usage": typeof lib_usage;
   media: typeof media;
   mediaCleanup: typeof mediaCleanup;

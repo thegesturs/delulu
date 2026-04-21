@@ -101,16 +101,40 @@ const findPostById = async (
 // SHARED CORE HELPERS (used by both public mutations and internal API variants)
 // ============================================================================
 
+type ProviderCache = Map<Id<"socialProviders">, Doc<"socialProviders"> | null>;
+
+async function getProviderCached(
+  ctx: QueryCtx,
+  id: Id<"socialProviders">,
+  cache: ProviderCache | undefined
+): Promise<Doc<"socialProviders"> | null> {
+  if (!cache) {
+    return ctx.db.get(id);
+  }
+  const cached = cache.get(id);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const fetched = await ctx.db.get(id);
+  cache.set(id, fetched);
+  return fetched;
+}
+
 /**
  * Enrich a post with its social providers and alternative content.
  * Shared by getPostById, getPosts, getScheduledPostsByDateRange.
+ *
+ * Pass `cache` when enriching a list of posts — shared providers across the
+ * page only get fetched once instead of N times per provider. Used by
+ * `enrichPostList` below.
  */
-export async function enrichPost(ctx: QueryCtx, post: Doc<"posts">) {
+export async function enrichPost(
+  ctx: QueryCtx,
+  post: Doc<"posts">,
+  cache?: ProviderCache
+) {
   const socialProviders = await Promise.all(
-    post.socialProviderIds.map(async (id) => {
-      const provider = await ctx.db.get(id);
-      return provider;
-    })
+    post.socialProviderIds.map((id) => getProviderCached(ctx, id, cache))
   );
 
   const validSocialProviders = socialProviders.filter(
@@ -120,7 +144,11 @@ export async function enrichPost(ctx: QueryCtx, post: Doc<"posts">) {
   const alternativeContent = post.alternativeContent || [];
   const alternativeContentWithProviders = await Promise.all(
     alternativeContent.map(async (alt) => {
-      const provider = await ctx.db.get(alt.socialProviderId);
+      const provider = await getProviderCached(
+        ctx,
+        alt.socialProviderId,
+        cache
+      );
       if (!provider) {
         return null;
       }
@@ -141,6 +169,16 @@ export async function enrichPost(ctx: QueryCtx, post: Doc<"posts">) {
     socialProviders: validSocialProviders,
     alternativeContent: validAlternativeContent,
   };
+}
+
+/**
+ * Enrich a list of posts, sharing one provider cache across the whole page.
+ * Avoids the N+1 pattern where the same socialProviderId gets fetched once
+ * per post that references it.
+ */
+export async function enrichPostList(ctx: QueryCtx, posts: Doc<"posts">[]) {
+  const cache: ProviderCache = new Map();
+  return Promise.all(posts.map((post) => enrichPost(ctx, post, cache)));
 }
 
 interface CreatePostArgs {
@@ -407,9 +445,7 @@ export async function getPostsCore(
     paginationResult = await query.order("desc").paginate(args.paginationOpts);
   }
 
-  const enrichedPosts = await Promise.all(
-    paginationResult.page.map((post) => enrichPost(ctx, post))
-  );
+  const enrichedPosts = await enrichPostList(ctx, paginationResult.page);
 
   return {
     page: enrichedPosts,
@@ -1072,10 +1108,8 @@ export const getScheduledPostsByDateRange = query({
       })
       .collect();
 
-    // Populate social providers for each post
-    const postsWithProviders = await Promise.all(
-      posts.map((post) => enrichPost(ctx, post))
-    );
+    // Populate social providers for each post (single provider cache per page)
+    const postsWithProviders = await enrichPostList(ctx, posts);
 
     return postsWithProviders;
   },

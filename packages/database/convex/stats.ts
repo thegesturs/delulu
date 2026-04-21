@@ -467,16 +467,27 @@ export const getUpcomingPosts = query({
           q.lte(q.field("scheduledAt"), futureDate)
         )
       )
-      .collect();
+      .take(100);
 
     // Sort by scheduled time
     upcomingPosts.sort((a, b) => (a.scheduledAt || 0) - (b.scheduledAt || 0));
 
-    // Enrich with social provider info
+    // Enrich with social provider info, sharing one fetch per unique provider.
+    const providerCache = new Map<
+      Id<"socialProviders">,
+      Doc<"socialProviders"> | null
+    >();
     const enrichedPosts = await Promise.all(
       upcomingPosts.map(async (post) => {
         const socialProviders = await Promise.all(
-          post.socialProviderIds.map((id) => ctx.db.get(id))
+          post.socialProviderIds.map(async (id) => {
+            if (providerCache.has(id)) {
+              return providerCache.get(id)!;
+            }
+            const provider = await ctx.db.get(id);
+            providerCache.set(id, provider);
+            return provider;
+          })
         );
 
         return {
