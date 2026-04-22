@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalAction,
   internalMutation,
@@ -9,13 +10,18 @@ import {
   query,
 } from "./_generated/server";
 import { getAuthContext } from "./lib/auth";
-import { kvDelete, kvPut, triggerKey } from "./lib/kv";
+import { kvDelete, kvGet, kvPut, sessionKey, triggerKey } from "./lib/kv";
 import { canManageSocials } from "./lib/permissions";
 import {
   deleteAutomationMediaTriggers,
   syncAutomationMediaTriggers,
   type TriggerPair,
 } from "./lib/trigger_index";
+import {
+  sessionOp,
+  type TriggerKvOp,
+  triggerDiff,
+} from "./lib/trigger_kv_sync";
 import { resolveUsageOwnerFromDoc } from "./lib/usage";
 import {
   automationCreateSchema,
@@ -31,13 +37,32 @@ import { decryptData, getCurrentTimestamp } from "./utils";
 
 // Best-effort KV cache sync. Scheduled async so it doesn't block the
 // mutation. If CF_* env vars aren't set, the action no-ops silently.
-async function scheduleKvSync(ctx: MutationCtx, pairs: TriggerPair[]) {
-  if (pairs.length === 0) {
+/**
+ * Schedule KV writes for a batch of trigger ops produced by `triggerDiff`.
+ * No-op when the list is empty so mutations that didn't touch triggers
+ * don't fire the action.
+ */
+async function scheduleTriggerKv(ctx: MutationCtx, ops: TriggerKvOp[]) {
+  if (ops.length === 0) {
     return;
   }
   await ctx.scheduler.runAfter(0, internal.automations.syncTriggerKvBatch, {
-    pairs,
+    ops,
   });
+}
+
+/**
+ * Schedule a single session KV op (or no-op if null). Used from
+ * createSession / updateSession after the DB write.
+ */
+async function scheduleSessionKv(
+  ctx: MutationCtx,
+  op: ReturnType<typeof sessionOp>
+) {
+  if (!op) {
+    return;
+  }
+  await ctx.scheduler.runAfter(0, internal.automations.syncSessionKv, { op });
 }
 
 // ============================================================================
@@ -115,13 +140,24 @@ export const getAutomation = query({
 
 /**
  * Get automations + access token + usage for webhook processing (called by Lambda)
- * Single query: automations + token + plan limits + usage
+ *
+ * Two call shapes:
+ *  - Fast path: `automationIds` is provided (from the CF KV cache hit).
+ *    We just ctx.db.get each, resolve the provider from the first, return.
+ *  - Fallback: `instagramAccountId` + `mediaId` are provided. Used when the
+ *    Lambda can't reach CF KV. We do a .collect() + JS filter across all
+ *    active automations for the provider — correct but slow. This path
+ *    should see very little traffic once KV is healthy.
  */
 export const getForWebhook = query({
   args: {
     webhookSecret: v.string(),
-    instagramAccountId: v.string(),
-    mediaId: v.string(),
+    // Fast path — Lambda passes this after a KV hit.
+    automationIds: v.optional(v.array(v.id("automations"))),
+    // Fallback path — original signature. Kept so a broken KV gate doesn't
+    // drop automation events.
+    instagramAccountId: v.optional(v.string()),
+    mediaId: v.optional(v.string()),
   },
   returns: v.union(
     v.object({
@@ -146,35 +182,52 @@ export const getForWebhook = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    // Verify shared secret
     if (args.webhookSecret !== process.env.POSTING_SECRET_KEY) {
       console.log("[getForWebhook] Secret mismatch");
       return null;
     }
 
-    // 1. Indexed lookup on the denormalized trigger table. No .collect()
-    //    over all of the provider's automations any more — we hit only the
-    //    rows that actually target this mediaId.
-    const triggerRows = await ctx.db
-      .query("automationMediaTriggers")
-      .withIndex("by_profile_media", (q) =>
-        q.eq("profileId", args.instagramAccountId).eq("mediaId", args.mediaId)
-      )
-      .collect();
+    let matchingAutomations: Doc<"automations">[] = [];
 
-    const activeTriggerRows = triggerRows.filter((r) => r.isActive);
-    if (activeTriggerRows.length === 0) {
-      // Fast miss path — 90%+ of webhook events hit this.
+    if (args.automationIds && args.automationIds.length > 0) {
+      // Fast path. KV already told us which automations target this media.
+      const docs = await Promise.all(
+        args.automationIds.map((id) => ctx.db.get(id))
+      );
+      matchingAutomations = docs.filter(
+        (a): a is NonNullable<typeof a> => a?.isActive === true
+      );
+    } else if (args.instagramAccountId && args.mediaId) {
+      // Legacy fallback for when KV is unreachable. Scan + JS filter.
+      console.log(
+        `[getForWebhook] fallback path mediaId=${args.mediaId} — KV unavailable`
+      );
+      const provider = await ctx.db
+        .query("socialProviders")
+        .withIndex("by_profile_id", (q) =>
+          q.eq("profileId", args.instagramAccountId as string)
+        )
+        .first();
+      if (!provider || provider.socialType !== "INSTAGRAM") {
+        return null;
+      }
+      const mediaId = args.mediaId;
+      const allForProvider = await ctx.db
+        .query("automations")
+        .withIndex("by_social_provider_active", (q) =>
+          q.eq("socialProviderId", provider._id).eq("isActive", true)
+        )
+        .collect();
+      matchingAutomations = allForProvider.filter((a) =>
+        a.triggers.some((t) => t.targetPostIds.includes(mediaId))
+      );
+    } else {
+      console.log(
+        "[getForWebhook] missing both automationIds and fallback args"
+      );
       return null;
     }
 
-    // 2. Load the actual automations + their owning provider.
-    const automationDocs = await Promise.all(
-      activeTriggerRows.map((row) => ctx.db.get(row.automationId))
-    );
-    const matchingAutomations = automationDocs.filter(
-      (a): a is NonNullable<typeof a> => a?.isActive === true
-    );
     if (matchingAutomations.length === 0) {
       return null;
     }
@@ -184,7 +237,6 @@ export const getForWebhook = query({
       return null;
     }
 
-    // 3. Get user + subscription for plan limits
     const ownerId = await resolveUsageOwnerFromDoc(ctx, provider);
     if (!ownerId) {
       return null;
@@ -202,7 +254,6 @@ export const getForWebhook = query({
       }
     }
 
-    // 4. Decrypt access token
     const accessToken = await decryptData(provider.accessToken);
 
     return {
@@ -222,13 +273,19 @@ export const getForWebhook = query({
 });
 
 /**
- * Find the most recent active session for an Instagram user (called by Lambda)
- * Used for plain text message handling (email collection) where we don't know the automationId
+ * Find the active session for an Instagram user (called by Lambda).
+ *
+ * Two call shapes, mirroring getForWebhook:
+ *  - Fast path: `sessionId` from the KV cache hit. We ctx.db.get and
+ *    verify it's still active.
+ *  - Fallback: `instagramUserId` scan (old signature). Used when KV is
+ *    unreachable.
  */
 export const findActiveSessionByUser = query({
   args: {
     webhookSecret: v.string(),
-    instagramUserId: v.string(),
+    sessionId: v.optional(v.id("automationSessions")),
+    instagramUserId: v.optional(v.string()),
   },
   returns: v.union(automationSessionSchema, v.null()),
   handler: async (ctx, args) => {
@@ -236,10 +293,24 @@ export const findActiveSessionByUser = query({
       return null;
     }
 
+    if (args.sessionId) {
+      const session = await ctx.db.get(args.sessionId);
+      if (session && session.status === "active") {
+        return session;
+      }
+      return null;
+    }
+
+    if (!args.instagramUserId) {
+      return null;
+    }
+
     const session = await ctx.db
       .query("automationSessions")
       .withIndex("by_ig_user_status", (q) =>
-        q.eq("instagramUserId", args.instagramUserId).eq("status", "active")
+        q
+          .eq("instagramUserId", args.instagramUserId as string)
+          .eq("status", "active")
       )
       .order("desc")
       .first();
@@ -424,12 +495,8 @@ export const createAutomation = mutation({
     });
 
     const newAutomation = await ctx.db.get(automationId);
-    const affected = await syncAutomationMediaTriggers(
-      ctx,
-      newAutomation,
-      socialProvider.profileId
-    );
-    await scheduleKvSync(ctx, affected);
+    const ops = triggerDiff(null, newAutomation, socialProvider.profileId);
+    await scheduleTriggerKv(ctx, ops);
 
     return automationId;
   },
@@ -473,12 +540,8 @@ export const updateAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    const affected = await syncAutomationMediaTriggers(
-      ctx,
-      updated,
-      provider?.profileId ?? null
-    );
-    await scheduleKvSync(ctx, affected);
+    const ops = triggerDiff(automation, updated, provider?.profileId ?? null);
+    await scheduleTriggerKv(ctx, ops);
 
     return true;
   },
@@ -508,9 +571,10 @@ export const deleteAutomation = mutation({
       throw new Error("Automation not found or access denied");
     }
 
-    const affected = await deleteAutomationMediaTriggers(ctx, args.id);
+    const provider = await ctx.db.get(automation.socialProviderId);
+    const ops = triggerDiff(automation, null, provider?.profileId ?? null);
     await ctx.db.delete(args.id);
-    await scheduleKvSync(ctx, affected);
+    await scheduleTriggerKv(ctx, ops);
     return true;
   },
 });
@@ -545,12 +609,8 @@ export const toggleAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    const affected = await syncAutomationMediaTriggers(
-      ctx,
-      updated,
-      provider?.profileId ?? null
-    );
-    await scheduleKvSync(ctx, affected);
+    const ops = triggerDiff(automation, updated, provider?.profileId ?? null);
+    await scheduleTriggerKv(ctx, ops);
 
     return !automation.isActive;
   },
@@ -614,12 +674,12 @@ export const linkPublishedPost = internalMutation({
         const provider = refreshed
           ? await ctx.db.get(refreshed.socialProviderId)
           : null;
-        const affected = await syncAutomationMediaTriggers(
-          ctx,
+        const ops = triggerDiff(
+          automation,
           refreshed,
           provider?.profileId ?? null
         );
-        await scheduleKvSync(ctx, affected);
+        await scheduleTriggerKv(ctx, ops);
       }
     }
   },
@@ -699,7 +759,7 @@ export const createSession = mutation({
       });
     }
 
-    return await ctx.db.insert("automationSessions", {
+    const sessionId = await ctx.db.insert("automationSessions", {
       automationId: args.automationId,
       userId: args.userId,
       instagramUserId: args.instagramUserId,
@@ -712,6 +772,11 @@ export const createSession = mutation({
       lastActivityAt: now,
       createdAt: now,
     });
+
+    const newSession = await ctx.db.get(sessionId);
+    await scheduleSessionKv(ctx, sessionOp(null, newSession));
+
+    return sessionId;
   },
 });
 
@@ -747,7 +812,15 @@ export const updateSession = mutation({
       patch.variables = args.variables;
     }
 
+    const oldSession = await ctx.db.get(args.sessionId);
     await ctx.db.patch(args.sessionId, patch);
+    // Merge locally to avoid a second ctx.db.get — patch isn't reactive here
+    // and merging the known patch over the old doc is equivalent.
+    const updatedSession = oldSession
+      ? ({ ...oldSession, ...patch } as Doc<"automationSessions">)
+      : null;
+    await scheduleSessionKv(ctx, sessionOp(oldSession, updatedSession));
+
     return null;
   },
 });
@@ -893,56 +966,78 @@ export const backfillTriggerIndex = internalMutation({
 });
 
 // ============================================================================
-// KV Trigger Cache (Cloudflare Workers KV presence map for IG webhook gate)
+// KV Trigger Cache — CF KV is the sole (profileId, mediaId) → automationIds
+// index. Convex is the source of truth; the mutations compute the diff and
+// schedule RMW ops here so Lambda can short-circuit on misses without ever
+// reaching Convex.
 // ============================================================================
 
-const triggerPairValidator = v.object({
+const triggerKvOpValidator = v.object({
+  op: v.union(v.literal("add"), v.literal("remove")),
   profileId: v.string(),
   mediaId: v.string(),
+  automationId: v.id("automations"),
 });
 
-/**
- * Returns true if any active automation targets (profileId, mediaId).
- * Called from the KV sync action to decide PUT vs DELETE.
- */
-export const hasActiveTriggerForMedia = internalQuery({
-  args: triggerPairValidator,
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query("automationMediaTriggers")
-      .withIndex("by_profile_media", (q) =>
-        q.eq("profileId", args.profileId).eq("mediaId", args.mediaId)
-      )
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .first();
-    return row !== null;
-  },
+const sessionKvOpValidator = v.object({
+  op: v.union(v.literal("put"), v.literal("delete")),
+  instagramUserId: v.string(),
+  sessionId: v.optional(v.id("automationSessions")),
 });
 
+interface TriggerKvValue {
+  automationIds: string[];
+}
+
+function parseTriggerValue(raw: string): TriggerKvValue {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      Array.isArray((parsed as TriggerKvValue).automationIds)
+    ) {
+      return { automationIds: (parsed as TriggerKvValue).automationIds };
+    }
+  } catch {
+    // Old presence-bit format ("1") or garbage — treat as empty so the add
+    // path writes a clean JSON value over it.
+  }
+  return { automationIds: [] };
+}
+
 /**
- * Push the KV cache for a batch of (profileId, mediaId) pairs. For each pair,
- * reads the current DB state and writes or deletes the KV key. Scheduled
- * async from automation mutations so the mutation itself doesn't block on
- * external HTTP.
+ * Apply a batch of trigger KV ops (add/remove an automationId from
+ * `trig:{profileId}:{mediaId}`). Uses read-modify-write. Safe if CF env is
+ * unset — the underlying kv helpers are no-ops, so this just logs and exits.
  *
- * No-op (silently) if CF_* env vars aren't set — Lambda falls back to
- * calling Convex directly in that case.
+ * Concurrent mutations targeting the same key can race (last write wins).
+ * Worst case: a key is briefly out of sync. Run `rebuildTriggerKv` or
+ * `backfillTriggerKv` to heal if that ever happens in practice.
  */
 export const syncTriggerKvBatch = internalAction({
-  args: { pairs: v.array(triggerPairValidator) },
+  args: { ops: v.array(triggerKvOpValidator) },
   returns: v.null(),
-  handler: async (ctx, args) => {
-    for (const pair of args.pairs) {
-      const isPresent = await ctx.runQuery(
-        internal.automations.hasActiveTriggerForMedia,
-        pair
-      );
-      const key = triggerKey(pair.profileId, pair.mediaId);
-      if (isPresent) {
-        await kvPut(key, "1");
+  handler: async (_ctx, args) => {
+    for (const op of args.ops) {
+      const key = triggerKey(op.profileId, op.mediaId);
+      const raw = await kvGet(key);
+      if (raw === "error") {
+        // KV unavailable — bail, caller-side fallback handles the webhook.
+        continue;
+      }
+      const value =
+        raw === null ? { automationIds: [] } : parseTriggerValue(raw);
+      const set = new Set(value.automationIds);
+      if (op.op === "add") {
+        set.add(op.automationId);
       } else {
+        set.delete(op.automationId);
+      }
+      if (set.size === 0) {
         await kvDelete(key);
+      } else {
+        await kvPut(key, JSON.stringify({ automationIds: [...set] }));
       }
     }
     return null;
@@ -950,45 +1045,178 @@ export const syncTriggerKvBatch = internalAction({
 });
 
 /**
- * Backfill the KV cache from the current automationMediaTriggers table.
- * Safe to run any time — idempotent. Usage:
- *   npx convex run automations:backfillTriggerKv --prod
+ * Apply a session KV op. PUT writes `sess:{instagramUserId}` with the
+ * sessionId; DELETE removes the key. Called from createSession /
+ * updateSession mutations.
  */
-export const backfillTriggerKv = internalAction({
-  args: {},
+export const syncSessionKv = internalAction({
+  args: { op: sessionKvOpValidator },
   returns: v.null(),
-  handler: async (ctx) => {
-    const pairs = await ctx.runQuery(
-      internal.automations.listAllActiveTriggerPairs,
-      {}
-    );
-    console.log(`[backfillTriggerKv] syncing ${pairs.length} keys to KV`);
-    for (const pair of pairs) {
-      await kvPut(triggerKey(pair.profileId, pair.mediaId), "1");
+  handler: async (_ctx, args) => {
+    const key = sessionKey(args.op.instagramUserId);
+    if (args.op.op === "delete") {
+      await kvDelete(key);
+    } else if (args.op.sessionId) {
+      await kvPut(key, JSON.stringify({ sessionId: args.op.sessionId }));
     }
     return null;
   },
 });
 
 /**
- * Return every distinct (profileId, mediaId) pair that currently has at
- * least one active trigger row. Used by the backfill action.
+ * Read every active automation and push its trigger KV state from scratch.
+ * Rebuilds the JSON value per `(profileId, mediaId)` with all targeting
+ * automationIds. Safe to re-run.
+ *
+ *   npx convex run automations:backfillTriggerKv --prod
  */
-export const listAllActiveTriggerPairs = internalQuery({
+export const backfillTriggerKv = internalAction({
   args: {},
-  returns: v.array(triggerPairValidator),
+  returns: v.null(),
   handler: async (ctx) => {
-    const rows = await ctx.db
-      .query("automationMediaTriggers")
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
-    const seen = new Map<string, { profileId: string; mediaId: string }>();
-    for (const row of rows) {
-      seen.set(`${row.profileId}:${row.mediaId}`, {
-        profileId: row.profileId,
-        mediaId: row.mediaId,
-      });
+    const map = await ctx.runQuery(internal.automations.buildTriggerKvMap, {});
+    console.log(`[backfillTriggerKv] syncing ${map.length} keys to KV`);
+    for (const entry of map) {
+      await kvPut(
+        triggerKey(entry.profileId, entry.mediaId),
+        JSON.stringify({ automationIds: entry.automationIds })
+      );
     }
-    return [...seen.values()];
+    return null;
+  },
+});
+
+/**
+ * Seed the session KV cache from the current active sessions. Useful the
+ * first time this ships — subsequent session writes maintain KV on their own.
+ *
+ *   npx convex run automations:backfillSessionKv --prod
+ */
+export const backfillSessionKv = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const entries = await ctx.runQuery(
+      internal.automations.listActiveSessions,
+      {}
+    );
+    console.log(`[backfillSessionKv] syncing ${entries.length} keys to KV`);
+    for (const entry of entries) {
+      await kvPut(
+        sessionKey(entry.instagramUserId),
+        JSON.stringify({ sessionId: entry.sessionId })
+      );
+    }
+    return null;
+  },
+});
+
+/**
+ * Walk every active automation, join its socialProvider's profileId, and
+ * produce the full `(profileId, mediaId) → automationIds` map. Used by the
+ * backfill action. Reads come off existing indexes — no extra tables.
+ *
+ * Runs a single .collect() over the active-automation set. Fine at today's
+ * scale (< 10K active automations); if that grows past Convex's ~8 MB read
+ * budget or the action timeout, switch this to a paginated variant that
+ * streams batches to kvPut.
+ */
+export const buildTriggerKvMap = internalQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      profileId: v.string(),
+      mediaId: v.string(),
+      automationIds: v.array(v.id("automations")),
+    })
+  ),
+  handler: async (ctx) => {
+    const automations = await ctx.db
+      .query("automations")
+      .withIndex("by_is_active", (q) => q.eq("isActive", true))
+      .collect();
+
+    // Cache provider lookups to avoid duplicate gets per provider.
+    const providerCache = new Map<string, Doc<"socialProviders"> | null>();
+    const map = new Map<
+      string,
+      {
+        profileId: string;
+        mediaId: string;
+        automationIds: Id<"automations">[];
+      }
+    >();
+
+    for (const automation of automations) {
+      let provider = providerCache.get(automation.socialProviderId);
+      if (provider === undefined) {
+        provider = await ctx.db.get(automation.socialProviderId);
+        providerCache.set(automation.socialProviderId, provider);
+      }
+      if (!provider || provider.socialType !== "INSTAGRAM") {
+        continue;
+      }
+      const mediaIds = new Set<string>();
+      for (const trigger of automation.triggers) {
+        for (const id of trigger.targetPostIds ?? []) {
+          mediaIds.add(id);
+        }
+      }
+      for (const mediaId of mediaIds) {
+        const key = `${provider.profileId}:${mediaId}`;
+        let entry = map.get(key);
+        if (!entry) {
+          entry = {
+            profileId: provider.profileId,
+            mediaId,
+            automationIds: [],
+          };
+          map.set(key, entry);
+        }
+        entry.automationIds.push(automation._id);
+      }
+    }
+    return [...map.values()];
+  },
+});
+
+/**
+ * List every active session, one per instagramUserId (most recent if more
+ * than one exists defensively). Same `.collect()` caveat as
+ * `buildTriggerKvMap` — bounded by today's active-session count, paginate
+ * if that balloons.
+ */
+export const listActiveSessions = internalQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      instagramUserId: v.string(),
+      sessionId: v.id("automationSessions"),
+    })
+  ),
+  handler: async (ctx) => {
+    const sessions = await ctx.db
+      .query("automationSessions")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
+
+    const best = new Map<
+      string,
+      { instagramUserId: string; sessionId: string; lastActivityAt: number }
+    >();
+    for (const session of sessions) {
+      const existing = best.get(session.instagramUserId);
+      if (!existing || session.lastActivityAt > existing.lastActivityAt) {
+        best.set(session.instagramUserId, {
+          instagramUserId: session.instagramUserId,
+          sessionId: session._id,
+          lastActivityAt: session.lastActivityAt,
+        });
+      }
+    }
+    return [...best.values()].map((b) => ({
+      instagramUserId: b.instagramUserId,
+      sessionId: b.sessionId as Id<"automationSessions">,
+    }));
   },
 });

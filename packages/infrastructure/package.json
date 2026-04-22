@@ -11,7 +11,10 @@
     "remove": "sst remove",
     "console": "sst console",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "simulate:comment": "tsx scripts/simulate-ig-webhook.ts comment",
+    "simulate:message": "tsx scripts/simulate-ig-webhook.ts message",
+    "simulate:quick-reply": "tsx scripts/simulate-ig-webhook.ts quick-reply"
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.840.0",
@@ -27,6 +30,7 @@
     "typescript": "catalog:"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.147"
+    "@types/aws-lambda": "^8.10.147",
+    "tsx": "^4.19.2"
   }
 }
