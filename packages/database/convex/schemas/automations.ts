@@ -281,6 +281,29 @@ export const automationContactSchema = v.object({
 export type AutomationContact = Infer<typeof automationContactSchema>;
 
 // ============================================================================
+// AUTOMATION MEDIA TRIGGER INDEX
+// ============================================================================
+
+// Flattened lookup from (profileId, mediaId) to the automations that fire on
+// that media. One row per (automation, mediaId). Lets getForWebhook do an
+// indexed lookup instead of collecting all active automations for a provider.
+export const baseAutomationMediaTriggerSchema = v.object({
+  automationId: v.id("automations"),
+  socialProviderId: v.id("socialProviders"),
+  profileId: v.string(),
+  mediaId: v.string(),
+  isActive: v.boolean(),
+});
+
+export const automationMediaTriggerSchema = v.object({
+  _id: v.id("automationMediaTriggers"),
+  _creationTime: v.number(),
+  ...baseAutomationMediaTriggerSchema.fields,
+});
+
+export type AutomationMediaTrigger = Infer<typeof automationMediaTriggerSchema>;
+
+// ============================================================================
 // DM PLAN LIMITS
 // ============================================================================
 

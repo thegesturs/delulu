@@ -7,6 +7,7 @@ import { defineApp } from "convex/server";
 const app = defineApp();
 app.use(resend);
 app.use(aggregate, { name: "postsByUserStatus" });
+app.use(aggregate, { name: "postsByOrgStatus" });
 app.use(migrations);
 app.use(dodopayments);
 

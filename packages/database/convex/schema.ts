@@ -6,6 +6,7 @@ import {
   baseArticleSchema,
   baseAutomationContactSchema,
   baseAutomationLogSchema,
+  baseAutomationMediaTriggerSchema,
   baseAutomationSchema,
   baseAutomationSessionSchema,
   baseMediaInsightsSchema,
@@ -120,6 +121,14 @@ export default defineSchema({
   automationContacts: defineTable(baseAutomationContactSchema.fields)
     .index("by_social_provider", ["socialProviderId"])
     .index("by_instagram_user", ["socialProviderId", "instagramUserId"]),
+
+  // Denormalized (profileId, mediaId) -> automation lookup so the IG webhook
+  // path can short-circuit without scanning all of a provider's automations.
+  // Rows are maintained from automation mutations.
+  automationMediaTriggers: defineTable(baseAutomationMediaTriggerSchema.fields)
+    .index("by_profile_media", ["profileId", "mediaId"])
+    .index("by_automation", ["automationId"])
+    .index("by_provider_media", ["socialProviderId", "mediaId"]),
 
   // Organizations table (synced from Clerk)
   organizations: defineTable(baseOrganizationSchema.fields)

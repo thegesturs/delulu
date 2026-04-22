@@ -1,7 +1,12 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getAuthContext } from "./lib/auth";
 import { canManageSocials } from "./lib/permissions";
+import {
+  deleteAutomationMediaTriggers,
+  syncAutomationMediaTriggers,
+} from "./lib/trigger_index";
 import { resolveUsageOwnerFromDoc } from "./lib/usage";
 import {
   automationCreateSchema,
@@ -127,46 +132,35 @@ export const getForWebhook = query({
       return null;
     }
 
-    // 1. Find social provider by profileId
-    const provider = await ctx.db
-      .query("socialProviders")
-      .withIndex("by_profile_id", (q) =>
-        q.eq("profileId", args.instagramAccountId)
-      )
-      .first();
-
-    if (!provider || provider.socialType !== "INSTAGRAM") {
-      console.log(
-        `[getForWebhook] No Instagram provider for profileId=${args.instagramAccountId}`
-      );
-      return null;
-    }
-
-    // 2. Get active automations that have a trigger targeting this mediaId
-    const allAutomations = await ctx.db
-      .query("automations")
-      .withIndex("by_social_provider_active", (q) =>
-        q.eq("socialProviderId", provider._id).eq("isActive", true)
+    // 1. Indexed lookup on the denormalized trigger table. No .collect()
+    //    over all of the provider's automations any more — we hit only the
+    //    rows that actually target this mediaId.
+    const triggerRows = await ctx.db
+      .query("automationMediaTriggers")
+      .withIndex("by_profile_media", (q) =>
+        q.eq("profileId", args.instagramAccountId).eq("mediaId", args.mediaId)
       )
       .collect();
 
-    console.log(
-      `[getForWebhook] Provider ${provider._id}, found ${allAutomations.length} active automations`
-    );
+    const activeTriggerRows = triggerRows.filter((r) => r.isActive);
+    if (activeTriggerRows.length === 0) {
+      // Fast miss path — 90%+ of webhook events hit this.
+      return null;
+    }
 
-    // Filter to automations where any trigger targets this mediaId
-    const matchingAutomations = allAutomations.filter((a) =>
-      a.triggers.some((t) => t.targetPostIds.includes(args.mediaId))
+    // 2. Load the actual automations + their owning provider.
+    const automationDocs = await Promise.all(
+      activeTriggerRows.map((row) => ctx.db.get(row.automationId))
     );
-
+    const matchingAutomations = automationDocs.filter(
+      (a): a is NonNullable<typeof a> => a?.isActive === true
+    );
     if (matchingAutomations.length === 0) {
-      console.log(
-        `[getForWebhook] No automations target mediaId=${args.mediaId}. Active automations target: ${
-          allAutomations
-            .flatMap((a) => a.triggers.flatMap((t) => t.targetPostIds))
-            .join(", ") || "none"
-        }`
-      );
+      return null;
+    }
+
+    const provider = await ctx.db.get(matchingAutomations[0].socialProviderId);
+    if (!provider || provider.socialType !== "INSTAGRAM") {
       return null;
     }
 
@@ -409,6 +403,13 @@ export const createAutomation = mutation({
       updatedAt: now,
     });
 
+    const newAutomation = await ctx.db.get(automationId);
+    await syncAutomationMediaTriggers(
+      ctx,
+      newAutomation,
+      socialProvider.profileId
+    );
+
     return automationId;
   },
 });
@@ -447,6 +448,16 @@ export const updateAutomation = mutation({
       updatedAt: getCurrentTimestamp(),
     });
 
+    const updated = await ctx.db.get(args.id);
+    const provider = updated
+      ? await ctx.db.get(updated.socialProviderId)
+      : null;
+    await syncAutomationMediaTriggers(
+      ctx,
+      updated,
+      provider?.profileId ?? null
+    );
+
     return true;
   },
 });
@@ -475,6 +486,7 @@ export const deleteAutomation = mutation({
       throw new Error("Automation not found or access denied");
     }
 
+    await deleteAutomationMediaTriggers(ctx, args.id);
     await ctx.db.delete(args.id);
     return true;
   },
@@ -505,6 +517,16 @@ export const toggleAutomation = mutation({
       isActive: !automation.isActive,
       updatedAt: getCurrentTimestamp(),
     });
+
+    const updated = await ctx.db.get(args.id);
+    const provider = updated
+      ? await ctx.db.get(updated.socialProviderId)
+      : null;
+    await syncAutomationMediaTriggers(
+      ctx,
+      updated,
+      provider?.profileId ?? null
+    );
 
     return !automation.isActive;
   },
@@ -564,6 +586,15 @@ export const linkPublishedPost = internalMutation({
           triggers: newTriggers,
           updatedAt: getCurrentTimestamp(),
         });
+        const refreshed = await ctx.db.get(automation._id);
+        const provider = refreshed
+          ? await ctx.db.get(refreshed.socialProviderId)
+          : null;
+        await syncAutomationMediaTriggers(
+          ctx,
+          refreshed,
+          provider?.profileId ?? null
+        );
       }
     }
   },
@@ -780,5 +811,58 @@ export const checkContactHasEmail = query({
       .first();
 
     return !!contact?.email;
+  },
+});
+
+// ============================================================================
+// Trigger Index Backfill
+// ============================================================================
+
+/**
+ * Backfill the automationMediaTriggers table from existing automations.
+ * Idempotent — safe to re-run. Call this once after deploying the new schema
+ * so existing automations start routing through the fast path.
+ *
+ * Usage: `npx convex run automations:backfillTriggerIndex --prod`
+ */
+export const backfillTriggerIndex = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    totalProcessed: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const BATCH_SIZE = 200;
+    let processed = args.totalProcessed ?? 0;
+
+    const results = await ctx.db.query("automations").paginate({
+      numItems: BATCH_SIZE,
+      cursor: args.cursor ?? null,
+    });
+
+    for (const automation of results.page) {
+      const provider = await ctx.db.get(automation.socialProviderId);
+      await syncAutomationMediaTriggers(
+        ctx,
+        automation,
+        provider?.profileId ?? null
+      );
+      processed++;
+    }
+
+    if (results.isDone) {
+      console.log(
+        `[backfillTriggerIndex] Done. Total automations processed: ${processed}`
+      );
+    } else {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.automations.backfillTriggerIndex,
+        {
+          cursor: results.continueCursor,
+          totalProcessed: processed,
+        }
+      );
+      console.log(`[backfillTriggerIndex] ${processed} so far, continuing...`);
+    }
   },
 });
