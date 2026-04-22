@@ -22,6 +22,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_kv from "../lib/kv.js";
 import type * as lib_permissions from "../lib/permissions.js";
 import type * as lib_trigger_index from "../lib/trigger_index.js";
+import type * as lib_trigger_kv_sync from "../lib/trigger_kv_sync.js";
 import type * as lib_usage from "../lib/usage.js";
 import type * as media from "../media.js";
 import type * as mediaCleanup from "../mediaCleanup.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "lib/kv": typeof lib_kv;
   "lib/permissions": typeof lib_permissions;
   "lib/trigger_index": typeof lib_trigger_index;
+  "lib/trigger_kv_sync": typeof lib_trigger_kv_sync;
   "lib/usage": typeof lib_usage;
   media: typeof media;
   mediaCleanup: typeof mediaCleanup;

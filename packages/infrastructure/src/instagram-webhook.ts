@@ -20,50 +20,96 @@ import { Resource } from "sst";
 const CONVEX_ID_RE = /^[a-z0-9]{20,40}$/;
 
 // ============================================================================
-// Cloudflare KV Trigger Cache (gate before Convex)
+// Cloudflare KV cache (gate before Convex)
+//
+// CF KV holds the only (profileId, mediaId) → automations index. Convex
+// mutations push updates; this Lambda reads before calling Convex so the
+// 90%+ miss path never touches our DB.
+//
+// Return shapes:
+//   parsed value — hit, proceed to Convex with the fast-path args
+//   null         — legit miss, short-circuit the webhook
+//   "error"      — KV unavailable (env unset, 5xx, timeout). Fail-open to
+//                  the legacy Convex signature so a broken cache never
+//                  silently drops a real match.
 // ============================================================================
 
-/**
- * Check the CF KV trigger cache for a given (profileId, mediaId). A present
- * key means "at least one active automation targets this media" — the
- * Convex mutations push the key on create/update/toggle/delete.
- *
- * Returns:
- *   true  — hit, proceed to Convex
- *   false — miss, short-circuit the webhook (most common case)
- *   null  — KV unavailable (env unset or network error), fall back to Convex
- *
- * Fail-open on errors because missing a real match is worse than doing a
- * redundant Convex call.
- */
-async function kvHasTrigger(
-  profileId: string,
-  mediaId: string
-): Promise<boolean | null> {
+type KvLookup<T> = T | null | "error";
+
+async function kvRawGet(key: string): Promise<KvLookup<string>> {
   const accountId = process.env.CF_ACCOUNT_ID;
   const namespaceId = process.env.CF_KV_NAMESPACE_ID;
   const token = process.env.CF_KV_API_TOKEN;
   if (!(accountId && namespaceId && token)) {
-    return null;
+    return "error";
   }
-  const key = encodeURIComponent(`trig:${profileId}:${mediaId}`);
+  const encoded = encodeURIComponent(key);
   try {
     const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${encoded}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     if (res.status === 404) {
-      return false;
+      return null;
     }
     if (!res.ok) {
       console.warn(`[kv] GET ${key} failed: ${res.status}`);
-      return null;
+      return "error";
     }
-    return true;
+    return await res.text();
   } catch (e) {
-    console.warn(`[kv] GET threw: ${e instanceof Error ? e.message : e}`);
-    return null;
+    console.warn(
+      `[kv] GET ${key} threw: ${e instanceof Error ? e.message : e}`
+    );
+    return "error";
   }
+}
+
+/**
+ * Read `trig:{profileId}:{mediaId}` and parse it as `{automationIds: [...]}`.
+ */
+async function kvGetTrigger(
+  profileId: string,
+  mediaId: string
+): Promise<KvLookup<{ automationIds: Id<"automations">[] }>> {
+  const raw = await kvRawGet(`trig:${profileId}:${mediaId}`);
+  if (raw === null || raw === "error") {
+    return raw;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { automationIds?: unknown };
+    if (Array.isArray(parsed.automationIds)) {
+      return {
+        automationIds: parsed.automationIds as Id<"automations">[],
+      };
+    }
+  } catch {
+    // Old presence-bit format from the previous deploy — treat as hit with
+    // no ids so Convex takes the legacy fallback path and the next KV
+    // write overwrites with the new format.
+  }
+  return "error";
+}
+
+/**
+ * Read `sess:{instagramUserId}` and parse it as `{sessionId}`.
+ */
+async function kvGetSession(
+  instagramUserId: string
+): Promise<KvLookup<{ sessionId: Id<"automationSessions"> }>> {
+  const raw = await kvRawGet(`sess:${instagramUserId}`);
+  if (raw === null || raw === "error") {
+    return raw;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { sessionId?: unknown };
+    if (typeof parsed.sessionId === "string") {
+      return { sessionId: parsed.sessionId as Id<"automationSessions"> };
+    }
+  } catch {
+    // ignore
+  }
+  return "error";
 }
 
 // ============================================================================
@@ -667,21 +713,28 @@ async function processComment(
     `[process] Comment ${event.commentId} by @${event.username} on media ${event.mediaId}`
   );
 
-  // 0. Fast-path: hit the CF KV trigger cache first. If no automation is
-  //    registered for this media, skip Convex entirely — this is the
-  //    90%+ miss case for webhook traffic.
-  const kvHit = await kvHasTrigger(event.instagramAccountId, event.mediaId);
-  if (kvHit === false) {
+  // 0. CF KV gate — miss skips Convex entirely, hit sends automationIds
+  //    directly to getForWebhook's fast path, error falls back to the
+  //    legacy mediaId signature (so a broken cache can't drop matches).
+  const kvLookup = await kvGetTrigger(event.instagramAccountId, event.mediaId);
+  if (kvLookup === null) {
     console.log(`[skip] KV miss — no automations for media ${event.mediaId}`);
     return;
   }
 
-  // 1. Single Convex query: automations + token + usage
-  const data = await convex.query(api.automations.getForWebhook, {
-    webhookSecret: secretKey,
-    instagramAccountId: event.instagramAccountId,
-    mediaId: event.mediaId,
-  });
+  const data = await convex.query(
+    api.automations.getForWebhook,
+    kvLookup === "error"
+      ? {
+          webhookSecret: secretKey,
+          instagramAccountId: event.instagramAccountId,
+          mediaId: event.mediaId,
+        }
+      : {
+          webhookSecret: secretKey,
+          automationIds: kvLookup.automationIds,
+        }
+  );
 
   if (!data) {
     console.log(`[skip] No matching automations for media ${event.mediaId}`);
@@ -1080,11 +1133,29 @@ async function processTextMessage(
 ): Promise<void> {
   console.log(`[text] Plain text from ${event.senderId}: "${event.text}"`);
 
-  // 1. Find active session for this Instagram user
-  const session = await convex.query(api.automations.findActiveSessionByUser, {
-    webhookSecret: secretKey,
-    instagramUserId: event.senderId,
-  });
+  // 1. Find active session — CF KV gate first, Convex fallback on error.
+  //    Most IG text messages come from users not in any session, so the
+  //    miss path short-circuits without touching Convex.
+  const sessionLookup = await kvGetSession(event.senderId);
+  if (sessionLookup === null) {
+    console.log(
+      `[text] No active session for user ${event.senderId} (KV miss)`
+    );
+    return;
+  }
+
+  const session = await convex.query(
+    api.automations.findActiveSessionByUser,
+    sessionLookup === "error"
+      ? {
+          webhookSecret: secretKey,
+          instagramUserId: event.senderId,
+        }
+      : {
+          webhookSecret: secretKey,
+          sessionId: sessionLookup.sessionId,
+        }
+  );
 
   if (!session) {
     console.log(
