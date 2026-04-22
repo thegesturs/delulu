@@ -531,10 +531,6 @@ export const updateAutomation = mutation({
 
     const { id, ...updateData } = args;
 
-    // Snapshot the pre-patch state for the diff. `automation` is already
-    // the old doc — clone by shape so the post-patch .get doesn't mutate it.
-    const oldAutomation = automation;
-
     await ctx.db.patch(args.id, {
       ...updateData,
       updatedAt: getCurrentTimestamp(),
@@ -544,11 +540,7 @@ export const updateAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    const ops = triggerDiff(
-      oldAutomation,
-      updated,
-      provider?.profileId ?? null
-    );
+    const ops = triggerDiff(automation, updated, provider?.profileId ?? null);
     await scheduleTriggerKv(ctx, ops);
 
     return true;
@@ -608,7 +600,6 @@ export const toggleAutomation = mutation({
       throw new Error("Automation not found or access denied");
     }
 
-    const oldAutomation = automation;
     await ctx.db.patch(args.id, {
       isActive: !automation.isActive,
       updatedAt: getCurrentTimestamp(),
@@ -618,11 +609,7 @@ export const toggleAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    const ops = triggerDiff(
-      oldAutomation,
-      updated,
-      provider?.profileId ?? null
-    );
+    const ops = triggerDiff(automation, updated, provider?.profileId ?? null);
     await scheduleTriggerKv(ctx, ops);
 
     return !automation.isActive;
@@ -679,7 +666,6 @@ export const linkPublishedPost = internalMutation({
       });
 
       if (updated) {
-        const oldAutomation = automation;
         await ctx.db.patch(automation._id, {
           triggers: newTriggers,
           updatedAt: getCurrentTimestamp(),
@@ -689,7 +675,7 @@ export const linkPublishedPost = internalMutation({
           ? await ctx.db.get(refreshed.socialProviderId)
           : null;
         const ops = triggerDiff(
-          oldAutomation,
+          automation,
           refreshed,
           provider?.profileId ?? null
         );
@@ -828,7 +814,11 @@ export const updateSession = mutation({
 
     const oldSession = await ctx.db.get(args.sessionId);
     await ctx.db.patch(args.sessionId, patch);
-    const updatedSession = await ctx.db.get(args.sessionId);
+    // Merge locally to avoid a second ctx.db.get — patch isn't reactive here
+    // and merging the known patch over the old doc is equivalent.
+    const updatedSession = oldSession
+      ? ({ ...oldSession, ...patch } as Doc<"automationSessions">)
+      : null;
     await scheduleSessionKv(ctx, sessionOp(oldSession, updatedSession));
 
     return null;
@@ -1125,6 +1115,11 @@ export const backfillSessionKv = internalAction({
  * Walk every active automation, join its socialProvider's profileId, and
  * produce the full `(profileId, mediaId) → automationIds` map. Used by the
  * backfill action. Reads come off existing indexes — no extra tables.
+ *
+ * Runs a single .collect() over the active-automation set. Fine at today's
+ * scale (< 10K active automations); if that grows past Convex's ~8 MB read
+ * budget or the action timeout, switch this to a paginated variant that
+ * streams batches to kvPut.
  */
 export const buildTriggerKvMap = internalQuery({
   args: {},
@@ -1187,7 +1182,9 @@ export const buildTriggerKvMap = internalQuery({
 
 /**
  * List every active session, one per instagramUserId (most recent if more
- * than one exists defensively).
+ * than one exists defensively). Same `.collect()` caveat as
+ * `buildTriggerKvMap` — bounded by today's active-session count, paginate
+ * if that balloons.
  */
 export const listActiveSessions = internalQuery({
   args: {},

@@ -84,10 +84,12 @@ async function kvGetTrigger(
       };
     }
   } catch {
-    // Old presence-bit format from the previous deploy — treat as hit with
-    // no ids so Convex takes the legacy fallback path and the next KV
-    // write overwrites with the new format.
+    // Falls through to "error" below.
   }
+  // Either old presence-bit "1" from before this deploy, or malformed JSON.
+  // Returning "error" routes the caller through the legacy Convex signature
+  // (mediaId scan) so we don't drop the match; the next automation write
+  // overwrites the key with the new JSON format.
   return "error";
 }
 

@@ -105,7 +105,7 @@ Then:
 | Symptom | Cause |
 |---|---|
 | `401 Invalid signature` | Wrong `INSTAGRAM_APP_SECRET`. Copy it fresh from Meta → App Dashboard → App Settings → Basic |
-| `200 {"received":true}` but no DM | Either no automation targets this `mediaId` (check KV: `wrangler kv key get --namespace-id 0fa4faf775ec4ab28e259c8a5503dc3c 'trig:{profileId}:{mediaId}'`) or the condition step filtered out the message text |
+| `200 {"received":true}` but no DM | Either no automation targets this `mediaId` (check KV: `wrangler kv key get --namespace-id <YOUR_KV_NAMESPACE_ID> 'trig:{profileId}:{mediaId}'`) or the condition step filtered out the message text |
 | DM API errors in Lambda logs | Real Instagram access token is invalid/expired, OR the `sender-id` has never messaged your account (24h window) |
 | Lambda logs `[getForWebhook] fallback path` | KV is unavailable from Lambda — check `CF_KV_API_TOKEN` is set on the Lambda |
 
@@ -132,17 +132,17 @@ pnpm test
 
 ## Inspecting KV state manually
 
-The trigger cache lives in the `DELULU_RATE_LIMIT_KV` namespace (id `0fa4faf775ec4ab28e259c8a5503dc3c`).
+The trigger cache lives in the `DELULU_RATE_LIMIT_KV` namespace. Find the id in `apps/api/wrangler.toml` or via `npx sst env --stage production | grep CF_KV_NAMESPACE_ID`.
 
 ```bash
 # One key
-wrangler kv key get --namespace-id 0fa4faf775ec4ab28e259c8a5503dc3c 'trig:17841400000000000:17890000000000000'
+wrangler kv key get --namespace-id <YOUR_KV_NAMESPACE_ID> 'trig:17841400000000000:17890000000000000'
 
 # Every trigger key (first 100)
-wrangler kv key list --namespace-id 0fa4faf775ec4ab28e259c8a5503dc3c --prefix 'trig:' | jq -r '.[].name'
+wrangler kv key list --namespace-id <YOUR_KV_NAMESPACE_ID> --prefix 'trig:' | jq -r '.[].name'
 
 # Every session key
-wrangler kv key list --namespace-id 0fa4faf775ec4ab28e259c8a5503dc3c --prefix 'sess:'
+wrangler kv key list --namespace-id <YOUR_KV_NAMESPACE_ID> --prefix 'sess:'
 ```
 
 ## Re-seeding KV
