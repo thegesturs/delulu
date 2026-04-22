@@ -58,6 +58,11 @@ export default $config({
     const GROQ_API_KEY = new sst.Secret("GROQ_API_KEY");
     const CLERK_SECRET_KEY = new sst.Secret("CLERK_SECRET_KEY");
     const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");
+    // Cloudflare KV trigger cache — Lambda reads, Convex writes. If any of
+    // these three is unset, the Lambda fails open and calls Convex directly.
+    const CF_ACCOUNT_ID = new sst.Secret("CF_ACCOUNT_ID");
+    const CF_KV_NAMESPACE_ID = new sst.Secret("CF_KV_NAMESPACE_ID");
+    const CF_KV_API_TOKEN = new sst.Secret("CF_KV_API_TOKEN");
 
     // Trigger endpoint — receives HTTP from Convex, enqueues to SQS (UNCHANGED)
     const triggerFunction = new sst.aws.Function("TriggerSqsFunction", {
@@ -97,7 +102,15 @@ export default $config({
         INSTAGRAM_APP_SECRET,
         INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
         CONVEX_URL,
+        CF_ACCOUNT_ID,
+        CF_KV_NAMESPACE_ID,
+        CF_KV_API_TOKEN,
       ],
+      environment: {
+        CF_ACCOUNT_ID: CF_ACCOUNT_ID.value,
+        CF_KV_NAMESPACE_ID: CF_KV_NAMESPACE_ID.value,
+        CF_KV_API_TOKEN: CF_KV_API_TOKEN.value,
+      },
       timeout: "30 seconds",
     });
 

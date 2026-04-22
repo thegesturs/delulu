@@ -20,6 +20,53 @@ import { Resource } from "sst";
 const CONVEX_ID_RE = /^[a-z0-9]{20,40}$/;
 
 // ============================================================================
+// Cloudflare KV Trigger Cache (gate before Convex)
+// ============================================================================
+
+/**
+ * Check the CF KV trigger cache for a given (profileId, mediaId). A present
+ * key means "at least one active automation targets this media" — the
+ * Convex mutations push the key on create/update/toggle/delete.
+ *
+ * Returns:
+ *   true  — hit, proceed to Convex
+ *   false — miss, short-circuit the webhook (most common case)
+ *   null  — KV unavailable (env unset or network error), fall back to Convex
+ *
+ * Fail-open on errors because missing a real match is worse than doing a
+ * redundant Convex call.
+ */
+async function kvHasTrigger(
+  profileId: string,
+  mediaId: string
+): Promise<boolean | null> {
+  const accountId = process.env.CF_ACCOUNT_ID;
+  const namespaceId = process.env.CF_KV_NAMESPACE_ID;
+  const token = process.env.CF_KV_API_TOKEN;
+  if (!(accountId && namespaceId && token)) {
+    return null;
+  }
+  const key = encodeURIComponent(`trig:${profileId}:${mediaId}`);
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.status === 404) {
+      return false;
+    }
+    if (!res.ok) {
+      console.warn(`[kv] GET ${key} failed: ${res.status}`);
+      return null;
+    }
+    return true;
+  } catch (e) {
+    console.warn(`[kv] GET threw: ${e instanceof Error ? e.message : e}`);
+    return null;
+  }
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -619,6 +666,15 @@ async function processComment(
   console.log(
     `[process] Comment ${event.commentId} by @${event.username} on media ${event.mediaId}`
   );
+
+  // 0. Fast-path: hit the CF KV trigger cache first. If no automation is
+  //    registered for this media, skip Convex entirely — this is the
+  //    90%+ miss case for webhook traffic.
+  const kvHit = await kvHasTrigger(event.instagramAccountId, event.mediaId);
+  if (kvHit === false) {
+    console.log(`[skip] KV miss — no automations for media ${event.mediaId}`);
+    return;
+  }
 
   // 1. Single Convex query: automations + token + usage
   const data = await convex.query(api.automations.getForWebhook, {

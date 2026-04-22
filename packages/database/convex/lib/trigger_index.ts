@@ -3,6 +3,15 @@ import type { MutationCtx } from "../_generated/server";
 
 type AutomationDoc = Doc<"automations">;
 
+/**
+ * A (profileId, mediaId) pair that the IG webhook KV cache keys on. Used as
+ * the return type of sync functions so callers know what to push to KV.
+ */
+export interface TriggerPair {
+  profileId: string;
+  mediaId: string;
+}
+
 // Extract the set of Instagram mediaIds an automation fires on. Dedup across
 // triggers because a single automation can list the same mediaId multiple times.
 function mediaIdsFromAutomation(automation: AutomationDoc): Set<string> {
@@ -29,10 +38,10 @@ export async function syncAutomationMediaTriggers(
   automation: AutomationDoc | null,
   // Pre-resolved to let the caller avoid an extra ctx.db.get during delete.
   providerProfileId: string | null
-) {
+): Promise<TriggerPair[]> {
   const automationId = automation?._id;
   if (!automationId) {
-    return;
+    return [];
   }
 
   const existingRows = await ctx.db
@@ -48,15 +57,21 @@ export async function syncAutomationMediaTriggers(
     existingByMediaId.set(row.mediaId, row);
   }
 
+  const affected = new Map<string, TriggerPair>();
+  const record = (profileId: string, mediaId: string) => {
+    affected.set(`${profileId}:${mediaId}`, { profileId, mediaId });
+  };
+
   // Delete rows for mediaIds that are no longer targeted.
   for (const [mediaId, row] of existingByMediaId) {
     if (!desiredMediaIds.has(mediaId)) {
+      record(row.profileId, mediaId);
       await ctx.db.delete(row._id);
     }
   }
 
   if (!(automation && providerProfileId)) {
-    return;
+    return [...affected.values()];
   }
 
   const isActive = automation.isActive;
@@ -69,6 +84,10 @@ export async function syncAutomationMediaTriggers(
         row.profileId !== providerProfileId ||
         row.socialProviderId !== automation.socialProviderId
       ) {
+        record(row.profileId, mediaId);
+        if (row.profileId !== providerProfileId) {
+          record(providerProfileId, mediaId);
+        }
         await ctx.db.patch(row._id, {
           isActive,
           profileId: providerProfileId,
@@ -76,6 +95,7 @@ export async function syncAutomationMediaTriggers(
         });
       }
     } else {
+      record(providerProfileId, mediaId);
       await ctx.db.insert("automationMediaTriggers", {
         automationId,
         socialProviderId: automation.socialProviderId,
@@ -85,6 +105,7 @@ export async function syncAutomationMediaTriggers(
       });
     }
   }
+  return [...affected.values()];
 }
 
 /**
@@ -94,12 +115,18 @@ export async function syncAutomationMediaTriggers(
 export async function deleteAutomationMediaTriggers(
   ctx: MutationCtx,
   automationId: Id<"automations">
-) {
+): Promise<TriggerPair[]> {
   const rows = await ctx.db
     .query("automationMediaTriggers")
     .withIndex("by_automation", (q) => q.eq("automationId", automationId))
     .collect();
+  const affected = new Map<string, TriggerPair>();
   for (const row of rows) {
+    affected.set(`${row.profileId}:${row.mediaId}`, {
+      profileId: row.profileId,
+      mediaId: row.mediaId,
+    });
     await ctx.db.delete(row._id);
   }
+  return [...affected.values()];
 }

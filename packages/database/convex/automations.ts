@@ -1,11 +1,20 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+  mutation,
+  query,
+} from "./_generated/server";
 import { getAuthContext } from "./lib/auth";
+import { kvDelete, kvPut, triggerKey } from "./lib/kv";
 import { canManageSocials } from "./lib/permissions";
 import {
   deleteAutomationMediaTriggers,
   syncAutomationMediaTriggers,
+  type TriggerPair,
 } from "./lib/trigger_index";
 import { resolveUsageOwnerFromDoc } from "./lib/usage";
 import {
@@ -19,6 +28,17 @@ import {
 } from "./schemas/automations";
 import { getCurrentUser } from "./users";
 import { decryptData, getCurrentTimestamp } from "./utils";
+
+// Best-effort KV cache sync. Scheduled async so it doesn't block the
+// mutation. If CF_* env vars aren't set, the action no-ops silently.
+async function scheduleKvSync(ctx: MutationCtx, pairs: TriggerPair[]) {
+  if (pairs.length === 0) {
+    return;
+  }
+  await ctx.scheduler.runAfter(0, internal.automations.syncTriggerKvBatch, {
+    pairs,
+  });
+}
 
 // ============================================================================
 // Queries
@@ -404,11 +424,12 @@ export const createAutomation = mutation({
     });
 
     const newAutomation = await ctx.db.get(automationId);
-    await syncAutomationMediaTriggers(
+    const affected = await syncAutomationMediaTriggers(
       ctx,
       newAutomation,
       socialProvider.profileId
     );
+    await scheduleKvSync(ctx, affected);
 
     return automationId;
   },
@@ -452,11 +473,12 @@ export const updateAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    await syncAutomationMediaTriggers(
+    const affected = await syncAutomationMediaTriggers(
       ctx,
       updated,
       provider?.profileId ?? null
     );
+    await scheduleKvSync(ctx, affected);
 
     return true;
   },
@@ -486,8 +508,9 @@ export const deleteAutomation = mutation({
       throw new Error("Automation not found or access denied");
     }
 
-    await deleteAutomationMediaTriggers(ctx, args.id);
+    const affected = await deleteAutomationMediaTriggers(ctx, args.id);
     await ctx.db.delete(args.id);
+    await scheduleKvSync(ctx, affected);
     return true;
   },
 });
@@ -522,11 +545,12 @@ export const toggleAutomation = mutation({
     const provider = updated
       ? await ctx.db.get(updated.socialProviderId)
       : null;
-    await syncAutomationMediaTriggers(
+    const affected = await syncAutomationMediaTriggers(
       ctx,
       updated,
       provider?.profileId ?? null
     );
+    await scheduleKvSync(ctx, affected);
 
     return !automation.isActive;
   },
@@ -590,11 +614,12 @@ export const linkPublishedPost = internalMutation({
         const provider = refreshed
           ? await ctx.db.get(refreshed.socialProviderId)
           : null;
-        await syncAutomationMediaTriggers(
+        const affected = await syncAutomationMediaTriggers(
           ctx,
           refreshed,
           provider?.profileId ?? null
         );
+        await scheduleKvSync(ctx, affected);
       }
     }
   },
@@ -864,5 +889,106 @@ export const backfillTriggerIndex = internalMutation({
       );
       console.log(`[backfillTriggerIndex] ${processed} so far, continuing...`);
     }
+  },
+});
+
+// ============================================================================
+// KV Trigger Cache (Cloudflare Workers KV presence map for IG webhook gate)
+// ============================================================================
+
+const triggerPairValidator = v.object({
+  profileId: v.string(),
+  mediaId: v.string(),
+});
+
+/**
+ * Returns true if any active automation targets (profileId, mediaId).
+ * Called from the KV sync action to decide PUT vs DELETE.
+ */
+export const hasActiveTriggerForMedia = internalQuery({
+  args: triggerPairValidator,
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("automationMediaTriggers")
+      .withIndex("by_profile_media", (q) =>
+        q.eq("profileId", args.profileId).eq("mediaId", args.mediaId)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .first();
+    return row !== null;
+  },
+});
+
+/**
+ * Push the KV cache for a batch of (profileId, mediaId) pairs. For each pair,
+ * reads the current DB state and writes or deletes the KV key. Scheduled
+ * async from automation mutations so the mutation itself doesn't block on
+ * external HTTP.
+ *
+ * No-op (silently) if CF_* env vars aren't set — Lambda falls back to
+ * calling Convex directly in that case.
+ */
+export const syncTriggerKvBatch = internalAction({
+  args: { pairs: v.array(triggerPairValidator) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    for (const pair of args.pairs) {
+      const isPresent = await ctx.runQuery(
+        internal.automations.hasActiveTriggerForMedia,
+        pair
+      );
+      const key = triggerKey(pair.profileId, pair.mediaId);
+      if (isPresent) {
+        await kvPut(key, "1");
+      } else {
+        await kvDelete(key);
+      }
+    }
+    return null;
+  },
+});
+
+/**
+ * Backfill the KV cache from the current automationMediaTriggers table.
+ * Safe to run any time — idempotent. Usage:
+ *   npx convex run automations:backfillTriggerKv --prod
+ */
+export const backfillTriggerKv = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const pairs = await ctx.runQuery(
+      internal.automations.listAllActiveTriggerPairs,
+      {}
+    );
+    console.log(`[backfillTriggerKv] syncing ${pairs.length} keys to KV`);
+    for (const pair of pairs) {
+      await kvPut(triggerKey(pair.profileId, pair.mediaId), "1");
+    }
+    return null;
+  },
+});
+
+/**
+ * Return every distinct (profileId, mediaId) pair that currently has at
+ * least one active trigger row. Used by the backfill action.
+ */
+export const listAllActiveTriggerPairs = internalQuery({
+  args: {},
+  returns: v.array(triggerPairValidator),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("automationMediaTriggers")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+    const seen = new Map<string, { profileId: string; mediaId: string }>();
+    for (const row of rows) {
+      seen.set(`${row.profileId}:${row.mediaId}`, {
+        profileId: row.profileId,
+        mediaId: row.mediaId,
+      });
+    }
+    return [...seen.values()];
   },
 });
