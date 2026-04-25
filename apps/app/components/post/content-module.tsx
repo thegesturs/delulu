@@ -287,8 +287,16 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const frozenLayoutRef = useRef<boolean | null>(null);
 
   const shouldShowVideoLayout = (() => {
-    // Compute what the layout WOULD be based on platform type
+    const hasVideoInContent =
+      content.length > 0 &&
+      content[0].media.length > 0 &&
+      content[0].media[0].mediaType === "VIDEO";
+
+    // Compute what the layout WOULD be based on platform type or uploaded video
     const computedLayout = (() => {
+      if (hasVideoInContent) {
+        return true;
+      }
       if (isGlobal) {
         return shouldDefaultUseVideoLayout(platformsInDefault);
       }
