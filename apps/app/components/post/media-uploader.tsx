@@ -11,6 +11,7 @@ import {
   Add01Icon,
   Cancel01Icon,
   File02Icon,
+  FolderLibraryIcon,
   Image01Icon,
   VideoIcon,
 } from "@hugeicons-pro/core-solid-rounded";
@@ -576,30 +577,44 @@ export function MediaUploader({
 
       {mediaFiles.length === 0 ? (
         /* Empty state — plus icon, acts as drop zone */
-        <motion.button
-          className={cn(
-            "flex w-full items-center justify-center rounded-lg border-2 border-dashed transition-colors",
-            isDragOver
-              ? "border-primary bg-primary/10"
-              : "border-border hover:border-input hover:bg-muted/50",
-            "aspect-[3/1]"
-          )}
-          onClick={() => fileInputRef.current?.click()}
-          title={platformHint}
-          type="button"
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          {...dragHandlers}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <Icon
-              className="text-muted-foreground"
-              icon={Add01Icon}
-              size={28}
-            />
-            <span className="text-muted-foreground text-xs">{instruction}</span>
-          </div>
-        </motion.button>
+        <>
+          <motion.button
+            className={cn(
+              "flex w-full items-center justify-center rounded-lg border-2 border-dashed transition-colors",
+              isDragOver
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-input hover:bg-muted/50",
+              "aspect-[3/1]"
+            )}
+            onClick={() => fileInputRef.current?.click()}
+            title={platformHint}
+            type="button"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            {...dragHandlers}
+          >
+            <div className="flex flex-col items-center gap-1">
+              <Icon
+                className="text-muted-foreground"
+                icon={Add01Icon}
+                size={28}
+              />
+              <span className="text-muted-foreground text-xs">
+                {instruction}
+              </span>
+            </div>
+          </motion.button>
+          <Button
+            className="w-full text-muted-foreground"
+            onClick={() => setIsDialogOpen(true)}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <Icon className="mr-2" icon={FolderLibraryIcon} size={14} />
+            Choose from library
+          </Button>
+        </>
       ) : (
         /* Has media — grid of thumbnails + plus icon to add more */
         <>
@@ -647,6 +662,19 @@ export function MediaUploader({
               )}
             </motion.div>
           </AnimatePresence>
+
+          {canUploadMore && (
+            <Button
+              className="w-full text-muted-foreground"
+              onClick={() => setIsDialogOpen(true)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Icon className="mr-2" icon={FolderLibraryIcon} size={14} />
+              Choose from library
+            </Button>
+          )}
 
           <AnimatePresence>
             <MediaStats
