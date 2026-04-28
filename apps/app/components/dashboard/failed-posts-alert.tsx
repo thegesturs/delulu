@@ -11,7 +11,10 @@ import {
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useRouter } from "next/navigation";
+import React from "react";
+import { toast } from "sonner";
 import type { FailedPost } from "@/types/convex";
+import { api as TrpcApi } from "@/trpc/react";
 
 interface FailedPostsAlertProps {
   failedPosts: FailedPost[];
@@ -19,6 +22,26 @@ interface FailedPostsAlertProps {
 
 export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
   const router = useRouter();
+  const [retryingPostId, setRetryingPostId] = React.useState<string | null>(
+    null
+  );
+
+  const retryPostMutation =
+    TrpcApi.socialProvider.createPostFromPostId.useMutation({
+      onSuccess: () => {
+        toast.success("Post is being republished. It will be posted soon.");
+        setRetryingPostId(null);
+      },
+      onError: () => {
+        toast.error("Failed to retry post");
+        setRetryingPostId(null);
+      },
+    });
+
+  const handleRetry = async (postId: string) => {
+    setRetryingPostId(postId);
+    await retryPostMutation.mutateAsync({ postId });
+  };
 
   if (!failedPosts || failedPosts.length === 0) {
     return null;
@@ -66,13 +89,11 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
                   Edit
                 </Button>
                 <Button
-                  onClick={() => {
-                    // TODO: Add retry functionality
-                    console.log("Retry post:", post._id);
-                  }}
+                  disabled={retryingPostId === post._id}
+                  onClick={() => handleRetry(post._id)}
                   size="sm"
                 >
-                  Retry
+                  {retryingPostId === post._id ? "Retrying..." : "Retry"}
                 </Button>
               </div>
             </div>
