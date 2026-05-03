@@ -24,6 +24,19 @@ import {
 import { MediaUploader } from "./media-uploader";
 import { VideoContentLayout } from "./video-content-layout";
 
+const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
+const shouldLogVideoUploadLayout = process.env.NODE_ENV !== "production";
+
+function logVideoUploadLayout(
+  message: string,
+  details?: Record<string, unknown>
+) {
+  if (!shouldLogVideoUploadLayout) {
+    return;
+  }
+  console.log(VIDEO_UPLOAD_LOG_PREFIX, message, details);
+}
+
 interface ContentModuleProps {
   socialId: string;
   socialType: SocialType;
@@ -287,14 +300,14 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
   const frozenLayoutRef = useRef<boolean | null>(null);
 
   const shouldShowVideoLayout = (() => {
-    const hasVideoInContent =
-      content.length > 0 &&
-      content[0].media.length > 0 &&
-      content[0].media[0].mediaType === "VIDEO";
+    const firstMedia = content[0]?.media[0];
+    const hasVideoInContent = firstMedia?.mediaType === "VIDEO";
+    const hasReadyVideoInContent =
+      hasVideoInContent && !!(firstMedia.bucketKey || firstMedia.url);
 
     // Compute what the layout WOULD be based on platform type or uploaded video
     const computedLayout = (() => {
-      if (hasVideoInContent) {
+      if (hasReadyVideoInContent) {
         return true;
       }
       if (isGlobal) {
@@ -314,11 +327,35 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
       if (frozenLayoutRef.current === null) {
         frozenLayoutRef.current = computedLayout;
       }
+      logVideoUploadLayout("layout decision", {
+        socialId,
+        socialType,
+        platformsInDefault,
+        isMediaUploading,
+        hasVideoInContent,
+        hasReadyVideoInContent,
+        detectedVideo: firstMedia,
+        computedLayout,
+        frozenLayout: frozenLayoutRef.current,
+        finalLayout: frozenLayoutRef.current,
+      });
       return frozenLayoutRef.current;
     }
 
     // Not uploading — clear freeze and use computed value
     frozenLayoutRef.current = null;
+    logVideoUploadLayout("layout decision", {
+      socialId,
+      socialType,
+      platformsInDefault,
+      isMediaUploading,
+      hasVideoInContent,
+      hasReadyVideoInContent,
+      detectedVideo: firstMedia,
+      computedLayout,
+      frozenLayout: frozenLayoutRef.current,
+      finalLayout: computedLayout,
+    });
     return computedLayout;
   })();
 
@@ -327,9 +364,18 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
     const videoMedia =
       content.length > 0 &&
       content[0].media.length > 0 &&
-      content[0].media[0].mediaType === "VIDEO"
+      content[0].media[0].mediaType === "VIDEO" &&
+      (content[0].media[0].bucketKey || content[0].media[0].url)
         ? content[0].media[0]
         : undefined;
+
+    logVideoUploadLayout("video layout render", {
+      socialId,
+      socialType,
+      effectiveSocialType,
+      platformsInDefault,
+      videoMedia,
+    });
 
     // Check if we should show YouTube title field
     const showYouTubeTitle = isGlobal
