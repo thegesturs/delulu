@@ -5,7 +5,7 @@ import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import type { SocialType } from "@delulu/validators/post";
+import type { MediaType, SocialType } from "@delulu/validators/post";
 import { SocialTypes } from "@delulu/validators/post";
 import {
   Add01Icon,
@@ -46,6 +46,19 @@ interface MediaFile {
   bucketUrl?: string; // for backward compatibility
   thumbnailBucketUrl?: string;
   thumbnailBucketKey?: string;
+}
+
+const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
+const shouldLogVideoUploadLayout = process.env.NODE_ENV !== "production";
+
+function logVideoUploadLayout(
+  message: string,
+  details?: Record<string, unknown>
+) {
+  if (!shouldLogVideoUploadLayout) {
+    return;
+  }
+  console.log(VIDEO_UPLOAD_LOG_PREFIX, message, details);
 }
 
 function getMediaTypeFromFile(file: File): "IMAGE" | "VIDEO" | "DOCUMENT" {
@@ -230,6 +243,106 @@ export function MediaUploader({
   // socialType can be TIKTOK when on default tab if TikTok is the only platform
   const isGlobal = socialId === "global";
 
+  const writeMediaToStore = useCallback(
+    (storeMedia: MediaType[]) => {
+      if (orderId === undefined) {
+        return;
+      }
+
+      logVideoUploadLayout("writing media to post store", {
+        target: isGlobal ? "global" : "alternative",
+        socialId,
+        socialType,
+        orderId,
+        media: storeMedia,
+      });
+
+      if (isGlobal) {
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
+            item.order === orderId ? { ...item, media: storeMedia } : item
+          ),
+        }));
+        return;
+      }
+
+      setPost((currentPost) => ({
+        ...currentPost,
+        alternativeContent: currentPost.alternativeContent.map((item) =>
+          item.socialProvider.socialId === socialId
+            ? {
+                ...item,
+                content: item.content.map((contentItem) =>
+                  contentItem.order === orderId
+                    ? { ...contentItem, media: storeMedia }
+                    : contentItem
+                ),
+              }
+            : item
+        ),
+      }));
+    },
+    [isGlobal, orderId, setPost, socialId, socialType]
+  );
+
+  const appendPersistedMediaToStore = useCallback(
+    (uploadedMedia: MediaType) => {
+      if (orderId === undefined) {
+        return;
+      }
+
+      logVideoUploadLayout("direct upload success store write", {
+        target: isGlobal ? "global" : "alternative",
+        socialId,
+        socialType,
+        orderId,
+        media: uploadedMedia,
+      });
+
+      const appendMedia = <
+        T extends {
+          media: MediaType[];
+        },
+      >(
+        item: T
+      ): T => ({
+        ...item,
+        media: [
+          ...item.media.filter((media) => media.bucketKey || media.url),
+          uploadedMedia,
+        ],
+      });
+
+      if (isGlobal) {
+        setPost((currentPost) => ({
+          ...currentPost,
+          content: currentPost.content.map((item) =>
+            item.order === orderId ? appendMedia(item) : item
+          ),
+        }));
+        return;
+      }
+
+      setPost((currentPost) => ({
+        ...currentPost,
+        alternativeContent: currentPost.alternativeContent.map((item) =>
+          item.socialProvider.socialId === socialId
+            ? {
+                ...item,
+                content: item.content.map((contentItem) =>
+                  contentItem.order === orderId
+                    ? appendMedia(contentItem)
+                    : contentItem
+                ),
+              }
+            : item
+        ),
+      }));
+    },
+    [isGlobal, orderId, setPost, socialId, socialType]
+  );
+
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>(() => {
     const content = isGlobal
       ? post.content.find((item) => item.order === orderId)
@@ -256,54 +369,32 @@ export function MediaUploader({
   // Update store only when mediaFiles change due to user actions
   useEffect(() => {
     if (isUserAction.current && orderId !== undefined) {
-      const storeMedia = mediaFiles.map(
-        ({
-          mediaType,
-          url,
-          bucketKey,
-          altText,
-          bucketUrl,
-          thumbnailBucketUrl,
-          thumbnailBucketKey,
-        }) => ({
-          mediaType,
-          url,
-          bucketKey,
-          altText,
-          bucketUrl,
-          thumbnailBucketUrl,
-          thumbnailBucketKey,
-        })
-      );
+      const storeMedia = mediaFiles
+        .filter((media) => media.bucketKey || media.url)
+        .map(
+          ({
+            mediaType,
+            url,
+            bucketKey,
+            altText,
+            bucketUrl,
+            thumbnailBucketUrl,
+            thumbnailBucketKey,
+          }) => ({
+            mediaType,
+            url,
+            bucketKey,
+            altText,
+            bucketUrl,
+            thumbnailBucketUrl,
+            thumbnailBucketKey,
+          })
+        );
 
-      // Use functional update to always work with fresh state
-      if (isGlobal) {
-        setPost((currentPost) => ({
-          ...currentPost,
-          content: currentPost.content.map((item) =>
-            item.order === orderId ? { ...item, media: storeMedia } : item
-          ),
-        }));
-      } else {
-        setPost((currentPost) => ({
-          ...currentPost,
-          alternativeContent: currentPost.alternativeContent.map((item) =>
-            item.socialProvider.socialId === socialId
-              ? {
-                  ...item,
-                  content: item.content.map((contentItem) =>
-                    contentItem.order === orderId
-                      ? { ...contentItem, media: storeMedia }
-                      : contentItem
-                  ),
-                }
-              : item
-          ),
-        }));
-      }
+      writeMediaToStore(storeMedia);
       isUserAction.current = false;
     }
-  }, [mediaFiles, setPost, socialId, isGlobal, orderId]);
+  }, [mediaFiles, orderId, writeMediaToStore]);
 
   // Get dynamic media limits based on current state
   const limits = getDynamicMediaLimits(socialType, mediaFiles);
@@ -313,6 +404,18 @@ export function MediaUploader({
     async (incomingFiles: File[]) => {
       let newMediaFiles: MediaFile[] = [];
       const validatedFiles: File[] = [];
+
+      logVideoUploadLayout("upload start", {
+        socialId,
+        socialType,
+        orderId,
+        isGlobal,
+        files: incomingFiles.map((file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        })),
+      });
 
       // Validate each file using centralized validation
       for (const file of incomingFiles) {
@@ -382,6 +485,18 @@ export function MediaUploader({
       isUserAction.current = true;
       setMediaFiles(updatedMediaFiles);
 
+      logVideoUploadLayout("optimistic local media inserted", {
+        socialId,
+        socialType,
+        orderId,
+        media: newMediaFiles.map((media) => ({
+          id: media.id,
+          mediaType: media.mediaType,
+          originalFilename: media.originalFilename,
+        })),
+        mediaCount: updatedMediaFiles.length,
+      });
+
       // Set upload state to true when starting uploads
       if (newMediaFiles.length > 0) {
         setIsMediaUploading(true);
@@ -396,6 +511,21 @@ export function MediaUploader({
 
           try {
             const uploadResult = await uploadAndSaveMedia(mediaFile.file);
+
+            logVideoUploadLayout("upload success", {
+              socialId,
+              socialType,
+              orderId,
+              id: mediaFile.id,
+              bucketKey: uploadResult.bucketKey,
+              url: uploadResult.url,
+            });
+
+            appendPersistedMediaToStore({
+              mediaType: mediaFile.mediaType,
+              bucketKey: uploadResult.bucketKey,
+              url: uploadResult.url,
+            });
 
             // Update the media file with upload results
             setMediaFiles((prev) => {
@@ -422,8 +552,15 @@ export function MediaUploader({
               isUploading: false,
               file: undefined,
             };
-          } catch (_error) {
+          } catch (error) {
             // Upload failed - error will be handled by removal from list
+            logVideoUploadLayout("upload failed, removing local media", {
+              socialId,
+              socialType,
+              orderId,
+              id: mediaFile.id,
+              error,
+            });
 
             // Remove failed upload from list
             setMediaFiles((prev) => {
@@ -451,7 +588,17 @@ export function MediaUploader({
         setIsMediaUploading(false);
       }
     },
-    [mediaFiles, socialType, uploadAndSaveMedia, setIsMediaUploading, analytics]
+    [
+      mediaFiles,
+      socialId,
+      socialType,
+      orderId,
+      isGlobal,
+      uploadAndSaveMedia,
+      appendPersistedMediaToStore,
+      setIsMediaUploading,
+      analytics,
+    ]
   );
 
   const handleDrop = useCallback(
