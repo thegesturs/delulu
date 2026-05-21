@@ -3,7 +3,6 @@ import {
   baseAccountInsightsSchema,
   baseAnalyticsSyncStateSchema,
   baseApiKeySchema,
-  baseArticleSchema,
   baseAutomationContactSchema,
   baseAutomationLogSchema,
   baseAutomationMediaTriggerSchema,
@@ -28,12 +27,6 @@ export default defineSchema({
   apiKeys: defineTable(baseApiKeySchema.fields)
     .index("by_user_id", ["userId"])
     .index("by_key_hash", ["keyHash"]),
-
-  // Articles table (Outrank webhook articles for blog)
-  articles: defineTable(baseArticleSchema.fields)
-    .index("by_slug", ["slug"])
-    .index("by_outrank_id", ["outrankId"])
-    .index("by_published_at", ["publishedAt"]),
 
   // Users table
   users: defineTable(baseUserSchema.fields)
