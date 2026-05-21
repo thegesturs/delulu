@@ -2,7 +2,6 @@
 
 export * from "./analytics";
 export * from "./api_keys";
-export * from "./articles";
 export * from "./automations";
 export * from "./enums";
 export * from "./organizations";

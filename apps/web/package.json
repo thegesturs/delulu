@@ -18,6 +18,7 @@
     "@content-collections/mdx": "^0.2.2",
     "@content-collections/next": "^0.2.6",
     "@delulu/analytics": "workspace:*",
+    "@delulu/articles": "workspace:*",
     "@delulu/cloudflare-types": "workspace:*",
     "@delulu/database": "workspace:*",
     "@delulu/design-system": "workspace:*",

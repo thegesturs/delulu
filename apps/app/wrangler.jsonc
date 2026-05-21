@@ -76,6 +76,14 @@
       "binding": "DELULU_SOCIAL_BUCKET",
       "bucket_name": "delulu-social",
       "preview_bucket_name": "delulu-social-dev"
+    },
+    // Blog articles bucket — shared with apps/web. Reads are served by the
+    // landing worker; this binding is here so future tRPC procedures (or admin
+    // tooling on apps/app) can also read articles.
+    {
+      "binding": "DELULU_ARTICLES_BUCKET",
+      "bucket_name": "delulu-articles",
+      "preview_bucket_name": "delulu-articles-dev"
     }
   ],
   // KV namespace for storing Facebook pages data temporarily
@@ -84,6 +92,11 @@
       "binding": "DELULU_FACEBOOK_PAGES",
       "id": "e4eecde6b80f429b94485436a905c864",
       "preview_id": "8763e908a84c4725a860b33307d47c80"
+    },
+    {
+      "binding": "DELULU_ARTICLES_KV",
+      "id": "6604544fdc7e4f9f9537d726552eb868",
+      "preview_id": "3dbe94bc460442aea16f46f44dac3435"
     }
   ]
 }

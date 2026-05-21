@@ -35,5 +35,25 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "delulu-social-landing"
     }
+  ],
+  // Blog articles: R2 stores full article bodies, KV stores list/meta index.
+  // Replaces previous Convex-backed articles table — see packages/articles.
+  // Create with: wrangler r2 bucket create delulu-articles
+  //              wrangler kv:namespace create DELULU_ARTICLES_KV
+  //              wrangler kv:namespace create DELULU_ARTICLES_KV --preview
+  // Then paste the resulting ids below.
+  "r2_buckets": [
+    {
+      "binding": "DELULU_ARTICLES_BUCKET",
+      "bucket_name": "delulu-articles",
+      "preview_bucket_name": "delulu-articles-dev"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "DELULU_ARTICLES_KV",
+      "id": "6604544fdc7e4f9f9537d726552eb868",
+      "preview_id": "3dbe94bc460442aea16f46f44dac3435"
+    }
   ]
 }

@@ -56,6 +56,9 @@ export interface CloudflareEnv {
   R2_ENDPOINT: string;
   FARCASTER_APP_FID: string;
   DELULU_SOCIAL_BUCKET: R2Bucket;
+  DELULU_ARTICLES_BUCKET: R2Bucket;
+  DELULU_ARTICLES_KV: KVNamespace;
+  OUTRANK_WEBHOOK_SECRET: string;
   WORKER_SELF_REFERENCE: Fetcher /* delulu-social */;
   ASSETS: Fetcher;
 }
