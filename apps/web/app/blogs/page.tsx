@@ -1,14 +1,10 @@
-import { api } from "@delulu/database/convex/_generated/api";
 import { createBlogSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { allBlogs } from "content-collections";
-import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
-import {
-  adaptContentCollectionsBlog,
-  adaptConvexArticlePreview,
-} from "@/types/blog";
+import { fetchArticlePreviews } from "@/lib/articles";
+import { adaptContentCollectionsBlog, adaptOutrankPreview } from "@/types/blog";
 
 // ISR: regenerate at most hourly, serve stale in the meantime.
 export const revalidate = 3600;
@@ -26,14 +22,12 @@ const BlogIndex = async () => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
   const blogUrl = `${baseUrl}/blogs`;
 
-  // Preview shape only — no article bodies. Cached by Next.js ISR.
-  const convexArticles = await fetchQuery(api.articles.getArticlesPreviewList, {
-    limit: 100,
-  });
+  // Preview shape only — no article bodies. Read from KV (cheap), cached by ISR.
+  const outrankPreviews = await fetchArticlePreviews(100);
 
   // Adapt both sources to unified type
   const ccBlogs = allBlogs.map(adaptContentCollectionsBlog);
-  const outBlogs = convexArticles.map(adaptConvexArticlePreview);
+  const outBlogs = outrankPreviews.map(adaptOutrankPreview);
 
   // Merge and sort by date descending
   const allPosts = [...ccBlogs, ...outBlogs].sort(

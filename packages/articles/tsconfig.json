@@ -1,0 +1,10 @@
+{
+  "extends": "@delulu/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "strictNullChecks": true,
+    "types": ["@cloudflare/workers-types", "node"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "scripts"]
+}

@@ -1,8 +1,6 @@
-import { api } from "@delulu/database/convex/_generated/api";
 import { createBlogPostingSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { allBlogs } from "content-collections";
-import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { remark } from "remark";
@@ -13,6 +11,11 @@ import { BlogLayout } from "@/components/blog/blog-layout";
 import CTA from "@/components/home/cta";
 import { components } from "@/components/home/mdx-components";
 import { env } from "@/env";
+import {
+  fetchArticle,
+  fetchArticleMeta,
+  fetchArticlePreviews,
+} from "@/lib/articles";
 
 const parser = remark()
   .use(remarkMdx)
@@ -31,8 +34,8 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const slugs = await fetchQuery(api.articles.getArticleSlugs, {});
-  return slugs;
+  const previews = await fetchArticlePreviews();
+  return previews.map((p) => ({ slug: p.slug }));
 }
 
 export const generateMetadata = async ({
@@ -76,10 +79,8 @@ export const generateMetadata = async ({
     });
   }
 
-  // Fallback to Convex article — metadata only, no body.
-  const article = await fetchQuery(api.articles.getArticleMetadataBySlug, {
-    slug,
-  });
+  // Fallback to Outrank article — metadata only from KV, no body.
+  const article = await fetchArticleMeta(slug);
   if (!article) {
     return notFound();
   }
@@ -163,8 +164,8 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
-  // Fallback to Convex article
-  const article = await fetchQuery(api.articles.getArticleBySlug, { slug });
+  // Fallback to Outrank article — full body from R2.
+  const article = await fetchArticle(slug);
   if (!article) {
     return notFound();
   }

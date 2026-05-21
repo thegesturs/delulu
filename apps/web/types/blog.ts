@@ -1,4 +1,4 @@
-import type { Doc } from "@delulu/database/convex/_generated/dataModel";
+import type { ArticlePreview, ArticleRecord } from "@delulu/articles";
 import type { Blog } from "content-collections";
 
 export interface UnifiedBlog {
@@ -12,15 +12,6 @@ export interface UnifiedBlog {
   categories: string[];
   content?: string;
   source: "content-collections" | "outrank";
-}
-
-export interface ArticlePreview {
-  slug: string;
-  title: string;
-  metaDescription: string;
-  imageUrl?: string;
-  tags: string[];
-  publishedAt: number;
 }
 
 export function adaptContentCollectionsBlog(blog: Blog): UnifiedBlog {
@@ -38,7 +29,7 @@ export function adaptContentCollectionsBlog(blog: Blog): UnifiedBlog {
   };
 }
 
-export function adaptConvexArticle(article: Doc<"articles">): UnifiedBlog {
+export function adaptOutrankArticle(article: ArticleRecord): UnifiedBlog {
   return {
     title: article.title,
     slug: article.slug,
@@ -52,17 +43,15 @@ export function adaptConvexArticle(article: Doc<"articles">): UnifiedBlog {
   };
 }
 
-export function adaptConvexArticlePreview(
-  article: ArticlePreview
-): UnifiedBlog {
+export function adaptOutrankPreview(preview: ArticlePreview): UnifiedBlog {
   return {
-    title: article.title,
-    slug: article.slug,
-    description: article.metaDescription,
-    date: new Date(article.publishedAt).toISOString(),
+    title: preview.title,
+    slug: preview.slug,
+    description: preview.metaDescription,
+    date: new Date(preview.publishedAt).toISOString(),
     author: "Delulu Social",
-    image: article.imageUrl,
-    categories: article.tags,
+    image: preview.imageUrl,
+    categories: preview.tags,
     source: "outrank",
   };
 }
