@@ -21,8 +21,6 @@ interface OutrankPayload {
   data?: { articles?: OutrankArticle[] };
 }
 
-export const runtime = "edge";
-
 export async function POST(request: NextRequest) {
   const env = await getCloudflareEnv();
   const expectedSecret = env.OUTRANK_WEBHOOK_SECRET;
