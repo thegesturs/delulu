@@ -15,6 +15,7 @@
   "dependencies": {
     "@delulu/api": "workspace:*",
     "@delulu/database": "workspace:*",
+    "@delulu/integrations": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
     "@types/node": "22.14.1",

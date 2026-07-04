@@ -1,4 +1,5 @@
 import { keys } from "@delulu/api/keys";
+import { getIntegration } from "@delulu/integrations";
 import { nanoid } from "nanoid";
 
 export interface ConnectUrlOptions {
@@ -64,28 +65,11 @@ export const connectUrlRegistry = {
     },
   },
   INSTAGRAM: {
-    connectUrl: (options?: ConnectUrlOptions) => {
-      const scopes = [
-        "instagram_business_basic",
-        "instagram_business_content_publish",
-        "instagram_business_manage_messages",
-        "instagram_business_manage_comments",
-      ];
-
-      if (options?.includeInsights) {
-        scopes.push("instagram_business_manage_insights");
-      }
-
-      const params = new URLSearchParams({
-        client_id: keys().INSTAGRAM_CLIENT_ID,
-        redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
-        response_type: "code",
-        scope: scopes.join(","),
-        state: nanoid(),
-      });
-
-      return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
-    },
+    // Migrated: delegates to the unified integration (single source of truth).
+    connectUrl: (options?: ConnectUrlOptions) =>
+      getIntegration("INSTAGRAM").auth.getConnectUrl({
+        includeInsights: options?.includeInsights,
+      }),
   },
   THREADS: {
     connectUrl: () => {

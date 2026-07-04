@@ -13,6 +13,11 @@
       "import": "./facebook.ts",
       "require": "./facebook.ts",
       "types": "./facebook.ts"
+    },
+    "./constants/settings": {
+      "import": "./constants/settings.ts",
+      "require": "./constants/settings.ts",
+      "types": "./constants/settings.ts"
     }
   },
   "scripts": {

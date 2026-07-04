@@ -16,6 +16,7 @@
     "@ai-sdk/openai": "^0.0.66",
     "@ai-sdk/react": "^1.1.19",
     "@delulu/cloudflare-types": "workspace:*",
+    "@delulu/integrations": "workspace:*",
     "@google/genai": "^1.0.1",
     "@opennextjs/cloudflare": "1.6.0",
     "@t3-oss/env-nextjs": "^0.12.0",
