@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unified Integrations — Spec Index</title>
+  <style>
+    :root { --fg: #1a1a1a; --muted: #555; --border: #e0e0e0; --bg: #fafafa; --accent: #5b21b6; --accent-light: #ede9fe; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: var(--fg); max-width: 52rem; margin: 2rem auto; padding: 0 1.5rem 3rem; }
+    h1 { font-size: 1.85rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; }
+    .status { display: inline-block; background: var(--accent-light); color: var(--accent); font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 999px; margin-bottom: 1.5rem; }
+    nav.toc { list-style: none; padding: 0; margin: 0; }
+    nav.toc li { margin: 0; border-bottom: 1px solid var(--border); }
+    nav.toc a { display: flex; align-items: baseline; gap: 1rem; padding: 0.85rem 0.5rem; text-decoration: none; color: var(--fg); border-radius: 6px; }
+    nav.toc a:hover { background: var(--bg); }
+    nav.toc .num { color: var(--muted); font-size: 0.8rem; min-width: 1.5rem; }
+    nav.toc .title { font-weight: 500; }
+    nav.toc .desc { color: var(--muted); font-size: 0.85rem; margin-left: auto; text-align: right; }
+    h2 { font-size: 1rem; margin-top: 2rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 0.5rem; }
+    th, td { border: 1px solid var(--border); padding: 0.45rem 0.65rem; text-align: left; }
+    th { background: var(--bg); }
+    .review { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-top: 2rem; }
+    .review a { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<h1>Unified Integrations</h1>
+<p class="subtitle">Delulu Social — integration layer consolidation</p>
+<span class="status">Phase 0 — Spec</span>
+
+<p>
+  Single source of truth for migrating fragmented platform logic into
+  <code>packages/integrations</code>. Open <strong>01 Overview</strong> to start,
+  or jump to any section below.
+</p>
+
+<h2>Spec documents</h2>
+<nav>
+  <ul class="toc">
+    <li>
+      <a href="01-overview.html">
+        <span class="num">01</span>
+        <span class="title">Overview</span>
+        <span class="desc">Problem, goals, success criteria</span>
+      </a>
+    </li>
+    <li>
+      <a href="02-decisions.html">
+        <span class="num">02</span>
+        <span class="title">Decisions</span>
+        <span class="desc">Locked architectural choices</span>
+      </a>
+    </li>
+    <li>
+      <a href="03-architecture.html">
+        <span class="num">03</span>
+        <span class="title">Architecture</span>
+        <span class="desc">Package layout, consumer map</span>
+      </a>
+    </li>
+    <li>
+      <a href="04-types-and-api.html">
+        <span class="num">04</span>
+        <span class="title">Types &amp; API</span>
+        <span class="desc">PlatformIntegration interface</span>
+      </a>
+    </li>
+    <li>
+      <a href="05-implementation-plan.html">
+        <span class="num">05</span>
+        <span class="title">Implementation plan</span>
+        <span class="desc">Phases 0–5, file inventory</span>
+      </a>
+    </li>
+    <li>
+      <a href="06-migration-checklist.html">
+        <span class="num">06</span>
+        <span class="title">Migration checklist</span>
+        <span class="desc">Add a platform in ≤5 steps</span>
+      </a>
+    </li>
+    <li>
+      <a href="07-out-of-scope.html">
+        <span class="num">07</span>
+        <span class="title">Out of scope</span>
+        <span class="desc">Explicit v1 cuts</span>
+      </a>
+    </li>
+  </ul>
+</nav>
+
+<h2>Phase status</h2>
+<table>
+  <thead>
+    <tr><th>Phase</th><th>Description</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>0</td><td>This spec</td><td><strong>Current</strong></td></tr>
+    <tr><td>1</td><td>Scaffold package + Instagram template</td><td>Not started</td></tr>
+    <tr><td>2</td><td>Migrate remaining 9 platforms</td><td>Not started</td></tr>
+    <tr><td>3</td><td>Collapse platform-rules.ts</td><td>Not started</td></tr>
+    <tr><td>4</td><td>Dynamic OAuth callback route</td><td>Not started</td></tr>
+    <tr><td>5</td><td>Cleanup (neverthrow removal)</td><td>Not started</td></tr>
+  </tbody>
+</table>
+
+<div class="review">
+  <strong>Before implementation:</strong> run
+  <a href="../agent-review.md">agent-review.md</a> against all HTML files above.
+</div>
+
+</body>
+</html>

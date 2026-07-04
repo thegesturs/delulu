@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>04 — Types &amp; API</title>
+  <link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+
+<header class="spec-nav">
+  <a href="index.html" class="home">← Index</a>
+  <span class="sep">·</span>
+  <a href="03-architecture.html">03</a>
+  <span class="current">04 Types</span>
+  <a href="05-implementation-plan.html">05 →</a>
+</header>
+
+<h1>Types &amp; registry API</h1>
+<p class="subtitle">All types in <code>packages/integrations/src/types.ts</code>; errors in <code>errors.ts</code>.</p>
+
+<h2>Error hierarchy</h2>
+<pre>export class IntegrationError extends Error {
+  readonly code: string;
+  readonly provider: string;
+  readonly retryable: boolean;
+}
+
+// Subclasses: ProfileNotFoundError, InvalidAccessTokenError,
+// InvalidMediaError, MediaProcessingError, PublishError, NetworkError</pre>
+
+<h3>Retryable classification</h3>
+<table>
+  <thead><tr><th>Code</th><th>retryable</th><th>When</th></tr></thead>
+  <tbody>
+    <tr><td><code>RATE_LIMITED</code></td><td>true</td><td>HTTP 429</td></tr>
+    <tr><td><code>NETWORK_ERROR</code></td><td>true</td><td>Timeout, connection reset</td></tr>
+    <tr><td><code>TOKEN_EXPIRED</code></td><td>true</td><td>After refresh attempt fails</td></tr>
+    <tr><td><code>MEDIA_PROCESSING_TIMEOUT</code></td><td>true</td><td>Instagram container polling</td></tr>
+    <tr><td><code>INVALID_MEDIA</code></td><td>false</td><td>User/content fix required</td></tr>
+    <tr><td><code>PROFILE_NOT_FOUND</code></td><td>false</td><td>Account disconnected</td></tr>
+    <tr><td><code>PUBLISH_REJECTED</code></td><td>false</td><td>Platform policy rejection</td></tr>
+  </tbody>
+</table>
+
+<h2>PlatformIntegration</h2>
+<pre>export interface PlatformCapabilities {
+  publish: boolean;
+  analytics: boolean;
+  supportsDM: boolean;
+  multiStepConnect: boolean;
+  supportsThreads: boolean;
+  supportsStories: boolean;
+  supportsDocuments: boolean;
+}
+
+export interface PlatformMeta {
+  name: string;
+  icon: string;
+  editor: "normal" | "markdown" | "minimal";
+  capabilities: PlatformCapabilities;
+  toolTip?: string;
+}
+
+export interface PlatformAuth {
+  scopes: string[];
+  isMultiStep: boolean;
+  getConnectUrl(ctx: ConnectContext): ConnectUrlResult | Promise&lt;ConnectUrlResult&gt;;
+  handleCallback(input: CallbackInput): Promise&lt;Response&gt;;
+  refreshToken?(input: { socialProviderId: string; refreshToken: string }): Promise&lt;TokenRefreshResult&gt;;
+  onConnectStep?(input: ConnectStepInput): Promise&lt;ConnectedAccount&gt;;
+}
+
+export interface PlatformRules {
+  maxLength: number | undefined;
+  media: PlatformMediaRules;
+  validate(input: ValidateInput): ValidationResult;
+}
+
+export interface PlatformIntegration {
+  id: SocialType;
+  meta: PlatformMeta;
+  auth: PlatformAuth;
+  rules: PlatformRules;
+  settings: PlatformSettings;
+  publish(ctx: PublishContext): Promise&lt;PostResult&gt;; // throws IntegrationError
+  webhooks?: PlatformWebhooks;
+  queries?: PlatformQueries;
+}</pre>
+
+<h2>Registry API</h2>
+<pre>// packages/integrations/src/registry.ts
+
+export const integrationRegistry: Record&lt;
+  Exclude&lt;SocialType, "DEFAULT" | "LENS"&gt;,
+  PlatformIntegration
+&gt;;
+
+export function getIntegration(id): PlatformIntegration;
+export function listIntegrations(): PlatformIntegration[];
+export function listPublishable(): PlatformIntegration[];
+export function getAllMediaRules(): Record&lt;SocialType, PlatformMediaRules&gt;;
+export function getAllCharacterLimits(): Record&lt;SocialType, number | undefined&gt;;</pre>
+
+<h2>Auth service</h2>
+<pre>// packages/integrations/src/auth-service.ts
+export async function ensureFreshToken(socialProviderId: string): Promise&lt;string&gt;;</pre>
+<p>
+  Reads tokens from Convex <code>getSocialProviderWithDecryptedTokens</code>.
+  Refreshes when <code>expiresIn</code> is within 2 hours via <code>integration.auth.refreshToken</code>.
+  Persists via <code>updateSocialProvider</code>.
+</p>
+
+<h2>Instagram reference</h2>
+<pre>meta.capabilities: {
+  publish: true,
+  analytics: false,
+  supportsDM: true,
+  multiStepConnect: false,
+  supportsThreads: false,
+  supportsStories: true,
+  supportsDocuments: false,
+}
+
+auth.scopes: [
+  "instagram_business_basic",
+  "instagram_business_content_publish",
+  "instagram_business_manage_messages",
+  "instagram_business_manage_comments",
+  // + instagram_business_manage_insights when includeInsights
+]</pre>
+
+<footer class="spec-nav bottom">
+  <a href="03-architecture.html">← 03 Architecture</a>
+  <a href="index.html">Index</a>
+  <a href="05-implementation-plan.html">05 Implementation →</a>
+</footer>
+
+</body>
+</html>
