@@ -1,7 +1,7 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { convex } from "@delulu/database/node";
-import { runPublish } from "@delulu/integrations/worker";
+import { runPublish } from "@delulu/connections/worker";
 import type {
   SocialPublishInputType,
   SocialType,
@@ -64,7 +64,7 @@ export async function processMessage(messageBody: string) {
 
   await resolveMediaUrls(socialPublishInput);
 
-  // All platforms publish through @delulu/integrations (Effect). The boundary
+  // All platforms publish through @delulu/connections (Effect). The boundary
   // returns a flat outcome; retryable failures rethrow so SQS re-delivers.
   const outcome = await runPublish(socialType, {
     content: socialPublishInput,

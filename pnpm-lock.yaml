@@ -133,15 +133,15 @@ importers:
       '@delulu/collaboration':
         specifier: workspace:*
         version: link:../../packages/collaboration
+      '@delulu/connections':
+        specifier: workspace:*
+        version: link:../../packages/connections
       '@delulu/database':
         specifier: workspace:*
         version: link:../../packages/database
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
-      '@delulu/integrations':
-        specifier: workspace:*
-        version: link:../../packages/integrations
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
@@ -783,9 +783,9 @@ importers:
       '@delulu/cloudflare-types':
         specifier: workspace:*
         version: link:../cloudflare-types
-      '@delulu/integrations':
+      '@delulu/connections':
         specifier: workspace:*
-        version: link:../integrations
+        version: link:../connections
       '@google/genai':
         specifier: ^1.0.1
         version: 1.7.0(@modelcontextprotocol/sdk@1.27.1(zod@3.25.67))(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -946,6 +946,55 @@ importers:
       '@types/react-dom':
         specifier: catalog:react19
         version: 19.1.0(@types/react@19.1.0)
+
+  packages/connections:
+    dependencies:
+      '@delulu/cloudflare-types':
+        specifier: workspace:*
+        version: link:../cloudflare-types
+      '@delulu/database':
+        specifier: workspace:*
+        version: link:../database
+      '@delulu/validators':
+        specifier: workspace:*
+        version: link:../validators
+      '@opennextjs/cloudflare':
+        specifier: 1.6.0
+        version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+      '@xdevplatform/xdk':
+        specifier: 0.5.0
+        version: 0.5.0(node-fetch@3.3.2)
+      axios:
+        specifier: ^1.9.0
+        version: 1.11.0
+      convex:
+        specifier: ^1.25.4
+        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      effect:
+        specifier: ^3.17.0
+        version: 3.21.4
+      googleapis:
+        specifier: ^150.0.1
+        version: 150.0.1
+      nanoid:
+        specifier: ^5.1.5
+        version: 5.1.6
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.67
+    devDependencies:
+      '@delulu/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: 22.14.1
+        version: 22.14.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: ^2.1.6
+        version: 2.1.9(@types/node@22.14.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(terser@5.43.1)
 
   packages/database:
     dependencies:
@@ -1317,55 +1366,6 @@ importers:
         specifier: ^4.19.2
         version: 4.20.3
 
-  packages/integrations:
-    dependencies:
-      '@delulu/cloudflare-types':
-        specifier: workspace:*
-        version: link:../cloudflare-types
-      '@delulu/database':
-        specifier: workspace:*
-        version: link:../database
-      '@delulu/validators':
-        specifier: workspace:*
-        version: link:../validators
-      '@opennextjs/cloudflare':
-        specifier: 1.6.0
-        version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-      '@xdevplatform/xdk':
-        specifier: 0.5.0
-        version: 0.5.0(node-fetch@3.3.2)
-      axios:
-        specifier: ^1.9.0
-        version: 1.11.0
-      convex:
-        specifier: ^1.25.4
-        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
-      effect:
-        specifier: ^3.17.0
-        version: 3.21.4
-      googleapis:
-        specifier: ^150.0.1
-        version: 150.0.1
-      nanoid:
-        specifier: ^5.1.5
-        version: 5.1.6
-      zod:
-        specifier: 'catalog:'
-        version: 3.25.67
-    devDependencies:
-      '@delulu/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
-      '@types/node':
-        specifier: 22.14.1
-        version: 22.14.1
-      typescript:
-        specifier: 'catalog:'
-        version: 5.8.3
-      vitest:
-        specifier: ^2.1.6
-        version: 2.1.9(@types/node@22.14.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(terser@5.43.1)
-
   packages/next-config:
     dependencies:
       '@next/bundle-analyzer':
@@ -1619,12 +1619,12 @@ importers:
       '@delulu/api':
         specifier: workspace:*
         version: link:../api
+      '@delulu/connections':
+        specifier: workspace:*
+        version: link:../connections
       '@delulu/database':
         specifier: workspace:*
         version: link:../database
-      '@delulu/integrations':
-        specifier: workspace:*
-        version: link:../integrations
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

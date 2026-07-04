@@ -1,7 +1,7 @@
 import { SOCIAL_ACCOUNT_CONNECTED } from "@delulu/analytics/events";
 import { analytics } from "@delulu/analytics/posthog/server";
 import { auth } from "@delulu/auth/server";
-import { getIntegration, type PublishableSocialType } from "@delulu/integrations";
+import { getConnection, type PublishableSocialType } from "@delulu/connections";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -37,7 +37,7 @@ export async function GET(
   }
 
   // OAuth callbacks need a Clerk session + Convex token; resolve here and hand
-  // them to the integration (which stays Clerk/Next-free).
+  // them to the connection (which stays Clerk/Next-free).
   const { userId, getToken } = await auth();
   if (!userId) {
     return redirect(
@@ -52,7 +52,7 @@ export async function GET(
   }
 
   const searchParams = request.nextUrl.searchParams;
-  return getIntegration(socialType).auth.handleCallback({
+  return getConnection(socialType).auth.handleCallback({
     code: searchParams.get("code"),
     error: searchParams.get("error"),
     errorReason: searchParams.get("error_reason"),

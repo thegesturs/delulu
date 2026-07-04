@@ -3,7 +3,7 @@
  * Combines media requirements, character limits, layout rules, and video validation
  */
 
-import { getAllCharacterLimits, getAllMediaRules } from "@delulu/integrations";
+import { getAllCharacterLimits, getAllMediaRules } from "@delulu/connections";
 import type {
   FullPostType,
   SocialProviderType,
@@ -33,7 +33,7 @@ export interface PlatformMediaRules {
 }
 
 // Media rules for the 10 publishable platforms come from the unified registry
-// (single source of truth — packages/integrations). DEFAULT/LENS are UI-only
+// (single source of truth — packages/connections). DEFAULT/LENS are UI-only
 // sentinels and are filled in here.
 const NO_MEDIA: PlatformMediaRules = {
   requiresVideo: false,

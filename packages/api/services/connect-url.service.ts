@@ -1,4 +1,4 @@
-import { getIntegration, type PublishableSocialType } from "@delulu/integrations";
+import { getConnection, type PublishableSocialType } from "@delulu/connections";
 
 export interface ConnectUrlOptions {
   includeInsights?: boolean;
@@ -9,10 +9,10 @@ export interface ConnectUrlProvider {
 }
 
 /**
- * Thin shim over the unified integration registry — the single source of truth
+ * Thin shim over the unified connection registry — the single source of truth
  * for OAuth connect URLs + scopes now lives in each platform's
  * `auth.getConnectUrl`. Kept for one release so `social-provider.ts` keeps
- * compiling; delete once callers import `getIntegration` directly.
+ * compiling; delete once callers import `getConnection` directly.
  */
 const PLATFORMS: PublishableSocialType[] = [
   "TWITTER",
@@ -32,7 +32,7 @@ export const connectUrlRegistry = Object.fromEntries(
     platform,
     {
       connectUrl: (options?: ConnectUrlOptions) =>
-        getIntegration(platform).auth.getConnectUrl({
+        getConnection(platform).auth.getConnectUrl({
           includeInsights: options?.includeInsights,
         }),
     } satisfies ConnectUrlProvider,
