@@ -3,6 +3,7 @@
  * Combines media requirements, character limits, layout rules, and video validation
  */
 
+import { getAllCharacterLimits, getAllMediaRules } from "@delulu/integrations";
 import type {
   FullPostType,
   SocialProviderType,
@@ -31,112 +32,35 @@ export interface PlatformMediaRules {
   allowsMultipleVideos: boolean;
 }
 
-export const PLATFORM_MEDIA_RULES: Record<SocialType, PlatformMediaRules> = {
-  [SocialTypes.TIKTOK]: {
-    requiresVideo: true,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.YOUTUBE]: {
-    requiresVideo: true,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.INSTAGRAM]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: true, // Needs video OR images
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.THREADS]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.TWITTER]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.LINKEDIN]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.FACEBOOK]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.PINTEREST]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.FARCASTER]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.BLUESKY]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.LENS]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
-    allowsMultipleVideos: false,
-  },
-  [SocialTypes.DEFAULT]: {
-    requiresVideo: false,
-    requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: true,
-    allowsMultipleVideos: false,
-  },
+// Media rules for the 10 publishable platforms come from the unified registry
+// (single source of truth — packages/integrations). DEFAULT/LENS are UI-only
+// sentinels and are filled in here.
+const NO_MEDIA: PlatformMediaRules = {
+  requiresVideo: false,
+  requiresImage: false,
+  requiresEither: false,
+  allowsMultipleImages: false,
+  allowsMultipleVideos: false,
 };
+
+export const PLATFORM_MEDIA_RULES: Record<SocialType, PlatformMediaRules> = {
+  ...getAllMediaRules(),
+  [SocialTypes.LENS]: NO_MEDIA,
+  [SocialTypes.DEFAULT]: { ...NO_MEDIA, allowsMultipleImages: true },
+} as Record<SocialType, PlatformMediaRules>;
 
 // ============================================================================
 // CHARACTER LIMITS
 // ============================================================================
 
+// Character limits for the 10 publishable platforms come from the unified
+// registry (single source of truth). DEFAULT/LENS are UI-only sentinels.
 export const PLATFORM_CHARACTER_LIMITS: Record<SocialType, number | undefined> =
   {
-    [SocialTypes.TWITTER]: 280,
-    [SocialTypes.THREADS]: 500,
-    [SocialTypes.INSTAGRAM]: 2200,
-    [SocialTypes.TIKTOK]: 2200,
-    [SocialTypes.YOUTUBE]: 5000,
-    [SocialTypes.LINKEDIN]: 3000,
-    [SocialTypes.FACEBOOK]: 63_206,
-    [SocialTypes.PINTEREST]: 500,
-    [SocialTypes.FARCASTER]: 320,
-    [SocialTypes.BLUESKY]: 300,
+    ...getAllCharacterLimits(),
     [SocialTypes.LENS]: 500,
     [SocialTypes.DEFAULT]: undefined,
-  };
+  } as Record<SocialType, number | undefined>;
 
 // ============================================================================
 // IMAGE COUNT LIMITS
