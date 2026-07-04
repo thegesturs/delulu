@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>05 — Target Architecture — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html" class="active">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>05 — Target Architecture</h1>
+      <p class="lead">Job orchestration layer between SQS workers and Convex, with derived post publish status.</p>
+
+      <h2>Target component map</h2>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Role (v2)</th><th>Change</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>publish_jobs</code> table</td><td>One row per post × provider per run</td><td><strong>New</strong></td></tr>
+          <tr><td><code>publish_attempts</code> table</td><td>Append-only attempt log</td><td><strong>New</strong></td></tr>
+          <tr><td><code>convex/publish.ts</code></td><td>createRun, startAttempt, completeAttempt, derivePostStatus</td><td><strong>New</strong></td></tr>
+          <tr><td><code>apps/api/internal/publish</code></td><td>HMAC gateway for worker writes</td><td><strong>New</strong></td></tr>
+          <tr><td>Worker Lambda</td><td>Execute provider API only; report via API</td><td>Modified</td></tr>
+          <tr><td><code>posts.publishStatus</code></td><td>Derived aggregate from jobs</td><td><strong>New field</strong></td></tr>
+          <tr><td><code>posts.status</code></td><td>Lifecycle only (SAVED, SCHEDULED, DELETED)</td><td>Decoupled</td></tr>
+          <tr><td>Convex subscriptions</td><td>Real-time dashboard</td><td>Unchanged</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Target publish flow</h2>
+      <div class="diagram">┌─────────────┐                    ┌──────────────────┐
+│  Dashboard  │ ─── publish now ──►│  packages/api    │
+└─────────────┘                    │  post.service    │
+                                   └────────┬─────────┘
+                                            │
+                                            ▼
+                              ┌─────────────────────────┐
+                              │  Convex: createPublishRun│
+                              │  • create publish_jobs   │
+                              │  • set publishStatus     │
+                              │    = QUEUED              │
+                              └────────┬────────────────┘
+                                       │ enqueue per job
+                                       ▼
+                              ┌──────────────────┐
+                              │  Trigger Lambda  │
+                              └────────┬─────────┘
+                                       │
+                                       ▼
+                              ┌──────────────────┐
+                              │ SocialPostsQueue │
+                              │  + DLQ           │
+                              └────────┬─────────┘
+                                       │ { publishJobId, ... }
+                                       ▼
+                              ┌──────────────────┐
+                              │  Worker Lambda   │
+                              │  provider.publish│
+                              └────────┬─────────┘
+                                       │ HMAC POST
+                                       ▼
+                              ┌──────────────────────────┐
+                              │ apps/api                 │
+                              │ POST /internal/publish/  │
+                              │      complete            │
+                              └────────┬─────────────────┘
+                                       │
+                                       ▼
+                              ┌──────────────────────────┐
+                              │ Convex: completeAttempt  │
+                              │ • update publish_job     │
+                              │ • insert publish_attempt │
+                              │ • derivePostPublishStatus│
+                              │ • side effects (once)    │
+                              └──────────────────────────┘</div>
+
+      <h2>Status separation</h2>
+      <p>v2 splits post state into two orthogonal dimensions:</p>
+
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Scope</th><th>Values</th><th>Writer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>posts.status</code></td>
+            <td>Lifecycle / editorial</td>
+            <td>SAVED, SCHEDULED, DELETED</td>
+            <td>User actions, scheduler</td>
+          </tr>
+          <tr>
+            <td><code>posts.publishStatus</code></td>
+            <td>Publish orchestration</td>
+            <td>QUEUED, PROCESSING, PARTIAL, PUBLISHED, FAILED</td>
+            <td>Derived from <code>publish_jobs</code></td>
+          </tr>
+          <tr>
+            <td><code>publish_jobs.status</code></td>
+            <td>Per-platform job</td>
+            <td>QUEUED → PROCESSING → PUBLISHED | FAILED | DEAD_LETTER</td>
+            <td>Pipeline mutations</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Derive post publishStatus</h2>
+      <pre><code>function derivePostPublishStatus(jobs: PublishJob[]): PublishStatus {
+  if (jobs.length === 0) return "QUEUED";
+  if (jobs.every(j => j.status === "PUBLISHED")) return "PUBLISHED";
+  if (jobs.every(j => j.status === "FAILED" || j.status === "DEAD_LETTER")) return "FAILED";
+  if (jobs.some(j => j.status === "PUBLISHED") &&
+      jobs.some(j => j.status === "FAILED" || j.status === "DEAD_LETTER")) return "PARTIAL";
+  if (jobs.some(j => j.status === "PROCESSING")) return "PROCESSING";
+  if (jobs.some(j => j.status === "QUEUED")) return "QUEUED";
+  return "PROCESSING";
+}</code></pre>
+
+      <h2>Idempotency model</h2>
+      <ul>
+        <li>Each <code>publish_job</code> has a unique <code>_id</code> included in SQS message as <code>publishJobId</code></li>
+        <li><code>completeAttempt</code> checks job status before transitioning — if already <code>PUBLISHED</code>, return success without re-publishing side effects</li>
+        <li>Attempt rows are keyed by <code>(publishJobId, attemptNumber)</code> — duplicate completions are no-ops</li>
+        <li>Side effects (streak, automation link, video cleanup) fire only on first transition to <code>PUBLISHED</code></li>
+      </ul>
+
+      <h2>Retry model</h2>
+      <ul>
+        <li>SQS <code>maxReceiveCount: 5</code> with dead-letter queue</li>
+        <li>Worker reports <code>errorClass: TRANSIENT</code> → job stays <code>PROCESSING</code>, SQS visibility timeout handles retry</li>
+        <li>Worker reports <code>errorClass: PERMANENT</code> → job → <code>FAILED</code>, message deleted from queue</li>
+        <li>After 5 receives → job → <code>DEAD_LETTER</code>, message in DLQ for manual inspection</li>
+        <li>Dashboard "Retry" creates new <code>publish_run</code> with fresh jobs for failed platforms only</li>
+      </ul>
+
+      <h2>Gateway pattern (apps/api)</h2>
+      <p>Workers never call Convex mutations directly. All completion writes go through:</p>
+      <pre><code>POST /internal/publish/complete
+  Authorization: HMAC-SHA256(workerSecret, body)
+  Body: {
+    publishJobId, attemptNumber, status,
+    platformPostId?, platformPostUrl?,
+    errorCode?, errorClass?, errorMessage?
+  }</code></pre>
+      <p>The API validates HMAC, calls Convex <code>completeAttempt</code>, and returns structured errors. This centralizes auth, rate limiting, and logging.</p>
+
+      <div class="callout success">
+        <div class="callout-title">Preserved</div>
+        <p>Convex remains system of record. Real-time subscriptions unchanged. Provider implementations in <code>packages/worker/providers/</code> unchanged. Instagram automations and approval workflow untouched.</p>
+      </div>
+
+      <h2>Phase 4 addition — Webhooks</h2>
+      <p>After pipeline cutover, inbound platform webhooks route through <code>apps/api/webhooks/*</code> instead of scattered Lambda handlers. Instagram DM webhooks remain on AWS Lambda (see <a href="10-webhooks.html">10 — Webhooks</a>).</p>
+    </main>
+  </div>
+</body>
+</html>

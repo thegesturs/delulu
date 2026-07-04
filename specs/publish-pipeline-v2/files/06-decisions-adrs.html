@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>06 — Decisions &amp; ADRs — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html" class="active">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>06 — Decisions &amp; ADRs</h1>
+      <p class="lead">Architecture decision records for Publish Pipeline v2.</p>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-001</span>
+        <h3>Convex remains system of record</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Publishing fragility stems from missing orchestration, not from Convex itself. A PlanetScale migration would take ~2–3 months and block all feature work.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>Keep Convex as the primary database. Add <code>publish_jobs</code> and <code>publish_attempts</code> tables within Convex. Defer any SQL migration.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Fast path to reliability (~3–4 weeks). Convex query/subscription model preserved. Must design indexes carefully for job sweeper queries.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-002</span>
+        <h3>One publish_job per post × social provider per run</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Multi-platform posts need independent retry, status, and observability per target. A single job for all platforms cannot express partial success.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p><code>createPublishRun</code> creates N jobs for N providers. Each job has its own SQS message, state machine, and attempt log. Jobs share a <code>runId</code> for grouping.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Enables per-platform status chips and selective retry. Slightly more SQS messages (already one per provider today).</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-003</span>
+        <h3>Post publishStatus derived from jobs; never set by worker alone</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Workers racing to set <code>posts.status</code> cause partial-failure corruption. Post-level status must be a pure function of child job states.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>Introduce <code>posts.publishStatus</code> (QUEUED, PROCESSING, PARTIAL, PUBLISHED, FAILED). Updated only by <code>derivePostPublishStatus()</code> after any job transition. Workers cannot write post fields directly.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Eliminates race conditions. Dashboard must read <code>publishStatus</code> for publish state and <code>status</code> for lifecycle. Migration requires UI updates.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-004</span>
+        <h3>Worker writes via apps/api /internal/publish/* (HMAC auth)</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Workers currently call public Convex mutations with admin credentials. No request validation, idempotency enforcement, or audit trail at the boundary.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>Workers POST to <code>apps/api</code> internal routes authenticated with HMAC-SHA256 (<code>WORKER_HMAC_SECRET</code>). API calls Convex mutations internally. Remove direct <code>convex.mutation(api.posts.updatePostPublishStatus)</code> from worker.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Single gateway for worker writes. Enables structured logging, rate limiting, and future auth rotation. Adds one network hop (Lambda → API → Convex).</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-005</span>
+        <h3>Webhooks move to CF Workers in Phase 4; Instagram stays on AWS Lambda</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Inbound webhooks are scattered across Lambda handlers and Convex HTTP endpoints. Instagram DM automations have complex session state requiring the existing Lambda path.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>Phase 4 routes generic platform webhooks through <code>apps/api/webhooks/*</code>. Instagram DM webhooks remain on the existing AWS Lambda handler. Dual endpoints during cutover window.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Documented now, implemented after pipeline cutover. Instagram path unchanged — zero risk to automations.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-006</span>
+        <h3>Keep Convex subscriptions for real-time dashboard</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>The dashboard relies on Convex reactive queries for live post status updates. Polling or SSE would degrade UX.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>No change to subscription model. <code>publish_jobs</code> can optionally be subscribed to for per-platform chips, but primary UI reads derived <code>posts.publishStatus</code> and <code>platformPosts</code>.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Zero frontend infrastructure change for real-time. Job table subscriptions available for advanced UI later.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-007</span>
+        <h3>Partial publish shows PARTIAL + per-platform status chips</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Users publishing to multiple platforms need to see which succeeded and which failed, with retry affordance per failed platform.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>When jobs are mixed PUBLISHED + FAILED, post <code>publishStatus = PARTIAL</code>. Dashboard renders per-platform chips from <code>publish_jobs</code> or <code>platformPosts</code>. Retry button re-runs only failed jobs.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Requires UI work in Phase 3. Significantly improves multi-platform UX.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-008</span>
+        <h3>Grandfather FREE users; block new FREE signups</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>FREE tier is being deprecated. Existing users should not be disrupted. New specs should not reference FREE as an available plan.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>Existing FREE users keep their plan. New signups blocked at Phase 5. Minimum paid tier = ECHO. This spec does not implement billing changes — only documents the policy.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Publish pipeline itself is plan-agnostic. FREE block is a separate gate in signup flow.</p>
+        </div>
+      </div>
+
+      <div class="adr-card">
+        <span class="adr-id">ADR-009</span>
+        <h3>Convex schema SSOT — schemas/publish.ts, no duplicated enums</h3>
+        <div class="adr-status">Accepted</div>
+        <div class="adr-section">
+          <div class="adr-section-label">Context</div>
+          <p>Publish enums and validators risk duplication across Convex schemas, API validators, worker types, and frontend. Drift causes runtime mismatches.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Decision</div>
+          <p>All publish-related Convex validators live in <code>packages/database/convex/schemas/publish.ts</code>. Exported via <code>schemas/index.ts</code>. Registered in <code>schema.ts</code>. Worker error codes in <code>packages/worker/providers/errors.ts</code> map to <code>errorClass</code> at the API boundary — never redefined in Convex.</p>
+        </div>
+        <div class="adr-section">
+          <div class="adr-section-label">Consequences</div>
+          <p>Single file to update when adding statuses. API and frontend import types from <code>@delulu/database/convex/schemas</code>. See <a href="07-schema.html">07 — Schema</a> for full DDL.</p>
+        </div>
+      </div>
+
+      <h2>ADR index</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Title</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ADR-001</td><td>Convex remains system of record</td><td>Accepted</td></tr>
+          <tr><td>ADR-002</td><td>One publish_job per post × provider per run</td><td>Accepted</td></tr>
+          <tr><td>ADR-003</td><td>Derived publishStatus; workers cannot set post status</td><td>Accepted</td></tr>
+          <tr><td>ADR-004</td><td>Worker writes via apps/api internal routes (HMAC)</td><td>Accepted</td></tr>
+          <tr><td>ADR-005</td><td>Webhooks to apps/api in Phase 4; Instagram on Lambda</td><td>Accepted</td></tr>
+          <tr><td>ADR-006</td><td>Keep Convex subscriptions</td><td>Accepted</td></tr>
+          <tr><td>ADR-007</td><td>PARTIAL status + per-platform chips</td><td>Accepted</td></tr>
+          <tr><td>ADR-008</td><td>Grandfather FREE; block new signups</td><td>Accepted</td></tr>
+          <tr><td>ADR-009</td><td>Schema SSOT in schemas/publish.ts</td><td>Accepted</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>
