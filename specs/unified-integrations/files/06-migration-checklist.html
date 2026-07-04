@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>06 — Migration Checklist</title>
+  <link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+
+<header class="spec-nav">
+  <a href="index.html" class="home">← Index</a>
+  <span class="sep">·</span>
+  <a href="05-implementation-plan.html">05</a>
+  <span class="current">06 Checklist</span>
+  <a href="07-out-of-scope.html">07 →</a>
+</header>
+
+<h1>Add a platform (post-migration)</h1>
+<p class="subtitle">After Phase 5, adding a network (e.g. Reddit) takes at most five steps.</p>
+
+<h2>1. Scaffold platform folder</h2>
+<pre>mkdir -p packages/integrations/src/platforms/reddit</pre>
+<p>Copy <code>platforms/threads/</code> as baseline:</p>
+<ul>
+  <li><code>definition.ts</code> — wires sub-modules</li>
+  <li><code>meta.ts</code>, <code>auth.ts</code>, <code>publish.ts</code>, <code>rules.ts</code>, <code>settings.ts</code></li>
+</ul>
+
+<h2>2. Implement auth and publish</h2>
+<ul>
+  <li><code>auth.ts</code>: <code>getConnectUrl</code>, <code>handleCallback</code>, <code>refreshToken</code></li>
+  <li><code>publish.ts</code>: throws <code>IntegrationError</code> on failure, returns <code>PostResult</code></li>
+  <li>Env vars in <code>packages/api/keys.ts</code> + deployment secrets</li>
+</ul>
+
+<h2>3. Register</h2>
+<pre>import { redditIntegration } from "./platforms/reddit/definition";
+
+export const integrationRegistry = {
+  // ...existing
+  REDDIT: redditIntegration,
+};</pre>
+<p>Add <code>REDDIT</code> to <code>SocialTypes</code> in <code>packages/validators/post.ts</code> if needed.</p>
+
+<h2>4. Smoke test</h2>
+<ul>
+  <li>Connect via <code>/api/callback/reddit</code></li>
+  <li>Publish a test post</li>
+  <li>Verify Convex <code>updatePostPublishStatus</code> → <code>PUBLISHED</code></li>
+</ul>
+
+<h2>5. Optional UI</h2>
+<p>Add preview/settings components only if the platform needs custom UI beyond the generic composer.</p>
+
+<hr />
+
+<h2>What you no longer touch</h2>
+<table>
+  <thead><tr><th>Old path</th><th>After migration</th></tr></thead>
+  <tbody>
+    <tr><td><code>packages/worker/providers/</code></td><td>Deleted</td></tr>
+    <tr><td><code>packages/api/services/connect-url.service.ts</code></td><td>Deleted</td></tr>
+    <tr><td><code>apps/app/app/api/callback/{platform}/route.ts</code></td><td>One dynamic route</td></tr>
+    <tr><td><code>apps/app/lib/platform-rules.ts</code></td><td>Deleted</td></tr>
+    <tr><td><code>validators/constants/settings.ts</code> defaults</td><td>In integration <code>settings.ts</code></td></tr>
+  </tbody>
+</table>
+
+<footer class="spec-nav bottom">
+  <a href="05-implementation-plan.html">← 05 Plan</a>
+  <a href="index.html">Index</a>
+  <a href="07-out-of-scope.html">07 Out of scope →</a>
+</footer>
+
+</body>
+</html>

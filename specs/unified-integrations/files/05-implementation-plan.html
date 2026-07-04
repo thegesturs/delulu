@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>05 — Implementation Plan</title>
+  <link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+
+<header class="spec-nav">
+  <a href="index.html" class="home">← Index</a>
+  <span class="sep">·</span>
+  <a href="04-types-and-api.html">04</a>
+  <span class="current">05 Plan</span>
+  <a href="06-migration-checklist.html">06 →</a>
+</header>
+
+<h1>Implementation plan</h1>
+<p class="subtitle">Phases are sequential. Each has rollback and definition of done.</p>
+
+<h2>Phase 0 — Spec (this PR)</h2>
+<p class="phase-meta"><strong>Deliverable:</strong> <code>specs/unified-integrations/files/</code></p>
+<p><strong>DoD:</strong> <code>agent-review.md</code> run; blocking issues resolved before Phase 1.</p>
+
+<hr />
+
+<h2>Phase 1 — Scaffold + Instagram template</h2>
+<p class="phase-meta"><strong>Duration:</strong> ~5 days · <strong>Branch:</strong> <code>feat/integrations-phase-1</code></p>
+
+<h3>Steps</h3>
+<ol>
+  <li>Create <code>packages/integrations</code> (package.json, tsconfig, tsup).</li>
+  <li>Implement types, errors, registry, auth-service, worker-entry, index.</li>
+  <li>Implement <code>platforms/instagram/</code>:
+    <ul>
+      <li><code>publish.ts</code> ← <code>worker/providers/instagram.provider.ts</code> (remove neverthrow)</li>
+      <li><code>auth.ts</code> ← <code>callback/instagram/route.ts</code> + connect URL</li>
+      <li><code>rules.ts</code> ← <code>platform-rules.ts</code> INSTAGRAM slice</li>
+      <li><code>settings.ts</code> ← validators defaults</li>
+      <li><code>webhooks.ts</code>, <code>queries.ts</code></li>
+    </ul>
+  </li>
+  <li>Update <code>worker/client.ts</code> → <code>@delulu/integrations/worker</code>.</li>
+  <li>Thin callback + connectUrlRegistry to delegate (kept until Phase 4).</li>
+  <li>Vitest tests for rules.validate and publish errors.</li>
+</ol>
+
+<h3>Files touched</h3>
+<table>
+  <thead><tr><th>Action</th><th>Path</th></tr></thead>
+  <tbody>
+    <tr><td>CREATE</td><td><code>packages/integrations/**</code></td></tr>
+    <tr><td>MODIFY</td><td><code>packages/worker/client.ts</code>, <code>package.json</code></td></tr>
+    <tr><td>MODIFY</td><td><code>apps/app/app/api/callback/instagram/route.ts</code></td></tr>
+    <tr><td>MODIFY</td><td><code>packages/api/services/connect-url.service.ts</code>, <code>package.json</code></td></tr>
+    <tr><td>MODIFY</td><td><code>turbo.json</code></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Rollback:</strong> <code>INTEGRATIONS_REGISTRY=false</code> restores <code>providerRegistry</code>.</p>
+<p><strong>DoD:</strong> Instagram OAuth + publish + DM webhook + automation link; typecheck passes; bundle ≤ +5%.</p>
+
+<hr />
+
+<h2>Phase 2 — Migrate remaining 9 platforms</h2>
+<p class="phase-meta"><strong>Duration:</strong> ~8 days · <strong>Branch:</strong> <code>feat/integrations-phase-2</code></p>
+
+<p>Per platform (TWITTER, LINKEDIN, TIKTOK, THREADS, FACEBOOK, PINTEREST, FARCASTER, YOUTUBE, BLUESKY): create folder, convert neverthrow → throw, move callback/connect/rules/settings/queries, register.</p>
+
+<h3>Special cases</h3>
+<table>
+  <thead><tr><th>Platform</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>FACEBOOK</td><td><code>auth.onConnectStep</code> for page picker</td></tr>
+    <tr><td>FARCASTER</td><td>Static Warpcast URL</td></tr>
+    <tr><td>TIKTOK</td><td>Move inline refresh from tRPC → auth-service</td></tr>
+    <tr><td>YOUTUBE</td><td>Keep <code>googleapis</code> in integrations package</td></tr>
+  </tbody>
+</table>
+
+<p><strong>DoD:</strong> All 10 publish in staging; <code>packages/worker/providers/</code> deleted.</p>
+
+<hr />
+
+<h2>Phase 3 — Collapse platform-rules</h2>
+<p class="phase-meta"><strong>Duration:</strong> ~3 days</p>
+<ol>
+  <li>Aggregate rules from <code>integrationRegistry</code>.</li>
+  <li>Thin re-export shim for one release, then delete <code>platform-rules.ts</code>.</li>
+  <li>Update 6 composer components to import <code>@delulu/integrations</code>.</li>
+</ol>
+
+<hr />
+
+<h2>Phase 4 — Dynamic OAuth callback</h2>
+<p class="phase-meta"><strong>Duration:</strong> ~2 days</p>
+<ol>
+  <li>Create <code>callback/[provider]/route.ts</code> → <code>auth.handleCallback</code>.</li>
+  <li>Delete 9 per-platform routes.</li>
+  <li>Delete <code>connect-url.service.ts</code>.</li>
+</ol>
+
+<hr />
+
+<h2>Phase 5 — Cleanup</h2>
+<p class="phase-meta"><strong>Duration:</strong> ~1 day</p>
+<ol>
+  <li>Remove <code>neverthrow</code> from worker + api package.json.</li>
+  <li>Delete <code>worker/providers/CLAUDE.md</code>; add <code>integrations/README.md</code>.</li>
+  <li>Rewrite <code>.cursor/rules/social-provider-integration.mdc</code> → point at <a href="06-migration-checklist.html">06 checklist</a>.</li>
+  <li>Zero grep hits for <code>neverthrow</code>, <code>providerRegistry</code>, <code>connectUrlRegistry</code>.</li>
+</ol>
+
+<footer class="spec-nav bottom">
+  <a href="04-types-and-api.html">← 04 Types</a>
+  <a href="index.html">Index</a>
+  <a href="06-migration-checklist.html">06 Checklist →</a>
+</footer>
+
+</body>
+</html>
