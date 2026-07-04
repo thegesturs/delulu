@@ -1,5 +1,6 @@
 import type { PlatformPublisher, PublishableSocialType } from "./types";
 import { instagramPublisher } from "./platforms/instagram/publish";
+import { twitterPublisher } from "./platforms/twitter/publish";
 
 /**
  * Node-only publish registry. Imports the concrete `publish` modules
@@ -11,6 +12,7 @@ export const publisherRegistry: Partial<
   Record<PublishableSocialType, PlatformPublisher>
 > = {
   INSTAGRAM: instagramPublisher,
+  TWITTER: twitterPublisher,
 };
 
 export function getPublisher(id: PublishableSocialType): PlatformPublisher {

@@ -4,6 +4,7 @@ import type {
   PublishableSocialType,
 } from "./types";
 import { instagramIntegration } from "./platforms/instagram/definition";
+import { twitterIntegration } from "./platforms/twitter/definition";
 
 /**
  * Isomorphic metadata registry — the single source of truth for meta, auth,
@@ -15,6 +16,7 @@ export const integrationRegistry: Partial<
   Record<PublishableSocialType, PlatformIntegration>
 > = {
   INSTAGRAM: instagramIntegration,
+  TWITTER: twitterIntegration,
 };
 
 export function getIntegration(id: PublishableSocialType): PlatformIntegration {
