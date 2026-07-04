@@ -45,6 +45,10 @@ export const keys = () =>
       TIKTOK_CALLBACK_URL: z.string().min(1),
 
       POSTING_SECRET_KEY: z.string().min(1),
+
+      // Comma-separated allowlist of admin emails (feature flags, IG insights).
+      // e.g. ADMIN_EMAILS="a@example.com,b@example.com"
+      ADMIN_EMAILS: z.string().default(""),
     },
     runtimeEnv: {
       TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
@@ -84,5 +88,7 @@ export const keys = () =>
       YOUTUBE_CALLBACK_URL: process.env.YOUTUBE_CALLBACK_URL,
 
       POSTING_SECRET_KEY: process.env.POSTING_SECRET_KEY,
+
+      ADMIN_EMAILS: process.env.ADMIN_EMAILS,
     },
   });

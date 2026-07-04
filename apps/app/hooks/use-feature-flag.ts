@@ -2,7 +2,12 @@
 
 import { useUser } from "@delulu/auth";
 
-const ADMIN_EMAILS = ["rajswaraj.r@gmail.com", "mrfranklinstein@gmail.com"];
+// Comma-separated admin allowlist, configured via env (keep in sync with the
+// server-side ADMIN_EMAILS in packages/api/keys.ts).
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 type FeatureFlag = "affiliates" | "twitter" | "analytics";
 
@@ -22,7 +27,7 @@ export function useFeatureFlag(flag: FeatureFlag): boolean {
 
   if (config.adminOnly) {
     const email = user?.primaryEmailAddress?.emailAddress;
-    return !!email && ADMIN_EMAILS.includes(email);
+    return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
   }
 
   return true;
@@ -31,5 +36,5 @@ export function useFeatureFlag(flag: FeatureFlag): boolean {
 export function useIsAdmin(): boolean {
   const { user } = useUser();
   const email = user?.primaryEmailAddress?.emailAddress;
-  return !!email && ADMIN_EMAILS.includes(email);
+  return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
 }
