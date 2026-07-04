@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>03 Current Architecture — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html" class="active">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Current Architecture</div>
+    <h1 class="page-title">Current Architecture</h1>
+    <p class="subtitle">How publishing works today — end to end.</p>
+
+    <section>
+      <h2>System diagram</h2>
+      <pre class="mermaid">┌─────────────────────────────────────────────────────────────────┐
+│                        Next.js App (apps/app)                    │
+│   useQuery subscriptions ──────────────────────────────────────►│
+└───────────────────────────────────────────────┬─────────────────┘
+                                                │
+                                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Convex (System of Record)                    │
+│  posts · socialProviders · automations · postReviews · http.ts  │
+│                                                                  │
+│  upsertPost(PROCESSING|SCHEDULED)                                │
+│       │                                                          │
+│       ├── SCHEDULED → callmelater.schedulePostAction             │
+│       └── PROCESSING → publishScheduledPost (internal action)    │
+└───────────────┬───────────────────────────────┬─────────────────┘
+                │                               │
+                ▼                               ▼
+     ┌──────────────────┐            ┌──────────────────────┐
+     │  Call Me Later   │            │  post.service.ts     │
+     │  (scheduler)     │            │  createPostInQueue   │
+     └────────┬─────────┘            └──────────┬───────────┘
+              │ POST /publishPost               │ POST Lambda URL
+              ▼                               ▼
+     ┌─────────────────────────────────────────────────────────┐
+     │              AWS SST (packages/infrastructure)           │
+     │  trigger-sqs Lambda ──► SocialPostsQueue (SQS)           │
+     │                              │                           │
+     │                              ▼                           │
+     │                    social-post-worker Lambda             │
+     │                    (packages/worker/client.ts)             │
+     └──────────────────────────────┬──────────────────────────┘
+                                    │
+                                    ▼
+                          updatePostPublishStatus
+                          (Convex mutation — sets post.status)
+
+┌─────────────────────────────────────────────────────────────────┐
+│  Other ingress                                                   │
+│  Clerk/Dodo webhooks → convex/http.ts                           │
+│  Instagram webhooks → instagram-webhook Lambda → Convex         │
+│  Agent REST API → apps/api (CF Workers) → Convex              │
+└─────────────────────────────────────────────────────────────────┘</pre>
+    </section>
+
+    <section>
+      <h2>Publish triggers</h2>
+      <table>
+        <thead><tr><th>Trigger</th><th>Entry point</th><th>Queue path</th></tr></thead>
+        <tbody>
+          <tr><td>Publish now</td><td><code>upsertPost</code> status=PROCESSING</td><td>Convex action → Lambda</td></tr>
+          <tr><td>Schedule</td><td><code>upsertPost</code> status=SCHEDULED</td><td>CML → Convex HTTP → action → Lambda</td></tr>
+          <tr><td>Manual retry</td><td><code>createPostFromPostId</code> tRPC</td><td>Sets PROCESSING → <code>createPostInQueue</code></td></tr>
+          <tr><td>Scheduled fire</td><td>Call Me Later POST <code>/publishPost</code></td><td>Convex action → Lambda per provider</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Data model (publish-related)</h2>
+      <ul>
+        <li><strong>posts</strong> — content, schedule, <code>status</code>, embedded <code>platformPosts[]</code>, <code>retryCount</code></li>
+        <li><strong>socialProviders</strong> — OAuth tokens, platform type</li>
+        <li>No <code>publish_jobs</code> or <code>publish_attempts</code> tables</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Infrastructure (SST)</h2>
+      <table>
+        <thead><tr><th>Resource</th><th>Config</th></tr></thead>
+        <tbody>
+          <tr><td>SocialPostsQueue</td><td>visibilityTimeout: 15 min, batch size 1</td></tr>
+          <tr><td>trigger-sqs Lambda</td><td>URL endpoint, x-api-key auth → enqueue</td></tr>
+          <tr><td>social-post-worker Lambda</td><td>SQS subscriber, 10 min timeout, links CONVEX_URL</td></tr>
+          <tr><td>InstagramWebhook Lambda</td><td>CF KV gate → Convex automations</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-warn">
+        <strong>Note:</strong> ECS Task path is commented out in <code>sst.config.ts</code>. Worker runs as Lambda subscriber, not ECS.
+      </div>
+    </section>
+
+    <section>
+      <h2>Real-time</h2>
+      <p>Dashboard, calendar, and posts list use Convex <code>useQuery</code> subscriptions. Post status changes propagate in real time — this is a strength to preserve.</p>
+    </section>
+
+    <footer><a href="04-current-paths.html">Next: Current Code Paths →</a></footer>
+  </main>
+</body>
+</html>

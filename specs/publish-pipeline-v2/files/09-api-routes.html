@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 API Routes — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html" class="active">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / API Routes</div>
+    <h1 class="page-title">API Routes</h1>
+    <p class="subtitle">Expand apps/api on Cloudflare Workers — no new NestJS/Fastify service.</p>
+
+    <section>
+      <h2>Placement decision</h2>
+      <div class="callout callout-success">
+        <strong>Extend <code>apps/api</code></strong> (Hono on CF Workers). Already has Convex client, OpenAPI, API key auth, rate limiting. Add <code>/internal/*</code> and <code>/webhooks/*</code> route groups.
+      </div>
+    </section>
+
+    <section>
+      <h2>Internal routes (worker ingress)</h2>
+      <p>Auth: <code>x-api-key: LAMBDA_SECRET_KEY</code> (same as trigger-sqs)</p>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>POST</td>
+            <td><code>/internal/publish/heartbeat</code></td>
+            <td>Job → PROCESSING; log attempt STARTED</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>/internal/publish/complete</code></td>
+            <td>Report attempt result; derive post status</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>POST /internal/publish/complete — request</h3>
+      <pre>{
+  "publishJobId": "k57abc...",
+  "attemptNumber": 2,
+  "sqsMessageId": "abc-123",
+  "workerId": "lambda-request-id",
+  "durationMs": 45230,
+  "result": {
+    "success": true,
+    "platformPostId": "17841...",
+    "platformPostUrl": "https://instagram.com/p/..."
+  }
+}
+
+// Or on failure:
+{
+  "publishJobId": "k57abc...",
+  "attemptNumber": 2,
+  "result": {
+    "success": false,
+    "errorCode": "RATE_LIMIT_EXCEEDED",
+    "errorMessage": "Rate limit exceeded for Instagram",
+    "errorClass": "TRANSIENT",
+    "retryAfter": 300
+  }
+}</pre>
+
+      <h3>Response</h3>
+      <pre>{ "ok": true, "jobStatus": "PUBLISHED", "postPublishStatus": "PARTIAL" }</pre>
+    </section>
+
+    <section>
+      <h2>Public API additions (v1)</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Scope</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>GET</td>
+            <td><code>/v1/posts/:id/publish-jobs</code></td>
+            <td>posts:read</td>
+            <td>List jobs + attempts for agent observability</td>
+          </tr>
+          <tr>
+            <td>POST</td>
+            <td><code>/v1/posts/:id/retry</code></td>
+            <td>posts:write</td>
+            <td>Manual retry failed providers</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Convex mutations (called by API, not worker directly)</h2>
+      <table>
+        <thead><tr><th>Mutation</th><th>Caller</th></tr></thead>
+        <tbody>
+          <tr><td><code>publish.createRun</code></td><td>App, CML webhook, API retry</td></tr>
+          <tr><td><code>publish.completeAttempt</code></td><td>apps/api internal route</td></tr>
+          <tr><td><code>publish.retryJob</code></td><td>App, API, dashboard</td></tr>
+          <tr><td><code>publish.derivePostPublishStatus</code></td><td>Internal — called by completeAttempt</td></tr>
+        </tbody>
+      </table>
+      <p>New module: <code>packages/database/convex/publish.ts</code></p>
+    </section>
+
+    <section>
+      <h2>SQS message shape (updated)</h2>
+      <pre>{
+  "publishJobId": "k57abc...",
+  "socialType": "INSTAGRAM",
+  "socialPublishInput": {
+    "content": [...],
+    "postId": "k57def...",
+    "socialProviderId": "k57ghi...",
+    "providerSettings": { ... }
+  }
+}</pre>
+    </section>
+
+    <section>
+      <h2>Worker change</h2>
+      <pre>// packages/worker/client.ts — replace:
+await convex.mutation(api.posts.updatePostPublishStatus, { ... });
+
+// with:
+await fetch(`${API_URL}/internal/publish/complete`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-api-key": process.env.LAMBDA_SECRET_KEY,
+  },
+  body: JSON.stringify({ publishJobId, attemptNumber, result }),
+});</pre>
+    </section>
+
+    <section>
+      <h2>app.ts mount</h2>
+      <pre>// apps/api/src/app.ts
+import internal from "./routes/internal";
+import webhooks from "./routes/webhooks";
+
+app.route("/internal", internal);   // no API key middleware — uses x-api-key
+app.route("/webhooks", webhooks);   // per-webhook verification</pre>
+    </section>
+
+    <footer><a href="10-webhooks.html">Next: Webhooks →</a></footer>
+  </main>
+</body>
+</html>

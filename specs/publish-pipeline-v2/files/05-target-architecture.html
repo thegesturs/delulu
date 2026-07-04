@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>05 Target Architecture — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html" class="active">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Target Architecture</div>
+    <h1 class="page-title">Target Architecture</h1>
+    <p class="subtitle">Layer boundaries, data ownership, and control flow after v2.</p>
+
+    <section>
+      <h2>Design principles</h2>
+      <ol>
+        <li><strong>Posts = editorial artifact</strong> — content, schedule intent, approval. Worker never patches post on failure.</li>
+        <li><strong>Publish jobs = execution artifact</strong> — one job per post × socialProvider per run.</li>
+        <li><strong>Derived post status</strong> — computed from child jobs inside a single Convex mutation.</li>
+        <li><strong>Single write API</strong> — worker calls <code>/internal/publish/complete</code>; mutation enforces invariants.</li>
+        <li><strong>Convex stays</strong> — real-time, automations, approvals unchanged.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>System diagram</h2>
+      <pre class="mermaid">┌──────────────────────────────────────────────────────────────────┐
+│  Triggers: User publish · Schedule (CML) · Retry · Agent API      │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  Convex: createPublishRun({ postId, trigger })                  │
+│    · Validate approval (org posts)                                │
+│    · Create publish_jobs (1 per provider)                         │
+│    · Enqueue SQS messages with publishJobId                       │
+│    · Set post.publishStatus = IN_PROGRESS                         │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  AWS: SocialPostsQueue (+ DLQ) → social-post-worker Lambda        │
+│    · Resolve media URLs                                           │
+│    · Call provider.publish()                                      │
+│    · POST apps/api/internal/publish/complete                      │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  apps/api (CF Workers) → Convex completePublishAttempt            │
+│    · Write publish_attempts row (audit)                             │
+│    · Update publish_job status                                      │
+│    · derivePostPublishStatus(postId)                                │
+│    · Side effects: streak, linkPublishedPost, video cleanup         │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  Next.js App — useQuery on posts + publish_jobs (real-time)       │
+└──────────────────────────────────────────────────────────────────┘
+
+Phase 4 webhooks (dashed):
+  Clerk/Dodo/CML → apps/api/webhooks/* → Convex mutations
+  Instagram → AWS Lambda (unchanged)</pre>
+    </section>
+
+    <section>
+      <h2>Layer ownership</h2>
+      <table>
+        <thead><tr><th>Layer</th><th>Owns</th><th>Does NOT own</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Convex</td>
+            <td>Posts, jobs, attempts, automations, reviews, subscriptions</td>
+            <td>Platform API calls, media upload to IG/Twitter/etc</td>
+          </tr>
+          <tr>
+            <td>Worker Lambda</td>
+            <td>Provider publish, media presign, error classification</td>
+            <td>Post status, editorial fields, billing</td>
+          </tr>
+          <tr>
+            <td>apps/api</td>
+            <td>Auth boundaries, webhook verification, worker ingress</td>
+            <td>Business logic (delegates to Convex)</td>
+          </tr>
+          <tr>
+            <td>SQS</td>
+            <td>At-least-once delivery, retry redrive, DLQ</td>
+            <td>Idempotency (handled in Convex)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Status split</h2>
+      <table>
+        <thead><tr><th>Field</th><th>Values</th><th>Who sets</th></tr></thead>
+        <tbody>
+          <tr><td><code>lifecycleStatus</code></td><td>SAVED, SCHEDULED, DELETED</td><td>User mutations</td></tr>
+          <tr><td><code>publishStatus</code></td><td>IDLE, IN_PROGRESS, PARTIAL, PUBLISHED, FAILED</td><td>Derived from jobs</td></tr>
+          <tr><td><code>status</code> (legacy)</td><td>Existing enum</td><td>Computed alias during migration</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Why not PlanetScale / NestJS / Temporal</h2>
+      <ul>
+        <li><strong>PlanetScale</strong> — loses Convex real-time; XL migration for same job table we'd build anyway</li>
+        <li><strong>NestJS</strong> — <code>apps/api</code> on Hono already exists; adding a second backend increases ops surface</li>
+        <li><strong>Temporal</strong> — Postiz pattern is good but SQS+DLQ+Convex jobs achieves parity at lower complexity for current scale</li>
+      </ul>
+    </section>
+
+    <footer><a href="06-decisions-adrs.html">Next: ADRs →</a></footer>
+  </main>
+</body>
+</html>

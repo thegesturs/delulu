@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>08 Publish Pipeline — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html" class="active">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Publish Pipeline v2</div>
+    <h1 class="page-title">Publish Pipeline v2</h1>
+    <p class="subtitle">State machine, retries, idempotency, and error taxonomy.</p>
+
+    <section>
+      <h2>Job state machine</h2>
+      <pre>QUEUED ──► PROCESSING ──► PUBLISHED
+                │
+                ├──► FAILED (permanent error)
+                └──► DEAD_LETTER (max transient retries exhausted)</pre>
+      <table>
+        <thead><tr><th>State</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>QUEUED</td><td>Job created; SQS message sent or scheduled</td></tr>
+          <tr><td>PROCESSING</td><td>Worker picked up; attempt STARTED logged</td></tr>
+          <tr><td>PUBLISHED</td><td>Provider returned platform post ID</td></tr>
+          <tr><td>FAILED</td><td>Permanent error — no auto-retry</td></tr>
+          <tr><td>DEAD_LETTER</td><td>Transient retries exhausted — ops/manual retry</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Post publishStatus derivation</h2>
+      <table>
+        <thead><tr><th>Job states for post's active run</th><th>publishStatus</th></tr></thead>
+        <tbody>
+          <tr><td>Any QUEUED or PROCESSING</td><td>IN_PROGRESS</td></tr>
+          <tr><td>All PUBLISHED</td><td>PUBLISHED</td></tr>
+          <tr><td>Mix PUBLISHED + FAILED/DEAD_LETTER</td><td>PARTIAL</td></tr>
+          <tr><td>All FAILED or DEAD_LETTER</td><td>FAILED</td></tr>
+          <tr><td>No active jobs</td><td>IDLE</td></tr>
+        </tbody>
+      </table>
+      <p>Legacy <code>posts.status</code> mapped for UI compat: PUBLISHED→PUBLISHED, PARTIAL→FAILED (or new PARTIAL), IN_PROGRESS→PROCESSING.</p>
+    </section>
+
+    <section>
+      <h2>Idempotency</h2>
+      <ul>
+        <li><strong>Job creation:</strong> <code>idempotencyKey = ${runId}:${socialProviderId}</code> — unique index prevents duplicate jobs per run</li>
+        <li><strong>Attempt completion:</strong> <code>completePublishAttempt(jobId, attemptNumber)</code> — no-op if <code>attemptNumber &lt; job.attemptCount</code></li>
+        <li><strong>SQS:</strong> message body includes <code>publishJobId</code>; FIFO optional with <code>MessageDeduplicationId = jobId</code></li>
+        <li><strong>Provider dedup:</strong> persist <code>platformPostId</code> on attempt before marking SUCCEEDED — retry must not double-post</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Retry policy</h2>
+      <table>
+        <thead><tr><th>Error class</th><th>Codes</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Transient</td>
+            <td>NETWORK_ERROR, RATE_LIMIT_EXCEEDED, API_ERROR (5xx), MEDIA_PROCESSING_TIMEOUT</td>
+            <td>Requeue with backoff; increment attemptCount</td>
+          </tr>
+          <tr>
+            <td>Permanent</td>
+            <td>INVALID_ACCESS_TOKEN, NO_CONTENT, INVALID_MEDIA, PROFILE_NOT_FOUND, API_ERROR (4xx)</td>
+            <td>Mark FAILED immediately; delete SQS message</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Backoff:</strong> <code>delay = min(retryAfter ?? 2^attempt × 60s, 3600s)</code></p>
+      <p><strong>Max attempts:</strong> 5 → DEAD_LETTER</p>
+      <p><strong>SQS:</strong> <code>maxReceiveCount: 5</code> on redrive policy → DLQ</p>
+    </section>
+
+    <section>
+      <h2>Error taxonomy (from errors.ts)</h2>
+      <table>
+        <thead><tr><th>Code</th><th>Class</th><th>Retry?</th></tr></thead>
+        <tbody>
+          <tr><td>NETWORK_ERROR</td><td>Transient</td><td>Yes</td></tr>
+          <tr><td>RATE_LIMIT_EXCEEDED</td><td>Transient</td><td>Yes (respect retryAfter)</td></tr>
+          <tr><td>API_ERROR 5xx</td><td>Transient</td><td>Yes</td></tr>
+          <tr><td>API_ERROR 4xx</td><td>Permanent</td><td>No</td></tr>
+          <tr><td>MEDIA_PROCESSING_TIMEOUT</td><td>Transient</td><td>Yes</td></tr>
+          <tr><td>MEDIA_PROCESSING_FAILED</td><td>Transient</td><td>Yes (1–2x)</td></tr>
+          <tr><td>INVALID_ACCESS_TOKEN</td><td>Permanent</td><td>No — user must reconnect</td></tr>
+          <tr><td>TOKEN_REFRESH_FAILED</td><td>Permanent</td><td>No</td></tr>
+          <tr><td>NO_CONTENT, INVALID_MEDIA</td><td>Permanent</td><td>No</td></tr>
+          <tr><td>PROFILE_NOT_FOUND</td><td>Permanent</td><td>No</td></tr>
+          <tr><td>PUBLISH_FAILED, POST_CREATION_FAILED</td><td>Depends on reason</td><td>Classify from underlying API response</td></tr>
+        </tbody>
+      </table>
+      <p>Worker must call <code>isRetryableError()</code> and attach <code>errorClass</code> + <code>errorCode</code> to completion payload.</p>
+    </section>
+
+    <section>
+      <h2>Audit log flow</h2>
+      <ol>
+        <li>Worker receives SQS message with <code>publishJobId</code></li>
+        <li>POST <code>/internal/publish/heartbeat</code> → job PROCESSING, attempt STARTED</li>
+        <li>Call <code>provider.publish()</code></li>
+        <li>POST <code>/internal/publish/complete</code> → attempt SUCCEEDED or FAILED</li>
+        <li>Convex derives post status + runs side effects (streak, linkPublishedPost, video cleanup)</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Manual retry</h2>
+      <p><code>publish.retryJob({ jobId })</code> or <code>publish.retryPost({ postId })</code> creates a new <code>runId</code> and new jobs for failed/dead-letter providers only. Does not re-publish already-succeeded platforms unless user selects "retry all".</p>
+    </section>
+
+    <section>
+      <h2>Stuck job sweeper</h2>
+      <p>Convex cron (Phase 5): jobs in PROCESSING for &gt; 15 minutes → reset to QUEUED or mark FAILED with reason <code>WORKER_TIMEOUT</code>.</p>
+    </section>
+
+    <footer><a href="09-api-routes.html">Next: API Routes →</a></footer>
+  </main>
+</body>
+</html>

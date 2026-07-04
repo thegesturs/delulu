@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>07 Schema — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html" class="active">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Schema</div>
+    <h1 class="page-title">Schema Design</h1>
+    <p class="subtitle">New tables in Convex; reference MySQL DDL for future PlanetScale migration.</p>
+
+    <section>
+      <h2>Single source of truth (SSOT)</h2>
+      <div class="callout callout-success">
+        <strong>Do not duplicate schema.</strong> All publish-pipeline enums and validators live in one module. Mutations, queries, apps/api, and docs reference it — they do not redefine literals.
+      </div>
+      <table>
+        <thead><tr><th>Artifact</th><th>Path</th></tr></thead>
+        <tbody>
+          <tr><td>Publish enums + base schemas</td><td><code>packages/database/convex/schemas/publish.ts</code></td></tr>
+          <tr><td>Shared post enums (existing)</td><td><code>packages/database/convex/schemas/enums.ts</code></td></tr>
+          <tr><td>Barrel export</td><td><code>packages/database/convex/schemas/index.ts</code></td></tr>
+          <tr><td>Table + indexes</td><td><code>packages/database/convex/schema.ts</code></td></tr>
+          <tr><td>TS types (app/API)</td><td><code>Infer&lt;typeof …&gt;</code> or <code>PUBLISH_JOB_STATUS</code> from schemas</td></tr>
+        </tbody>
+      </table>
+      <p>Each enum: <code>v.union</code> validator + <code>as const</code> object + exported type — same pattern as <code>POST_STATUS</code> in <code>enums.ts</code>.</p>
+    </section>
+
+    <section>
+      <h2>schemas/publish.ts (new file)</h2>
+      <pre>// packages/database/convex/schemas/publish.ts
+
+export const publishJobStatusSchema = v.union(
+  v.literal("QUEUED"),
+  v.literal("PROCESSING"),
+  v.literal("PUBLISHED"),
+  v.literal("FAILED"),
+  v.literal("DEAD_LETTER"),
+);
+export const PUBLISH_JOB_STATUS = { QUEUED: "QUEUED", ... } as const;
+export type PublishJobStatus = (typeof PUBLISH_JOB_STATUS)[keyof typeof PUBLISH_JOB_STATUS];
+
+export const publishAttemptStatusSchema = v.union(...);
+export const errorClassSchema = v.union(v.literal("TRANSIENT"), v.literal("PERMANENT"));
+export const publishStatusSchema = v.union(...);   // IDLE | IN_PROGRESS | PARTIAL | ...
+export const lifecycleStatusSchema = v.union(...); // SAVED | SCHEDULED | DELETED
+
+export const basePublishJobSchema = v.object({ ... });
+export const basePublishAttemptSchema = v.object({ ... });
+
+// Add to schemas/index.ts:
+// export * from "./publish";</pre>
+    </section>
+
+    <section>
+      <h2>Convex — publish_jobs (schema.ts registration)</h2>
+      <pre>// schema.ts — fields come from basePublishJobSchema; status uses publishJobStatusSchema
+publish_jobs: defineTable(basePublishJobSchema.fields)
+  .index("by_post_status", ["postId", "status"])
+  .index("by_provider_status", ["socialProviderId", "status"])
+  .index("by_idempotency", ["idempotencyKey"])
+  .index("by_run", ["runId"])
+  .index("by_retry", ["status", "nextRetryAt"])</pre>
+      <p>Field definitions (in <code>basePublishJobSchema</code>): <code>postId</code>, <code>socialProviderId</code>, <code>runId</code>, <code>status: publishJobStatusSchema</code>, <code>errorClass: v.optional(errorClassSchema)</code>, <code>payloadJson</code>, etc. — all in <code>schemas/publish.ts</code>, not inlined here.</p>
+    </section>
+
+    <section>
+      <h2>Convex — publish_attempts</h2>
+      <pre>// schema.ts
+publish_attempts: defineTable(basePublishAttemptSchema.fields)
+  .index("by_job", ["publishJobId"])
+  .index("by_job_attempt", ["publishJobId", "attemptNumber"])</pre>
+      <p><code>status</code> uses <code>publishAttemptStatusSchema</code> from <code>schemas/publish.ts</code>.</p>
+    </section>
+
+    <section>
+      <h2>Convex — posts (additions)</h2>
+      <pre>// posts_media.ts — import lifecycleStatusSchema, publishStatusSchema from ./publish
+lifecycleStatus: lifecycleStatusSchema,
+publishStatus: publishStatusSchema,
+
+// Keep during migration (deprecated):
+status: postStatusSchema,
+platformPosts: v.optional(v.array(embeddedPlatformPostSchema)),
+retryCount: v.number(),</pre>
+    </section>
+
+    <section>
+      <h2>Reference MySQL DDL (PlanetScale — future only)</h2>
+      <pre>CREATE TABLE publish_jobs (
+  id            VARCHAR(36) PRIMARY KEY,
+  post_id       VARCHAR(36) NOT NULL,
+  social_provider_id VARCHAR(36) NOT NULL,
+  organization_id VARCHAR(64) NULL,
+  user_id       VARCHAR(36) NOT NULL,
+  run_id        VARCHAR(36) NOT NULL,
+  status        ENUM('QUEUED','PROCESSING','PUBLISHED','FAILED','DEAD_LETTER')
+                NOT NULL DEFAULT 'QUEUED',
+  attempt_count INT NOT NULL DEFAULT 0,
+  max_attempts  INT NOT NULL DEFAULT 5,
+  next_retry_at TIMESTAMP NULL,
+  idempotency_key VARCHAR(128) NOT NULL,
+  payload_json  JSON NOT NULL,
+  platform_post_id VARCHAR(255) NULL,
+  platform_post_url VARCHAR(512) NULL,
+  last_error_code VARCHAR(64) NULL,
+  last_error_message TEXT NULL,
+  error_class   ENUM('TRANSIENT','PERMANENT') NULL,
+  queued_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  started_at    TIMESTAMP NULL,
+  finished_at   TIMESTAMP NULL,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_idempotency (idempotency_key),
+  INDEX idx_post_status (post_id, status),
+  INDEX idx_provider_status (social_provider_id, status),
+  INDEX idx_retry (status, next_retry_at),
+  INDEX idx_run (run_id)
+);
+
+CREATE TABLE publish_attempts (
+  id              VARCHAR(36) PRIMARY KEY,
+  publish_job_id  VARCHAR(36) NOT NULL,
+  attempt_number  INT NOT NULL,
+  status          ENUM('STARTED','SUCCEEDED','FAILED') NOT NULL,
+  error_code      VARCHAR(64) NULL,
+  error_message   TEXT NULL,
+  error_class     ENUM('TRANSIENT','PERMANENT') NULL,
+  provider_response_json JSON NULL,
+  duration_ms     INT NULL,
+  worker_id       VARCHAR(128) NULL,
+  sqs_message_id  VARCHAR(128) NULL,
+  created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_job_attempt (publish_job_id, attempt_number),
+  INDEX idx_job (publish_job_id)
+);</pre>
+    </section>
+
+    <section>
+      <h2>Existing tables (unchanged)</h2>
+      <table>
+        <thead><tr><th>Table</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>users</td><td>Clerk sync</td></tr>
+          <tr><td>organizations, organizationMembers</td><td>Clerk org sync</td></tr>
+          <tr><td>social_providers</td><td>OAuth tokens</td></tr>
+          <tr><td>media</td><td>R2 references</td></tr>
+          <tr><td>automations + related</td><td>IG DM moat — no schema change</td></tr>
+          <tr><td>api_keys</td><td>Agent API auth</td></tr>
+          <tr><td>subscriptions, transactions</td><td>Dodo billing; remove FREE from new signups</td></tr>
+          <tr><td>post_reviews, review_activity</td><td>Approval moat</td></tr>
+          <tr><td>account_insights, media_insights</td><td>Analytics</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer><a href="08-publish-pipeline.html">Next: Publish Pipeline →</a></footer>
+  </main>
+</body>
+</html>

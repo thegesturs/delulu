@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publish Pipeline v2 — Spec Hub</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>Delulu Social</h1>
+      <p>Publish Pipeline v2</p>
+    </div>
+    <nav>
+      <a href="index.html" class="active">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link">
+      <a href="../AGENT_REVIEW.md">→ Agent Review (AGENT_REVIEW.md)</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <span class="badge badge-draft">Draft</span>
+    <h1 class="page-title">Publish Pipeline v2</h1>
+    <p class="subtitle">Infrastructure &amp; data layer spec — keep Convex, fix publish orchestration.</p>
+
+    <section>
+      <div class="callout callout-success">
+        <strong>Verdict:</strong> Do not migrate to PlanetScale now. Introduce <code>publish_jobs</code> + <code>publish_attempts</code> in Convex, derive post status from jobs, route worker writes through <code>apps/api</code> internal endpoints. Effort: <strong>M (~3–4 weeks)</strong>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Spec pages</h2>
+      <div class="card-grid">
+        <a class="card" href="01-overview.html"><h3>01 Overview</h3><p>Executive summary and recommendation</p></a>
+        <a class="card" href="02-problem-statement.html"><h3>02 Problem</h3><p>Why publishing feels fragile today</p></a>
+        <a class="card" href="03-current-architecture.html"><h3>03 Current Architecture</h3><p>System diagram and data flows</p></a>
+        <a class="card" href="04-current-paths.html"><h3>04 Current Paths</h3><p>File paths and coupling points</p></a>
+        <a class="card" href="05-target-architecture.html"><h3>05 Target Architecture</h3><p>Layer boundaries and ownership</p></a>
+        <a class="card" href="06-decisions-adrs.html"><h3>06 ADRs</h3><p>Architecture decision records</p></a>
+        <a class="card" href="07-schema.html"><h3>07 Schema</h3><p>Tables, indexes, reference DDL</p></a>
+        <a class="card" href="08-publish-pipeline.html"><h3>08 Pipeline</h3><p>State machine, retries, errors</p></a>
+        <a class="card" href="09-api-routes.html"><h3>09 API Routes</h3><p>REST and internal worker routes</p></a>
+        <a class="card" href="10-webhooks.html"><h3>10 Webhooks</h3><p>Clerk, Dodo, CML, Instagram</p></a>
+        <a class="card" href="11-migration.html"><h3>11 Migration</h3><p>Phased zero-downtime rollout</p></a>
+        <a class="card" href="12-postiz-comparison.html"><h3>12 Postiz</h3><p>Feature parity comparison</p></a>
+        <a class="card" href="13-acceptance-criteria.html"><h3>13 Acceptance</h3><p>Testable success criteria</p></a>
+        <a class="card" href="14-risks-effort.html"><h3>14 Risks &amp; Effort</h3><p>Risk matrix and sizing</p></a>
+      </div>
+    </section>
+
+    <section>
+      <h2>For review agents</h2>
+      <p>Start with <a href="../AGENT_REVIEW.md"><code>AGENT_REVIEW.md</code></a> — contains verdict, scope, implementation order, code touch list, and review rubric.</p>
+    </section>
+
+    <footer>Delulu Social · Publish Pipeline v2 · 2026-07-04</footer>
+  </main>
+</body>
+</html>

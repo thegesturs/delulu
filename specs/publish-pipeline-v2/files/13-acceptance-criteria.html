@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 Acceptance Criteria — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html" class="active">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Acceptance Criteria</div>
+    <h1 class="page-title">Acceptance Criteria</h1>
+    <p class="subtitle">Testable conditions for ship readiness.</p>
+
+    <section>
+      <h2>AC-1: Failed publish never corrupts post state</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Publish to IG + Twitter; IG succeeds, Twitter permanent fail</td>
+            <td><code>publishStatus: PARTIAL</code>; <code>lifecycleStatus</code> unchanged; IG job PUBLISHED, Twitter job FAILED</td>
+          </tr>
+          <tr>
+            <td>Transient failure on single provider</td>
+            <td>Post content, schedule, reviewStatus unchanged; only job status updates</td>
+          </tr>
+          <tr>
+            <td>Org post not approved</td>
+            <td><code>createPublishRun</code> rejects; no jobs created</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-2: Automatic retries with max attempts + dead letter</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Simulate RATE_LIMIT_EXCEEDED</td>
+            <td>Job requeued; attemptCount increments; backoff applied</td>
+          </tr>
+          <tr>
+            <td>5 transient failures</td>
+            <td>Job → DEAD_LETTER; message in SQS DLQ</td>
+          </tr>
+          <tr>
+            <td>INVALID_ACCESS_TOKEN</td>
+            <td>Job → FAILED immediately; no requeue; SQS message deleted</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-3: Publish audit log per attempt</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Single publish with 2 retries then success</td>
+            <td>3 <code>publish_attempts</code> rows: FAILED, FAILED, SUCCEEDED</td>
+          </tr>
+          <tr>
+            <td>GET /v1/posts/:id/publish-jobs</td>
+            <td>Returns jobs with nested attempts, error codes, durationMs</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-4: Zero-downtime migration</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Deploy Phase 1–3 during business hours</td>
+            <td>Existing scheduled posts still fire; no failed publishes attributable to deploy</td>
+          </tr>
+          <tr>
+            <td>Rollback flag <code>PUBLISH_PIPELINE_V2=false</code></td>
+            <td>Old path works within 5 minutes</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-5: Manual retry</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Dashboard retry on FAILED post</td>
+            <td>New runId; jobs for failed providers only; UI shows IN_PROGRESS</td>
+          </tr>
+          <tr>
+            <td>post-card retry</td>
+            <td>Same as above via tRPC/API</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-6: Moats preserved</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>IG comment → DM automation</td>
+            <td>Still works; <code>linkPublishedPost</code> fires from job completion</td>
+          </tr>
+          <tr>
+            <td>Org member submits post for review</td>
+            <td>Approval flow unchanged; publish blocked until APPROVED</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>AC-7: Idempotency</h2>
+      <table>
+        <thead><tr><th>Test</th><th>Expected</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Duplicate SQS delivery same publishJobId</td>
+            <td>At most one platform post created; second completion no-op or updates same attempt</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Verification checklist (pre-merge Phase 3)</h2>
+      <ul>
+        <li>Unit tests: <code>derivePostPublishStatus</code> all combinations</li>
+        <li>Unit tests: <code>isRetryableError</code> classification</li>
+        <li>Integration: publish to test IG sandbox account</li>
+        <li>Integration: multi-provider PARTIAL scenario (mock one provider fail)</li>
+        <li>Load: 10 concurrent publishes — no status corruption</li>
+        <li>Convex subscription: dashboard updates within 2s of job completion</li>
+      </ul>
+    </section>
+
+    <footer><a href="14-risks-effort.html">Next: Risks &amp; Effort →</a></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>06 ADRs — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html" class="active">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Architecture Decision Records</div>
+    <h1 class="page-title">ADRs</h1>
+    <p class="subtitle">Recorded decisions with context, choice, and consequences.</p>
+
+    <section>
+      <div class="adr">
+        <div class="adr-id">ADR-001</div>
+        <h3>Keep Convex as system of record</h3>
+        <p><strong>Context:</strong> Team considered PlanetScale (MySQL/Vitess) to replace Convex. Publishing fragility was attributed to architecture, not Convex itself. Convex powers real-time UI, Clerk auth template, automations, approval workflow, aggregates, and search.</p>
+        <p><strong>Decision:</strong> Convex remains system of record. PlanetScale deferred.</p>
+        <p><strong>Consequences:</strong> No dual-write migration. Publish jobs live in Convex. Revisit PlanetScale only if 2+ decision-gate triggers fire (see <a href="14-risks-effort.html">14 Risks</a>).</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-002</div>
+        <h3>One publish_job per post × provider per run</h3>
+        <p><strong>Context:</strong> Multi-platform posts queue N SQS messages but share one <code>posts.status</code>. Workers race and last-writer-wins corrupts state.</p>
+        <p><strong>Decision:</strong> Introduce <code>publish_jobs</code> — one row per (postId, socialProviderId, runId). Each SQS message carries <code>publishJobId</code>.</p>
+        <p><strong>Consequences:</strong> Postiz uses one Post per integration; we keep one editorial post with N jobs. UI shows per-platform chips.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-003</div>
+        <h3>Derive post publishStatus from jobs</h3>
+        <p><strong>Context:</strong> Worker currently sets <code>posts.status</code> to PUBLISHED or FAILED directly.</p>
+        <p><strong>Decision:</strong> Worker only updates <code>publish_jobs</code>. A single Convex mutation <code>derivePostPublishStatus</code> runs atomically after each attempt completion.</p>
+        <p><strong>Consequences:</strong> PARTIAL status when some providers succeed and others fail. Editorial <code>lifecycleStatus</code> unaffected by transient failures.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-004</div>
+        <h3>Worker writes via apps/api internal routes</h3>
+        <p><strong>Context:</strong> Worker uses ConvexHttpClient + public mutation. Tight coupling; no request validation layer.</p>
+        <p><strong>Decision:</strong> Worker POSTs to <code>apps/api/internal/publish/complete</code> with HMAC (<code>LAMBDA_SECRET_KEY</code>). API calls Convex internal mutation.</p>
+        <p><strong>Consequences:</strong> Single ingress for worker; easier to add logging, rate limits, and future non-Convex backends.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-005</div>
+        <h3>Webhook consolidation in Phase 4</h3>
+        <p><strong>Context:</strong> Clerk, Dodo, Call Me Later hit <code>convex/http.ts</code>. Instagram hits AWS Lambda.</p>
+        <p><strong>Decision:</strong> Phase 4 moves Clerk/Dodo/CML to <code>apps/api/webhooks/*</code>. Instagram stays on Lambda (CF KV cache, Meta latency).</p>
+        <p><strong>Consequences:</strong> Publish pipeline ships first without webhook URL changes. Dual endpoints during cutover.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-006</div>
+        <h3>Keep Convex subscriptions for real-time</h3>
+        <p><strong>Context:</strong> If PlanetScale were adopted, real-time dashboard would need replacement.</p>
+        <p><strong>Decision:</strong> No change. Dashboard subscribes to <code>posts</code> and new <code>publish_jobs</code> queries.</p>
+        <p><strong>Consequences:</strong> Zero UX regression on publish status updates.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-007</div>
+        <h3>Partial publish UX</h3>
+        <p><strong>Context:</strong> Instagram may succeed while Twitter fails on same post.</p>
+        <p><strong>Decision:</strong> Show <code>publishStatus: PARTIAL</code> with per-platform status chips from <code>publish_jobs</code>.</p>
+        <p><strong>Consequences:</strong> Calendar and posts list need chip UI. API returns per-job status in post detail.</p>
+        <div class="adr-meta">Status: Proposed · pending product confirm</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-009</div>
+        <h3>Convex schema single source of truth</h3>
+        <p><strong>Context:</strong> Duplicated enums and inline validators across mutations, API routes, and app types drift over time and are hard to maintain.</p>
+        <p><strong>Decision:</strong> All publish-pipeline schema in <code>schemas/publish.ts</code>, re-exported via <code>schemas/index.ts</code>. <code>schema.ts</code> only registers tables. Functions import validators; app/API use <code>Infer</code> or const objects — never copy literal unions.</p>
+        <p><strong>Consequences:</strong> One file to update when adding a job status or error class. Matches existing <code>enums.ts</code> + <code>posts_media.ts</code> pattern.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-id">ADR-008</div>
+        <h3>Remove FREE plan from new specs</h3>
+        <p><strong>Context:</strong> Constraint: minimum paid tier is entry point (ECHO).</p>
+        <p><strong>Decision:</strong> Grandfather existing FREE users. Block new FREE signups. Remove FREE watermark logic from new automation paths over time.</p>
+        <p><strong>Consequences:</strong> <code>plans.ts</code>, Dodo products, IG webhook <code>planType === "FREE"</code> paths need updates in Phase 5.</p>
+        <div class="adr-meta">Status: Accepted · 2026-07-04</div>
+      </div>
+    </section>
+
+    <footer><a href="07-schema.html">Next: Schema →</a></footer>
+  </main>
+</body>
+</html>

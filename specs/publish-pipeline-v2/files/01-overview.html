@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>01 Overview — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html" class="active">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Overview</div>
+    <span class="badge badge-draft">Draft</span>
+    <h1 class="page-title">Executive Overview</h1>
+    <p class="subtitle">What we're fixing, what we're keeping, and what we're building.</p>
+
+    <section>
+      <h2>Problem in one sentence</h2>
+      <p>Publishing success and failure share the same <code>posts.status</code> field and mutation path, so multi-platform posts can be corrupted, retries don't exist, and there is no audit trail per attempt.</p>
+    </section>
+
+    <section>
+      <h2>Recommendation</h2>
+      <div class="callout callout-success">
+        <strong>Keep Convex.</strong> The fragility is architectural, not a database-provider limitation. Add <code>publish_jobs</code> and <code>publish_attempts</code> tables, derive post status from jobs, and stop letting the worker mutate post state directly.
+      </div>
+      <p>PlanetScale migration is <strong>deferred</strong> (XL effort, ~2–3 months). Revisit only if Convex cost/limits, SQL reporting needs, or hiring constraints force it.</p>
+    </section>
+
+    <section>
+      <h2>What changes</h2>
+      <table>
+        <thead><tr><th>Layer</th><th>Today</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>System of record</td><td>Convex</td><td>Convex (unchanged)</td></tr>
+          <tr><td>Publish execution</td><td>Embedded in <code>posts</code></td><td><code>publish_jobs</code> per post×provider</td></tr>
+          <tr><td>Worker writes</td><td><code>updatePostPublishStatus</code></td><td><code>apps/api/internal/publish/complete</code></td></tr>
+          <tr><td>Retries</td><td>Manual only; TODO in UI</td><td>SQS DLQ + exponential backoff</td></tr>
+          <tr><td>Real-time UI</td><td>Convex subscriptions</td><td>Convex subscriptions (unchanged)</td></tr>
+          <tr><td>Webhooks</td><td>Convex <code>http.ts</code></td><td>Phase 4: <code>apps/api/webhooks/*</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>What we preserve (moats)</h2>
+      <ul>
+        <li><strong>Instagram DM automations</strong> — Lambda + CF KV cache + Convex automation tables</li>
+        <li><strong>Post approval workflow</strong> — org posts require <code>reviewStatus === APPROVED</code> before jobs are created</li>
+        <li><strong>Clerk auth</strong> — no auth provider migration</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <ul>
+        <li>No in-app AI chat, LangGraph, or AI caption/image/video generation</li>
+        <li>No new social platforms in this spec</li>
+        <li>Remove FREE plan from new specs; minimum paid tier = ECHO (grandfather existing FREE users)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Effort</h2>
+      <table>
+        <thead><tr><th>Workstream</th><th>Size</th><th>Duration</th></tr></thead>
+        <tbody>
+          <tr><td>Publish pipeline v2</td><td><strong>M</strong></td><td>2–3 weeks</td></tr>
+          <tr><td>Webhook consolidation</td><td><strong>S</strong></td><td>1 week (Phase 4)</td></tr>
+          <tr><td>UI: per-platform status + retry</td><td><strong>S</strong></td><td>1 week</td></tr>
+          <tr><td>PlanetScale migration (deferred)</td><td><strong>XL</strong></td><td>2–3 months</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer><a href="02-problem-statement.html">Next: Problem Statement →</a></footer>
+  </main>
+</body>
+</html>

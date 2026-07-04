@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10 Webhooks — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html" class="active">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Webhook Routing</div>
+    <h1 class="page-title">Webhook Routing</h1>
+    <p class="subtitle">Phase 4 — consolidate ingress on apps/api; Instagram stays on Lambda.</p>
+
+    <section>
+      <h2>Current vs target</h2>
+      <table>
+        <thead><tr><th>Source</th><th>Today</th><th>Target (Phase 4)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Clerk (users, orgs)</td>
+            <td><code>CONVEX_SITE_URL/clerk-users-webhook</code></td>
+            <td><code>api.delulu.social/webhooks/clerk</code></td>
+          </tr>
+          <tr>
+            <td>Dodo Payments</td>
+            <td><code>CONVEX_SITE_URL/dodo-webhook</code></td>
+            <td><code>api.delulu.social/webhooks/dodo</code></td>
+          </tr>
+          <tr>
+            <td>Call Me Later (publish)</td>
+            <td><code>CONVEX_SITE_URL/publishPost</code></td>
+            <td><code>api.delulu.social/webhooks/callmelater/publish</code></td>
+          </tr>
+          <tr>
+            <td>Call Me Later (cleanup)</td>
+            <td><code>CONVEX_SITE_URL/deleteVideoMedia</code></td>
+            <td><code>api.delulu.social/webhooks/callmelater/cleanup</code></td>
+          </tr>
+          <tr>
+            <td>Instagram (DM automations)</td>
+            <td>AWS Lambda URL</td>
+            <td><strong>Unchanged</strong> — CF KV cache path</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Call Me Later — publish webhook (target)</h2>
+      <pre>POST /webhooks/callmelater/publish
+Headers: x-api-key: CALLMELATER_API_KEY (or shared secret)
+Body: { "postId": "k57..." }
+
+Handler:
+  1. Verify API key
+  2. convex.mutation(publish.createRun, { postId, trigger: "scheduled" })
+  3. Return 200 { success: true, runId }</pre>
+      <p>Eliminates Convex HTTP → internal action hop. CML fires directly into publish pipeline.</p>
+    </section>
+
+    <section>
+      <h2>Clerk webhook (target)</h2>
+      <p>Move <code>validateRequest</code> (Svix) from <code>convex/http.ts</code> to <code>apps/api/src/routes/webhooks/clerk.ts</code>. Forward to existing Convex internal mutations:</p>
+      <ul>
+        <li><code>internal.users.upsertFromClerk</code></li>
+        <li><code>internal.organizations.upsertFromClerk</code></li>
+        <li><code>internal.organizations.addMember</code> / <code>removeMember</code> / <code>updateMemberRole</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Dodo webhook (target)</h2>
+      <p>Port <code>createDodoWebhookHandler</code> callbacks to Worker route. Same mutation targets as today in <code>convex/webhooks.ts</code>.</p>
+    </section>
+
+    <section>
+      <h2>Instagram — no move</h2>
+      <div class="callout">
+        <strong>Rationale:</strong> <code>instagram-webhook.ts</code> uses CF KV as a gate before Convex (~90% miss path avoids DB). Moving to Workers is possible but adds risk for the core DM automation moat. Defer unless CF Workers gains KV bindings in same account.
+      </div>
+    </section>
+
+    <section>
+      <h2>Zero-downtime cutover</h2>
+      <ol>
+        <li>Deploy new <code>apps/api/webhooks/*</code> routes</li>
+        <li>Keep Convex <code>http.ts</code> routes active (both receive events)</li>
+        <li>Update Clerk/Dodo/CML dashboard URLs to new endpoints</li>
+        <li>Monitor for 48h — dedupe via idempotent Convex mutations</li>
+        <li>Remove Convex HTTP routes</li>
+      </ol>
+    </section>
+
+    <footer><a href="11-migration.html">Next: Migration →</a></footer>
+  </main>
+</body>
+</html>

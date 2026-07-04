@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 Risks & Effort — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html" class="active">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Risks &amp; Effort</div>
+    <h1 class="page-title">Risks &amp; Effort</h1>
+    <p class="subtitle">What can go wrong, how big is the work, and when to reconsider PlanetScale.</p>
+
+    <section>
+      <h2>Effort estimate</h2>
+      <table>
+        <thead><tr><th>Workstream</th><th>Size</th><th>Duration</th><th>Owner hint</th></tr></thead>
+        <tbody>
+          <tr><td>Convex schema + publish.ts</td><td>M</td><td>1 week</td><td>Backend</td></tr>
+          <tr><td>Worker + SQS DLQ + internal API</td><td>M</td><td>1 week</td><td>Infra</td></tr>
+          <tr><td>UI: per-platform status, retry, attempts</td><td>S</td><td>1 week</td><td>Frontend</td></tr>
+          <tr><td>Webhook consolidation (Phase 4)</td><td>S</td><td>1 week</td><td>Infra</td></tr>
+          <tr><td>FREE plan removal</td><td>S</td><td>3–5 days</td><td>Product/Backend</td></tr>
+          <tr><td><strong>Total (Phases 0–5)</strong></td><td><strong>M</strong></td><td><strong>3–4 weeks</strong></td><td>—</td></tr>
+          <tr><td>PlanetScale migration (deferred)</td><td><strong>XL</strong></td><td><strong>2–3 months</strong></td><td>—</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Risk matrix</h2>
+      <table>
+        <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Concurrent job completions race on derivePostPublishStatus</td>
+            <td>Medium</td>
+            <td>High</td>
+            <td>Single Convex mutation; optimistic locking on post version field</td>
+          </tr>
+          <tr>
+            <td>Provider published but DB write failed</td>
+            <td>Low</td>
+            <td>High</td>
+            <td>Persist platformPostId on attempt before SUCCEEDED; dedup on retry</td>
+          </tr>
+          <tr>
+            <td>PARTIAL status confuses users</td>
+            <td>Medium</td>
+            <td>Medium</td>
+            <td>Per-platform chips; clear copy in post card</td>
+          </tr>
+          <tr>
+            <td>Webhook URL cutover drops events</td>
+            <td>Low</td>
+            <td>High</td>
+            <td>Dual endpoints 48h; idempotent mutations</td>
+          </tr>
+          <tr>
+            <td>SQS DLQ fills with misclassified transient errors</td>
+            <td>Medium</td>
+            <td>Medium</td>
+            <td>Alert on DLQ depth; tune isRetryableError per platform</td>
+          </tr>
+          <tr>
+            <td>linkPublishedPost regression</td>
+            <td>Low</td>
+            <td>High</td>
+            <td>Move side effect to completeAttempt; integration test</td>
+          </tr>
+          <tr>
+            <td>Hardcoded Lambda URL in post.service.ts</td>
+            <td>High</td>
+            <td>Medium</td>
+            <td>Fix in Phase 2 — use SST output / env var</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>PlanetScale decision gate</h2>
+      <p>Revisit PlanetScale migration only if <strong>2 or more</strong> triggers become true:</p>
+      <ul>
+        <li>Convex cost or document limits block growth</li>
+        <li>Need complex SQL reporting joins across 10+ tables</li>
+        <li>Hiring constraint: team only knows SQL/Prisma</li>
+        <li>Regulatory requirement for self-hosted MySQL</li>
+        <li>Need cross-service ACID transactions with non-Convex services</li>
+      </ul>
+      <p>Reference DDL in <a href="07-schema.html">07 Schema</a> exists for that future path. No dual-write planned now.</p>
+    </section>
+
+    <section>
+      <h2>Dependencies</h2>
+      <ul>
+        <li>SST deploy access for SQS DLQ config</li>
+        <li>CF Workers deploy for apps/api internal routes</li>
+        <li>Convex deploy for new tables</li>
+        <li>Call Me Later dashboard access (Phase 4 URL update)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Success metrics (30 days post-cutover)</h2>
+      <table>
+        <thead><tr><th>Metric</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>Failed publishes due to status corruption</td><td>0</td></tr>
+          <tr><td>Transient failures recovered automatically</td><td>&gt; 80%</td></tr>
+          <tr><td>Mean time to diagnose publish failure</td><td>&lt; 5 min (via attempt log)</td></tr>
+          <tr><td>DLQ messages per 1000 publishes</td><td>&lt; 5</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer><a href="index.html">← Back to Hub</a> · <a href="../AGENT_REVIEW.md">Agent Review</a></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 Postiz — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html" class="active">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Postiz Comparison</div>
+    <h1 class="page-title">Postiz Feature Parity</h1>
+    <p class="subtitle">Patterns to adopt — stack to avoid. Reference: postiz-app orchestrator.</p>
+
+    <section>
+      <h2>Stack comparison</h2>
+      <table>
+        <thead><tr><th>Concern</th><th>Postiz</th><th>Delulu (today)</th><th>Delulu (target)</th></tr></thead>
+        <tbody>
+          <tr><td>Database</td><td>Prisma + PostgreSQL</td><td>Convex</td><td>Convex</td></tr>
+          <tr><td>Orchestration</td><td>Temporal workflows</td><td>SQS + Lambda</td><td>SQS + DLQ + Convex jobs</td></tr>
+          <tr><td>Backend</td><td>NestJS</td><td>Convex + tRPC + CF Workers API</td><td>Same (extend Workers)</td></tr>
+          <tr><td>Post model</td><td>1 post row per integration</td><td>1 post, N providers embedded</td><td>1 post + N publish_jobs</td></tr>
+          <tr><td>State</td><td>QUEUE → PUBLISHED | ERROR</td><td>Mixed status on posts</td><td>Job state machine + derived status</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Feature parity matrix</h2>
+      <table>
+        <thead><tr><th>Capability</th><th>Postiz</th><th>Delulu today</th><th>After v2</th></tr></thead>
+        <tbody>
+          <tr><td>Per-platform publish state</td><td>✓ (separate rows)</td><td>✗ (race)</td><td>✓ (publish_jobs)</td></tr>
+          <tr><td>Automatic retry + backoff</td><td>✓ (Temporal)</td><td>✗</td><td>✓ (SQS + policy)</td></tr>
+          <tr><td>Dead letter / exhausted retries</td><td>✓</td><td>✗</td><td>✓ (DEAD_LETTER)</td></tr>
+          <tr><td>Publish attempt history</td><td>✓ (error field per retry)</td><td>✗</td><td>✓ (publish_attempts)</td></tr>
+          <tr><td>Missing post sweeper</td><td>✓ (3h search)</td><td>✗</td><td>△ (15min stuck-job cron)</td></tr>
+          <tr><td>Schedule until publishDate</td><td>✓ (workflow sleep)</td><td>✓ (Call Me Later)</td><td>✓ (unchanged)</td></tr>
+          <tr><td>Instagram DM automation</td><td>—</td><td>✓ (moat)</td><td>✓ (preserved)</td></tr>
+          <tr><td>Post approval workflow</td><td>—</td><td>✓ (moat)</td><td>✓ (preserved)</td></tr>
+          <tr><td>Real-time dashboard</td><td>Polling</td><td>✓ (Convex subs)</td><td>✓ (advantage)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Patterns to adopt from Postiz</h2>
+      <ul>
+        <li><strong>Isolated execution state</strong> — Postiz <code>State</code> enum on each integration-post; we use <code>publish_jobs.status</code></li>
+        <li><strong>Workflow-level retry</strong> — Temporal <code>maximumAttempts: 3, initialInterval: 2min</code>; we use SQS redrive + exponential backoff</li>
+        <li><strong>Missing post recovery</strong> — <code>searchForMissingThreeHoursPosts</code>; we add stuck-job sweeper</li>
+        <li><strong>Slim payload to worker</strong> — Postiz strips unused fields before activity; we freeze <code>payloadJson</code> at job creation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Do NOT copy</h2>
+      <ul>
+        <li>Temporal + NestJS orchestrator — operational overhead disproportionate at current scale</li>
+        <li>PostgreSQL/Prisma — no migration benefit for this problem</li>
+        <li>One post row per integration — would break Delulu's unified editorial post UX</li>
+        <li>Postiz AI features — out of scope</li>
+      </ul>
+    </section>
+
+    <footer><a href="13-acceptance-criteria.html">Next: Acceptance Criteria →</a></footer>
+  </main>
+</body>
+</html>

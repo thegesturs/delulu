@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11 Migration — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html" class="active">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Migration Plan</div>
+    <h1 class="page-title">Migration Plan</h1>
+    <p class="subtitle">Phased zero-downtime rollout — no PlanetScale dual-write.</p>
+
+    <section>
+      <h2>Strategy</h2>
+      <p><strong>Strangler fig inside Convex:</strong> additive tables → shadow → dual-write compare → cutover → cleanup. Webhook URLs change only in Phase 4.</p>
+    </section>
+
+    <section>
+      <h2>Phase 0 — Instrument (3 days)</h2>
+      <ul>
+        <li>Ship this spec to <code>specs/publish-pipeline-v2/</code></li>
+        <li>PostHog: <code>publish_job_created</code>, <code>publish_attempt_started</code>, <code>publish_attempt_failed</code></li>
+        <li>Baseline: count current FAILED posts, multi-provider partial failures (manual audit)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Phase 1 — Additive schema (1 week)</h2>
+      <ul>
+        <li>Add <code>packages/database/convex/schemas/publish.ts</code> — all enums + base schemas (SSOT)</li>
+        <li>Export from <code>schemas/index.ts</code>; register tables in <code>schema.ts</code></li>
+        <li>Deploy <code>publish_jobs</code>, <code>publish_attempts</code> to Convex</li>
+        <li>Add <code>publishStatus</code>, <code>lifecycleStatus</code> on <code>posts</code> via <code>posts_media.ts</code> (import publish enums, don't redefine)</li>
+        <li>Implement <code>publish.createRun</code> in shadow mode — creates jobs, logs only, still uses old queue path</li>
+        <li>No user-visible change</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Phase 2 — Dual path (1 week)</h2>
+      <ul>
+        <li>SQS payload includes <code>publishJobId</code></li>
+        <li>Deploy <code>apps/api/internal/publish/*</code></li>
+        <li>Worker writes to new API <strong>and</strong> old mutation (compare logs)</li>
+        <li>Configure SQS DLQ + <code>maxReceiveCount: 5</code></li>
+        <li>Fix hardcoded Lambda URL in <code>post.service.ts</code> → env var / SST output</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Phase 3 — Cutover (3 days)</h2>
+      <ul>
+        <li>Remove worker → <code>updatePostPublishStatus</code></li>
+        <li><code>publishScheduledPost</code> → <code>createPublishRun</code></li>
+        <li><code>createPostInQueue</code> → <code>createPublishRun</code></li>
+        <li>Derive legacy <code>posts.status</code> from jobs for UI backward compat</li>
+        <li>Wire <code>failed-posts-alert.tsx</code> retry</li>
+        <li>Feature flag: <code>PUBLISH_PIPELINE_V2=true</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Phase 4 — Webhooks (1 week)</h2>
+      <ul>
+        <li>Deploy <code>apps/api/webhooks/*</code></li>
+        <li>Dual endpoints: Convex HTTP + Workers (48h)</li>
+        <li>Update Clerk, Dodo, CML dashboard URLs</li>
+        <li>Update CML <code>targetUrl</code> in <code>callmelater.ts</code> schedule calls</li>
+        <li>Remove <code>convex/http.ts</code> routes after verification</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Phase 5 — Cleanup (3 days)</h2>
+      <ul>
+        <li>Stuck-job sweeper cron (PROCESSING &gt; 15 min)</li>
+        <li>Deprecate <code>platformPosts</code> direct mutation — read from jobs</li>
+        <li>Remove shadow logging; remove feature flag</li>
+        <li>FREE plan: block new signups; grandfather existing</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Rollback plan</h2>
+      <table>
+        <thead><tr><th>Phase</th><th>Rollback</th></tr></thead>
+        <tbody>
+          <tr><td>1–2</td><td>Disable shadow; no user impact</td></tr>
+          <tr><td>3</td><td>Flip <code>PUBLISH_PIPELINE_V2=false</code>; worker uses old mutation</td></tr>
+          <tr><td>4</td><td>Revert webhook URLs to Convex HTTP</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Data migration</h2>
+      <p>No backfill required for historical posts. Existing <code>platformPosts[]</code> remains read-only legacy data. New publishes write to <code>publish_jobs</code>. Optional: one-time script to create synthetic COMPLETED jobs from PUBLISHED posts for UI consistency.</p>
+    </section>
+
+    <footer><a href="12-postiz-comparison.html">Next: Postiz Comparison →</a></footer>
+  </main>
+</body>
+</html>

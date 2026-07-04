@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>02 Problem Statement — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html" class="active">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Problem Statement</div>
+    <h1 class="page-title">Problem Statement</h1>
+    <p class="subtitle">Publishing feels fragile because editorial and execution concerns are fused.</p>
+
+    <section>
+      <h2>Core issue</h2>
+      <p>Convex is the system of record. The ECS/SQS worker calls Convex mutations directly for publish status. Call Me Later webhooks hit Convex HTTP. Failed post retry is a TODO. The real-time dashboard depends on Convex subscriptions — all fine. The problem is that <strong>success and failure paths share one architecture</strong> with no job isolation.</p>
+    </section>
+
+    <section>
+      <h2>Concrete bugs</h2>
+      <table>
+        <thead><tr><th>Issue</th><th>Impact</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Multi-provider race</td>
+            <td>Last worker wins; one failure marks entire post FAILED even if another platform succeeded</td>
+            <td><code>packages/worker/client.ts</code> sets global <code>post.status</code> per provider</td>
+          </tr>
+          <tr>
+            <td>No retry pipeline</td>
+            <td>Transient API errors become permanent failures</td>
+            <td><code>isRetryableError()</code> exists but is unused; <code>retryCount</code> never incremented</td>
+          </tr>
+          <tr>
+            <td>No audit trail</td>
+            <td>Cannot debug "what happened on attempt 3?"</td>
+            <td>Only latest <code>platformPosts[].failureReason</code></td>
+          </tr>
+          <tr>
+            <td>Long orchestration chain</td>
+            <td>4 hops to publish; any hop failure marks post FAILED</td>
+            <td>CML → Convex HTTP → action → Lambda → SQS → Worker → Convex</td>
+          </tr>
+          <tr>
+            <td>Queue failure overreach</td>
+            <td>Lambda enqueue error fails whole post</td>
+            <td><code>publishScheduledPost</code> catch → <code>updatePostStatus(FAILED)</code></td>
+          </tr>
+          <tr>
+            <td>Inconsistent PROCESSING</td>
+            <td>Scheduled path never sets PROCESSING; retry path does</td>
+            <td><code>social-provider.ts</code> vs <code>publishScheduledPost</code></td>
+          </tr>
+          <tr>
+            <td>Dashboard retry broken</td>
+            <td>Users cannot recover failed posts from dashboard</td>
+            <td><code>failed-posts-alert.tsx</code> — <code>TODO: Add retry functionality</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Mixed status semantics</h2>
+      <p>Today <code>posts.status</code> conflates:</p>
+      <ul>
+        <li><strong>Editorial:</strong> SAVED, SCHEDULED, DELETED</li>
+        <li><strong>Execution:</strong> PROCESSING, PUBLISHED, FAILED</li>
+      </ul>
+      <p>A scheduled draft and a failed publish both need different UX and query patterns but share one enum.</p>
+    </section>
+
+    <section>
+      <h2>Acceptance criteria (target state)</h2>
+      <ul>
+        <li>A failed publish <strong>never corrupts</strong> post editorial state</li>
+        <li>Retries are <strong>automatic</strong> with max attempts + dead letter queue</li>
+        <li><strong>Publish audit log</strong> per attempt</li>
+        <li>Migration runs with <strong>zero downtime</strong></li>
+      </ul>
+      <p>See <a href="13-acceptance-criteria.html">13 Acceptance Criteria</a> for verification steps.</p>
+    </section>
+
+    <section>
+      <h2>What this is NOT</h2>
+      <div class="callout">
+        This is not a mandate to change the database provider. Convex works well for real-time app state, automations, and approvals. The team wanted a cleaner architecture they can understand end-to-end — that means <strong>separating concerns</strong>, not swapping vendors.
+      </div>
+    </section>
+
+    <footer><a href="03-current-architecture.html">Next: Current Architecture →</a></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>04 Current Paths — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Delulu Social</h1><p>Publish Pipeline v2</p></div>
+    <nav>
+      <a href="index.html">Hub</a>
+      <a href="01-overview.html">01 Overview</a>
+      <a href="02-problem-statement.html">02 Problem</a>
+      <a href="03-current-architecture.html">03 Current Arch</a>
+      <a href="04-current-paths.html" class="active">04 Current Paths</a>
+      <a href="05-target-architecture.html">05 Target Arch</a>
+      <a href="06-decisions-adrs.html">06 ADRs</a>
+      <a href="07-schema.html">07 Schema</a>
+      <a href="08-publish-pipeline.html">08 Pipeline</a>
+      <a href="09-api-routes.html">09 API Routes</a>
+      <a href="10-webhooks.html">10 Webhooks</a>
+      <a href="11-migration.html">11 Migration</a>
+      <a href="12-postiz-comparison.html">12 Postiz</a>
+      <a href="13-acceptance-criteria.html">13 Acceptance</a>
+      <a href="14-risks-effort.html">14 Risks &amp; Effort</a>
+    </nav>
+    <div class="agent-link"><a href="../AGENT_REVIEW.md">→ Agent Review</a></div>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="index.html">Hub</a> / Current Code Paths</div>
+    <h1 class="page-title">Current Code Paths</h1>
+    <p class="subtitle">Every file involved in publishing today — and what it does.</p>
+
+    <section>
+      <h2>Convex — data &amp; orchestration</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Role</th><th>Key symbols</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>packages/database/convex/posts.ts</code></td>
+            <td>Post CRUD, publish orchestration, status updates</td>
+            <td><code>upsertPost</code>, <code>updatePostPublishStatus</code>, <code>publishScheduledPost</code>, <code>updatePostStatus</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/http.ts</code></td>
+            <td>HTTP webhooks ingress</td>
+            <td><code>/publishPost</code>, <code>/deleteVideoMedia</code>, <code>/clerk-users-webhook</code>, <code>/dodo-webhook</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/callmelater.ts</code></td>
+            <td>Schedule/cancel CML jobs</td>
+            <td><code>schedulePostAction</code>, <code>cancelScheduleAction</code>, <code>scheduleVideoCleanupAction</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/schema.ts</code></td>
+            <td>Table definitions + indexes</td>
+            <td><code>posts</code>, <code>socialProviders</code>, <code>automations</code>, …</td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/schemas/posts_media.ts</code></td>
+            <td>Post field schemas</td>
+            <td><code>basePostSchema</code>, <code>embeddedPlatformPostSchema</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/schemas/enums.ts</code></td>
+            <td>Status enums</td>
+            <td><code>postStatusSchema</code> — SAVED|PUBLISHED|SCHEDULED|DELETED|FAILED|PROCESSING</td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/post_reviews.ts</code></td>
+            <td>Approval workflow</td>
+            <td><code>submitForReviewCore</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/convex/automations.ts</code></td>
+            <td>IG DM rules; links published post to automation</td>
+            <td><code>linkPublishedPost</code></td>
+          </tr>
+          <tr>
+            <td><code>packages/database/node.ts</code></td>
+            <td>ConvexHttpClient for worker</td>
+            <td><code>convex</code> singleton</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Worker — platform publish</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>packages/worker/client.ts</code></td><td><code>processMessage</code> — parse SQS body, call provider, mutate Convex</td></tr>
+          <tr><td><code>packages/worker/index.ts</code></td><td>ECS entry (legacy); reads MESSAGE_BODY env</td></tr>
+          <tr><td><code>packages/worker/providers/index.ts</code></td><td><code>providerRegistry</code> — per-platform impl</td></tr>
+          <tr><td><code>packages/worker/providers/errors.ts</code></td><td>Error taxonomy; <code>isRetryableError</code> (unused)</td></tr>
+          <tr><td><code>packages/worker/resolve-media-urls.ts</code></td><td>R2 presign before publish</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Infrastructure — AWS SST</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>packages/infrastructure/sst.config.ts</code></td><td>Queue, Lambdas, secrets (CONVEX_URL, LAMBDA_SECRET_KEY)</td></tr>
+          <tr><td><code>packages/infrastructure/src/trigger-sqs.ts</code></td><td>Lambda URL → validate x-api-key → SQS SendMessage</td></tr>
+          <tr><td><code>packages/infrastructure/src/social-post-worker.ts</code></td><td>SQS handler → <code>processMessage</code></td></tr>
+          <tr><td><code>packages/infrastructure/src/instagram-webhook.ts</code></td><td>Meta webhook → CF KV → Convex automations</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>App layer — queue &amp; UI</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>packages/api/services/post.service.ts</code></td><td><code>createPostInQueue</code> — loops providers, POST to hardcoded Lambda URL</td></tr>
+          <tr><td><code>packages/api/router/social-provider.ts</code></td><td><code>createPostFromPostId</code> — retry: set PROCESSING + queue</td></tr>
+          <tr><td><code>apps/app/components/posts/post-card.tsx</code></td><td>Retry via tRPC (works)</td></tr>
+          <tr><td><code>apps/app/components/dashboard/failed-posts-alert.tsx</code></td><td>Retry TODO — not wired</td></tr>
+          <tr><td><code>apps/app/hooks/use-post-actions.ts</code></td><td>Publish now → status PROCESSING</td></tr>
+          <tr><td><code>apps/api/src/routes/v1/posts.ts</code></td><td>Agent REST API → Convex mutations</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Schema layout (SSOT — extend, don't duplicate)</h2>
+      <table>
+        <thead><tr><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code>schemas/enums.ts</code></td><td>Shared enums — <code>postStatusSchema</code>, <code>POST_STATUS</code></td></tr>
+          <tr><td><code>schemas/index.ts</code></td><td>Barrel re-export for app + API imports</td></tr>
+          <tr><td><code>schema.ts</code></td><td>Table registration only — imports base schemas</td></tr>
+          <tr><td><code>schemas/publish.ts</code> (new)</td><td>All publish-pipeline enums + job/attempt schemas</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Coupling points (fix these)</h2>
+      <ol>
+        <li>Worker → <code>api.posts.updatePostPublishStatus</code> (direct Convex mutation)</li>
+        <li><code>publishScheduledPost</code> → hardcoded <code>POSTING_LAMBDA_URL</code> env</li>
+        <li><code>post.service.ts</code> → hardcoded Lambda URL string</li>
+        <li>Global <code>posts.status</code> updated per-provider in worker</li>
+        <li>CML targets <code>CONVEX_SITE_URL/publishPost</code> — Convex as webhook router</li>
+      </ol>
+    </section>
+
+    <footer><a href="05-target-architecture.html">Next: Target Architecture →</a></footer>
+  </main>
+</body>
+</html>

@@ -2,6 +2,21 @@
 
 Social media management tool with Instagram auto-DM, multi-platform scheduling, org workspaces, AI agent API, and post approval workflows.
 
+## Convex schema — single source of truth
+
+All Convex schema, enums, and validators live in **one place**. Do not duplicate.
+
+- **Enums & shared validators:** `packages/database/convex/schemas/enums.ts` (or a domain file under `schemas/` re-exported from `schemas/index.ts`)
+- **Table field schemas:** `packages/database/convex/schemas/*.ts` — e.g. `posts_media.ts`, `publish.ts`
+- **Table registration & indexes:** `packages/database/convex/schema.ts` imports base schemas only
+
+Rules:
+
+1. Define each enum once: `v.union(...)` validator + `as const` object + exported TS type (see `POST_STATUS` in `enums.ts`)
+2. Mutation/query `args` and `returns` validators import from `schemas/` — never inline duplicate literals
+3. App, API, and worker types import from `@delulu/database/convex/schemas` or `Infer<typeof …>` — not hand-rolled duplicates
+4. New publish-pipeline types (`publishJobStatus`, `publishStatus`, etc.) go in `schemas/publish.ts`, exported via `schemas/index.ts`
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
