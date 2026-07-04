@@ -1,15 +1,11 @@
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { convex } from "@delulu/database/node";
-import {
-  publisherRegistry,
-  runPublish,
-} from "@delulu/integrations/worker";
+import { runPublish } from "@delulu/integrations/worker";
 import type {
   SocialPublishInputType,
   SocialType,
 } from "@delulu/validators/post";
-import { providerRegistry } from "./providers";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
 type UpdateArgs = {
@@ -68,45 +64,23 @@ export async function processMessage(messageBody: string) {
 
   await resolveMediaUrls(socialPublishInput);
 
-  // Migrated platforms publish through @delulu/integrations (Effect). The rest
-  // still use the legacy neverthrow providerRegistry until Phase 2.
-  if (publisherRegistry[socialType]) {
-    const outcome = await runPublish(socialType, {
-      content: socialPublishInput,
-      socialProviderId: socialPublishInput.socialProviderId,
-    });
-
-    if (outcome.status === "FAILED") {
-      await markFailed(socialPublishInput, outcome.message);
-      // Rethrow retryable failures so SQS re-delivers after the visibility
-      // timeout; non-retryable ones stay FAILED and are acked.
-      if (outcome.retryable) {
-        throw new Error(`Retryable publish failure: ${outcome.message}`);
-      }
-      return;
-    }
-
-    await markPublished(socialPublishInput, {
-      platformPostId: outcome.result.platformPostId,
-      platformPostUrl: outcome.result.platformPostUrl,
-    });
-    return;
-  }
-
-  const providerImpl = providerRegistry[socialType];
-  const result = await providerImpl.publish({
+  // All platforms publish through @delulu/integrations (Effect). The boundary
+  // returns a flat outcome; retryable failures rethrow so SQS re-delivers.
+  const outcome = await runPublish(socialType, {
     content: socialPublishInput,
     socialProviderId: socialPublishInput.socialProviderId,
   });
 
-  if (result.isErr()) {
-    await markFailed(socialPublishInput, result.error.message);
+  if (outcome.status === "FAILED") {
+    await markFailed(socialPublishInput, outcome.message);
+    if (outcome.retryable) {
+      throw new Error(`Retryable publish failure: ${outcome.message}`);
+    }
     return;
   }
 
   await markPublished(socialPublishInput, {
-    platformPostId: result.value.platformPostId,
-    platformPostUrl: result.value.platformPostUrl,
+    platformPostId: outcome.result.platformPostId,
+    platformPostUrl: outcome.result.platformPostUrl,
   });
-  return result;
 }

@@ -100,9 +100,34 @@ export interface PlatformRules {
 
 // ── Settings ──────────────────────────────────────────────────────────────
 
+export interface SettingFieldOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Describes ONE user-editable setting so the composer can render an editable
+ * control generically from the registry (instead of a bespoke per-platform
+ * component). The user's chosen values flow back through
+ * `content.providerSettings` and are validated by the Zod schemas in
+ * `@delulu/validators` at the publish boundary.
+ */
+export interface SettingField {
+  key: string;
+  label: string;
+  type: "boolean" | "select" | "text";
+  /** Required for `type: "select"`. */
+  options?: SettingFieldOption[];
+  description?: string;
+}
+
 export interface PlatformSettings {
+  /** Seed values; the user can override any `fields` entry per post. */
   defaults: unknown;
+  /** Must the user configure settings before this platform can post? */
   requiresConfiguration: boolean;
+  /** User-editable settings (omitted/empty = no per-post settings). */
+  fields?: SettingField[];
 }
 
 // ── Optional capabilities ───────────────────────────────────────────────────

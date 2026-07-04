@@ -1,8 +1,14 @@
 import type { PlatformPublisher, PublishableSocialType } from "./types";
+import { blueskyPublisher } from "./platforms/bluesky/publish";
+import { facebookPublisher } from "./platforms/facebook/publish";
+import { farcasterPublisher } from "./platforms/farcaster/publish";
 import { instagramPublisher } from "./platforms/instagram/publish";
+import { linkedinPublisher } from "./platforms/linkedin/publish";
 import { pinterestPublisher } from "./platforms/pinterest/publish";
 import { threadsPublisher } from "./platforms/threads/publish";
+import { tiktokPublisher } from "./platforms/tiktok/publish";
 import { twitterPublisher } from "./platforms/twitter/publish";
+import { youtubePublisher } from "./platforms/youtube/publish";
 
 /**
  * Node-only publish registry. Imports the concrete `publish` modules
@@ -17,6 +23,12 @@ export const publisherRegistry: Partial<
   TWITTER: twitterPublisher,
   THREADS: threadsPublisher,
   PINTEREST: pinterestPublisher,
+  LINKEDIN: linkedinPublisher,
+  TIKTOK: tiktokPublisher,
+  BLUESKY: blueskyPublisher,
+  FARCASTER: farcasterPublisher,
+  YOUTUBE: youtubePublisher,
+  FACEBOOK: facebookPublisher,
 };
 
 export function getPublisher(id: PublishableSocialType): PlatformPublisher {

@@ -3,10 +3,16 @@ import type {
   PlatformMediaRules,
   PublishableSocialType,
 } from "./types";
+import { blueskyIntegration } from "./platforms/bluesky/definition";
+import { facebookIntegration } from "./platforms/facebook/definition";
+import { farcasterIntegration } from "./platforms/farcaster/definition";
 import { instagramIntegration } from "./platforms/instagram/definition";
+import { linkedinIntegration } from "./platforms/linkedin/definition";
 import { pinterestIntegration } from "./platforms/pinterest/definition";
 import { threadsIntegration } from "./platforms/threads/definition";
+import { tiktokIntegration } from "./platforms/tiktok/definition";
 import { twitterIntegration } from "./platforms/twitter/definition";
+import { youtubeIntegration } from "./platforms/youtube/definition";
 
 /**
  * Isomorphic metadata registry — the single source of truth for meta, auth,
@@ -21,6 +27,12 @@ export const integrationRegistry: Partial<
   TWITTER: twitterIntegration,
   THREADS: threadsIntegration,
   PINTEREST: pinterestIntegration,
+  LINKEDIN: linkedinIntegration,
+  TIKTOK: tiktokIntegration,
+  BLUESKY: blueskyIntegration,
+  FARCASTER: farcasterIntegration,
+  YOUTUBE: youtubeIntegration,
+  FACEBOOK: facebookIntegration,
 };
 
 export function getIntegration(id: PublishableSocialType): PlatformIntegration {

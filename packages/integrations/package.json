@@ -20,8 +20,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@delulu/cloudflare-types": "workspace:*",
     "@delulu/database": "workspace:*",
     "@delulu/validators": "workspace:*",
+    "@opennextjs/cloudflare": "1.6.0",
     "@xdevplatform/xdk": "0.5.0",
     "axios": "^1.9.0",
     "convex": "^1.25.4",
