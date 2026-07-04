@@ -26,7 +26,6 @@
     "dotenv-cli": "^7.4.1",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
-    "neverthrow": "^8.2.0",
     "node": "^20.19.4",
     "openai": "^4.67.3",
     "superjson": "2.2.5",

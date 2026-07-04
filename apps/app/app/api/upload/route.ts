@@ -52,31 +52,19 @@ export async function POST(request: NextRequest) {
     // Upload file directly to R2 - in Cloudflare Workers, File is already the right type
     // R2 will handle it efficiently without loading entire file into memory
     const uploadStart = Date.now();
-    const uploadResult = await r2Provider.uploadFileStream(
-      key,
-      file,
-      file.type
-    );
+    const result = await r2Provider.uploadFileStream(key, file, file.type);
     console.log(
       `[DEBUG] R2 upload took ${Date.now() - uploadStart}ms, total: ${Date.now() - startTime}ms`
     );
-
-    if (uploadResult.isErr()) {
-      console.error(`[ERROR] Upload failed: ${uploadResult.error.message}`);
-      return new NextResponse(
-        `Error uploading file: ${uploadResult.error.message}`,
-        { status: 500 }
-      );
-    }
-
-    const result = uploadResult.value;
     console.log(`[DEBUG] Upload successful for key: ${result.key}`);
 
     return NextResponse.json({
       bucketKey: result.key,
     });
-  } catch {
-    return new NextResponse("Error uploading file", { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error(`[ERROR] Upload failed: ${message}`);
+    return new NextResponse(`Error uploading file: ${message}`, { status: 500 });
   }
 }
 
