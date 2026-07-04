@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>08 — Publish Pipeline — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html" class="active">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>08 — Publish Pipeline</h1>
+      <p class="lead">State machine, retries, error taxonomy, DLQ, and Convex mutation contracts.</p>
+
+      <h2>Job state machine</h2>
+      <div class="diagram">                    ┌──────────┐
+                    │  QUEUED  │
+                    └────┬─────┘
+                         │ worker picks up (startAttempt)
+                         ▼
+                  ┌─────────────┐
+           ┌─────►│ PROCESSING  │◄─────┐
+           │      └──────┬──────┘      │
+           │             │             │ transient error
+           │    success  │  permanent  │ (SQS redelivery)
+           │             │  error      │
+           ▼             ▼             │
+    ┌───────────┐  ┌───────────┐       │
+    │ PUBLISHED │  │  FAILED   │       │
+    └───────────┘  └───────────┘       │
+                                       │
+                         max attempts exceeded
+                         ▼
+                  ┌─────────────┐
+                  │ DEAD_LETTER │
+                  └─────────────┘</div>
+
+      <h3>Transition rules</h3>
+      <table>
+        <thead>
+          <tr><th>From</th><th>Event</th><th>To</th><th>Actor</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>—</td><td><code>createPublishRun</code></td><td><span class="pill queued">QUEUED</span></td><td>Convex mutation</td></tr>
+          <tr><td>QUEUED</td><td>SQS deliver + <code>startAttempt</code></td><td><span class="pill processing">PROCESSING</span></td><td>Worker → API</td></tr>
+          <tr><td>PROCESSING</td><td><code>completeAttempt(SUCCEEDED)</code></td><td><span class="pill published">PUBLISHED</span></td><td>Worker → API</td></tr>
+          <tr><td>PROCESSING</td><td><code>completeAttempt(FAILED, PERMANENT)</code></td><td><span class="pill failed">FAILED</span></td><td>Worker → API</td></tr>
+          <tr><td>PROCESSING</td><td><code>completeAttempt(FAILED, TRANSIENT)</code></td><td>PROCESSING</td><td>Worker → API (SQS retries)</td></tr>
+          <tr><td>PROCESSING</td><td>attemptCount ≥ maxAttempts</td><td><span class="pill dead">DEAD_LETTER</span></td><td>Sweeper or SQS DLQ</td></tr>
+          <tr><td>FAILED</td><td>User clicks Retry</td><td>QUEUED (new job)</td><td>Dashboard → <code>createPublishRun</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Convex mutations</h2>
+
+      <h3>createPublishRun</h3>
+      <pre><code>// packages/database/convex/publish.ts
+export const createPublishRun = mutation({
+  args: {
+    postId: v.id("posts"),
+    socialProviderIds: v.optional(v.array(v.id("socialProviders"))),
+    // if omitted, uses all providers on post
+  },
+  handler: async (ctx, args) => {
+    const runId = crypto.randomUUID();
+    const post = await getPost(ctx, args.postId);
+    const providerIds = args.socialProviderIds ?? post.socialProviderIds;
+
+    for (const providerId of providerIds) {
+      await ctx.db.insert("publish_jobs", {
+        postId: args.postId,
+        socialProviderId: providerId,
+        runId,
+        status: "QUEUED",
+        attemptCount: 0,
+        maxAttempts: 5,
+        userId: post.userId,
+        organizationId: post.organizationId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await ctx.db.patch(args.postId, {
+      publishStatus: "QUEUED",
+      activeRunId: runId,
+      updatedAt: now,
+    });
+
+    return { runId, jobIds: [...] };
+  },
+});</code></pre>
+
+      <h3>completeAttempt</h3>
+      <pre><code>export const completeAttempt = internalMutation({
+  args: {
+    publishJobId: v.id("publish_jobs"),
+    attemptNumber: v.number(),
+    status: v.union(v.literal("SUCCEEDED"), v.literal("FAILED")),
+    platformPostId: v.optional(v.string()),
+    platformPostUrl: v.optional(v.string()),
+    errorCode: v.optional(v.string()),
+    errorClass: v.optional(errorClassSchema),
+    errorMessage: v.optional(v.string()),
+    workerRequestId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const job = await ctx.db.get(args.publishJobId);
+
+    // Idempotency: already terminal → no-op
+    if (job.status === "PUBLISHED" || job.status === "DEAD_LETTER") {
+      return { alreadyComplete: true };
+    }
+
+    // Insert attempt row (idempotent on jobId + attemptNumber)
+    await insertAttemptIfNotExists(ctx, args);
+
+    if (args.status === "SUCCEEDED") {
+      await ctx.db.patch(job._id, {
+        status: "PUBLISHED",
+        platformPostId: args.platformPostId,
+        platformPostUrl: args.platformPostUrl,
+        postedAt: now,
+        completedAt: now,
+        updatedAt: now,
+      });
+      await runPublishSideEffects(ctx, job, args);  // once only
+    } else if (args.errorClass === "PERMANENT") {
+      await ctx.db.patch(job._id, {
+        status: "FAILED",
+        errorClass: "PERMANENT",
+        errorCode: args.errorCode,
+        errorMessage: args.errorMessage,
+        completedAt: now,
+        updatedAt: now,
+      });
+    } else {
+      // TRANSIENT — stay PROCESSING, increment attemptCount
+      const newCount = job.attemptCount + 1;
+      if (newCount >= job.maxAttempts) {
+        await ctx.db.patch(job._id, {
+          status: "DEAD_LETTER",
+          attemptCount: newCount,
+          completedAt: now,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.patch(job._id, {
+          attemptCount: newCount,
+          errorClass: "TRANSIENT",
+          errorCode: args.errorCode,
+          errorMessage: args.errorMessage,
+          updatedAt: now,
+        });
+      }
+    }
+
+    // Always re-derive post publishStatus
+    await deriveAndPatchPostPublishStatus(ctx, job.postId);
+    return { success: true };
+  },
+});</code></pre>
+
+      <h2>Error taxonomy</h2>
+      <table>
+        <thead>
+          <tr><th>Worker error</th><th>errorCode</th><th>errorClass</th><th>Retry?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>NetworkError</code></td><td>NETWORK_ERROR</td><td>TRANSIENT</td><td>Yes</td></tr>
+          <tr><td><code>RateLimitError</code></td><td>RATE_LIMIT_EXCEEDED</td><td>TRANSIENT</td><td>Yes (respect retryAfter)</td></tr>
+          <tr><td><code>APIError</code> (5xx)</td><td>API_ERROR</td><td>TRANSIENT</td><td>Yes</td></tr>
+          <tr><td><code>MediaProcessingTimeoutError</code></td><td>MEDIA_PROCESSING_TIMEOUT</td><td>TRANSIENT</td><td>Yes</td></tr>
+          <tr><td><code>InvalidAccessTokenError</code></td><td>INVALID_ACCESS_TOKEN</td><td>PERMANENT</td><td>No</td></tr>
+          <tr><td><code>NoContentError</code></td><td>NO_CONTENT</td><td>PERMANENT</td><td>No</td></tr>
+          <tr><td><code>InvalidMediaError</code></td><td>INVALID_MEDIA</td><td>PERMANENT</td><td>No</td></tr>
+          <tr><td><code>ProfileNotFoundError</code></td><td>PROFILE_NOT_FOUND</td><td>PERMANENT</td><td>No</td></tr>
+          <tr><td><code>APIError</code> (4xx)</td><td>API_ERROR</td><td>PERMANENT</td><td>No</td></tr>
+          <tr><td><code>PublishError</code></td><td>PUBLISH_FAILED</td><td>PERMANENT</td><td>No</td></tr>
+        </tbody>
+      </table>
+
+      <h2>SQS configuration</h2>
+      <pre><code>// packages/infrastructure/sst.config.ts (additions)
+SocialPostsQueue: {
+  visibilityTimeout: "5 minutes",
+  redrivePolicy: {
+    deadLetterTarget: SocialPostsDLQ,
+    maxReceiveCount: 5,
+  },
+}</code></pre>
+
+      <h3>Updated message shape</h3>
+      <pre><code>{
+  "publishJobId": "abc123",
+  "attemptNumber": 2,
+  "socialType": "INSTAGRAM",
+  "socialPublishInput": {
+    "postId": "jx7...",
+    "socialProviderId": "kh2...",
+    "content": [ ... ]
+  }
+}</code></pre>
+
+      <h2>Retry backoff</h2>
+      <table>
+        <thead>
+          <tr><th>Attempt</th><th>Backoff</th><th>Mechanism</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Immediate</td><td>Initial SQS delivery</td></tr>
+          <tr><td>2</td><td>~30s</td><td>SQS visibility timeout</td></tr>
+          <tr><td>3</td><td>~2min</td><td>SQS visibility timeout</td></tr>
+          <tr><td>4</td><td>~8min</td><td>SQS visibility timeout</td></tr>
+          <tr><td>5</td><td>~30min</td><td>Final attempt</td></tr>
+          <tr><td>6+</td><td>—</td><td>→ DEAD_LETTER</td></tr>
+        </tbody>
+      </table>
+      <p>For <code>RateLimitError</code> with <code>retryAfter</code>, set SQS message delay or <code>nextRetryAt</code> on the job for sweeper pickup.</p>
+
+      <h2>Side effects (run once on PUBLISHED)</h2>
+      <p>Extracted from current <code>updatePostPublishStatus</code> into <code>runPublishSideEffects</code>:</p>
+      <ol>
+        <li>Upsert <code>platformPosts[]</code> on parent post</li>
+        <li><code>replacePostAggregate</code> for dashboard stats</li>
+        <li><code>stats.addPublishDateInternal</code> (streak)</li>
+        <li><code>automations.linkPublishedPost</code> (Instagram)</li>
+        <li>Schedule video cleanup (7 days)</li>
+      </ol>
+
+      <h2>Stuck-job sweeper (Phase 5)</h2>
+      <p>Convex cron job runs every 15 minutes:</p>
+      <ul>
+        <li>Query <code>publish_jobs</code> where <code>status = PROCESSING</code> and <code>updatedAt &lt; now - 30min</code></li>
+        <li>If <code>attemptCount &lt; maxAttempts</code>: reset to QUEUED, re-enqueue SQS</li>
+        <li>If <code>attemptCount ≥ maxAttempts</code>: transition to DEAD_LETTER</li>
+        <li>Re-derive post <code>publishStatus</code></li>
+      </ul>
+
+      <h2>PostHog events (Phase 0)</h2>
+      <table>
+        <thead>
+          <tr><th>Event</th><th>When</th><th>Properties</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>publish_job_created</code></td><td><code>createPublishRun</code></td><td>postId, runId, providerCount</td></tr>
+          <tr><td><code>publish_attempt_started</code></td><td><code>startAttempt</code></td><td>publishJobId, attemptNumber, socialType</td></tr>
+          <tr><td><code>publish_attempt_succeeded</code></td><td><code>completeAttempt(SUCCEEDED)</code></td><td>publishJobId, platformPostId</td></tr>
+          <tr><td><code>publish_attempt_failed</code></td><td><code>completeAttempt(FAILED)</code></td><td>publishJobId, errorCode, errorClass</td></tr>
+          <tr><td><code>publish_run_completed</code></td><td>All jobs terminal</td><td>postId, runId, publishStatus</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>

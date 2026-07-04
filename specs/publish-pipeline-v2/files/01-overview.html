@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>01 — Overview — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html" class="active">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>01 — Overview</h1>
+      <p class="lead">Executive summary for Publish Pipeline v2: fix Delulu Social's fragile multi-platform publishing without migrating off Convex.</p>
+      <p class="meta">Status: Draft &nbsp;·&nbsp; Effort: M (~3–4 weeks)</p>
+
+      <div class="callout success">
+        <div class="callout-title">Recommendation</div>
+        <p><strong>Keep Convex as system of record.</strong> Add <code>publish_jobs</code> and <code>publish_attempts</code> tables, derive post publish status from job aggregates, and route all worker completion writes through <code>apps/api</code> internal endpoints.</p>
+      </div>
+
+      <h2>Goals</h2>
+      <ul>
+        <li><strong>Reliable multi-platform publish</strong> — one job per post × provider, with explicit state and retries</li>
+        <li><strong>Correct partial-failure semantics</strong> — post shows <span class="pill partial">PARTIAL</span> when some platforms succeed and others fail</li>
+        <li><strong>Idempotent worker completion</strong> — duplicate SQS deliveries cannot corrupt post state</li>
+        <li><strong>Observable pipeline</strong> — every attempt logged; PostHog events for funnel analysis</li>
+        <li><strong>Zero-downtime migration</strong> — additive schema first, dual-write path, then cutover</li>
+      </ul>
+
+      <h2>Non-goals</h2>
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Rationale</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>PlanetScale / SQL migration</td><td>XL effort (~2–3 months); deferred</td></tr>
+          <tr><td>Auth provider change</td><td>Clerk stays</td></tr>
+          <tr><td>New backend service (NestJS/Fastify)</td><td>Extend existing <code>apps/api</code></td></tr>
+          <tr><td>Replace Convex subscriptions</td><td>Real-time dashboard stays on Convex</td></tr>
+          <tr><td>In-app AI / LangGraph / generation</td><td>Out of scope for this spec</td></tr>
+          <tr><td>New social platforms</td><td>Pipeline only; no new providers</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Orchestration patterns</h2>
+      <p>Mature publish systems converge on a small set of orchestration patterns. Delulu v2 adopts these without prescribing a specific external product:</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Job-per-target</h3>
+          <p>One durable job record per post × social provider per publish run. Enables per-platform retries, status chips, and partial success.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Derived aggregate status</h3>
+          <p>Post-level <code>publishStatus</code> is computed from child jobs — never written directly by workers. Prevents race conditions on multi-provider posts.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Attempt log</h3>
+          <p>Append-only <code>publish_attempts</code> rows capture every try. Supports debugging, SLA metrics, and audit trails.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Gateway writes</h3>
+          <p>Workers call an authenticated internal API instead of public Convex mutations. Centralizes idempotency, validation, and side effects.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Queue + DLQ</h3>
+          <p>SQS with <code>maxReceiveCount</code> and dead-letter queue for poison messages. Transient errors retry with exponential backoff.</p>
+        </div>
+        <div class="card">
+          <div class="card-label">Pattern</div>
+          <h3>Error taxonomy</h3>
+          <p>Classify errors as <code>TRANSIENT</code> vs <code>PERMANENT</code>. Permanent errors skip retry; transient errors re-queue.</p>
+        </div>
+      </div>
+
+      <h2>Key deliverables</h2>
+      <table>
+        <thead>
+          <tr><th>Deliverable</th><th>Location</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Schema SSOT</td><td><code>packages/database/convex/schemas/publish.ts</code></td></tr>
+          <tr><td>Convex mutations</td><td><code>packages/database/convex/publish.ts</code></td></tr>
+          <tr><td>Internal API routes</td><td><code>apps/api/src/routes/internal/publish.ts</code></td></tr>
+          <tr><td>Worker client change</td><td><code>packages/worker/client.ts</code></td></tr>
+          <tr><td>Post service integration</td><td><code>packages/api/services/post.service.ts</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Timeline</h2>
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Duration</th><th>Summary</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Phase 0</td><td>3 days</td><td>Instrumentation + spec</td></tr>
+          <tr><td>Phase 1</td><td>1 week</td><td>Additive schema, shadow mode</td></tr>
+          <tr><td>Phase 2</td><td>1 week</td><td>Dual path (worker → API)</td></tr>
+          <tr><td>Phase 3</td><td>3 days</td><td>Cutover, derive status</td></tr>
+          <tr><td>Phase 4</td><td>1 week</td><td>Webhook routing</td></tr>
+          <tr><td>Phase 5</td><td>3 days</td><td>Cleanup + FREE block</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info">
+        <div class="callout-title">Constraints preserved</div>
+        <p>Instagram DM automations, post approval workflow, Clerk auth, and Convex real-time subscriptions are unchanged. Minimum paid tier for new signups = <strong>ECHO</strong> (grandfather existing FREE users).</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>04 — Current Paths — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html" class="active">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>04 — Current Paths</h1>
+      <p class="lead">Concrete code paths, file touchpoints, and coupling in today's publish system.</p>
+
+      <h2>Entry points</h2>
+      <table>
+        <thead>
+          <tr><th>Trigger</th><th>Entry file</th><th>Function</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>User clicks "Publish now"</td><td><code>packages/api/services/post.service.ts</code></td><td><code>createPostInQueue()</code></td></tr>
+          <tr><td>Scheduled time reached</td><td><code>packages/database/convex/http.ts</code></td><td>Webhook → <code>publishScheduledPost</code></td></tr>
+          <tr><td>Org post approved + scheduled</td><td><code>packages/database/convex/posts.ts</code></td><td>Scheduler → <code>publishScheduledPost</code></td></tr>
+          <tr><td>SQS message received</td><td><code>packages/infrastructure/src/social-post-worker.ts</code></td><td>Lambda handler</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Path A — Publish now (REST API)</h2>
+      <pre><code>apps/app (use-post-actions.ts)
+  → packages/api router (post mutation)
+    → post.service.ts :: createPostInQueue(post)
+      → for each socialProvider:
+          → fetch(LAMBDA_URL, { socialType, socialPublishInput })
+            → packages/infrastructure/src/trigger-sqs.ts
+              → SQS SendMessage
+                → packages/infrastructure/src/social-post-worker.ts
+                  → packages/worker/client.ts :: processMessage()
+                    → providerRegistry[socialType].publish()
+                    → convex.mutation(api.posts.updatePostPublishStatus)</code></pre>
+
+      <h3>Coupling notes</h3>
+      <ul>
+        <li><code>createPostInQueue</code> hardcodes Lambda URL (not SST Resource)</li>
+        <li>No post status transition to <code>PROCESSING</code> before queueing</li>
+        <li>Loop is sequential HTTP — slow for many providers</li>
+        <li>Throws on first queue failure; remaining providers never enqueued</li>
+      </ul>
+
+      <h2>Path B — Scheduled publish (Convex)</h2>
+      <pre><code>CallMeLater webhook
+  → convex/http.ts
+    → internal.posts.publishScheduledPost
+      → for each socialProvider:
+          → fetch(POSTING_LAMBDA_URL, { socialType, socialPublishInput })
+            → (same SQS → Worker → Convex path as Path A)
+      → on catch: internal.posts.updatePostStatus(FAILED)</code></pre>
+
+      <h3>Coupling notes</h3>
+      <ul>
+        <li>Duplicate queueing logic between <code>post.service.ts</code> and <code>publishScheduledPost</code></li>
+        <li>Approval check (<code>reviewStatus === "APPROVED"</code>) only in scheduled path</li>
+        <li>Queue failure marks entire post <code>FAILED</code> even if zero providers attempted</li>
+      </ul>
+
+      <h2>Path C — Worker completion</h2>
+      <pre><code>packages/worker/client.ts :: processMessage(messageBody)
+  1. JSON.parse → { socialPublishInput, socialType }
+  2. resolveMediaUrls(socialPublishInput)
+  3. providerRegistry[socialType].publish({ content, socialProviderId })
+  4. if Err → updatePostPublishStatus(FAILED, { failureReason })
+     if Ok  → updatePostPublishStatus(PUBLISHED, { platformPostId, platformPostUrl })</code></pre>
+
+      <h3>Side effects in updatePostPublishStatus</h3>
+      <p>File: <code>packages/database/convex/posts.ts</code> (line ~790)</p>
+      <ol>
+        <li>Patch <code>posts.status</code> to PUBLISHED or FAILED</li>
+        <li>Upsert entry in <code>platformPosts[]</code></li>
+        <li><code>replacePostAggregate</code> for dashboard stats</li>
+        <li>If PUBLISHED: <code>stats.addPublishDateInternal</code> (streak)</li>
+        <li>If PUBLISHED + platformPostId: <code>automations.linkPublishedPost</code></li>
+        <li>If PUBLISHED: schedule video cleanup via <code>callmelater.scheduleVideoCleanupAction</code></li>
+      </ol>
+
+      <div class="callout danger">
+        <div class="callout-title">Race condition</div>
+        <p>Steps 1–6 run per worker invocation with no locking. Two workers finishing concurrently can interleave patches — last write to <code>posts.status</code> wins regardless of per-platform outcomes.</p>
+      </div>
+
+      <h2>SQS message shape (today)</h2>
+      <pre><code>{
+  "socialType": "INSTAGRAM",
+  "socialPublishInput": {
+    "postId": "jx7...",
+    "socialProviderId": "kh2...",
+    "content": [ ... ],
+    "providerSettings": { ... }  // optional
+  }
+}</code></pre>
+      <p>No <code>publishJobId</code>, no <code>attemptNumber</code>, no <code>idempotencyKey</code>.</p>
+
+      <h2>Error handling (today)</h2>
+      <table>
+        <thead>
+          <tr><th>Error type</th><th>Worker behavior</th><th>Retry?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>RateLimitError</code></td><td>Write FAILED to Convex</td><td>No</td></tr>
+          <tr><td><code>NetworkError</code></td><td>Write FAILED to Convex</td><td>No</td></tr>
+          <tr><td><code>InvalidAccessTokenError</code></td><td>Write FAILED to Convex</td><td>No (correct)</td></tr>
+          <tr><td><code>APIError</code> (5xx)</td><td>Write FAILED to Convex</td><td>No (incorrect)</td></tr>
+          <tr><td>Lambda timeout</td><td>SQS may redeliver; worker may double-publish</td><td>Uncontrolled</td></tr>
+        </tbody>
+      </table>
+      <p><code>isRetryableError()</code> exists in <code>packages/worker/providers/errors.ts</code> but is never called in the worker client.</p>
+
+      <h2>Files to change (v2 touch list)</h2>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Change</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>packages/database/convex/schema.ts</code></td><td>Register <code>publish_jobs</code>, <code>publish_attempts</code></td></tr>
+          <tr><td><code>packages/database/convex/schemas/publish.ts</code></td><td><strong>New</strong> — SSOT enums and schemas</td></tr>
+          <tr><td><code>packages/database/convex/publish.ts</code></td><td><strong>New</strong> — createRun, completeAttempt, deriveStatus</td></tr>
+          <tr><td><code>packages/database/convex/posts.ts</code></td><td>Replace publish paths; deprecate direct status writes</td></tr>
+          <tr><td><code>packages/worker/client.ts</code></td><td>Call API instead of Convex mutation</td></tr>
+          <tr><td><code>apps/api/src/routes/internal/publish.ts</code></td><td><strong>New</strong> — HMAC-authenticated internal routes</td></tr>
+          <tr><td><code>packages/api/services/post.service.ts</code></td><td>Use <code>createPublishRun</code> before queueing</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>

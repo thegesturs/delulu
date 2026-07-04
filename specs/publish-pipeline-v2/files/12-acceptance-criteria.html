@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>12 — Acceptance Criteria — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html" class="active">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>12 — Acceptance Criteria</h1>
+      <p class="lead">Testable criteria for each migration phase. All must pass before advancing to the next phase.</p>
+
+      <h2>Phase 0 — Instrument</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-0.1</td><td>PostHog receives <code>publish_job_created</code> events</td><td>PostHog live events dashboard</td></tr>
+          <tr><td>AC-0.2</td><td>Baseline publish success rate captured per platform for 7 days</td><td>PostHog funnel or CloudWatch metric</td></tr>
+          <tr><td>AC-0.3</td><td>Spec HTML pages accessible at <code>specs/publish-pipeline-v2/files/</code></td><td>Manual browser check</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Phase 1 — Additive schema</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-1.1</td><td><code>publish_jobs</code> and <code>publish_attempts</code> tables exist in Convex</td><td>Convex dashboard schema view</td></tr>
+          <tr><td>AC-1.2</td><td><code>schemas/publish.ts</code> is SSOT — no duplicate publish enums elsewhere</td><td>Grep codebase for publish status literals outside SSOT</td></tr>
+          <tr><td>AC-1.3</td><td><code>createPublishRun</code> creates N jobs for N providers in shadow mode</td><td>Convex data browser: job count = provider count</td></tr>
+          <tr><td>AC-1.4</td><td>Existing publish flow unchanged — no user-visible regression</td><td>Smoke test all platforms</td></tr>
+          <tr><td>AC-1.5</td><td><code>posts.publishStatus</code> field exists and defaults to undefined for existing posts</td><td>Query existing posts</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Phase 2 — Dual path</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-2.1</td><td>SQS messages include <code>publishJobId</code> and <code>attemptNumber</code></td><td>SQS message inspection</td></tr>
+          <tr><td>AC-2.2</td><td>Worker calls <code>POST /internal/publish/complete</code> with valid HMAC</td><td>API access logs</td></tr>
+          <tr><td>AC-2.3</td><td>Invalid HMAC returns 401</td><td>Integration test</td></tr>
+          <tr><td>AC-2.4</td><td>Transient error (mocked 503) retries up to 5 times</td><td>Test with mock provider + SQS metrics</td></tr>
+          <tr><td>AC-2.5</td><td>Permanent error (invalid token) does not retry</td><td>Job status = FAILED after 1 attempt</td></tr>
+          <tr><td>AC-2.6</td><td>DLQ receives message after 5 failed receives</td><td>DLQ message count</td></tr>
+          <tr><td>AC-2.7</td><td>Dual-path discrepancy rate &lt; 0.1% over 7 days</td><td>Comparison log analysis</td></tr>
+          <tr><td>AC-2.8</td><td>Duplicate SQS delivery does not double-publish</td><td>Send same message twice; verify 1 platform post</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Phase 3 — Cutover</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-3.1</td><td>Worker no longer calls <code>updatePostPublishStatus</code></td><td>Grep + Convex mutation logs</td></tr>
+          <tr><td>AC-3.2</td><td><code>posts.publishStatus</code> derived correctly for all-single-platform posts</td><td>Publish to 1 platform → PUBLISHED</td></tr>
+          <tr><td>AC-3.3</td><td>Multi-platform partial failure shows <span class="pill partial">PARTIAL</span></td><td>Publish to 3 platforms, fail 1 → PARTIAL</td></tr>
+          <tr><td>AC-3.4</td><td>Per-platform status chips visible in dashboard</td><td>UI screenshot / Playwright test</td></tr>
+          <tr><td>AC-3.5</td><td>Retry button re-publishes only failed platforms</td><td>Retry after partial; verify only failed job re-created</td></tr>
+          <tr><td>AC-3.6</td><td>Scheduled publish uses <code>createPublishRun</code></td><td>Schedule post; verify jobs created at trigger time</td></tr>
+          <tr><td>AC-3.7</td><td>Instagram automation links on publish</td><td>Publish IG post; verify <code>linkPublishedPost</code> called</td></tr>
+          <tr><td>AC-3.8</td><td>Streak updates on successful publish</td><td>Verify <code>addPublishDateInternal</code> called once</td></tr>
+          <tr><td>AC-3.9</td><td>Org post requires approval before publish</td><td>Attempt publish unapproved → 422</td></tr>
+          <tr><td>AC-3.10</td><td>Zero P0 publish incidents for 48 hours post-cutover</td><td>Incident tracker / support tickets</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Phase 4 — Webhooks</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-4.1</td><td><code>apps/api/webhooks/callmelater</code> triggers publish pipeline</td><td>Schedule post; verify jobs + SQS</td></tr>
+          <tr><td>AC-4.2</td><td>Instagram DM webhooks still route to Lambda</td><td>Send test DM; verify automation fires</td></tr>
+          <tr><td>AC-4.3</td><td>Dual webhook endpoints active during cutover</td><td>Both URLs registered in platform consoles</td></tr>
+          <tr><td>AC-4.4</td><td>Old webhook URLs removed after 48-hour monitoring</td><td>Platform console check</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Phase 5 — Cleanup</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-5.1</td><td><code>updatePostPublishStatus</code> deleted</td><td>Grep returns zero results</td></tr>
+          <tr><td>AC-5.2</td><td>Feature flag <code>PUBLISH_PIPELINE_V2</code> removed</td><td>Env var grep</td></tr>
+          <tr><td>AC-5.3</td><td>Stuck-job sweeper runs every 15 min and recovers PROCESSING jobs &gt; 30 min</td><td>Cron logs + test stuck job</td></tr>
+          <tr><td>AC-5.4</td><td>New signups cannot select FREE plan</td><td>Signup flow test</td></tr>
+          <tr><td>AC-5.5</td><td>Existing FREE users unaffected</td><td>Login as FREE user; publish works</td></tr>
+          <tr><td>AC-5.6</td><td>Lambda URL uses SST Resource, not hardcoded</td><td>Code review</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Cross-cutting criteria</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Criterion</th><th>Verification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AC-X.1</td><td>All platforms publish successfully: Instagram, Twitter, LinkedIn, Facebook, TikTok, Threads, YouTube, Pinterest, Bluesky, Farcaster</td><td>Per-platform smoke test matrix</td></tr>
+          <tr><td>AC-X.2</td><td>Convex subscriptions update dashboard in real time on status change</td><td>Publish post; watch live update</td></tr>
+          <tr><td>AC-X.3</td><td>Video cleanup scheduled 7 days after publish</td><td>Verify scheduler call in side effects</td></tr>
+          <tr><td>AC-X.4</td><td>No mention of deprecated patterns in new code</td><td>Code review checklist</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Test matrix (per platform)</h2>
+      <table>
+        <thead>
+          <tr><th>Platform</th><th>Text</th><th>Image</th><th>Video</th><th>Multi</th><th>Retry</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Instagram</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Twitter</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>LinkedIn</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Facebook</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>TikTok</td><td>—</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Threads</td><td>✓</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+          <tr><td>YouTube</td><td>—</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Pinterest</td><td>✓</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Bluesky</td><td>✓</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Farcaster</td><td>✓</td><td>✓</td><td>—</td><td>✓</td><td>✓</td></tr>
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>

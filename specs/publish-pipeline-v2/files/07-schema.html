@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>07 — Schema — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html" class="active">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>07 — Schema</h1>
+      <p class="lead">Convex tables, indexes, and the single source of truth in <code>schemas/publish.ts</code>.</p>
+
+      <div class="callout info">
+        <div class="callout-title">SSOT (ADR-009)</div>
+        <p>All publish enums and base schemas live in <code>packages/database/convex/schemas/publish.ts</code>. Worker error codes in <code>packages/worker/providers/errors.ts</code> map to <code>errorClass</code> at the API boundary — never redefined in Convex.</p>
+      </div>
+
+      <h2>File map</h2>
+      <table>
+        <thead>
+          <tr><th>What</th><th>Where</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Publish enums + base schemas</td><td><code>packages/database/convex/schemas/publish.ts</code></td></tr>
+          <tr><td>Barrel export</td><td><code>packages/database/convex/schemas/index.ts</code></td></tr>
+          <tr><td>Table registration + indexes</td><td><code>packages/database/convex/schema.ts</code></td></tr>
+          <tr><td>Pipeline mutations</td><td><code>packages/database/convex/publish.ts</code></td></tr>
+          <tr><td>Worker error codes</td><td><code>packages/worker/providers/errors.ts</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>schemas/publish.ts (SSOT)</h2>
+      <pre><code>// packages/database/convex/schemas/publish.ts
+
+import { v } from "convex/values";
+
+// ── Enums ──────────────────────────────────────────────────
+
+export const publishJobStatusSchema = v.union(
+  v.literal("QUEUED"),
+  v.literal("PROCESSING"),
+  v.literal("PUBLISHED"),
+  v.literal("FAILED"),
+  v.literal("DEAD_LETTER"),
+);
+
+export const publishAttemptStatusSchema = v.union(
+  v.literal("STARTED"),
+  v.literal("SUCCEEDED"),
+  v.literal("FAILED"),
+);
+
+export const publishStatusSchema = v.union(
+  v.literal("QUEUED"),
+  v.literal("PROCESSING"),
+  v.literal("PARTIAL"),
+  v.literal("PUBLISHED"),
+  v.literal("FAILED"),
+);
+
+export const errorClassSchema = v.union(
+  v.literal("TRANSIENT"),
+  v.literal("PERMANENT"),
+);
+
+export const PUBLISH_JOB_STATUS = {
+  QUEUED: "QUEUED",
+  PROCESSING: "PROCESSING",
+  PUBLISHED: "PUBLISHED",
+  FAILED: "FAILED",
+  DEAD_LETTER: "DEAD_LETTER",
+} as const;
+
+export const PUBLISH_STATUS = {
+  QUEUED: "QUEUED",
+  PROCESSING: "PROCESSING",
+  PARTIAL: "PARTIAL",
+  PUBLISHED: "PUBLISHED",
+  FAILED: "FAILED",
+} as const;
+
+// ── publish_jobs ───────────────────────────────────────────
+
+export const basePublishJobSchema = v.object({
+  postId: v.id("posts"),
+  socialProviderId: v.id("socialProviders"),
+  runId: v.string(),                    // UUID grouping jobs in one publish run
+  status: publishJobStatusSchema,
+  attemptCount: v.number(),
+  maxAttempts: v.number(),              // default 5
+  nextRetryAt: v.optional(v.number()),
+  errorClass: v.optional(errorClassSchema),
+  errorCode: v.optional(v.string()),    // from worker errors.ts
+  errorMessage: v.optional(v.string()),
+  platformPostId: v.optional(v.string()),
+  platformPostUrl: v.optional(v.string()),
+  postedAt: v.optional(v.number()),
+  userId: v.optional(v.id("users")),
+  organizationId: v.optional(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  completedAt: v.optional(v.number()),
+});
+
+// ── publish_attempts ───────────────────────────────────────
+
+export const basePublishAttemptSchema = v.object({
+  publishJobId: v.id("publish_jobs"),
+  attemptNumber: v.number(),
+  status: publishAttemptStatusSchema,
+  errorClass: v.optional(errorClassSchema),
+  errorCode: v.optional(v.string()),
+  errorMessage: v.optional(v.string()),
+  workerRequestId: v.optional(v.string()),  // SQS messageId or Lambda requestId
+  startedAt: v.number(),
+  completedAt: v.optional(v.number()),
+});
+
+// ── posts extension ──────────────────────────────────────────
+
+export const postPublishFieldsSchema = v.object({
+  publishStatus: v.optional(publishStatusSchema),
+  activeRunId: v.optional(v.string()),  // current publish run
+});</code></pre>
+
+      <h2>schema.ts registration</h2>
+      <pre><code>// packages/database/convex/schema.ts (additions)
+
+import {
+  basePublishJobSchema,
+  basePublishAttemptSchema,
+} from "./schemas";
+
+export default defineSchema({
+  // ... existing tables ...
+
+  publish_jobs: defineTable(basePublishJobSchema.fields)
+    .index("by_post_id", ["postId"])
+    .index("by_post_provider", ["postId", "socialProviderId"])
+    .index("by_run_id", ["runId"])
+    .index("by_status", ["status"])
+    .index("by_status_next_retry", ["status", "nextRetryAt"])
+    .index("by_user_id", ["userId"]),
+
+  publish_attempts: defineTable(basePublishAttemptSchema.fields)
+    .index("by_job_id", ["publishJobId"])
+    .index("by_job_attempt", ["publishJobId", "attemptNumber"]),
+});</code></pre>
+
+      <h2>posts table changes</h2>
+      <p>Add to <code>basePostSchema</code> in <code>schemas/posts_media.ts</code>:</p>
+      <pre><code>// Added fields on posts document
+publishStatus: v.optional(publishStatusSchema),  // derived from jobs
+activeRunId: v.optional(v.string()),             // current publish run UUID</code></pre>
+      <p><code>posts.status</code> retains lifecycle values (SAVED, SCHEDULED, DELETED). Values PUBLISHED, FAILED, PROCESSING migrate to <code>publishStatus</code> over Phase 1–3.</p>
+
+      <h2>Table: publish_jobs</h2>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>postId</code></td><td>Id&lt;"posts"&gt;</td><td>Parent post</td></tr>
+          <tr><td><code>socialProviderId</code></td><td>Id&lt;"socialProviders"&gt;</td><td>Target platform account</td></tr>
+          <tr><td><code>runId</code></td><td>string</td><td>UUID v4 — groups jobs in one publish action</td></tr>
+          <tr><td><code>status</code></td><td>publishJobStatusSchema</td><td>Job state machine position</td></tr>
+          <tr><td><code>attemptCount</code></td><td>number</td><td>Current attempt (1-based)</td></tr>
+          <tr><td><code>maxAttempts</code></td><td>number</td><td>Default 5 (matches SQS maxReceiveCount)</td></tr>
+          <tr><td><code>nextRetryAt</code></td><td>number?</td><td>Epoch ms for sweeper retry</td></tr>
+          <tr><td><code>errorClass</code></td><td>TRANSIENT | PERMANENT?</td><td>Retry eligibility</td></tr>
+          <tr><td><code>errorCode</code></td><td>string?</td><td>Worker error code (e.g. RATE_LIMIT_EXCEEDED)</td></tr>
+          <tr><td><code>errorMessage</code></td><td>string?</td><td>Human-readable error</td></tr>
+          <tr><td><code>platformPostId</code></td><td>string?</td><td>Platform-native post ID on success</td></tr>
+          <tr><td><code>platformPostUrl</code></td><td>string?</td><td>Permalink on success</td></tr>
+          <tr><td><code>postedAt</code></td><td>number?</td><td>Epoch ms of successful publish</td></tr>
+          <tr><td><code>completedAt</code></td><td>number?</td><td>Epoch ms of terminal state</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Table: publish_attempts</h2>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>publishJobId</code></td><td>Id&lt;"publish_jobs"&gt;</td><td>Parent job</td></tr>
+          <tr><td><code>attemptNumber</code></td><td>number</td><td>1-based attempt counter</td></tr>
+          <tr><td><code>status</code></td><td>STARTED | SUCCEEDED | FAILED</td><td>Attempt outcome</td></tr>
+          <tr><td><code>errorClass</code></td><td>TRANSIENT | PERMANENT?</td><td>Classification on failure</td></tr>
+          <tr><td><code>errorCode</code></td><td>string?</td><td>Worker error code</td></tr>
+          <tr><td><code>errorMessage</code></td><td>string?</td><td>Human-readable error</td></tr>
+          <tr><td><code>workerRequestId</code></td><td>string?</td><td>Correlation ID for debugging</td></tr>
+          <tr><td><code>startedAt</code></td><td>number</td><td>Epoch ms</td></tr>
+          <tr><td><code>completedAt</code></td><td>number?</td><td>Epoch ms</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Indexes rationale</h2>
+      <table>
+        <thead>
+          <tr><th>Index</th><th>Query</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>by_post_id</code></td><td>All jobs for a post (derive status, UI chips)</td></tr>
+          <tr><td><code>by_post_provider</code></td><td>Idempotency check: existing job for post × provider in active run</td></tr>
+          <tr><td><code>by_run_id</code></td><td>All jobs in a publish run</td></tr>
+          <tr><td><code>by_status</code></td><td>Stuck-job sweeper: find PROCESSING jobs older than threshold</td></tr>
+          <tr><td><code>by_status_next_retry</code></td><td>Scheduled retry sweeper</td></tr>
+          <tr><td><code>by_job_attempt</code></td><td>Idempotent attempt insert</td></tr>
+        </tbody>
+      </table>
+
+      <h2>schemas/index.ts export</h2>
+      <pre><code>// packages/database/convex/schemas/index.ts (addition)
+export {
+  basePublishJobSchema,
+  basePublishAttemptSchema,
+  publishJobStatusSchema,
+  publishAttemptStatusSchema,
+  publishStatusSchema,
+  errorClassSchema,
+  PUBLISH_JOB_STATUS,
+  PUBLISH_STATUS,
+  postPublishFieldsSchema,
+} from "./publish";</code></pre>
+
+      <div class="callout warning">
+        <div class="callout-title">Error code mapping</div>
+        <p>Worker <code>isRetryableError()</code> maps to <code>errorClass</code> at the API layer:</p>
+        <ul>
+          <li><code>NetworkError</code>, <code>RateLimitError</code>, <code>APIError</code> (5xx) → <code>TRANSIENT</code></li>
+          <li><code>InvalidAccessTokenError</code>, <code>NoContentError</code>, <code>InvalidMediaError</code> → <code>PERMANENT</code></li>
+        </ul>
+        <p>Do not duplicate error class enums in Convex — import mapping function in <code>apps/api</code>.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

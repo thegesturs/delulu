@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02 — Problem Statement — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html" class="active">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>02 — Problem Statement</h1>
+      <p class="lead">Why Delulu Social's publishing architecture is fragile and what user-visible failures result.</p>
+
+      <h2>Symptoms</h2>
+      <table>
+        <thead>
+          <tr><th>Symptom</th><th>User impact</th><th>Frequency</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Post marked <span class="pill failed">FAILED</span> after one platform succeeds</td>
+            <td>User thinks entire post failed; successful platform post is hidden</td>
+            <td>Common on multi-platform posts</td>
+          </tr>
+          <tr>
+            <td>Post stuck in <span class="pill processing">PROCESSING</span></td>
+            <td>Dashboard shows indefinite spinner; no retry affordance</td>
+            <td>Intermittent</td>
+          </tr>
+          <tr>
+            <td>Duplicate publish on SQS redelivery</td>
+            <td>Same content posted twice to a platform</td>
+            <td>Rare but high severity</td>
+          </tr>
+          <tr>
+            <td>Transient API error → permanent failure</td>
+            <td>Rate limits and 5xx errors not retried</td>
+            <td>Common during platform outages</td>
+          </tr>
+          <tr>
+            <td>No per-platform status in UI</td>
+            <td>User cannot see which of 3 targets succeeded</td>
+            <td>Always (multi-platform)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Root causes</h2>
+
+      <h3>1. Worker writes post status directly</h3>
+      <p>The Lambda worker calls <code>api.posts.updatePostPublishStatus</code> — a public Convex mutation — after each platform attempt. This mutation sets <code>posts.status</code> to either <code>PUBLISHED</code> or <code>FAILED</code> for the <em>entire post</em>, not per platform.</p>
+      <pre><code>// packages/worker/client.ts (today)
+await convex.mutation(api.posts.updatePostPublishStatus, {
+  postId,
+  status: "PUBLISHED", // or "FAILED" — overwrites whole post
+  platformPostData: { ... },
+});</code></pre>
+      <p>When a post targets Instagram + Twitter + LinkedIn, the last worker to finish wins. If Instagram succeeds and Twitter fails, the post may show <code>FAILED</code> even though Instagram published.</p>
+
+      <h3>2. No job-level state machine</h3>
+      <p>There is no <code>publish_jobs</code> table. SQS messages carry only <code>socialPublishInput</code> and <code>socialType</code> — no job ID, no attempt number, no idempotency key. The system cannot answer:</p>
+      <ul>
+        <li>How many platforms are still in flight?</li>
+        <li>Which attempt failed and why?</li>
+        <li>Should this message be retried or dead-lettered?</li>
+      </ul>
+
+      <h3>3. No retry or DLQ semantics</h3>
+      <p>SQS messages are processed once. On failure the worker writes <code>FAILED</code> and returns — no exponential backoff, no <code>maxReceiveCount</code>, no dead-letter queue. Transient errors (rate limits, 5xx) are treated identically to permanent errors (invalid token, policy violation).</p>
+
+      <h3>4. Fire-and-forget queueing</h3>
+      <p>Both <code>post.service.ts</code> and <code>publishScheduledPost</code> loop over providers and POST to the Lambda trigger URL without tracking per-provider outcomes. If queueing itself fails mid-loop, some providers are enqueued and others are not — with no rollback.</p>
+
+      <h3>5. Coupled side effects in one mutation</h3>
+      <p><code>updatePostPublishStatus</code> bundles status update, platform post embedding, streak tracking, automation linking, and video cleanup scheduling. Any partial failure or race in multi-provider publishes can leave inconsistent aggregates and automations.</p>
+
+      <h3>6. No observability</h3>
+      <p>There are no structured events for publish funnel stages. Debugging requires CloudWatch log spelunking across Lambda, Convex, and the dashboard with no correlation ID tying a post to its SQS messages.</p>
+
+      <div class="callout danger">
+        <div class="callout-title">Critical scenario</div>
+        <p><strong>Multi-platform partial failure:</strong> User publishes to IG + X + LinkedIn. IG succeeds (worker writes <code>PUBLISHED</code>). X fails with rate limit (worker writes <code>FAILED</code>). LinkedIn still processing. Final state depends on message ordering — user sees inconsistent status, automations may not link, streak may or may not update.</p>
+      </div>
+
+      <h2>What we are not fixing here</h2>
+      <ul>
+        <li>Provider API quirks (Instagram trial reels, TikTok creator info) — those stay in <code>packages/worker/providers/</code></li>
+        <li>Convex as primary database — migration to SQL is explicitly deferred</li>
+        <li>Scheduling infrastructure (CallMeLater) — unchanged; only the publish execution layer is refactored</li>
+      </ul>
+
+      <h2>Success criteria (summary)</h2>
+      <p>See <a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a> for full testable criteria. At a high level:</p>
+      <ul>
+        <li>Multi-platform partial publish shows <code>PARTIAL</code> with per-platform chips</li>
+        <li>Transient errors retry automatically (up to 5 attempts)</li>
+        <li>Duplicate SQS delivery is idempotent (no double publish)</li>
+        <li>Dashboard retry button creates a new publish run for failed jobs only</li>
+        <li>Zero regression on Instagram automations and approval workflow</li>
+      </ul>
+    </main>
+  </div>
+</body>
+</html>

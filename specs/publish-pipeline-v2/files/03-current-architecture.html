@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>03 — Current Architecture — Publish Pipeline v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <h1>Publish Pipeline v2</h1>
+        <span class="badge">Draft</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">Spec</li>
+        <li><a href="index.html">Hub</a></li>
+        <li><a href="01-overview.html">01 — Overview</a></li>
+        <li><a href="02-problem-statement.html">02 — Problem Statement</a></li>
+        <li><a href="03-current-architecture.html" class="active">03 — Current Architecture</a></li>
+        <li><a href="04-current-paths.html">04 — Current Paths</a></li>
+        <li><a href="05-target-architecture.html">05 — Target Architecture</a></li>
+        <li><a href="06-decisions-adrs.html">06 — Decisions &amp; ADRs</a></li>
+        <li><a href="07-schema.html">07 — Schema</a></li>
+        <li><a href="08-publish-pipeline.html">08 — Publish Pipeline</a></li>
+        <li><a href="09-api-routes.html">09 — API Routes</a></li>
+        <li><a href="10-webhooks.html">10 — Webhooks</a></li>
+        <li><a href="11-migration.html">11 — Migration</a></li>
+        <li><a href="12-acceptance-criteria.html">12 — Acceptance Criteria</a></li>
+        <li><a href="13-risks-effort.html">13 — Risks &amp; Effort</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <h1>03 — Current Architecture</h1>
+      <p class="lead">System diagram and component responsibilities for today's publish flow.</p>
+
+      <h2>Component map</h2>
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Role</th><th>Tech</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>apps/app</code></td><td>Dashboard UI, post creator, publish button</td><td>Next.js + Convex subscriptions</td></tr>
+          <tr><td><code>packages/api</code></td><td>REST API, <code>createPostInQueue</code></td><td>Hono/tRPC</td></tr>
+          <tr><td><code>packages/database/convex</code></td><td>System of record, mutations, scheduling</td><td>Convex</td></tr>
+          <tr><td><code>callmelater</code> integration</td><td>External schedule trigger for scheduled posts</td><td>HTTP webhook → Convex</td></tr>
+          <tr><td>Trigger Lambda</td><td>Receives HTTP, enqueues SQS message</td><td>AWS Lambda (SST)</td></tr>
+          <tr><td>SocialPostsQueue</td><td>Async work queue</td><td>AWS SQS</td></tr>
+          <tr><td>Worker Lambda</td><td>Processes one SQS message, calls provider API</td><td>AWS Lambda (SST)</td></tr>
+          <tr><td><code>packages/worker</code></td><td>Provider implementations, Convex client</td><td>TypeScript</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Publish now flow</h2>
+      <div class="diagram">┌─────────────┐     REST/tRPC      ┌──────────────────┐
+│  apps/app   │ ─────────────────► │  packages/api    │
+│  Dashboard  │                    │  post.service    │
+└─────────────┘                    └────────┬─────────┘
+                                            │ HTTP POST (x-api-key)
+                                            │ per social provider
+                                            ▼
+                                   ┌──────────────────┐
+                                   │  Trigger Lambda  │
+                                   │  trigger-sqs.ts  │
+                                   └────────┬─────────┘
+                                            │ SendMessage
+                                            ▼
+                                   ┌──────────────────┐
+                                   │ SocialPostsQueue │
+                                   │      (SQS)       │
+                                   └────────┬─────────┘
+                                            │ 1 message / provider
+                                            ▼
+                                   ┌──────────────────┐
+                                   │  Worker Lambda   │
+                                   │  social-post-    │
+                                   │  worker.ts       │
+                                   └────────┬─────────┘
+                                            │
+                          ┌─────────────────┼─────────────────┐
+                          ▼                 ▼                 ▼
+                   ┌───────────┐    ┌───────────┐    ┌───────────┐
+                   │ Instagram │    │  Twitter  │    │ LinkedIn  │
+                   │    API    │    │    API    │    │    API    │
+                   └───────────┘    └───────────┘    └───────────┘
+                                            │
+                                            │ convex.mutation()
+                                            ▼
+                                   ┌──────────────────┐
+                                   │     Convex       │
+                                   │ updatePostPublish│
+                                   │     Status       │
+                                   └──────────────────┘</div>
+
+      <h2>Scheduled publish flow</h2>
+      <div class="diagram">CallMeLater (external)
+        │
+        │ webhook at scheduledAt
+        ▼
+┌──────────────────┐
+│  Convex HTTP     │  convex/http.ts
+│  endpoint        │
+└────────┬─────────┘
+         │ runAction
+         ▼
+┌──────────────────┐
+│ publishScheduled │  posts.ts internalAction
+│     Post         │
+└────────┬─────────┘
+         │ HTTP POST per provider (same as publish-now)
+         ▼
+    Trigger Lambda → SQS → Worker Lambda → Convex</div>
+
+      <h2>Data model (today)</h2>
+      <p>Publish state lives entirely on the <code>posts</code> document:</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Purpose</th><th>Problem</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>status</code></td><td>Lifecycle: SAVED, SCHEDULED, PROCESSING, PUBLISHED, FAILED</td><td>Conflates scheduling and per-platform publish state</td></tr>
+          <tr><td><code>platformPosts[]</code></td><td>Embedded per-provider results</td><td>Updated by racing workers; no attempt history</td></tr>
+          <tr><td><code>retryCount</code></td><td>Manual retry counter</td><td>Not tied to SQS attempts</td></tr>
+          <tr><td><code>postFailureReason</code></td><td>Last error message</td><td>Overwritten by last worker</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Auth boundaries</h2>
+      <table>
+        <thead>
+          <tr><th>Boundary</th><th>Auth mechanism</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>User → Convex</td><td>Clerk JWT (Convex auth)</td></tr>
+          <tr><td>API → Trigger Lambda</td><td><code>x-api-key</code> header (<code>POSTING_SECRET_KEY</code>)</td></tr>
+          <tr><td>Worker → Convex</td><td>Convex deployment admin key (no HMAC, no job scoping)</td></tr>
+          <tr><td>CallMeLater → Convex</td><td>HTTP webhook secret</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <div class="callout-title">Missing layer</div>
+        <p>There is no orchestration layer between SQS and Convex. The worker is both executor <em>and</em> state writer. This is the primary architectural gap v2 addresses.</p>
+      </div>
+
+      <h2>Real-time updates</h2>
+      <p>The dashboard subscribes to Convex queries (<code>getPosts</code>, <code>getPostById</code>). When a worker patches <code>posts.status</code>, the UI updates in real time. This subscription model is preserved in v2 — only the write path changes.</p>
+    </main>
+  </div>
+</body>
+</html>
