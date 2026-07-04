@@ -139,6 +139,9 @@ importers:
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@delulu/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
