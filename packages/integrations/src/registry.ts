@@ -4,6 +4,8 @@ import type {
   PublishableSocialType,
 } from "./types";
 import { instagramIntegration } from "./platforms/instagram/definition";
+import { pinterestIntegration } from "./platforms/pinterest/definition";
+import { threadsIntegration } from "./platforms/threads/definition";
 import { twitterIntegration } from "./platforms/twitter/definition";
 
 /**
@@ -17,6 +19,8 @@ export const integrationRegistry: Partial<
 > = {
   INSTAGRAM: instagramIntegration,
   TWITTER: twitterIntegration,
+  THREADS: threadsIntegration,
+  PINTEREST: pinterestIntegration,
 };
 
 export function getIntegration(id: PublishableSocialType): PlatformIntegration {

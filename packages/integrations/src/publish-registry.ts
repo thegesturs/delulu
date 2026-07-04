@@ -1,5 +1,7 @@
 import type { PlatformPublisher, PublishableSocialType } from "./types";
 import { instagramPublisher } from "./platforms/instagram/publish";
+import { pinterestPublisher } from "./platforms/pinterest/publish";
+import { threadsPublisher } from "./platforms/threads/publish";
 import { twitterPublisher } from "./platforms/twitter/publish";
 
 /**
@@ -13,6 +15,8 @@ export const publisherRegistry: Partial<
 > = {
   INSTAGRAM: instagramPublisher,
   TWITTER: twitterPublisher,
+  THREADS: threadsPublisher,
+  PINTEREST: pinterestPublisher,
 };
 
 export function getPublisher(id: PublishableSocialType): PlatformPublisher {
