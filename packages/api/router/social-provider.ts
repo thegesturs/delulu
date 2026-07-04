@@ -39,12 +39,13 @@ export const socialProviderRouter = {
         });
       }
 
-      // Check if user has analytics feature flag (admin emails only)
-      // Keep in sync with ADMIN_EMAILS in apps/app/hooks/use-feature-flag.ts
-      const ANALYTICS_EMAILS = [
-        "rajswaraj.r@gmail.com",
-        "mrfranklinstein@gmail.com",
-      ];
+      // Check if user has analytics feature flag (admin emails only).
+      // Configured via ADMIN_EMAILS env var (comma-separated); keep in sync
+      // with NEXT_PUBLIC_ADMIN_EMAILS used by apps/app/hooks/use-feature-flag.ts
+      const ANALYTICS_EMAILS = keys()
+        .ADMIN_EMAILS.split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
       const user = await fetchQuery(
         api.users.getUserByExternalId,
         { externalId: ctx.externalId },
@@ -53,7 +54,7 @@ export const socialProviderRouter = {
       const includeInsights =
         input.provider === "INSTAGRAM" &&
         !!user?.email &&
-        ANALYTICS_EMAILS.includes(user.email);
+        ANALYTICS_EMAILS.includes(user.email.toLowerCase());
 
       // Generate connect URL only if within limit
       const link = connectUrlRegistry[input.provider].connectUrl({
