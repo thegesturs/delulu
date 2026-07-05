@@ -15,6 +15,7 @@
   "dependencies": {
     "@delulu/api": "workspace:*",
     "@delulu/database": "workspace:*",
+    "@delulu/connections": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
     "@types/node": "22.14.1",
@@ -23,7 +24,6 @@
     "dotenv-cli": "^7.4.1",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
-    "neverthrow": "^8.2.0",
     "@xdevplatform/xdk": "0.5.0",
     "zod": "catalog:"
   },

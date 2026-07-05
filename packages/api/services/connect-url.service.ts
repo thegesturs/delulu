@@ -1,5 +1,4 @@
-import { keys } from "@delulu/api/keys";
-import { nanoid } from "nanoid";
+import { getConnection, type PublishableSocialType } from "@delulu/connections";
 
 export interface ConnectUrlOptions {
   includeInsights?: boolean;
@@ -10,167 +9,32 @@ export interface ConnectUrlProvider {
 }
 
 /**
- * Generate Twitter OAuth URL
+ * Thin shim over the unified connection registry — the single source of truth
+ * for OAuth connect URLs + scopes now lives in each platform's
+ * `auth.getConnectUrl`. Kept for one release so `social-provider.ts` keeps
+ * compiling; delete once callers import `getConnection` directly.
  */
-const generateTwitterConnectUrl = (): string => {
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: keys().TWITTER_CLIENT_ID,
-    redirect_uri: keys().TWITTER_CALLBACK_URL,
-    scope: [
-      "users.read",
-      "tweet.read",
-      "offline.access",
-      "tweet.write",
-      "media.write",
-    ].join(" "),
-    state: keys().TWITTER_STATE,
-    code_challenge: "challenge",
-    code_challenge_method: "plain",
-  });
+const PLATFORMS: PublishableSocialType[] = [
+  "TWITTER",
+  "LINKEDIN",
+  "TIKTOK",
+  "INSTAGRAM",
+  "THREADS",
+  "FACEBOOK",
+  "PINTEREST",
+  "FARCASTER",
+  "YOUTUBE",
+  "BLUESKY",
+];
 
-  return `https://x.com/i/oauth2/authorize?${params.toString()}`;
-};
-
-export const connectUrlRegistry = {
-  TWITTER: {
-    connectUrl: () => generateTwitterConnectUrl(),
-  },
-  LINKEDIN: {
-    connectUrl: () => {
-      const scopes = [
-        "r_basicprofile",
-        "r_member_postAnalytics",
-        "w_member_social",
-        "w_organization_social",
-      ].join("%20");
-
-      const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${keys().LINKEDIN_CLIENT_ID}&redirect_uri=${keys().LINKEDIN_CALLBACK_URL}&scope=${scopes}`;
-      return url;
-    },
-  },
-  TIKTOK: {
-    connectUrl: () => {
-      const params = new URLSearchParams({
-        response_type: "code",
-        client_key: keys().TIKTOK_CLIENT_ID,
-        redirect_uri: keys().TIKTOK_CALLBACK_URL,
-        scope:
-          "user.info.basic,video.publish,video.upload,user.info.profile,video.list",
-        state: nanoid(10),
-      });
-
-      return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
-    },
-  },
-  INSTAGRAM: {
-    connectUrl: (options?: ConnectUrlOptions) => {
-      const scopes = [
-        "instagram_business_basic",
-        "instagram_business_content_publish",
-        "instagram_business_manage_messages",
-        "instagram_business_manage_comments",
-      ];
-
-      if (options?.includeInsights) {
-        scopes.push("instagram_business_manage_insights");
-      }
-
-      const params = new URLSearchParams({
-        client_id: keys().INSTAGRAM_CLIENT_ID,
-        redirect_uri: keys().INSTAGRAM_CALLBACK_URL,
-        response_type: "code",
-        scope: scopes.join(","),
-        state: nanoid(),
-      });
-
-      return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
-    },
-  },
-  THREADS: {
-    connectUrl: () => {
-      const params = new URLSearchParams({
-        client_id: keys().THREADS_CLIENT_ID,
-        redirect_uri: keys().THREADS_CALLBACK_URL,
-        response_type: "code",
-        scope: ["threads_basic", "threads_content_publish"].join(","),
-      });
-
-      return `https://threads.net/oauth/authorize?${params.toString()}`;
-    },
-  },
-  FACEBOOK: {
-    connectUrl: () => {
-      const params = new URLSearchParams({
-        client_id: keys().FACEBOOK_CLIENT_ID,
-        redirect_uri: keys().FACEBOOK_CALLBACK_URL,
-        response_type: "code",
-        scope: [
-          "public_profile",
-          "pages_show_list",
-          "pages_manage_posts",
-          "business_management",
-          "publish_video",
-        ].join(","),
-        state: JSON.stringify({ state: nanoid(10) }),
-      });
-
-      return `https://www.facebook.com/dialog/oauth?${params.toString()}`;
-    },
-  },
-  PINTEREST: {
-    connectUrl: () => {
-      const params = new URLSearchParams({
-        client_id: keys().PINTEREST_CLIENT_ID,
-        redirect_uri: keys().PINTEREST_CALLBACK_URL,
-        response_type: "code",
-        scope: "boards:read,pins:write",
-        state: nanoid(),
-      });
-
-      return `https://www.pinterest.com/oauth/?${params.toString()}`;
-    },
-  },
-  FARCASTER: {
-    connectUrl: () => {
-      // Farcaster uses a different auth flow through Warpcast
-      // This would typically redirect to Warpcast for signer approval
-      return "https://warpcast.com/~/developers/signed-key-requests";
-    },
-  },
-  YOUTUBE: {
-    connectUrl: () => {
-      const baseUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-      const params = new URLSearchParams({
-        client_id: keys().GOOGLE_CLIENT_ID,
-        redirect_uri: keys().YOUTUBE_CALLBACK_URL,
-        response_type: "code",
-        scope: [
-          "https://www.googleapis.com/auth/youtube.upload",
-          "https://www.googleapis.com/auth/youtube.readonly",
-          "https://www.googleapis.com/auth/userinfo.profile",
-        ].join(" "),
-        access_type: "offline",
-        prompt: "consent",
-        state: nanoid(),
-      });
-
-      return `${baseUrl}?${params}`;
-    },
-  },
-  BLUESKY: {
-    connectUrl: () => {
-      // Bluesky OAuth URL - uses client metadata URL as client_id
-      const params = new URLSearchParams({
-        client_id: "https://delulu.social/oauth/bluesky-client.json", // Client metadata URL
-        redirect_uri: "https://delulu.social/api/callback/bluesky",
-        response_type: "code",
-        scope: "atproto transition:generic",
-        code_challenge_method: "S256",
-        // code_challenge would be generated dynamically in real implementation
-      });
-
-      return `https://bsky.social/oauth/authorize?${params.toString()}`;
-    },
-  },
-};
+export const connectUrlRegistry = Object.fromEntries(
+  PLATFORMS.map((platform) => [
+    platform,
+    {
+      connectUrl: (options?: ConnectUrlOptions) =>
+        getConnection(platform).auth.getConnectUrl({
+          includeInsights: options?.includeInsights,
+        }),
+    } satisfies ConnectUrlProvider,
+  ])
+) as Record<PublishableSocialType, ConnectUrlProvider>;

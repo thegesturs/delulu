@@ -1,5 +1,4 @@
 import type { R2Bucket } from "@delulu/cloudflare-types";
-import { err, ok, ResultAsync } from "neverthrow";
 import { keys } from "../keys";
 import { R2DownloadError, R2UploadError } from "./r2-errors";
 
@@ -16,159 +15,124 @@ export class R2Provider {
     this.bucket = bucket;
   }
 
-  getFile(
+  /** Throws {@link R2DownloadError} on failure. */
+  async getFile(
     key: string
-  ): ResultAsync<
-    { content: ArrayBuffer; contentType: string; contentLength?: number },
-    R2DownloadError
-  > {
+  ): Promise<{
+    content: ArrayBuffer;
+    contentType: string;
+    contentLength?: number;
+  }> {
     if (!key || key.trim() === "") {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(
-          new R2DownloadError("Key is required for file retrieval")
-        )
-      );
+      throw new R2DownloadError("Key is required for file retrieval");
     }
-
     if (!this.bucket) {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2DownloadError("R2 bucket not configured"))
-      );
+      throw new R2DownloadError("R2 bucket not configured");
     }
 
-    return ResultAsync.fromPromise(
-      this.bucket.get(key),
-      (error) =>
-        new R2DownloadError(`Failed to retrieve file from R2: ${error}`)
-    ).andThen((object) => {
-      if (!object) {
-        return ResultAsync.fromSafePromise(
-          Promise.reject(new R2DownloadError("File not found"))
-        );
-      }
+    let object: Awaited<ReturnType<R2Bucket["get"]>>;
+    try {
+      object = await this.bucket.get(key);
+    } catch (error) {
+      throw new R2DownloadError(`Failed to retrieve file from R2: ${error}`);
+    }
+    if (!object) {
+      throw new R2DownloadError("File not found");
+    }
 
-      return ResultAsync.fromPromise(
-        object.arrayBuffer(),
-        (error) => new R2DownloadError(`Failed to read file content: ${error}`)
-      ).map((content) => ({
+    try {
+      const content = await object.arrayBuffer();
+      return {
         content,
         contentType:
           object.httpMetadata?.contentType || "application/octet-stream",
         contentLength: object.size,
-      }));
-    });
+      };
+    } catch (error) {
+      throw new R2DownloadError(`Failed to read file content: ${error}`);
+    }
   }
 
-  getSignedDownloadUrl(key: string): ResultAsync<string, R2DownloadError> {
+  /** Throws {@link R2DownloadError} when key/bucket are missing. */
+  getSignedDownloadUrl(key: string): string {
     if (!key || key.trim() === "") {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2DownloadError("Key is required for download URL"))
-      );
+      throw new R2DownloadError("Key is required for download URL");
     }
-
     if (!this.bucket) {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2DownloadError("R2 bucket not configured"))
-      );
+      throw new R2DownloadError("R2 bucket not configured");
+    }
+    const isProduction = process.env.NODE_ENV === "production";
+    return isProduction
+      ? `https://media.delulu.social/${key}`
+      : `/api/media/${key}`;
+  }
+
+  /**
+   * Upload file with streaming (no memory buffering).
+   * Accepts File directly — in Cloudflare Workers this is efficient.
+   * Throws {@link R2UploadError} on failure.
+   */
+  async uploadFileStream(
+    key: string,
+    file: File | ArrayBuffer,
+    contentType: string
+  ): Promise<{ success: boolean; key: string; downloadUrl: string }> {
+    if (!this.bucket) {
+      throw new R2UploadError("R2 bucket not configured");
     }
 
-    // Environment-aware URL generation
+    let result: Awaited<ReturnType<R2Bucket["put"]>>;
+    try {
+      result = await this.bucket.put(
+        key,
+        // biome-ignore lint/suspicious/noExplicitAny: Cloudflare R2 File type compatibility
+        file as any,
+        {
+          httpMetadata: { contentType },
+          customMetadata: { uploadedAt: new Date().toISOString() },
+        }
+      );
+    } catch (error) {
+      throw new R2UploadError(`Failed to upload file to R2: ${error}`);
+    }
+    if (!result) {
+      throw new R2UploadError("Upload completed but no result returned");
+    }
+
     const isProduction = process.env.NODE_ENV === "production";
     const downloadUrl = isProduction
       ? `https://media.delulu.social/${key}`
       : `/api/media/${key}`;
-
-    return ResultAsync.fromSafePromise(Promise.resolve(downloadUrl));
+    return { success: true, key, downloadUrl };
   }
 
-  /**
-   * Upload file with streaming (no memory buffering)
-   * Accepts File directly - in Cloudflare Workers, this is efficient
-   */
-  uploadFileStream(
-    key: string,
-    file: File | ArrayBuffer,
-    contentType: string
-  ): ResultAsync<
-    { success: boolean; key: string; downloadUrl: string },
-    R2UploadError
-  > {
-    if (!this.bucket) {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError("R2 bucket not configured"))
-      );
-    }
-
-    // Cast to 'any' to bypass type checking between Node.js and Cloudflare Workers types
-    // In actual Cloudflare Workers runtime, File is the correct type for R2
-    return ResultAsync.fromPromise(
-      // biome-ignore lint/suspicious/noExplicitAny: Cloudflare R2 File type compatibility
-      this.bucket.put(key, file as any, {
-        httpMetadata: {
-          contentType,
-        },
-        customMetadata: {
-          uploadedAt: new Date().toISOString(),
-        },
-      }),
-      (error) => new R2UploadError(`Failed to upload file to R2: ${error}`)
-    ).andThen((result) => {
-      if (!result) {
-        return err(
-          new R2UploadError("Upload completed but no result returned")
-        );
-      }
-
-      const isProduction = process.env.NODE_ENV === "production";
-      const downloadUrl = isProduction
-        ? `https://media.delulu.social/${key}`
-        : `/api/media/${key}`;
-
-      return ok({
-        success: true,
-        key,
-        downloadUrl,
-      });
-    });
-  }
-
-  /**
-   * Upload file from ArrayBuffer (legacy method)
-   */
-  uploadFile(
+  /** Upload from ArrayBuffer (legacy). Throws {@link R2UploadError} on failure. */
+  async uploadFile(
     key: string,
     file: ArrayBuffer,
     contentType: string
-  ): ResultAsync<
-    { success: boolean; key: string; downloadUrl: string },
-    R2UploadError
-  > {
+  ): Promise<{ success: boolean; key: string; downloadUrl: string }> {
     if (!this.bucket) {
-      return ResultAsync.fromSafePromise(
-        Promise.reject(new R2UploadError("R2 bucket not configured"))
-      );
+      throw new R2UploadError("R2 bucket not configured");
     }
 
-    return ResultAsync.fromPromise(
-      this.bucket.put(key, file, {
-        httpMetadata: {
-          contentType,
-        },
-      }),
-      (error) => new R2UploadError(`Failed to upload file to R2: ${error}`)
-    ).andThen((result) => {
-      if (!result) {
-        return err(
-          new R2UploadError("Upload completed but no result returned")
-        );
-      }
-
-      return ok({
-        success: true,
-        key,
-        downloadUrl: `https://media.delulu.social/${key}`,
+    let result: Awaited<ReturnType<R2Bucket["put"]>>;
+    try {
+      result = await this.bucket.put(key, file, {
+        httpMetadata: { contentType },
       });
-    });
+    } catch (error) {
+      throw new R2UploadError(`Failed to upload file to R2: ${error}`);
+    }
+    if (!result) {
+      throw new R2UploadError("Upload completed but no result returned");
+    }
+
+    return {
+      success: true,
+      key,
+      downloadUrl: `https://media.delulu.social/${key}`,
+    };
   }
 
   /**

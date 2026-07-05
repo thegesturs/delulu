@@ -1,65 +1,9 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { convex } from "@delulu/database/node";
-import type {
-  SocialPublishInputType,
-  SocialType,
-} from "@delulu/validators/post";
-import { providerRegistry } from "./providers";
-import { resolveMediaUrls } from "./resolve-media-urls";
+import { processMessage } from "./client";
 
-async function processMessage(messageBody: string) {
-  console.log("Message body", messageBody);
-  const { socialPublishInput, socialType } = JSON.parse(messageBody) as {
-    socialPublishInput: SocialPublishInputType;
-    socialType: SocialType;
-  };
-
-  console.log("Social publish input", socialPublishInput);
-
-  if (socialType === "LENS" || socialType === "DEFAULT") {
-    return;
-  }
-
-  await resolveMediaUrls(socialPublishInput);
-
-  const providerImpl = providerRegistry[socialType];
-  const result = await providerImpl.publish({
-    content: socialPublishInput,
-    socialProviderId: socialPublishInput.socialProviderId,
-  });
-
-  if (result.isErr()) {
-    await convex.mutation(api.posts.updatePostPublishStatus, {
-      postId: socialPublishInput.postId as Id<"posts">,
-      status: "FAILED",
-      platformPostData: {
-        failureReason: result.error.message,
-        socialProviderId:
-          socialPublishInput.socialProviderId as Id<"socialProviders">,
-        postedAt: Date.now(),
-        postId: socialPublishInput.postId as Id<"posts">,
-      },
-    });
-    return;
-  }
-
-  await convex.mutation(api.posts.updatePostPublishStatus, {
-    postId: socialPublishInput.postId as Id<"posts">,
-    status: "PUBLISHED",
-    platformPostData: {
-      platformPostId: result.value.platformPostId,
-      socialProviderId:
-        socialPublishInput.socialProviderId as Id<"socialProviders">,
-      platformPostUrl: result.value.platformPostUrl,
-      postedAt: Date.now(),
-      postId: socialPublishInput.postId as Id<"posts">,
-    },
-  });
-  return result;
-}
-
-// Get message from ECS environment variable
+// ECS/dev entry point: process a single message from MESSAGE_BODY then exit.
+// The Lambda SQS path (infrastructure/src/social-post-worker.ts) imports
+// `processMessage` from ./client directly — this file just wraps it for the
+// container runner. Both share one implementation (no more copy-paste).
 const messageBody = process.env.MESSAGE_BODY;
 
 console.log("Message body", messageBody);
@@ -68,7 +12,6 @@ if (!messageBody) {
   throw new Error("No MESSAGE_BODY environment variable provided");
 }
 
-// Process the message and exit
 processMessage(messageBody)
   .then(() => {
     console.log("Message processed successfully");
