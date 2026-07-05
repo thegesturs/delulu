@@ -19,19 +19,20 @@ on:
         options:
           - production
           - dev
-  # Optional auto-deploy: uncomment to deploy production on merge to main when
-  # infra or any bundled workspace changes. Gated by the `production`
-  # environment below (add required reviewers in repo Settings → Environments).
-  # push:
-  #   branches: [main]
-  #   paths:
-  #     - packages/infrastructure/**
-  #     - packages/worker/**
-  #     - packages/connections/**
-  #     - packages/api/**
-  #     - packages/validators/**
-  #     - packages/database/convex/**
-  #     - .github/workflows/deploy-infra.yml
+  # Auto-deploy production on merge to main, but only when infra or a package
+  # the Lambda bundle depends on actually changed. An unrelated docs/frontend PR
+  # won't trigger it. Still gated by the `production` environment below (add
+  # required reviewers in repo Settings → Environments to keep a human in the loop).
+  push:
+    branches: [main]
+    paths:
+      - packages/infrastructure/**
+      - packages/worker/**
+      - packages/connections/**
+      - packages/api/**
+      - packages/validators/**
+      - packages/database/convex/**
+      - .github/workflows/deploy-infra.yml
 
 concurrency:
   # One infra deploy at a time per stage — SST state locks anyway, this just
