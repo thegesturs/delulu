@@ -290,3 +290,4 @@ packages/database/generated
 
 # Claude Code worktrees
 .claude/worktrees/
+.gstack/
