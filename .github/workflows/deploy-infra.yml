@@ -63,10 +63,11 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # Scope install to infra's dependency subgraph (infra + workspace deps +
+      # their externals). Skips apps/app, so the private Hugeicons Pro registry
+      # never enters the install.
       - name: Install dependencies
-        env:
-          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter=@delulu/infra...
 
       # copyFiles in sst.config.ts bakes packages/worker/.env.prod into the
       # Lambda bundle. It is gitignored, so the deploy fails without this.
@@ -94,6 +95,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
+
+      # The ubuntu-latest runner ships a pre-installed Pulumi language host that
+      # conflicts with the engine SST v3 uses. Removing it prevents
+      # "flag provided but not defined: -root" from /usr/local/bin/pulumi-language-nodejs.
+      - name: Remove runner's conflicting Pulumi
+        run: |
+          sudo rm -rf /usr/local/bin/pulumi /usr/local/bin/pulumi-* /opt/pulumi 2>/dev/null || true
+          echo "remaining pulumi on PATH: $(command -v pulumi || echo none)"
 
       - name: SST deploy
         working-directory: packages/infrastructure
