@@ -63,7 +63,10 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        env:
+          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
+        run: pnpm install --frozen-lockfile
 
       # copyFiles in sst.config.ts bakes packages/worker/.env.prod into the
       # Lambda bundle. It is gitignored, so the deploy fails without this.
