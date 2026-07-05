@@ -22,13 +22,31 @@ Rules:
 Data migrations use the `@convex-dev/migrations` component. Full guide:
 `packages/database/MIGRATIONS.md`. Rules in short:
 
-- **Deploy prod with `pnpm db:deploy`** — deploys Convex, then runs pending migrations.
-  Only migrations not yet completed run; it's safe to re-run.
+- Each deploy runs **`convex deploy` → `migrations:runAll`** in that order (deploy first,
+  then migrate). `runAll` runs only migrations not yet completed; safe to re-run.
 - Define each migration in `convex/migrations.ts` via `migrations.define({ table, migrateOne })`,
   make it **idempotent**, and **append** its ref to the `runAll` array (append-only — never
   reorder or delete existing entries).
-- Field changes/removals follow **expand → migrate → contract** across separate deploys, never
-  in one.
+
+### The one rule that avoids broken deploys
+
+`convex deploy` validates the new `schema.ts` against **existing data** at deploy time. If the
+schema is stricter than the data, the deploy is rejected *before* migrations can run. So:
+
+**Never tighten `schema.ts` and migrate its data in the same deploy.** Structural changes
+(add required field, remove field, change type) go in two deploys — expand → migrate → contract:
+
+1. **`pnpm db:deploy:expand`** — loosen `schema.ts` to accept BOTH shapes (new fields
+   `v.optional(...)`, keep old fields). Add the backfill migration to `runAll`. Deploy succeeds
+   because the schema is permissive; the migration reshapes the data.
+2. Verify with **`pnpm db:migrate:status`**.
+3. **`pnpm db:deploy:contract`** — now tighten `schema.ts` (make required / remove old field).
+   Deploy succeeds because the data already matches. Add any cleanup migration to `runAll`.
+
+Additive or data-only changes (new optional field + backfill, value rewrites) need only one
+**`pnpm db:deploy`**. `scripts/db-deploy.sh` wraps all three and prints the expand/contract fix
+if a deploy is rejected on schema validation.
+
 - One-off recovery that isn't a per-row transform stays a plain `internalMutation` in
   `convex/repairs.ts` and is run by hand — not added to `runAll`.
 

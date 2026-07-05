@@ -13,8 +13,17 @@ Everything lives in [`convex/migrations.ts`](./convex/migrations.ts).
 pnpm db:deploy          # from repo root — deploys Convex to prod, then runs pending migrations
 ```
 
-This is `convex deploy -y && convex run migrations:runAll --prod`. Run it every time you ship.
-It's safe to run repeatedly: already-applied migrations are no-ops.
+This runs `convex deploy` then `convex run migrations:runAll --prod`, **in that order** —
+deploy first, then migrate. Run it every time you ship an additive or data-only change. It's
+safe to run repeatedly: already-applied migrations are no-ops.
+
+For **structural** changes (add a required field, remove a field, change a type) use the
+two-phase commands instead — see "Changing or removing a field" below:
+
+```bash
+pnpm db:deploy:expand    # phase 1: loosen schema, deploy, backfill data
+pnpm db:deploy:contract  # phase 2: tighten schema (data already migrated)
+```
 
 Other commands (run from repo root):
 
@@ -24,12 +33,12 @@ pnpm db:migrate:status   # live status of every migration (completed / in-progre
 pnpm db:migrate:dry      # dry-run: shows what would change, writes nothing
 ```
 
-Against the dev deployment, use the package scripts directly:
+Dev deployment: run `convex dev` (watch mode auto-pushes schema + functions), then
+`pnpm --filter=@delulu/database db:migrate` to run migrations against dev. There is no
+"deploy to dev" — `convex deploy` always targets production.
 
-```bash
-pnpm --filter=@delulu/database db:deploy:dev   # deploy + migrate the dev deployment
-pnpm --filter=@delulu/database db:migrate      # migrate dev only
-```
+All three deploy commands go through `scripts/db-deploy.sh`, which prints the expand/contract
+fix if `convex deploy` is rejected because the schema no longer matches existing data.
 
 ## Adding a new migration
 
@@ -61,15 +70,56 @@ pnpm --filter=@delulu/database db:migrate      # migrate dev only
 
 ## Changing or removing a field — expand → migrate → contract
 
-Never change a validator and the data it describes in the same deploy, or the schema and the
-existing rows disagree and writes fail. Split it across deploys:
+**Why you can't do it in one deploy:** `convex deploy` validates your new `schema.ts` against
+the data already in the DB. If the schema is stricter than the data (a field just became
+required, or a field the rows still carry was removed), the deploy is **rejected before any
+migration runs**. Put a tightening schema change and its data migration in the same deploy and
+you deadlock: the deploy fails, so the migration that would have fixed the data never executes.
 
-1. **Expand** — make the schema tolerant. Add the new field as `v.optional(...)`, or make the
-   old field optional. Deploy.
-2. **Migrate** — a `migrations.define` backfills the new field / rewrites old values / clears
-   the removed one. Ships in `runAll`, runs on deploy.
-3. **Contract** — once the migration reports complete (`pnpm db:migrate:status`), tighten the
-   validator (make the new field required, drop the old field). Deploy.
+So split every structural change across two deploys. Worked example — split `users.name` into
+`firstName` + `lastName`:
+
+**Phase 1 — Expand** (`pnpm db:deploy:expand`). Loosen the schema so it accepts BOTH shapes:
+
+```ts
+// schema.ts
+name:      v.optional(v.string()),  // old field, now optional
+firstName: v.optional(v.string()),  // new, optional
+lastName:  v.optional(v.string()),
+```
+```ts
+// migrations.ts — append to runAll
+export const splitName = migrations.define({
+  table: "users",
+  migrateOne: (ctx, u) => {
+    if (u.firstName === undefined && u.name) {
+      const [first, ...rest] = u.name.split(" ");
+      return { firstName: first, lastName: rest.join(" ") };
+    }
+  },
+});
+```
+The schema is permissive, so the deploy succeeds; then the backfill fills every row.
+
+**Verify** the backfill finished: `pnpm db:migrate:status`.
+
+**Phase 2 — Contract** (`pnpm db:deploy:contract`). Now the data conforms, so tighten:
+
+```ts
+// schema.ts
+firstName: v.string(),  // required — safe, every row has it
+lastName:  v.string(),
+// `name` removed
+```
+```ts
+// migrations.ts — append a cleanup that drops the old field (undefined removes it)
+export const dropName = migrations.define({
+  table: "users",
+  migrateOne: (ctx, u) => (u.name !== undefined ? { name: undefined } : undefined),
+});
+```
+`db:deploy:contract` shows migration status first (confirm the expand backfill is complete),
+then deploys the strict schema — which validates because the data already matches.
 
 ## Rules
 

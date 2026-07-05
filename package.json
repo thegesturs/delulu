@@ -19,6 +19,8 @@
     "docker:build": "docker build -t social-worker -f packages/worker/Dockerfile .",
     "db:generate": "pnpm --filter=database db:generate",
     "db:deploy": "pnpm --filter=@delulu/database db:deploy",
+    "db:deploy:expand": "pnpm --filter=@delulu/database db:deploy:expand",
+    "db:deploy:contract": "pnpm --filter=@delulu/database db:deploy:contract",
     "db:migrate": "pnpm --filter=@delulu/database db:migrate:prod",
     "db:migrate:status": "pnpm --filter=@delulu/database db:migrate:status",
     "db:migrate:dry": "pnpm --filter=@delulu/database db:migrate:dry",
