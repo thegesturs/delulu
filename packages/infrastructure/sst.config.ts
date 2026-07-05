@@ -45,8 +45,17 @@ export default $config({
     // ============================================================================
     // SOCIAL POSTS QUEUE
     // ============================================================================
+    // Publish Pipeline v2 — dead-letter queue for poison messages. After
+    // maxReceiveCount (5) failed receives, SQS moves the message here instead
+    // of redelivering forever. Matches publish_jobs.maxAttempts default.
+    const deadLetterQueue = new sst.aws.Queue("SocialPostsDLQ");
+
     const queue = new sst.aws.Queue("SocialPostsQueue", {
       visibilityTimeout: "15 minutes",
+      dlq: {
+        queue: deadLetterQueue.arn,
+        retry: 5,
+      },
     });
 
     const SECRET_KEY = new sst.Secret("LAMBDA_SECRET_KEY");

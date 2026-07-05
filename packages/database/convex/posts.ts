@@ -77,6 +77,11 @@ import {
   postUpdateSchema,
   postUpsertSchema,
 } from "./schemas";
+import {
+  parsePublishMode,
+  shouldCreateJobs,
+  shouldRouteThroughJobs,
+} from "./schemas/publish";
 import { getCurrentUser } from "./users";
 import { getCurrentTimestamp } from "./utils";
 
@@ -921,6 +926,20 @@ export const publishScheduledPost = internalAction({
         );
       }
 
+      // Publish Pipeline v2 — create a job run (shadow+) and thread the job id
+      // into each SQS message (dual+) so the worker can drive the state machine.
+      const publishMode = parsePublishMode(process.env.PUBLISH_PIPELINE_V2);
+      const routeThroughJobs = shouldRouteThroughJobs(publishMode);
+      let jobByProvider: Record<string, string> = {};
+      if (shouldCreateJobs(publishMode)) {
+        const run = await ctx.runMutation(api.publish.createPublishRun, {
+          postId: args.postId,
+        });
+        jobByProvider = Object.fromEntries(
+          run.jobs.map((j) => [j.socialProviderId, j.publishJobId])
+        );
+      }
+
       // Process each social provider
       for (const provider of post.socialProviders) {
         // Skip providers that are not implemented (like LENS)
@@ -950,6 +969,9 @@ export const publishScheduledPost = internalAction({
           },
           body: JSON.stringify({
             socialType: provider.socialType,
+            ...(routeThroughJobs && jobByProvider[provider._id]
+              ? { publishJobId: jobByProvider[provider._id], attemptNumber: 1 }
+              : {}),
             socialPublishInput: {
               content: contentToPost,
               postId: post._id,
