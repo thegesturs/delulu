@@ -1,26 +1,38 @@
 import {
+  type BreadcrumbList,
   createFAQPageSchema,
   createHowToSchema,
   JsonLd,
   type SoftwareApplication,
   type WithContext,
 } from "@delulu/seo/json-ld";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Balancer from "react-wrap-balancer";
-import type { Tool } from "@/lib/tools";
+import { type Tool, tools } from "@/lib/tools";
 import type { FaqItem } from "./tool-faq";
 import { ToolFaq } from "./tool-faq";
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
 
+/** An extra H2 content block rendered below the tool (e.g. "Why use…"). */
+export interface ToolSection {
+  heading: string;
+  body: ReactNode;
+}
+
 interface ToolPageLayoutProps {
   tool: Tool;
   /** The interactive tool (client component). */
   children: ReactNode;
-  /** Long-form SEO copy rendered under the tool. */
+  /** Short intro copy rendered directly under the tool (keyword-rich). */
   seo: ReactNode;
+  /** Heading for the how-to list. Keyword-rich per tool. */
+  howToHeading: string;
   howToSteps: Array<{ name: string; text: string }>;
+  /** Additional H2 content blocks (why use, formats, privacy, use cases…). */
+  sections?: ToolSection[];
   faq: FaqItem[];
 }
 
@@ -28,7 +40,9 @@ export function ToolPageLayout({
   tool,
   children,
   seo,
+  howToHeading,
   howToSteps,
+  sections = [],
   faq,
 }: ToolPageLayoutProps) {
   const url = `${WEB_URL}/tools/${tool.slug}`;
@@ -49,12 +63,38 @@ export function ToolPageLayout({
     isAccessibleForFree: true,
   };
 
+  const breadcrumbSchema: WithContext<BreadcrumbList> = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Tools",
+        item: `${WEB_URL}/tools`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: tool.title,
+        item: url,
+      },
+    ],
+  };
+
+  // Related tools = same category, live, excluding this one. Powers internal
+  // linking + the "More free tools" block the SEO playbook recommends.
+  const related = tools.filter(
+    (t) => t.slug !== tool.slug && t.status !== "coming-soon"
+  );
+
   return (
     <main className="mx-auto w-full max-w-5xl border-border border-x border-dashed px-4 py-12 sm:py-16">
       <JsonLd code={softwareSchema} />
+      <JsonLd code={breadcrumbSchema} />
       <JsonLd
         code={createHowToSchema({
-          title: tool.title,
+          title: howToHeading,
           description: tool.description,
           url,
           steps: howToSteps,
@@ -69,7 +109,10 @@ export function ToolPageLayout({
       />
 
       {/* Breadcrumb */}
-      <nav className="mb-6 text-muted-foreground text-sm">
+      <nav
+        aria-label="Breadcrumb"
+        className="mb-6 text-muted-foreground text-sm"
+      >
         <Link className="hover:text-foreground" href="/tools">
           Tools
         </Link>
@@ -87,17 +130,19 @@ export function ToolPageLayout({
         </p>
       </div>
 
-      {/* Interactive tool */}
+      {/* Interactive tool — above the fold, before the SEO copy */}
       {children}
 
-      {/* SEO copy */}
+      {/* Intro copy */}
       <section className="prose prose-neutral dark:prose-invert mx-auto mt-16 max-w-2xl">
         {seo}
       </section>
 
-      {/* How it works */}
+      {/* How to */}
       <section className="mx-auto mt-16 max-w-2xl">
-        <h2 className="mb-6 font-bold text-2xl tracking-tight">How it works</h2>
+        <h2 className="mb-6 font-bold text-2xl tracking-tight">
+          {howToHeading}
+        </h2>
         <ol className="space-y-4">
           {howToSteps.map((step, idx) => (
             <li className="flex gap-4" key={step.name}>
@@ -115,12 +160,62 @@ export function ToolPageLayout({
         </ol>
       </section>
 
+      {/* Extra content blocks (why use, formats, privacy…) */}
+      {sections.map((section) => (
+        <section className="mx-auto mt-16 max-w-2xl" key={section.heading}>
+          <h2 className="mb-4 font-bold text-2xl tracking-tight">
+            {section.heading}
+          </h2>
+          <div className="prose prose-neutral dark:prose-invert max-w-none text-muted-foreground">
+            {section.body}
+          </div>
+        </section>
+      ))}
+
       {/* FAQ */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
           Frequently asked questions
         </h2>
         <ToolFaq items={faq} />
+      </section>
+
+      {/* Related / more tools — internal linking */}
+      <section className="mx-auto mt-16 max-w-2xl">
+        <h2 className="mb-4 font-bold text-2xl tracking-tight">
+          More free tools
+        </h2>
+        {related.length > 0 ? (
+          <ul className="space-y-2">
+            {related.map((t) => (
+              <li key={t.slug}>
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/tools/${t.slug}`}
+                >
+                  {t.title}
+                </Link>{" "}
+                <span className="text-muted-foreground text-sm">
+                  — {t.description}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground">
+            We're adding more free creator tools.{" "}
+            <Link className="text-primary hover:underline" href="/tools">
+              Browse the tools hub
+            </Link>{" "}
+            to see what's new.
+          </p>
+        )}
+        <Link
+          className="mt-6 inline-flex items-center gap-1.5 font-medium text-primary text-sm hover:underline"
+          href="/tools"
+        >
+          Explore all free tools <ArrowRight className="size-4" />
+        </Link>
       </section>
     </main>
   );
