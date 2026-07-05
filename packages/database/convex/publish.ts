@@ -6,7 +6,11 @@ import {
   type MutationCtx,
   mutation,
 } from "./_generated/server";
-import { DEFAULT_MAX_ATTEMPTS, errorClassSchema } from "./schemas/publish";
+import {
+  DEFAULT_MAX_ATTEMPTS,
+  errorClassSchema,
+  PUBLISH_JOB_STATUS,
+} from "./schemas/publish";
 import { replacePostAggregate } from "./stats";
 import { getCurrentTimestamp } from "./utils";
 
@@ -193,7 +197,12 @@ export const createPublishRun = mutation({
   },
   returns: v.object({
     runId: v.string(),
-    jobIds: v.array(v.id("publish_jobs")),
+    jobs: v.array(
+      v.object({
+        publishJobId: v.id("publish_jobs"),
+        socialProviderId: v.id("socialProviders"),
+      })
+    ),
   }),
   handler: async (ctx, args) => {
     const post = await ctx.db.get(args.postId);
@@ -204,9 +213,12 @@ export const createPublishRun = mutation({
     const runId = crypto.randomUUID();
     const providerIds = args.socialProviderIds ?? post.socialProviderIds;
 
-    const jobIds: Id<"publish_jobs">[] = [];
+    const jobs: {
+      publishJobId: Id<"publish_jobs">;
+      socialProviderId: Id<"socialProviders">;
+    }[] = [];
     for (const socialProviderId of providerIds) {
-      const jobId = await ctx.db.insert("publish_jobs", {
+      const publishJobId = await ctx.db.insert("publish_jobs", {
         postId: args.postId,
         socialProviderId,
         runId,
@@ -218,7 +230,7 @@ export const createPublishRun = mutation({
         createdAt: now,
         updatedAt: now,
       });
-      jobIds.push(jobId);
+      jobs.push({ publishJobId, socialProviderId });
     }
 
     await ctx.db.patch(args.postId, {
@@ -227,15 +239,19 @@ export const createPublishRun = mutation({
       updatedAt: now,
     });
 
-    return { runId, jobIds };
+    return { runId, jobs };
   },
 });
 
 /**
  * Transition QUEUED → PROCESSING when the worker picks up an SQS message.
  * Idempotent: a redelivery on an already-terminal job is a no-op.
+ *
+ * Public because the worker calls it via ConvexHttpClient, which can only reach
+ * public functions. Idempotency and validation live here, so this is the
+ * gateway ADR-004 asks for — without an apps/api hop the CF worker can't make.
  */
-export const startAttempt = internalMutation({
+export const startAttempt = mutation({
   args: {
     publishJobId: v.id("publish_jobs"),
     attemptNumber: v.number(),
@@ -308,10 +324,11 @@ async function insertAttemptIfNotExists(
 }
 
 /**
- * Idempotent completion gateway. Called by the worker (via apps/api) after the
- * provider call. Advances the job state machine and re-derives post status.
+ * Idempotent completion gateway. Called by the worker after the provider call.
+ * Advances the job state machine and re-derives post status. Public for the
+ * same reason as startAttempt.
  */
-export const completeAttempt = internalMutation({
+export const completeAttempt = mutation({
   args: {
     publishJobId: v.id("publish_jobs"),
     attemptNumber: v.number(),
@@ -408,5 +425,141 @@ export const completeAttempt = internalMutation({
       jobStatus: finalJob?.status,
       postPublishStatus: finalPost?.publishStatus,
     };
+  },
+});
+
+/**
+ * Retry failed platforms for a post by starting a fresh run for only the jobs
+ * in FAILED or DEAD_LETTER state (optionally filtered to specific providers).
+ * Backs the dashboard "Retry" button. Returns the new run's providers so the
+ * caller can enqueue exactly those.
+ */
+export const retryFailedJobs = mutation({
+  args: {
+    postId: v.id("posts"),
+    socialProviderIds: v.optional(v.array(v.id("socialProviders"))),
+  },
+  returns: v.object({
+    runId: v.optional(v.string()),
+    retriedProviderIds: v.array(v.id("socialProviders")),
+    jobIds: v.array(v.id("publish_jobs")),
+  }),
+  handler: async (ctx, args) => {
+    const post = await ctx.db.get(args.postId);
+    if (!post) {
+      throw new Error("Post not found");
+    }
+
+    const jobs = await ctx.db
+      .query("publish_jobs")
+      .withIndex("by_post_id", (q) => q.eq("postId", args.postId))
+      .collect();
+
+    const requested = args.socialProviderIds
+      ? new Set(args.socialProviderIds.map((id) => id.toString()))
+      : null;
+
+    // Latest failed job per provider (a provider may have older runs).
+    const failedByProvider = new Map<string, Id<"socialProviders">>();
+    for (const job of jobs) {
+      const isFailed =
+        job.status === PUBLISH_JOB_STATUS.FAILED ||
+        job.status === PUBLISH_JOB_STATUS.DEAD_LETTER;
+      if (!isFailed) {
+        continue;
+      }
+      const key = job.socialProviderId.toString();
+      if (requested && !requested.has(key)) {
+        continue;
+      }
+      failedByProvider.set(key, job.socialProviderId);
+    }
+
+    const retriedProviderIds = [...failedByProvider.values()];
+    if (retriedProviderIds.length === 0) {
+      return { runId: undefined, retriedProviderIds: [], jobIds: [] };
+    }
+
+    const now = getCurrentTimestamp();
+    const runId = crypto.randomUUID();
+    const jobIds: Id<"publish_jobs">[] = [];
+    for (const socialProviderId of retriedProviderIds) {
+      const jobId = await ctx.db.insert("publish_jobs", {
+        postId: args.postId,
+        socialProviderId,
+        runId,
+        status: "QUEUED",
+        attemptCount: 0,
+        maxAttempts: DEFAULT_MAX_ATTEMPTS,
+        userId: post.userId,
+        organizationId: post.organizationId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      jobIds.push(jobId);
+    }
+
+    await ctx.db.patch(args.postId, {
+      publishStatus: "QUEUED",
+      activeRunId: runId,
+      updatedAt: now,
+    });
+
+    return { runId, retriedProviderIds, jobIds };
+  },
+});
+
+/**
+ * Stuck-job sweeper (Phase 5). Run on a cron: jobs left PROCESSING past the
+ * threshold are either re-queued (attempts remain) or dead-lettered. Re-derives
+ * affected posts so the dashboard recovers without user action.
+ */
+export const sweepStuckJobs = internalMutation({
+  args: { thresholdMs: v.optional(v.number()) },
+  returns: v.object({ requeued: v.number(), deadLettered: v.number() }),
+  handler: async (ctx, args) => {
+    const threshold = args.thresholdMs ?? 30 * 60 * 1000; // 30 min
+    const now = getCurrentTimestamp();
+    const cutoff = now - threshold;
+
+    const stuck = await ctx.db
+      .query("publish_jobs")
+      .withIndex("by_status", (q) => q.eq("status", "PROCESSING"))
+      .collect();
+
+    let requeued = 0;
+    let deadLettered = 0;
+    const touchedPosts = new Set<string>();
+
+    for (const job of stuck) {
+      if (job.updatedAt >= cutoff) {
+        continue; // still fresh
+      }
+      if (job.attemptCount < job.maxAttempts) {
+        await ctx.db.patch(job._id, {
+          status: "QUEUED",
+          nextRetryAt: now,
+          updatedAt: now,
+        });
+        requeued++;
+      } else {
+        await ctx.db.patch(job._id, {
+          status: "DEAD_LETTER",
+          completedAt: now,
+          updatedAt: now,
+        });
+        deadLettered++;
+      }
+      touchedPosts.add(job.postId.toString());
+    }
+
+    for (const postId of touchedPosts) {
+      await deriveAndPatchPostPublishStatus(ctx, postId as Id<"posts">);
+    }
+
+    // ponytail: requeued jobs are marked QUEUED but NOT re-enqueued to SQS here
+    // (Convex mutations can't call the trigger Lambda). A follow-up action or
+    // the dual-path enqueue picks them up; the SQS DLQ is the primary safety net.
+    return { requeued, deadLettered };
   },
 });

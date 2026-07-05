@@ -68,6 +68,36 @@ export type ErrorClass = (typeof ERROR_CLASS)[keyof typeof ERROR_CLASS];
 // Default retry ceiling — matches SQS maxReceiveCount in sst.config.ts.
 export const DEFAULT_MAX_ATTEMPTS = 5;
 
+// ── Rollout feature flag (PUBLISH_PIPELINE_V2 env var) ─────
+// off      → legacy path only (current behavior)
+// shadow   → create jobs for every publish, but the worker still writes via the
+//            legacy path (no publishJobId in the SQS message)
+// dual     → both paths run; SQS message carries publishJobId
+// enabled  → only the new job pipeline writes status
+export const PUBLISH_MODES = ["off", "shadow", "dual", "enabled"] as const;
+export type PublishMode = (typeof PUBLISH_MODES)[number];
+
+export function parsePublishMode(raw: string | undefined): PublishMode {
+  return (PUBLISH_MODES as readonly string[]).includes(raw ?? "")
+    ? (raw as PublishMode)
+    : "off";
+}
+
+/** True when jobs should be created (shadow, dual, enabled). */
+export function shouldCreateJobs(mode: PublishMode): boolean {
+  return mode !== "off";
+}
+
+/** True when the SQS message should carry a publishJobId (dual, enabled). */
+export function shouldRouteThroughJobs(mode: PublishMode): boolean {
+  return mode === "dual" || mode === "enabled";
+}
+
+/** True when the legacy direct-write path should still run (off, shadow, dual). */
+export function shouldRunLegacyWrite(mode: PublishMode): boolean {
+  return mode !== "enabled";
+}
+
 // ── publish_jobs ───────────────────────────────────────────
 export const basePublishJobSchema = v.object({
   postId: v.id("posts"),
