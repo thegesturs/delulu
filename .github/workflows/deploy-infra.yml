@@ -1,0 +1,96 @@
+name: Deploy Infra (SST)
+
+# Deploys the AWS side of Delulu: the SocialPostsQueue, the social-post-worker
+# Lambda (bundles @delulu/connections/worker), the Instagram webhook, the SQS
+# trigger, and the transcription function — everything defined in
+# packages/infrastructure/sst.config.ts.
+#
+# This does NOT deploy apps/app (Cloudflare / OpenNext) or Convex — those have
+# their own deploy paths.
+
+on:
+  # Manual trigger — pick the stage. This is the primary, safe path.
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: SST stage to deploy
+        type: choice
+        default: production
+        options:
+          - production
+          - dev
+  # Optional auto-deploy: uncomment to deploy production on merge to main when
+  # infra or any bundled workspace changes. Gated by the `production`
+  # environment below (add required reviewers in repo Settings → Environments).
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - packages/infrastructure/**
+  #     - packages/worker/**
+  #     - packages/connections/**
+  #     - packages/api/**
+  #     - packages/validators/**
+  #     - packages/database/convex/**
+  #     - .github/workflows/deploy-infra.yml
+
+concurrency:
+  # One infra deploy at a time per stage — SST state locks anyway, this just
+  # avoids queued duplicate runs stepping on each other.
+  group: deploy-infra-${{ github.event.inputs.stage || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Attach a GitHub Environment so you can require manual approval + scope the
+    # OIDC secrets to production. Create it in Settings → Environments.
+    environment: ${{ github.event.inputs.stage || 'production' }}
+    permissions:
+      id-token: write # required for AWS OIDC role assumption
+      contents: read
+    env:
+      STAGE: ${{ github.event.inputs.stage || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # copyFiles in sst.config.ts bakes packages/worker/.env.prod into the
+      # Lambda bundle. It is gitignored, so the deploy fails without this.
+      # Store the file's full contents in the WORKER_ENV_PROD secret.
+      - name: Materialize worker .env.prod
+        env:
+          WORKER_ENV_PROD: ${{ secrets.WORKER_ENV_PROD }}
+        run: printf '%s' "$WORKER_ENV_PROD" > packages/worker/.env.prod
+
+      # Fast gate: typecheck the two packages the Lambda actually bundles,
+      # before touching AWS. Run per-package (not via turbo) to skip turbo's
+      # transitive dep-task expansion, which includes an unrelated red
+      # @delulu/typescript-config#typecheck and the composite-tsconfig noise in
+      # @delulu/infra. SST bundles with esbuild and ignores tsc regardless.
+      - name: Typecheck bundled packages
+        run: |
+          pnpm --filter=@delulu/connections typecheck
+          pnpm --filter=@delulu/worker typecheck
+
+      # Assume the deploy role via OIDC (no long-lived keys in CI).
+      # Create an IAM role trusting token.actions.githubusercontent.com for this
+      # repo, and set AWS_DEPLOY_ROLE_ARN as a repo/environment secret.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: SST deploy
+        working-directory: packages/infrastructure
+        run: pnpm sst deploy --stage "$STAGE"
