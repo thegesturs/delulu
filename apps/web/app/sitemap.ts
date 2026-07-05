@@ -2,6 +2,7 @@ import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
 import { env } from "@/env";
 import { fetchArticlePreviews } from "@/lib/articles";
+import { tools } from "@/lib/tools";
 
 // Static list of known pages to avoid filesystem access in edge runtime
 const pages = ["blogs", "pricing", "contact"];
@@ -34,6 +35,18 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: new URL("/tools", url).href,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...tools.map((tool) => ({
+      url: new URL(`tools/${tool.slug}`, url).href,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     ...pages
       .filter((page) => !["pricing", "contact"].includes(page))
       .map((page) => ({
