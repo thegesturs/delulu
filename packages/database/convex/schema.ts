@@ -14,6 +14,8 @@ import {
   baseOrganizationSchema,
   basePostReviewSchema,
   basePostSchema,
+  basePublishAttemptSchema,
+  basePublishJobSchema,
   baseReviewActivitySchema,
   baseSocialProviderSchema,
   baseSubscriptionSchema,
@@ -171,6 +173,20 @@ export default defineSchema({
     "by_social_provider_id",
     ["socialProviderId"]
   ),
+
+  // Publish Pipeline v2 — one job per post × provider per run
+  publish_jobs: defineTable(basePublishJobSchema.fields)
+    .index("by_post_id", ["postId"])
+    .index("by_post_provider", ["postId", "socialProviderId"])
+    .index("by_run_id", ["runId"])
+    .index("by_status", ["status"])
+    .index("by_status_next_retry", ["status", "nextRetryAt"])
+    .index("by_user_id", ["userId"]),
+
+  // Publish Pipeline v2 — append-only attempt log
+  publish_attempts: defineTable(basePublishAttemptSchema.fields)
+    .index("by_job_id", ["publishJobId"])
+    .index("by_job_attempt", ["publishJobId", "attemptNumber"]),
 
   // Transcriptions table for reel audio transcriptions (Sorted extension)
   transcriptions: defineTable(baseTranscriptionSchema.fields)

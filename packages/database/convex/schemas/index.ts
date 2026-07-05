@@ -7,6 +7,7 @@ export * from "./enums";
 export * from "./organizations";
 export * from "./post_reviews";
 export * from "./posts_media";
+export * from "./publish";
 export * from "./social_providers";
 export * from "./subscriptions";
 export * from "./transcriptions";

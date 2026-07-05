@@ -8,6 +8,7 @@ import {
   privacyStatusSchema,
   tikTokSettingsSchema,
 } from "./enums";
+import { publishStatusSchema } from "./publish";
 import { socialProviderSchema } from "./social_providers";
 
 // ============================================================================
@@ -54,6 +55,11 @@ export const basePostSchema = v.object({
   ),
   externalSubmissionId: v.optional(v.string()),
   platformPosts: v.optional(v.array(embeddedPlatformPostSchema)),
+  // Publish Pipeline v2 — derived from publish_jobs (see schemas/publish.ts).
+  // `status` retains lifecycle values (SAVED/SCHEDULED/DELETED); publish state
+  // lives here so partial multi-platform failures are representable.
+  publishStatus: v.optional(publishStatusSchema),
+  activeRunId: v.optional(v.string()), // current publish run UUID
   searchableText: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
