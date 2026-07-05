@@ -17,6 +17,21 @@ Rules:
 3. App, API, and worker types import from `@delulu/database/convex/schemas` or `Infer<typeof …>` — not hand-rolled duplicates
 4. New publish-pipeline types (`publishJobStatus`, `publishStatus`, etc.) go in `schemas/publish.ts`, exported via `schemas/index.ts`
 
+## Migrations
+
+Data migrations use the `@convex-dev/migrations` component. Full guide:
+`packages/database/MIGRATIONS.md`. Rules in short:
+
+- **Deploy prod with `pnpm db:deploy`** — deploys Convex, then runs pending migrations.
+  Only migrations not yet completed run; it's safe to re-run.
+- Define each migration in `convex/migrations.ts` via `migrations.define({ table, migrateOne })`,
+  make it **idempotent**, and **append** its ref to the `runAll` array (append-only — never
+  reorder or delete existing entries).
+- Field changes/removals follow **expand → migrate → contract** across separate deploys, never
+  in one.
+- One-off recovery that isn't a per-row transform stays a plain `internalMutation` in
+  `convex/repairs.ts` and is run by hand — not added to `runAll`.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
