@@ -92,6 +92,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
 
+      # The ubuntu-latest runner ships a pre-installed Pulumi that is older than
+      # the engine SST v3 bundles. SST calls the Pulumi Node language host with a
+      # -root flag the stale binary doesn't understand ("flag provided but not
+      # defined: -root"). Remove it so SST uses the version it manages itself.
+      - name: Remove runner's conflicting Pulumi
+        run: |
+          sudo rm -rf /usr/local/bin/pulumi /usr/local/bin/pulumi-* /opt/pulumi 2>/dev/null || true
+          echo "remaining pulumi on PATH: $(command -v pulumi || echo none)"
+
       - name: SST deploy
         working-directory: packages/infrastructure
         run: pnpm sst deploy --stage "$STAGE"
