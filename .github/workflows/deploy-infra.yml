@@ -63,7 +63,11 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      # Scope install to infra's dependency subgraph (infra + workspace deps +
+      # their externals). Skips apps/app, so the private Hugeicons Pro registry
+      # (and its HUGEICONS_TOKEN, unset in CI) never enters the install. Faster,
+      # and drops the "Failed to replace env in config: ${HUGEICONS_TOKEN}" warn.
+      - run: pnpm install --frozen-lockfile --filter=@delulu/infra...
 
       # copyFiles in sst.config.ts bakes packages/worker/.env.prod into the
       # Lambda bundle. It is gitignored, so the deploy fails without this.
