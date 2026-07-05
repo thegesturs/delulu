@@ -128,19 +128,14 @@ const CTA = () => {
                     fillRule="evenodd"
                   />
                 </svg>
-                <span className="font-medium text-foreground text-xs">
-                  Lock in current pricing · Limited to 50 early adopters
-                </span>
-              </div>
-
               <Button asChild className="h-14 px-8 text-lg" size="lg">
                 <Link href="https://solulu.delulu.social/sign-in">
-                  Start free — cancel anytime
+                  Get started from $4.99/mo
                 </Link>
               </Button>
 
               <p className="text-muted-foreground text-xs">
-                No credit card required · Cancel anytime
+                14-day money-back guarantee · Cancel anytime
               </p>
             </div>
           </div>

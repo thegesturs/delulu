@@ -15,7 +15,7 @@ import { DashboardStatsClient } from "@/components/dashboard/dashboard-stats";
 import { PendingReviews } from "@/components/dashboard/pending-reviews";
 import { PlatformHealthAlert } from "@/components/dashboard/platform-health-alert";
 import { UpcomingSchedule } from "@/components/dashboard/upcoming-schedule";
-import { useSubscription } from "@/hooks/use-subscription";
+import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
 import type { DashboardStats, UpcomingPost } from "@/types/convex";
 import { Header } from "../layout/header";
 
@@ -31,7 +31,6 @@ export function DashboardContent({
   isLoading,
 }: DashboardContentProps) {
   const router = useRouter();
-  const { isFree } = useSubscription();
   const automations = useQuery(api.automations.getAutomations, {});
   const hasAutomations = automations && automations.length > 0;
 
@@ -44,21 +43,7 @@ export function DashboardContent({
         </Button>
       </Header>
 
-      {isFree && (
-        <div className="rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium text-sm">Free plan</p>
-              <p className="text-muted-foreground text-xs">
-                Upgrade for unlimited DMs, advanced automations, and more.
-              </p>
-            </div>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/billing">Upgrade</Link>
-            </Button>
-          </div>
-        </div>
-      )}
+      <DmSummaryCard />
 
       {/* Pending Reviews — shown prominently for admins, and for editors/members with submissions */}
       <PendingReviews />

@@ -19,9 +19,9 @@ export const generateMetadata = (): Metadata => {
   const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
 
   return createMetadata({
-    title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
+    title: "Delulu Social \u2014 Post Everywhere + Auto-DM from $4.99/mo",
     description:
-      "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
+      "Schedule across 8 platforms and auto-DM Instagram commenters. Built for creators who grow. Plans from $4.99/mo with a 14-day guarantee.",
     alternates: {
       canonical: baseUrl,
     },

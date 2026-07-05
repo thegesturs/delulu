@@ -22,9 +22,10 @@ import { Switch } from "@delulu/design-system/components/ui/switch";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   CURRENCY_SYMBOLS,
-  getAllPlans,
+  getMaxYearlySavingsPercent,
+  getPublicPlans,
   PLANS,
-  type PlanType,
+  type PublicPlanType,
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useAction } from "convex/react";
@@ -35,18 +36,21 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface PricingCardsProps {
-  productIds?: Record<PlanType, { monthly: string; yearly: string }>;
+  productIds?: Record<PublicPlanType, { monthly: string; yearly: string }>;
   onUpgradeSuccess?: () => void;
+  checkoutReturnUrl?: string;
 }
 
 export function PricingCards({
   productIds,
   onUpgradeSuccess,
+  checkoutReturnUrl,
 }: PricingCardsProps) {
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
-  const [upgradingPlan, setUpgradingPlan] = useState<PlanType | null>(null);
+  const [upgradingPlan, setUpgradingPlan] =
+    useState<PublicPlanType | null>(null);
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const {
@@ -56,9 +60,10 @@ export function PricingCards({
     isLoading,
   } = useSubscription();
 
-  const plans = getAllPlans();
+  const plans = getPublicPlans();
+  const yearlySavings = getMaxYearlySavingsPercent();
 
-  const handleUpgrade = async (planType: PlanType) => {
+  const handleUpgrade = async (planType: PublicPlanType) => {
     // Debounce: prevent rapid retry attempts (3 second cooldown)
     const now = Date.now();
     const COOLDOWN_MS = 3000;
@@ -69,12 +74,6 @@ export function PricingCards({
       toast.error(
         `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? "s" : ""} before trying again.`
       );
-      return;
-    }
-
-    // Free plan doesn't need checkout
-    if (planType === "FREE") {
-      window.location.href = "/billing?plan=free";
       return;
     }
 
@@ -93,7 +92,8 @@ export function PricingCards({
       setUpgradingPlan(planType);
       const { checkout_url } = await createCheckout({
         productId,
-        returnUrl: `${window.location.origin}/billing`,
+        returnUrl:
+          checkoutReturnUrl ?? `${window.location.origin}/billing`,
         billingCurrency: currency,
         affonsoReferral: getAffonsoReferral() ?? undefined,
       });
@@ -110,14 +110,14 @@ export function PricingCards({
     }
   };
 
-  const getPlanPrice = (planType: PlanType) => {
+  const getPlanPrice = (planType: PublicPlanType) => {
     const plan = PLANS[planType];
     return isAnnual
       ? plan.price[currency].yearly
       : plan.price[currency].monthly;
   };
 
-  const getMonthlyEquivalent = (planType: PlanType) => {
+  const getMonthlyEquivalent = (planType: PublicPlanType) => {
     const plan = PLANS[planType];
     const prices = plan.price[currency];
     if (!isAnnual || prices.yearly === 0) {
@@ -131,14 +131,9 @@ export function PricingCards({
       : monthlyInDollars.toFixed(2);
   };
 
-  const isCurrentPlan = (planType: PlanType) => {
+  const isCurrentPlan = (planType: PublicPlanType) => {
     if (isLoading || currentPlan !== planType) {
       return false;
-    }
-
-    // Free plan doesn't have billing period
-    if (planType === "FREE") {
-      return true;
     }
 
     // For paid plans, check if both plan type and billing period match
@@ -161,13 +156,13 @@ export function PricingCards({
         >
           Annual
           <Badge className="ml-2" variant="secondary">
-            Save 17%
+            Save {yearlySavings}%
           </Badge>
         </span>
       </div>
 
       {/* Pricing cards */}
-      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-3xl gap-2 md:grid-cols-2">
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
@@ -185,16 +180,12 @@ export function PricingCards({
             if (isCurrent) {
               return "Current Plan";
             }
-            if (plan.id === "FREE") {
-              return "Get Started";
-            }
-
             // Same plan type but different billing period
             if (plan.id === currentPlan && !isLoading && !isCurrent) {
               return isAnnual ? "Switch to Annual" : "Switch to Monthly";
             }
 
-            return "Upgrade";
+            return currentPlan === "FREE" ? "Get Started" : "Upgrade";
           };
 
           return (

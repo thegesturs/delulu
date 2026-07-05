@@ -14,7 +14,7 @@ export const updateOnboardingStep = async (data: {
   }
 
   // VALIDATION: Check step bounds
-  if (data.currentStep < 1 || data.currentStep > 4) {
+  if (data.currentStep < 1 || data.currentStep > 5) {
     return { error: "Invalid step number" };
   }
 

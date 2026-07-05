@@ -1,5 +1,6 @@
 "use client";
 
+import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -7,9 +8,12 @@ import {
   ArrowRight01Icon,
   Loading03Icon,
 } from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "convex-helpers/react/cache";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useOnboarding } from "@/hooks/use-onboarding";
+import { useSubscription } from "@/hooks/use-subscription";
+import { AutomationSetupStep } from "./automation-setup-step";
 import { ConnectAccountsStep } from "./connect-accounts-step";
 import { OnboardingProgress } from "./onboarding-progress";
 import { PricingStep } from "./pricing-step";
@@ -20,22 +24,37 @@ export function OnboardingStepper() {
   const router = useRouter();
   const {
     currentStep,
-    accountsConnected,
     handleNextStep,
     handleSkipStep,
     handlePreviousStep,
     handleCompleteOnboarding,
     isLoading,
   } = useOnboarding();
+  const { isPaid, isLifetime, isLoading: subLoading } = useSubscription();
+  const accounts = useQuery(api.social_providers.getConnectedAccounts);
+
+  const hasInstagram = accounts?.some((a) => a.socialType === "INSTAGRAM");
+  const hasPaidPlan = isPaid || isLifetime;
 
   const isFirstStep = currentStep === 1;
-  const isLastStep = currentStep === 4;
-  const canContinue = currentStep === 2 ? accountsConnected >= 1 : true;
+  const isLastStep = currentStep === 5;
+  const isPricingStep = currentStep === 5;
+
+  const canContinue = (() => {
+    if (currentStep === 2) {
+      return !!hasInstagram;
+    }
+    if (isPricingStep) {
+      return hasPaidPlan && !subLoading;
+    }
+    return true;
+  })();
 
   const handleContinue = async () => {
     if (isLastStep) {
-      // On last step, complete onboarding directly without advancing
-      // (there's no step 4, so we don't call handleNextStep)
+      if (!hasPaidPlan) {
+        return;
+      }
       const result = await handleCompleteOnboarding();
       if (result.success) {
         router.push("/");
@@ -47,21 +66,19 @@ export function OnboardingStepper() {
 
   const handleSkip = async () => {
     if (isLastStep) {
-      const result = await handleCompleteOnboarding();
-      if (result.success) {
-        router.push("/");
-      }
-    } else {
-      await handleSkipStep();
+      return;
     }
+    await handleSkipStep();
   };
 
   const getButtonText = () => {
     if (isLastStep) {
-      return "Start Using Delulu";
+      return hasPaidPlan ? "Start Using Delulu" : "Choose a plan above";
     }
     if (currentStep === 2) {
-      return canContinue ? "Continue" : "Connect at least 1 account";
+      return hasInstagram
+        ? "Continue"
+        : "Connect Instagram to continue";
     }
     if (currentStep === 3) {
       return "Continue";
@@ -69,13 +86,13 @@ export function OnboardingStepper() {
     return "Get Started";
   };
 
+  const showSkip = !isPricingStep;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-3xl space-y-8">
-        {/* Progress Indicator */}
-        <OnboardingProgress currentStep={currentStep} totalSteps={4} />
+        <OnboardingProgress currentStep={currentStep} totalSteps={5} />
 
-        {/* Step Content */}
         <div className="relative min-h-[400px]">
           <AnimatePresence mode="wait">
             <motion.div
@@ -88,13 +105,13 @@ export function OnboardingStepper() {
             >
               {currentStep === 1 && <WelcomeStep />}
               {currentStep === 2 && <ConnectAccountsStep />}
-              {currentStep === 3 && <PricingStep />}
+              {currentStep === 3 && <AutomationSetupStep />}
               {currentStep === 4 && <SurveyStep />}
+              {currentStep === 5 && <PricingStep />}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Navigation Buttons */}
         <motion.div
           animate={{ opacity: 1 }}
           className="flex items-center justify-between pt-6"
@@ -116,18 +133,20 @@ export function OnboardingStepper() {
           </div>
 
           <div className="flex gap-3">
-            <Button
-              className="text-muted-foreground hover:text-foreground"
-              disabled={isLoading}
-              onClick={handleSkip}
-              variant="ghost"
-            >
-              {isLastStep ? "Skip, I'll do this later" : "Skip this step"}
-            </Button>
+            {showSkip && (
+              <Button
+                className="text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
+                onClick={handleSkip}
+                variant="ghost"
+              >
+                Skip this step
+              </Button>
+            )}
 
             <Button
               className="px-8"
-              disabled={!canContinue || isLoading}
+              disabled={!canContinue || isLoading || subLoading}
               onClick={handleContinue}
               size="lg"
             >

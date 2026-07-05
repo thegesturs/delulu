@@ -3,7 +3,7 @@ import { devtools } from "zustand/middleware";
 
 // Define the store's state types
 interface OnboardingState {
-  currentStep: number; // 1, 2, 3, or 4
+  currentStep: number; // 1–5
   accountsConnected: number; // Real-time count for Step 2
   surveyAnswer: string | null;
 }
@@ -36,7 +36,7 @@ export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
       nextStep: () =>
         set(
           (state) => ({
-            currentStep: Math.min(state.currentStep + 1, 4),
+            currentStep: Math.min(state.currentStep + 1, 5),
           }),
           false,
           "onboarding/nextStep"

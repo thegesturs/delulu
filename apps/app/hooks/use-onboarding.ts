@@ -277,8 +277,9 @@ function getStepName(step: number): string {
   const stepNames = {
     1: "welcome",
     2: "connect",
-    3: "pricing",
+    3: "automation",
     4: "survey",
+    5: "pricing",
   };
   return stepNames[step as keyof typeof stepNames] || "unknown";
 }
