@@ -10,6 +10,7 @@ import { processMessage } from "../../worker/client";
 
 export async function handler(event: SQSEvent): Promise<void> {
   for (const record of event.Records) {
-    await processMessage(record.body);
+    // Pass the SQS messageId as the correlation id for attempt logging.
+    await processMessage(record.body, record.messageId);
   }
 }

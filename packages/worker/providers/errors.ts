@@ -315,3 +315,27 @@ export function isRetryableError(error: SocialProviderError): boolean {
     (error instanceof APIError && error.statusCode >= 500)
   );
 }
+
+// Publish Pipeline v2 — classify an error for the job state machine. TRANSIENT
+// errors are re-queued (up to maxAttempts); PERMANENT errors fail immediately.
+// This is the single mapping point; the class enum is not duplicated in Convex.
+export function classifyError(error: unknown): {
+  errorCode: string;
+  errorClass: "TRANSIENT" | "PERMANENT";
+  errorMessage: string;
+} {
+  if (error instanceof SocialProviderError) {
+    return {
+      errorCode: error.code,
+      errorClass: isRetryableError(error) ? "TRANSIENT" : "PERMANENT",
+      errorMessage: error.message,
+    };
+  }
+  // Unknown/non-provider errors: treat as transient so a genuine blip retries
+  // rather than permanently failing the post.
+  return {
+    errorCode: "UNKNOWN_ERROR",
+    errorClass: "TRANSIENT",
+    errorMessage: error instanceof Error ? error.message : "Unknown error",
+  };
+}
