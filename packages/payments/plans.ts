@@ -229,9 +229,11 @@ export function getAllPlans(): Plan[] {
   return Object.values(PLANS);
 }
 
+export type PublicPlan = Plan & { id: PublicPlanType };
+
 /** Paid plans for public pricing UI (excludes FREE) */
-export function getPublicPlans(): Plan[] {
-  return [PLANS.ECHO, PLANS.VIBE];
+export function getPublicPlans(): PublicPlan[] {
+  return [PLANS.ECHO, PLANS.VIBE] as PublicPlan[];
 }
 
 /** Approximate annual savings vs paying monthly (for marketing copy) */
