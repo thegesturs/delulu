@@ -2,7 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { DeluluApiClient } from "../api-client.js";
 
-export function registerPostTools(server: McpServer, client: DeluluApiClient) {
+type ClientSource = DeluluApiClient | ((extra: unknown) => DeluluApiClient);
+
+function resolveClient(client: ClientSource, extra: unknown) {
+  return typeof client === "function" ? client(extra) : client;
+}
+
+export function registerPostTools(server: McpServer, client: ClientSource) {
   server.tool(
     "list_posts",
     "List posts with optional status filter",
@@ -24,8 +30,8 @@ export function registerPostTools(server: McpServer, client: DeluluApiClient) {
         .describe("Number of posts to return (max 100)"),
       cursor: z.string().optional().describe("Pagination cursor"),
     },
-    async (params) => {
-      const result = await client.listPosts(params);
+    async (params, extra) => {
+      const result = await resolveClient(client, extra).listPosts(params);
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
@@ -38,8 +44,8 @@ export function registerPostTools(server: McpServer, client: DeluluApiClient) {
     "get_post",
     "Get a single post by ID",
     { id: z.string().describe("Post ID") },
-    async (params) => {
-      const result = await client.getPost(params.id);
+    async (params, extra) => {
+      const result = await resolveClient(client, extra).getPost(params.id);
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
@@ -89,8 +95,8 @@ export function registerPostTools(server: McpServer, client: DeluluApiClient) {
         .optional()
         .describe("Privacy setting"),
     },
-    async (params) => {
-      const result = await client.createPost(params);
+    async (params, extra) => {
+      const result = await resolveClient(client, extra).createPost(params);
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
@@ -134,9 +140,9 @@ export function registerPostTools(server: McpServer, client: DeluluApiClient) {
         .optional()
         .describe("Updated schedule time (Unix timestamp)"),
     },
-    async (params) => {
+    async (params, extra) => {
       const { id, ...data } = params;
-      const result = await client.updatePost(id, data);
+      const result = await resolveClient(client, extra).updatePost(id, data);
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
@@ -149,8 +155,8 @@ export function registerPostTools(server: McpServer, client: DeluluApiClient) {
     "delete_post",
     "Delete a post (soft delete)",
     { id: z.string().describe("Post ID") },
-    async (params) => {
-      const result = await client.deletePost(params.id);
+    async (params, extra) => {
+      const result = await resolveClient(client, extra).deletePost(params.id);
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },

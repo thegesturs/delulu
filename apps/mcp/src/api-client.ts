@@ -5,11 +5,14 @@ const TRAILING_SLASH = /\/$/;
 
 export class DeluluApiClient {
   private readonly baseUrl: string;
-  private readonly apiKey: string;
+  private readonly getToken: () => string | Promise<string>;
 
-  constructor(baseUrl: string, apiKey: string) {
+  constructor(
+    baseUrl: string,
+    token: string | (() => string | Promise<string>)
+  ) {
     this.baseUrl = baseUrl.replace(TRAILING_SLASH, "");
-    this.apiKey = apiKey;
+    this.getToken = typeof token === "function" ? token : () => token;
   }
 
   private async request(
@@ -18,10 +21,11 @@ export class DeluluApiClient {
     body?: Record<string, unknown>
   ) {
     const url = `${this.baseUrl}${path}`;
+    const token = await this.getToken();
     const response = await fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       ...(body && { body: JSON.stringify(body) }),

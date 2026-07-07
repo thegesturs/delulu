@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/backend": "^2.9.1",
     "@delulu/database": "workspace:*",
     "@scalar/hono-api-reference": "^0.10.0",
     "convex": "^1.25.4",
