@@ -72,6 +72,11 @@ async function fetchFile(input: File | string | Blob): Promise<Uint8Array> {
 export interface TrimOptions {
   /** Uploaded File, or a URL string (e.g. the YouTube proxy endpoint). */
   source: File | string;
+  /**
+   * Separate audio-only track to mux in. Set for YouTube "adaptive" videos where
+   * `source` is video-only. When present, `source` is treated as video-only.
+   */
+  audioSource?: File | string;
   startSec: number;
   endSec: number;
   /** Re-encode for frame-accurate cuts (slower). Default = stream copy. */
@@ -130,53 +135,95 @@ export function useFfmpeg() {
   const trim = useCallback(
     async ({
       source,
+      audioSource,
       startSec,
       endSec,
       reencode,
     }: TrimOptions): Promise<Blob> => {
       const ffmpeg = await load();
 
-      const inputName = "input.mp4";
+      const videoName = "video.mp4";
+      const audioName = "audio.m4a";
       const outputName = "output.mp4";
+      const start = String(startSec);
+      const duration = String(Math.max(endSec - startSec, 0.1));
       setProgress(-1);
-      await ffmpeg.writeFile(inputName, await fetchFile(source));
+      await ffmpeg.writeFile(videoName, await fetchFile(source));
 
-      const duration = Math.max(endSec - startSec, 0.1);
-      const args = reencode
-        ? [
-            "-ss",
-            String(startSec),
-            "-i",
-            inputName,
-            "-t",
-            String(duration),
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-c:a",
-            "aac",
-            outputName,
-          ]
-        : [
-            "-ss",
-            String(startSec),
-            "-i",
-            inputName,
-            "-t",
-            String(duration),
-            "-c",
-            "copy",
-            outputName,
-          ];
+      let args: string[];
+      if (audioSource) {
+        // Adaptive: mux a separate video-only + audio-only pair. Input-side seek
+        // on BOTH inputs (before each -i) — output-side -ss with `-c:v copy` drops
+        // the video track entirely. Audio is re-encoded to AAC so it realigns to
+        // the cut; video is copied (snaps to the nearest keyframe) unless
+        // frame-accurate re-encoding is requested.
+        await ffmpeg.writeFile(audioName, await fetchFile(audioSource));
+        const videoCodec = reencode
+          ? ["-c:v", "libx264", "-preset", "veryfast"]
+          : ["-c:v", "copy"];
+        args = [
+          "-ss",
+          start,
+          "-i",
+          videoName,
+          "-ss",
+          start,
+          "-i",
+          audioName,
+          "-t",
+          duration,
+          "-map",
+          "0:v:0",
+          "-map",
+          "1:a:0",
+          ...videoCodec,
+          "-c:a",
+          "aac",
+          outputName,
+        ];
+      } else {
+        // Single muxed input: input-side seek + stream copy is fast and keeps sync.
+        args = reencode
+          ? [
+              "-ss",
+              start,
+              "-i",
+              videoName,
+              "-t",
+              duration,
+              "-c:v",
+              "libx264",
+              "-preset",
+              "veryfast",
+              "-c:a",
+              "aac",
+              outputName,
+            ]
+          : [
+              "-ss",
+              start,
+              "-i",
+              videoName,
+              "-t",
+              duration,
+              "-c",
+              "copy",
+              outputName,
+            ];
+      }
 
       await ffmpeg.exec(args);
       const data = await ffmpeg.readFile(outputName);
 
       // Free wasm memory so repeated trims don't accumulate.
-      await ffmpeg.deleteFile(inputName).catch(() => {
+      await ffmpeg.deleteFile(videoName).catch(() => {
         // Ignore cleanup failures; the next ffmpeg instance starts from a fresh FS.
       });
+      if (audioSource) {
+        await ffmpeg.deleteFile(audioName).catch(() => {
+          // Ignore cleanup failures.
+        });
+      }
       await ffmpeg.deleteFile(outputName).catch(() => {
         // Ignore cleanup failures; the trim has already completed successfully.
       });
