@@ -81,6 +81,11 @@ export interface TrimOptions {
   endSec: number;
   /** Re-encode for frame-accurate cuts (slower). Default = stream copy. */
   reencode?: boolean;
+  /**
+   * Force video re-encode even in copy mode — set when the adaptive video track
+   * is VP9/AV1 (not H.264), which ffmpeg can't stream-copy into MP4.
+   */
+  reencodeVideo?: boolean;
 }
 
 type LoadState = "idle" | "loading" | "ready" | "error";
@@ -139,6 +144,7 @@ export function useFfmpeg() {
       startSec,
       endSec,
       reencode,
+      reencodeVideo,
     }: TrimOptions): Promise<Blob> => {
       const ffmpeg = await load();
 
@@ -158,9 +164,12 @@ export function useFfmpeg() {
         // the cut; video is copied (snaps to the nearest keyframe) unless
         // frame-accurate re-encoding is requested.
         await ffmpeg.writeFile(audioName, await fetchFile(audioSource));
-        const videoCodec = reencode
-          ? ["-c:v", "libx264", "-preset", "veryfast"]
-          : ["-c:v", "copy"];
+        // Copy H.264 video (fast); re-encode when frame-accurate is requested OR
+        // the source video is VP9/AV1 (can't be copied into MP4).
+        const videoCodec =
+          reencode || reencodeVideo
+            ? ["-c:v", "libx264", "-preset", "veryfast"]
+            : ["-c:v", "copy"];
         args = [
           "-ss",
           start,
