@@ -1,21 +1,20 @@
-import type { PlanType } from "@delulu/payments";
 import { getProductIds } from "@delulu/payments/product-ids";
 import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { useCurrency } from "@/hooks/use-currency";
 
 export function PricingStep() {
   const currency = useCurrency();
   const productIds = getProductIds(currency);
-  const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
-    FREE: { monthly: "", yearly: "" },
-    VIBE: productIds.VIBE,
-    ECHO: productIds.ECHO,
-  };
+  const [checkoutReturnUrl, setCheckoutReturnUrl] = useState<string>();
+
+  useEffect(() => {
+    setCheckoutReturnUrl(`${window.location.origin}/onboarding`);
+  }, []);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <motion.div
         animate={{ opacity: 1, y: 0 }}
         className="space-y-4 text-center"
@@ -25,17 +24,20 @@ export function PricingStep() {
           Choose Your Plan
         </h2>
         <p className="text-lg text-muted-foreground tracking-tight">
-          Start with our free plan or upgrade anytime
+          Pick Echo or Vibe to unlock scheduling and auto-DMs. 14-day
+          money-back guarantee.
         </p>
       </motion.div>
 
-      {/* Pricing Cards */}
       <motion.div
         animate={{ opacity: 1, y: 0 }}
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <PricingCards productIds={PRODUCT_IDS} />
+        <PricingCards
+          checkoutReturnUrl={checkoutReturnUrl}
+          productIds={productIds}
+        />
       </motion.div>
     </div>
   );

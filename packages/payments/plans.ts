@@ -3,11 +3,17 @@
  *
  * Defines the limits and features for each subscription tier:
  * - FREE: Basic tier with limited features (1 social, 10 posts/month)
- * - ECHO: Entry-level paid tier (5 socials, 30 posts/month) - $4.99/mo
+ * - ECHO: Entry-level paid tier (5 socials, 150 posts/month) - $4.99/mo
  * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.99/mo
  */
 
 export type PlanType = "FREE" | "VIBE" | "ECHO";
+
+/** Paid tiers shown on marketing and billing surfaces */
+export type PublicPlanType = Exclude<PlanType, "FREE">;
+
+/** Lifetime deal is no longer offered to new customers */
+export const LIFETIME_DEAL_ACTIVE = false;
 
 export type CurrencyCode = "USD" | "INR";
 
@@ -87,7 +93,7 @@ export const PLANS: Record<PlanType, Plan> = {
     },
     limits: {
       socialAccounts: 5,
-      monthlyPosts: 30,
+      monthlyPosts: 150,
       mediaStorage: 1000, // 1 GB
       teamMembers: 1,
       organizations: 0, // No org creation on Echo
@@ -221,6 +227,35 @@ export function getCurrencyFromCountry(country: string): CurrencyCode {
  */
 export function getAllPlans(): Plan[] {
   return Object.values(PLANS);
+}
+
+export type PublicPlan = Plan & { id: PublicPlanType };
+
+/** Paid plans for public pricing UI (excludes FREE) */
+export function getPublicPlans(): PublicPlan[] {
+  return [PLANS.ECHO, PLANS.VIBE] as PublicPlan[];
+}
+
+/** Approximate annual savings vs paying monthly (for marketing copy) */
+export function getMaxYearlySavingsPercent(): number {
+  let max = 0;
+  for (const plan of getPublicPlans()) {
+    for (const currency of ["USD", "INR"] as const) {
+      const { monthly, yearly } = plan.price[currency];
+      if (monthly > 0 && yearly > 0) {
+        const pct = Math.round((1 - yearly / (monthly * 12)) * 100);
+        max = Math.max(max, pct);
+      }
+    }
+  }
+  return max;
+}
+
+export function formatDmLimit(limit: number): string {
+  if (limit === -1) {
+    return "Unlimited";
+  }
+  return limit.toLocaleString();
 }
 
 /**

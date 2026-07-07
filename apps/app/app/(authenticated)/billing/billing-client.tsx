@@ -16,7 +16,6 @@ import {
   AlertTitle,
 } from "@delulu/design-system/components/ui/alert";
 import { Icon } from "@delulu/design-system/providers/icon";
-import type { PlanType } from "@delulu/payments";
 import { getProductIds } from "@delulu/payments/product-ids";
 import { TickDouble01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useSearchParams } from "next/navigation";
@@ -31,11 +30,6 @@ import { useCurrency } from "@/hooks/use-currency";
 export default function BillingClient() {
   const currency = useCurrency();
   const productIds = getProductIds(currency);
-  const PRODUCT_IDS: Record<PlanType, { monthly: string; yearly: string }> = {
-    FREE: { monthly: "", yearly: "" },
-    VIBE: productIds.VIBE,
-    ECHO: productIds.ECHO,
-  };
   const searchParams = useSearchParams();
   const status = searchParams?.get("status"); // Dodo Payments returns 'status' param
   const subscriptionId = searchParams?.get("subscription_id");
@@ -122,7 +116,7 @@ export default function BillingClient() {
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="mb-2 font-bold text-2xl">Choose Your Perfect Plan</h2>
           <p className="text-muted-foreground">
-            Start free and upgrade anytime. All paid plans include a 14-day
+            Plans start at Echo ($4.99/mo). All plans include a 14-day
             money-back guarantee.
           </p>
         </div>
@@ -131,7 +125,7 @@ export default function BillingClient() {
           onUpgradeSuccess={() => {
             toast.success("Redirecting to checkout...");
           }}
-          productIds={PRODUCT_IDS}
+          productIds={productIds}
         />
       </div>
 

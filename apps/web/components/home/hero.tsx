@@ -20,33 +20,33 @@ function getHeroVariants(currency: CurrencyCode) {
     outcome: {
       headline: "Every comment on your post can become a follower.",
       subtitle: `Delulu auto-replies and DMs anyone who comments a keyword \u2014 turning casual scrollers into real followers. Plus it posts across 8 platforms. One tool. ${priceMo}.`,
-      cta1: "Start free \u2014 no credit card",
+      cta1: "Get started from $4.99/mo",
       cta2: "See how it works",
     },
     pain: {
       headline: "You post every day. Your audience isn\u2019t growing.",
       subtitle:
         "Comments pile up. Followers never come back. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
-      cta1: "Fix my DMs \u2014 free",
+      cta1: "Fix my DMs",
       cta2: "See how it works",
     },
     identity: {
       headline: "Built for creators who grow, not just post.",
       subtitle: `Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + growth. One tool. ${price}.`,
-      cta1: "Start free \u2014 no credit card",
+      cta1: "Get started from $4.99/mo",
       cta2: "See how it works",
     },
     curiosity: {
       headline: "What if every Instagram comment became a follower?",
       subtitle: `Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and turns a stranger into a fan. Oh, and it also schedules your posts across 8 platforms. For ${priceMo}.`,
-      cta1: "Try it free",
+      cta1: "Get started",
       cta2: "See how it works",
     },
     direct: {
       headline: `Post everywhere. Auto-DM your fans. ${price}.`,
       subtitle:
         "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually grows your audience.",
-      cta1: "Start free \u2014 no credit card",
+      cta1: "Get started from $4.99/mo",
       cta2: "See how it works",
     },
   } as const;
