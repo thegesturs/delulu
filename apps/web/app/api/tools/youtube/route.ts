@@ -34,8 +34,23 @@ const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 const YOUTUBE_WWW_RE = /^www\./;
 const YOUTUBE_PATH_ID_RE = /\/(?:shorts|embed|live|v)\/([a-zA-Z0-9_-]{11})/;
 
-// Clients tried in order until one returns a playable muxed stream.
-const CLIENT_FALLBACKS = ["IOS", "ANDROID", "TV_EMBEDDED", "WEB"] as const;
+// Clients tried in order until one returns playable streams. Different clients
+// dodge different gates (bot checks, age/login walls), so we try several.
+const CLIENT_FALLBACKS = [
+  "IOS",
+  "ANDROID",
+  "MWEB",
+  "TV_EMBEDDED",
+  "WEB",
+] as const;
+
+// Playability statuses that mean YouTube is gating the video behind sign-in /
+// age verification — unfixable without authentication.
+const GATED_STATUSES = new Set([
+  "LOGIN_REQUIRED",
+  "AGE_VERIFICATION_REQUIRED",
+  "AGE_CHECK_REQUIRED",
+]);
 
 // Deciphered stream URL cache (videoId:itag -> { url, expiresAt }).
 const urlCache = new Map<string, { url: string; expiresAt: number }>();
@@ -93,28 +108,46 @@ function adaptiveFormats(info: VideoInfo): Format[] {
   return info.streaming_data?.adaptive_formats ?? [];
 }
 
-/** Best H.264/MP4 video-only track, capped at 720p to keep browser memory sane. */
-function pickAdaptiveVideo(info: VideoInfo): Format | undefined {
-  const videos = adaptiveFormats(info)
-    .filter(
-      (f) =>
-        f.has_video &&
-        !f.has_audio &&
-        (f.mime_type?.includes("mp4") ?? false) &&
-        (f.mime_type?.includes("avc1") ?? false)
-    )
-    .sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
-  return videos.find((f) => (f.height ?? 0) <= 720) ?? videos.at(-1);
+function videoOnlyFormats(info: VideoInfo): Format[] {
+  return adaptiveFormats(info).filter((f) => f.has_video && !f.has_audio);
 }
 
-/** Best AAC/MP4 audio-only track. */
+function audioOnlyFormats(info: VideoInfo): Format[] {
+  return adaptiveFormats(info).filter((f) => f.has_audio && !f.has_video);
+}
+
+/** H.264 in MP4 — the only video codec ffmpeg.wasm can mux with `-c:v copy`. */
+function isCopyableVideo(mime: string | undefined): boolean {
+  return Boolean(mime?.includes("mp4") && mime?.includes("avc1"));
+}
+
+/**
+ * Best video-only track. Prefers H.264/MP4 (browser copies it, fast). Falls back
+ * to any codec (VP9/AV1/WebM) which the browser re-encodes — so a video with no
+ * H.264 adaptive stream still works. Caps resolution to keep wasm memory/CPU sane
+ * (lower cap for re-encode since that path is much slower).
+ */
+function pickAdaptiveVideo(info: VideoInfo): Format | undefined {
+  const videos = videoOnlyFormats(info);
+  if (videos.length === 0) {
+    return undefined;
+  }
+  const avc = videos.filter((f) => isCopyableVideo(f.mime_type));
+  const pool = avc.length > 0 ? avc : videos;
+  const cap = avc.length > 0 ? 720 : 480;
+  const sorted = [...pool].sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
+  return sorted.find((f) => (f.height ?? 0) <= cap) ?? sorted.at(-1);
+}
+
+/** Best audio-only track. Prefers MP4/AAC; falls back to any codec (Opus/WebM). */
 function pickAdaptiveAudio(info: VideoInfo): Format | undefined {
-  return adaptiveFormats(info)
-    .filter(
-      (f) =>
-        f.has_audio && !f.has_video && (f.mime_type?.includes("mp4") ?? false)
-    )
-    .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+  const audios = audioOnlyFormats(info);
+  if (audios.length === 0) {
+    return undefined;
+  }
+  const mp4 = audios.filter((f) => f.mime_type?.includes("mp4"));
+  const pool = mp4.length > 0 ? mp4 : audios;
+  return [...pool].sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
 }
 
 /** A muxed progressive stream, or a video-only + audio-only pair to combine. */
@@ -201,6 +234,13 @@ async function handleResolve(searchParams: URLSearchParams) {
   if (info.basic_info.is_live) {
     return jsonError("Live streams can't be trimmed.", 400);
   }
+  const status = info.playability_status?.status;
+  if (status && GATED_STATUSES.has(status)) {
+    return jsonError(
+      "This video requires sign-in on YouTube (age-restricted or private), so it can't be trimmed here. Try another video, or use the Upload tab.",
+      403
+    );
+  }
 
   const yt = await getInnertube();
   const player = yt.session.player;
@@ -254,6 +294,17 @@ async function handleResolve(searchParams: URLSearchParams) {
   const video = pickAdaptiveVideo(info);
   const audio = pickAdaptiveAudio(info);
   if (!(video && audio)) {
+    console.error("[youtube-trimmer] no usable format", {
+      videoId,
+      playability: info.playability_status?.status,
+      progressive: progressive.length,
+      adaptive: adaptiveFormats(info).length,
+      videoOnly: videoOnlyFormats(info).length,
+      audioOnly: audioOnlyFormats(info).length,
+      mimes: adaptiveFormats(info)
+        .slice(0, 10)
+        .map((f) => f.mime_type),
+    });
     return jsonError(
       "This video has no downloadable format available. Try a different video.",
       422
@@ -265,6 +316,9 @@ async function handleResolve(searchParams: URLSearchParams) {
     {
       ...base,
       mode: "adaptive",
+      // `videoNeedsReencode` tells the client whether ffmpeg can `-c:v copy`
+      // (H.264/MP4) or must re-encode (VP9/AV1/WebM).
+      videoNeedsReencode: !isCopyableVideo(video.mime_type),
       video: {
         itag: video.itag,
         qualityLabel: video.quality_label ?? `${video.height ?? ""}p`,

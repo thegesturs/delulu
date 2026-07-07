@@ -56,6 +56,8 @@ interface ResolvedVideo {
   video?: AdaptiveTrack & { qualityLabel: string; height: number | null };
   /** Audio-only track; present when mode === "adaptive". */
   audio?: AdaptiveTrack;
+  /** Adaptive video is VP9/AV1 — ffmpeg must re-encode it (can't stream-copy). */
+  videoNeedsReencode?: boolean;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -225,6 +227,8 @@ export function VideoTrimmer() {
   const [trimSource, setTrimSource] = useState<File | string | null>(null);
   // Separate audio track for YouTube "adaptive" videos (video preview is silent).
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
+  // Adaptive video that isn't H.264 — ffmpeg must re-encode it during the mux.
+  const [videoNeedsReencode, setVideoNeedsReencode] = useState(false);
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(0);
   const [range, setRange] = useState<[number, number]>([0, 0]);
@@ -244,6 +248,7 @@ export function VideoTrimmer() {
     setVideoSrc(null);
     setTrimSource(null);
     setAudioSrc(null);
+    setVideoNeedsReencode(false);
     setTitle("");
     setDuration(0);
     setRange([0, 0]);
@@ -282,6 +287,7 @@ export function VideoTrimmer() {
     setVideoSrc(objectUrl);
     setTrimSource(file);
     setAudioSrc(null);
+    setVideoNeedsReencode(false);
     setTitle(file.name.replace(FILE_EXTENSION_RE, ""));
     setRange([0, 0]);
     setDuration(0);
@@ -333,6 +339,7 @@ export function VideoTrimmer() {
       setVideoSrc(videoUrl);
       setTrimSource(videoUrl);
       setAudioSrc(audioUrl);
+      setVideoNeedsReencode(Boolean(data.videoNeedsReencode));
       setTitle(data.title);
       setDuration(data.durationSec);
       setRange([0, data.durationSec]);
@@ -363,6 +370,7 @@ export function VideoTrimmer() {
         startSec: start,
         endSec: end,
         reencode,
+        reencodeVideo: videoNeedsReencode,
       });
       const url = URL.createObjectURL(blob);
       setResultUrl(url);
@@ -374,7 +382,7 @@ export function VideoTrimmer() {
       );
       setPhase("loaded");
     }
-  }, [trimSource, audioSrc, range, reencode, trim]);
+  }, [trimSource, audioSrc, range, reencode, videoNeedsReencode, trim]);
 
   const setStartToCurrent = () => {
     const el = videoRef.current;
