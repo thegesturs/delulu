@@ -1,71 +1,64 @@
 "use client";
-import type { CurrencyCode } from "@delulu/payments";
+import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
+import {
+  formatDmLimit,
+  PLANS,
+  type CurrencyCode,
+} from "@delulu/payments";
 import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { useCurrency } from "@/hooks/use-currency";
 
 function getFaqs(currency: CurrencyCode) {
-  const echoPrice = currency === "INR" ? "\u20B9449/mo" : "$4.99/mo";
-  const vibePrice = currency === "INR" ? "\u20B9899/mo" : "$9.99/mo";
-  // ManyChat price stays USD — it's a competitor comparison
+  const echo = PLANS.ECHO;
+  const vibe = PLANS.VIBE;
+  const echoPrice =
+    currency === "INR"
+      ? `₹${echo.price.INR.monthly}/mo`
+      : `$${echo.price.USD.monthly}/mo`;
+  const vibePrice =
+    currency === "INR"
+      ? `₹${vibe.price.INR.monthly}/mo`
+      : `$${vibe.price.USD.monthly}/mo`;
+
   return [
     {
       question: "Do I need to connect all my accounts?",
       answer:
-        "No. But if you enjoy manually uploading to six different apps every morning, go for it. We support Instagram, TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads. Connect what you want, ignore what you don't.",
+        "No. Instagram is required for auto-DM automations, but you can connect TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads whenever you want.",
     },
     {
       question: "Is my data safe?",
       answer:
-        "Bro, yes. We use the same official APIs that Meta, TikTok, and LinkedIn give to verified partners. No reverse-engineering, no sketchy hacks. We use OAuth (the fancy secure login thing), never store passwords, and you can revoke access anytime. Your content stays yours.",
-    },
-    {
-      question: "What if I'm just one random creator?",
-      answer:
-        "Perfect. You'll save even more time than the \"big agencies.\" One person juggling 5 platforms? That's exactly who we built this for. Less tab-switching, more creating.",
-    },
-    {
-      question: "Do you post automatically or just remind me?",
-      answer:
-        "Automatic. Reminders are for your mom. Schedule once, and we'll post at the perfect time while you sleep, work, or touch grass. No babysitting required.",
+        "Yes. We use official platform APIs with OAuth — we never store your passwords. You can revoke access anytime.",
     },
     {
       question: "Wait, this really replaces ManyChat?",
-      answer: `For Instagram DM automation? Yes. Someone comments a keyword \u2192 we send them a DM with your link, automatically. We even reply to their comment. ManyChat charges $67/mo for their pro plan. Our Echo plan (${echoPrice}) gives you unlimited auto-DMs. Same triggers, same automations, fraction of the price.`,
-    },
-    {
-      question: "How is this so cheap?",
-      answer:
-        "We're early. Current pricing is locked in for our first 50 users. We're not trying to be the most expensive tool in your stack \u2014 we're trying to be the only one you need.",
+      answer: `For Instagram DM automation? Yes. Someone comments a keyword → we send them a DM with your link and reply to their comment. ManyChat's pro plan runs $67/mo. Echo (${echoPrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month.`,
     },
     {
       question: "Is there a free plan?",
-      answer: `Yep. Try it. Hate it. Leave. Or stay forever. No hard feelings. Free gets you 1 platform, 10 posts/month, and 100 auto-DMs/month. Paid plans unlock way more \u2014 Echo at ${echoPrice} gets you unlimited DMs, and Vibe at ${vibePrice} gives you unlimited posts and platforms.`,
+      answer: `No — Delulu is a paid product built for creators who are serious about growth. Plans start at Echo (${echoPrice}). Every plan includes a 14-day money-back guarantee.`,
     },
     {
       question: "How many posts can I schedule?",
-      answer: `Free: 1 platform, 10 posts/month, 100 auto-DMs/month\n\nEcho (${echoPrice}): 5 platforms, 30 posts/month, unlimited auto-DMs\n\nVibe (${vibePrice}): Unlimited platforms, unlimited posts, 10,000 auto-DMs/month\n\nWe count by unique content, not platforms. 1 post shared to 5 platforms = 1 post in our system. Much more generous than other tools.`,
+      answer: `Echo (${echoPrice}): ${echo.limits.socialAccounts} social accounts, ${echo.limits.monthlyPosts} posts/month, ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month\n\nVibe (${vibePrice}): Unlimited social accounts, unlimited posts, ${formatDmLimit(DM_PLAN_LIMITS.VIBE)} auto-DMs/month\n\nWe count by unique content, not platforms. One post to 5 platforms = 1 post.`,
     },
     {
       question: "What content types do you support?",
       answer:
-        "Videos, images, carousels, text posts, GIFs... basically everything except your existential crisis tweets (though we won't judge). Platform formatting happens automatically.",
-    },
-    {
-      question: "Will this hurt my organic reach?",
-      answer:
-        "Nope. We use official APIs — the same ones Meta, TikTok, and LinkedIn hand out to approved apps. Platforms treat your content exactly like native posts. No algorithmic penalties, no account risk.",
+        "Videos, images, carousels, text posts, and GIFs. Platform formatting happens automatically.",
     },
     {
       question: "Can I cancel anytime?",
       answer:
-        "Obviously. No contracts, no guilt trips, no \"please don't leave us\" emails. Cancel in one click, and we'll even help you export your data if you want.",
+        "Yes. No contracts. Cancel in one click from billing, anytime.",
     },
     {
       question: "What if something breaks?",
       answer:
-        "Email us at swaraj@gesturs.com and we'll fix it. Usually within 6-12 hours, sometimes faster if it's really broken. We actually respond to support emails.",
+        "Email swaraj@gesturs.com — we typically respond within 6–12 hours.",
     },
   ];
 }
@@ -78,7 +71,6 @@ export function FAQ() {
   return (
     <section className="w-full py-20">
       <div className="mx-auto max-w-4xl px-4">
-        {/* Header */}
         <div className="mb-12 text-center">
           <h2 className="mb-4 font-semibold text-4xl">
             Let's be real. You have{" "}
@@ -89,7 +81,6 @@ export function FAQ() {
           </p>
         </div>
 
-        {/* FAQ Items */}
         <div className="space-y-4 rounded-[22px] bg-muted p-4">
           {faqs.map((faq, index) => (
             <div

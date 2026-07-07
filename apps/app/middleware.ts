@@ -23,6 +23,10 @@ const authRoutes = createRouteMatcher([
 ]);
 
 const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
+/** Allow automation builder during onboarding (step 3) */
+const onboardingAutomationRoute = createRouteMatcher([
+  "/automations(.*)",
+]);
 
 // Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
@@ -58,8 +62,11 @@ export default clerkMiddleware(async (auth, req) => {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  // For authenticated users visiting /onboarding, allow access
-  if (userId && onboardingRoute(req)) {
+  // For authenticated users visiting /onboarding or setting up automations, allow access
+  if (
+    userId &&
+    (onboardingRoute(req) || onboardingAutomationRoute(req))
+  ) {
     return withGeoCookie(NextResponse.next());
   }
 

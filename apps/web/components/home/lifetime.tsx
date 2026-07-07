@@ -5,6 +5,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import {
   CURRENCY_SYMBOLS,
   type CurrencyCode,
+  LIFETIME_DEAL_ACTIVE,
   LIFETIME_PRICE,
 } from "@delulu/payments";
 import {
@@ -863,7 +864,29 @@ function FinalCtaSection({
 // Main Export
 // ---------------------------------------------------------------------------
 
+function LifetimeEnded() {
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center px-4 py-24 text-center">
+      <h1 className="mb-4 font-bold text-4xl tracking-tight">
+        Lifetime deal ended
+      </h1>
+      <p className="mb-8 text-lg text-muted-foreground">
+        The lifetime offer is no longer available for new customers. Subscribe
+        to Echo or Vibe — same auto-DM power, monthly billing, 14-day
+        money-back guarantee.
+      </p>
+      <Button asChild size="lg">
+        <Link href="/pricing">View plans</Link>
+      </Button>
+    </div>
+  );
+}
+
 export default function Lifetime() {
+  if (!LIFETIME_DEAL_ACTIVE) {
+    return <LifetimeEnded />;
+  }
+
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const isINR = currency === "INR";

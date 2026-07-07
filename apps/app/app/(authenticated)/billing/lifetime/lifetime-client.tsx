@@ -16,7 +16,12 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CURRENCY_SYMBOLS, LIFETIME_PRICE } from "@delulu/payments";
+import {
+  CURRENCY_SYMBOLS,
+  LIFETIME_DEAL_ACTIVE,
+  LIFETIME_PRICE,
+} from "@delulu/payments";
+import Link from "next/link";
 import { getLifetimeProductId } from "@delulu/payments/product-ids";
 import {
   SparklesIcon,
@@ -86,6 +91,23 @@ export default function LifetimeClient() {
       setIsLoading(false);
     }
   };
+
+  if (!LIFETIME_DEAL_ACTIVE) {
+    return (
+      <div className="container mx-auto h-full max-w-2xl space-y-6 overflow-y-auto px-2 py-8 text-center">
+        <h1 className="font-bold text-3xl tracking-tight">
+          Lifetime deal ended
+        </h1>
+        <p className="text-muted-foreground">
+          New lifetime licenses are no longer available. Choose Echo or Vibe on
+          the billing page.
+        </p>
+        <Button asChild>
+          <Link href="/billing">View plans</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto h-full max-w-2xl space-y-8 overflow-y-auto px-2 py-8">

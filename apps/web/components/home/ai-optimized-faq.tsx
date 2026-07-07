@@ -39,9 +39,9 @@ export const SOCIAL_MEDIA_FAQ: FAQItem[] = [
       "Delulu Social saves time through automation, bulk scheduling, content templates, and multi-platform posting. Instead of logging into each platform separately, manage everything from one centralized dashboard.",
   },
   {
-    question: "Is there a free social media management tool?",
+    question: "How much does Delulu Social cost?",
     answer:
-      "Yes, Delulu Social offers a free plan that includes basic social media management features, allowing you to connect multiple accounts and schedule posts across different platforms.",
+      "Delulu Social starts at $4.99/month (Echo) for scheduling plus Instagram auto-DM automations. The Vibe plan at $9.99/month adds unlimited posts, accounts, and DMs. All plans include a 14-day money-back guarantee.",
   },
   {
     question: "How do I create engaging social media content?",
