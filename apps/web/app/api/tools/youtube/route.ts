@@ -15,9 +15,11 @@ type VideoInfo = YT.VideoInfo;
  *  - `?mode=proxy&id=<videoId>&itag=<n>` → streams the chosen format's bytes with
  *     CORS + forwarded Range headers (never buffered in the Worker).
  *
- * v1 uses PROGRESSIVE (muxed audio+video) formats only, so the `<video>` preview
- * and ffmpeg.wasm trim work with a single stream and minimal memory. HD (adaptive
- * video-only + audio-only, muxed client-side by ffmpeg.wasm) is a planned follow-up.
+ * Resolve prefers a PROGRESSIVE (muxed) stream when available — it plays directly
+ * in `<video>` and trims with a plain stream copy. Most videos have no muxed
+ * format, so it falls back to an ADAPTIVE video-only + audio-only pair; the browser
+ * muxes those with ffmpeg.wasm while trimming. The response `mode` field tells the
+ * client which path to take.
  *
  * Reliability: the default WEB client frequently returns UNPLAYABLE (bot / PoToken
  * gate), so `getPlayableInfo` falls back across the iOS / Android / TV-embedded
@@ -79,17 +81,51 @@ function getInnertube(): Promise<Innertube> {
   return innertubePromise;
 }
 
-type ProgressiveFormat = NonNullable<
-  VideoInfo["streaming_data"]
->["formats"][number];
+type Format = NonNullable<VideoInfo["streaming_data"]>["formats"][number];
 
-function progressiveFormats(info: VideoInfo): ProgressiveFormat[] {
+function progressiveFormats(info: VideoInfo): Format[] {
   return (info.streaming_data?.formats ?? []).filter(
     (f) => f.has_audio && f.has_video
   );
 }
 
-/** Try each client until one yields a playable video with muxed formats. */
+function adaptiveFormats(info: VideoInfo): Format[] {
+  return info.streaming_data?.adaptive_formats ?? [];
+}
+
+/** Best H.264/MP4 video-only track, capped at 720p to keep browser memory sane. */
+function pickAdaptiveVideo(info: VideoInfo): Format | undefined {
+  const videos = adaptiveFormats(info)
+    .filter(
+      (f) =>
+        f.has_video &&
+        !f.has_audio &&
+        (f.mime_type?.includes("mp4") ?? false) &&
+        (f.mime_type?.includes("avc1") ?? false)
+    )
+    .sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
+  return videos.find((f) => (f.height ?? 0) <= 720) ?? videos.at(-1);
+}
+
+/** Best AAC/MP4 audio-only track. */
+function pickAdaptiveAudio(info: VideoInfo): Format | undefined {
+  return adaptiveFormats(info)
+    .filter(
+      (f) =>
+        f.has_audio && !f.has_video && (f.mime_type?.includes("mp4") ?? false)
+    )
+    .sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+}
+
+/** A muxed progressive stream, or a video-only + audio-only pair to combine. */
+function hasUsableStreams(info: VideoInfo): boolean {
+  return (
+    progressiveFormats(info).length > 0 ||
+    Boolean(pickAdaptiveVideo(info) && pickAdaptiveAudio(info))
+  );
+}
+
+/** Try each client until one yields a playable video with usable streams. */
 async function getPlayableInfo(
   yt: Innertube,
   videoId: string
@@ -99,10 +135,7 @@ async function getPlayableInfo(
     try {
       const info = await yt.getInfo(videoId, { client });
       last = info;
-      if (
-        info.playability_status?.status === "OK" &&
-        progressiveFormats(info).length > 0
-      ) {
+      if (info.playability_status?.status === "OK" && hasUsableStreams(info)) {
         return info;
       }
     } catch (error) {
@@ -169,56 +202,83 @@ async function handleResolve(searchParams: URLSearchParams) {
     return jsonError("Live streams can't be trimmed.", 400);
   }
 
-  const progressive = progressiveFormats(info);
-  if (progressive.length === 0) {
-    return jsonError(
-      "This video has no downloadable muxed format available. Try a different video.",
-      422
-    );
-  }
-
-  // Pre-decipher + cache URLs so the proxy call is instant (and avoids a second
-  // getInfo that can trip bot detection).
   const yt = await getInnertube();
   const player = yt.session.player;
   const now = Date.now();
-  for (const f of progressive) {
+
+  // Pre-decipher + cache a format's URL so the proxy call is instant (and avoids
+  // a second getInfo that can trip bot detection).
+  const cacheUrl = async (format: Format) => {
     if (!player) {
-      break;
+      return;
     }
     try {
-      urlCache.set(`${videoId}:${f.itag}`, {
-        url: await f.decipher(player),
+      urlCache.set(`${videoId}:${format.itag}`, {
+        url: await format.decipher(player),
         expiresAt: now + URL_CACHE_TTL_MS,
       });
     } catch {
       // Non-fatal — the proxy will re-resolve on demand.
     }
+  };
+
+  const base = {
+    videoId,
+    title: info.basic_info.title ?? "Untitled",
+    durationSec: info.basic_info.duration ?? 0,
+    thumbnail: (info.basic_info.thumbnail ?? []).at(-1)?.url ?? null,
+  };
+
+  const progressive = progressiveFormats(info);
+  if (progressive.length > 0) {
+    // Single muxed stream: plays in <video> and trims with a plain stream copy.
+    for (const f of progressive) {
+      await cacheUrl(f);
+    }
+    const formats = progressive
+      .map((f) => ({
+        itag: f.itag,
+        qualityLabel: f.quality_label ?? f.quality ?? "unknown",
+        approxSizeBytes: f.content_length ? Number(f.content_length) : null,
+        height: f.height ?? null,
+      }))
+      .sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
+    return NextResponse.json(
+      { ...base, mode: "progressive", formats },
+      { headers: { "Access-Control-Allow-Origin": "*" } }
+    );
   }
 
-  const formats = progressive
-    .map((f) => ({
-      itag: f.itag,
-      qualityLabel: f.quality_label ?? f.quality ?? "unknown",
-      mimeType: f.mime_type,
-      container: f.mime_type?.split(";")[0]?.split("/")[1] ?? "mp4",
-      hasAudio: f.has_audio,
-      hasVideo: f.has_video,
-      approxSizeBytes: f.content_length ? Number(f.content_length) : null,
-      width: f.width ?? null,
-      height: f.height ?? null,
-    }))
-    .sort((a, b) => (b.height ?? 0) - (a.height ?? 0));
-
-  const thumbnails = info.basic_info.thumbnail ?? [];
-
+  // No muxed format (common — most videos are adaptive-only). Return a
+  // video-only + audio-only pair; the browser muxes them with ffmpeg.wasm.
+  const video = pickAdaptiveVideo(info);
+  const audio = pickAdaptiveAudio(info);
+  if (!(video && audio)) {
+    return jsonError(
+      "This video has no downloadable format available. Try a different video.",
+      422
+    );
+  }
+  await cacheUrl(video);
+  await cacheUrl(audio);
   return NextResponse.json(
     {
-      videoId,
-      title: info.basic_info.title ?? "Untitled",
-      durationSec: info.basic_info.duration ?? 0,
-      thumbnail: thumbnails.at(-1)?.url ?? null,
-      formats,
+      ...base,
+      mode: "adaptive",
+      video: {
+        itag: video.itag,
+        qualityLabel: video.quality_label ?? `${video.height ?? ""}p`,
+        approxSizeBytes: video.content_length
+          ? Number(video.content_length)
+          : null,
+        height: video.height ?? null,
+      },
+      audio: {
+        itag: audio.itag,
+        approxSizeBytes: audio.content_length
+          ? Number(audio.content_length)
+          : null,
+      },
     },
     { headers: { "Access-Control-Allow-Origin": "*" } }
   );
@@ -239,11 +299,12 @@ async function resolveStreamUrl(
   if (!info) {
     return null;
   }
-  const progressive = progressiveFormats(info);
+  // The requested itag may be progressive OR adaptive (video-only / audio-only).
+  const allFormats = [...progressiveFormats(info), ...adaptiveFormats(info)];
   const format =
     (Number.isNaN(itag)
-      ? progressive[0]
-      : progressive.find((f) => f.itag === itag)) ?? progressive[0];
+      ? allFormats[0]
+      : allFormats.find((f) => f.itag === itag)) ?? allFormats[0];
   const player = yt.session.player;
   if (!(format && player)) {
     return null;

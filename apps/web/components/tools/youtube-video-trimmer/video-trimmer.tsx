@@ -34,17 +34,28 @@ const FILE_EXTENSION_RE = /\.[^.]+$/;
 
 type Phase = "input" | "loaded" | "processing" | "done";
 
+interface AdaptiveTrack {
+  itag: number;
+  approxSizeBytes: number | null;
+}
+
 interface ResolvedVideo {
   videoId: string;
   title: string;
   durationSec: number;
   thumbnail: string | null;
-  formats: Array<{
+  mode: "progressive" | "adaptive";
+  /** Present when mode === "progressive". */
+  formats?: Array<{
     itag: number;
     qualityLabel: string;
     approxSizeBytes: number | null;
     height: number | null;
   }>;
+  /** Video-only track; present when mode === "adaptive". */
+  video?: AdaptiveTrack & { qualityLabel: string; height: number | null };
+  /** Audio-only track; present when mode === "adaptive". */
+  audio?: AdaptiveTrack;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -212,6 +223,8 @@ export function VideoTrimmer() {
   // Loaded video state
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [trimSource, setTrimSource] = useState<File | string | null>(null);
+  // Separate audio track for YouTube "adaptive" videos (video preview is silent).
+  const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(0);
   const [range, setRange] = useState<[number, number]>([0, 0]);
@@ -230,6 +243,7 @@ export function VideoTrimmer() {
     setPhase("input");
     setVideoSrc(null);
     setTrimSource(null);
+    setAudioSrc(null);
     setTitle("");
     setDuration(0);
     setRange([0, 0]);
@@ -267,6 +281,7 @@ export function VideoTrimmer() {
     const objectUrl = URL.createObjectURL(file);
     setVideoSrc(objectUrl);
     setTrimSource(file);
+    setAudioSrc(null);
     setTitle(file.name.replace(FILE_EXTENSION_RE, ""));
     setRange([0, 0]);
     setDuration(0);
@@ -286,18 +301,38 @@ export function VideoTrimmer() {
       if (!res.ok) {
         throw new Error(data.error ?? "Could not load that video.");
       }
-      const best = data.formats[0];
-      if (!best) {
-        throw new Error("No downloadable format found for this video.");
+
+      const proxy = (itag: number) =>
+        `/api/tools/youtube?mode=proxy&id=${data.videoId}&itag=${itag}`;
+
+      let videoUrl: string;
+      let audioUrl: string | null = null;
+      let approxSize: number;
+
+      if (data.mode === "adaptive" && data.video && data.audio) {
+        // Video-only + audio-only pair; muxed together at trim time.
+        videoUrl = proxy(data.video.itag);
+        audioUrl = proxy(data.audio.itag);
+        approxSize =
+          (data.video.approxSizeBytes ?? 0) + (data.audio.approxSizeBytes ?? 0);
+      } else {
+        const best = data.formats?.[0];
+        if (!best) {
+          throw new Error("No downloadable format found for this video.");
+        }
+        videoUrl = proxy(best.itag);
+        approxSize = best.approxSizeBytes ?? 0;
       }
-      if (best.approxSizeBytes && best.approxSizeBytes > MAX_INPUT_BYTES) {
+
+      if (approxSize > MAX_INPUT_BYTES) {
         toast.warning(
           "This video is large — trimming may be slow or run out of memory."
         );
       }
-      const proxyUrl = `/api/tools/youtube?mode=proxy&id=${data.videoId}&itag=${best.itag}`;
-      setVideoSrc(proxyUrl);
-      setTrimSource(proxyUrl);
+
+      setVideoSrc(videoUrl);
+      setTrimSource(videoUrl);
+      setAudioSrc(audioUrl);
       setTitle(data.title);
       setDuration(data.durationSec);
       setRange([0, data.durationSec]);
@@ -324,6 +359,7 @@ export function VideoTrimmer() {
     try {
       const blob = await trim({
         source: trimSource,
+        audioSource: audioSrc ?? undefined,
         startSec: start,
         endSec: end,
         reencode,
@@ -338,7 +374,7 @@ export function VideoTrimmer() {
       );
       setPhase("loaded");
     }
-  }, [trimSource, range, reencode, trim]);
+  }, [trimSource, audioSrc, range, reencode, trim]);
 
   const setStartToCurrent = () => {
     const el = videoRef.current;
@@ -459,6 +495,12 @@ export function VideoTrimmer() {
               >
                 {title}
               </p>
+
+              {audioSrc && phase !== "done" && (
+                <p className="text-center text-muted-foreground text-xs">
+                  Preview has no sound — your trimmed clip will include audio.
+                </p>
+              )}
 
               {duration > 0 && phase !== "done" && (
                 <div className="flex flex-col gap-4">
