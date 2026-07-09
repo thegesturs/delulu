@@ -21,10 +21,21 @@ import { getCurrentTimestamp } from "./utils";
 // directly. This is the fix for the last-writer-wins corruption in
 // posts.updatePostPublishStatus.
 //
-// Phase 1 (current): these mutations exist but are unwired ("shadow mode").
-// Nothing enqueues SQS with a publishJobId yet, and the worker still calls the
-// legacy path. Wiring happens in Phases 2–3 per the migration doc.
+// Rollout is gated by PUBLISH_PIPELINE_V2 (off → shadow → dual → enabled); see
+// schemas/publish.ts. The enqueue paths (post.service.ts, posts.publishScheduledPost)
+// create runs in shadow+ and thread publishJobId into SQS in dual+.
 // ============================================================================
+
+// These mutations are public so the worker (ConvexHttpClient) can call them.
+// When PUBLISH_PIPELINE_SECRET is configured, callers must present it — a
+// shared-secret stand-in for the ADR-004 HMAC gateway the CF worker can't run.
+// Unset (dev/tests/off mode) → open, preserving current behavior.
+function assertPipelineAuth(secret: string | undefined): void {
+  const expected = process.env.PUBLISH_PIPELINE_SECRET;
+  if (expected && secret !== expected) {
+    throw new Error("Unauthorized publish pipeline call");
+  }
+}
 
 /** Extract video bucket keys from a post for post-publish cleanup scheduling. */
 function extractVideoBucketKeys(post: Doc<"posts">): string[] {
@@ -194,6 +205,7 @@ export const createPublishRun = mutation({
     postId: v.id("posts"),
     // If omitted, uses all providers on the post.
     socialProviderIds: v.optional(v.array(v.id("socialProviders"))),
+    secret: v.optional(v.string()),
   },
   returns: v.object({
     runId: v.string(),
@@ -205,6 +217,7 @@ export const createPublishRun = mutation({
     ),
   }),
   handler: async (ctx, args) => {
+    assertPipelineAuth(args.secret);
     const post = await ctx.db.get(args.postId);
     if (!post) {
       throw new Error("Post not found");
@@ -256,8 +269,14 @@ export const startAttempt = mutation({
     publishJobId: v.id("publish_jobs"),
     attemptNumber: v.number(),
     workerRequestId: v.optional(v.string()),
+    secret: v.optional(v.string()),
   },
+  returns: v.object({
+    alreadyComplete: v.boolean(),
+    status: v.string(),
+  }),
   handler: async (ctx, args) => {
+    assertPipelineAuth(args.secret);
     const job = await ctx.db.get(args.publishJobId);
     if (!job) {
       throw new Error("Publish job not found");
@@ -339,8 +358,15 @@ export const completeAttempt = mutation({
     errorClass: v.optional(errorClassSchema),
     errorMessage: v.optional(v.string()),
     workerRequestId: v.optional(v.string()),
+    secret: v.optional(v.string()),
   },
+  returns: v.object({
+    alreadyComplete: v.boolean(),
+    jobStatus: v.optional(v.string()),
+    postPublishStatus: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
+    assertPipelineAuth(args.secret);
     const job = await ctx.db.get(args.publishJobId);
     if (!job) {
       throw new Error("Publish job not found");
@@ -438,6 +464,9 @@ export const retryFailedJobs = mutation({
   args: {
     postId: v.id("posts"),
     socialProviderIds: v.optional(v.array(v.id("socialProviders"))),
+    // ponytail: shared-secret for now; a dashboard call needs Clerk ownership
+    // auth instead — tracked as a pre-enabled follow-up.
+    secret: v.optional(v.string()),
   },
   returns: v.object({
     runId: v.optional(v.string()),
@@ -445,6 +474,7 @@ export const retryFailedJobs = mutation({
     jobIds: v.array(v.id("publish_jobs")),
   }),
   handler: async (ctx, args) => {
+    assertPipelineAuth(args.secret);
     const post = await ctx.db.get(args.postId);
     if (!post) {
       throw new Error("Post not found");
@@ -459,16 +489,26 @@ export const retryFailedJobs = mutation({
       ? new Set(args.socialProviderIds.map((id) => id.toString()))
       : null;
 
-    // Latest failed job per provider (a provider may have older runs).
-    const failedByProvider = new Map<string, Id<"socialProviders">>();
+    // Keep only the LATEST job per provider (by createdAt), then retry those
+    // whose latest run failed — so a provider that later succeeded in a newer
+    // run is not re-published.
+    const latestByProvider = new Map<string, Doc<"publish_jobs">>();
     for (const job of jobs) {
+      const key = job.socialProviderId.toString();
+      const current = latestByProvider.get(key);
+      if (!current || job.createdAt > current.createdAt) {
+        latestByProvider.set(key, job);
+      }
+    }
+
+    const failedByProvider = new Map<string, Id<"socialProviders">>();
+    for (const [key, job] of latestByProvider) {
       const isFailed =
         job.status === PUBLISH_JOB_STATUS.FAILED ||
         job.status === PUBLISH_JOB_STATUS.DEAD_LETTER;
       if (!isFailed) {
         continue;
       }
-      const key = job.socialProviderId.toString();
       if (requested && !requested.has(key)) {
         continue;
       }
@@ -510,46 +550,55 @@ export const retryFailedJobs = mutation({
 });
 
 /**
- * Stuck-job sweeper (Phase 5). Run on a cron: jobs left PROCESSING past the
- * threshold are either re-queued (attempts remain) or dead-lettered. Re-derives
- * affected posts so the dashboard recovers without user action.
+ * Stuck-job sweeper (Phase 5). Backstop for jobs the SQS DLQ can't catch:
+ *   - PROCESSING jobs whose worker died WITHOUT throwing (so SQS never
+ *     redelivered and the message silently expired), and
+ *   - QUEUED jobs that were never delivered (e.g. enqueue failed mid-loop
+ *     after createPublishRun already created the job — see the enqueue paths).
+ *
+ * SQS is the primary retry mechanism, so the threshold must sit safely BEYOND
+ * the max SQS retry window (maxReceiveCount 5 × 15-min visibility ≈ 75 min) or
+ * we would dead-letter jobs SQS is still legitimately retrying. Convex can't
+ * re-enqueue to the trigger Lambda, so a genuinely stuck job is dead-lettered
+ * (surfacing it in the UI) rather than pointlessly re-queued; the user recovers
+ * via retryFailedJobs, which creates a fresh run and enqueues it.
  */
 export const sweepStuckJobs = internalMutation({
   args: { thresholdMs: v.optional(v.number()) },
-  returns: v.object({ requeued: v.number(), deadLettered: v.number() }),
+  returns: v.object({ deadLettered: v.number() }),
   handler: async (ctx, args) => {
-    const threshold = args.thresholdMs ?? 30 * 60 * 1000; // 30 min
+    const threshold = args.thresholdMs ?? 90 * 60 * 1000; // 90 min
     const now = getCurrentTimestamp();
     const cutoff = now - threshold;
 
-    const stuck = await ctx.db
-      .query("publish_jobs")
-      .withIndex("by_status", (q) => q.eq("status", "PROCESSING"))
-      .collect();
+    const stuck = [
+      ...(await ctx.db
+        .query("publish_jobs")
+        .withIndex("by_status", (q) => q.eq("status", "PROCESSING"))
+        .collect()),
+      ...(await ctx.db
+        .query("publish_jobs")
+        .withIndex("by_status", (q) => q.eq("status", "QUEUED"))
+        .collect()),
+    ];
 
-    let requeued = 0;
     let deadLettered = 0;
     const touchedPosts = new Set<string>();
 
     for (const job of stuck) {
       if (job.updatedAt >= cutoff) {
-        continue; // still fresh
+        continue; // still within the SQS retry window — leave it alone
       }
-      if (job.attemptCount < job.maxAttempts) {
-        await ctx.db.patch(job._id, {
-          status: "QUEUED",
-          nextRetryAt: now,
-          updatedAt: now,
-        });
-        requeued++;
-      } else {
-        await ctx.db.patch(job._id, {
-          status: "DEAD_LETTER",
-          completedAt: now,
-          updatedAt: now,
-        });
-        deadLettered++;
-      }
+      await ctx.db.patch(job._id, {
+        status: "DEAD_LETTER",
+        errorClass: job.errorClass,
+        errorCode: job.errorCode ?? "STUCK_SWEEP",
+        errorMessage:
+          job.errorMessage ?? "Job stuck past retry window; dead-lettered",
+        completedAt: now,
+        updatedAt: now,
+      });
+      deadLettered++;
       touchedPosts.add(job.postId.toString());
     }
 
@@ -557,9 +606,6 @@ export const sweepStuckJobs = internalMutation({
       await deriveAndPatchPostPublishStatus(ctx, postId as Id<"posts">);
     }
 
-    // ponytail: requeued jobs are marked QUEUED but NOT re-enqueued to SQS here
-    // (Convex mutations can't call the trigger Lambda). A follow-up action or
-    // the dual-path enqueue picks them up; the SQS DLQ is the primary safety net.
-    return { requeued, deadLettered };
+    return { deadLettered };
   },
 });

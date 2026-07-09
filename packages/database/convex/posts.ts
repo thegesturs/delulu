@@ -804,6 +804,10 @@ export const updatePostPublishStatus = mutation({
       postedAt: v.number(),
       postId: v.id("posts"),
     }),
+    // Publish Pipeline v2 (dual mode): the job path already ran streak,
+    // automation link, and video cleanup — skip them here to avoid double
+    // counting. The legacy path still mirrors status + platformPosts.
+    skipSideEffects: v.optional(v.boolean()),
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
@@ -847,35 +851,41 @@ export const updatePostPublishStatus = mutation({
     if (newPost) {
       await replacePostAggregate(ctx, oldPost, newPost);
 
-      // If post was published successfully, update the user's streak
-      if (args.status === "PUBLISHED" && post.userId) {
-        await ctx.runMutation(internal.stats.addPublishDateInternal, {
-          userId: post.userId,
-          publishDate: now,
-        });
-      }
+      // Side effects owned by the job path in dual mode — skip when asked.
+      if (!args.skipSideEffects) {
+        // If post was published successfully, update the user's streak
+        if (args.status === "PUBLISHED" && post.userId) {
+          await ctx.runMutation(internal.stats.addPublishDateInternal, {
+            userId: post.userId,
+            publishDate: now,
+          });
+        }
 
-      // If published with a platform post ID, link to automations waiting for this post
-      if (args.status === "PUBLISHED" && args.platformPostData.platformPostId) {
-        await ctx.runMutation(internal.automations.linkPublishedPost, {
-          convexPostId: args.postId,
-          instagramMediaId: args.platformPostData.platformPostId,
-          socialProviderId: args.platformPostData.socialProviderId,
-        });
-      }
+        // If published with a platform post ID, link to automations waiting for this post
+        if (
+          args.status === "PUBLISHED" &&
+          args.platformPostData.platformPostId
+        ) {
+          await ctx.runMutation(internal.automations.linkPublishedPost, {
+            convexPostId: args.postId,
+            instagramMediaId: args.platformPostData.platformPostId,
+            socialProviderId: args.platformPostData.socialProviderId,
+          });
+        }
 
-      // Schedule video cleanup 7 days after publish
-      if (args.status === "PUBLISHED") {
-        const videoBucketKeys = extractVideoBucketKeys(post);
-        if (videoBucketKeys.length > 0) {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.callmelater.scheduleVideoCleanupAction,
-            {
-              bucketKeys: videoBucketKeys,
-              postId: args.postId,
-            }
-          );
+        // Schedule video cleanup 7 days after publish
+        if (args.status === "PUBLISHED") {
+          const videoBucketKeys = extractVideoBucketKeys(post);
+          if (videoBucketKeys.length > 0) {
+            await ctx.scheduler.runAfter(
+              0,
+              internal.callmelater.scheduleVideoCleanupAction,
+              {
+                bucketKeys: videoBucketKeys,
+                postId: args.postId,
+              }
+            );
+          }
         }
       }
     }
@@ -934,6 +944,7 @@ export const publishScheduledPost = internalAction({
       if (shouldCreateJobs(publishMode)) {
         const run = await ctx.runMutation(api.publish.createPublishRun, {
           postId: args.postId,
+          secret: process.env.PUBLISH_PIPELINE_SECRET,
         });
         jobByProvider = Object.fromEntries(
           run.jobs.map((j) => [j.socialProviderId, j.publishJobId])
@@ -970,7 +981,7 @@ export const publishScheduledPost = internalAction({
           body: JSON.stringify({
             socialType: provider.socialType,
             ...(routeThroughJobs && jobByProvider[provider._id]
-              ? { publishJobId: jobByProvider[provider._id], attemptNumber: 1 }
+              ? { publishJobId: jobByProvider[provider._id] }
               : {}),
             socialPublishInput: {
               content: contentToPost,
