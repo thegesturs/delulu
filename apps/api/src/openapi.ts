@@ -65,7 +65,7 @@ All \`/v1\` endpoints require a Bearer token via the \`Authorization\` header:
 Authorization: Bearer YOUR_API_KEY
 \`\`\`
 
-Create API keys in your [Delulu Social dashboard](https://app.delulu.social/settings/api).
+Create API keys in your [Delulu Social dashboard](https://solulu.delulu.social/settings/api).
 
 ## Scopes
 
