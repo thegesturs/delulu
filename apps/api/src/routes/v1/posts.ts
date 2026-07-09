@@ -164,7 +164,7 @@ posts.post("/", requireScope("posts:write"), async (c) => {
       externalSubmissionId: body.external_submission_id,
     });
 
-    const appUrl = c.env.DELULU_APP_URL || "https://app.delulu.social";
+    const appUrl = c.env.DELULU_APP_URL || "https://solulu.delulu.social";
     return c.json(
       {
         data: {

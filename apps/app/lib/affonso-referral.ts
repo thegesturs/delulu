@@ -3,7 +3,7 @@
  *
  * The `affonso_referral` cookie is set by the Affonso tracking pixel when a
  * visitor arrives via an affiliate link. Because the marketing site (delulu.social)
- * and the app (app.delulu.social) may live on different domains, we also check
+ * and the app (solulu.delulu.social) may live on different domains, we also check
  * the `aff` URL search parameter as a cross-domain hand-off mechanism. The
  * marketing site appends `?aff=<referral>` when linking to the app.
  *
