@@ -9,6 +9,7 @@ export const apiKeyScopeSchema = v.union(
   v.literal("posts:write"),
   v.literal("accounts:read"),
   v.literal("stats:read"),
+  v.literal("media:write"),
   v.literal("reviews:read")
 );
 

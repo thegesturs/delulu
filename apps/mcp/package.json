@@ -6,13 +6,20 @@
   "bin": {
     "delulu-mcp": "./dist/index.js"
   },
+  "exports": {
+    ".": "./dist/server.js",
+    "./api-client": "./dist/api-client.js",
+    "./tools/accounts": "./dist/tools/accounts.js",
+    "./tools/posts": "./dist/tools/posts.js",
+    "./tools/stats": "./dist/tools/stats.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "catalog:"
   },
   "devDependencies": {
