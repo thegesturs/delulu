@@ -90,6 +90,10 @@ export default $config({
         link: [CONVEX_URL],
         environment: {
           NEXT_PUBLIC_CONVEX_URL: CONVEX_URL.value,
+          // Publish Pipeline v2 rollout flag + shared secret. Baked at deploy
+          // from the deployer's env; default off so behavior is unchanged.
+          PUBLISH_PIPELINE_V2: process.env.PUBLISH_PIPELINE_V2 ?? "off",
+          PUBLISH_PIPELINE_SECRET: process.env.PUBLISH_PIPELINE_SECRET ?? "",
         },
         copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
         nodejs: {

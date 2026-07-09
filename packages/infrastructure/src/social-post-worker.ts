@@ -10,7 +10,13 @@ import { processMessage } from "../../worker/client";
 
 export async function handler(event: SQSEvent): Promise<void> {
   for (const record of event.Records) {
-    // Pass the SQS messageId as the correlation id for attempt logging.
-    await processMessage(record.body, record.messageId);
+    // messageId = correlation id; ApproximateReceiveCount = attempt number
+    // (increments on each redelivery) so retries append new attempt rows.
+    const receiveCount = Number(record.attributes?.ApproximateReceiveCount);
+    await processMessage(
+      record.body,
+      record.messageId,
+      Number.isFinite(receiveCount) ? receiveCount : undefined
+    );
   }
 }

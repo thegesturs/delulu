@@ -32,6 +32,7 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
   if (shouldCreateJobs(publishMode)) {
     const run = await fetchMutation(api.publish.createPublishRun, {
       postId: post._id,
+      secret: process.env.PUBLISH_PIPELINE_SECRET,
     });
     jobByProvider = Object.fromEntries(
       run.jobs.map((j) => [j.socialProviderId, j.publishJobId])
@@ -73,7 +74,7 @@ export const createPostInQueue = async (post: GetPostByIdSchema) => {
       body: JSON.stringify({
         socialType: provider.socialType,
         ...(routeThroughJobs && jobByProvider[provider._id]
-          ? { publishJobId: jobByProvider[provider._id], attemptNumber: 1 }
+          ? { publishJobId: jobByProvider[provider._id] }
           : {}),
         socialPublishInput: {
           content: contentToPost,

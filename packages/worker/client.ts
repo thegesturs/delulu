@@ -19,13 +19,18 @@ interface PublishMessage {
   socialType: SocialType;
   // Publish Pipeline v2 — present once enqueue runs in dual/enabled mode.
   publishJobId?: string;
-  attemptNumber?: number;
 }
 
-export async function processMessage(messageBody: string, messageId?: string) {
+export async function processMessage(
+  messageBody: string,
+  messageId?: string,
+  // SQS ApproximateReceiveCount — 1 on first delivery, 2+ on each redelivery.
+  receiveCount?: number
+) {
   console.log("Message body", messageBody);
-  const { socialPublishInput, socialType, publishJobId, attemptNumber } =
-    JSON.parse(messageBody) as PublishMessage;
+  const { socialPublishInput, socialType, publishJobId } = JSON.parse(
+    messageBody
+  ) as PublishMessage;
 
   console.log("Social publish input", socialPublishInput);
 
@@ -37,14 +42,18 @@ export async function processMessage(messageBody: string, messageId?: string) {
   // Only drive the job pipeline when this message actually carries a job id.
   const useJobs = Boolean(publishJobId) && shouldRouteThroughJobs(mode);
   const useLegacy = !useJobs || shouldRunLegacyWrite(mode);
-  const attempt = attemptNumber ?? 1;
+  // Attempt number tracks SQS redeliveries so each retry appends a new
+  // publish_attempts row instead of overwriting attempt 1.
+  const attempt = receiveCount ?? 1;
   const jobId = publishJobId as Id<"publish_jobs"> | undefined;
+  const secret = process.env.PUBLISH_PIPELINE_SECRET;
 
   if (useJobs && jobId) {
     await convex.mutation(api.publish.startAttempt, {
       publishJobId: jobId,
       attemptNumber: attempt,
       workerRequestId: messageId,
+      secret,
     });
   }
 
@@ -68,6 +77,7 @@ export async function processMessage(messageBody: string, messageId?: string) {
         errorClass,
         errorMessage,
         workerRequestId: messageId,
+        secret,
       });
     }
 
@@ -82,6 +92,8 @@ export async function processMessage(messageBody: string, messageId?: string) {
           postedAt: Date.now(),
           postId: socialPublishInput.postId as Id<"posts">,
         },
+        // In dual mode the job path owns side effects; legacy only mirrors.
+        skipSideEffects: useJobs,
       });
     }
 
@@ -101,6 +113,7 @@ export async function processMessage(messageBody: string, messageId?: string) {
       platformPostId: result.value.platformPostId,
       platformPostUrl: result.value.platformPostUrl,
       workerRequestId: messageId,
+      secret,
     });
   }
 
@@ -116,6 +129,8 @@ export async function processMessage(messageBody: string, messageId?: string) {
         postedAt: Date.now(),
         postId: socialPublishInput.postId as Id<"posts">,
       },
+      // In dual mode the job path owns side effects; legacy only mirrors.
+      skipSideEffects: useJobs,
     });
   }
 
