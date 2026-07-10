@@ -6,9 +6,11 @@ import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
 import {
   CURRENCY_SYMBOLS,
-  getAllPlans,
+  formatDmLimit,
+  getMaxYearlySavingsPercent,
+  getPublicPlans,
   type Plan,
-  type PlanType,
+  type PublicPlanType,
 } from "@delulu/payments";
 import Link from "next/link";
 import { useState } from "react";
@@ -27,7 +29,7 @@ const PricingCard = ({
   currencySymbol,
   isINR,
 }: {
-  planId: PlanType;
+  planId: PublicPlanType;
   tier: string;
   subtitle: string;
   monthlyPrice: number;
@@ -165,11 +167,7 @@ const getFeatureList = (plan: Plan): string[] => {
 
   // DM automation limits
   const dmLimit = DM_PLAN_LIMITS[plan.id];
-  if (dmLimit === -1) {
-    features.push("Unlimited auto-DMs/month");
-  } else if (dmLimit > 0) {
-    features.push(`${dmLimit.toLocaleString()} auto-DMs/month`);
-  }
+  features.push(`${formatDmLimit(dmLimit)} auto-DMs/month`);
 
   // Features
   if (plan.features.postScheduling) {
@@ -188,31 +186,12 @@ export default function Pricing() {
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const isINR = currency === "INR";
 
-  const plans = getAllPlans();
+  const plans = getPublicPlans();
+  const yearlySavings = getMaxYearlySavingsPercent();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-24" id="pricing">
       <div className="mb-16 text-center">
-        {/* Urgency Banner */}
-        <div className="mx-auto mb-8 w-fit animate-pulse">
-          <div className="flex items-center gap-2 rounded-full border-2 border-primary/20 bg-primary/10 px-6 py-3 shadow-lg backdrop-blur-sm">
-            <svg
-              className="h-5 w-5 text-primary"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span className="font-semibold text-foreground text-sm">
-              ⚡ Limited Spots: Only 50 founders get current pricing
-            </span>
-          </div>
-        </div>
-
         <h2 className="mb-4 font-bold text-4xl">
           <span className="text-primary">Simple</span> Pricing for Everyone
         </h2>
@@ -242,15 +221,15 @@ export default function Pricing() {
           >
             Yearly
             <span className="ml-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-primary text-xs">
-              Save up to 30%
+              Save {yearlySavings}%
             </span>
           </span>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-2">
         {plans.map((plan) => (
           <PricingCard
-            cta={plan.id === "FREE" ? "Start Free" : "Get Started"}
+            cta="Get Started"
             currencySymbol={currencySymbol}
             features={getFeatureList(plan)}
             isHighlighted={plan.popular}

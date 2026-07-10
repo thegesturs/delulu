@@ -6,12 +6,11 @@ import {
   shouldRunLegacyWrite,
 } from "@delulu/database/convex/schemas/publish";
 import { convex } from "@delulu/database/node";
+import { runPublish } from "@delulu/connections/worker";
 import type {
   SocialPublishInputType,
   SocialType,
 } from "@delulu/validators/post";
-import { providerRegistry } from "./providers";
-import { classifyError } from "./providers/errors";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
 interface PublishMessage {
@@ -20,6 +19,43 @@ interface PublishMessage {
   // Publish Pipeline v2 — present once enqueue runs in dual/enabled mode.
   publishJobId?: string;
 }
+
+const markFailed = (
+  input: SocialPublishInputType,
+  failureReason: string,
+  skipSideEffects: boolean
+) =>
+  convex.mutation(api.posts.updatePostPublishStatus, {
+    postId: input.postId as Id<"posts">,
+    status: "FAILED",
+    platformPostData: {
+      failureReason,
+      socialProviderId: input.socialProviderId as Id<"socialProviders">,
+      postedAt: Date.now(),
+      postId: input.postId as Id<"posts">,
+    },
+    // In dual mode the job path owns side effects; legacy only mirrors.
+    skipSideEffects,
+  });
+
+const markPublished = (
+  input: SocialPublishInputType,
+  data: { platformPostId: string; platformPostUrl: string },
+  skipSideEffects: boolean
+) =>
+  convex.mutation(api.posts.updatePostPublishStatus, {
+    postId: input.postId as Id<"posts">,
+    status: "PUBLISHED",
+    platformPostData: {
+      platformPostId: data.platformPostId,
+      platformPostUrl: data.platformPostUrl,
+      socialProviderId: input.socialProviderId as Id<"socialProviders">,
+      postedAt: Date.now(),
+      postId: input.postId as Id<"posts">,
+    },
+    // In dual mode the job path owns side effects; legacy only mirrors.
+    skipSideEffects,
+  });
 
 export async function processMessage(
   messageBody: string,
@@ -59,48 +95,37 @@ export async function processMessage(
 
   await resolveMediaUrls(socialPublishInput);
 
-  const providerImpl = providerRegistry[socialType];
-  const result = await providerImpl.publish({
+  // All platforms publish through @delulu/connections (Effect). The boundary
+  // returns a flat outcome; `retryable` maps to the job error class.
+  const outcome = await runPublish(socialType, {
     content: socialPublishInput,
     socialProviderId: socialPublishInput.socialProviderId,
   });
 
-  if (result.isErr()) {
-    const { errorCode, errorClass, errorMessage } = classifyError(result.error);
+  if (outcome.status === "FAILED") {
+    const errorClass = outcome.retryable ? "TRANSIENT" : "PERMANENT";
 
     if (useJobs && jobId) {
       await convex.mutation(api.publish.completeAttempt, {
         publishJobId: jobId,
         attemptNumber: attempt,
         status: "FAILED",
-        errorCode,
+        errorCode: outcome.code,
         errorClass,
-        errorMessage,
+        errorMessage: outcome.message,
         workerRequestId: messageId,
         secret,
       });
     }
 
     if (useLegacy) {
-      await convex.mutation(api.posts.updatePostPublishStatus, {
-        postId: socialPublishInput.postId as Id<"posts">,
-        status: "FAILED",
-        platformPostData: {
-          failureReason: errorMessage,
-          socialProviderId:
-            socialPublishInput.socialProviderId as Id<"socialProviders">,
-          postedAt: Date.now(),
-          postId: socialPublishInput.postId as Id<"posts">,
-        },
-        // In dual mode the job path owns side effects; legacy only mirrors.
-        skipSideEffects: useJobs,
-      });
+      await markFailed(socialPublishInput, outcome.message, useJobs);
     }
 
-    // Re-throw transient errors so SQS redelivers and the job retries. Permanent
-    // errors are terminal — returning lets SQS delete the message.
-    if (useJobs && errorClass === "TRANSIENT") {
-      throw result.error;
+    // Re-throw retryable failures so SQS redelivers (and the job retries).
+    // Permanent errors are terminal — returning lets SQS delete the message.
+    if (outcome.retryable) {
+      throw new Error(`Retryable publish failure: ${outcome.message}`);
     }
     return;
   }
@@ -110,29 +135,21 @@ export async function processMessage(
       publishJobId: jobId,
       attemptNumber: attempt,
       status: "SUCCEEDED",
-      platformPostId: result.value.platformPostId,
-      platformPostUrl: result.value.platformPostUrl,
+      platformPostId: outcome.result.platformPostId,
+      platformPostUrl: outcome.result.platformPostUrl,
       workerRequestId: messageId,
       secret,
     });
   }
 
   if (useLegacy) {
-    await convex.mutation(api.posts.updatePostPublishStatus, {
-      postId: socialPublishInput.postId as Id<"posts">,
-      status: "PUBLISHED",
-      platformPostData: {
-        platformPostId: result.value.platformPostId,
-        socialProviderId:
-          socialPublishInput.socialProviderId as Id<"socialProviders">,
-        platformPostUrl: result.value.platformPostUrl,
-        postedAt: Date.now(),
-        postId: socialPublishInput.postId as Id<"posts">,
+    await markPublished(
+      socialPublishInput,
+      {
+        platformPostId: outcome.result.platformPostId,
+        platformPostUrl: outcome.result.platformPostUrl,
       },
-      // In dual mode the job path owns side effects; legacy only mirrors.
-      skipSideEffects: useJobs,
-    });
+      useJobs
+    );
   }
-
-  return result;
 }

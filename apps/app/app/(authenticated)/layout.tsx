@@ -6,6 +6,7 @@ import { UserJotIdentifier } from "components/layout/userjot-identifier";
 import { env } from "env";
 import type { ReactNode } from "react";
 import { MobileBottomTabs } from "@/components/layout/mobile-bottom-tabs";
+import { PaidSubscriptionGate } from "@/components/billing/paid-subscription-gate";
 import { FeatureTour } from "@/components/onboarding/feature-tour";
 import { StoreProvider } from "@/providers/store-provider";
 
@@ -23,6 +24,7 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
       <GlobalSidebar>
         <StoreProvider>{children}</StoreProvider>
       </GlobalSidebar>
+      <PaidSubscriptionGate />
       <PostHogIdentifier />
       <UserJotIdentifier />
       <FeatureTour />

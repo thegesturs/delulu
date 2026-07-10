@@ -1,0 +1,7 @@
+# >>> zuse-generated-browser-mcp: do not edit
+[mcp_servers."zuse-browser"]
+command = "/Users/whizzy/.bun/bin/bun"
+args = ["/Applications/Zuse Alpha.app/Contents/Resources/app.asar.unpacked/dist-electron/browser-mcp-child.cjs"]
+env = { ZUSE_BROWSER_MCP_URL = "http://127.0.0.1:61775", ZUSE_BROWSER_MCP_TOKEN = "3b2b5847f33cb14ca832469272429c626bfdebc70ea0bcc3" }
+enabled = true
+# <<< zuse-generated-browser-mcp

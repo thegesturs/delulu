@@ -115,32 +115,14 @@ const CTA = () => {
           {/* Bottom CTA */}
           <div className="mx-auto mt-16 max-w-2xl text-center">
             <div className="flex flex-col items-center gap-4">
-              {/* Urgency Messaging */}
-              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2">
-                <svg
-                  className="h-4 w-4 text-primary"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    clipRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                    fillRule="evenodd"
-                  />
-                </svg>
-                <span className="font-medium text-foreground text-xs">
-                  Lock in current pricing · Limited to 50 early adopters
-                </span>
-              </div>
-
               <Button asChild className="h-14 px-8 text-lg" size="lg">
                 <Link href="https://solulu.delulu.social/sign-in">
-                  Start free — cancel anytime
+                  Get started from $4.99/mo
                 </Link>
               </Button>
 
               <p className="text-muted-foreground text-xs">
-                No credit card required · Cancel anytime
+                14-day money-back guarantee · Cancel anytime
               </p>
             </div>
           </div>

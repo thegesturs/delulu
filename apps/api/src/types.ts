@@ -1,4 +1,6 @@
 export interface Env {
+  CLERK_PUBLISHABLE_KEY?: string;
+  CLERK_SECRET_KEY?: string;
   CONVEX_URL: string;
   DELULU_APP_URL?: string;
   DELULU_RATE_LIMIT_KV: KVNamespace;
@@ -14,6 +16,7 @@ export interface ApiKeyData {
   planType: "FREE" | "ECHO" | "VIBE";
   apiKeyId: string;
   organizationId?: string;
+  authType?: "api_key" | "oauth_token";
 }
 
 export interface AppContext {

@@ -7,6 +7,13 @@ import { env } from "@/env";
 
 let nextConfig: NextConfig = withLogging(config);
 
+// youtubei.js is large and relies on Node built-ins; keep it out of the bundle
+// so it loads as an external at runtime (needed for the YouTube trimmer API route).
+nextConfig.serverExternalPackages = [
+  ...(nextConfig.serverExternalPackages ?? []),
+  "youtubei.js",
+];
+
 nextConfig.images?.remotePatterns?.push(
   {
     protocol: "https",

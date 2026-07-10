@@ -9,7 +9,10 @@ export default $config({
       home: "aws",
       providers: {
         aws: {
-          profile: "delulu_social",
+          // In GitHub Actions credentials come from the assumed OIDC role
+          // (exported as env vars), so no named profile exists there. Locally
+          // we keep using the delulu_social SSO profile.
+          profile: process.env.GITHUB_ACTIONS ? undefined : "delulu_social",
           region: "us-east-1",
         },
       },

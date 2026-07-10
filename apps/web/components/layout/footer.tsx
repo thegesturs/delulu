@@ -6,6 +6,7 @@ import { Logo } from "../logo";
 export function Footer() {
   const pages = [
     { title: "Home", href: "/" },
+    { title: "Tools", href: "/tools" },
     { title: "Affiliates", href: "/affiliates" },
     // { title: 'Blogs', href: '/blogs' },
     // { title: 'Pricing', href: '/pricing' },

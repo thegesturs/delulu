@@ -9,7 +9,11 @@ import {
   mutation,
   query,
 } from "./_generated/server";
-import { getAuthContext } from "./lib/auth";
+import {
+  getAuthContext,
+  getEffectivePlanOwner,
+  getEffectivePlanType,
+} from "./lib/auth";
 import { kvDelete, kvGet, kvPut, sessionKey, triggerKey } from "./lib/kv";
 import { canManageSocials } from "./lib/permissions";
 import {
@@ -110,6 +114,73 @@ export const getAutomations = query({
     automations.sort((a, b) => b._creationTime - a._creationTime);
 
     return automations;
+  },
+});
+
+/**
+ * Dashboard summary: automation counts and DM usage for the current user/org.
+ */
+export const getAutomationSummary = query({
+  args: {},
+  returns: v.object({
+    total: v.number(),
+    active: v.number(),
+    inactive: v.number(),
+    totalDMsSent: v.number(),
+    dmsSentThisPeriod: v.number(),
+    dmLimit: v.number(),
+    planType: v.union(v.literal("FREE"), v.literal("ECHO"), v.literal("VIBE")),
+  }),
+  handler: async (ctx) => {
+    const authCtx = await getAuthContext(ctx);
+    if (!authCtx) {
+      return {
+        total: 0,
+        active: 0,
+        inactive: 0,
+        totalDMsSent: 0,
+        dmsSentThisPeriod: 0,
+        dmLimit: DM_PLAN_LIMITS.FREE,
+        planType: "FREE" as const,
+      };
+    }
+
+    const planType = await getEffectivePlanType(ctx, authCtx);
+    const dmLimit = DM_PLAN_LIMITS[planType];
+
+    let automations: Doc<"automations">[];
+    if (authCtx.organizationId) {
+      automations = await ctx.db
+        .query("automations")
+        .withIndex("by_organization_id", (q) =>
+          q.eq("organizationId", authCtx.organizationId)
+        )
+        .collect();
+    } else {
+      automations = await ctx.db
+        .query("automations")
+        .withIndex("by_user_id", (q) => q.eq("userId", authCtx.userId))
+        .collect();
+    }
+
+    const active = automations.filter((a) => a.isActive).length;
+    const totalDMsSent = automations.reduce(
+      (sum, a) => sum + (a.totalDMsSent ?? 0),
+      0
+    );
+
+    const planOwner = await getEffectivePlanOwner(ctx, authCtx);
+    const dmsSentThisPeriod = planOwner?.usage?.dmsSent ?? 0;
+
+    return {
+      total: automations.length,
+      active,
+      inactive: automations.length - active,
+      totalDMsSent,
+      dmsSentThisPeriod,
+      dmLimit,
+      planType,
+    };
   },
 });
 

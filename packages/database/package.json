@@ -26,7 +26,14 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:deploy": "bash scripts/db-deploy.sh deploy",
+    "db:deploy:expand": "bash scripts/db-deploy.sh expand",
+    "db:deploy:contract": "bash scripts/db-deploy.sh contract",
+    "db:migrate": "convex run migrations:runAll",
+    "db:migrate:prod": "convex run migrations:runAll --prod",
+    "db:migrate:status": "convex run --component migrations lib:getStatus --watch",
+    "db:migrate:dry": "convex run migrations:runAll '{\"dryRun\":true}'"
   },
   "dependencies": {
     "@clerk/backend": "^2.5.0",

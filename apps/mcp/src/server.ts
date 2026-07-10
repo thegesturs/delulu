@@ -11,10 +11,16 @@ export function createServer(apiUrl: string, apiKey: string) {
   });
 
   const client = new DeluluApiClient(apiUrl, apiKey);
+  registerDeluluTools(server, client);
 
+  return server;
+}
+
+export function registerDeluluTools(
+  server: McpServer,
+  client: DeluluApiClient | ((extra: unknown) => DeluluApiClient)
+) {
   registerPostTools(server, client);
   registerAccountTools(server, client);
   registerStatsTools(server, client);
-
-  return server;
 }

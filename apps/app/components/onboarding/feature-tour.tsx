@@ -70,10 +70,20 @@ export function FeatureTour() {
           },
         },
         {
+          element: '[data-tour="automations-nav"]',
+          popover: {
+            title: "DM Automations",
+            description:
+              "Set up comment-to-DM flows so every keyword comment becomes a conversation automatically.",
+            side: "right",
+            align: "start",
+          },
+        },
+        {
           popover: {
             title: "You're All Set!",
             description:
-              "Ready to start creating amazing content? Click the button below to create your first post.",
+              "Create a post or set up your first auto-DM — that's where Delulu shines.",
           },
         },
       ],
@@ -86,7 +96,7 @@ export function FeatureTour() {
         driverObj.movePrevious();
       },
       onDestroyStarted: () => {
-        if (currentStepIndex >= 5) {
+        if (currentStepIndex >= 6) {
           // Tour was completed
           handleCompleteTour(false);
           router.push("/post");
@@ -186,9 +196,19 @@ export function useFeatureTour() {
           },
         },
         {
+          element: '[data-tour="automations-nav"]',
+          popover: {
+            title: "DM Automations",
+            description:
+              "Auto-DM anyone who comments a keyword on your Instagram posts.",
+            side: "right",
+            align: "start",
+          },
+        },
+        {
           popover: {
             title: "You're All Set!",
-            description: "Ready to start creating amazing content?",
+            description: "Create a post or launch your first auto-DM.",
           },
         },
       ],
@@ -201,8 +221,8 @@ export function useFeatureTour() {
         driverObj.movePrevious();
       },
       onDestroyStarted: () => {
-        if (currentStepIndex >= 5) {
-          router.push("/post");
+        if (currentStepIndex >= 6) {
+          router.push("/automations/new?template=lead-magnet");
         }
         driverObj.destroy();
       },

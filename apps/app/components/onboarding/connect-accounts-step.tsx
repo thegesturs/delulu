@@ -19,18 +19,18 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import { useOnboarding } from "@/hooks/use-onboarding";
+
 import { useOnboardingStore } from "@/store/onboarding";
 import { api } from "@/trpc/react";
 
 const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
-  "TWITTER",
-  "LINKEDIN",
-  "TIKTOK",
   "INSTAGRAM",
+  "TIKTOK",
+  "LINKEDIN",
+  "YOUTUBE",
   "THREADS",
   "FACEBOOK",
-  "YOUTUBE",
+  "TWITTER",
 ];
 
 const containerVariants = {
@@ -58,7 +58,6 @@ const itemVariants = {
 } as const;
 
 export function ConnectAccountsStep() {
-  const { handleNextStep } = useOnboarding();
   const setAccountsConnected = useOnboardingStore(
     (s) => s.setAccountsConnected
   );
@@ -69,6 +68,9 @@ export function ConnectAccountsStep() {
   const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
   const accounts = useQuery(ConvexApi.social_providers.getConnectedAccounts);
   const accountCount = limitCheck?.currentCount || 0;
+  const instagramConnected = accounts?.some(
+    (acc) => acc.socialType === "INSTAGRAM"
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastAccountCountRef = useRef(0);
 
@@ -81,16 +83,9 @@ export function ConnectAccountsStep() {
       setIsRefreshing(true);
       setTimeout(() => setIsRefreshing(false), 1000);
 
-      // Auto-advance to step 3 after first account is connected
-      if (accountCount === 1 && lastAccountCountRef.current === 0) {
-        // Give user 2 seconds to see success state, then advance
-        setTimeout(() => {
-          handleNextStep();
-        }, 2000);
-      }
     }
     lastAccountCountRef.current = accountCount;
-  }, [accountCount, setAccountsConnected, handleNextStep]);
+  }, [accountCount, setAccountsConnected]);
 
   // CRITICAL FIX: Auto-refresh when page becomes visible (after OAuth redirect)
   // Convex useQuery automatically refetches when page visibility changes
@@ -126,10 +121,11 @@ export function ConnectAccountsStep() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <h2 className="font-bold text-3xl tracking-tight sm:text-4xl">
-          Connect Your Social Accounts
+          Connect Instagram First
         </h2>
         <p className="text-lg text-muted-foreground tracking-tight">
-          Connect at least one account to start posting
+          Instagram is required for auto-DM automations. Add other platforms
+          anytime.
         </p>
         <p className="text-muted-foreground text-sm">
           All connections use official platform APIs — your passwords never
@@ -141,7 +137,12 @@ export function ConnectAccountsStep() {
               <Icon className="animate-spin" icon={Loading03Icon} size={14} />
             )}
             <span>
-              {accountCount} of {SOCIAL_PLATFORMS.length} accounts connected
+              {instagramConnected
+                ? "Instagram connected"
+                : "Instagram required to continue"}
+              {accountCount > 0
+                ? ` · ${accountCount} account${accountCount === 1 ? "" : "s"} total`
+                : ""}
             </span>
           </div>
           <Button

@@ -80,6 +80,79 @@ export const updateLastUsed = mutation({
   },
 });
 
+/**
+ * Resolve a Clerk OAuth subject to the same auth context shape used by the REST
+ * API. Token verification happens in the edge API before this query is called.
+ */
+export const resolveOAuthSubject = query({
+  args: {
+    externalId: v.string(),
+    organizationId: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      userId: v.id("users"),
+      planType: v.union(
+        v.literal("FREE"),
+        v.literal("ECHO"),
+        v.literal("VIBE")
+      ),
+      organizationId: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_external_id", (q) => q.eq("externalId", args.externalId))
+      .unique();
+
+    if (!user) {
+      return null;
+    }
+
+    let planType: "FREE" | "ECHO" | "VIBE" = "FREE";
+    if (user.subscriptionId) {
+      const subscription = await ctx.db.get(user.subscriptionId);
+      if (subscription && subscription.status === "ACTIVE") {
+        planType = subscription.planType;
+      }
+    }
+
+    if (!args.organizationId) {
+      return { userId: user._id, planType };
+    }
+
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) =>
+        q.eq("clerkOrgId", args.organizationId!)
+      )
+      .unique();
+
+    if (!org) {
+      return null;
+    }
+
+    const member = await ctx.db
+      .query("organizationMembers")
+      .withIndex("by_org_user", (q) =>
+        q.eq("organizationId", org._id).eq("userId", user._id)
+      )
+      .unique();
+
+    if (!member) {
+      return null;
+    }
+
+    return {
+      userId: user._id,
+      planType,
+      organizationId: args.organizationId,
+    };
+  },
+});
+
 // ============================================================================
 // DASHBOARD (Clerk-authenticated, used by the web app)
 // ============================================================================
