@@ -14,6 +14,15 @@ import {
   repository,
 } from "./shared";
 
+export const ReviewActivityType = Schema.Literals([
+  "review.submitted",
+  "review.approved",
+  "review.rejected",
+  "review.withdrawn",
+  "review.commented",
+  "schedule.missed",
+]);
+
 export class ReviewActivity extends Model.Class<ReviewActivity>(
   "ReviewActivity"
 )({
@@ -22,7 +31,7 @@ export class ReviewActivity extends Model.Class<ReviewActivity>(
   postId: PostId,
   reviewId: Schema.NullOr(PostReviewId),
   actorMemberId: MemberId,
-  activityType: Schema.String,
+  activityType: ReviewActivityType,
   comment: Schema.NullOr(Schema.String),
   metadata: JsonObject,
 }) {}

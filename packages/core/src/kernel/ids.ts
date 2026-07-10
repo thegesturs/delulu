@@ -78,6 +78,8 @@ export const OAuthRefreshTokenId = nanoId(
   "OAuthRefreshTokenId"
 );
 export type OAuthRefreshTokenId = typeof OAuthRefreshTokenId.Type;
+export const JobId = nanoId("job", "JobId");
+export type JobId = typeof JobId.Type;
 
 export const makeId = <A>(schema: EntityIdSchema<A>): A =>
   Schema.decodeUnknownSync(schema)(`${schema[EntityIdTypeId]}${makeNanoId()}`);

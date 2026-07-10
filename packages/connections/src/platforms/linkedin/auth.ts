@@ -1,6 +1,10 @@
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@delulu/database/convex/_generated/api";
-import type { CallbackContext, PlatformAuth } from "../../types";
+import { ConvexHttpClient } from "convex/browser";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+} from "../../types";
 import { LINKEDIN_VERSION } from "./constants";
 
 /**
@@ -82,12 +86,13 @@ export const linkedinAuth: PlatformAuth = {
    * OAuth authorize URL. Ported from the connect-url service LINKEDIN block;
    * reads env directly (the shared `env()` helper only carries Instagram vars).
    */
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     const clientId = process.env.LINKEDIN_CLIENT_ID ?? "";
     const callbackUrl = process.env.LINKEDIN_CALLBACK_URL ?? "";
     const scopes = SCOPES.join("%20");
 
-    return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${callbackUrl}&scope=${scopes}`;
+    const state = ctx?.state ? `&state=${encodeURIComponent(ctx.state)}` : "";
+    return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${callbackUrl}&scope=${scopes}${state}`;
   },
 
   /**
@@ -165,26 +170,34 @@ export const linkedinAuth: PlatformAuth = {
           ?.identifiers[0]?.identifier;
 
       // 3. Upsert social provider (per-call client carrying the user's token).
-      const convex = new ConvexHttpClient(
-        process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
-      );
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "LINKEDIN",
-          accessToken: access_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: userObject.id,
-          username,
-          fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
-          profileImage: profileImage ?? "/images/user.png",
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "LINKEDIN",
+        accessToken: access_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: userObject.id,
+        username,
+        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        profileImage: profileImage ?? "/images/user.png",
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(
+          process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+        );
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=linkedin"
         );

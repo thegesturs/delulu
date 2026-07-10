@@ -81,6 +81,7 @@ export const AuthenticationLive = Layer.effect(
             scopes: key.scopes,
             frozenRole: key.role,
             keyWorkspaceId: key.workspaceId,
+            apiKeyId: key.apiKeyId,
           };
           rateKey = `apikey:${key.apiKeyId}`;
           tier = yield* apiTierFor(key.workspaceId);

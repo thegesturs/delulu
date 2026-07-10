@@ -24,6 +24,7 @@ export class Media extends Model.Class<Media>("Media")({
   thumbnails: JsonColumn(Schema.Array(Schema.String)),
   altText: Schema.NullOr(Schema.String),
   status: MediaStatus,
+  deletedAt: Schema.NullOr(Schema.DateTimeUtcFromDate),
 }) {}
 export class MediaError extends Schema.TaggedErrorClass<MediaError>()(
   "MediaError",

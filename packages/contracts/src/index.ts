@@ -1,11 +1,19 @@
 import { HttpApi, OpenApi } from "effect/unstable/httpapi";
 import { HealthGroup } from "./health";
 import { MeGroup } from "./me";
+import {
+  AdminGroup,
+  ConnectionsGroup,
+  MediaGroups,
+  PostsGroup,
+  ReviewsGroup,
+} from "./workspace";
 
 export * from "./errors";
 export * from "./health";
 export * from "./me";
 export * from "./middleware";
+export * from "./workspace";
 
 /**
  * The single typed API contract shared by every backend consumer (#142/#148).
@@ -19,6 +27,11 @@ export * from "./middleware";
 export const Api = HttpApi.make("deluluApi")
   .add(HealthGroup)
   .add(MeGroup)
+  .add(PostsGroup)
+  .add(ReviewsGroup)
+  .add(MediaGroups)
+  .add(ConnectionsGroup)
+  .add(AdminGroup)
   .annotate(OpenApi.Title, "Delulu API")
   .annotate(OpenApi.Version, "1.0.0")
   .annotate(

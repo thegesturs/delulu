@@ -1,9 +1,9 @@
-import type { Effect } from "effect";
 import type {
   MediaType,
   SocialPublishInputType,
   SocialType,
 } from "@delulu/validators/post";
+import type { Effect } from "effect";
 import type { ConnectionError } from "./errors";
 import type { ConvexClient } from "./services/convex";
 
@@ -33,6 +33,8 @@ export interface PlatformMeta {
 // ── Auth ──────────────────────────────────────────────────────────────────
 
 export interface ConnectContext {
+  /** M2 signs this centrally with the workspace and initiator principal. */
+  state?: string;
   /** Instagram-only: opt-in insights scope (admin feature). */
   includeInsights?: boolean;
 }
@@ -43,6 +45,8 @@ export interface ConnectContext {
  * Clerk/Next dependencies so the module remains workerd-safe.
  */
 export interface CallbackContext {
+  /** Raw provider state, verified centrally by the M2 API before dispatch. */
+  state?: string;
   code: string | null;
   error: string | null;
   errorReason: string | null;
@@ -51,6 +55,23 @@ export interface CallbackContext {
   userId: string;
   /** Optional analytics hook fired on a successful connect. */
   onConnected?: (info: { provider: string; username: string }) => void;
+  /** M2 callback persistence seam. Legacy callers omit it and keep Convex. */
+  upsert?: (
+    input: ConnectionUpsertInput
+  ) => Promise<"created" | "updated" | "transfer_required">;
+}
+
+export interface ConnectionUpsertInput {
+  socialType: PublishableSocialType;
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  refreshTokenExpiresIn?: number;
+  profileId: string;
+  username?: string;
+  fullName?: string;
+  profileImage?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TokenRefreshResult {
@@ -141,9 +162,11 @@ export interface PlatformWebhooks {
 
 /** Platform-specific read queries (e.g. Instagram post/story pickers). */
 export interface PlatformQueries {
-  [key: string]: (
-    input: { profileId: string; accessToken: string; limit?: number }
-  ) => Effect.Effect<unknown, ConnectionError>;
+  [key: string]: (input: {
+    profileId: string;
+    accessToken: string;
+    limit?: number;
+  }) => Effect.Effect<unknown, ConnectionError>;
 }
 
 // ── Publish ─────────────────────────────────────────────────────────────────

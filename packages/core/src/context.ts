@@ -29,6 +29,7 @@ export interface AuthContext {
   readonly scopes: readonly Scope[] | "full";
   readonly frozenRole?: WorkspaceRole;
   readonly keyWorkspaceId?: WorkspaceId;
+  readonly apiKeyId?: string;
 }
 
 export class CurrentAuth extends Context.Service<CurrentAuth, AuthContext>()(

@@ -1,13 +1,18 @@
+import { api } from "@delulu/database/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
-import { api } from "@delulu/database/convex/_generated/api";
-import type { CallbackContext, PlatformAuth, TokenRefreshResult } from "../../types";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   networkError,
   tokenExpired,
 } from "../../errors";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+  TokenRefreshResult,
+} from "../../types";
 import { SCOPES } from "./constants";
 
 /**
@@ -42,7 +47,11 @@ interface TwitterUserResponse {
 
 const TIMEOUT_MS = 8000; // matches the old callback route
 
-const fetchTimeout = (url: string, init?: RequestInit, timeoutMs = TIMEOUT_MS) => {
+const fetchTimeout = (
+  url: string,
+  init?: RequestInit,
+  timeoutMs = TIMEOUT_MS
+) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...init, signal: controller.signal }).finally(() =>
@@ -58,14 +67,14 @@ export const twitterAuth: PlatformAuth = {
   scopes: SCOPES,
   isMultiStep: false,
 
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     const e = twitterEnv();
     const params = new URLSearchParams({
       response_type: "code",
       client_id: e.TWITTER_CLIENT_ID,
       redirect_uri: e.TWITTER_CALLBACK_URL,
       scope: SCOPES.join(" "),
-      state: e.TWITTER_STATE,
+      state: ctx?.state ?? e.TWITTER_STATE,
       code_challenge: "challenge",
       code_challenge_method: "plain",
     });
@@ -121,11 +130,8 @@ export const twitterAuth: PlatformAuth = {
         throw new Error("twitter_token_invalid");
       }
 
-      const {
-        access_token,
-        refresh_token,
-        expires_in,
-      } = (await tokenResponse.json()) as TwitterTokenResponse;
+      const { access_token, refresh_token, expires_in } =
+        (await tokenResponse.json()) as TwitterTokenResponse;
 
       // 2. Fetch the authenticated user's profile.
       const userResponse = await fetchTimeout(
@@ -143,24 +149,32 @@ export const twitterAuth: PlatformAuth = {
       }
 
       // 3. Upsert social provider (per-call client carrying the user's token).
-      const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "TWITTER",
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          profileId: userObject.id,
-          username: userObject.username,
-          fullName: userObject.name ?? "",
-          profileImage: userObject.profile_image_url ?? "",
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "TWITTER",
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        profileId: userObject.id,
+        username: userObject.username,
+        fullName: userObject.name ?? "",
+        profileImage: userObject.profile_image_url ?? "",
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=twitter"
         );

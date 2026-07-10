@@ -110,6 +110,18 @@ export const NotFoundErrorResponse = envelope(
   { resource: Schema.String }
 );
 
+// --- 409 ---------------------------------------------------------------------
+export class ConflictError extends Schema.TaggedErrorClass<ConflictError>()(
+  "ConflictError",
+  { message: Schema.String, resource: Schema.String }
+) {}
+export const ConflictErrorResponse = envelope(
+  ConflictError,
+  "ConflictError",
+  409,
+  { resource: Schema.String }
+);
+
 // --- 422 ---------------------------------------------------------------------
 export const ValidationIssue = Schema.Struct({
   path: Schema.String,

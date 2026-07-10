@@ -132,7 +132,8 @@ jobs:
       - run: pnpm pg:migrate
       - run: pnpm --filter=@delulu/db test:integration
       - run: pnpm --filter=@delulu/services test:integration
-      - run: pnpm --filter=@delulu/api test:integration
+      - run: pnpm --filter=@delulu/http-api test:integration
+      - run: pnpm --filter=@delulu/worker test:integration
 
   invariants:
     needs: setup

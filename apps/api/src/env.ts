@@ -1,5 +1,10 @@
 import type { CfRateLimiter } from "@delulu/services";
-import { AuthConfig } from "@delulu/services";
+import {
+  AuthConfig,
+  ClerkAdminConfig,
+  ConnectionStateConfig,
+  R2Config,
+} from "@delulu/services";
 import { Layer } from "effect";
 
 /** Cloudflare Hyperdrive binding (Postgres connection pooler). */
@@ -23,6 +28,16 @@ export interface Env {
   readonly APP_BASE_URL?: string;
   readonly AS_SIGNING_KEY?: string;
   readonly AS_SIGNING_KID?: string;
+  readonly CLERK_SECRET_KEY?: string;
+  readonly CONNECTION_STATE_SECRET?: string;
+  readonly R2_ACCOUNT_ID?: string;
+  readonly R2_ACCESS_KEY_ID?: string;
+  readonly R2_SECRET_ACCESS_KEY?: string;
+  readonly R2_BUCKET_NAME?: string;
+  readonly R2_PUBLIC_BASE_URL?: string;
+  readonly ENCRYPTION_SECRET?: string;
+  readonly SQS_INGRESS_URL?: string;
+  readonly SQS_INGRESS_SECRET?: string;
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;
@@ -54,3 +69,25 @@ export const authConfigLayer = (env: Env): Layer.Layer<AuthConfig> =>
       asSigningKid: env.AS_SIGNING_KID,
     })
   );
+
+export const domainConfigLayers = (env: Env) =>
+  [
+    Layer.succeed(
+      ClerkAdminConfig,
+      ClerkAdminConfig.of({ secretKey: env.CLERK_SECRET_KEY ?? "" })
+    ),
+    Layer.succeed(
+      ConnectionStateConfig,
+      ConnectionStateConfig.of({ secret: env.CONNECTION_STATE_SECRET ?? "" })
+    ),
+    Layer.succeed(
+      R2Config,
+      R2Config.of({
+        accountId: env.R2_ACCOUNT_ID ?? "",
+        accessKeyId: env.R2_ACCESS_KEY_ID ?? "",
+        secretAccessKey: env.R2_SECRET_ACCESS_KEY ?? "",
+        bucket: env.R2_BUCKET_NAME ?? "delulu-social",
+        publicBaseUrl: env.R2_PUBLIC_BASE_URL ?? "https://media.delulu.social",
+      })
+    ),
+  ] as const;

@@ -1,4 +1,4 @@
-# `@delulu/api` — Effect worker (backend revamp)
+# `@delulu/http-api` — Effect worker (backend revamp)
 
 The new Cloudflare Worker serving the typed `HttpApi` contract
 (`@delulu/contracts`) plus our own OAuth 2.1 Authorization Server. Built in M1;
@@ -39,7 +39,7 @@ pnpm --filter @delulu/db pg:migrate
 
 # 2. Run the worker (uses DATABASE_URL + the in-memory rate limiter).
 DATABASE_URL=postgres://delulu:delulu@localhost:5432/delulu \
-  pnpm --filter @delulu/api dev
+  pnpm --filter @delulu/http-api dev
 ```
 
 Generate an ES256 signing key for the AS (PKCS#8 PEM) and set `AS_SIGNING_KEY`
@@ -48,7 +48,7 @@ public key and `CLERK_ISSUER` to its issuer to accept real session JWTs.
 
 ## Tests
 
-- `pnpm --filter @delulu/api test:integration` — e2e over `toWebHandler` against
+- `pnpm --filter @delulu/http-api test:integration` — e2e over `toWebHandler` against
   a real Postgres (`DATABASE_URL`), with a stub Clerk verifier and the in-memory
   rate limiter: health, JIT `/v1/me`, `/v1/me/workspaces`, 401/429, AS metadata,
   and the full authorization-code → token → refresh → reuse-detection flow.
@@ -67,7 +67,7 @@ When ready to stand up staging:
 5. **Secrets** — `wrangler secret put` for `CLERK_JWT_KEY`, `AS_SIGNING_KEY`,
    `AS_SIGNING_KID`. Set `CLERK_ISSUER`, `AS_ISSUER`, `API_RESOURCE`,
    `APP_BASE_URL` in `[vars]`.
-6. **Deploy** — `pnpm --filter @delulu/api deploy` (name stays `delulu-api-next`).
+6. **Deploy** — `pnpm --filter @delulu/http-api deploy` (name stays `delulu-api-next`).
 7. **Smoke** — `GET /health`, `GET /openapi.json`, `GET /v1/me` with a Clerk dev
    JWT, and the scripted AS flow (discovery → authorize+PKCE → token → refresh).
 

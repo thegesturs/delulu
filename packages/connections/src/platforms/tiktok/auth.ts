@@ -1,19 +1,21 @@
-import { ConvexHttpClient } from "convex/browser";
-import { nanoid } from "nanoid";
-import { Effect } from "effect";
 import { api } from "@delulu/database/convex/_generated/api";
-import {
-  type ConnectionError,
-  networkError,
-  tokenExpired,
-} from "../../errors";
+import { ConvexHttpClient } from "convex/browser";
+import { Effect } from "effect";
+import { nanoid } from "nanoid";
+import { type ConnectionError, networkError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
   ConnectContext,
   PlatformAuth,
   TokenRefreshResult,
 } from "../../types";
-import { AUTHORIZE_URL, OAUTH_TOKEN_URL, PROVIDER, SCOPES, USER_INFO_URL } from "./constants";
+import {
+  AUTHORIZE_URL,
+  OAUTH_TOKEN_URL,
+  PROVIDER,
+  SCOPES,
+  USER_INFO_URL,
+} from "./constants";
 
 /**
  * TikTok reads its OAuth config off `process.env` directly (the shared `env()`
@@ -70,7 +72,7 @@ export const tiktokAuth: PlatformAuth = {
       client_key: tiktokEnv().TIKTOK_CLIENT_ID,
       redirect_uri: tiktokEnv().TIKTOK_CALLBACK_URL,
       scope: SCOPES,
-      state: nanoid(10),
+      state: _ctx?.state ?? nanoid(10),
     });
     return `${AUTHORIZE_URL}?${params.toString()}`;
   },
@@ -141,24 +143,32 @@ export const tiktokAuth: PlatformAuth = {
       const { username, display_name, avatar_url } = userData.data.user;
 
       // 3. Upsert social provider (per-call client carrying the user's token)
-      const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "TIKTOK",
-          accessToken: access_token,
-          refreshToken: refresh_token,
-          expiresIn: Date.now() + expires_in * 1000,
-          profileId: open_id,
-          username,
-          fullName: display_name,
-          profileImage: avatar_url,
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "TIKTOK",
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresIn: Date.now() + expires_in * 1000,
+        profileId: open_id,
+        username,
+        fullName: display_name,
+        profileImage: avatar_url,
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=tiktok"
         );

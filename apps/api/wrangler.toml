@@ -8,17 +8,27 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+[triggers]
+crons = ["* * * * *"]
+
 [vars]
 AS_ISSUER = "https://api-next.delulu.social"
 API_RESOURCE = "https://api-next.delulu.social"
 APP_BASE_URL = "https://app.delulu.social"
 CLERK_ISSUER = ""
+R2_BUCKET_NAME = "delulu-social"
+R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 
 # Secrets (set via `wrangler secret put`):
 #   CLERK_JWT_KEY     PEM public key for networkless Clerk verification
 #   AS_SIGNING_KEY    PKCS#8 PEM ES256 private key for our AS
 #   AS_SIGNING_KID    stable key id advertised in the JWKS
 #   DATABASE_URL      local-dev fallback only (prod uses Hyperdrive)
+#   CONNECTION_STATE_SECRET
+#   CLERK_SECRET_KEY
+#   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+#   ENCRYPTION_SECRET
+#   SQS_INGRESS_URL / SQS_INGRESS_SECRET
 
 # Postgres via Hyperdrive (fill id after `wrangler hyperdrive create`).
 # [[hyperdrive]]

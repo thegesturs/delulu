@@ -65,6 +65,8 @@ export default $config({
     const CF_ACCOUNT_ID = new sst.Secret("CF_ACCOUNT_ID");
     const CF_KV_NAMESPACE_ID = new sst.Secret("CF_KV_NAMESPACE_ID");
     const CF_KV_API_TOKEN = new sst.Secret("CF_KV_API_TOKEN");
+    const POSTGRES_DATABASE_URL = new sst.Secret("POSTGRES_DATABASE_URL");
+    const ENCRYPTION_SECRET = new sst.Secret("ENCRYPTION_SECRET");
 
     // Trigger endpoint — receives HTTP from Convex, enqueues to SQS (UNCHANGED)
     const triggerFunction = new sst.aws.Function("TriggerSqsFunction", {
@@ -92,6 +94,47 @@ export default $config({
       },
       { batch: { size: 1 } }
     );
+
+    // M2 runs beside the legacy queue in non-production stages. Production
+    // stays entirely on the Convex-backed handler until the M6 routing flip.
+    let postgresTriggerUrl: typeof triggerFunction.url | undefined;
+    if (!isProduction) {
+      const postgresDeadLetterQueue = new sst.aws.Queue(
+        "PostgresSocialPostsDLQ"
+      );
+      const postgresQueue = new sst.aws.Queue("PostgresSocialPostsQueue", {
+        visibilityTimeout: "15 minutes",
+        dlq: { queue: postgresDeadLetterQueue.arn, retry: 5 },
+      });
+      const postgresTrigger = new sst.aws.Function(
+        "PostgresTriggerSqsFunction",
+        {
+          handler: "src/trigger-postgres-sqs.handler",
+          url: true,
+          link: [SECRET_KEY],
+          environment: { QUEUE_URL: postgresQueue.url },
+        }
+      );
+      postgresQueue.subscribe(
+        {
+          handler: "src/postgres-social-post-worker.handler",
+          timeout: "10 minutes",
+          memory: "1024 MB",
+          link: [POSTGRES_DATABASE_URL, ENCRYPTION_SECRET],
+          environment: {
+            DATABASE_URL: POSTGRES_DATABASE_URL.value,
+            ENCRYPTION_SECRET: ENCRYPTION_SECRET.value,
+          },
+          copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
+          nodejs: {
+            install: ["googleapis", "pg-native"],
+            esbuild: { external: ["googleapis", "pg-native"] },
+          },
+        },
+        { batch: { size: 1 } }
+      );
+      postgresTriggerUrl = postgresTrigger.url;
+    }
 
     // ============================================================================
     // INSTAGRAM WEBHOOK
@@ -148,6 +191,7 @@ export default $config({
     return {
       SocialPostsQueueURL: queue.url,
       SocialPostsApiEndpoint: triggerFunction.url,
+      PostgresSocialPostsApiEndpoint: postgresTriggerUrl,
       InstagramWebhookURL: instagramWebhook.url,
       TranscriptionApiEndpoint: transcriptionFunction.url,
     };

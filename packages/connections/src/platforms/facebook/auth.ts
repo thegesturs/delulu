@@ -1,6 +1,4 @@
 import { getCloudflareEnv } from "@delulu/cloudflare-types";
-import { ConvexHttpClient } from "convex/browser";
-import { nanoid } from "nanoid";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { decryptData, encryptData } from "@delulu/database/convex/utils";
@@ -8,7 +6,13 @@ import {
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
 } from "@delulu/validators/facebook";
-import type { CallbackContext, PlatformAuth } from "../../types";
+import { ConvexHttpClient } from "convex/browser";
+import { nanoid } from "nanoid";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+} from "../../types";
 import { GRAPH_VERSION } from "./constants";
 
 const fbEnv = () => ({
@@ -53,7 +57,12 @@ interface FacebookPageResponse {
     id: string;
     tasks: string[];
     picture: {
-      data: { url: string; width: number; height: number; is_silhouette: boolean };
+      data: {
+        url: string;
+        width: number;
+        height: number;
+        is_silhouette: boolean;
+      };
     };
     cover: { id: string; source: string; offset_y: number };
     link: string;
@@ -97,14 +106,14 @@ export const facebookAuth: PlatformAuth = {
   scopes: BASE_SCOPES,
   isMultiStep: true,
 
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     const e = fbEnv();
     const params = new URLSearchParams({
       client_id: e.clientId,
       redirect_uri: e.callbackUrl,
       response_type: "code",
       scope: BASE_SCOPES.join(","),
-      state: JSON.stringify({ state: nanoid(10) }),
+      state: ctx?.state ?? JSON.stringify({ state: nanoid(10) }),
     });
     return `https://www.facebook.com/dialog/oauth?${params.toString()}`;
   },
@@ -146,7 +155,10 @@ export const facebookAuth: PlatformAuth = {
         method: "GET",
       });
       if (!tokenRequest.ok) {
-        console.error("Facebook token exchange failed:", await tokenRequest.text());
+        console.error(
+          "Facebook token exchange failed:",
+          await tokenRequest.text()
+        );
         return redirect(
           "/socials?error=token_invalid&code=FACEBOOK_002&provider=facebook"
         );
@@ -198,7 +210,9 @@ export const facebookAuth: PlatformAuth = {
         });
 
         // Redirect to the page-selection UI with the KV data key.
-        return redirect(`/facebook-page-select?key=${key}&code=${code}`);
+        return redirect(
+          `/facebook-page-select?key=${encodeURIComponent(key)}&code=${encodeURIComponent(code)}&state=${encodeURIComponent(ctx.state ?? "")}`
+        );
       } catch (pagesError) {
         console.error("Error fetching Facebook pages:", pagesError);
         return redirect(
@@ -229,6 +243,7 @@ export interface ConnectFacebookPageInput {
   userId?: string;
   /** Convex auth token for the current user. */
   convexToken: string;
+  upsert?: CallbackContext["upsert"];
 }
 
 export interface ConnectFacebookPageResult {
@@ -276,17 +291,33 @@ export async function connectFacebookPage(
   // Clean up the one-time KV entry once the token has been extracted.
   await facebookPagesKV.delete(key);
 
+  if (input.upsert) {
+    const status = await input.upsert({
+      socialType: "FACEBOOK",
+      accessToken: pageAccessToken,
+      profileId: input.pageId,
+      username: input.pageName,
+      fullName: input.pageName,
+    });
+    return {
+      status: status === "transfer_required" ? "transferred" : "connected",
+    };
+  }
+
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
   convex.setAuth(input.convexToken);
-  const result = await convex.mutation(api.social_providers.connectFacebookPage, {
-    userId: input.organizationId
-      ? undefined
-      : (input.userId as Id<"users"> | undefined),
-    organizationId: input.organizationId,
-    pageId: input.pageId,
-    pageName: input.pageName,
-    accessToken: pageAccessToken,
-  });
+  const result = await convex.mutation(
+    api.social_providers.connectFacebookPage,
+    {
+      userId: input.organizationId
+        ? undefined
+        : (input.userId as Id<"users"> | undefined),
+      organizationId: input.organizationId,
+      pageId: input.pageId,
+      pageName: input.pageName,
+      accessToken: pageAccessToken,
+    }
+  );
 
   return result;
 }

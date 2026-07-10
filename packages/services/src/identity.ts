@@ -121,6 +121,7 @@ export class IdentityService extends Context.Service<
                   parentOrgId: null,
                   clerkOrgId: null,
                   isPersonal: true,
+                  deletedAt: null,
                 })
               );
               yield* memberRepo.insert(

@@ -31,9 +31,10 @@ describe("roleScopeCeiling", () => {
     }
   });
 
-  it("only owner may mint API keys", () => {
+  it("owner and admin may mint API keys", () => {
     expect(roleScopeCeiling.owner).toContain("apikeys:write");
-    expect(roleScopeCeiling.admin).not.toContain("apikeys:write");
+    expect(roleScopeCeiling.admin).toContain("apikeys:write");
+    expect(roleScopeCeiling.editor).not.toContain("apikeys:write");
   });
 
   it("viewer can never write regardless of requested scopes", () => {

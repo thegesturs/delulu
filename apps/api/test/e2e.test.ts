@@ -1,23 +1,17 @@
 import { UnauthorizedError } from "@delulu/contracts";
 import {
-  ApiKeyVerifier,
-  AsTokenService,
-  AuthConfig,
   ClerkTokenVerifier,
   deriveChallengeS256,
-  IdentityService,
-  MembershipService,
-  OAuthFlowService,
-  QuotaGuard,
   RateLimiterService,
 } from "@delulu/services";
-import { PgClient } from "@effect/sql-pg";
-import { Effect, String as EffectString, Layer, Redacted } from "effect";
+import { Effect, Layer } from "effect";
 import { beforeAll, describe, expect, it } from "vitest";
-import { type AppServices, buildWebHandler } from "../src/app";
+import { buildWebHandler } from "../src/app";
+import { makeBaseLayer } from "../src/index";
 
 const ISSUER = "http://localhost:8787";
 const DEV_SUB = `clerk_e2e_${crypto.randomUUID()}`;
+const API_KEY_PREFIX = /^dsk_/;
 
 const toPem = (der: ArrayBuffer): string => {
   const bytes = new Uint8Array(der);
@@ -42,27 +36,6 @@ beforeAll(async () => {
   );
   const pkcs8 = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
 
-  const Pg = PgClient.layer({
-    url: Redacted.make(
-      process.env.DATABASE_URL ??
-        "postgres://delulu:delulu@localhost:5432/delulu"
-    ),
-    transformQueryNames: EffectString.camelToSnake,
-    transformResultNames: EffectString.snakeToCamel,
-    transformJson: true,
-  });
-  const Config = Layer.succeed(
-    AuthConfig,
-    AuthConfig.of({
-      clerkIssuer: "",
-      clerkJwtKey: "",
-      asIssuer: ISSUER,
-      apiResource: ISSUER,
-      appBaseUrl: "http://localhost:3000",
-      asSigningKeyPem: toPem(pkcs8),
-      asSigningKid: "e2e-kid",
-    })
-  );
   // Stub Clerk verifier: "dev-token" → a fixed subject; everything else 401.
   const Clerk = Layer.succeed(
     ClerkTokenVerifier,
@@ -73,24 +46,20 @@ beforeAll(async () => {
           : Effect.fail(new UnauthorizedError({ message: "bad token" })),
     })
   );
-  const AsToken = AsTokenService.layer.pipe(Layer.provide(Config));
-  const Limiter = RateLimiterService.inMemoryLayer({ sessionPerMinute: 3 });
-
-  const base: Layer.Layer<AppServices> = Layer.mergeAll(
-    IdentityService.layer,
-    MembershipService.layer,
-    ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
-    QuotaGuard.layer,
-    Limiter,
-    AsToken,
-    Clerk,
-    Config
-  ).pipe(
-    Layer.provide(AsToken),
-    Layer.provide(Config),
-    Layer.provideMerge(Pg),
-    Layer.orDie
+  const Limiter = RateLimiterService.inMemoryLayer({ sessionPerMinute: 20 });
+  const base = makeBaseLayer(
+    {
+      DATABASE_URL:
+        process.env.DATABASE_URL ??
+        "postgres://delulu:delulu@localhost:5432/delulu",
+      AS_ISSUER: ISSUER,
+      API_RESOURCE: ISSUER,
+      APP_BASE_URL: "http://localhost:3000",
+      AS_SIGNING_KEY: toPem(pkcs8),
+      AS_SIGNING_KID: "e2e-kid",
+      CONNECTION_STATE_SECRET: "e2e-connection-state-secret",
+    },
+    { clerk: Clerk, rateLimiter: Limiter }
   );
 
   handler = buildWebHandler(base).handler as (
@@ -160,6 +129,53 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.data[0].isPersonal).toBe(true);
   });
 
+  it("serves the M2 workspace admin, API-key, media, and connection-mint contracts", async () => {
+    const memberships = await get("/v1/me/workspaces", "dev-token");
+    const membershipBody = (await memberships.json()) as {
+      data: Array<{ workspaceId: string }>;
+    };
+    const workspaceId = membershipBody.data[0]?.workspaceId;
+    expect(workspaceId).toBeTruthy();
+
+    const workspace = await get(`/v1/workspaces/${workspaceId}`, "dev-token");
+    expect(workspace.status).toBe(200);
+
+    const key = await postJson(
+      `/v1/workspaces/${workspaceId}/api-keys`,
+      { name: "e2e", role: "owner", scopes: ["posts:read"] },
+      "dev-token"
+    );
+    expect(key.status).toBe(200);
+    const keyBody = (await key.json()) as { token: string };
+    expect(keyBody.token).toMatch(API_KEY_PREFIX);
+
+    const upload = await postJson(
+      `/v1/workspaces/${workspaceId}/media/uploads`,
+      [{ filename: "photo.png", contentType: "image/png" }],
+      "dev-token"
+    );
+    expect(upload.status).toBe(200);
+    const uploadBody = (await upload.json()) as Array<{
+      mediaId: string;
+      uploadUrl: string;
+    }>;
+    expect(uploadBody[0]?.uploadUrl).toContain("X-Amz-Signature");
+    const media = await get(
+      `/v1/workspaces/${workspaceId}/media/${uploadBody[0]?.mediaId}`,
+      "dev-token"
+    );
+    expect(media.status).toBe(200);
+
+    const mint = await postJson(
+      `/v1/workspaces/${workspaceId}/connections/connect/instagram`,
+      {},
+      "dev-token"
+    );
+    expect(mint.status).toBe(200);
+    const mintBody = (await mint.json()) as { url: string };
+    expect(mintBody.url).toContain("state=");
+  });
+
   it("rejects a garbage bearer with a 401 error envelope", async () => {
     const res = await get("/v1/me", "not-a-real-token");
     expect(res.status).toBe(401);
@@ -167,10 +183,19 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.error.code).toBe("UnauthorizedError");
   });
 
+  it("keeps social OAuth callbacks public but rejects unsigned state", async () => {
+    const res = await get(
+      "/v1/connections/callback/instagram?code=fake&state=unsigned"
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("ConflictError");
+  });
+
   it("enforces the flat session rate limit (429)", async () => {
     // Fresh user so the counter is isolated from other tests.
     const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 25; i++) {
       const res = await get("/v1/me", "dev-token");
       statuses.push(res.status);
     }

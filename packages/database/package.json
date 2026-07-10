@@ -17,6 +17,10 @@
       "import": "./convex/_generated/dataModel.js",
       "types": "./convex/_generated/dataModel.d.ts"
     },
+    "./convex/utils": {
+      "import": "./convex/utils.ts",
+      "types": "./convex/utils.ts"
+    },
     "./node": {
       "import": "./node.ts",
       "types": "./node.ts"

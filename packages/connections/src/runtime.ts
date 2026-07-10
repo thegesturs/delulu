@@ -1,7 +1,7 @@
 import { runEffectExit } from "@delulu/core/kernel/boundary";
-import { Effect } from "effect";
+import { Effect, type Layer } from "effect";
 import { getPublisher } from "./publish-registry";
-import { ConvexClientLive } from "./services/convex";
+import { type ConvexClient, ConvexClientLive } from "./services/convex";
 import type {
   PostResult,
   PublishableSocialType,
@@ -23,11 +23,12 @@ export type PublishOutcome =
  */
 export const runPublish = async (
   id: PublishableSocialType,
-  ctx: PublishContext
+  ctx: PublishContext,
+  connectionStore: Layer.Layer<ConvexClient> = WorkerLayer
 ): Promise<PublishOutcome> => {
   const publisher = getPublisher(id);
   const outcome = await runEffectExit(publisher.publish(ctx), {
-    provide: (effect) => effect.pipe(Effect.provide(WorkerLayer)),
+    provide: (effect) => effect.pipe(Effect.provide(connectionStore)),
     mapFailure: (error) => ({
       message: error.message,
       retryable: error.retryable,

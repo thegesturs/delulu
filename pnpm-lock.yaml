@@ -105,6 +105,43 @@ importers:
 
   apps/api:
     dependencies:
+      '@delulu/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@delulu/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
+      '@delulu/services':
+        specifier: workspace:*
+        version: link:../../packages/services
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250214.0
+        version: 4.20250710.0
+      '@delulu/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.15.34)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
+      wrangler:
+        specifier: ^4.0.0
+        version: 4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+
+  apps/api-legacy:
+    dependencies:
       '@clerk/backend':
         specifier: ^2.9.1
         version: 2.9.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -113,13 +150,13 @@ importers:
         version: link:../../packages/database
       '@scalar/hono-api-reference':
         specifier: ^0.10.0
-        version: 0.10.0(hono@4.7.4)
+        version: 0.10.0(hono@4.12.5)
       convex:
         specifier: ^1.25.4
         version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       hono:
         specifier: ^4.7.0
-        version: 4.7.4
+        version: 4.12.5
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250214.0
@@ -1676,9 +1713,18 @@ importers:
 
   packages/services:
     dependencies:
+      '@delulu/connections':
+        specifier: workspace:*
+        version: link:../connections
+      '@delulu/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@delulu/core':
         specifier: workspace:*
         version: link:../core
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.97
@@ -1686,9 +1732,15 @@ importers:
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+      vitest:
+        specifier: ^3.1.1
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.15.34)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
 
   packages/storage:
     dependencies:
@@ -1759,15 +1811,24 @@ importers:
       '@delulu/connections':
         specifier: workspace:*
         version: link:../connections
+      '@delulu/core':
+        specifier: workspace:*
+        version: link:../core
       '@delulu/database':
         specifier: workspace:*
         version: link:../database
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
       '@delulu/validators':
         specifier: workspace:*
         version: link:../validators
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@types/node':
         specifier: 22.14.1
         version: 22.14.1
@@ -1783,6 +1844,9 @@ importers:
       dotenv-cli:
         specifier: ^7.4.1
         version: 7.4.4
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97
       googleapis:
         specifier: ^150.0.1
         version: 150.0.1
@@ -22138,10 +22202,10 @@ snapshots:
 
   '@scalar/helpers@0.3.0': {}
 
-  '@scalar/hono-api-reference@0.10.0(hono@4.7.4)':
+  '@scalar/hono-api-reference@0.10.0(hono@4.12.5)':
     dependencies:
       '@scalar/core': 0.4.0
-      hono: 4.7.4
+      hono: 4.12.5
 
   '@scalar/types@0.7.0':
     dependencies:
