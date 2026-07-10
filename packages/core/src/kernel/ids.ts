@@ -64,6 +64,20 @@ export const AutomationContactId = nanoId(
 export type AutomationContactId = typeof AutomationContactId.Type;
 export const TranscriptionId = nanoId("transcription", "TranscriptionId");
 export type TranscriptionId = typeof TranscriptionId.Type;
+export const OAuthClientId = nanoId("oauth_client", "OAuthClientId");
+export type OAuthClientId = typeof OAuthClientId.Type;
+export const OAuthAuthorizationCodeId = nanoId(
+  "oauth_code",
+  "OAuthAuthorizationCodeId"
+);
+export type OAuthAuthorizationCodeId = typeof OAuthAuthorizationCodeId.Type;
+export const OAuthGrantId = nanoId("oauth_grant", "OAuthGrantId");
+export type OAuthGrantId = typeof OAuthGrantId.Type;
+export const OAuthRefreshTokenId = nanoId(
+  "oauth_refresh",
+  "OAuthRefreshTokenId"
+);
+export type OAuthRefreshTokenId = typeof OAuthRefreshTokenId.Type;
 
 export const makeId = <A>(schema: EntityIdSchema<A>): A =>
   Schema.decodeUnknownSync(schema)(`${schema[EntityIdTypeId]}${makeNanoId()}`);

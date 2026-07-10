@@ -1,54 +1,51 @@
-import { apiReference } from "@scalar/hono-api-reference";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { authMiddleware } from "./middleware/auth";
-import { errorHandler } from "./middleware/error-handler";
-import { rateLimitMiddleware } from "./middleware/rate-limit";
-import { openApiSpec } from "./openapi";
-import v1 from "./routes/v1";
-import type { ApiKeyData, Env } from "./types";
+import { Api } from "@delulu/contracts";
+import type {
+  ApiKeyVerifier,
+  AsTokenService,
+  AuthConfig,
+  ClerkTokenVerifier,
+  IdentityService,
+  MembershipService,
+  OAuthFlowService,
+  QuotaGuard,
+  RateLimiterService,
+} from "@delulu/services";
+import { Layer } from "effect";
+import { HttpRouter, HttpServer } from "effect/unstable/http";
+import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
+import type { SqlClient } from "effect/unstable/sql";
+import { HealthHandlers, MeHandlers } from "./handlers";
+import { OAuthRoutes } from "./oauth-routes";
 
-interface AppEnv {
-  Bindings: Env;
-  Variables: { apiKey: ApiKeyData };
-}
+/** Everything the assembled routes need a per-request environment to provide. */
+export type AppServices =
+  | SqlClient.SqlClient
+  | AuthConfig
+  | ClerkTokenVerifier
+  | AsTokenService
+  | ApiKeyVerifier
+  | IdentityService
+  | MembershipService
+  | OAuthFlowService
+  | QuotaGuard
+  | RateLimiterService;
 
-export function createApp() {
-  const app = new Hono<AppEnv>();
+/**
+ * Assemble the typed HttpApi (health + me), Scalar docs, `/openapi.json`, and
+ * the plain OAuth AS routes into a single fetch handler, provided by `base`
+ * (built per Worker env). Built once per env object and memoized by the caller.
+ */
+export const buildWebHandler = (base: Layer.Layer<AppServices>) => {
+  const ApiRoutes = HttpApiBuilder.layer(Api, {
+    openapiPath: "/openapi.json",
+  }).pipe(Layer.provide([HealthHandlers, MeHandlers]));
 
-  // CORS
-  app.use("*", cors());
+  const DocsRoute = HttpApiScalar.layer(Api, { path: "/docs" });
 
-  // Redirect root to docs
-  app.get("/", (c) => c.redirect("/docs"));
-
-  // Health check (no auth needed)
-  app.get("/health", (c) => c.json({ status: "ok" }));
-
-  // OpenAPI spec + docs (no auth needed)
-  app.get("/openapi.json", (c) => c.json(openApiSpec));
-  app.get(
-    "/docs",
-    apiReference({
-      url: "/openapi.json",
-      theme: "kepler",
-    })
+  const AllRoutes = Layer.mergeAll(ApiRoutes, DocsRoute, OAuthRoutes).pipe(
+    Layer.provide(base),
+    Layer.provide(HttpServer.layerServices)
   );
 
-  // Auth + rate limiting for all /v1 routes
-  app.use("/v1/*", authMiddleware);
-  app.use("/v1/*", rateLimitMiddleware);
-
-  // Mount v1 routes
-  app.route("/v1", v1);
-
-  // Error handler
-  app.onError(errorHandler);
-
-  // 404 handler
-  app.notFound((c) =>
-    c.json({ error: { code: "NOT_FOUND", message: "Endpoint not found" } }, 404)
-  );
-
-  return app;
-}
+  return HttpRouter.toWebHandler(AllRoutes);
+};

@@ -9,6 +9,7 @@ export const WorkspaceRole = Schema.Literals([
   "editor",
   "viewer",
 ]);
+export type WorkspaceRole = typeof WorkspaceRole.Type;
 export class WorkspaceMember extends Model.Class<WorkspaceMember>(
   "WorkspaceMember"
 )({
