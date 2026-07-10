@@ -2,15 +2,63 @@ import { Effect, Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import { PostContent } from "../domain/post-group";
 import { PlatformSettings } from "../domain/post-target";
-import { makeId, UserId } from "./ids";
+import {
+  ApiKeyId,
+  AutomationContactId,
+  AutomationId,
+  AutomationRunId,
+  ConnectionId,
+  type EntityIdSchema,
+  MediaId,
+  MemberId,
+  makeId,
+  PostGroupId,
+  PostId,
+  PostReviewId,
+  PostTargetId,
+  ReviewActivityId,
+  SubscriptionId,
+  TransactionId,
+  TranscriptionId,
+  UserId,
+  WorkspaceId,
+} from "./ids";
 import { validateMediaFile } from "./media";
 import { makeTokenCipher } from "./token-cipher";
 
+const nanoIdSuffixPattern = /^[A-Za-z0-9_-]{12}$/;
+const entityIdCases: ReadonlyArray<readonly [EntityIdSchema<unknown>, string]> =
+  [
+    [UserId, "user"],
+    [WorkspaceId, "workspace"],
+    [MemberId, "member"],
+    [ConnectionId, "connection"],
+    [MediaId, "media"],
+    [PostId, "post"],
+    [PostGroupId, "post_group"],
+    [PostTargetId, "post_target"],
+    [ApiKeyId, "api_key"],
+    [SubscriptionId, "subscription"],
+    [TransactionId, "transaction"],
+    [PostReviewId, "post_review"],
+    [ReviewActivityId, "review_activity"],
+    [AutomationId, "automation"],
+    [AutomationRunId, "automation_run"],
+    [AutomationContactId, "automation_contact"],
+    [TranscriptionId, "transcription"],
+  ];
+
 describe("core kernel", () => {
-  it("generates branded UUIDv7 identifiers", () => {
-    const id = makeId(UserId);
-    expect(Schema.is(UserId)(id)).toBe(true);
-    expect(id[14]).toBe("7");
+  it("generates compact, entity-prefixed Nano IDs", () => {
+    for (const [schema, prefix] of entityIdCases) {
+      const id = makeId(schema) as string;
+      const expectedPrefix = `${prefix}_`;
+
+      expect(id.startsWith(expectedPrefix)).toBe(true);
+      expect(id.slice(expectedPrefix.length)).toMatch(nanoIdSuffixPattern);
+      expect(Schema.is(schema)(id)).toBe(true);
+    }
+    expect(Schema.is(UserId)(makeId(WorkspaceId))).toBe(false);
   });
 
   it("reports every violated media constraint", () => {

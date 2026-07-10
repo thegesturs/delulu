@@ -117,8 +117,8 @@ Each row is locked. Gist here; full detail in the ticket.
 
 ### 4.4 Identity & keys
 
-- **Primary keys:** UUIDv7 on all new tables. Every migrated row keeps a **`legacy_convex_id text unique`** column (nullable, indexed) for soak-period traceability and frozen-copy repairs; dropped in a post-soak contract migration.
-- **FK remapping:** the transform builds an in-memory `convexId → uuid` map per table and rewrites all references in dependency order (users → workspaces → members → providers → media → posts → …).
+- **Primary keys:** application-generated, entity-prefixed Nano IDs with 12 URL-safe random characters (for example, `user_V1StGXR8_Z5j` and `workspace_2nYxKp4Lq9Dm`). PostgreSQL stores primary and foreign keys as `text`; Effect schemas enforce the correct prefix at service boundaries. Every migrated row keeps a **`legacy_convex_id text unique`** column (nullable, indexed) for soak-period traceability and frozen-copy repairs; dropped in a post-soak contract migration.
+- **FK remapping:** the transform builds an in-memory `convexId → Nano ID` map per table and rewrites all references in dependency order (users → workspaces → members → providers → media → posts → …).
 - **Timestamps:** Convex `_creationTime` (ms float) → `timestamptz created_at`; numeric `updatedAt`/epoch fields likewise.
 - **Users:** `externalId` (Clerk user id) is the identity join key and is preserved verbatim.
 - **R2 media bytes are not migrated** — objects stay in place; `bucketKey` carries over unchanged.

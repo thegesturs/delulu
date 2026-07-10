@@ -22,7 +22,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "nanoid": "5.1.6"
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",

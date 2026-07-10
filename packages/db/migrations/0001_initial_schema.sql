@@ -13,7 +13,7 @@ END
 $$;
 
 CREATE TABLE users (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
   external_id text NOT NULL UNIQUE, email text, name text, image_url text,
   monthly_posts bigint NOT NULL DEFAULT 0, monthly_posts_period_start timestamptz,
   dms_sent bigint NOT NULL DEFAULT 0, dms_sent_period_start timestamptz,
@@ -22,23 +22,23 @@ CREATE TABLE users (
 );
 
 CREATE TABLE workspaces (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  name text NOT NULL, slug text UNIQUE, billing_owner_user_id uuid NOT NULL REFERENCES users(id),
-  parent_org_id uuid REFERENCES workspaces(id), clerk_org_id text UNIQUE, is_personal boolean NOT NULL DEFAULT false,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  name text NOT NULL, slug text UNIQUE, billing_owner_user_id text NOT NULL REFERENCES users(id),
+  parent_org_id text REFERENCES workspaces(id), clerk_org_id text UNIQUE, is_personal boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE workspace_members (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, role workspace_role NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE, role workspace_role NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (workspace_id, user_id)
 );
 
 CREATE TABLE connections (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   platform text NOT NULL, profile_id text NOT NULL, username text, display_name text,
   access_token text NOT NULL, refresh_token text, cipher_version text NOT NULL DEFAULT 'v1' CHECK (cipher_version = 'v1'),
   expires_at timestamptz, metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -47,8 +47,8 @@ CREATE TABLE connections (
 );
 
 CREATE TABLE media (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   bucket_key text NOT NULL, url text NOT NULL, media_type text NOT NULL, mime_type text,
   size_bytes bigint NOT NULL CHECK (size_bytes >= 0), width integer, height integer,
   duration_seconds double precision, thumbnails jsonb NOT NULL DEFAULT '[]'::jsonb, alt_text text, status media_status NOT NULL,
@@ -56,9 +56,9 @@ CREATE TABLE media (
 );
 
 CREATE TABLE posts (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, status post_status NOT NULL,
-  content jsonb NOT NULL, created_by_member_id uuid NOT NULL REFERENCES workspace_members(id), source post_source NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, status post_status NOT NULL,
+  content jsonb NOT NULL, created_by_member_id text NOT NULL REFERENCES workspace_members(id), source post_source NOT NULL,
   external_submission_id text, deleted_at timestamptz, published_at timestamptz,
   search_text tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, content::text)) STORED,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
@@ -69,9 +69,9 @@ CREATE TABLE posts (
 CREATE INDEX posts_search_idx ON posts USING gin(search_text);
 
 CREATE TABLE post_targets (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  post_id uuid NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-  connection_id uuid NOT NULL REFERENCES connections(id), group_id uuid NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  post_id text NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  connection_id text NOT NULL REFERENCES connections(id), group_id text NOT NULL,
   settings jsonb NOT NULL DEFAULT '{}'::jsonb, scheduled_at timestamptz, status target_status NOT NULL,
   platform_post_id text, platform_post_url text, posted_at timestamptz, error text, attempts integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
@@ -80,17 +80,17 @@ CREATE TABLE post_targets (
 CREATE INDEX post_targets_schedule_idx ON post_targets(status, scheduled_at) WHERE scheduled_at IS NOT NULL;
 
 CREATE TABLE api_keys (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  created_by_member_id uuid NOT NULL REFERENCES workspace_members(id), name text NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  created_by_member_id text NOT NULL REFERENCES workspace_members(id), name text NOT NULL,
   key_prefix text NOT NULL UNIQUE, key_hash text NOT NULL UNIQUE, last_used_at timestamptz,
   expires_at timestamptz, revoked_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE subscriptions (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  billing_owner_user_id uuid NOT NULL UNIQUE REFERENCES users(id), provider_customer_id text UNIQUE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  billing_owner_user_id text NOT NULL UNIQUE REFERENCES users(id), provider_customer_id text UNIQUE,
   provider_subscription_id text UNIQUE, plan text NOT NULL, status text NOT NULL,
   current_period_start timestamptz, current_period_end timestamptz,
   monthly_posts bigint NOT NULL DEFAULT 0, media_storage_bytes bigint NOT NULL DEFAULT 0,
@@ -99,60 +99,60 @@ CREATE TABLE subscriptions (
 );
 
 CREATE TABLE transactions (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  billing_owner_user_id uuid NOT NULL REFERENCES users(id), provider_transaction_id text NOT NULL UNIQUE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  billing_owner_user_id text NOT NULL REFERENCES users(id), provider_transaction_id text NOT NULL UNIQUE,
   amount_minor bigint NOT NULL, currency text NOT NULL, status text NOT NULL, metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE post_reviews (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  post_id uuid NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE, status review_status NOT NULL,
-  content_fingerprint text NOT NULL, submitted_by_member_id uuid NOT NULL REFERENCES workspace_members(id),
-  resolved_by_member_id uuid REFERENCES workspace_members(id), resolved_at timestamptz,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  post_id text NOT NULL UNIQUE REFERENCES posts(id) ON DELETE CASCADE, status review_status NOT NULL,
+  content_fingerprint text NOT NULL, submitted_by_member_id text NOT NULL REFERENCES workspace_members(id),
+  resolved_by_member_id text REFERENCES workspace_members(id), resolved_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE review_activity (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  post_id uuid NOT NULL REFERENCES posts(id) ON DELETE CASCADE, review_id uuid REFERENCES post_reviews(id) ON DELETE SET NULL,
-  actor_member_id uuid NOT NULL REFERENCES workspace_members(id), activity_type text NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  post_id text NOT NULL REFERENCES posts(id) ON DELETE CASCADE, review_id text REFERENCES post_reviews(id) ON DELETE SET NULL,
+  actor_member_id text NOT NULL REFERENCES workspace_members(id), activity_type text NOT NULL,
   comment text, metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE automations (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  connection_id uuid NOT NULL REFERENCES connections(id), platform text NOT NULL, category text NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  connection_id text NOT NULL REFERENCES connections(id), platform text NOT NULL, category text NOT NULL,
   trigger_config jsonb NOT NULL DEFAULT '{}'::jsonb, enabled boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE automation_runs (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  automation_id uuid NOT NULL REFERENCES automations(id) ON DELETE CASCADE, status text NOT NULL,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  automation_id text NOT NULL REFERENCES automations(id) ON DELETE CASCADE, status text NOT NULL,
   input jsonb NOT NULL DEFAULT '{}'::jsonb, output jsonb NOT NULL DEFAULT '{}'::jsonb, error text,
   started_at timestamptz NOT NULL, completed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE automation_contacts (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  automation_id uuid NOT NULL REFERENCES automations(id) ON DELETE CASCADE,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  automation_id text NOT NULL REFERENCES automations(id) ON DELETE CASCADE,
   platform_user_id text NOT NULL, email text, metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (automation_id, platform_user_id)
 );
 
 CREATE TABLE transcriptions (
-  id uuid PRIMARY KEY DEFAULT uuidv7(), legacy_convex_id text UNIQUE,
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  media_id uuid REFERENCES media(id) ON DELETE SET NULL, text text NOT NULL, language text,
+  id text PRIMARY KEY, legacy_convex_id text UNIQUE,
+  workspace_id text NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  media_id text REFERENCES media(id) ON DELETE SET NULL, text text NOT NULL, language text,
   duration_seconds double precision,
   search_text tsvector GENERATED ALWAYS AS (to_tsvector('simple'::regconfig, text)) STORED,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
