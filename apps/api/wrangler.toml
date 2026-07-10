@@ -1,24 +1,53 @@
-name = "delulu-api"
+# Staging-only worker for the backend revamp (M1). NEVER name this "delulu-api"
+# until the M6 cutover — that name belongs to the production Hono worker in
+# apps/api-legacy. Ids below are placeholders filled in at first provisioning
+# (see README.md runbook). This config exists for `wrangler dev` + types only;
+# no deploy happens until all milestones land (per user decision).
+name = "delulu-api-next"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
-CONVEX_URL = "https://giant-canary-837.convex.cloud"
-DELULU_APP_URL = "https://solulu.delulu.social"
-# Required for Clerk OAuth bearer token verification.
-# Set production values with `wrangler secret put` or deployment environment vars.
-CLERK_PUBLISHABLE_KEY = ""
+AS_ISSUER = "https://api-next.delulu.social"
+API_RESOURCE = "https://api-next.delulu.social"
+APP_BASE_URL = "https://app.delulu.social"
+CLERK_ISSUER = ""
 
-# Secrets (set via wrangler secret put):
-# CLERK_SECRET_KEY
-# R2_ACCOUNT_ID
-# R2_ACCESS_KEY_ID
-# R2_SECRET_ACCESS_KEY
+# Secrets (set via `wrangler secret put`):
+#   CLERK_JWT_KEY     PEM public key for networkless Clerk verification
+#   AS_SIGNING_KEY    PKCS#8 PEM ES256 private key for our AS
+#   AS_SIGNING_KID    stable key id advertised in the JWKS
+#   DATABASE_URL      local-dev fallback only (prod uses Hyperdrive)
 
-[[kv_namespaces]]
-binding = "DELULU_RATE_LIMIT_KV"
-id = "0fa4faf775ec4ab28e259c8a5503dc3c"
+# Postgres via Hyperdrive (fill id after `wrangler hyperdrive create`).
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "<hyperdrive-id>"
 
-[[r2_buckets]]
-binding = "DELULU_SOCIAL_BUCKET"
-bucket_name = "delulu-social"
+# One native Rate Limiting binding per distinct tier (static limit each).
+# [[unsafe.bindings]]
+# name = "RL_API_20"
+# type = "ratelimit"
+# namespace_id = "1001"
+# simple = { limit = 20, period = 60 }
+# [[unsafe.bindings]]
+# name = "RL_API_60"
+# type = "ratelimit"
+# namespace_id = "1002"
+# simple = { limit = 60, period = 60 }
+# [[unsafe.bindings]]
+# name = "RL_API_120"
+# type = "ratelimit"
+# namespace_id = "1003"
+# simple = { limit = 120, period = 60 }
+# [[unsafe.bindings]]
+# name = "RL_SESSION_300"
+# type = "ratelimit"
+# namespace_id = "1004"
+# simple = { limit = 300, period = 60 }
+
+# KV namespace for the monthly API-request counter (apiRequestsPerMonth budget).
+# [[kv_namespaces]]
+# binding = "API_USAGE_KV"
+# id = "<kv-namespace-id>"

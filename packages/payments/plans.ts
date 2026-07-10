@@ -25,10 +25,25 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
 export interface PlanLimits {
   socialAccounts: number; // Number of connected social media accounts
   monthlyPosts: number; // Number of posts that can be scheduled per month
-  mediaStorage: number; // Media storage in MB
+  mediaStorage: number; // Media storage in MB (legacy; prefer mediaStorageBytes)
+  mediaStorageBytes: number; // Media storage in bytes (quota source of truth)
   teamMembers: number; // Number of team members
   organizations: number; // Number of organizations the user can create
+  // Backend-revamp additions (#159). Two distinct axes:
+  // rate = requests/min (429), budget = requests/month (402 quota).
+  apiRatePerMinute: number; // API-key request rate limit per minute
+  apiRequestsPerMonth: number; // Pooled monthly API request budget (per billing owner)
+  dmsPerMonth: number; // Monthly auto-DM budget (10% soft overage, see #159)
 }
+
+/**
+ * Flat, plan-independent per-user rate limit for interactive session traffic
+ * (browser / CLI / MCP). Human UX is not monetized by request rate — only
+ * programmatic (API-key) throughput is (#159). The single global constant.
+ */
+export const SESSION_RATE_PER_MINUTE = 300;
+
+const MB = 1024 * 1024;
 
 export interface PlanFeatures {
   postScheduling: boolean;
@@ -75,8 +90,12 @@ export const PLANS: Record<PlanType, Plan> = {
       socialAccounts: 1,
       monthlyPosts: 10,
       mediaStorage: 100, // 100 MB
+      mediaStorageBytes: 100 * MB,
       teamMembers: 1,
       organizations: 0, // No org creation on free plan
+      apiRatePerMinute: 20,
+      apiRequestsPerMonth: 15_000, // ≈ 500/day budget (#159; confirm at review)
+      dmsPerMonth: 0,
     },
     features: {
       postScheduling: true,
@@ -95,8 +114,12 @@ export const PLANS: Record<PlanType, Plan> = {
       socialAccounts: 5,
       monthlyPosts: 150,
       mediaStorage: 1000, // 1 GB
+      mediaStorageBytes: 1000 * MB,
       teamMembers: 1,
       organizations: 0, // No org creation on Echo
+      apiRatePerMinute: 60,
+      apiRequestsPerMonth: 150_000,
+      dmsPerMonth: 1_000,
     },
     features: {
       postScheduling: true,
@@ -115,8 +138,12 @@ export const PLANS: Record<PlanType, Plan> = {
       socialAccounts: -1, // Unlimited
       monthlyPosts: -1, // Unlimited
       mediaStorage: -1, // Unlimited
+      mediaStorageBytes: -1, // Unlimited
       teamMembers: 10,
       organizations: 3,
+      apiRatePerMinute: 120,
+      apiRequestsPerMonth: 600_000,
+      dmsPerMonth: -1, // Unlimited
     },
     features: {
       postScheduling: true,
@@ -135,6 +162,27 @@ export const PLANS: Record<PlanType, Plan> = {
  */
 export function getPlan(planType: PlanType): Plan {
   return PLANS[planType];
+}
+
+/**
+ * Normalize a stored subscription plan string (e.g. `subscriptions.plan`, which
+ * is lower-cased free-form text) into a canonical `PlanType`. Unknown values
+ * fall back to `FREE` so quota enforcement always has a floor.
+ */
+export function resolvePlanType(plan: string | null | undefined): PlanType {
+  switch (plan?.toUpperCase()) {
+    case "VIBE":
+      return "VIBE";
+    case "ECHO":
+      return "ECHO";
+    default:
+      return "FREE";
+  }
+}
+
+/** Resolve the plan limits for a stored subscription plan string. */
+export function getPlanLimits(plan: string | null | undefined): PlanLimits {
+  return PLANS[resolvePlanType(plan)].limits;
 }
 
 /**

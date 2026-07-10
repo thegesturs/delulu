@@ -1,23 +1,28 @@
 {
-  "name": "@delulu/public-api",
+  "name": "@delulu/api",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "echo 'No build step required'",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@clerk/backend": "^2.9.1",
-    "@delulu/database": "workspace:*",
-    "@scalar/hono-api-reference": "^0.10.0",
-    "convex": "^1.25.4",
-    "hono": "^4.7.0"
+    "@delulu/contracts": "workspace:*",
+    "@delulu/core": "workspace:*",
+    "@delulu/payments": "workspace:*",
+    "@delulu/services": "workspace:*",
+    "@effect/sql-pg": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
+    "@delulu/typescript-config": "workspace:*",
     "typescript": "catalog:",
+    "vitest": "^3.1.1",
     "wrangler": "^4.0.0"
   }
 }

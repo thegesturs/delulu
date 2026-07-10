@@ -10,14 +10,20 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
+    "@delulu/payments": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
-    "typescript": "catalog:"
+    "@effect/sql-pg": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "^3.1.1"
   }
 }

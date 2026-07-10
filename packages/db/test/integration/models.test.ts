@@ -205,6 +205,8 @@ describe("Postgres Model.Class round trips", () => {
           name: "test",
           keyPrefix: `dl_${crypto.randomUUID()}`,
           keyHash: crypto.randomUUID(),
+          role: "editor",
+          scopes: ["posts:read", "posts:write"],
           lastUsedAt: nullable,
           expiresAt: nullable,
           revokedAt: nullable,
@@ -348,5 +350,7 @@ describe("Postgres Model.Class round trips", () => {
     expect(Object.values(result)).toHaveLength(16);
     expect(result.post.content.groups[0]?.id).toBe(result.target.groupId);
     expect(result.subscription.mediaStorageBytes).toBe(42n);
+    expect(result.key.role).toBe("editor");
+    expect(result.key.scopes).toEqual(["posts:read", "posts:write"]);
   });
 });
