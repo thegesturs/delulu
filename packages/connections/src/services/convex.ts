@@ -1,9 +1,9 @@
-import { ConvexHttpClient } from "convex/browser";
-import { Context, Effect, Layer } from "effect";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import type { PublishableSocialType } from "../types";
+import { ConvexHttpClient } from "convex/browser";
+import { Context, Effect, Layer } from "effect";
 import { type ConnectionError, networkError } from "../errors";
+import type { PublishableSocialType } from "../types";
 
 /** The decrypted social-provider record we read from Convex. */
 export interface SocialProviderTokens {
@@ -30,7 +30,7 @@ export interface SocialProviderUpdate {
  * stub layer. Keeps the Convex read/write boundary in one place instead of
  * scattered `convex.query(...)` calls.
  */
-export class ConvexClient extends Context.Tag("@delulu/connections/ConvexClient")<
+export class ConvexClient extends Context.Service<
   ConvexClient,
   {
     readonly getSocialProviderWithDecryptedTokens: (
@@ -40,31 +40,47 @@ export class ConvexClient extends Context.Tag("@delulu/connections/ConvexClient"
       update: SocialProviderUpdate
     ) => Effect.Effect<void, ConnectionError>;
   }
->() {}
+>()("@delulu/connections/ConvexClient") {}
 
 /** Live layer backed by the Convex HTTP client (fetch-based, isomorphic). */
-export const ConvexClientLive = Layer.sync(ConvexClient, () => {
+const makeLive = () => {
   const client = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
-  return {
-    getSocialProviderWithDecryptedTokens: (id) =>
+  return ConvexClient.of({
+    getSocialProviderWithDecryptedTokens: Effect.fn(
+      "ConvexClient.getSocialProviderWithDecryptedTokens"
+    )((id: string) =>
       Effect.tryPromise({
         try: () =>
           client.query(
             api.social_providers.getSocialProviderWithDecryptedTokens,
             { id: id as Id<"socialProviders"> }
           ) as Promise<SocialProviderTokens | null>,
-        catch: () => networkError("Convex", "getSocialProviderWithDecryptedTokens"),
-      }),
-    updateSocialProvider: (update) =>
-      Effect.tryPromise({
-        try: () =>
-          client.mutation(api.social_providers.updateSocialProvider, {
-            id: update.socialProviderId as Id<"socialProviders">,
-            ...(update.accessToken !== undefined && { accessToken: update.accessToken }),
-            ...(update.refreshToken !== undefined && { refreshToken: update.refreshToken }),
-            ...(update.expiresIn !== undefined && { expiresIn: update.expiresIn }),
-          }),
-        catch: () => networkError("Convex", "updateSocialProvider"),
-      }).pipe(Effect.asVoid),
-  };
-});
+        catch: () =>
+          networkError("Convex", "getSocialProviderWithDecryptedTokens"),
+      })
+    ),
+    updateSocialProvider: Effect.fn("ConvexClient.updateSocialProvider")(
+      (update: SocialProviderUpdate) =>
+        Effect.tryPromise({
+          try: () =>
+            client.mutation(api.social_providers.updateSocialProvider, {
+              id: update.socialProviderId as Id<"socialProviders">,
+              ...(update.accessToken !== undefined && {
+                accessToken: update.accessToken,
+              }),
+              ...(update.refreshToken !== undefined && {
+                refreshToken: update.refreshToken,
+              }),
+              ...(update.expiresIn !== undefined && {
+                expiresIn: update.expiresIn,
+              }),
+            }),
+          catch: () => networkError("Convex", "updateSocialProvider"),
+        }).pipe(Effect.asVoid)
+    ),
+  });
+};
+export const ConvexClientLive = Layer.effect(
+  ConvexClient,
+  Effect.sync(makeLive)
+);

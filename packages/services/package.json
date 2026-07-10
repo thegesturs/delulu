@@ -1,0 +1,23 @@
+{
+  "name": "@delulu/services",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "@delulu/core": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@delulu/typescript-config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

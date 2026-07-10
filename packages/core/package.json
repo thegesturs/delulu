@@ -1,0 +1,34 @@
+{
+  "name": "@delulu/core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./kernel/*": {
+      "import": "./src/kernel/*.ts",
+      "types": "./src/kernel/*.ts"
+    },
+    "./domain/*": {
+      "import": "./src/domain/*.ts",
+      "types": "./src/domain/*.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "nanoid": "5.1.6"
+  },
+  "devDependencies": {
+    "@delulu/typescript-config": "workspace:*",
+    "@types/node": "22.14.1",
+    "typescript": "catalog:",
+    "vitest": "^3.1.1"
+  }
+}

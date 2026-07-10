@@ -16,9 +16,9 @@ export const fetchEffect = (
     try: (signal) => fetch(url, { ...init, signal }),
     catch: () => networkError(provider, "fetch"),
   }).pipe(
-    Effect.timeoutFail({
+    Effect.timeoutOrElse({
       duration: Duration.millis(timeoutMs),
-      onTimeout: () => networkError(provider, "fetch timeout"),
+      orElse: () => Effect.fail(networkError(provider, "fetch timeout")),
     })
   );
 

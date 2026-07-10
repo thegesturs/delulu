@@ -26,6 +26,7 @@ export const POST_DELETED = "post_deleted";
 export const POST_PUBLISHED = "post_published";
 export const POST_PUBLISH_RETRIED = "post_publish_retried";
 export const POST_RESCHEDULED = "post_rescheduled";
+export const BULK_UPLOAD_SCHEDULED = "bulk_upload_scheduled";
 
 // ─── Social Media Connections ───
 export const SOCIAL_ACCOUNT_CONNECTED = "social_account_connected";

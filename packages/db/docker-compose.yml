@@ -1,0 +1,25 @@
+# Fixed project name so containers/volumes are shared across git worktrees
+# and do not depend on the packages/db directory path.
+name: delulu-db
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: delulu-db
+    environment:
+      POSTGRES_DB: delulu
+      POSTGRES_USER: delulu
+      POSTGRES_PASSWORD: delulu
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delulu -d delulu"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - delulu-postgres:/var/lib/postgresql
+
+volumes:
+  delulu-postgres:
+    name: delulu-postgres

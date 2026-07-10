@@ -24,6 +24,11 @@
     "db:migrate": "pnpm --filter=@delulu/database db:migrate:prod",
     "db:migrate:status": "pnpm --filter=@delulu/database db:migrate:status",
     "db:migrate:dry": "pnpm --filter=@delulu/database db:migrate:dry",
+    "pg:up": "pnpm --filter=@delulu/db pg:up",
+    "pg:migrate": "pnpm --filter=@delulu/db pg:migrate",
+    "pg:migrate:status": "pnpm --filter=@delulu/db pg:migrate:status",
+    "pg:migration-lint": "pnpm --filter=@delulu/db migration-lint",
+    "check:connections-boundary": "tsx scripts/check-connections-boundary.ts",
     "docker:run": "docker run -e MESSAGE_BODY='{\"socialPublishInput\": {\"postId\": \"post_J0hg0XPByWqb\", \"socialProviderId\": \"OTMupATk9DODV52RRUYaE\"}, \"socialType\": \"TIKTOK\"}' social-worker",
     "lint": "ultracite fix",
     "format": "ultracite fix",
@@ -48,6 +53,7 @@
     "tsup": "^8.4.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.3",
+    "tsx": "^4.20.3",
     "vitest": "^3.1.1"
   },
   "engines": {
