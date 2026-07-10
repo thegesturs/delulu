@@ -4,7 +4,7 @@ import { ConnectionId, PostGroupId, PostId, PostTargetId } from "../kernel/ids";
 import {
   domainErrorFields,
   entityFields,
-  JsonObject,
+  JsonColumn,
   repository,
 } from "./shared";
 
@@ -91,7 +91,7 @@ export class PostTarget extends Model.Class<PostTarget>("PostTarget")({
   postId: PostId,
   connectionId: ConnectionId,
   groupId: PostGroupId,
-  settings: PlatformSettings,
+  settings: JsonColumn(PlatformSettings),
   scheduledAt: Schema.NullOr(Schema.DateTimeUtcFromDate),
   status: TargetStatus,
   platformPostId: Schema.NullOr(Schema.String),

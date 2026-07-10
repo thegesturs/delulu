@@ -5,6 +5,7 @@ import {
   BigIntValue,
   domainErrorFields,
   entityFields,
+  JsonColumn,
   repository,
 } from "./shared";
 
@@ -20,7 +21,7 @@ export class Media extends Model.Class<Media>("Media")({
   width: Schema.NullOr(Schema.Number),
   height: Schema.NullOr(Schema.Number),
   durationSeconds: Schema.NullOr(Schema.Number),
-  thumbnails: Schema.Array(Schema.String),
+  thumbnails: JsonColumn(Schema.Array(Schema.String)),
   altText: Schema.NullOr(Schema.String),
   status: MediaStatus,
 }) {}

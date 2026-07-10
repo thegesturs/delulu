@@ -2,7 +2,12 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/unstable/schema";
 import { MemberId, PostId, WorkspaceId } from "../kernel/ids";
 import { PostContent } from "./post-group";
-import { domainErrorFields, entityFields, repository } from "./shared";
+import {
+  domainErrorFields,
+  entityFields,
+  JsonColumn,
+  repository,
+} from "./shared";
 
 export const PostStatus = Schema.Literals([
   "draft",
@@ -19,7 +24,7 @@ export class Post extends Model.Class<Post>("Post")({
   ...entityFields(PostId),
   workspaceId: WorkspaceId,
   status: PostStatus,
-  content: PostContent,
+  content: JsonColumn(PostContent),
   createdByMemberId: MemberId,
   source: PostSource,
   externalSubmissionId: Schema.NullOr(Schema.String),
