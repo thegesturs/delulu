@@ -1,9 +1,9 @@
-import { Effect, Exit, Layer } from "effect";
+import { Cause, Effect, Exit, Layer } from "effect";
 import { describe, expect, it } from "vitest";
-import { apiError, invalidMedia, ConnectionError } from "../../errors";
+import { apiError, invalidMedia, isConnectionError } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import { instagramRules } from "./rules";
 import { instagramPublisher } from "./publish";
+import { instagramRules } from "./rules";
 
 const media = (mediaType: "IMAGE" | "VIDEO", url = "https://x/y.jpg") => ({
   url,
@@ -69,7 +69,15 @@ describe("instagramPublisher.publish (Effect DI)", () => {
           content: {
             postId: "post_1",
             socialProviderId: "sp_1",
-            content: [{ order: 0, name: "c", text: "hi", media: [media("IMAGE")], tags: [] }],
+            content: [
+              {
+                order: 0,
+                name: "c",
+                text: "hi",
+                media: [media("IMAGE")],
+                tags: [],
+              },
+            ],
           },
         })
         .pipe(Effect.provide(StubConvex))
@@ -77,9 +85,12 @@ describe("instagramPublisher.publish (Effect DI)", () => {
 
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      const error = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-      expect(error).toBeInstanceOf(ConnectionError);
-      expect((error as ConnectionError).code).toBe("PROFILE_NOT_FOUND");
+      const error = Cause.findErrorOption(exit.cause);
+      expect(error._tag).toBe("Some");
+      if (error._tag === "Some") {
+        expect(isConnectionError(error.value)).toBe(true);
+        expect(error.value.code).toBe("PROFILE_NOT_FOUND");
+      }
     }
   });
 });

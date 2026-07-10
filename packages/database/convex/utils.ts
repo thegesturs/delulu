@@ -34,10 +34,9 @@ export type UniqueIdsType =
 function str2ab(str: string): ArrayBuffer {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(str);
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength
-  );
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
 }
 
 /**

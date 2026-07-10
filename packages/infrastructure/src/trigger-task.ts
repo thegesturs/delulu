@@ -6,8 +6,11 @@ import { task } from "sst/aws/task";
 export async function handler(event: { Records: any }) {
   for (const record of event.Records) {
     console.log("Record", record.body);
-    await task.run(Resource.SocialPostsTask, {
-      MESSAGE_BODY: record.body,
-    });
+    const socialPostsTask = (
+      Resource as unknown as {
+        SocialPostsTask: Parameters<typeof task.run>[0];
+      }
+    ).SocialPostsTask;
+    await task.run(socialPostsTask, { MESSAGE_BODY: record.body });
   }
 }

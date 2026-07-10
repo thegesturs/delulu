@@ -1,111 +1,174 @@
-import { Data } from "effect";
+import { Schema } from "effect";
 
-/**
- * Single tagged error for the whole connection layer. Replaces the neverthrow
- * `SocialProviderError` hierarchy — callers discriminate on `code` and decide
- * retry behaviour from `retryable`.
- *
- * `Data.TaggedError` gives us:
- *  - a real `Error` subclass (so `error.message` works at the boundary),
- *  - structural equality + a `_tag` for Effect's typed error channel,
- *  - `yield*`-ability inside `Effect.gen`.
- */
-export class ConnectionError extends Data.TaggedError("ConnectionError")<{
-  readonly code: string;
-  readonly provider: string;
-  readonly message: string;
-  readonly retryable: boolean;
-}> {}
+const fields = <Code extends string>(code: Code, retryable: boolean) => ({
+  code: Schema.Literal(code),
+  provider: Schema.String,
+  message: Schema.String,
+  retryable: retryable ? Schema.Literal(true) : Schema.Literal(false),
+});
 
-/** Retryable — SQS should re-deliver (visibility-timeout retry). */
+export class RateLimitedError extends Schema.TaggedErrorClass<RateLimitedError>()(
+  "RateLimitedError",
+  fields("RATE_LIMITED", true)
+) {}
+export class NetworkConnectionError extends Schema.TaggedErrorClass<NetworkConnectionError>()(
+  "NetworkConnectionError",
+  fields("NETWORK_ERROR", true)
+) {}
+export class TokenExpiredError extends Schema.TaggedErrorClass<TokenExpiredError>()(
+  "TokenExpiredError",
+  fields("TOKEN_EXPIRED", true)
+) {}
+export class MediaProcessingTimeoutError extends Schema.TaggedErrorClass<MediaProcessingTimeoutError>()(
+  "MediaProcessingTimeoutError",
+  fields("MEDIA_PROCESSING_TIMEOUT", true)
+) {}
+export class InvalidMediaError extends Schema.TaggedErrorClass<InvalidMediaError>()(
+  "InvalidMediaError",
+  fields("INVALID_MEDIA", false)
+) {}
+export class ProfileNotFoundError extends Schema.TaggedErrorClass<ProfileNotFoundError>()(
+  "ProfileNotFoundError",
+  fields("PROFILE_NOT_FOUND", false)
+) {}
+export class PublishRejectedError extends Schema.TaggedErrorClass<PublishRejectedError>()(
+  "PublishRejectedError",
+  fields("PUBLISH_REJECTED", false)
+) {}
+export class MediaProcessingError extends Schema.TaggedErrorClass<MediaProcessingError>()(
+  "MediaProcessingError",
+  fields("MEDIA_PROCESSING_FAILED", false)
+) {}
+export class ProviderApiError extends Schema.TaggedErrorClass<ProviderApiError>()(
+  "ProviderApiError",
+  {
+    code: Schema.Literal("API_ERROR"),
+    provider: Schema.String,
+    message: Schema.String,
+    retryable: Schema.Boolean,
+  }
+) {}
+
+export type ConnectionError =
+  | RateLimitedError
+  | NetworkConnectionError
+  | TokenExpiredError
+  | MediaProcessingTimeoutError
+  | InvalidMediaError
+  | ProfileNotFoundError
+  | PublishRejectedError
+  | MediaProcessingError
+  | ProviderApiError;
+
+export const isConnectionError = (value: unknown): value is ConnectionError =>
+  value instanceof Error &&
+  typeof value === "object" &&
+  "provider" in value &&
+  "retryable" in value &&
+  "code" in value;
+
 export const rateLimited = (provider: string, message = "Rate limited") =>
-  new ConnectionError({ code: "RATE_LIMITED", provider, message, retryable: true });
-
+  new RateLimitedError({
+    code: "RATE_LIMITED",
+    provider,
+    message,
+    retryable: true,
+  });
 export const networkError = (provider: string, operation: string) =>
-  new ConnectionError({
+  new NetworkConnectionError({
     code: "NETWORK_ERROR",
     provider,
     message: `Network error during ${operation} for ${provider}`,
     retryable: true,
   });
-
-export const tokenExpired = (provider: string, message = "Access token expired") =>
-  new ConnectionError({ code: "TOKEN_EXPIRED", provider, message, retryable: true });
-
+export const tokenExpired = (
+  provider: string,
+  message = "Access token expired"
+) =>
+  new TokenExpiredError({
+    code: "TOKEN_EXPIRED",
+    provider,
+    message,
+    retryable: true,
+  });
 export const mediaProcessingTimeout = (provider: string) =>
-  new ConnectionError({
+  new MediaProcessingTimeoutError({
     code: "MEDIA_PROCESSING_TIMEOUT",
     provider,
     message: `Media processing timed out for ${provider}`,
     retryable: true,
   });
-
-/** Non-retryable — needs a user/content fix, retrying will fail identically. */
 export const invalidMedia = (provider: string, reason: string) =>
-  new ConnectionError({
+  new InvalidMediaError({
     code: "INVALID_MEDIA",
     provider,
     message: `Invalid media for ${provider}: ${reason}`,
     retryable: false,
   });
-
 export const profileNotFound = (provider: string) =>
-  new ConnectionError({
+  new ProfileNotFoundError({
     code: "PROFILE_NOT_FOUND",
     provider,
     message: `${provider} profile not found or is missing required fields`,
     retryable: false,
   });
-
 export const publishRejected = (provider: string, reason: string) =>
-  new ConnectionError({
+  new PublishRejectedError({
     code: "PUBLISH_REJECTED",
     provider,
     message: `${provider} rejected the post: ${reason}`,
     retryable: false,
   });
-
 export const mediaProcessingError = (provider: string, reason?: string) =>
-  new ConnectionError({
+  new MediaProcessingError({
     code: "MEDIA_PROCESSING_FAILED",
     provider,
     message: `Media processing failed for ${provider}${reason ? `: ${reason}` : ""}`,
     retryable: false,
   });
-
-/** Build an error from an HTTP status code — classifies retryability. */
-export const apiError = (provider: string, status: number, apiMessage?: string) =>
-  new ConnectionError({
-    code: status === 429 ? "RATE_LIMITED" : "API_ERROR",
-    provider,
-    message: `${provider} API error (${status})${apiMessage ? `: ${apiMessage}` : ""}`,
-    retryable: status === 429 || status >= 500,
-  });
-
-/**
- * Normalise an unknown thrown value (axios error, fetch failure, etc.) into an
- * `ConnectionError`. Mirrors the old `createAPIError` axios inspection.
- */
-export const fromUnknownHttp = (provider: string, error: unknown): ConnectionError => {
-  if (error instanceof ConnectionError) {
+export const apiError = (
+  provider: string,
+  status: number,
+  apiMessage?: string
+): ConnectionError => {
+  const message = `${provider} API error (${status})${apiMessage ? `: ${apiMessage}` : ""}`;
+  return status === 429
+    ? new RateLimitedError({
+        code: "RATE_LIMITED",
+        provider,
+        message,
+        retryable: true,
+      })
+    : new ProviderApiError({
+        code: "API_ERROR",
+        provider,
+        message,
+        retryable: status >= 500,
+      });
+};
+export const fromUnknownHttp = (
+  provider: string,
+  error: unknown
+): ConnectionError => {
+  if (isConnectionError(error)) {
     return error;
   }
   if (error && typeof error === "object" && "response" in error) {
-    const axiosError = error as {
-      response?: {
-        status?: number;
-        data?: { message?: string; error?: { message?: string } };
-      };
-    };
-    const status = axiosError.response?.status;
-    if (status) {
+    const response = (
+      error as {
+        response?: {
+          status?: number;
+          data?: { message?: string; error?: { message?: string } };
+        };
+      }
+    ).response;
+    if (response?.status) {
       return apiError(
         provider,
-        status,
-        axiosError.response?.data?.message ?? axiosError.response?.data?.error?.message
+        response.status,
+        response.data?.message ?? response.data?.error?.message
       );
     }
   }
-  // No HTTP response → treat as a transient network error.
   return networkError(provider, "request");
 };

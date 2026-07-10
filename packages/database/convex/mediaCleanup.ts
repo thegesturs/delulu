@@ -40,8 +40,9 @@ async function calculateSignature(
   service: string,
   stringToSign: string
 ): Promise<string> {
-  const encoder = new TextEncoder();
-  let key: ArrayBuffer = encoder.encode(`AWS4${secretAccessKey}`).buffer;
+  const encodedKey = new TextEncoder().encode(`AWS4${secretAccessKey}`);
+  let key = new ArrayBuffer(encodedKey.byteLength);
+  new Uint8Array(key).set(encodedKey);
   key = await hmacSha256(key, dateStamp);
   key = await hmacSha256(key, region);
   key = await hmacSha256(key, service);

@@ -7,7 +7,7 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "dev": "dotenv -e .env.local -- tsx index.ts",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:prod": "dotenv -e .env.prod -- vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
