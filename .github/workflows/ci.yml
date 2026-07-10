@@ -10,36 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10.8.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - name: Install dependencies
-        env:
-          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
-        run: pnpm install --frozen-lockfile
-      - run: pnpm --filter=@delulu/infra exec sst install
-      - run: pnpm typecheck
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10.8.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - name: Install dependencies
-        env:
-          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
-        run: pnpm install --frozen-lockfile
-      - run: pnpm test
-
-  postgres-integration:
+  ci:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -56,31 +27,40 @@ jobs:
           --health-retries 20
     env:
       DATABASE_URL: postgres://delulu:delulu@localhost:5432/delulu
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with: { version: 10.8.0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - name: Install dependencies
-        env:
-          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
-        run: pnpm install --frozen-lockfile
-      - run: pnpm pg:migrate
-      - run: pnpm --filter=@delulu/db test:integration
-
-  invariants:
-    runs-on: ubuntu-latest
+      # SST/Pulumi types push tsc over the default ~2GB heap on GHA runners.
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+
       - uses: pnpm/action-setup@v4
         with: { version: 10.8.0 }
+
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+
       - name: Install dependencies
         env:
           HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
         run: pnpm install --frozen-lockfile
-      - run: pnpm pg:migration-lint
-      - run: pnpm check:connections-boundary
+
+      - name: Install SST providers
+        run: pnpm --filter=@delulu/infra exec sst install
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Migrate Postgres
+        run: pnpm pg:migrate
+
+      - name: Postgres integration tests
+        run: pnpm --filter=@delulu/db test:integration
+
+      - name: Migration lint
+        run: pnpm pg:migration-lint
+
+      - name: Connections boundary check
+        run: pnpm check:connections-boundary
