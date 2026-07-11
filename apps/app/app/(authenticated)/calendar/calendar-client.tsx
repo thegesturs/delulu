@@ -37,7 +37,9 @@ export function CalendarClient() {
   });
 
   const invalidatePosts = useCallback(async () => {
-    if (!workspaceId) return;
+    if (!workspaceId) {
+      return;
+    }
     await queryClient.invalidateQueries({
       queryKey: resources.posts.list(workspaceId).queryKey,
     });
@@ -45,23 +47,30 @@ export function CalendarClient() {
 
   const updateTarget = useMutation({
     mutationFn: async ({ postId, targetId, scheduledAt }: TargetMutation) => {
-      if (!workspaceId)
+      if (!workspaceId) {
         throw new Error("Select a workspace before rescheduling");
+      }
       const mutation = resources.posts.updateTarget(
         workspaceId,
         postId,
-        targetId,
+        targetId
       );
-      if (!mutation.mutationFn) throw new Error("Update target is unavailable");
+      if (!mutation.mutationFn) {
+        throw new Error("Update target is unavailable");
+      }
       return mutation.mutationFn({ scheduledAt });
     },
     onSuccess: invalidatePosts,
   });
   const removePost = useMutation({
     mutationFn: async (postId: string) => {
-      if (!workspaceId) throw new Error("Select a workspace before deleting");
+      if (!workspaceId) {
+        throw new Error("Select a workspace before deleting");
+      }
       const mutation = resources.posts.remove(workspaceId);
-      if (!mutation.mutationFn) throw new Error("Delete post is unavailable");
+      if (!mutation.mutationFn) {
+        throw new Error("Delete post is unavailable");
+      }
       return mutation.mutationFn(postId);
     },
     onSuccess: invalidatePosts,
@@ -70,11 +79,12 @@ export function CalendarClient() {
   const targetByEventId = useMemo(() => {
     const index = new Map<string, { postId: string; targetId: string }>();
     for (const post of scheduledPosts.data?.data ?? []) {
-      for (const target of post.targets)
+      for (const target of post.targets) {
         index.set(`${post.id}:${target.id}`, {
           postId: post.id,
           targetId: target.id,
         });
+      }
     }
     return index;
   }, [scheduledPosts.data]);
@@ -87,7 +97,9 @@ export function CalendarClient() {
             .flatMap((group) => group.segments)
             .find((segment) => segment.text.trim())?.text ?? "Untitled post";
         return post.targets.flatMap((target) => {
-          if (!target.scheduledAt) return [];
+          if (!target.scheduledAt) {
+            return [];
+          }
           const start = new Date(target.scheduledAt);
           return [
             {
@@ -102,13 +114,15 @@ export function CalendarClient() {
           ];
         });
       }),
-    [scheduledPosts.data],
+    [scheduledPosts.data]
   );
 
   const handleEventUpdate = useCallback(
     async (event: CalendarEvent) => {
       const target = targetByEventId.get(event.id);
-      if (!target) return;
+      if (!target) {
+        return;
+      }
       try {
         await updateTarget.mutateAsync({
           ...target,
@@ -125,13 +139,15 @@ export function CalendarClient() {
         });
       }
     },
-    [analytics, targetByEventId, updateTarget],
+    [analytics, targetByEventId, updateTarget]
   );
 
   const handleEventDelete = useCallback(
     async (eventId: string) => {
       const target = targetByEventId.get(eventId);
-      if (!target) return;
+      if (!target) {
+        return;
+      }
       try {
         await removePost.mutateAsync(target.postId);
         analytics.capture(POST_DELETED, {
@@ -145,7 +161,7 @@ export function CalendarClient() {
         });
       }
     },
-    [analytics, removePost, targetByEventId],
+    [analytics, removePost, targetByEventId]
   );
 
   if (isWorkspacePending || scheduledPosts.isPending) {
@@ -201,7 +217,9 @@ export function CalendarClient() {
           onEventDelete={handleEventDelete}
           onEventSelect={(event) => {
             const target = targetByEventId.get(event.id);
-            if (target) router.push(`/post/${target.postId}`);
+            if (target) {
+              router.push(`/post/${target.postId}`);
+            }
           }}
           onEventUpdate={handleEventUpdate}
         />

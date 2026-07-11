@@ -33,14 +33,15 @@ export function ReviewClient({ postId }: { postId: string }) {
     retry: 2,
   });
 
-  if (isWorkspacePending || post.isPending)
+  if (isWorkspacePending || post.isPending) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 p-6">
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
         <div className="h-[400px] animate-pulse rounded-lg bg-muted" />
       </div>
     );
-  if (post.isError || !workspaceId)
+  }
+  if (post.isError || !workspaceId) {
     return (
       <div className="mx-auto max-w-4xl p-6">
         <div className="rounded-lg border border-destructive/40 p-5 text-destructive">
@@ -57,6 +58,7 @@ export function ReviewClient({ postId }: { postId: string }) {
         </div>
       </div>
     );
+  }
 
   const pendingReview = review.data?.status === "pending";
   return (

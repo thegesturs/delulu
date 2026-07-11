@@ -45,8 +45,8 @@ export default function PostsClient() {
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
     parseAsStringLiteral(statuses.map(({ value }) => value)).withDefault(
-      "draft",
-    ),
+      "draft"
+    )
   );
   const { canApprove, isPersonal, canCreate } = usePermissions();
   const {
@@ -60,7 +60,7 @@ export default function PostsClient() {
   useEffect(() => {
     const timer = setTimeout(
       () => setDebouncedSearchTerm(searchTerm.trim()),
-      300,
+      300
     );
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -82,7 +82,9 @@ export default function PostsClient() {
   });
 
   const filteredPosts = (posts.data?.data ?? []).filter((post) => {
-    if (!debouncedSearchTerm) return true;
+    if (!debouncedSearchTerm) {
+      return true;
+    }
     const haystack = post.groups
       .flatMap((group) => group.segments.map((segment) => segment.text))
       .join(" ")
@@ -191,7 +193,7 @@ export default function PostsClient() {
                     .flatMap((group) => group.segments)
                     .find((segment) => segment.text.trim())?.text;
                   const scheduledAt = post.targets.find(
-                    (target) => target.scheduledAt,
+                    (target) => target.scheduledAt
                   )?.scheduledAt;
                   return (
                     <Card key={post.id}>

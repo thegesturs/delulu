@@ -41,7 +41,7 @@ export function BulkSocialSelector({
             <AnimatePresence initial={false} mode="popLayout">
               {socialProviders.data?.data.map((account) => {
                 const isSelected = selectedProviders.some(
-                  (p) => p.socialId === account.id,
+                  (p) => p.socialId === account.id
                 );
                 return (
                   <motion.div

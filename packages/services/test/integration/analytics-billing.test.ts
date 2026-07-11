@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { AnalyticsService, LiveInsightsProvider } from "../../src/analytics";
 import { makeMemoryAnalyticsCacheLayer } from "../../src/analytics-cache";
 import { BillingService } from "../../src/billing";
+import { BillingReconciliation } from "../../src/billing-reconciliation";
 import { BillingOwnerTransfers } from "../../src/billing-transfer";
 import { BillingWebhookApplication } from "../../src/billing-webhooks";
 import { AuthConfig } from "../../src/config";
@@ -57,6 +58,7 @@ const AppLayer = Layer.mergeAll(
   IdentityService.layer,
   Analytics,
   BillingService.layer,
+  BillingReconciliation.layer,
   BillingWebhookApplication.layer,
   BillingOwnerTransfers.layer,
   Reservations
@@ -198,6 +200,69 @@ describe("M4 analytics and billing services", () => {
     expect(result.usage.usage.monthlyPosts).toBe(10);
   });
 
+  it("serializes concurrent pooled quota reservations at the plan boundary", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const reservations = yield* PooledQuotaReservations;
+      const resolved = yield* identity.resolve({
+        sub: `reservation_race_${crypto.randomUUID()}`,
+      });
+      return yield* Effect.all(
+        Array.from({ length: 20 }, (_, index) =>
+          reservations
+            .reserve({
+              id: `quota_reservation_${crypto.randomUUID()}`,
+              workspaceId: resolved.personalWorkspace!.id,
+              billingOwnerUserId: resolved.user.id,
+              resource: "monthlyPosts",
+              amount: 1,
+              idempotencyKey: `quota-race:${index}:${crypto.randomUUID()}`,
+            })
+            .pipe(Effect.result)
+        ),
+        { concurrency: "unbounded" }
+      );
+    });
+    const results = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(results.filter((result) => result._tag === "Success")).toHaveLength(
+      10
+    );
+    expect(results.filter((result) => result._tag === "Failure")).toHaveLength(
+      10
+    );
+  });
+
+  it("reconciles drifted counters from authoritative workspace rows", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const reconciliation = yield* BillingReconciliation;
+      const billing = yield* BillingService;
+      const sql = yield* SqlClient.SqlClient;
+      const resolved = yield* identity.resolve({
+        sub: `reconcile_${crypto.randomUUID()}`,
+      });
+      yield* sql`UPDATE subscriptions SET monthly_posts = 99,
+        social_accounts = 88, media_storage_bytes = 77,
+        transcriptions_used = 66
+        WHERE billing_owner_user_id = ${resolved.user.id}`;
+      const result = yield* reconciliation.run({
+        billingOwnerUserId: resolved.user.id,
+      });
+      const usage = yield* billing.usage(resolved.user.id);
+      return { result, usage };
+    });
+    const { result, usage } = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.subscriptionsUpdated).toBe(1);
+    expect(usage.usage.monthlyPosts).toBe(0);
+    expect(usage.usage.socialAccounts).toBe(0);
+    expect(usage.usage.mediaStorageBytes).toBe(0);
+    expect(usage.usage.transcriptionsUsed).toBe(0);
+  });
+
   it("repoints billing only after the eligible target accepts", async () => {
     const program = Effect.gen(function* () {
       const identity = yield* IdentityService;
@@ -245,5 +310,66 @@ describe("M4 analytics and billing services", () => {
     );
     expect(result.accepted.status).toBe("accepted");
     expect(result.billingOwnerUserId).toBe(result.accepted.toUserId);
+  });
+
+  it("allows exactly one winner when acceptance races cancellation", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const transfers = yield* BillingOwnerTransfers;
+      const webhook = yield* BillingWebhookApplication;
+      const sql = yield* SqlClient.SqlClient;
+      const payer = yield* identity.resolve({
+        sub: `payer_race_${crypto.randomUUID()}`,
+      });
+      const target = yield* identity.resolve({
+        sub: `target_race_${crypto.randomUUID()}`,
+      });
+      const workspaceId = payer.personalWorkspace!.id;
+      yield* sql`INSERT INTO workspace_members (id, workspace_id, user_id, role)
+        VALUES (${`member_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`},
+          ${workspaceId}, ${target.user.id}, 'viewer')`;
+      yield* webhook.apply({
+        _tag: "SubscriptionChanged",
+        eventId: `event_${crypto.randomUUID()}`,
+        billingOwnerUserId: target.user.id,
+        providerCustomerId: `customer_${crypto.randomUUID()}`,
+        providerSubscriptionId: `subscription_${crypto.randomUUID()}`,
+        plan: "ECHO",
+        status: "active",
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+      });
+      const requested = yield* transfers.request({
+        workspaceId,
+        actorUserId: payer.user.id,
+        actorRole: "owner",
+        toUserId: target.user.id,
+      });
+      const outcomes = yield* Effect.all(
+        [
+          transfers.accept({
+            workspaceId,
+            transferId: requested.id,
+            actorUserId: target.user.id,
+          }),
+          transfers.cancel({
+            workspaceId,
+            transferId: requested.id,
+            actorUserId: payer.user.id,
+          }),
+        ].map((effect) => effect.pipe(Effect.result)),
+        { concurrency: "unbounded" }
+      );
+      const rows = yield* sql<{ status: string }>`SELECT status
+        FROM billing_owner_transfers WHERE id = ${requested.id}`;
+      return { outcomes, status: rows[0]?.status };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(
+      result.outcomes.filter((outcome) => outcome._tag === "Success")
+    ).toHaveLength(1);
+    expect(["accepted", "cancelled"]).toContain(result.status);
   });
 });

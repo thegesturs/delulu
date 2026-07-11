@@ -92,7 +92,9 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
   const addCommentMutation = useMutation({
     ...resources.reviews.act(workspaceId ?? "", postId),
     onSuccess: async () => {
-      if (!workspaceId) return;
+      if (!workspaceId) {
+        return;
+      }
       await queryClient.invalidateQueries({
         queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
       });
@@ -105,7 +107,9 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
     }
     setIsSubmitting(true);
     try {
-      if (!workspaceId) throw new Error("Select a workspace before commenting");
+      if (!workspaceId) {
+        throw new Error("Select a workspace before commenting");
+      }
       await addCommentMutation.mutateAsync({
         action: "comment",
         comment: newComment.trim(),

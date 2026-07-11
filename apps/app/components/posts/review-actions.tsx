@@ -42,7 +42,9 @@ export function ReviewActions({
   const reviewPostMutation = useMutation({
     ...resources.reviews.act(workspaceId ?? "", postId),
     onSuccess: async () => {
-      if (!workspaceId) return;
+      if (!workspaceId) {
+        return;
+      }
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: resources.reviews.queue(workspaceId).queryKey,
@@ -70,11 +72,13 @@ export function ReviewActions({
     }
     setIsProcessing(true);
     try {
-      if (!workspaceId) throw new Error("Select a workspace before reviewing");
+      if (!workspaceId) {
+        throw new Error("Select a workspace before reviewing");
+      }
       await reviewPostMutation.mutateAsync(
         status === "APPROVED"
           ? { action: "approve", comment: comment.trim() || undefined }
-          : { action: "reject", reason: comment.trim() },
+          : { action: "reject", reason: comment.trim() }
       );
       toast.success(status === "APPROVED" ? "Post approved" : "Post declined");
       setShowDialog(null);
@@ -85,7 +89,7 @@ export function ReviewActions({
         status === "APPROVED"
           ? "Failed to approve post"
           : "Failed to decline post",
-        { description: error instanceof Error ? error.message : undefined },
+        { description: error instanceof Error ? error.message : undefined }
       );
     } finally {
       setIsProcessing(false);

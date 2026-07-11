@@ -62,7 +62,7 @@ export const initialState: BulkUploadState = {
 
 export function bulkUploadReducer(
   state: BulkUploadState,
-  action: BulkUploadAction,
+  action: BulkUploadAction
 ): BulkUploadState {
   switch (action.type) {
     case "ADD_VIDEOS":
@@ -81,9 +81,13 @@ export function bulkUploadReducer(
 
     case "MOVE_VIDEO": {
       const idx = state.videos.findIndex((v) => v.id === action.id);
-      if (idx === -1) return state;
+      if (idx === -1) {
+        return state;
+      }
       const newIdx = action.direction === "up" ? idx - 1 : idx + 1;
-      if (newIdx < 0 || newIdx >= state.videos.length) return state;
+      if (newIdx < 0 || newIdx >= state.videos.length) {
+        return state;
+      }
       const videos = [...state.videos];
       [videos[idx], videos[newIdx]] = [videos[newIdx], videos[idx]];
       return { ...state, videos };
@@ -93,7 +97,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, caption: action.caption } : v,
+          v.id === action.id ? { ...v, caption: action.caption } : v
         ),
       };
 
@@ -107,7 +111,7 @@ export function bulkUploadReducer(
                 uploadStatus: action.status,
                 uploadResult: action.result ?? v.uploadResult,
               }
-            : v,
+            : v
         ),
       };
 
@@ -115,7 +119,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, postStatus: action.status } : v,
+          v.id === action.id ? { ...v, postStatus: action.status } : v
         ),
       };
 
@@ -123,7 +127,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, validationErrors: action.errors } : v,
+          v.id === action.id ? { ...v, validationErrors: action.errors } : v
         ),
       };
 
@@ -132,13 +136,13 @@ export function bulkUploadReducer(
 
     case "TOGGLE_PROVIDER": {
       const exists = state.selectedProviders.some(
-        (p) => p.socialId === action.provider.socialId,
+        (p) => p.socialId === action.provider.socialId
       );
       return {
         ...state,
         selectedProviders: exists
           ? state.selectedProviders.filter(
-              (p) => p.socialId !== action.provider.socialId,
+              (p) => p.socialId !== action.provider.socialId
             )
           : [...state.selectedProviders, action.provider],
       };
@@ -164,7 +168,7 @@ export function bulkUploadReducer(
 export function computeScheduledAt(
   index: number,
   startDate: Date,
-  intervalMinutes: number,
+  intervalMinutes: number
 ): number {
   return startDate.getTime() + index * intervalMinutes * 60 * 1000;
 }
