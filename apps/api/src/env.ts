@@ -55,6 +55,16 @@ export const databaseUrl = (env: Env): string =>
   env.DATABASE_URL ??
   "postgres://delulu:delulu@localhost:5432/delulu";
 
+/** Browser origins permitted to call the Worker directly. */
+export const appOrigins = (env: Env): readonly string[] => {
+  const configured = env.APP_BASE_URL ?? "http://localhost:3000";
+  try {
+    return [new URL(configured).origin];
+  } catch {
+    return ["http://localhost:3000"];
+  }
+};
+
 /** Build the `AuthConfig` layer from the Worker env. */
 export const authConfigLayer = (env: Env): Layer.Layer<AuthConfig> =>
   Layer.succeed(

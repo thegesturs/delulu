@@ -62,9 +62,9 @@ beforeAll(async () => {
     { clerk: Clerk, rateLimiter: Limiter }
   );
 
-  handler = buildWebHandler(base).handler as (
-    request: Request
-  ) => Promise<Response>;
+  handler = buildWebHandler(base, {
+    allowedOrigins: ["http://localhost:3000"],
+  }).handler as (request: Request) => Promise<Response>;
 });
 
 const get = (path: string, token?: string) =>
@@ -99,6 +99,34 @@ const postJson = (path: string, body: unknown, token?: string) =>
   );
 
 describe("apps/api worker (e2e over toWebHandler)", () => {
+  it("allows browser preflight only from the configured app origin", async () => {
+    const allowed = await handler(
+      new Request(`${ISSUER}/v1/me`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "http://localhost:3000",
+          "access-control-request-method": "GET",
+          "access-control-request-headers": "authorization",
+        },
+      })
+    );
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000"
+    );
+
+    const rejected = await handler(
+      new Request(`${ISSUER}/v1/me`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://untrusted.invalid",
+          "access-control-request-method": "GET",
+        },
+      })
+    );
+    expect(rejected.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
   it("GET /health returns ok with a DB probe", async () => {
     const res = await get("/health");
     expect(res.status).toBe(200);

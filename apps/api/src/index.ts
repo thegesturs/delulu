@@ -25,6 +25,7 @@ import { String as EffectString, Layer, Redacted } from "effect";
 import { type AppServices, buildWebHandler } from "./app";
 import { dispatchDueJobs } from "./dispatcher";
 import {
+  appOrigins,
   authConfigLayer,
   databaseUrl,
   domainConfigLayers,
@@ -135,7 +136,9 @@ const handlerFor = (env: Env): WebHandler => {
   if (cached && cached.env === env) {
     return cached.handler;
   }
-  const built = buildWebHandler(makeBaseLayer(env));
+  const built = buildWebHandler(makeBaseLayer(env), {
+    allowedOrigins: appOrigins(env),
+  });
   const handler = built.handler as WebHandler;
   cached = { env, handler };
   return handler;
