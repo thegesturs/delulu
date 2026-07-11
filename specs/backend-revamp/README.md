@@ -1,9 +1,47 @@
 # Backend Revamp — Locked Architecture Spec
 
-> **Status:** LOCKED — ready for implementation handoff.
+> **Status:** M0–M2 merged; M3 + M4 implementation is assembled on `codex/backend-m3-m4` for one integration PR. M5 and M6 remain intentionally unstarted.
 > **Provenance:** Wayfinder map [#141](https://github.com/thegesturs/delulu/issues/141); every decision below resolved in a closed child ticket (linked inline). Assembled and the migration plan decided in [#154](https://github.com/thegesturs/delulu/issues/154).
 > **Review:** independently reviewed pre-lock by a second model (Codex `codex exec -s read-only`, 2026-07-10) — 7 findings (freeze completeness, staging-vs-routed milestones, `pendingPostIds` remap, ownership/role audits, `packages/database` downstream imports, usage-counter carry-over, `platformPosts` mapping), all fixed in this revision.
 > **Rule of reading:** this document is the *index and synthesis*. Each decision's full rationale, alternatives considered, and edge-case discussion live in its ticket — zoom there before re-litigating anything here.
+
+---
+
+## Implementation status — M3 + M4
+
+The M3 + M4 branch uses one integration line with isolated worker branches. Domain workers own disjoint contracts, migrations, services, and client resources; application workers start only from the green backend integration gate.
+
+```mermaid
+flowchart TD
+  Main["main with M2"] --> Bootstrap["M3 + M4 ownership bootstrap"]
+  Bootstrap --> Automation["M3 automation and webhook lane"]
+  Bootstrap --> Operations["M4 analytics and billing lane"]
+  Bootstrap --> Client["Typed client, CLI, and MCP lane"]
+  Bootstrap --> Hardening["M2 reliability and Worker hardening"]
+  Automation --> Gate1["Integration Gate 1"]
+  Operations --> Gate1
+  Client --> Gate1
+  Hardening --> Gate1
+  Gate1 --> CoreApp["Core application resources"]
+  Gate1 --> AutomationApp["Automation application"]
+  Gate1 --> OperationsApp["Analytics, billing, and admin application"]
+  Gate1 --> Verification["API, concurrency, replay, and parity verification"]
+  CoreApp --> Gate2["Integration Gate 2"]
+  AutomationApp --> Gate2
+  OperationsApp --> Gate2
+  Verification --> Gate2
+  Gate2 --> PR["One M3 + M4 pull request"]
+```
+
+Implemented backend seams on the integration branch:
+
+- Signed Meta, Clerk, and billing webhook ingress with a durable replay ledger.
+- Postgres-authoritative automation triggers and sessions with Workers KV fast paths and repair.
+- Synchronous, idempotent DM execution with lazy period rollover, reservations, soft overage, sent/skipped accounting, and provider failure-state handling.
+- Operational counters, publishing streaks, versioned edge caching, live provider insights, stale fallback, pooled quota reservations, billing transfers, and reconciliation.
+- Contract-derived client resources for M2–M4, one authenticated app provider, and CLI/MCP consumers without handwritten resource requests.
+
+Production routing remains unchanged. The new Worker, bindings, webhooks, and Postgres jobs are staging-only until M6.
 
 ---
 

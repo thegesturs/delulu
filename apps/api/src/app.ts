@@ -1,10 +1,16 @@
 import { Api } from "@delulu/contracts";
 import type {
   AdminService,
+  AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
   AuthConfig,
   AuthorizationService,
+  AutomationKvRepairJob,
+  AutomationService,
+  BillingOwnerTransfers,
+  BillingReconciliation,
+  BillingService,
   ClerkAdminService,
   ClerkTokenVerifier,
   ConnectionStateService,
@@ -19,12 +25,17 @@ import type {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SignedIngress,
+  WebhookIngressService,
   WorkspaceAccessService,
 } from "@delulu/services";
 import { Layer } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
+import { HttpMiddleware, HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 import type { SqlClient } from "effect/unstable/sql";
+import { AnalyticsHandlers } from "./analytics-handlers";
+import { AutomationHandlers } from "./automation-handlers";
+import { BillingHandlers } from "./billing-handlers";
 import { ConnectionRoutes } from "./connection-routes";
 import {
   AdminHandlers,
@@ -35,6 +46,7 @@ import {
 } from "./domain-handlers";
 import { HealthHandlers, MeHandlers } from "./handlers";
 import { OAuthRoutes } from "./oauth-routes";
+import { WebhookRoutes } from "./webhook-routes";
 
 /** Everything the assembled routes need a per-request environment to provide. */
 export type AppServices =
@@ -58,14 +70,29 @@ export type AppServices =
   | ConnectionStateService
   | ReviewService
   | AdminService
+  | AnalyticsService
+  | AutomationKvRepairJob
+  | AutomationService
+  | BillingService
+  | BillingOwnerTransfers
+  | BillingReconciliation
+  | SignedIngress
+  | WebhookIngressService
   | ClerkAdminService;
+
+export interface WebHandlerOptions {
+  readonly allowedOrigins: readonly string[];
+}
 
 /**
  * Assemble the typed HttpApi (health + me), Scalar docs, `/openapi.json`, and
  * the plain OAuth AS routes into a single fetch handler, provided by `base`
  * (built per Worker env). Built once per env object and memoized by the caller.
  */
-export const buildWebHandler = (base: Layer.Layer<AppServices>) => {
+export const buildWebHandler = (
+  base: Layer.Layer<AppServices>,
+  options: WebHandlerOptions = { allowedOrigins: [] }
+) => {
   const ApiRoutes = HttpApiBuilder.layer(Api, {
     openapiPath: "/openapi.json",
   }).pipe(
@@ -77,17 +104,34 @@ export const buildWebHandler = (base: Layer.Layer<AppServices>) => {
       MediaHandlers,
       ConnectionsHandlers,
       AdminHandlers,
+      AnalyticsHandlers,
+      AutomationHandlers,
+      BillingHandlers,
     ])
   );
 
   const DocsRoute = HttpApiScalar.layer(Api, { path: "/docs" });
+  const CorsMiddleware = HttpRouter.middleware(
+    HttpMiddleware.cors({
+      allowedOrigins: (origin) => options.allowedOrigins.includes(origin),
+      allowedHeaders: ["authorization", "content-type"],
+      exposedHeaders: ["retry-after"],
+      maxAge: 86_400,
+    }),
+    { global: true }
+  );
 
   const AllRoutes = Layer.mergeAll(
     ApiRoutes,
     DocsRoute,
     OAuthRoutes,
-    ConnectionRoutes
-  ).pipe(Layer.provide(base), Layer.provide(HttpServer.layerServices));
+    ConnectionRoutes,
+    WebhookRoutes
+  ).pipe(
+    Layer.provide(CorsMiddleware),
+    Layer.provide(base),
+    Layer.provide(HttpServer.layerServices)
+  );
 
   return HttpRouter.toWebHandler(AllRoutes);
 };

@@ -1,0 +1,118 @@
+import { makeId, SubscriptionId, TransactionId } from "@delulu/core";
+import {
+  BillingStateError,
+  type BillingWebhookEvent,
+} from "@delulu/core/domain/billing";
+import { Context, DateTime, Effect, Layer, Option } from "effect";
+import { SqlClient } from "effect/unstable/sql";
+
+const optionalDate = (value: string | null): Date | null => {
+  if (value === null) {
+    return null;
+  }
+  return Option.match(DateTime.make(value), {
+    onNone: () => null,
+    onSome: DateTime.toDateUtc,
+  });
+};
+
+/**
+ * Transport-independent billing webhook application. The ingress verifies and
+ * decodes provider payloads, then passes a normalized event here.
+ */
+export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
+  event: BillingWebhookEvent
+) {
+  const sql = yield* SqlClient.SqlClient;
+  return yield* sql
+    .withTransaction(
+      Effect.gen(function* () {
+        const claimed = yield* sql<{ providerEventId: string }>`
+          INSERT INTO billing_webhook_events (provider_event_id, event_type, payload)
+          VALUES (${event.eventId}, ${event._tag}, ${JSON.stringify(event)}::jsonb)
+          ON CONFLICT (provider_event_id) DO NOTHING
+          RETURNING provider_event_id`;
+        if (!claimed[0]) {
+          return { applied: false as const };
+        }
+
+        if (event._tag === "SubscriptionChanged") {
+          if (
+            (event.currentPeriodStart !== null &&
+              optionalDate(event.currentPeriodStart) === null) ||
+            (event.currentPeriodEnd !== null &&
+              optionalDate(event.currentPeriodEnd) === null)
+          ) {
+            return yield* new BillingStateError({
+              message: "Billing provider sent an invalid period",
+              reason: "invalid_period",
+              retryable: false,
+            });
+          }
+          const id = makeId(SubscriptionId);
+          yield* sql`INSERT INTO subscriptions
+            (id, billing_owner_user_id, provider_customer_id,
+              provider_subscription_id, plan, status, current_period_start,
+              current_period_end, addons)
+            VALUES (${id}, ${event.billingOwnerUserId}, ${event.providerCustomerId},
+              ${event.providerSubscriptionId}, ${event.plan}, ${event.status},
+              ${optionalDate(event.currentPeriodStart)},
+              ${optionalDate(event.currentPeriodEnd)},
+              ${JSON.stringify(event.addons ?? {})}::jsonb)
+            ON CONFLICT (billing_owner_user_id) DO UPDATE SET
+              provider_customer_id = EXCLUDED.provider_customer_id,
+              provider_subscription_id = EXCLUDED.provider_subscription_id,
+              plan = EXCLUDED.plan, status = EXCLUDED.status,
+              monthly_posts = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN 0 ELSE subscriptions.monthly_posts END,
+              api_requests_per_month = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN 0 ELSE subscriptions.api_requests_per_month END,
+              dms_sent = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN 0 ELSE subscriptions.dms_sent END,
+              dms_skipped = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN 0 ELSE subscriptions.dms_skipped END,
+              transcriptions_used = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN 0 ELSE subscriptions.transcriptions_used END,
+              api_requests_period_start = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN EXCLUDED.current_period_start ELSE subscriptions.api_requests_period_start END,
+              dms_sent_period_start = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN EXCLUDED.current_period_start ELSE subscriptions.dms_sent_period_start END,
+              current_period_start = EXCLUDED.current_period_start,
+              current_period_end = EXCLUDED.current_period_end,
+              addons = EXCLUDED.addons`;
+        } else {
+          const id = makeId(TransactionId);
+          yield* sql`INSERT INTO transactions
+            (id, billing_owner_user_id, provider_transaction_id, amount_minor,
+              currency, status, metadata)
+            VALUES (${id}, ${event.billingOwnerUserId},
+              ${event.providerTransactionId}, ${event.amountMinor},
+              ${event.currency}, ${event.status},
+              ${JSON.stringify(event.metadata)}::jsonb)
+            ON CONFLICT (provider_transaction_id) DO UPDATE SET
+              status = EXCLUDED.status, metadata = EXCLUDED.metadata`;
+        }
+        return { applied: true as const };
+      })
+    )
+    .pipe(
+      Effect.catchTag("SqlError", (cause) =>
+        Effect.die(new Error("Unable to apply billing webhook", { cause }))
+      )
+    );
+});
+
+export class BillingWebhookApplication extends Context.Service<
+  BillingWebhookApplication,
+  {
+    readonly apply: (
+      event: BillingWebhookEvent
+    ) => Effect.Effect<{ readonly applied: boolean }, BillingStateError>;
+  }
+>()("@delulu/services/BillingWebhookApplication") {
+  static readonly layer = Layer.effect(
+    BillingWebhookApplication,
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      return BillingWebhookApplication.of({
+        apply: (event) =>
+          applyBillingWebhook(event).pipe(
+            Effect.provideService(SqlClient.SqlClient, sql)
+          ),
+      });
+    })
+  );
+}

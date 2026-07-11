@@ -1,7 +1,6 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
+import type { AutomationScope } from "@delulu/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -18,11 +17,18 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useMemo } from "react";
 import { Header } from "@/components/layout/header";
+import { useApiClient } from "@/components/providers/api-client";
+import {
+  automationFromResource,
+  getApiErrorDetails,
+  useAutomationWorkspace,
+} from "./automation-resource";
 
-function formatDate(timestamp: number): string {
+function formatDate(timestamp: string): string {
   return new Date(timestamp).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -32,22 +38,32 @@ function formatDate(timestamp: number): string {
   });
 }
 
-export function AutomationAnalytics({
+function AnalyticsContent({
   automationId,
+  scope,
 }: {
   automationId: string;
+  scope: AutomationScope;
 }) {
-  const id = automationId as Id<"automations">;
-
-  const automation = useQuery(api.automations.getAutomation, {
-    id,
+  const { resources } = useApiClient();
+  const detailOptions = useMemo(
+    () => resources.automations.get(scope, automationId),
+    [automationId, resources, scope]
+  );
+  const runsOptions = useMemo(
+    () => resources.automations.runs(scope, { automationId, limit: 50 }),
+    [automationId, resources, scope]
+  );
+  const automationQuery = useQuery({
+    ...detailOptions,
+    queryKey: detailOptions.queryKey!,
   });
-  const logs = useQuery(api.automationLogs.getLogsByAutomation, {
-    automationId: id,
-    limit: 50,
+  const runsQuery = useQuery({
+    ...runsOptions,
+    queryKey: runsOptions.queryKey!,
   });
 
-  if (automation === undefined) {
+  if (automationQuery.isPending) {
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
@@ -64,13 +80,35 @@ export function AutomationAnalytics({
     );
   }
 
-  if (automation === null) {
+  if (automationQuery.isError) {
+    const details = getApiErrorDetails(automationQuery.error);
+    const notFound = details.kind === "not-found";
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
-          <Header page="Not Found" pages={["Automations"]} />
-          <div className="flex h-64 flex-col items-center justify-center">
-            <p className="text-muted-foreground">Automation not found</p>
+          <Header
+            page={notFound ? "Not Found" : "Unavailable"}
+            pages={["Automations"]}
+          />
+          <div className="flex h-64 flex-col items-center justify-center gap-2 px-6 text-center">
+            <p className="font-medium">
+              {details.kind === "permission"
+                ? "You do not have permission to view this automation"
+                : notFound
+                  ? "Automation not found"
+                  : "Automation analytics could not be loaded"}
+            </p>
+            <p className="max-w-md text-muted-foreground text-sm">
+              {details.message}
+            </p>
+            {details.kind === "transport" ? (
+              <Button
+                onClick={() => automationQuery.refetch()}
+                variant="outline"
+              >
+                Try again
+              </Button>
+            ) : null}
             <Link href="/automations">
               <Button variant="link">Back to Automations</Button>
             </Link>
@@ -80,10 +118,11 @@ export function AutomationAnalytics({
     );
   }
 
+  const automation = automationFromResource(automationQuery.data);
+  const runs = runsQuery.data?.data ?? [];
   return (
     <div className="min-h-screen overflow-y-auto bg-background pb-20 md:pb-0">
       <div className="mx-auto max-w-6xl p-6">
-        {/* Header */}
         <div className="mb-6 flex items-center gap-4">
           <Link href="/automations">
             <Button size="icon" variant="ghost">
@@ -98,7 +137,6 @@ export function AutomationAnalytics({
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
@@ -117,7 +155,6 @@ export function AutomationAnalytics({
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
@@ -129,13 +166,12 @@ export function AutomationAnalytics({
               </div>
               <div>
                 <p className="font-semibold text-foreground text-xl">
-                  {automation.totalDMsSent}
+                  {automation.totalDmsSent}
                 </p>
                 <p className="text-muted-foreground text-xs">DMs Sent</p>
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
@@ -149,7 +185,7 @@ export function AutomationAnalytics({
                 <p className="font-semibold text-foreground text-xl">
                   {automation.totalTriggered > 0
                     ? Math.round(
-                        (automation.totalDMsSent / automation.totalTriggered) *
+                        (automation.totalDmsSent / automation.totalTriggered) *
                           100
                       )
                     : 0}
@@ -161,36 +197,60 @@ export function AutomationAnalytics({
           </Card>
         </div>
 
-        {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent DMs Sent</CardTitle>
+            <CardTitle className="text-lg">Run history</CardTitle>
           </CardHeader>
           <CardContent>
-            {logs && logs.length > 0 ? (
+            {runsQuery.isPending ? (
+              <div className="flex justify-center py-12">
+                <Icon
+                  className="animate-spin text-muted-foreground"
+                  icon={Loading03Icon}
+                  size={20}
+                />
+              </div>
+            ) : runsQuery.isError ? (
+              <div className="py-10 text-center">
+                <p className="text-muted-foreground text-sm">
+                  {getApiErrorDetails(runsQuery.error).message}
+                </p>
+                <Button
+                  className="mt-2"
+                  onClick={() => runsQuery.refetch()}
+                  variant="outline"
+                >
+                  Retry history
+                </Button>
+              </div>
+            ) : runs.length > 0 ? (
               <div className="space-y-3">
-                {logs.map((log) => (
+                {runs.map((run) => (
                   <div
                     className="flex items-start gap-4 rounded-lg border border-border bg-card/50 p-4"
-                    key={log._id}
+                    key={run.id}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                          DM Sent
+                        <Badge
+                          variant={
+                            run.status === "failed"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {run.status}
                         </Badge>
-                        {log.instagramUsername && (
-                          <span className="font-medium text-foreground text-sm">
-                            @{log.instagramUsername}
+                        {run.error ? (
+                          <span className="truncate text-destructive text-sm">
+                            {run.error}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
-                    <div className="flex-shrink-0 text-right">
-                      <p className="text-muted-foreground text-xs">
-                        {formatDate(log.createdAt)}
-                      </p>
-                    </div>
+                    <p className="shrink-0 text-muted-foreground text-xs">
+                      {formatDate(run.startedAt)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -205,7 +265,7 @@ export function AutomationAnalytics({
                 </div>
                 <p className="text-muted-foreground">No activity yet</p>
                 <p className="text-muted-foreground text-sm">
-                  Activity will appear here when your automation sends DMs
+                  Runs will appear here when this automation is triggered
                 </p>
               </div>
             )}
@@ -213,5 +273,35 @@ export function AutomationAnalytics({
         </Card>
       </div>
     </div>
+  );
+}
+
+export function AutomationAnalytics({
+  automationId,
+}: {
+  automationId: string;
+}) {
+  const workspace = useAutomationWorkspace();
+  if (workspace.isPending) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Icon
+          className="animate-spin text-muted-foreground"
+          icon={Loading03Icon}
+          size={24}
+        />
+      </div>
+    );
+  }
+  if (workspace.isError || !workspace.scope) {
+    const details = getApiErrorDetails(
+      workspace.error ?? new Error("No workspace is available for this account")
+    );
+    return (
+      <p className="p-6 text-center text-muted-foreground">{details.message}</p>
+    );
+  }
+  return (
+    <AnalyticsContent automationId={automationId} scope={workspace.scope} />
   );
 }

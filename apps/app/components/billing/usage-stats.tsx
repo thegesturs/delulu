@@ -6,7 +6,6 @@
  * Displays current usage against plan limits with visual progress bars
  */
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Progress } from "@delulu/design-system/components/ui/progress";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { PLANS } from "@delulu/payments";
 import {
   AlertCircleIcon,
   BarChartIcon,
@@ -25,9 +25,11 @@ import {
   Image01Icon,
   UserMultipleIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
-import { useUsageLimit } from "@/hooks/use-usage-limits";
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -37,6 +39,17 @@ interface UsageStatItemProps {
   isUnlimited: boolean;
   percentageUsed: number;
 }
+
+const limitState = (limit: number, current: number) => ({
+  limit,
+  isUnlimited: limit === -1,
+  percentageUsed:
+    limit === -1
+      ? -1
+      : limit === 0
+        ? 100
+        : Math.min(100, Math.round((current / limit) * 100)),
+});
 
 function UsageStatItem({
   icon,
@@ -106,25 +119,53 @@ function UsageStatItem({
 
 export function UsageStats() {
   const subscription = useSubscription();
-
-  // Fetch actual usage from pre-computed counters
-  const usage = useQuery(api.subscriptions.getUserUsage);
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const usageOptions = resources.billing.usage(workspace.workspaceId ?? "");
+  const memberOptions = resources.admin.members(workspace.workspaceId ?? "", {
+    limit: 1,
+    offset: 0,
+  });
+  const usageQuery = useQuery({
+    ...usageOptions,
+    queryKey: usageOptions.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const membersQuery = useQuery({
+    ...memberOptions,
+    queryKey: memberOptions.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const usage = usageQuery.data?.usage;
 
   const socialAccountsCount = usage?.socialAccounts ?? 0;
   const monthlyPostsCount = usage?.monthlyPosts ?? 0;
-  const mediaStorageMB = usage?.mediaStorage ?? 0;
-  const teamMemberCount = usage?.teamMembers ?? 1;
+  const mediaStorageMB = Math.round(
+    (usage?.mediaStorageBytes ?? 0) / 1_000_000
+  );
+  const teamMemberCount = membersQuery.data?.total ?? 1;
 
   // Get limit checks
-  const socialAccountsLimit = useUsageLimit(
-    "socialAccounts",
+  const plan = PLANS[subscription.planType];
+  const socialAccountsLimit = limitState(
+    plan.limits.socialAccounts,
     socialAccountsCount
   );
-  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
-  const mediaStorageLimit = useUsageLimit("mediaStorage", mediaStorageMB);
-  const teamMembersLimit = useUsageLimit("teamMembers", teamMemberCount);
+  const monthlyPostsLimit = limitState(
+    plan.limits.monthlyPosts,
+    monthlyPostsCount
+  );
+  const mediaStorageLimit = limitState(
+    plan.limits.mediaStorage,
+    mediaStorageMB
+  );
+  const teamMembersLimit = limitState(plan.limits.teamMembers, teamMemberCount);
 
-  if (subscription.isLoading) {
+  if (
+    subscription.isLoading ||
+    usageQuery.isPending ||
+    membersQuery.isPending
+  ) {
     return (
       <Card>
         <CardHeader>
@@ -132,6 +173,20 @@ export function UsageStats() {
           <CardDescription>Loading usage statistics...</CardDescription>
         </CardHeader>
       </Card>
+    );
+  }
+
+  const queryError =
+    subscription.error ?? usageQuery.error ?? membersQuery.error;
+  if (queryError) {
+    return (
+      <OperationsError
+        error={queryError}
+        onRetry={async () => {
+          subscription.retry();
+          await Promise.all([usageQuery.refetch(), membersQuery.refetch()]);
+        }}
+      />
     );
   }
 
@@ -278,19 +333,31 @@ export function UsageStats() {
  * Compact usage stats for dashboards
  */
 export function CompactUsageStats() {
-  const usage = useQuery(api.subscriptions.getUserUsage);
   const subscription = useSubscription();
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const usageOptions = resources.billing.usage(workspace.workspaceId ?? "");
+  const usageQuery = useQuery({
+    ...usageOptions,
+    queryKey: usageOptions.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const usage = usageQuery.data?.usage;
 
   const socialAccountsCount = usage?.socialAccounts ?? 0;
   const monthlyPostsCount = usage?.monthlyPosts ?? 0;
 
-  const socialAccountsLimit = useUsageLimit(
-    "socialAccounts",
+  const plan = PLANS[subscription.planType];
+  const socialAccountsLimit = limitState(
+    plan.limits.socialAccounts,
     socialAccountsCount
   );
-  const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
+  const monthlyPostsLimit = limitState(
+    plan.limits.monthlyPosts,
+    monthlyPostsCount
+  );
 
-  if (subscription.isLoading) {
+  if (subscription.isLoading || usageQuery.isPending) {
     return null;
   }
 

@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   Alert,
   AlertDescription,
@@ -29,9 +27,7 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
-import { useParams } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { SendDmPanel } from "@/components/automations/flow-builder/panels/send-dm-panel";
 import {
   AUTOMATION_TEMPLATES,
@@ -102,52 +98,6 @@ export function InstagramSettingsDisplay({
       : undefined;
 
   const settings = instagramSettings ?? DEFAULT_INSTAGRAM_SETTINGS;
-
-  // Load existing automations for this provider when editing a post
-  const { id: postId } = useParams<{ id: string | undefined }>();
-  const existingAutomations = useQuery(api.automations.getAutomations, {
-    socialProviderId: providerId as Id<"socialProviders">,
-  });
-  const hasLoadedExisting = useRef(false);
-
-  useEffect(() => {
-    if (
-      hasLoadedExisting.current ||
-      !postId ||
-      !existingAutomations ||
-      automationConfig
-    ) {
-      return;
-    }
-
-    // Find an automation linked to this post via pendingPostIds
-    const linked = existingAutomations.find((a) =>
-      a.triggers.some((t) => t.pendingPostIds?.includes(postId))
-    );
-
-    if (linked) {
-      hasLoadedExisting.current = true;
-      setAutomationConfig(providerId, {
-        templateSlug: "",
-        socialProviderId: providerId,
-        name: linked.name,
-        triggers: linked.triggers,
-        steps: linked.steps,
-        notes: linked.notes ?? [],
-        nodePositions:
-          (linked.nodePositions as Record<string, { x: number; y: number }>) ??
-          {},
-        isActive: linked.isActive,
-        existingAutomationId: linked._id,
-      });
-    }
-  }, [
-    postId,
-    existingAutomations,
-    automationConfig,
-    providerId,
-    setAutomationConfig,
-  ]);
 
   const updateSettings = useCallback(
     (updates: Partial<InstagramSettings>) => {

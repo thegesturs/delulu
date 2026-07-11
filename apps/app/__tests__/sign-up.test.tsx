@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import Page from "../app/(unauthenticated)/sign-up/[[...sign-up]]/page";
+
+vi.mock("@delulu/auth", () => ({
+  SignUp: () => <h1>Create an account</h1>,
+}));
 
 test("Sign Up Page", () => {
   render(<Page />);

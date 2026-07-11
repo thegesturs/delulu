@@ -1,36 +1,63 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
   AdminService,
+  AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
   AuthorizationService,
+  AutomationEngine,
+  AutomationKvNamespace,
+  AutomationKvRepairJob,
+  AutomationKvService,
+  AutomationService,
+  AutomationSessionService,
+  BillingOwnerTransfers,
+  BillingReconciliation,
+  BillingService,
+  BillingWebhookApplication,
   ClerkAdminService,
+  ClerkSyncService,
   ClerkTokenVerifier,
   ConnectionStateService,
   ConnectionsService,
+  DmDispatchService,
   IdentityService,
   JobService,
   MediaService,
   MembershipService,
+  makeAnalyticsCacheLayer,
+  makeMemoryAnalyticsCacheLayer,
   OAuthFlowService,
+  PooledQuotaReservations,
   PostService,
   QuotaGuard,
   R2Service,
   RateLimiterService,
   ReviewService,
+  SignedIngress,
+  WebhookDeliveryService,
+  WebhookIngressService,
+  WebhookSecrets,
   WorkspaceAccessService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
 import { String as EffectString, Layer, Redacted } from "effect";
 import { type AppServices, buildWebHandler } from "./app";
+import {
+  AutomationProviderLive,
+  PaymentWebhookSinkLive,
+} from "./automation-providers";
 import { dispatchDueJobs } from "./dispatcher";
 import {
+  appOrigins,
   authConfigLayer,
   databaseUrl,
   domainConfigLayers,
   type Env,
   type ExecutionContext,
 } from "./env";
+import { LiveInsightsProviderLive } from "./live-insights";
+import { runMaintenance } from "./maintenance";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -82,6 +109,76 @@ export const makeBaseLayer = (
     Layer.provide([ConnectionState, Cipher])
   );
   const Admin = AdminService.layer.pipe(Layer.provide([ClerkAdmin, Jobs]));
+  const AnalyticsCache = env.EDGE_CACHE_KV
+    ? makeAnalyticsCacheLayer(env.EDGE_CACHE_KV)
+    : makeMemoryAnalyticsCacheLayer();
+  const LiveInsights = LiveInsightsProviderLive.pipe(Layer.provide(Cipher));
+  const Analytics = AnalyticsService.layer.pipe(
+    Layer.provide([AnalyticsCache, LiveInsights])
+  );
+  const Billing = BillingService.layer;
+  const BillingTransfers = BillingOwnerTransfers.layer;
+  const BillingWebhooks = BillingWebhookApplication.layer;
+  const BillingReconcile = BillingReconciliation.layer;
+  const QuotaReservations = PooledQuotaReservations.layer;
+  const AutomationKvBinding = env.AUTOMATION_KV
+    ? Layer.succeed(
+        AutomationKvNamespace,
+        AutomationKvNamespace.of(env.AUTOMATION_KV)
+      )
+    : AutomationKvService.memoryLayer();
+  const AutomationKv = AutomationKvService.layer.pipe(
+    Layer.provide(AutomationKvBinding)
+  );
+  const Automations = AutomationService.layer.pipe(Layer.provide(AutomationKv));
+  const AutomationRepair = AutomationKvRepairJob.layer.pipe(
+    Layer.provide(Automations)
+  );
+  const AutomationSessions = AutomationSessionService.layer.pipe(
+    Layer.provide(AutomationKv)
+  );
+  const AutomationProviders = AutomationProviderLive.pipe(
+    Layer.provide(Cipher)
+  );
+  const DmDispatch = DmDispatchService.layer.pipe(
+    Layer.provide(AutomationProviders)
+  );
+  const AutomationRuntime = AutomationEngine.layer.pipe(
+    Layer.provide([
+      Automations,
+      AutomationSessions,
+      DmDispatch,
+      AutomationProviders,
+    ])
+  );
+  const WebhookDeliveries = WebhookDeliveryService.layer;
+  const ClerkSync = ClerkSyncService.layer.pipe(
+    Layer.provide(IdentityService.layer)
+  );
+  const PaymentSink = PaymentWebhookSinkLive.pipe(
+    Layer.provide(BillingWebhooks)
+  );
+  const WebhookSecretConfig = Layer.succeed(
+    WebhookSecrets,
+    WebhookSecrets.of({
+      metaAppSecret: env.META_APP_SECRET ?? "",
+      metaVerifyToken: env.META_VERIFY_TOKEN ?? "",
+      clerkSigningSecret: env.CLERK_WEBHOOK_SECRET ?? "",
+      dodoSigningSecret: env.DODO_WEBHOOK_SECRET ?? "",
+      timestampToleranceSeconds: 300,
+    })
+  );
+  const WebhookVerification = SignedIngress.layer.pipe(
+    Layer.provide(WebhookSecretConfig)
+  );
+  const WebhookIngress = WebhookIngressService.layer.pipe(
+    Layer.provide([
+      WebhookDeliveries,
+      AutomationRuntime,
+      ClerkSync,
+      PaymentSink,
+    ])
+  );
 
   const RateLimiter =
     overrides.rateLimiter ??
@@ -114,7 +211,17 @@ export const makeBaseLayer = (
     Reviews,
     Media,
     Connections,
-    Admin
+    Admin,
+    Analytics,
+    Automations,
+    AutomationRepair,
+    Billing,
+    BillingTransfers,
+    BillingWebhooks,
+    BillingReconcile,
+    QuotaReservations,
+    WebhookVerification,
+    WebhookIngress
   ).pipe(
     Layer.provide(AsToken),
     Layer.provide(Config),
@@ -135,7 +242,9 @@ const handlerFor = (env: Env): WebHandler => {
   if (cached && cached.env === env) {
     return cached.handler;
   }
-  const built = buildWebHandler(makeBaseLayer(env));
+  const built = buildWebHandler(makeBaseLayer(env), {
+    allowedOrigins: appOrigins(env),
+  });
   const handler = built.handler as WebHandler;
   cached = { env, handler };
   return handler;
@@ -146,6 +255,11 @@ export default {
     return handlerFor(env)(request);
   },
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
-    ctx.waitUntil(dispatchDueJobs(env, makeBaseLayer(env)));
+    const layer = makeBaseLayer(env);
+    ctx.waitUntil(
+      Promise.all([dispatchDueJobs(env, layer), runMaintenance(layer)]).then(
+        () => undefined
+      )
+    );
   },
 };

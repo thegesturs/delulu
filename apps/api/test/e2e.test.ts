@@ -12,6 +12,10 @@ import { makeBaseLayer } from "../src/index";
 const ISSUER = "http://localhost:8787";
 const DEV_SUB = `clerk_e2e_${crypto.randomUUID()}`;
 const API_KEY_PREFIX = /^dsk_/;
+const WEBHOOK_SECRET_BYTES = new TextEncoder().encode("e2e-webhook-secret");
+const WEBHOOK_SECRET = `whsec_${btoa(
+  String.fromCharCode(...WEBHOOK_SECRET_BYTES)
+)}`;
 
 const toPem = (der: ArrayBuffer): string => {
   const bytes = new Uint8Array(der);
@@ -58,13 +62,17 @@ beforeAll(async () => {
       AS_SIGNING_KEY: toPem(pkcs8),
       AS_SIGNING_KID: "e2e-kid",
       CONNECTION_STATE_SECRET: "e2e-connection-state-secret",
+      META_APP_SECRET: "e2e-meta-secret",
+      META_VERIFY_TOKEN: "e2e-meta-verify",
+      CLERK_WEBHOOK_SECRET: WEBHOOK_SECRET,
+      DODO_WEBHOOK_SECRET: WEBHOOK_SECRET,
     },
     { clerk: Clerk, rateLimiter: Limiter }
   );
 
-  handler = buildWebHandler(base).handler as (
-    request: Request
-  ) => Promise<Response>;
+  handler = buildWebHandler(base, {
+    allowedOrigins: ["http://localhost:3000"],
+  }).handler as (request: Request) => Promise<Response>;
 });
 
 const get = (path: string, token?: string) =>
@@ -98,12 +106,195 @@ const postJson = (path: string, body: unknown, token?: string) =>
     })
   );
 
+const webhookSignature = async (
+  id: string,
+  timestamp: string,
+  rawBody: string
+) => {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    WEBHOOK_SECRET_BYTES,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${id}.${timestamp}.${rawBody}`)
+  );
+  return btoa(String.fromCharCode(...new Uint8Array(signature)));
+};
+
+const postClerkWebhook = async (
+  id: string,
+  body: unknown,
+  signatureOverride?: string
+) => {
+  const rawBody = JSON.stringify(body);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature =
+    signatureOverride ?? (await webhookSignature(id, timestamp, rawBody));
+  return handler(
+    new Request(`${ISSUER}/webhooks/clerk`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "svix-id": id,
+        "svix-timestamp": timestamp,
+        "svix-signature": `v1,${signature}`,
+      },
+      body: rawBody,
+    })
+  );
+};
+
+const postDodoWebhook = async (id: string, body: unknown) => {
+  const rawBody = JSON.stringify(body);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = await webhookSignature(id, timestamp, rawBody);
+  return handler(
+    new Request(`${ISSUER}/webhooks/dodo`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "webhook-id": id,
+        "webhook-timestamp": timestamp,
+        "webhook-signature": `v1,${signature}`,
+      },
+      body: rawBody,
+    })
+  );
+};
+
 describe("apps/api worker (e2e over toWebHandler)", () => {
+  it("allows browser preflight only from the configured app origin", async () => {
+    const allowed = await handler(
+      new Request(`${ISSUER}/v1/me`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "http://localhost:3000",
+          "access-control-request-method": "GET",
+          "access-control-request-headers": "authorization",
+        },
+      })
+    );
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000"
+    );
+
+    const rejected = await handler(
+      new Request(`${ISSUER}/v1/me`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://untrusted.invalid",
+          "access-control-request-method": "GET",
+        },
+      })
+    );
+    expect(rejected.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
   it("GET /health returns ok with a DB probe", async () => {
     const res = await get("/health");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string };
     expect(body.status).toBe("ok");
+  });
+
+  it("verifies webhook challenges and rejects invalid signatures", async () => {
+    const challenge = await get(
+      "/webhooks/meta?hub.mode=subscribe&hub.verify_token=e2e-meta-verify&hub.challenge=verified"
+    );
+    expect(challenge.status).toBe(200);
+    expect(await challenge.text()).toBe("verified");
+
+    const invalid = await postClerkWebhook(
+      `webhook_invalid_${crypto.randomUUID()}`,
+      {
+        type: "user.created",
+        data: { id: `invalid_${crypto.randomUUID()}` },
+      },
+      "invalid"
+    );
+    expect(invalid.status).toBe(400);
+  });
+
+  it("applies a valid webhook exactly once even if a reordered replay arrives", async () => {
+    const id = `webhook_replay_${crypto.randomUUID()}`;
+    const externalId = `clerk_webhook_${crypto.randomUUID()}`;
+    const first = await postClerkWebhook(id, {
+      type: "user.created",
+      data: {
+        id: externalId,
+        first_name: "Webhook",
+        last_name: "User",
+        email_addresses: [{ email_address: `${externalId}@example.com` }],
+      },
+    });
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ accepted: true, duplicate: false });
+
+    const replay = await postClerkWebhook(id, {
+      type: "user.updated",
+      data: { id: externalId, first_name: "Reordered" },
+    });
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual({ accepted: true, duplicate: true });
+  });
+
+  it("normalizes provider subscription webhooks and rejects duplicate delivery", async () => {
+    const externalId = `billing_webhook_${crypto.randomUUID()}`;
+    const email = `${externalId}@example.com`;
+    const identity = await postClerkWebhook(`identity_${crypto.randomUUID()}`, {
+      type: "user.created",
+      data: {
+        id: externalId,
+        first_name: "Billing",
+        last_name: "Owner",
+        email_addresses: [{ email_address: email }],
+      },
+    });
+    expect(identity.status).toBe(200);
+
+    const webhookId = `billing_${crypto.randomUUID()}`;
+    const payload = {
+      type: "subscription.active",
+      data: {
+        payload_type: "Subscription",
+        subscription_id: `sub_${crypto.randomUUID()}`,
+        product_id: "pdt_mPTd8gsQS8YUISdStWURf",
+        status: "active",
+        previous_billing_date: "2026-07-01T00:00:00Z",
+        next_billing_date: "2026-08-01T00:00:00Z",
+        addons: [],
+        customer: {
+          customer_id: `customer_${crypto.randomUUID()}`,
+          email,
+        },
+        metadata: {},
+      },
+    };
+    const first = await postDodoWebhook(webhookId, payload);
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ accepted: true, duplicate: false });
+
+    const replay = await postDodoWebhook(webhookId, payload);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual({ accepted: true, duplicate: true });
+  });
+
+  it("acknowledges unrelated signed payment-provider event families", async () => {
+    const response = await postDodoWebhook(`refund_${crypto.randomUUID()}`, {
+      type: "refund.succeeded",
+      data: { payload_type: "Refund", refund_id: "refund_ignored" },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      accepted: true,
+      duplicate: false,
+    });
   });
 
   it("GET /v1/me JIT-provisions and returns the user + personal workspace", async () => {

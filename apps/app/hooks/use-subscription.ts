@@ -1,16 +1,22 @@
-/**
- * useSubscription Hook
- *
- * Provides access to the current user's subscription information
- */
+"use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Doc } from "@delulu/database/convex/_generated/dataModel";
 import type { PlanType } from "@delulu/payments";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "./use-operations-workspace";
+
+export interface SubscriptionView {
+  id: string;
+  billingOwnerUserId: string;
+  plan: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  addons: Readonly<Record<string, unknown>>;
+}
 
 export interface UseSubscriptionReturn {
-  subscription: Doc<"subscriptions"> | null | undefined;
+  subscription: SubscriptionView | null | undefined;
   planType: PlanType;
   billingPeriod: "MONTHLY" | "YEARLY" | "LIFETIME" | null;
   isActive: boolean;
@@ -24,32 +30,56 @@ export interface UseSubscriptionReturn {
   isLifetime: boolean;
   isLoading: boolean;
   currentPeriodEnd: Date | null;
-  cancelAtPeriodEnd: boolean | undefined;
+  cancelAtPeriodEnd: boolean;
+  error: Error | null;
+  retry: () => void;
 }
 
-export function useSubscription(): UseSubscriptionReturn {
-  const subscription = useQuery(api.subscriptions.getCurrentSubscription);
+const toPlanType = (value: string | undefined): PlanType => {
+  const normalized = value?.toUpperCase();
+  return normalized === "VIBE" || normalized === "ECHO" ? normalized : "FREE";
+};
 
-  const planType: PlanType = subscription?.planType || "FREE";
-  const isLoading = subscription === undefined;
+export function useSubscription(): UseSubscriptionReturn {
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const options = resources.billing.subscription(workspace.workspaceId ?? "");
+  const query = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const subscription = query.data;
+  const planType = toPlanType(subscription?.plan);
+  const status = subscription?.status.toUpperCase();
+  const billingPeriod =
+    subscription?.addons.billingPeriod === "MONTHLY" ||
+    subscription?.addons.billingPeriod === "YEARLY" ||
+    subscription?.addons.billingPeriod === "LIFETIME"
+      ? subscription.addons.billingPeriod
+      : null;
 
   return {
     subscription,
     planType,
-    billingPeriod: subscription?.billingPeriod || null,
-    isActive: subscription?.status === "ACTIVE",
-    isPastDue: subscription?.status === "PAST_DUE",
-    isCancelled: subscription?.status === "CANCELLED",
-    isTrialing: subscription?.status === "TRIALING",
+    billingPeriod,
+    isActive: status === "ACTIVE",
+    isPastDue: status === "PAST_DUE",
+    isCancelled: status === "CANCELLED",
+    isTrialing: status === "TRIALING",
     isFree: planType === "FREE",
     isVibe: planType === "VIBE",
     isEcho: planType === "ECHO",
     isPaid: planType !== "FREE",
-    isLifetime: subscription?.billingPeriod === "LIFETIME",
-    isLoading,
+    isLifetime: billingPeriod === "LIFETIME",
+    isLoading: workspace.isLoading || query.isPending,
     currentPeriodEnd: subscription?.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)
       : null,
-    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
+    cancelAtPeriodEnd: subscription?.addons.cancelAtPeriodEnd === true,
+    error: workspace.error ?? query.error,
+    retry: async () => {
+      await (workspace.error ? workspace.retry() : query.refetch());
+    },
   };
 }

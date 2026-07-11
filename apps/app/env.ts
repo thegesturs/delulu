@@ -1,7 +1,5 @@
 import { keys as analytics } from "@delulu/analytics/keys";
-import { keys as api } from "@delulu/api/keys";
 import { keys as collaboration } from "@delulu/collaboration/keys";
-import { keys as database } from "@delulu/database/keys";
 // import { keys as email } from '@delulu/email/keys';
 // import { keys as flags } from '@delulu/feature-flags/keys';
 import { keys as core } from "@delulu/next-config/keys";
@@ -18,8 +16,6 @@ export const env = createEnv({
     analytics(),
     collaboration(),
     core(),
-    database(),
-    api(),
     // email(),
     // flags(),
     // notifications(),
@@ -32,9 +28,12 @@ export const env = createEnv({
     PORT: z.number().default(3000),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
   },
-  client: {},
+  client: {
+    NEXT_PUBLIC_API_URL: z.string().url().optional(),
+  },
   runtimeEnv: {
     PORT: 3000,
     NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 });

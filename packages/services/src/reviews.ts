@@ -326,17 +326,14 @@ export class ReviewService extends Context.Service<
             resource: "review",
           });
         }
-        const targets = yield* sql<
-          Record<string, unknown>
-        >`SELECT id, scheduled_at FROM post_targets WHERE post_id = ${input.postId}`.pipe(
-          Effect.orDie
-        );
-        const missed = targets.some(
-          (target) =>
-            target.scheduledAt !== null &&
-            new Date(target.scheduledAt as Date | string).getTime() <=
-              Date.now()
-        );
+        const targets = yield* sql<{
+          id: string;
+          scheduledAt: Date | null;
+          isMissed: boolean;
+        }>`SELECT id, scheduled_at,
+            (scheduled_at IS NOT NULL AND scheduled_at <= now()) AS is_missed
+          FROM post_targets WHERE post_id = ${input.postId}`.pipe(Effect.orDie);
+        const missed = targets.some((target) => target.isMissed);
         if (missed && !approve.missedSlot) {
           return yield* new ConflictError({
             message: "Choose whether to reschedule or publish now",
@@ -359,7 +356,9 @@ export class ReviewService extends Context.Service<
                     resource: "schedule",
                   });
                 }
-                yield* sql`UPDATE post_targets SET scheduled_at = ${at} WHERE post_id = ${input.postId}`;
+                yield* sql`UPDATE post_targets SET scheduled_at = ${at}
+                  WHERE post_id = ${input.postId}
+                    AND scheduled_at IS NOT NULL AND scheduled_at <= now()`;
                 yield* addActivity(
                   input.workspaceId,
                   input.postId,

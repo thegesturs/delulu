@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -8,31 +7,62 @@ import {
   ArrowRight01Icon,
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardStatsClient } from "@/components/dashboard/dashboard-stats";
+import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
+import { FailedPostsAlert } from "@/components/dashboard/failed-posts-alert";
 import { PendingReviews } from "@/components/dashboard/pending-reviews";
 import { PlatformHealthAlert } from "@/components/dashboard/platform-health-alert";
-import { UpcomingSchedule } from "@/components/dashboard/upcoming-schedule";
-import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
-import type { DashboardStats, UpcomingPost } from "@/types/convex";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { Header } from "../layout/header";
 
-interface DashboardContentProps {
-  dashboardStats: DashboardStats | null;
-  upcomingPosts: UpcomingPost[] | null;
-  isLoading: boolean;
+interface OperationalStats {
+  readonly counts: {
+    readonly totalPosts: number;
+    readonly published: number;
+    readonly scheduled: number;
+    readonly failed: number;
+    readonly partiallyFailed: number;
+    readonly scheduledNextSevenDays: number;
+  };
+  readonly streak: {
+    readonly currentDays: number;
+    readonly longestDays: number;
+  };
 }
 
 export function DashboardContent({
   dashboardStats,
-  upcomingPosts,
   isLoading,
-}: DashboardContentProps) {
+}: {
+  dashboardStats: OperationalStats | null;
+  isLoading: boolean;
+}) {
   const router = useRouter();
-  const automations = useQuery(api.automations.getAutomations, {});
-  const hasAutomations = automations && automations.length > 0;
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const scope = workspace.workspaceId
+    ? {
+        workspaceId: workspace.workspaceId,
+        platform: "instagram" as const,
+        category: "dm",
+      }
+    : undefined;
+  const options = resources.automations.list(
+    scope ?? { workspaceId: "", platform: "instagram", category: "dm" },
+    { limit: 100, offset: 0 }
+  );
+  const automations = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!scope,
+  });
+  const automationItems = automations.data?.data ?? [];
+  const hasAutomations = automationItems.length > 0;
+  const counts = dashboardStats?.counts;
 
   return (
     <div className="space-y-4 overflow-auto p-4 md:p-8">
@@ -42,16 +72,10 @@ export function DashboardContent({
           Create Post
         </Button>
       </Header>
-
       <DmSummaryCard />
-
-      {/* Pending Reviews — shown prominently for admins, and for editors/members with submissions */}
       <PendingReviews />
-
-      {/* Alerts Section */}
-      <PlatformHealthAlert expiredTokens={dashboardStats?.expiredTokens || 0} />
-
-      {/* Quick Actions */}
+      <FailedPostsAlert />
+      <PlatformHealthAlert expiredTokens={0} />
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Link className="block" href="/automations/new">
           <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
@@ -71,8 +95,11 @@ export function DashboardContent({
             <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
               <span className="flex-1">Automations</span>
               <span className="text-muted-foreground text-xs">
-                {automations.filter((a) => a.isActive).length}/
-                {automations.length}
+                {
+                  automationItems.filter((automation) => automation.enabled)
+                    .length
+                }
+                /{automationItems.length}
               </span>
               <Icon
                 className="text-muted-foreground"
@@ -83,32 +110,27 @@ export function DashboardContent({
           </Link>
         )}
       </div>
-
-      {/* Main Stats */}
       <DashboardStatsClient
         isLoading={isLoading}
-        stats={
-          dashboardStats ?? {
-            totalPosts: 0,
-            publishedCount: 0,
-            scheduledCount: 0,
-            failedCount: 0,
-            savedCount: 0,
-            processingCount: 0,
-            upcomingPosts: 0,
-            thisWeekPosts: 0,
-            lastWeekPosts: 0,
-            successRate: 0,
-            connectedAccounts: 0,
-            expiredTokens: 0,
-            postingStreak: 0,
-            longestStreak: 0,
-          }
-        }
+        stats={{
+          totalPosts: counts?.totalPosts ?? 0,
+          publishedPosts: counts?.published ?? 0,
+          scheduledPosts: counts?.scheduled ?? 0,
+          failedPosts: (counts?.failed ?? 0) + (counts?.partiallyFailed ?? 0),
+          totalSocialAccounts: 0,
+          totalAutomations: automationItems.length,
+          publishedCount: counts?.published ?? 0,
+          scheduledCount: counts?.scheduled ?? 0,
+          failedCount: (counts?.failed ?? 0) + (counts?.partiallyFailed ?? 0),
+          savedCount: 0,
+          processingCount: 0,
+          upcomingPosts: counts?.scheduledNextSevenDays ?? 0,
+          connectedAccounts: 0,
+          expiredTokens: 0,
+          postingStreak: dashboardStats?.streak.currentDays ?? 0,
+          longestStreak: dashboardStats?.streak.longestDays ?? 0,
+        }}
       />
-
-      {/* Schedule Section */}
-      <UpcomingSchedule upcomingPosts={upcomingPosts ?? []} />
     </div>
   );
 }

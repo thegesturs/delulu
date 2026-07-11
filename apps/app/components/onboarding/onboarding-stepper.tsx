@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -8,9 +7,11 @@ import {
   ArrowRight01Icon,
   Loading03Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { useSubscription } from "@/hooks/use-subscription";
 import { AutomationSetupStep } from "./automation-setup-step";
@@ -31,9 +32,16 @@ export function OnboardingStepper() {
     isLoading,
   } = useOnboarding();
   const { isPaid, isLifetime, isLoading: subLoading } = useSubscription();
-  const accounts = useQuery(api.social_providers.getConnectedAccounts);
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const accounts = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+  });
 
-  const hasInstagram = accounts?.some((a) => a.socialType === "INSTAGRAM");
+  const hasInstagram = accounts.data?.data.some(
+    (a) => a.platform === "INSTAGRAM"
+  );
   const hasPaidPlan = isPaid || isLifetime;
 
   const isFirstStep = currentStep === 1;
@@ -76,9 +84,7 @@ export function OnboardingStepper() {
       return hasPaidPlan ? "Start Using Delulu" : "Choose a plan above";
     }
     if (currentStep === 2) {
-      return hasInstagram
-        ? "Continue"
-        : "Connect Instagram to continue";
+      return hasInstagram ? "Continue" : "Connect Instagram to continue";
     }
     if (currentStep === 3) {
       return "Continue";

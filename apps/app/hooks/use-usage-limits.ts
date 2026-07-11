@@ -4,9 +4,10 @@
  * Checks usage limits for the current user's plan
  */
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { PlanType } from "@delulu/payments";
-import { useQuery } from "convex-helpers/react/cache";
+import { getPlan, type PlanType, resolvePlanType } from "@delulu/payments";
+import { useQuery } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 
 export type LimitType =
   | "socialAccounts"
@@ -29,14 +30,18 @@ export function useUsageLimit(
   limitType: LimitType,
   currentValue: number
 ): UseUsageLimitReturn {
-  const limitCheck = useQuery(api.subscriptions.checkUsageLimit, {
-    limitType,
-    currentValue,
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const subscription = useQuery({
+    ...resources.billing.subscription(workspaceId ?? ""),
+    enabled: Boolean(workspaceId),
   });
-
-  const isLoading = limitCheck === undefined;
-  const limit = limitCheck?.limit ?? 0;
-  const remaining = limitCheck?.remaining ?? 0;
+  const planType = resolvePlanType(subscription.data?.plan);
+  const plan = getPlan(planType);
+  const normalizedType =
+    limitType === "mediaStorage" ? "mediaStorage" : limitType;
+  const limit = plan.limits[normalizedType];
+  const remaining = limit === -1 ? -1 : Math.max(0, limit - currentValue);
   const isUnlimited = limit === -1;
 
   // Calculate percentage used
@@ -46,11 +51,11 @@ export function useUsageLimit(
   }
 
   return {
-    allowed: limitCheck?.allowed ?? false,
+    allowed: isUnlimited || currentValue < limit,
     limit,
     remaining,
-    planType: limitCheck?.planType || "FREE",
-    isLoading,
+    planType,
+    isLoading: subscription.isPending,
     isUnlimited,
     percentageUsed,
   };

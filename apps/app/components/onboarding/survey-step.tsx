@@ -2,7 +2,7 @@
 
 import { Input } from "@delulu/design-system/components/ui/input";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import { useOnboardingStore } from "@/store/onboarding";
 
 const surveyOptions = [
@@ -86,7 +86,7 @@ export function SurveyStep() {
             <Input
               autoFocus
               className="mt-2"
-              onChange={(e) => {
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setOtherText(e.target.value);
                 setSurveyAnswer(
                   e.target.value ? `other: ${e.target.value}` : "other"

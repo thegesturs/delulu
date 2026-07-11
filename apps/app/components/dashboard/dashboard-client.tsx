@@ -1,24 +1,37 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { DashboardContent } from "./dashboard-content";
 
 export function DashboardClient() {
-  // Get dashboard data
-  const dashboardStats = useQuery(api.stats.getDashboardStats);
-  const recentPosts = useQuery(api.posts.getPosts, {
-    paginationOpts: { numItems: 6, cursor: null },
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const options = resources.analytics.operational(workspace.workspaceId ?? "");
+  const stats = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!workspace.workspaceId,
   });
-  const upcomingPosts = useQuery(api.stats.getUpcomingPosts, { days: 7 });
 
-  const isLoading = !(dashboardStats && recentPosts);
+  const error = workspace.error ?? stats.error;
+  if (error) {
+    return (
+      <OperationsError
+        error={error}
+        onRetry={async () => {
+          await (workspace.error ? workspace.retry() : stats.refetch());
+        }}
+      />
+    );
+  }
 
   return (
     <DashboardContent
-      dashboardStats={dashboardStats ?? null}
-      isLoading={isLoading}
-      upcomingPosts={upcomingPosts ?? null}
+      dashboardStats={stats.data ?? null}
+      isLoading={workspace.isLoading || stats.isPending}
     />
   );
 }

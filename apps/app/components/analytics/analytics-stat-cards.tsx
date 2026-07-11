@@ -20,12 +20,11 @@ interface Totals {
   followersGained: number;
   profileViews: number;
   engagements: number;
-  followers: number | undefined;
 }
 
 interface AnalyticsStatCardsProps {
   currentTotals: Totals | undefined;
-  prevTotals: Totals | undefined;
+  percentageChange: Totals | undefined;
   postsTracked: number;
   isLoading: boolean;
 }
@@ -64,7 +63,7 @@ function ChangeIndicator({ change }: { change: number | null }) {
 
 export function AnalyticsStatCards({
   currentTotals,
-  prevTotals,
+  percentageChange,
   postsTracked,
   isLoading,
 }: AnalyticsStatCardsProps) {
@@ -75,27 +74,21 @@ export function AnalyticsStatCards({
     {
       label: "Views",
       value: v(currentTotals?.impressions),
-      change: calcChange(
-        currentTotals?.impressions ?? 0,
-        prevTotals?.impressions ?? 0
-      ),
+      change: percentageChange?.impressions ?? null,
       icon: ViewIcon,
       color: "text-blue-600 dark:text-blue-400",
     },
     {
       label: "Reach",
       value: v(currentTotals?.reach),
-      change: calcChange(currentTotals?.reach ?? 0, prevTotals?.reach ?? 0),
+      change: percentageChange?.reach ?? null,
       icon: WifiConnected01Icon,
       color: "text-purple-600 dark:text-purple-400",
     },
     {
       label: "Profile Views",
       value: v(currentTotals?.profileViews),
-      change: calcChange(
-        currentTotals?.profileViews ?? 0,
-        prevTotals?.profileViews ?? 0
-      ),
+      change: percentageChange?.profileViews ?? null,
       icon: UserMultipleIcon,
       color: "text-orange-600 dark:text-orange-400",
     },

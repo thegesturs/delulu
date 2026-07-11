@@ -1,0 +1,29 @@
+{
+  "name": "@delulu/client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=neutral --format=esm --external:effect --external:effect/* --external:@tanstack/react-query --external:nanoid --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@delulu/contracts": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "effect": "catalog:",
+    "nanoid": "5.1.6"
+  },
+  "devDependencies": {
+    "@delulu/typescript-config": "workspace:*",
+    "esbuild": "^0.25.5",
+    "typescript": "catalog:",
+    "vitest": "^3.1.1"
+  }
+}

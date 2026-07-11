@@ -10,40 +10,43 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import React from "react";
 import { toast } from "sonner";
-import type { FailedPost } from "@/types/convex";
-import { api as TrpcApi } from "@/trpc/react";
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 
-interface FailedPostsAlertProps {
-  failedPosts: FailedPost[];
-}
-
-export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
+export function FailedPostsAlert() {
   const router = useRouter();
-  const [retryingPostId, setRetryingPostId] = React.useState<string | null>(
-    null
-  );
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const queryClient = useQueryClient();
+  const workspaceId = workspace.workspaceId ?? "";
+  const options = resources.posts.list(workspaceId, {
+    limit: 4,
+    offset: 0,
+    status: "failed",
+  });
+  const query = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const failedPosts = query.data?.data ?? [];
 
-  const retryPostMutation =
-    TrpcApi.socialProvider.createPostFromPostId.useMutation({
-      onSuccess: () => {
-        toast.success("Post is being republished. It will be posted soon.");
-        setRetryingPostId(null);
-      },
-      onError: () => {
-        toast.error("Failed to retry post");
-        setRetryingPostId(null);
-      },
-    });
+  if (workspace.error || query.error) {
+    return (
+      <OperationsError
+        error={(workspace.error ?? query.error)!}
+        onRetry={async () => {
+          await (workspace.error ? workspace.retry() : query.refetch());
+        }}
+      />
+    );
+  }
 
-  const handleRetry = async (postId: string) => {
-    setRetryingPostId(postId);
-    await retryPostMutation.mutateAsync({ postId });
-  };
-
-  if (!failedPosts || failedPosts.length === 0) {
+  if (!failedPosts.length) {
     return null;
   }
 
@@ -61,54 +64,88 @@ export function FailedPostsAlert({ failedPosts }: FailedPostsAlertProps) {
           </CardTitle>
         </div>
         <CardDescription className="text-red-700 dark:text-red-300">
-          {failedPosts.length} post{failedPosts.length > 1 ? "s" : ""} failed to
+          {query.data?.total} post{query.data?.total === 1 ? "" : "s"} failed to
           publish
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {failedPosts.slice(0, 3).map((post) => (
-            <div
-              className="flex items-center justify-between rounded border bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
-              key={post._id}
-            >
-              <div className="flex-1">
-                <p className="font-medium text-sm">
-                  {post.content?.[0]?.text?.slice(0, 60) || "No content"}...
-                </p>
-                <p className="mt-1 text-red-600 text-xs dark:text-red-400">
-                  {post.postFailureReason || "Publishing failed"}
-                </p>
-              </div>
-              <div className="ml-4 flex items-center space-x-2">
-                <Button
-                  onClick={() => router.push(`/post/${post._id}/edit`)}
-                  size="sm"
-                  variant="outline"
-                >
-                  Edit
-                </Button>
-                <Button
-                  disabled={retryingPostId === post._id}
-                  onClick={() => handleRetry(post._id)}
-                  size="sm"
-                >
-                  {retryingPostId === post._id ? "Retrying..." : "Retry"}
-                </Button>
-              </div>
-            </div>
-          ))}
-          {failedPosts.length > 3 && (
-            <Button
-              className="mt-2 w-full"
-              onClick={() => router.push("/posts?status=FAILED")}
-              variant="outline"
-            >
-              View all {failedPosts.length} failed posts
-            </Button>
-          )}
-        </div>
+      <CardContent className="space-y-3">
+        {failedPosts.slice(0, 3).map((post) => (
+          <FailedPostRow
+            key={post.id}
+            onEdit={() => router.push(`/post/${post.id}`)}
+            onRetried={() =>
+              queryClient.invalidateQueries({ queryKey: options.queryKey! })
+            }
+            post={post}
+            resources={resources}
+            workspaceId={workspaceId}
+          />
+        ))}
       </CardContent>
     </Card>
+  );
+}
+
+function FailedPostRow({
+  post,
+  resources,
+  workspaceId,
+  onEdit,
+  onRetried,
+}: {
+  post: {
+    readonly id: string;
+    readonly groups: readonly {
+      readonly segments: readonly { readonly text: string }[];
+    }[];
+    readonly targets: readonly {
+      readonly id: string;
+      readonly status: "pending" | "publishing" | "published" | "failed";
+      readonly error: string | null;
+    }[];
+  };
+  resources: ReturnType<typeof useApiClient>["resources"];
+  workspaceId: string;
+  onEdit: () => void;
+  onRetried: () => Promise<unknown>;
+}) {
+  const failedTarget = post.targets.find(
+    (target) => target.status === "failed"
+  );
+  const retry = useMutation(resources.posts.retryTarget(workspaceId, post.id));
+  return (
+    <div className="flex items-center justify-between gap-3 rounded border bg-background p-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium text-sm">
+          {post.groups[0]?.segments[0]?.text || "Untitled post"}
+        </p>
+        <p className="truncate text-red-600 text-xs">
+          {failedTarget?.error || "Publishing failed"}
+        </p>
+      </div>
+      <Button onClick={onEdit} size="sm" variant="outline">
+        Edit
+      </Button>
+      <Button
+        disabled={!failedTarget || retry.isPending}
+        onClick={async () => {
+          if (!failedTarget) {
+            return;
+          }
+          try {
+            await retry.mutateAsync(failedTarget.id);
+            await onRetried();
+            toast.success("Publish retry queued");
+          } catch (error) {
+            toast.error(
+              error instanceof Error ? error.message : "Retry failed"
+            );
+          }
+        }}
+        size="sm"
+      >
+        {retry.isPending ? "Retrying…" : "Retry"}
+      </Button>
+    </div>
   );
 }

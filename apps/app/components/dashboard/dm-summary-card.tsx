@@ -1,27 +1,44 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import { formatDmLimit } from "@delulu/payments";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { MailSend01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 
 export function DmSummaryCard() {
-  const summary = useQuery(api.automations.getAutomationSummary, {});
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const workspaceId = workspace.workspaceId ?? "";
+  const scope = { workspaceId, platform: "instagram" as const, category: "dm" };
+  const automationOptions = resources.automations.list(scope, {
+    limit: 100,
+    offset: 0,
+  });
+  const usageOptions = resources.billing.usage(workspaceId);
+  const automations = useQuery({
+    ...automationOptions,
+    queryKey: automationOptions.queryKey!,
+    enabled: !!workspaceId,
+  });
+  const usage = useQuery({
+    ...usageOptions,
+    queryKey: usageOptions.queryKey!,
+    enabled: !!workspaceId,
+  });
+  const items = automations.data?.data ?? [];
 
-  if (!summary || summary.total === 0) {
+  if (items.length === 0) {
     return null;
   }
 
-  const { dmsSentThisPeriod, dmLimit, active, totalDMsSent } = summary;
-  const isUnlimited = dmLimit === -1;
-  const usagePct = isUnlimited
-    ? 0
-    : dmLimit > 0
-      ? Math.min(100, Math.round((dmsSentThisPeriod / dmLimit) * 100))
-      : 0;
+  const active = items.filter((automation) => automation.enabled).length;
+  const totalDmsSent = items.reduce(
+    (total, automation) => total + automation.totalDmsSent,
+    0
+  );
 
   return (
     <div className="rounded-lg border bg-card p-4">
@@ -33,13 +50,14 @@ export function DmSummaryCard() {
           <div>
             <p className="font-medium text-sm">DM Automations</p>
             <p className="text-muted-foreground text-xs">
-              {active} active · {totalDMsSent.toLocaleString()} DMs sent all
+              {active} active · {totalDmsSent.toLocaleString()} DMs sent all
               time
             </p>
-            {!isUnlimited && (
+            {usage.data && (
               <p className="mt-1 text-muted-foreground text-xs">
-                {dmsSentThisPeriod.toLocaleString()} /{" "}
-                {formatDmLimit(dmLimit)} auto-DMs this period
+                {usage.data.usage.dmsSent.toLocaleString()} sent ·{" "}
+                {usage.data.usage.dmsSkipped.toLocaleString()} skipped this
+                period
               </p>
             )}
           </div>
@@ -48,14 +66,6 @@ export function DmSummaryCard() {
           <Link href="/automations">View automations</Link>
         </Button>
       </div>
-      {!isUnlimited && dmLimit > 0 && (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${usagePct}%` }}
-          />
-        </div>
-      )}
     </div>
   );
 }

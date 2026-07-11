@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import {
   AnimatedTabs,
   AnimatedTabsList,
@@ -8,211 +7,111 @@ import {
 } from "@delulu/design-system/components/ui/animated-tabs";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
-import { Toggle } from "@delulu/design-system/components/ui/toggle";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add01Icon,
   Calendar01Icon,
   CancelCircleIcon,
   DocumentAttachmentIcon,
-  GridViewIcon,
   Loading03Icon,
-  Menu01Icon,
   TaskDone01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { usePaginatedQuery } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import React, { useEffect } from "react";
-import { PostsView } from "@/components/posts/posts-view";
+import { useEffect, useState } from "react";
 import { ReviewQueue } from "@/components/posts/review-queue";
-import type { PostLayout } from "@/components/posts/types";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
-import PostLoading from "./post-loading";
 
-const ITEMS_PER_PAGE = 10;
+const statuses = [
+  { value: "draft", label: "Draft", icon: DocumentAttachmentIcon },
+  { value: "scheduled", label: "Scheduled", icon: Calendar01Icon },
+  { value: "publishing", label: "Processing", icon: Loading03Icon },
+  { value: "published", label: "Published", icon: TickDouble01Icon },
+  { value: "failed", label: "Failed", icon: CancelCircleIcon },
+  { value: "review", label: "Review", icon: TaskDone01Icon },
+] as const;
+
+type StatusFilter = (typeof statuses)[number]["value"];
 
 export default function PostsClient() {
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
-    parseAsStringLiteral([
-      "SAVED",
-      "SCHEDULED",
-      "PUBLISHED",
-      "FAILED",
-      "PROCESSING",
-      "REVIEW",
-    ] as const).withDefault("SAVED")
+    parseAsStringLiteral(statuses.map(({ value }) => value)).withDefault(
+      "draft"
+    )
   );
-  const [layout, setLayout] = React.useState<PostLayout>("list");
-  const { canApprove, isPersonal, isViewer, canCreate } = usePermissions();
+  const { canApprove, isPersonal, canCreate } = usePermissions();
+  const {
+    workspaceId,
+    isPending: isWorkspacePending,
+    error: workspaceError,
+  } = useActiveWorkspace();
+  const { resources } = useApiClient();
   const showReviewTab = canApprove && !isPersonal;
 
-  // Pending review count for badge
-  const pendingReviewCount = useQuery(api.post_reviews.getPendingReviewCount);
-
-  // Debounce search term to avoid too many queries
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
-
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedSearchTerm(searchTerm.trim()),
+      300
+    );
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // REVIEW is a UI-only tab, not a real post status — skip the query for it
-  const postStatusFilter = statusFilter === "REVIEW" ? undefined : statusFilter;
+  const posts = useQuery({
+    ...resources.posts.list(workspaceId ?? "", {
+      limit: 100,
+      status: statusFilter === "review" ? undefined : statusFilter,
+    }),
+    enabled: Boolean(workspaceId) && statusFilter !== "review",
+    staleTime: 30_000,
+    retry: 2,
+  });
+  const reviewQueue = useQuery({
+    ...resources.reviews.queue(workspaceId ?? "", { limit: 1 }),
+    enabled: Boolean(workspaceId) && showReviewTab,
+    staleTime: 15_000,
+    retry: 2,
+  });
 
-  const { results, status, loadMore } = usePaginatedQuery(
-    api.posts.getPosts,
-    postStatusFilter
-      ? {
-          status: postStatusFilter,
-          searchTerm: debouncedSearchTerm.trim() || undefined,
-        }
-      : "skip",
-    { initialNumItems: ITEMS_PER_PAGE }
-  );
-
-  // Fetch dashboard stats for accurate badge counts
-  const dashboardStats = useQuery(api.stats.getDashboardStats);
-
-  const isLoading = status === "LoadingMore" || !results;
-  const hasError = status === "LoadingFirstPage" && results === undefined;
-
-  // Get the posts from the paginated results
-  const posts = results ?? [];
-  const hasMore = status !== "Exhausted";
-
-  // Implement infinite scroll using Intersection Observer
-  const observerTarget = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasMore && !isLoading) {
-          loadMore?.(ITEMS_PER_PAGE);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+  const filteredPosts = (posts.data?.data ?? []).filter((post) => {
+    if (!debouncedSearchTerm) {
+      return true;
     }
+    const haystack = post.groups
+      .flatMap((group) => group.segments.map((segment) => segment.text))
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(debouncedSearchTerm.toLowerCase());
+  });
+  const error = workspaceError ?? posts.error;
 
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, loadMore]);
-
-  if (!results && isLoading) {
-    return (
-      <div>
-        <div className="border-b">
-          <div className="container flex items-center justify-between py-3">
-            <AnimatedTabs className="flex-1" value={statusFilter}>
-              <AnimatedTabsList>
-                <AnimatedTabsTrigger
-                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
-                  value="SAVED"
-                >
-                  <Icon icon={DocumentAttachmentIcon} size={16} />
-                  <span>Draft</span>
-                </AnimatedTabsTrigger>
-                <AnimatedTabsTrigger
-                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
-                  value="SCHEDULED"
-                >
-                  <Icon icon={Calendar01Icon} size={16} />
-                  <span>Scheduled</span>
-                </AnimatedTabsTrigger>
-                <AnimatedTabsTrigger
-                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
-                  value="PUBLISHED"
-                >
-                  <Icon icon={TickDouble01Icon} size={16} />
-                  <span>Published</span>
-                </AnimatedTabsTrigger>
-                <AnimatedTabsTrigger
-                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
-                  value="FAILED"
-                >
-                  <Icon icon={CancelCircleIcon} size={16} />
-                  <span>Failed</span>
-                </AnimatedTabsTrigger>
-              </AnimatedTabsList>
-            </AnimatedTabs>
-            <Button>
-              <Icon className="mr-2" icon={Add01Icon} size={16} />
-              Add Post
-            </Button>
-          </div>
-        </div>
-
-        <div className="container space-y-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <Input
-              className="max-w-sm"
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search posts..."
-              value={searchTerm}
-            />
-            <div className="flex items-center gap-1 rounded-lg border p-1">
-              <Toggle
-                aria-label="Grid view"
-                onPressedChange={() => setLayout("grid")}
-                pressed={layout === "grid"}
-                size="sm"
-              >
-                <Icon icon={GridViewIcon} size={16} />
-              </Toggle>
-              <Toggle
-                aria-label="List view"
-                onPressedChange={() => setLayout("list")}
-                pressed={layout === "list"}
-                size="sm"
-              >
-                <Icon icon={Menu01Icon} size={16} />
-              </Toggle>
-            </div>
-          </div>
-          <PostLoading layout={layout} />
-        </div>
-      </div>
-    );
+  if (isWorkspacePending || (statusFilter !== "review" && posts.isPending)) {
+    return <PostsLoading />;
   }
 
-  if (hasError) {
+  if (!workspaceId || error) {
     return (
-      <div>
-        <div className="border-b">
-          <div className="container flex items-center justify-between py-3">
-            <AnimatedTabs className="flex-1" value={statusFilter}>
-              <AnimatedTabsList>
-                <AnimatedTabsTrigger
-                  className="flex items-center justify-center gap-1.5 px-4 data-[state=active]:text-foreground"
-                  value="SAVED"
-                >
-                  <Icon icon={DocumentAttachmentIcon} size={16} />
-                  <span>Draft</span>
-                </AnimatedTabsTrigger>
-              </AnimatedTabsList>
-            </AnimatedTabs>
-            <Button>
-              <Icon className="mr-2" icon={Add01Icon} size={16} />
-              Add Post
-            </Button>
-          </div>
-        </div>
-        <div className="container py-4">
-          <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
-            <h3 className="font-semibold">Error loading posts</h3>
-            <p>Failed to load posts. Please try again later.</p>
-          </div>
+      <div className="container py-10">
+        <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
+          <h3 className="font-semibold">Unable to load this workspace</h3>
+          <p className="text-sm">
+            {error?.message ?? "Select a workspace and try again."}
+          </p>
+          <Button
+            className="mt-3"
+            onClick={() => posts.refetch()}
+            variant="outline"
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -224,104 +123,38 @@ export default function PostsClient() {
         <div className="flex items-center justify-between">
           <AnimatedTabs
             className="no-scrollbar flex-1 overflow-x-auto pt-3"
-            onValueChange={(value) =>
-              setStatusFilter(
-                value as
-                  | "SAVED"
-                  | "SCHEDULED"
-                  | "PUBLISHED"
-                  | "FAILED"
-                  | "PROCESSING"
-              )
-            }
+            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
             value={statusFilter}
           >
-            <AnimatedTabsList className="flex w-max min-w-full gap-2 lg:grid lg:w-full lg:min-w-0 lg:gap-0">
-              <AnimatedTabsTrigger
-                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                value="SAVED"
-              >
-                <Icon icon={DocumentAttachmentIcon} size={16} />
-                <span>Draft</span>
-                {dashboardStats && dashboardStats.savedCount > 0 && (
-                  <Badge className="ml-1.5" variant="secondary">
-                    {dashboardStats.savedCount}
-                  </Badge>
-                )}
-              </AnimatedTabsTrigger>
-              <AnimatedTabsTrigger
-                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                value="SCHEDULED"
-              >
-                <Icon icon={Calendar01Icon} size={16} />
-                <span>Scheduled</span>
-                {dashboardStats && dashboardStats.scheduledCount > 0 && (
-                  <Badge className="ml-1.5" variant="secondary">
-                    {dashboardStats.scheduledCount}
-                  </Badge>
-                )}
-              </AnimatedTabsTrigger>
-              <AnimatedTabsTrigger
-                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                value="PROCESSING"
-              >
-                <Icon icon={Loading03Icon} size={16} />
-                <span>Processing</span>
-                {dashboardStats && dashboardStats.processingCount > 0 && (
-                  <Badge className="ml-1.5" variant="secondary">
-                    {dashboardStats.processingCount}
-                  </Badge>
-                )}
-              </AnimatedTabsTrigger>
-              <AnimatedTabsTrigger
-                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                value="PUBLISHED"
-              >
-                <Icon icon={TickDouble01Icon} size={16} />
-                <span>Published</span>
-                {dashboardStats && dashboardStats.publishedCount > 0 && (
-                  <Badge className="ml-1.5" variant="secondary">
-                    {dashboardStats.publishedCount}
-                  </Badge>
-                )}
-              </AnimatedTabsTrigger>
-              <AnimatedTabsTrigger
-                className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                value="FAILED"
-              >
-                <Icon icon={CancelCircleIcon} size={16} />
-                <span>Failed</span>
-                {dashboardStats && dashboardStats.failedCount > 0 && (
-                  <Badge className="ml-1.5" variant="secondary">
-                    {dashboardStats.failedCount}
-                  </Badge>
-                )}
-              </AnimatedTabsTrigger>
-              {showReviewTab && (
-                <AnimatedTabsTrigger
-                  className="flex min-w-fit items-center justify-center gap-1.5 whitespace-nowrap px-4 data-[state=active]:text-foreground"
-                  value="REVIEW"
-                >
-                  <Icon icon={TaskDone01Icon} size={16} />
-                  <span>Review</span>
-                  {(pendingReviewCount ?? 0) > 0 && (
-                    <Badge className="ml-1.5" variant="secondary">
-                      {pendingReviewCount}
-                    </Badge>
-                  )}
-                </AnimatedTabsTrigger>
-              )}
+            <AnimatedTabsList className="flex w-max min-w-full gap-2 lg:grid lg:w-full lg:grid-cols-6 lg:gap-0">
+              {statuses
+                .filter(({ value }) => value !== "review" || showReviewTab)
+                .map(({ value, label, icon }) => (
+                  <AnimatedTabsTrigger
+                    className="min-w-fit gap-1.5 px-4"
+                    key={value}
+                    value={value}
+                  >
+                    <Icon icon={icon} size={16} />
+                    <span>{label}</span>
+                    {value === "review" &&
+                      (reviewQueue.data?.total ?? 0) > 0 && (
+                        <Badge variant="secondary">
+                          {reviewQueue.data?.total}
+                        </Badge>
+                      )}
+                  </AnimatedTabsTrigger>
+                ))}
             </AnimatedTabsList>
           </AnimatedTabs>
-
           {canCreate && (
             <Button
               asChild
               className="mx-2 ml-auto"
-              size={"sm"}
-              variant={"secondary"}
+              size="sm"
+              variant="secondary"
             >
-              <Link href={"/posts/create"}>
+              <Link href="/post">
                 <Icon className="mr-1" icon={Add01Icon} size={16} />
                 Add Post
               </Link>
@@ -331,66 +164,78 @@ export default function PostsClient() {
       </div>
 
       <div className="flex-1 space-y-4 overflow-auto p-4">
-        {statusFilter === "REVIEW" ? (
+        {statusFilter === "review" ? (
           <ReviewQueue />
         ) : (
           <>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
               <Input
                 className="max-w-sm"
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search posts..."
                 value={searchTerm}
               />
-              <div className="flex items-center gap-1 rounded-lg border p-1">
-                <Toggle
-                  aria-label="Grid view"
-                  onPressedChange={() => setLayout("grid")}
-                  pressed={layout === "grid"}
-                  size="sm"
-                >
-                  <Icon icon={GridViewIcon} size={16} />
-                </Toggle>
-                <Toggle
-                  aria-label="List view"
-                  onPressedChange={() => setLayout("list")}
-                  pressed={layout === "list"}
-                  size="sm"
-                >
-                  <Icon icon={Menu01Icon} size={16} />
-                </Toggle>
-              </div>
+              {posts.isFetching && !posts.isPending && (
+                <span className="text-muted-foreground text-xs">
+                  Refreshing…
+                </span>
+              )}
+              {posts.isStale && <Badge variant="outline">Cached</Badge>}
             </div>
-
-            {posts.length === 0 && !isLoading && (
-              <div className="py-12 text-center">
-                <p className="text-muted-foreground">
-                  No posts found. Try creating a new post.
-                </p>
+            {filteredPosts.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground">
+                No posts found.
               </div>
-            )}
-            {posts.length > 0 && (
-              <>
-                <PostsView layout={layout} posts={posts} />
-                {/* Loading indicator */}
-                {status === "LoadingMore" && (
-                  <div className="py-4">
-                    <PostLoading layout={layout} />
-                  </div>
-                )}
-                {/* Intersection observer target */}
-                {hasMore && (
-                  <div
-                    aria-hidden="true"
-                    className="h-4 w-full"
-                    ref={observerTarget}
-                  />
-                )}
-              </>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {filteredPosts.map((post) => {
+                  const text = post.groups
+                    .flatMap((group) => group.segments)
+                    .find((segment) => segment.text.trim())?.text;
+                  const scheduledAt = post.targets.find(
+                    (target) => target.scheduledAt
+                  )?.scheduledAt;
+                  return (
+                    <Card key={post.id}>
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary">
+                            {post.status.replaceAll("_", " ")}
+                          </Badge>
+                          <span className="text-muted-foreground text-xs">
+                            {new Date(post.updatedAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="line-clamp-3 min-h-12 text-sm">
+                          {text || "Untitled post"}
+                        </p>
+                        {scheduledAt && (
+                          <p className="text-muted-foreground text-xs">
+                            Scheduled {new Date(scheduledAt).toLocaleString()}
+                          </p>
+                        )}
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/post/${post.id}`}>Open post</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function PostsLoading() {
+  return (
+    <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((item) => (
+        <div className="h-36 animate-pulse rounded-lg bg-muted" key={item} />
+      ))}
     </div>
   );
 }

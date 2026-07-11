@@ -12,7 +12,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import { Plus } from "@hugeicons-pro/core-solid-rounded";
 import { useRouter } from "next/navigation";
 import { PostsView } from "@/components/posts/posts-view";
-import type { Post } from "@/types/convex";
+import type { Post } from "@/types/backend";
 
 interface RecentPostsSectionProps {
   posts: Post[];

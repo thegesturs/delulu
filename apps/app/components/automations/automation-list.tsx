@@ -1,18 +1,19 @@
 "use client";
 
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import type { Automation } from "@/types/convex";
 import { AutomationCard } from "./automation-card";
+import type { AutomationResourceView } from "./automation-resource";
 
 interface AutomationListProps {
-  automations: Automation[];
+  automations: AutomationResourceView[];
   viewMode: "grid" | "list";
-  onDelete: (id: Id<"automations">) => void;
-  onToggle: (id: Id<"automations">) => void;
+  canManage: boolean;
+  onDelete: (id: string) => Promise<void>;
+  onToggle: (id: string) => Promise<void>;
 }
 
 export function AutomationList({
   automations,
+  canManage,
   viewMode,
   onDelete,
   onToggle,
@@ -57,7 +58,8 @@ export function AutomationList({
       {automations.map((automation) => (
         <AutomationCard
           automation={automation}
-          key={automation._id}
+          canManage={canManage}
+          key={automation.id}
           onDelete={onDelete}
           onToggle={onToggle}
           viewMode={viewMode}

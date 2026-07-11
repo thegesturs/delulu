@@ -26,6 +26,7 @@ import { IdentityService } from "../../src/identity";
 import { JobService } from "../../src/jobs";
 import { MembershipService } from "../../src/membership";
 import { PostService } from "../../src/posts";
+import { ReviewService } from "../../src/reviews";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -41,6 +42,7 @@ let AppLayer: Layer.Layer<
   | MembershipService
   | JobService
   | PostService
+  | ReviewService
   | ConnectionsService
   | PgClient.PgClient
 >;
@@ -48,6 +50,7 @@ let AppLayer: Layer.Layer<
 beforeAll(() => {
   const Jobs = JobService.layer;
   const Posts = PostService.layer.pipe(Layer.provide(Jobs));
+  const Reviews = ReviewService.layer.pipe(Layer.provide(Jobs));
   const StateConfig = Layer.succeed(
     ConnectionStateConfig,
     ConnectionStateConfig.of({ secret: "integration-state-secret" })
@@ -65,6 +68,7 @@ beforeAll(() => {
     MembershipService.layer,
     Jobs,
     Posts,
+    Reviews,
     Connections
   ).pipe(Layer.provideMerge(Pg));
 });
@@ -170,6 +174,156 @@ describe("M2 PostService and JobService", () => {
     );
     expect(first.some((job) => job.id === id)).toBe(true);
     expect(second.some((job) => job.id === id)).toBe(false);
+  });
+
+  it("re-dispatches an expired delivery lease and fails it after max attempts", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const jobs = yield* JobService;
+      const sql = yield* SqlClient.SqlClient;
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing workspace");
+      }
+      const id = yield* jobs.enqueue({
+        workspaceId,
+        payload: { _tag: "SweepPendingMedia" },
+        runAt: new Date(Date.now() - 1000),
+        idempotencyKey: `redispatch-${crypto.randomUUID()}`,
+        maxAttempts: 2,
+      });
+      const first = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      yield* jobs.markDispatched(id);
+      yield* sql`UPDATE jobs SET locked_until = now() - interval '1 second' WHERE id = ${id}`;
+      const second = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      yield* jobs.markDispatched(id);
+      yield* sql`UPDATE jobs SET locked_until = now() - interval '1 second' WHERE id = ${id}`;
+      const exhausted = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      const rows = yield* sql<{
+        status: string;
+      }>`SELECT status FROM jobs WHERE id = ${id}`;
+      return { id, first, second, exhausted, status: rows[0]?.status };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.first.some((job) => job.id === result.id)).toBe(true);
+    expect(result.second.some((job) => job.id === result.id)).toBe(true);
+    expect(result.exhausted.some((job) => job.id === result.id)).toBe(false);
+    expect(result.status).toBe("failed");
+  });
+
+  it("reschedules only missed targets when approving a delayed review", async () => {
+    const future = new Date(Date.now() + 60 * 60 * 1000);
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const memberships = yield* MembershipService;
+      const posts = yield* PostService;
+      const reviews = yield* ReviewService;
+      const sql = yield* SqlClient.SqlClient;
+      const connectionRepo = yield* makeConnectionRepository();
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing workspace");
+      }
+      const member = Option.getOrThrow(
+        yield* memberships.resolve({ workspaceId, userId: resolved.user.id })
+      );
+      const connection = yield* connectionRepo.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId,
+          platform: "INSTAGRAM",
+          profileId: crypto.randomUUID(),
+          username: "review-schedules",
+          displayName: null,
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const secondConnection = yield* connectionRepo.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId,
+          platform: "INSTAGRAM",
+          profileId: crypto.randomUUID(),
+          username: "review-schedules-future",
+          displayName: null,
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const groupId = makeId(PostGroupId);
+      const settings = {
+        platform: "INSTAGRAM" as const,
+        values: {
+          shareToFeed: true,
+          shareToStory: false,
+          trialReels: false,
+          graduationStrategy: "MANUAL" as const,
+        },
+      };
+      const post = yield* posts.create({
+        workspaceId,
+        actor: { memberId: member.memberId, role: "editor" },
+        value: {
+          groups: [
+            {
+              id: groupId,
+              isDefault: true,
+              segments: [{ text: "Mixed schedules", media: [] }],
+            },
+          ],
+          targets: [
+            {
+              connectionId: connection.id,
+              groupId,
+              settings,
+              scheduledAt: new Date(Date.now() - 60_000).toISOString(),
+            },
+            {
+              connectionId: secondConnection.id,
+              groupId,
+              settings,
+              scheduledAt: future.toISOString(),
+            },
+          ],
+          source: "api",
+        },
+      });
+      yield* reviews.act({
+        workspaceId,
+        postId: post.id,
+        memberId: member.memberId,
+        role: "owner",
+        action: { action: "approve", missedSlot: "publish_now" },
+      });
+      return yield* sql<{
+        id: string;
+        scheduledAt: Date | null;
+      }>`SELECT id, scheduled_at FROM post_targets WHERE post_id = ${post.id}
+          ORDER BY scheduled_at`;
+    });
+    const targets = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(targets).toHaveLength(2);
+    expect(targets[0]?.scheduledAt?.getTime()).toBeLessThan(future.getTime());
+    expect(targets[1]?.scheduledAt?.toISOString()).toBe(future.toISOString());
   });
 
   it("always routes editor scheduling through review without a publish job", async () => {

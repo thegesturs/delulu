@@ -14,10 +14,10 @@ import {
   Time01Icon,
   ViewIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import type { MediaInsight } from "@/types/convex";
+import type { InsightPost } from "./analytics-content";
 
 interface TopPostsListProps {
-  posts: MediaInsight[];
+  posts: readonly InsightPost[];
   isLoading: boolean;
 }
 
@@ -34,7 +34,7 @@ function formatNumber(n: number | undefined): string {
   return String(n);
 }
 
-function formatDate(timestamp: number | undefined): string {
+function formatDate(timestamp: string | undefined): string {
   if (!timestamp) {
     return "";
   }
@@ -86,35 +86,23 @@ export function TopPostsList({ posts, isLoading }: TopPostsListProps) {
         ) : (
           <div className="space-y-2">
             {posts.map((post) => {
-              const platformMetrics = post.platformMetrics as
-                | { avgWatchTime?: number; totalViewTime?: number }
-                | undefined;
-
               return (
                 <a
                   className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                   href={post.permalink ?? "#"}
-                  key={`${post.platformPostId}-${post.snapshotDate}`}
+                  key={post.id}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
                   {/* Thumbnail */}
                   <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                    {post.thumbnailUrl ? (
-                      <img
-                        alt=""
-                        className="h-full w-full object-cover"
-                        src={post.thumbnailUrl}
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Icon
+                        className="text-muted-foreground"
+                        icon={Image01Icon}
+                        size={16}
                       />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <Icon
-                          className="text-muted-foreground"
-                          icon={Image01Icon}
-                          size={16}
-                        />
-                      </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Caption + date */}
@@ -124,7 +112,7 @@ export function TopPostsList({ posts, isLoading }: TopPostsListProps) {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground text-xs">
-                        {formatDate(post.postedAt)}
+                        {formatDate(post.publishedAt)}
                       </span>
                       {post.mediaType === "VIDEO" && (
                         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
@@ -138,22 +126,16 @@ export function TopPostsList({ posts, isLoading }: TopPostsListProps) {
                   <div className="flex flex-shrink-0 items-center gap-3 text-muted-foreground text-xs">
                     <span className="flex items-center gap-1">
                       <Icon icon={ViewIcon} size={12} />
-                      {formatNumber(post.views)}
+                      {formatNumber(post.impressions)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Icon icon={FavouriteIcon} size={12} />
-                      {formatNumber(post.likes)}
+                      {formatNumber(post.reach)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Icon icon={Comment01Icon} size={12} />
-                      {formatNumber(post.comments)}
+                      {formatNumber(post.engagements)}
                     </span>
-                    {platformMetrics?.avgWatchTime && (
-                      <span className="flex items-center gap-1">
-                        <Icon icon={Time01Icon} size={12} />
-                        {formatWatchTime(platformMetrics.avgWatchTime)}
-                      </span>
-                    )}
                   </div>
                 </a>
               );

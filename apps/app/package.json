@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome lint",
+    "test": "vitest run",
     "analyze": "ANALYZE=true npm run build",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
@@ -16,10 +17,9 @@
   },
   "dependencies": {
     "@delulu/analytics": "workspace:*",
-    "@delulu/api": "workspace:*",
     "@delulu/cloudflare-types": "workspace:*",
     "@delulu/collaboration": "workspace:*",
-    "@delulu/database": "workspace:*",
+    "@delulu/client": "workspace:*",
     "@delulu/design-system": "workspace:*",
     "@delulu/connections": "workspace:*",
     "@delulu/next-config": "workspace:*",
@@ -35,15 +35,9 @@
     "@t3-oss/env-nextjs": "^0.12.0",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-virtual": "^3.13.18",
-    "@trpc/client": "catalog:",
-    "@trpc/react-query": "catalog:",
-    "@trpc/server": "catalog:",
-    "@trpc/tanstack-react-query": "catalog:",
 
     "@xyflow/react": "^12.10.0",
     "axios": "^1.9.0",
-    "convex": "^1.25.4",
-    "convex-helpers": "^0.1.104",
     "date-fns": "^4.1.0",
     "driver.js": "^1.4.0",
     "ethers": "^6.14.4",
@@ -69,6 +63,7 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
     "@delulu/cloudflare-types": "workspace:*",
     "@delulu/testing": "workspace:*",
     "@delulu/typescript-config": "workspace:*",

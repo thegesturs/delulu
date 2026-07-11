@@ -29,6 +29,8 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 #   R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
 #   ENCRYPTION_SECRET
 #   SQS_INGRESS_URL / SQS_INGRESS_SECRET
+#   META_APP_SECRET / META_VERIFY_TOKEN
+#   CLERK_WEBHOOK_SECRET / DODO_WEBHOOK_SECRET
 
 # Postgres via Hyperdrive (fill id after `wrangler hyperdrive create`).
 # [[hyperdrive]]
@@ -61,3 +63,14 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 # [[kv_namespaces]]
 # binding = "API_USAGE_KV"
 # id = "<kv-namespace-id>"
+
+# M3 automation trigger/session fast path. Postgres remains authoritative and
+# the minute Cron repairs missed or stale writes.
+# [[kv_namespaces]]
+# binding = "AUTOMATION_KV"
+# id = "<automation-kv-namespace-id>"
+
+# M4 operational (30s) and provider-insights (1h) response cache.
+# [[kv_namespaces]]
+# binding = "EDGE_CACHE_KV"
+# id = "<edge-cache-kv-namespace-id>"

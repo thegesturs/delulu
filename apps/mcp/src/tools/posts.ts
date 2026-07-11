@@ -67,10 +67,7 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
             media: z
               .array(
                 z.object({
-                  mediaType: z.enum(["IMAGE", "VIDEO"]),
-                  url: z.string().optional(),
-                  bucketUrl: z.string().optional(),
-                  bucketKey: z.string().optional(),
+                  id: z.string().describe("Completed workspace media ID"),
                 })
               )
               .default([]),
@@ -119,10 +116,7 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
             media: z
               .array(
                 z.object({
-                  mediaType: z.enum(["IMAGE", "VIDEO"]),
-                  url: z.string().optional(),
-                  bucketUrl: z.string().optional(),
-                  bucketKey: z.string().optional(),
+                  id: z.string().describe("Completed workspace media ID"),
                 })
               )
               .default([]),

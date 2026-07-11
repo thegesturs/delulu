@@ -17,7 +17,11 @@ import {
   TickDouble01Icon,
   UserMultipleIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import type { DashboardStats } from "@/types/convex";
+import { useQuery } from "@tanstack/react-query";
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import type { DashboardStats } from "@/types/backend";
 
 interface DashboardStatsClientProps {
   stats: DashboardStats;
@@ -25,9 +29,42 @@ interface DashboardStatsClientProps {
 }
 
 export function DashboardStatsClient({
-  stats,
-  isLoading,
+  stats: legacyStats,
+  isLoading: legacyLoading,
 }: DashboardStatsClientProps) {
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const options = resources.analytics.operational(workspace.workspaceId ?? "");
+  const query = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const isLoading = workspace.isLoading || query.isPending || legacyLoading;
+  const stats = query.data
+    ? {
+        ...legacyStats,
+        totalPosts: query.data.counts.totalPosts,
+        publishedCount: query.data.counts.published,
+        scheduledCount: query.data.counts.scheduled,
+        failedCount:
+          query.data.counts.failed + query.data.counts.partiallyFailed,
+        upcomingPosts: query.data.counts.scheduledNextSevenDays,
+        postingStreak: query.data.streak.currentDays,
+        longestStreak: query.data.streak.longestDays,
+      }
+    : legacyStats;
+
+  if (workspace.error || query.error) {
+    return (
+      <OperationsError
+        error={(workspace.error ?? query.error)!}
+        onRetry={async () => {
+          await (workspace.error ? workspace.retry() : query.refetch());
+        }}
+      />
+    );
+  }
   const v = (n: number) => (isLoading ? "..." : n);
 
   return (

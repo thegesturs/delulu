@@ -1,16 +1,16 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { cn } from "@delulu/design-system/lib/utils";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import { ReviewActions } from "@/components/posts/review-actions";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
 
 interface ReviewBannerProps {
-  postId: Id<"posts">;
+  postId: string;
   reviewStatus: string;
   organizationId?: string;
 }
@@ -21,19 +21,23 @@ export function ReviewBanner({
   organizationId,
 }: ReviewBannerProps) {
   const { canApprove } = usePermissions();
-
-  const review = useQuery(
-    api.post_reviews.getReviewForPost,
-    organizationId ? { postId } : "skip"
-  );
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const review = useQuery({
+    ...resources.reviews.forPost(workspaceId ?? "", postId),
+    enabled: Boolean(organizationId && workspaceId),
+    staleTime: 15_000,
+    retry: 2,
+  });
 
   if (!organizationId) {
     return null;
   }
 
-  const isPending = reviewStatus === "PENDING";
-  const isRejected = reviewStatus === "REJECTED";
-  const isApproved = reviewStatus === "APPROVED";
+  const status = review.data?.status ?? reviewStatus.toLowerCase();
+  const isPending = status === "pending";
+  const isRejected = status === "rejected";
+  const isApproved = status === "approved";
 
   if (!(isPending || isRejected || isApproved)) {
     return null;
@@ -56,21 +60,22 @@ export function ReviewBanner({
               {isRejected && <Badge variant="destructive">Declined</Badge>}
               {isApproved && <Badge variant="green">Approved</Badge>}
 
-              {review?.reviewerName && (isApproved || isRejected) && (
-                <span className="text-muted-foreground text-xs">
-                  by {review.reviewerName}
-                  {review.reviewedAt &&
-                    ` on ${new Date(review.reviewedAt).toLocaleDateString()}`}
-                </span>
-              )}
+              {review.data?.resolvedByMemberId &&
+                (isApproved || isRejected) && (
+                  <span className="text-muted-foreground text-xs">
+                    by {review.data.resolvedByMemberId.slice(0, 8)}
+                    {review.data.resolvedAt &&
+                      ` on ${new Date(review.data.resolvedAt).toLocaleDateString()}`}
+                  </span>
+                )}
             </div>
 
-            {isRejected && review?.rejectionReason && (
+            {isRejected && (
               <p className="text-sm">
                 <span className="font-medium text-red-600 dark:text-red-400">
                   Reason:
                 </span>{" "}
-                {review.rejectionReason}
+                Open the activity timeline to see the reviewer&apos;s feedback.
               </p>
             )}
 

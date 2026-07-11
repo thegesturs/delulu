@@ -1,5 +1,4 @@
 "use client";
-import { api as ConvexApi } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
@@ -18,11 +17,12 @@ import {
 } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Plus } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
-import Link from "next/link";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import { api } from "@/trpc/react";
+import { useUsageLimit } from "@/hooks/use-usage-limits";
 
 const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   "TWITTER",
@@ -46,10 +46,11 @@ function ConnectPlatformButton({
 }: {
   platform: SupportedSocialPlatform;
 }) {
-  const { data: connectUrl, isLoading } =
-    api.socialProvider.getSocialProviderConnectUrl.useQuery({
-      provider: platform,
-    });
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const connect = useMutation(
+    resources.connections.mint(workspaceId ?? "", platform)
+  );
 
   if (platform === "FARCASTER") {
     return (
@@ -75,7 +76,7 @@ function ConnectPlatformButton({
     );
   }
 
-  if (isLoading || !connectUrl) {
+  if (!workspaceId) {
     return (
       <Button
         className="flex h-14 items-center justify-start space-x-4 px-4"
@@ -101,34 +102,40 @@ function ConnectPlatformButton({
 
   return (
     <Button
-      asChild
       className="flex h-14 items-center justify-start space-x-4 px-4"
+      disabled={connect.isPending}
+      onClick={async () => {
+        const result = await connect.mutateAsync({ includeInsights: true });
+        window.location.assign(result.url);
+      }}
       variant="outline"
     >
-      <Link href={connectUrl}>
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-            socialBackgroundColors[platform]
-          } shadow-sm`}
-        >
-          <SocialIcon className="text-white" size="md" type={platform} />
-        </div>
-        <div className="flex flex-col items-start">
-          <span className="font-medium">{socialDisplayNames[platform]}</span>
-          <span className="text-muted-foreground text-sm">
-            {socialDescriptions[platform]}
-          </span>
-        </div>
-      </Link>
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+          socialBackgroundColors[platform]
+        } shadow-sm`}
+      >
+        <SocialIcon className="text-white" size="md" type={platform} />
+      </div>
+      <div className="flex flex-col items-start">
+        <span className="font-medium">{socialDisplayNames[platform]}</span>
+        <span className="text-muted-foreground text-sm">
+          {socialDescriptions[platform]}
+        </span>
+      </div>
     </Button>
   );
 }
 
 export function ConnectedAccountsHeader() {
-  // Check limit with single efficient query
-  const limitCheck = useQuery(ConvexApi.subscriptions.checkSocialAccountLimit);
-  const isAtLimit = !limitCheck?.allowed;
-  const _accountCount = limitCheck?.currentCount || 0;
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const accounts = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+  });
+  const limitCheck = useUsageLimit("socialAccounts", accounts.data?.total ?? 0);
+  const isAtLimit = !limitCheck.allowed;
   const platforms = useSocialPlatforms();
 
   return (
@@ -154,7 +161,7 @@ export function ConnectedAccountsHeader() {
               <DialogTitle>Connect Social Account</DialogTitle>
               <DialogDescription>
                 {isAtLimit
-                  ? `You've reached your ${limitCheck?.planType} plan limit of ${limitCheck?.limit} social accounts`
+                  ? `You've reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts`
                   : "All connections use official platform APIs. Your passwords never touch our servers."}
               </DialogDescription>
             </DialogHeader>

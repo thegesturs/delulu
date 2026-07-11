@@ -28,7 +28,6 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useStore } from "@/store/post";
-import { api } from "@/trpc/react";
 import { TikTokConsentBanner } from "./tiktok-consent-banner";
 
 interface TikTokSettingsProps {
@@ -126,14 +125,23 @@ export function TikTokSettingsDisplay({
   );
 
   // Fetch creator info for this provider to show user context
-  const creatorInfo = api.socialProvider.getTikTokCreatorInfo.useQuery(
-    { socialProviderId: providerId },
-    {
-      enabled: !!providerId,
-      staleTime: 15 * 60 * 1000, // 15 minutes cache
-      retry: false,
-    }
-  );
+  // Creator capabilities are not exposed by the locked M4 contract yet.
+  const creatorInfo = {
+    isLoading: false,
+    data: {
+      privacy_level_options: [
+        tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
+        tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
+        tikTokPrivacyLevels.SELF_ONLY,
+      ],
+      creator_avatar_url: null,
+      creator_nickname: null,
+      creator_username: null,
+      comment_disabled: false,
+      duet_disabled: false,
+      stitch_disabled: false,
+    },
+  } as const;
 
   const updateTikTokSettings = useCallback(
     (updates: Partial<TikTokSettings>) => {
@@ -205,7 +213,7 @@ export function TikTokSettingsDisplay({
       const availableOptions = creatorInfo.data.privacy_level_options;
 
       // Check if stored privacy is in available options
-      if (!availableOptions.includes(storedPrivacy)) {
+      if (!(availableOptions as readonly string[]).includes(storedPrivacy)) {
         // Stored privacy not available, update to first available option
         const newPrivacy = availableOptions[0] as TiktokPrivacyLevels;
         updateTikTokSettings({ privacy: newPrivacy });

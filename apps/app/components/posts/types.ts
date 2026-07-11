@@ -1,5 +1,5 @@
 // Using proper Convex types
-export type { Post, PostLayout } from "@/types/convex";
+export type { Post, PostLayout } from "@/types/backend";
 
 export const statusColors = {
   SAVED: "orange",

@@ -1,52 +1,16 @@
 "use client";
 
-import {
-  POST_DELETED,
-  POST_PUBLISH_RETRIED,
-  POST_PUBLISHED,
-} from "@delulu/analytics/events";
+import { POST_DELETED, POST_PUBLISH_RETRIED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { Card } from "@delulu/design-system/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@delulu/design-system/components/ui/dropdown-menu";
-import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@delulu/design-system/components/ui/tooltip";
-import {
-  type SupportedSocialPlatform,
-  socialDisplayNames,
-} from "@delulu/design-system/lib/social-config";
-import { cn } from "@delulu/design-system/lib/utils";
-import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Calendar01Icon,
-  File02Icon,
-  MoreHorizontalIcon,
-  ViewIcon,
-} from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "convex/react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React from "react";
+import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { toast } from "sonner";
-import { useMediaUrl } from "@/hooks/use-media-url";
-import { usePermissions } from "@/hooks/use-permissions";
-import { api as TrpcApi } from "@/trpc/react";
-import DeletePostAlert from "../alerts/delete-post";
-import { PostPreviewDialog } from "./post-preview-dialog";
-import { ReviewActions } from "./review-actions";
-import { type Post, type PostLayout, statusColors } from "./types";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
+import type { Post, PostLayout } from "./types";
 
 interface PostCardProps {
   post: Post;
@@ -54,501 +18,98 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, layout = "grid" }: PostCardProps) {
-  const [showPreview, setShowPreview] = React.useState(false);
-  const [openDeletePost, setOpenDeletePost] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
-  const [imageLoading, setImageLoading] = React.useState(true);
-  const router = useRouter();
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const queryClient = useQueryClient();
   const analytics = useAnalytics();
-
-  const { canPublish, canApprove, requiresApproval, isViewer } =
-    usePermissions();
-
-  const softDeletePost = useMutation(api.posts.deletePost);
-  const createPostFromPostIdMutation =
-    TrpcApi.socialProvider.createPostFromPostId.useMutation({
-      onSuccess: () => {
-        toast.success("Your post is being published. It will be posted soon.");
-        setShowPreview(false);
-      },
-      onError: (error) => {
-        toast.error("Failed to publish post");
-        if (process.env.NODE_ENV === "development") {
-          console.error(error);
-        }
-      },
-    });
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const postId = post._id;
-  const postStatus = post.status;
-  const postContent = post.content;
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await softDeletePost({ postId });
-      analytics.capture(POST_DELETED, {
-        post_id: postId,
-        post_status: postStatus,
-      });
-      setOpenDeletePost(false);
-      toast.success("Post deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete post");
-      if (process.env.NODE_ENV === "development") {
-        console.error(error);
-      }
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleEdit = (id: string) => {
-    router.push(`/post/${id}`);
-  };
-
-  const handleScheduleChange = (id: string) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("Change schedule for post:", id);
-    }
-  };
-
-  const handlePublish = async (id: string) => {
-    toast.loading("Publishing post...");
-    analytics.capture(POST_PUBLISHED, { post_id: id });
-    await createPostFromPostIdMutation.mutateAsync({ postId: id });
-    toast.dismiss();
-  };
-
-  const handleRetry = async (id: string) => {
-    toast.loading("Retrying post...");
-    analytics.capture(POST_PUBLISH_RETRIED, { post_id: id });
-    await createPostFromPostIdMutation.mutateAsync({ postId: id });
-    toast.dismiss();
-  };
-
-  const reviewStatus = post.reviewStatus;
-  const isPending = reviewStatus === "PENDING" && !!post.organizationId;
-  const isRejected = reviewStatus === "REJECTED" && !!post.organizationId;
-  const isApproved = reviewStatus === "APPROVED";
-
-  const renderActionItems = () => {
-    const items: React.ReactNode[] = [];
-
-    // Viewers get no actions except preview
-    if (isViewer) {
-      return items;
-    }
-
-    switch (postStatus) {
-      case "SAVED":
-        items.push(
-          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
-            {isRejected && requiresApproval ? "Edit & Re-submit" : "Edit"}
-          </DropdownMenuItem>
-        );
-        // Can publish if: admin OR post is approved (for editors/members)
-        if (canPublish || isApproved) {
-          items.push(
-            <DropdownMenuItem
-              disabled={createPostFromPostIdMutation.isPending}
-              key="publish"
-              onClick={() => handlePublish(postId)}
-            >
-              {createPostFromPostIdMutation.isPending
-                ? "Publishing..."
-                : "Publish now"}
-            </DropdownMenuItem>,
-            <DropdownMenuItem
-              key="schedule"
-              onClick={() => handleScheduleChange(postId)}
-            >
-              Schedule
-            </DropdownMenuItem>
-          );
-        }
-        break;
-      case "SCHEDULED":
-        items.push(
-          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
-            Edit
-          </DropdownMenuItem>,
-          <DropdownMenuItem
-            key="schedule"
-            onClick={() => handleScheduleChange(postId)}
-          >
-            Reschedule
-          </DropdownMenuItem>
-        );
-        break;
-      case "FAILED":
-        items.push(
-          <DropdownMenuItem key="edit" onClick={() => handleEdit(postId)}>
-            Edit
-          </DropdownMenuItem>,
-          <DropdownMenuItem key="retry" onClick={() => handleRetry(postId)}>
-            Retry
-          </DropdownMenuItem>
-        );
-        break;
-      default:
-        break;
-    }
-
-    // Add delete action for all statuses
-    if (items.length > 0) {
-      items.push(<DropdownMenuSeparator key="separator" />);
-    }
-    items.push(
-      <DropdownMenuItem
-        className="text-destructive"
-        key="delete"
-        onClick={() => setOpenDeletePost(true)}
-      >
-        Delete
-      </DropdownMenuItem>
-    );
-
-    return items;
-  };
-
-  const firstContent = postContent[0];
-  const firstMedia = firstContent?.media?.[0];
-  const firstMediaUrl = useMediaUrl(firstMedia?.bucketKey, firstMedia?.url);
-
-  const ActionButtons = () => (
-    <div className="flex items-center gap-1">
-      <Button
-        className="h-8 w-8"
-        onClick={() => setShowPreview(true)}
-        size="icon"
-        variant="ghost"
-      >
-        <Icon icon={ViewIcon} size={14} />
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="h-8 w-8" size="icon" variant="ghost">
-            <Icon icon={MoreHorizontalIcon} size={14} />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {renderActionItems()}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+  const remove = useMutation(resources.posts.remove(workspaceId ?? ""));
+  const retry = useMutation(
+    resources.posts.retryTarget(workspaceId ?? "", post.id)
   );
+  const text =
+    post.content?.[0]?.text ??
+    post.groups[0]?.segments[0]?.text ??
+    "Untitled post";
+  const scheduledAt = post.targets.find(
+    (target) => target.scheduledAt
+  )?.scheduledAt;
 
+  const refresh = async () => {
+    if (workspaceId) {
+      await queryClient.invalidateQueries({
+        queryKey: resources.posts.list(workspaceId).queryKey,
+      });
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      await remove.mutateAsync(post.id);
+      analytics.capture(POST_DELETED, {
+        post_id: post.id,
+        post_status: post.status,
+      });
+      await refresh();
+      toast.success("Post deleted");
+    } catch (error) {
+      toast.error("Failed to delete post", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+  const handleRetry = async () => {
+    try {
+      const failed = post.targets.filter(
+        (target) => target.status === "failed"
+      );
+      await Promise.all(failed.map((target) => retry.mutateAsync(target.id)));
+      analytics.capture(POST_PUBLISH_RETRIED, { post_id: post.id });
+      await refresh();
+      toast.success("Failed targets queued for retry");
+    } catch (error) {
+      toast.error("Retry failed", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
   return (
-    <>
-      <Card
-        className={cn(
-          "overflow-hidden py-1 hover:bg-muted/30",
-          layout === "list" &&
-            "rounded-none border-b border-none first:rounded-t-lg last:rounded-b-lg last:border-b-0"
-        )}
-      >
-        <div className="flex h-full flex-col px-3 py-1.5">
-          {layout === "list" ? (
-            <div className="flex w-full items-center gap-x-4">
-              {/* Status */}
-              <div className="flex flex-shrink-0 items-center gap-1.5">
-                <Badge className="text-xs" variant={statusColors[postStatus]}>
-                  {postStatus}
-                </Badge>
-                {isPending && (
-                  <Badge className="text-xs" variant="amber">
-                    Awaiting Approval
-                  </Badge>
-                )}
-                {isRejected && (
-                  <Badge className="text-xs" variant="destructive">
-                    Declined
-                  </Badge>
-                )}
-                {isApproved &&
-                  !!post.organizationId &&
-                  postStatus === "SAVED" && (
-                    <Badge className="text-xs" variant="green">
-                      Approved
-                    </Badge>
-                  )}
-              </div>
-
-              {/* Content (Text) */}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-1 break-words font-medium text-sm">
-                  {firstContent?.text || "Untitled Post"}
-                </p>
-              </div>
-
-              {/* Scheduled At - flex-shrink-0 to prevent shrinking */}
-              {post.scheduledAt && (
-                <div className="flex flex-shrink-0 items-center gap-1 text-muted-foreground text-xs">
-                  <Icon icon={Calendar01Icon} size={12} />
-                  {new Date(post.scheduledAt).toLocaleDateString()}
-                </div>
-              )}
-
-              {/* Social Icons - flex-shrink-0 */}
-              <div className="flex flex-shrink-0 items-center gap-1">
-                {post.socialProviders?.slice(0, 3).map((provider) => {
-                  const socialType = provider.socialType;
-                  if (!Object.keys(socialDisplayNames).includes(socialType)) {
-                    return null;
-                  }
-                  return (
-                    <Tooltip key={provider._id}>
-                      <TooltipTrigger>
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted/30">
-                          <SocialIcon
-                            className="h-3 w-3 text-foreground"
-                            size="sm"
-                            type={socialType as SupportedSocialPlatform}
-                          />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-center">
-                          <div className="font-medium">
-                            {
-                              socialDisplayNames[
-                                socialType as SupportedSocialPlatform
-                              ]
-                            }
-                          </div>
-                          {provider.username && (
-                            <div className="text-primary-foreground/70 text-xs">
-                              @{provider.username}
-                            </div>
-                          )}
-                          {!provider.isActive && (
-                            <div className="text-destructive text-xs">
-                              Not connected
-                            </div>
-                          )}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-                {(post.socialProviders?.length || 0) > 3 && (
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
-                        +{(post.socialProviders?.length || 0) - 3}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {(post.socialProviders?.length || 0) - 3} more platforms
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-
-              {/* Actions - flex-shrink-0 */}
-              <div className="flex flex-shrink-0 items-center">
-                <ActionButtons />
-              </div>
-            </div>
-          ) : (
-            <div className="flex h-full min-w-0 flex-col gap-3 overflow-hidden">
-              {/* Media Preview for Grid */}
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                {firstMedia ? (
-                  <>
-                    {imageLoading && firstMedia.mediaType === "IMAGE" && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-muted">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      </div>
-                    )}
-                    {firstMedia.mediaType === "IMAGE" ? (
-                      imageError ? (
-                        <div className="flex h-full w-full items-center justify-center bg-muted">
-                          <div className="text-center text-muted-foreground">
-                            <div className="mx-auto mb-2 h-8 w-8 rounded bg-muted-foreground/20" />
-                            <p className="text-xs">Image failed to load</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <Image
-                          alt={firstMedia.altText || "Post media"}
-                          className={`object-cover transition-opacity duration-300 ${
-                            imageLoading ? "opacity-0" : "opacity-100"
-                          }`}
-                          fill
-                          onError={() => {
-                            setImageError(true);
-                            setImageLoading(false);
-                            if (process.env.NODE_ENV === "development") {
-                              console.error(
-                                `[DEBUG] Failed to load image: ${firstMediaUrl}`
-                              );
-                            }
-                          }}
-                          onLoad={() => setImageLoading(false)}
-                          src={firstMediaUrl}
-                        />
-                      )
-                    ) : firstMedia.mediaType === "DOCUMENT" ? (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
-                        <Icon
-                          className="text-muted-foreground"
-                          icon={File02Icon}
-                          size={24}
-                        />
-                        <span className="text-muted-foreground text-xs">
-                          Document
-                        </span>
-                      </div>
-                    ) : (
-                      <video
-                        className="h-full w-full object-cover"
-                        loop
-                        muted
-                        onError={() => {
-                          if (process.env.NODE_ENV === "development") {
-                            console.error(
-                              `[DEBUG] Failed to load video: ${firstMediaUrl}`
-                            );
-                          }
-                        }}
-                        playsInline
-                        src={firstMediaUrl}
-                      />
-                    )}
-                    {(firstContent?.media?.length || 0) > 1 && (
-                      <Badge
-                        className="absolute right-2 bottom-2"
-                        variant="secondary"
-                      >
-                        +{(firstContent?.media?.length || 0) - 1}
-                      </Badge>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <div className="h-12 w-12 rounded-lg bg-muted-foreground/10" />
-                      <span className="text-xs">No media</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Status and Actions */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Badge variant={statusColors[postStatus]}>{postStatus}</Badge>
-                  {isPending && (
-                    <Badge variant="amber">Awaiting Approval</Badge>
-                  )}
-                  {isRejected && <Badge variant="destructive">Declined</Badge>}
-                  {isApproved &&
-                    !!post.organizationId &&
-                    postStatus === "SAVED" && (
-                      <Badge variant="green">Approved</Badge>
-                    )}
-                </div>
-                <ActionButtons />
-              </div>
-
-              {/* Review actions for admins/editors on pending posts */}
-              {isPending && canApprove && <ReviewActions postId={postId} />}
-
-              {/* Content */}
-              <div className="min-w-0 flex-1 overflow-hidden">
-                <p className="line-clamp-3 break-words text-sm leading-relaxed">
-                  {firstContent?.text || "No content"}
-                </p>
-              </div>
-
-              {/* Schedule Info & Social Providers */}
-              <div className="mt-auto flex items-center justify-between text-muted-foreground text-xs">
-                {post.scheduledAt ? (
-                  <div className="flex items-center gap-1">
-                    <Icon icon={Calendar01Icon} size={12} />
-                    <span>
-                      {new Date(post.scheduledAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                ) : (
-                  <div />
-                )}
-                <div className="flex items-center gap-1.5">
-                  {post.socialProviders?.slice(0, 3).map((provider) => {
-                    const socialType = provider.socialType;
-                    if (!Object.keys(socialDisplayNames).includes(socialType)) {
-                      return null;
-                    }
-                    return (
-                      <Tooltip key={provider._id}>
-                        <TooltipTrigger>
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30">
-                            <SocialIcon
-                              className="text-foreground"
-                              size="sm"
-                              type={socialType as SupportedSocialPlatform}
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="text-center">
-                            <div className="font-medium">
-                              {
-                                socialDisplayNames[
-                                  socialType as SupportedSocialPlatform
-                                ]
-                              }
-                            </div>
-                            {provider.username && (
-                              <div className="text-foreground/70 text-xs">
-                                @{provider.username}
-                              </div>
-                            )}
-                            {!provider.isActive && (
-                              <div className="text-destructive text-xs">
-                                Not connected
-                              </div>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                  {(post.socialProviders?.length || 0) > 3 && (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/30 font-medium text-foreground text-xs">
-                          +{(post.socialProviders?.length || 0) - 3}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {(post.socialProviders?.length || 0) - 3} more platforms
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+    <Card className={layout === "list" ? "rounded-none" : undefined}>
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <Badge variant="secondary">{post.status.replaceAll("_", " ")}</Badge>
+          <span className="text-muted-foreground text-xs">
+            {new Date(post.updatedAt).toLocaleString()}
+          </span>
         </div>
-      </Card>
-      <DeletePostAlert
-        description="Are you sure you want to delete this post? This action cannot be undone."
-        isLoading={isDeleting}
-        onConfirm={handleDelete}
-        onOpenChange={setOpenDeletePost}
-        open={openDeletePost}
-        title="Delete Post"
-      />
-
-      <PostPreviewDialog
-        onOpenChange={setShowPreview}
-        open={showPreview}
-        post={post}
-      />
-    </>
+        <p className="line-clamp-3 text-sm">{text}</p>
+        {scheduledAt && (
+          <p className="text-muted-foreground text-xs">
+            Scheduled {new Date(scheduledAt).toLocaleString()}
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href={`/post/${post.id}`}>Open</Link>
+          </Button>
+          {post.targets.some((target) => target.status === "failed") && (
+            <Button
+              disabled={retry.isPending}
+              onClick={handleRetry}
+              size="sm"
+              variant="outline"
+            >
+              Retry
+            </Button>
+          )}
+          <Button
+            disabled={remove.isPending}
+            onClick={handleDelete}
+            size="sm"
+            variant="destructive"
+          >
+            Delete
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

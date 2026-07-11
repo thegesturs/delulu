@@ -1,7 +1,5 @@
 "use client";
 
-import { useOrganization } from "@delulu/auth";
-import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -29,30 +27,13 @@ import {
   Loading03Icon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/header";
-
-async function generateApiKey(): Promise<{
-  raw: string;
-  hash: string;
-  prefix: string;
-}> {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  const raw = `dllu_${Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("")}`;
-  const prefix = raw.slice(0, 12);
-
-  const encoder = new TextEncoder();
-  const data = encoder.encode(raw);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-
-  return { raw, hash, prefix };
-}
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 
 const SCOPE_OPTIONS = [
   {
@@ -85,10 +66,26 @@ const SCOPE_OPTIONS = [
 type ScopeValue = (typeof SCOPE_OPTIONS)[number]["value"];
 
 export function ApiKeysClient() {
-  const apiKeys = useQuery(api.api_keys.listApiKeys);
-  const createApiKeyMutation = useMutation(api.api_keys.createApiKey);
-  const revokeApiKeyMutation = useMutation(api.api_keys.revokeApiKey);
-  const { organization } = useOrganization();
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const queryClient = useQueryClient();
+  const workspaceId = workspace.workspaceId ?? "";
+  const listOptions = resources.admin.apiKeys(workspaceId, {
+    limit: 100,
+    offset: 0,
+  });
+  const apiKeysQuery = useQuery({
+    ...listOptions,
+    queryKey: listOptions.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const createApiKeyMutation = useMutation(
+    resources.admin.createApiKey(workspaceId)
+  );
+  const revokeApiKeyMutation = useMutation(
+    resources.admin.revokeApiKey(workspaceId)
+  );
+  const apiKeys = apiKeysQuery.data?.data;
 
   const [showCreate, setShowCreate] = React.useState(false);
   const [showRevoke, setShowRevoke] = React.useState<string | null>(null);
@@ -99,7 +96,6 @@ export function ApiKeysClient() {
     "reviews:read",
     "accounts:read",
   ]);
-  const [scopeToOrg, setScopeToOrg] = React.useState(!!organization);
   const [isCreating, setIsCreating] = React.useState(false);
   const [newKeyRaw, setNewKeyRaw] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
@@ -116,18 +112,15 @@ export function ApiKeysClient() {
 
     setIsCreating(true);
     try {
-      const { raw, hash, prefix } = await generateApiKey();
-
-      await createApiKeyMutation({
+      const result = await createApiKeyMutation.mutateAsync({
         name: name.trim(),
-        keyHash: hash,
-        keyPrefix: prefix,
+        role: selectedScopes.some((scope) => scope.endsWith(":write"))
+          ? "editor"
+          : "viewer",
         scopes: selectedScopes,
-        organizationId:
-          scopeToOrg && organization ? organization.id : undefined,
       });
-
-      setNewKeyRaw(raw);
+      setNewKeyRaw(result.token);
+      await queryClient.invalidateQueries({ queryKey: listOptions.queryKey! });
       toast.success("API key created");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to create API key");
@@ -138,9 +131,8 @@ export function ApiKeysClient() {
 
   const handleRevoke = async (keyId: string) => {
     try {
-      await revokeApiKeyMutation({
-        keyId: keyId as Parameters<typeof revokeApiKeyMutation>[0]["keyId"],
-      });
+      await revokeApiKeyMutation.mutateAsync(keyId);
+      await queryClient.invalidateQueries({ queryKey: listOptions.queryKey! });
       toast.success("API key revoked");
       setShowRevoke(null);
     } catch {
@@ -165,7 +157,6 @@ export function ApiKeysClient() {
       "reviews:read",
       "accounts:read",
     ]);
-    setScopeToOrg(!!organization);
     setNewKeyRaw(null);
     setCopied(false);
   };
@@ -179,7 +170,7 @@ export function ApiKeysClient() {
         </Button>
       </Header>
 
-      {organization && (
+      {workspace.workspace && !workspace.workspace.isPersonal && (
         <p className="text-muted-foreground text-sm">
           Org-scoped keys submit posts for review instead of publishing
           directly.
@@ -187,7 +178,16 @@ export function ApiKeysClient() {
       )}
 
       {/* Key list */}
-      {apiKeys === undefined ? (
+      {workspace.error || apiKeysQuery.error ? (
+        <OperationsError
+          error={(workspace.error ?? apiKeysQuery.error)!}
+          onRetry={async () => {
+            await (workspace.error
+              ? workspace.retry()
+              : apiKeysQuery.refetch());
+          }}
+        />
+      ) : apiKeys === undefined ? (
         <div className="flex items-center justify-center py-12">
           <Icon
             className="animate-spin text-muted-foreground"
@@ -227,7 +227,7 @@ export function ApiKeysClient() {
               className={`flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30 ${
                 i < apiKeys.length - 1 ? "border-b" : ""
               }`}
-              key={key._id}
+              key={key.id}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
                 <Icon
@@ -239,19 +239,15 @@ export function ApiKeysClient() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{key.name}</span>
-                  {key.organizationId && (
-                    <Badge className="text-[10px]" variant="secondary">
-                      Org
-                    </Badge>
-                  )}
+                  <Badge className="text-[10px]" variant="secondary">
+                    {key.role}
+                  </Badge>
                   <span className="font-mono text-muted-foreground text-xs">
                     {key.keyPrefix}...
                   </span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-2 text-muted-foreground text-xs">
-                  <span>
-                    Created {new Date(key.createdAt).toLocaleDateString()}
-                  </span>
+                  <span>{key.revokedAt ? "Revoked" : "Active"}</span>
                   {key.lastUsedAt && (
                     <>
                       <span>&middot;</span>
@@ -269,7 +265,8 @@ export function ApiKeysClient() {
               </div>
               <Button
                 className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => setShowRevoke(key._id)}
+                disabled={!!key.revokedAt}
+                onClick={() => setShowRevoke(key.id)}
                 size="icon"
                 variant="ghost"
               >
@@ -450,24 +447,6 @@ export function ApiKeysClient() {
                   ))}
                 </div>
               </div>
-
-              {organization && (
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="mr-3">
-                    <p className="text-sm">
-                      Scope to{" "}
-                      <span className="font-medium">{organization.name}</span>
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      Posts will require admin approval before publishing.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={scopeToOrg}
-                    onCheckedChange={setScopeToOrg}
-                  />
-                </div>
-              )}
 
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button onClick={handleCloseCreate} variant="ghost">

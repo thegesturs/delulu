@@ -2,8 +2,6 @@
 
 import { BULK_UPLOAD_SCHEDULED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   Alert,
   AlertDescription,
@@ -16,57 +14,201 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { AlertCircleIcon, Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import {
+  AlertCircleIcon,
+  Loading03Icon,
+} from "@hugeicons-pro/core-solid-rounded";
+import {
+  useMutation as useApiMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { toast } from "sonner";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
 import { Header } from "@/components/layout/header";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useMediaStorage } from "@/hooks/use-media-storage";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
-import {
-  PLATFORM_VIDEO_RULES,
-  validateVideo,
-} from "@/lib/platform-rules";
+import { PLATFORM_VIDEO_RULES, validateVideo } from "@/lib/platform-rules";
 import { BulkDropzone } from "./bulk-dropzone";
+import { BulkSocialSelector } from "./bulk-social-selector";
 import type { BulkVideo, SelectedProvider } from "./bulk-upload-reducer";
 import {
   bulkUploadReducer,
   computeScheduledAt,
   initialState,
 } from "./bulk-upload-reducer";
-import { BulkSocialSelector } from "./bulk-social-selector";
 import { BulkVideoList } from "./bulk-video-list";
 import { ScheduleConfig } from "./schedule-config";
+
+type PlatformSettingsValue =
+  | {
+      readonly platform: "BLUESKY";
+      readonly values: { readonly replyDisabled?: boolean };
+    }
+  | {
+      readonly platform: "FACEBOOK";
+      readonly values: { readonly privacy: "PUBLIC" | "FRIENDS" | "ONLY_ME" };
+    }
+  | {
+      readonly platform: "FARCASTER";
+      readonly values: { readonly channelId?: string };
+    }
+  | {
+      readonly platform: "INSTAGRAM";
+      readonly values: {
+        readonly shareToFeed: boolean;
+        readonly shareToStory: boolean;
+        readonly trialReels: boolean;
+        readonly graduationStrategy: "MANUAL" | "SS_PERFORMANCE";
+      };
+    }
+  | {
+      readonly platform: "LINKEDIN";
+      readonly values: { readonly visibility: "PUBLIC" | "CONNECTIONS" };
+    }
+  | {
+      readonly platform: "PINTEREST";
+      readonly values: { readonly boardId?: string };
+    }
+  | {
+      readonly platform: "THREADS";
+      readonly values: {
+        readonly replyControl: "everyone" | "following" | "mentioned";
+      };
+    }
+  | {
+      readonly platform: "TIKTOK";
+      readonly values: {
+        readonly privacy:
+          | "PUBLIC_TO_EVERYONE"
+          | "MUTUAL_FOLLOW_FRIENDS"
+          | "FOLLOWER_OF_CREATOR"
+          | "SELF_ONLY";
+        readonly allowComments: boolean;
+        readonly allowDuet: boolean;
+        readonly allowStitch: boolean;
+        readonly promotionContent: "NONE" | "SELF" | "PAID" | "BOTH";
+      };
+    }
+  | {
+      readonly platform: "TWITTER";
+      readonly values: {
+        readonly replyRestriction: "everyone" | "following" | "mentioned";
+      };
+    }
+  | {
+      readonly platform: "YOUTUBE";
+      readonly values: {
+        readonly privacy: "PUBLIC" | "PRIVATE" | "UNLISTED";
+        readonly madeForKids: boolean;
+        readonly ageRestriction?: boolean;
+      };
+    };
+
+function defaultPlatformSettings(
+  platform: SelectedProvider["socialType"]
+): PlatformSettingsValue {
+  switch (platform) {
+    case "BLUESKY":
+      return { platform, values: {} } as const;
+    case "FACEBOOK":
+      return { platform, values: { privacy: "PUBLIC" as const } } as const;
+    case "FARCASTER":
+      return { platform, values: {} } as const;
+    case "INSTAGRAM":
+      return {
+        platform,
+        values: {
+          shareToFeed: true,
+          shareToStory: false,
+          trialReels: false,
+          graduationStrategy: "MANUAL" as const,
+        },
+      } as const;
+    case "LINKEDIN":
+      return { platform, values: { visibility: "PUBLIC" as const } } as const;
+    case "PINTEREST":
+      return { platform, values: {} } as const;
+    case "THREADS":
+      return {
+        platform,
+        values: { replyControl: "everyone" as const },
+      } as const;
+    case "TIKTOK":
+      return {
+        platform,
+        values: {
+          privacy: "PUBLIC_TO_EVERYONE" as const,
+          allowComments: true,
+          allowDuet: true,
+          allowStitch: true,
+          promotionContent: "NONE" as const,
+        },
+      } as const;
+    case "TWITTER":
+      return {
+        platform,
+        values: { replyRestriction: "everyone" as const },
+      } as const;
+    case "YOUTUBE":
+      return {
+        platform,
+        values: { privacy: "PUBLIC" as const, madeForKids: false },
+      } as const;
+    default:
+      throw new Error(`Unsupported connection platform: ${platform}`);
+  }
+}
 
 export function BulkUploadPage() {
   const [state, dispatch] = useReducer(bulkUploadReducer, initialState);
   const { uploadAndSaveMedia } = useMediaStorage();
-  const upsertPost = useMutation(api.posts.upsertPost);
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const queryClient = useQueryClient();
+  const bulkCreate = useApiMutation({
+    ...resources.posts.bulkCreate(workspaceId ?? ""),
+    onSuccess: async () => {
+      if (!workspaceId) {
+        return;
+      }
+      await queryClient.invalidateQueries({
+        queryKey: resources.posts.list(workspaceId).queryKey,
+      });
+    },
+  });
   const router = useRouter();
   const analytics = useAnalytics();
   const { requiresApproval, isViewer } = usePermissions();
 
-  const user = useQuery(api.users.current);
-  const monthlyPostsCount = user?.usage?.monthlyPosts || 0;
+  const usage = useQuery({
+    ...resources.billing.usage(workspaceId ?? ""),
+    enabled: Boolean(workspaceId),
+  });
+  const monthlyPostsCount = usage.data?.usage.monthlyPosts ?? 0;
   const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
   const postsRemaining = monthlyPostsLimit.isUnlimited
-    ? Infinity
+    ? Number.POSITIVE_INFINITY
     : Math.max(0, (monthlyPostsLimit.limit ?? 0) - monthlyPostsCount);
 
   const isSubmitting = state.submissionStatus === "submitting";
-  const allUploaded = state.videos.every((v) => v.uploadStatus === "uploaded");
+  const allUploaded = state.videos.every(
+    (video) => video.uploadStatus === "uploaded" && video.uploadResult?.mediaId
+  );
   const hasVideos = state.videos.length > 0;
   const hasProviders = state.selectedProviders.length > 0;
   const hasSchedule = state.startDate !== null;
   const hasValidationErrors = state.videos.some(
     (v) => v.validationErrors.length > 0
   );
-  const exceedsLimit = !monthlyPostsLimit.isUnlimited && state.videos.length > postsRemaining;
+  const exceedsLimit =
+    !monthlyPostsLimit.isUnlimited && state.videos.length > postsRemaining;
 
   const canSubmit =
     hasVideos &&
@@ -80,7 +222,9 @@ export function BulkUploadPage() {
 
   // Warn before closing with in-progress work
   useEffect(() => {
-    if (!hasVideos) return;
+    if (!hasVideos) {
+      return;
+    }
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
@@ -133,7 +277,11 @@ export function BulkUploadPage() {
               type: "SET_UPLOAD_STATUS",
               id: video.id,
               status: "uploaded",
-              result: { bucketKey: result.bucketKey, url: result.url },
+              result: {
+                bucketKey: result.bucketKey,
+                url: result.url,
+                mediaId: result.mediaId,
+              },
             });
           })
           .catch(() => {
@@ -154,55 +302,72 @@ export function BulkUploadPage() {
   }, []);
 
   const handleScheduleAll = useCallback(async () => {
-    if (!canSubmit || !state.startDate) return;
+    if (!(canSubmit && state.startDate && workspaceId)) {
+      return;
+    }
+    const startDate = state.startDate;
 
     dispatch({ type: "SET_SUBMISSION_STATUS", status: "submitting" });
 
     let successCount = 0;
     let failCount = 0;
 
-    for (const [index, video] of state.videos.entries()) {
-      if (!video.uploadResult) continue;
-
+    for (const video of state.videos) {
       dispatch({ type: "SET_POST_STATUS", id: video.id, status: "creating" });
-
-      const scheduledAt = computeScheduledAt(
-        index,
-        state.startDate,
-        state.intervalMinutes
+    }
+    try {
+      const results = await bulkCreate.mutateAsync(
+        state.videos.map((video, index) => {
+          const groupId = crypto.randomUUID();
+          const scheduledAt = new Date(
+            computeScheduledAt(index, startDate, state.intervalMinutes)
+          ).toISOString();
+          return {
+            groups: [
+              {
+                id: groupId,
+                isDefault: true,
+                segments: [
+                  {
+                    text: video.caption,
+                    media: video.uploadResult?.mediaId
+                      ? [{ id: video.uploadResult.mediaId }]
+                      : [],
+                  },
+                ],
+              },
+            ],
+            targets: state.selectedProviders.map((provider) => ({
+              connectionId: provider.socialId,
+              groupId,
+              settings: defaultPlatformSettings(provider.socialType),
+              scheduledAt,
+            })),
+            source: "app" as const,
+            submitForReview: requiresApproval,
+          };
+        })
       );
-
-      try {
-        await upsertPost({
-          content: [
-            {
-              order: 0,
-              name: "DEFAULT",
-              text: video.caption,
-              media: [
-                {
-                  mediaType: "VIDEO" as const,
-                  bucketKey: video.uploadResult.bucketKey,
-                  url: video.uploadResult.url,
-                },
-              ],
-              tags: [],
-            },
-          ],
-          alternativeContent: [],
-          socialProviderIds: state.selectedProviders.map(
-            (p) => p.socialId as Id<"socialProviders">
-          ),
-          providerSettings: [],
-          scheduledAt,
-          status: "SCHEDULED",
+      results.forEach((result, index) => {
+        const video = state.videos[index];
+        if (!video) {
+          return;
+        }
+        dispatch({
+          type: "SET_POST_STATUS",
+          id: video.id,
+          status: result.ok ? "created" : "failed",
         });
-
-        dispatch({ type: "SET_POST_STATUS", id: video.id, status: "created" });
-        successCount++;
-      } catch {
+        if (result.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      });
+    } catch {
+      failCount = state.videos.length;
+      for (const video of state.videos) {
         dispatch({ type: "SET_POST_STATUS", id: video.id, status: "failed" });
-        failCount++;
       }
     }
 
@@ -224,7 +389,15 @@ export function BulkUploadPage() {
         `${successCount} scheduled, ${failCount} failed. You can retry the failed ones.`
       );
     }
-  }, [canSubmit, state, upsertPost, analytics, router]);
+  }, [
+    canSubmit,
+    state,
+    bulkCreate,
+    analytics,
+    router,
+    requiresApproval,
+    workspaceId,
+  ]);
 
   return (
     <div className="flex h-full flex-col gap-4 pb-20 lg:flex-row lg:pb-0">
@@ -278,8 +451,7 @@ export function BulkUploadPage() {
               <InlineUpgradePrompt feature="monthlyPosts" requiredPlan="VIBE" />
             )}
 
-            {!monthlyPostsLimit.isUnlimited &&
-              !exceedsLimit &&
+            {!(monthlyPostsLimit.isUnlimited || exceedsLimit) &&
               hasVideos &&
               monthlyPostsLimit.percentageUsed >= 60 && (
                 <Alert>

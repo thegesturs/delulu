@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
@@ -15,12 +13,14 @@ import {
   CancelCircleIcon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "convex/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 
 interface ReviewActionsProps {
-  postId: Id<"posts">;
+  postId: string;
   onReviewed?: () => void;
   compact?: boolean;
 }
@@ -36,7 +36,34 @@ export function ReviewActions({
   const [comment, setComment] = React.useState("");
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  const reviewPostMutation = useMutation(api.post_reviews.reviewPost);
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const queryClient = useQueryClient();
+  const reviewPostMutation = useMutation({
+    ...resources.reviews.act(workspaceId ?? "", postId),
+    onSuccess: async () => {
+      if (!workspaceId) {
+        return;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: resources.reviews.queue(workspaceId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: resources.reviews.forPost(workspaceId, postId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: resources.posts.list(workspaceId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: resources.posts.get(workspaceId, postId).queryKey,
+        }),
+      ]);
+    },
+  });
 
   const handleReview = async (status: "APPROVED" | "REJECTED") => {
     if (status === "REJECTED" && !comment.trim()) {
@@ -45,20 +72,24 @@ export function ReviewActions({
     }
     setIsProcessing(true);
     try {
-      await reviewPostMutation({
-        postId,
-        status,
-        comment: comment.trim() || undefined,
-      });
+      if (!workspaceId) {
+        throw new Error("Select a workspace before reviewing");
+      }
+      await reviewPostMutation.mutateAsync(
+        status === "APPROVED"
+          ? { action: "approve", comment: comment.trim() || undefined }
+          : { action: "reject", reason: comment.trim() }
+      );
       toast.success(status === "APPROVED" ? "Post approved" : "Post declined");
       setShowDialog(null);
       setComment("");
       onReviewed?.();
-    } catch {
+    } catch (error) {
       toast.error(
         status === "APPROVED"
           ? "Failed to approve post"
-          : "Failed to decline post"
+          : "Failed to decline post",
+        { description: error instanceof Error ? error.message : undefined }
       );
     } finally {
       setIsProcessing(false);
@@ -70,7 +101,7 @@ export function ReviewActions({
       <div className="flex items-center gap-1.5">
         <Button
           className="h-7 gap-1 px-2.5 text-xs"
-          disabled={isProcessing}
+          disabled={isProcessing || !workspaceId}
           onClick={() => setShowDialog("approve")}
           size="sm"
         >
@@ -79,7 +110,7 @@ export function ReviewActions({
         </Button>
         <Button
           className="h-7 gap-1 px-2.5 text-xs"
-          disabled={isProcessing}
+          disabled={isProcessing || !workspaceId}
           onClick={() => setShowDialog("reject")}
           size="sm"
           variant="outline"

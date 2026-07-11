@@ -1,4 +1,8 @@
-import type { CfRateLimiter } from "@delulu/services";
+import type {
+  CfRateLimiter,
+  KeyValueCacheBinding,
+  WorkersKvNamespace,
+} from "@delulu/services";
 import {
   AuthConfig,
   ClerkAdminConfig,
@@ -38,6 +42,12 @@ export interface Env {
   readonly ENCRYPTION_SECRET?: string;
   readonly SQS_INGRESS_URL?: string;
   readonly SQS_INGRESS_SECRET?: string;
+  readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
+  readonly AUTOMATION_KV?: WorkersKvNamespace;
+  readonly META_APP_SECRET?: string;
+  readonly META_VERIFY_TOKEN?: string;
+  readonly CLERK_WEBHOOK_SECRET?: string;
+  readonly DODO_WEBHOOK_SECRET?: string;
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;
@@ -54,6 +64,16 @@ export const databaseUrl = (env: Env): string =>
   env.HYPERDRIVE?.connectionString ??
   env.DATABASE_URL ??
   "postgres://delulu:delulu@localhost:5432/delulu";
+
+/** Browser origins permitted to call the Worker directly. */
+export const appOrigins = (env: Env): readonly string[] => {
+  const configured = env.APP_BASE_URL ?? "http://localhost:3000";
+  try {
+    return [new URL(configured).origin];
+  } catch {
+    return ["http://localhost:3000"];
+  }
+};
 
 /** Build the `AuthConfig` layer from the Worker env. */
 export const authConfigLayer = (env: Env): Layer.Layer<AuthConfig> =>

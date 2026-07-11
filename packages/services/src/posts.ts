@@ -509,8 +509,16 @@ export class PostService extends Context.Service<
                 const existing = yield* sql<{
                   id: string;
                   status: string;
-                }>`SELECT t.id, t.status FROM post_targets t
-                  JOIN posts p ON p.id = t.post_id WHERE t.id = ${input.targetId} AND t.post_id = ${input.postId}
+                  connectionId: string;
+                  groupId: string;
+                  platform: string;
+                  content: unknown;
+                }>`SELECT t.id, t.status, t.connection_id, t.group_id,
+                    c.platform, p.content
+                  FROM post_targets t
+                  JOIN posts p ON p.id = t.post_id
+                  JOIN connections c ON c.id = t.connection_id
+                  WHERE t.id = ${input.targetId} AND t.post_id = ${input.postId}
                   AND p.workspace_id = ${input.workspaceId} AND p.deleted_at IS NULL FOR UPDATE OF t`;
                 if (!existing[0]) {
                   return yield* new NotFoundError({
@@ -526,6 +534,31 @@ export class PostService extends Context.Service<
                     message:
                       "A publishing or published target cannot be edited",
                     resource: "post_target",
+                  });
+                }
+                const content = decodeContent(existing[0].content);
+                const nextGroupId = input.groupId ?? existing[0].groupId;
+                const issues: { path: string; message: string }[] = [];
+                if (!content.groups.some((group) => group.id === nextGroupId)) {
+                  issues.push({
+                    path: "groupId",
+                    message: "Target references a group that does not exist",
+                  });
+                }
+                if (
+                  input.settings &&
+                  input.settings.platform !== existing[0].platform
+                ) {
+                  issues.push({
+                    path: "settings.platform",
+                    message:
+                      "Provider settings do not match the connection platform",
+                  });
+                }
+                if (issues.length > 0) {
+                  return yield* new ValidationError({
+                    message: "Invalid target update",
+                    issues,
                   });
                 }
                 yield* sql`UPDATE post_targets SET

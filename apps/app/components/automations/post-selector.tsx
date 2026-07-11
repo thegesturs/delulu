@@ -1,7 +1,5 @@
 "use client";
 
-import { api as convexApi } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Checkbox } from "@delulu/design-system/components/ui/checkbox";
 import { Label } from "@delulu/design-system/components/ui/label";
@@ -15,8 +13,9 @@ import {
   Image02Icon,
   Video02Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex/react";
-import { api } from "@/trpc/react";
+import { useQuery } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 
 interface PostSelectorProps {
   socialProviderId: string | null;
@@ -32,36 +31,46 @@ export function PostSelector({
   triggerType,
 }: PostSelectorProps) {
   const isStoryMode = triggerType === "STORY_REPLY";
+  const { resources } = useApiClient();
+  const { workspaceId } = useWorkspace();
 
-  const {
-    data: posts,
-    isLoading: postsLoading,
-    error: postsError,
-  } = api.socialProvider.getInstagramPosts.useQuery(
-    { socialProviderId: socialProviderId! },
-    { enabled: !!socialProviderId && !isStoryMode }
-  );
-
-  const {
-    data: stories,
-    isLoading: storiesLoading,
-    error: storiesError,
-  } = api.socialProvider.getInstagramStories.useQuery(
-    { socialProviderId: socialProviderId! },
-    { enabled: !!socialProviderId && isStoryMode }
-  );
-
-  // Fetch scheduled posts from Convex
-  const scheduledPosts = useQuery(
-    convexApi.posts.getScheduledPostsByProvider,
-    socialProviderId && !isStoryMode
-      ? { socialProviderId: socialProviderId as Id<"socialProviders"> }
-      : "skip"
-  );
-
-  const items = isStoryMode ? stories : posts;
-  const isLoading = isStoryMode ? storiesLoading : postsLoading;
-  const error = isStoryMode ? storiesError : postsError;
+  const insights = useQuery({
+    ...resources.analytics.insights(workspaceId ?? "", socialProviderId ?? "", {
+      windowDays: 30,
+    }),
+    enabled: Boolean(workspaceId && socialProviderId && !isStoryMode),
+  });
+  const scheduled = useQuery({
+    ...resources.posts.list(workspaceId ?? "", {
+      status: "scheduled",
+      limit: 100,
+    }),
+    enabled: Boolean(workspaceId && socialProviderId && !isStoryMode),
+  });
+  const items = isStoryMode
+    ? []
+    : (insights.data?.topPosts.map((post) => ({
+        id: post.id,
+        caption: post.caption,
+        mediaType: post.mediaType,
+        thumbnailUrl: null,
+      })) ?? []);
+  const scheduledPosts =
+    scheduled.data?.data
+      .filter((post) =>
+        post.targets.some((target) => target.connectionId === socialProviderId)
+      )
+      .map((post) => ({
+        id: post.id,
+        caption: post.groups[0]?.segments[0]?.text ?? null,
+        scheduledAt:
+          post.targets.find(
+            (target) => target.connectionId === socialProviderId
+          )?.scheduledAt ?? null,
+        thumbnailUrl: null,
+      })) ?? [];
+  const isLoading = insights.isPending || scheduled.isPending;
+  const error = insights.error ?? scheduled.error;
   const itemLabel = isStoryMode ? "Stories" : "Posts";
   const itemLabelLower = isStoryMode ? "stories" : "posts";
 
@@ -128,8 +137,7 @@ export function PostSelector({
     );
   }
 
-  const hasScheduledPosts =
-    !isStoryMode && scheduledPosts && scheduledPosts.length > 0;
+  const hasScheduledPosts = !isStoryMode && scheduledPosts.length > 0;
 
   if ((!items || items.length === 0) && !hasScheduledPosts) {
     return (
@@ -289,7 +297,7 @@ export function PostSelector({
           </div>
           <div className="grid grid-cols-3 gap-3">
             {scheduledPosts.map((post) => {
-              const pendingId = `pending:${post._id}`;
+              const pendingId = `pending:${post.id}`;
               const isSelected = selectedPostIds.includes(pendingId);
 
               return (
@@ -300,7 +308,7 @@ export function PostSelector({
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-border hover:border-muted-foreground/50"
                   )}
-                  key={post._id}
+                  key={post.id}
                   onClick={() => handlePostToggle(pendingId, !isSelected)}
                   type="button"
                 >

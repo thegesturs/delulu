@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
@@ -17,10 +16,12 @@ import {
   Search01Icon,
   VideoIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import {
   canAddMediaType,
@@ -126,8 +127,10 @@ function MediaGridItem({
       {isSelected && (
         <div className="absolute top-2 right-2 rounded-full bg-primary p-1">
           <svg
+            aria-label="Selected"
             className="h-3 w-3 text-primary-foreground"
             fill="currentColor"
+            role="img"
             viewBox="0 0 20 20"
           >
             <path
@@ -229,83 +232,37 @@ export function MediaSelectionDialog({
 }: MediaSelectionDialogProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [cursor, setCursor] = useState<number | null>(null);
-  const [accumulatedMedia, setAccumulatedMedia] = useState<MediaItem[]>([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
 
   // Get dynamic media limits based on current state
   const limits = getDynamicMediaLimits(socialType, currentMedia);
   const { canAddImages, canAddVideos, remainingImages, remainingVideos } =
     limits;
 
-  // Use standard Convex query with cursor-based pagination
-  const mediaQuery = useQuery(
-    api.media.getMedia,
-    isOpen
-      ? {
-          limit: 50,
-          cursor: cursor ?? undefined,
-        }
-      : "skip"
-  );
-
-  const isLoading = mediaQuery === undefined;
-
-  // Extract data from new response format
-  const currentPageMedia = mediaQuery?.media || [];
-  const nextCursor = mediaQuery?.nextCursor ?? null;
-  const hasMore = mediaQuery?.hasMore ?? false;
-
-  // Transform and accumulate media on new data
-  useEffect(() => {
-    if (currentPageMedia.length > 0) {
-      const newMedia: MediaItem[] = currentPageMedia.map((item) => ({
-        id: item._id as string,
-        url: item.url,
-        bucketKey: item.bucketKey,
-        mediaType: item.mediaType,
-        originalFilename: item.originalFilename,
-        size: item.size,
-        extension: item.extension,
-        altText: item.altText,
-        createdAt: new Date(item.createdAt).toISOString(),
-      }));
-
-      setAccumulatedMedia((prev) => {
-        // If cursor is null, this is the first page - replace
-        if (!cursor) {
-          return newMedia;
-        }
-        // Otherwise append new media
-        const existingIds = new Set(prev.map((m) => m.id));
-        const uniqueNew = newMedia.filter((m) => !existingIds.has(m.id));
-        return [...prev, ...uniqueNew];
-      });
-
-      setIsLoadingMore(false);
-    }
-  }, [currentPageMedia, cursor]);
-
-  // Load more function
-  const loadMore = useCallback(() => {
-    if (hasMore && nextCursor && !isLoadingMore) {
-      setIsLoadingMore(true);
-      setCursor(nextCursor);
-    }
-  }, [hasMore, nextCursor, isLoadingMore]);
+  const mediaQuery = useQuery({
+    ...resources.media.list(workspaceId ?? "", { limit: 100 }),
+    enabled: isOpen && Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: 2,
+  });
+  const isLoading = mediaQuery.isPending;
+  const allMedia: MediaItem[] = (mediaQuery.data?.data ?? []).map((item) => ({
+    id: item.id,
+    url: item.url,
+    bucketKey: item.bucketKey,
+    mediaType: item.mediaType.toUpperCase() as MediaItem["mediaType"],
+    size: Number(item.sizeBytes),
+    altText: item.altText,
+    createdAt: item.createdAt,
+  }));
 
   // Reset when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setSelectedMedia([]);
-      setCursor(null);
-      setAccumulatedMedia([]);
-      setIsLoadingMore(false);
     }
   }, [isOpen]);
-
-  // Use accumulated media as the source
-  const allMedia = accumulatedMedia;
 
   // Filter media based on platform constraints
   const filteredMedia = allMedia.filter((media) => {
@@ -407,7 +364,7 @@ export function MediaSelectionDialog({
 
           {/* Media Grid with Virtual Scrolling */}
           <div className="h-96 overflow-y-auto">
-            {isLoading && accumulatedMedia.length === 0 && (
+            {isLoading && allMedia.length === 0 && (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -433,35 +390,14 @@ export function MediaSelectionDialog({
               </div>
             )}
             {filteredMedia.length > 0 && (
-              <>
-                <MediaGrid
-                  canSelectImages={canAddImages}
-                  canSelectVideos={canAddVideos}
-                  filteredMedia={filteredMedia}
-                  onMediaSelect={handleMediaSelect}
-                  onScrollEnd={loadMore}
-                  selectedMedia={selectedMedia}
-                />
-
-                {/* Loading indicator for pagination */}
-                {isLoadingMore && (
-                  <div className="mt-4 text-center">
-                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="mt-2 text-muted-foreground text-sm">
-                      Loading more...
-                    </p>
-                  </div>
-                )}
-
-                {/* End of results indicator */}
-                {!hasMore && filteredMedia.length > 50 && (
-                  <div className="mt-4 text-center">
-                    <p className="text-muted-foreground text-sm">
-                      All media loaded ({filteredMedia.length} items)
-                    </p>
-                  </div>
-                )}
-              </>
+              <MediaGrid
+                canSelectImages={canAddImages}
+                canSelectVideos={canAddVideos}
+                filteredMedia={filteredMedia}
+                onMediaSelect={handleMediaSelect}
+                onScrollEnd={() => undefined}
+                selectedMedia={selectedMedia}
+              />
             )}
           </div>
         </div>
