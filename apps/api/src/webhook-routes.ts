@@ -1,8 +1,8 @@
 import {
   SignedIngress,
   type StandardHeaders,
-} from "@delulu/services/src/signed-ingress";
-import { WebhookIngressService } from "@delulu/services/src/webhook-ingress";
+  WebhookIngressService,
+} from "@delulu/services";
 import { Effect, Predicate } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 

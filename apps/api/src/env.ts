@@ -1,4 +1,8 @@
-import type { CfRateLimiter, KeyValueCacheBinding } from "@delulu/services";
+import type {
+  CfRateLimiter,
+  KeyValueCacheBinding,
+  WorkersKvNamespace,
+} from "@delulu/services";
 import {
   AuthConfig,
   ClerkAdminConfig,
@@ -39,6 +43,11 @@ export interface Env {
   readonly SQS_INGRESS_URL?: string;
   readonly SQS_INGRESS_SECRET?: string;
   readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
+  readonly AUTOMATION_KV?: WorkersKvNamespace;
+  readonly META_APP_SECRET?: string;
+  readonly META_VERIFY_TOKEN?: string;
+  readonly CLERK_WEBHOOK_SECRET?: string;
+  readonly DODO_WEBHOOK_SECRET?: string;
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;

@@ -6,7 +6,10 @@ import type {
   AsTokenService,
   AuthConfig,
   AuthorizationService,
+  AutomationKvRepairJob,
+  AutomationService,
   BillingOwnerTransfers,
+  BillingReconciliation,
   BillingService,
   ClerkAdminService,
   ClerkTokenVerifier,
@@ -22,6 +25,8 @@ import type {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SignedIngress,
+  WebhookIngressService,
   WorkspaceAccessService,
 } from "@delulu/services";
 import { Layer } from "effect";
@@ -29,6 +34,7 @@ import { HttpMiddleware, HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 import type { SqlClient } from "effect/unstable/sql";
 import { AnalyticsHandlers } from "./analytics-handlers";
+import { AutomationHandlers } from "./automation-handlers";
 import { BillingHandlers } from "./billing-handlers";
 import { ConnectionRoutes } from "./connection-routes";
 import {
@@ -40,6 +46,7 @@ import {
 } from "./domain-handlers";
 import { HealthHandlers, MeHandlers } from "./handlers";
 import { OAuthRoutes } from "./oauth-routes";
+import { WebhookRoutes } from "./webhook-routes";
 
 /** Everything the assembled routes need a per-request environment to provide. */
 export type AppServices =
@@ -64,8 +71,13 @@ export type AppServices =
   | ReviewService
   | AdminService
   | AnalyticsService
+  | AutomationKvRepairJob
+  | AutomationService
   | BillingService
   | BillingOwnerTransfers
+  | BillingReconciliation
+  | SignedIngress
+  | WebhookIngressService
   | ClerkAdminService;
 
 export interface WebHandlerOptions {
@@ -93,6 +105,7 @@ export const buildWebHandler = (
       ConnectionsHandlers,
       AdminHandlers,
       AnalyticsHandlers,
+      AutomationHandlers,
       BillingHandlers,
     ])
   );
@@ -112,7 +125,8 @@ export const buildWebHandler = (
     ApiRoutes,
     DocsRoute,
     OAuthRoutes,
-    ConnectionRoutes
+    ConnectionRoutes,
+    WebhookRoutes
   ).pipe(
     Layer.provide(CorsMiddleware),
     Layer.provide(base),

@@ -1,4 +1,4 @@
-import type { ClerkWebhookPayload } from "@delulu/contracts/src/clerk-webhooks";
+import type { ClerkWebhookPayload } from "@delulu/contracts";
 import type { WorkspaceRole } from "@delulu/core/domain/workspace-member";
 import { MemberId, makeId, WorkspaceId } from "@delulu/core/kernel/ids";
 import { Context, Effect, Layer, Schema } from "effect";

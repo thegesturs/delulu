@@ -1,19 +1,14 @@
-import { ConflictError, type NotFoundError } from "@delulu/contracts";
-import { AutomationsGroup } from "@delulu/contracts/src/automations";
+import { Api, ConflictError, type NotFoundError } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
   type Automation,
   AutomationPersistenceError,
 } from "@delulu/core/domain/automation";
 import { timestampToWire } from "@delulu/core/kernel/time";
-import { WorkspaceAccessService } from "@delulu/services";
-import { AutomationService } from "@delulu/services/src/automations";
+import { AutomationService, WorkspaceAccessService } from "@delulu/services";
 import { Effect, Layer } from "effect";
-import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { AuthenticationLive } from "./auth-middleware";
-
-export const AutomationApi =
-  HttpApi.make("automationApi").add(AutomationsGroup);
 
 const page = (query: {
   readonly limit?: number;
@@ -56,7 +51,7 @@ const exposePersistence = <A>(
   );
 
 export const AutomationHandlers = HttpApiBuilder.group(
-  AutomationApi,
+  Api,
   "automations",
   Effect.fnUntraced(function* (handlers) {
     const service = yield* AutomationService;

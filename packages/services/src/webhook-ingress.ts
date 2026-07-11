@@ -1,8 +1,8 @@
-import { ClerkWebhookPayload } from "@delulu/contracts/src/clerk-webhooks";
 import {
+  ClerkWebhookPayload,
   DodoWebhookPayload,
   MetaWebhookPayload,
-} from "@delulu/contracts/src/webhooks";
+} from "@delulu/contracts";
 import type { AutomationEvent } from "@delulu/core/domain/automation-event";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { Context, Effect, Layer, Schema } from "effect";
@@ -13,9 +13,10 @@ import { WebhookDeliveryService } from "./webhook-deliveries";
 export class PaymentWebhookSink extends Context.Service<
   PaymentWebhookSink,
   {
-    readonly process: (
-      event: typeof DodoWebhookPayload.Type
-    ) => Effect.Effect<void, WebhookIngressError>;
+    readonly process: (input: {
+      readonly eventId: string;
+      readonly event: typeof DodoWebhookPayload.Type;
+    }) => Effect.Effect<void, WebhookIngressError>;
   }
 >()("@delulu/services/PaymentWebhookSink") {}
 
@@ -168,7 +169,7 @@ export class WebhookIngressService extends Context.Service<
             eventId,
             rawBody,
             schema: DodoWebhookPayload,
-            handle: payments.process,
+            handle: (event) => payments.process({ eventId, event }),
           })
       );
       return WebhookIngressService.of({

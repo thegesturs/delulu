@@ -1,5 +1,6 @@
 import { HttpApi, OpenApi } from "effect/unstable/httpapi";
 import { AnalyticsGroup } from "./analytics";
+import { AutomationsGroup } from "./automations";
 import { BillingGroup } from "./billing";
 import { HealthGroup } from "./health";
 import { MeGroup } from "./me";
@@ -12,11 +13,14 @@ import {
 } from "./workspace";
 
 export * from "./analytics";
+export * from "./automations";
 export * from "./billing";
+export * from "./clerk-webhooks";
 export * from "./errors";
 export * from "./health";
 export * from "./me";
 export * from "./middleware";
+export * from "./webhooks";
 export * from "./workspace";
 
 /**
@@ -37,6 +41,7 @@ export const Api = HttpApi.make("deluluApi")
   .add(ConnectionsGroup)
   .add(AdminGroup)
   .add(AnalyticsGroup)
+  .add(AutomationsGroup)
   .add(BillingGroup)
   .annotate(OpenApi.Title, "Delulu API")
   .annotate(OpenApi.Version, "1.0.0")

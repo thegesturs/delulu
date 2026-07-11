@@ -7,7 +7,6 @@ ALTER TABLE subscriptions
   ADD COLUMN social_accounts bigint NOT NULL DEFAULT 0 CHECK (social_accounts >= 0),
   ADD COLUMN api_requests_per_month bigint NOT NULL DEFAULT 0 CHECK (api_requests_per_month >= 0),
   ADD COLUMN api_requests_period_start timestamptz,
-  ADD COLUMN dms_sent_period_start timestamptz,
   ADD COLUMN addons jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(addons) = 'object'),
   ADD COLUMN seat_quantity integer CHECK (seat_quantity IS NULL OR seat_quantity > 0),
   ADD COLUMN unit_price_minor bigint CHECK (unit_price_minor IS NULL OR unit_price_minor >= 0);
