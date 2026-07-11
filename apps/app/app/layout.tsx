@@ -1,7 +1,4 @@
 import { UserJot } from "@/components/analytics/userjot";
-import { ApiClientProvider } from "@/components/providers/api-client";
-import { AppQueryClientProvider } from "@/components/providers/query-client";
-import { WorkspaceProvider } from "@/components/providers/workspace";
 import "./styles.css";
 import { DesignSystemProvider } from "@delulu/design-system";
 import { fonts } from "@delulu/design-system/lib/fonts";
@@ -30,13 +27,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
         privacyUrl="https://delulu.social/legal/privacy-policy"
         termsUrl="https://delulu.social/legal/terms-of-service"
       >
-        <AppQueryClientProvider>
-          <ApiClientProvider>
-            <WorkspaceProvider>
-              <NuqsAdapter>{children}</NuqsAdapter>
-            </WorkspaceProvider>
-          </ApiClientProvider>
-        </AppQueryClientProvider>
+        <NuqsAdapter>{children}</NuqsAdapter>
       </DesignSystemProvider>
       <UserJot />
     </body>

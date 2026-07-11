@@ -5,14 +5,17 @@ import { GlobalSidebar } from "components/layout/sidebar";
 import { UserJotIdentifier } from "components/layout/userjot-identifier";
 import { env } from "env";
 import type { ReactNode } from "react";
-import { MobileBottomTabs } from "@/components/layout/mobile-bottom-tabs";
 import { PaidSubscriptionGate } from "@/components/billing/paid-subscription-gate";
+import { MobileBottomTabs } from "@/components/layout/mobile-bottom-tabs";
 import { FeatureTour } from "@/components/onboarding/feature-tour";
+import { BackendProviders } from "@/components/providers/backend";
 import { StoreProvider } from "@/providers/store-provider";
 
 interface AppLayoutProperties {
   readonly children: ReactNode;
 }
+
+export const dynamic = "force-dynamic";
 
 const AppLayout = async ({ children }: AppLayoutProperties) => {
   if (env.ARCJET_KEY) {
@@ -20,16 +23,18 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
   }
 
   return (
-    <SidebarProvider>
-      <GlobalSidebar>
-        <StoreProvider>{children}</StoreProvider>
-      </GlobalSidebar>
-      <PaidSubscriptionGate />
-      <PostHogIdentifier />
-      <UserJotIdentifier />
-      <FeatureTour />
-      <MobileBottomTabs />
-    </SidebarProvider>
+    <BackendProviders>
+      <SidebarProvider>
+        <GlobalSidebar>
+          <StoreProvider>{children}</StoreProvider>
+        </GlobalSidebar>
+        <PaidSubscriptionGate />
+        <PostHogIdentifier />
+        <UserJotIdentifier />
+        <FeatureTour />
+        <MobileBottomTabs />
+      </SidebarProvider>
+    </BackendProviders>
   );
 };
 

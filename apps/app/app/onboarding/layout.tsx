@@ -1,5 +1,8 @@
 import { auth } from "@delulu/auth/server";
 import { redirect } from "next/navigation";
+import { BackendProviders } from "@/components/providers/backend";
+
+export const dynamic = "force-dynamic";
 
 export default async function OnboardingLayout({
   children,
@@ -16,5 +19,5 @@ export default async function OnboardingLayout({
     redirect("/");
   }
 
-  return <>{children}</>;
+  return <BackendProviders>{children}</BackendProviders>;
 }
