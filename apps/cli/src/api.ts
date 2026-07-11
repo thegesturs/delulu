@@ -5,8 +5,6 @@ import {
   writeCredentials,
 } from "./config.js";
 
-const TRAILING_SLASH = /\/$/;
-
 interface RequestOptions {
   apiUrl?: string;
   json?: boolean;
@@ -77,38 +75,6 @@ export async function getAccessToken() {
     throw new Error("Not logged in. Run `delulu login` first.");
   }
   return (await refreshCredentials(credentials)).accessToken;
-}
-
-export async function apiRequest<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-  options: RequestOptions = {}
-) {
-  const token = await getAccessToken();
-  const baseUrl = (
-    options.apiUrl ||
-    process.env.DELULU_API_URL ||
-    DEFAULT_API_URL
-  ).replace(TRAILING_SLASH, "");
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-
-  if (!response.ok) {
-    const message = data?.error?.message || response.statusText;
-    throw new Error(`API error ${response.status}: ${message}`);
-  }
-
-  return data as T;
 }
 
 export function printResult(value: unknown, json = false) {

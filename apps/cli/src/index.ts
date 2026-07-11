@@ -7,14 +7,9 @@ import {
   select,
   text,
 } from "@clack/prompts";
-import { runEffect } from "@delulu/client";
+import { type ApiClient, makeSimplePostWrite, runEffect } from "@delulu/client";
 import { Command } from "commander";
-import {
-  apiRequest,
-  getContractClient,
-  getWorkspaceId,
-  printResult,
-} from "./api.js";
+import { getContractClient, getWorkspaceId, printResult } from "./api.js";
 import { deleteCredentials } from "./config.js";
 import { login } from "./oauth.js";
 
@@ -24,8 +19,6 @@ interface GlobalOptions {
 }
 
 const program = new Command();
-const VIDEO_EXTENSION = /\.(mp4|mov|webm)$/i;
-
 program
   .name("delulu")
   .description("Delulu Social CLI")
@@ -71,16 +64,19 @@ accounts.command("list").action(async () => {
 const stats = program.command("stats").description("View stats");
 stats.command("usage").action(async () => {
   const options = program.opts<GlobalOptions>();
-  const result = await apiRequest("GET", "/v1/stats/usage", undefined, options);
+  const workspaceId = await getWorkspaceId(options);
+  const result = await runEffect(
+    getContractClient(options).billing.usage({ params: { workspaceId } })
+  );
   printResult(result, options.json);
 });
 stats.command("subscription").action(async () => {
   const options = program.opts<GlobalOptions>();
-  const result = await apiRequest(
-    "GET",
-    "/v1/stats/subscription",
-    undefined,
-    options
+  const workspaceId = await getWorkspaceId(options);
+  const result = await runEffect(
+    getContractClient(options).billing.subscription({
+      params: { workspaceId },
+    })
   );
   printResult(result, options.json);
 });
@@ -127,24 +123,24 @@ posts
   .command("create")
   .option("--caption <caption>", "Post caption")
   .option("--account <id...>", "Account IDs")
-  .option("--media <url...>", "Media URLs")
+  .option("--media <id...>", "Completed media IDs")
   .option("--status <status>", "Post status", "SAVED")
   .option("--scheduled-at <timestamp>", "Unix timestamp for scheduling")
   .option("--privacy <status>", "Privacy status")
   .action(async (cmd) => {
     const options = program.opts<GlobalOptions>();
-    const result = await apiRequest(
-      "POST",
-      "/v1/posts",
-      postPayload({
-        caption: cmd.caption || "",
-        accounts: cmd.account || [],
-        media: cmd.media || [],
-        status: cmd.status,
-        scheduledAt: cmd.scheduledAt ? Number(cmd.scheduledAt) : undefined,
-        privacy: cmd.privacy,
-      }),
-      options
+    const client = getContractClient(options);
+    const workspaceId = await getWorkspaceId(options);
+    const payload = await commandPostPayload(client, workspaceId, {
+      caption: cmd.caption || "",
+      accounts: cmd.account || [],
+      media: cmd.media || [],
+      status: cmd.status,
+      scheduledAt: cmd.scheduledAt ? Number(cmd.scheduledAt) : undefined,
+      privacy: cmd.privacy,
+    });
+    const result = await runEffect(
+      client.posts.create({ params: { workspaceId }, payload })
     );
     printResult(result, options.json);
   });
@@ -181,8 +177,8 @@ posts
     }
 
     const media = await text({
-      message: "Media URLs, comma-separated",
-      placeholder: "https://...",
+      message: "Completed media IDs, comma-separated",
+      placeholder: "media_...",
     });
     if (isCancel(media)) {
       cancel("Cancelled.");
@@ -221,22 +217,21 @@ posts
       process.exit(0);
     }
 
-    const result = await apiRequest(
-      "POST",
-      "/v1/posts",
-      postPayload({
-        caption: caption.toString(),
-        accounts: selectedAccounts.map(String),
-        media: media
-          .toString()
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        status: "SCHEDULED",
-        scheduledAt: Number(scheduledAt),
-        privacy: privacy.toString(),
-      }),
-      options
+    const client = getContractClient(options);
+    const payload = await commandPostPayload(client, workspaceId, {
+      caption: caption.toString(),
+      accounts: selectedAccounts.map(String),
+      media: media
+        .toString()
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      status: "SCHEDULED",
+      scheduledAt: Number(scheduledAt),
+      privacy: privacy.toString(),
+    });
+    const result = await runEffect(
+      client.posts.create({ params: { workspaceId }, payload })
     );
     printResult(result, options.json);
   });
@@ -248,21 +243,37 @@ posts
   .option("--scheduled-at <timestamp>", "Updated Unix timestamp")
   .action(async (id, cmd) => {
     const options = program.opts<GlobalOptions>();
-    const payload: Record<string, unknown> = {};
-    if (cmd.caption !== undefined) {
-      payload.caption = cmd.caption;
-    }
-    if (cmd.status !== undefined) {
-      payload.status = cmd.status;
-    }
-    if (cmd.scheduledAt !== undefined) {
-      payload.scheduled_at = Number(cmd.scheduledAt);
-    }
-    const result = await apiRequest(
-      "PATCH",
-      `/v1/posts/${id}`,
-      payload,
-      options
+    const client = getContractClient(options);
+    const workspaceId = await getWorkspaceId(options);
+    const current = await runEffect(
+      client.posts.get({ params: { workspaceId, id } })
+    );
+    const scheduledAt = commandSchedule(cmd.status, cmd.scheduledAt);
+    const payload = {
+      groups: current.groups.map((group, groupIndex) => ({
+        ...group,
+        segments: group.segments.map((segment, segmentIndex) => ({
+          ...segment,
+          text:
+            groupIndex === 0 && segmentIndex === 0 && cmd.caption !== undefined
+              ? cmd.caption
+              : segment.text,
+        })),
+      })),
+      targets: current.targets.map((target) => ({
+        connectionId: target.connectionId,
+        groupId: target.groupId,
+        settings: target.settings,
+        scheduledAt:
+          scheduledAt === undefined ? target.scheduledAt : scheduledAt,
+      })),
+      source: current.source,
+      ...(current.externalSubmissionId
+        ? { externalSubmissionId: current.externalSubmissionId }
+        : {}),
+    };
+    const result = await runEffect(
+      client.posts.update({ params: { workspaceId, id }, payload })
     );
     printResult(result, options.json);
   });
@@ -276,25 +287,55 @@ posts.command("delete <id>").action(async (id) => {
   printResult(result, options.json);
 });
 
-function postPayload(input: {
-  caption: string;
-  accounts: string[];
-  media: string[];
-  status?: string;
-  scheduledAt?: number;
-  privacy?: string;
-}) {
-  return {
+const commandSchedule = (
+  status?: string,
+  scheduledAt?: string | number
+): string | null | undefined => {
+  if (scheduledAt !== undefined) {
+    const seconds = Number(scheduledAt);
+    if (!Number.isFinite(seconds)) {
+      throw new Error("Scheduled time must be a Unix timestamp");
+    }
+    return new Date(seconds * 1000).toISOString();
+  }
+  if (status === "SAVED") {
+    return null;
+  }
+  if (status === "SCHEDULED") {
+    throw new Error("SCHEDULED posts require --scheduled-at");
+  }
+  return undefined;
+};
+
+async function commandPostPayload(
+  client: ApiClient,
+  workspaceId: string,
+  input: {
+    caption: string;
+    accounts: string[];
+    media: string[];
+    status?: string;
+    scheduledAt?: number;
+    privacy?: string;
+  }
+) {
+  const connections = await runEffect(
+    client.connections.list({ params: { workspaceId }, query: {} })
+  );
+  const selected = input.accounts.map((id) => {
+    const connection = connections.data.find((item) => item.id === id);
+    if (!connection) {
+      throw new Error(`Connection ${id} is not in the selected workspace`);
+    }
+    return connection;
+  });
+  return makeSimplePostWrite({
     caption: input.caption,
-    account_ids: input.accounts,
-    media: input.media.map((url) => ({
-      url,
-      type: VIDEO_EXTENSION.test(url) ? "VIDEO" : "IMAGE",
-    })),
-    status: input.status,
-    scheduled_at: input.scheduledAt,
-    privacy_status: input.privacy,
-  };
+    connections: selected,
+    mediaIds: input.media,
+    scheduledAt: commandSchedule(input.status, input.scheduledAt) ?? null,
+    privacy: input.privacy,
+  });
 }
 
 program.parseAsync(process.argv).catch((error) => {
