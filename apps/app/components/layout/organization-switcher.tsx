@@ -1,37 +1,51 @@
 "use client";
 
-import { OrganizationSwitcher as ClerkOrgSwitcher } from "@delulu/auth";
-import { api } from "@delulu/database/convex/_generated/api";
-import { useQuery } from "convex-helpers/react/cache";
-
-const sharedProps = {
-  hidePersonal: false,
-  afterCreateOrganizationUrl: "/",
-  afterLeaveOrganizationUrl: "/",
-  afterSelectOrganizationUrl: "/",
-  organizationProfileMode: "modal" as const,
-  appearance: {
-    elements: {
-      rootBox: "w-full",
-      organizationSwitcherTrigger:
-        "w-full justify-start gap-2 p-2 rounded-md hover:bg-sidebar-accent",
-    },
-  },
-};
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@delulu/design-system/components/ui/select";
+import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/components/providers/workspace";
 
 export function OrganizationSwitcher() {
-  const orgCheck = useQuery(api.subscriptions.checkCanCreateOrganization);
-  const canCreate = orgCheck?.allowed ?? false;
+  const router = useRouter();
+  const { workspaceId, workspaces, isLoading, error, selectWorkspace } =
+    useWorkspace();
 
-  if (canCreate) {
-    return <ClerkOrgSwitcher {...sharedProps} createOrganizationMode="modal" />;
+  if (isLoading) {
+    return <div className="h-9 animate-pulse rounded-md bg-sidebar-accent" />;
+  }
+
+  if (error || !workspaceId) {
+    return (
+      <div className="rounded-md border border-destructive/30 p-2 text-destructive text-xs">
+        Workspaces unavailable
+      </div>
+    );
   }
 
   return (
-    <ClerkOrgSwitcher
-      {...sharedProps}
-      createOrganizationMode="navigation"
-      createOrganizationUrl="/billing"
-    />
+    <Select
+      onValueChange={(next) => {
+        selectWorkspace(next);
+        router.refresh();
+      }}
+      value={workspaceId}
+    >
+      <SelectTrigger className="w-full bg-sidebar">
+        <SelectValue placeholder="Select workspace" />
+      </SelectTrigger>
+      <SelectContent>
+        {workspaces.map((workspace) => (
+          <SelectItem key={workspace.workspaceId} value={workspace.workspaceId}>
+            {workspace.name}
+            {workspace.isPersonal ? " (Personal)" : ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

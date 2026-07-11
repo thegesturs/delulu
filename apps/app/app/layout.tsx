@@ -1,6 +1,7 @@
 import { UserJot } from "@/components/analytics/userjot";
 import { ApiClientProvider } from "@/components/providers/api-client";
 import { ConvexClientProvider } from "@/components/providers/clerk-convex";
+import { WorkspaceProvider } from "@/components/providers/workspace";
 import "./styles.css";
 import { DesignSystemProvider } from "@delulu/design-system";
 import { fonts } from "@delulu/design-system/lib/fonts";
@@ -33,7 +34,9 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
         <ConvexClientProvider>
           <TRPCReactProvider>
             <ApiClientProvider>
-              <NuqsAdapter>{children}</NuqsAdapter>
+              <WorkspaceProvider>
+                <NuqsAdapter>{children}</NuqsAdapter>
+              </WorkspaceProvider>
             </ApiClientProvider>
           </TRPCReactProvider>
         </ConvexClientProvider>

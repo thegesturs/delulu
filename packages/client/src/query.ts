@@ -2,8 +2,8 @@ import type {
   MutationKey,
   MutationOptions,
   QueryKey,
-  QueryOptions,
 } from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
 import type { Effect } from "effect";
 import { type EffectRunner, effectRunner } from "./effect.js";
 
@@ -17,10 +17,11 @@ export const effectQuery = <A, E, Key extends QueryKey>({
   queryKey,
   effect,
   runner = effectRunner,
-}: EffectQueryInput<A, E, Key>): QueryOptions<A, Error, A, Key> => ({
-  queryKey,
-  queryFn: () => runner.run(effect()),
-});
+}: EffectQueryInput<A, E, Key>) =>
+  queryOptions<A, Error, A, Key>({
+    queryKey,
+    queryFn: () => runner.run(effect()),
+  });
 
 export interface EffectMutationInput<A, E, Variables, Context = unknown> {
   readonly mutationKey?: MutationKey;
