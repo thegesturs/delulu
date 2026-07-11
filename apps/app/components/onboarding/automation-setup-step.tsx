@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -9,14 +8,32 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
+import { useMemo } from "react";
+import { useAutomationWorkspace } from "@/components/automations/automation-resource";
+import { useApiClient } from "@/components/providers/api-client";
 
-export function AutomationSetupStep() {
-  const automations = useQuery(api.automations.getAutomations, {});
-  const hasAutomations = (automations?.length ?? 0) > 0;
-  const activeCount = automations?.filter((a) => a.isActive).length ?? 0;
+function AutomationSetupContent({ workspaceId }: { workspaceId: string }) {
+  const { resources } = useApiClient();
+  const scope = useMemo(
+    () => ({ workspaceId, platform: "instagram" as const, category: "dm" }),
+    [workspaceId]
+  );
+  const options = useMemo(
+    () => resources.automations.list(scope),
+    [resources, scope]
+  );
+  const automationsQuery = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+  });
+  const automations = automationsQuery.data?.data ?? [];
+  const hasAutomations = automations.length > 0;
+  const activeCount = automations.filter(
+    (automation) => automation.enabled
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -74,7 +91,7 @@ export function AutomationSetupStep() {
             <span>
               {activeCount > 0
                 ? `${activeCount} automation${activeCount === 1 ? "" : "s"} active`
-                : `${automations?.length} automation${automations?.length === 1 ? "" : "s"} saved`}
+                : `${automations.length} automation${automations.length === 1 ? "" : "s"} saved`}
             </span>
           </div>
         ) : null}
@@ -82,7 +99,9 @@ export function AutomationSetupStep() {
         <Button asChild className="w-full" size="lg">
           <Link href="/automations/new?template=lead-magnet">
             <Icon className="mr-2" icon={MailSend01Icon} size={18} />
-            {hasAutomations ? "Create another automation" : "Create lead magnet automation"}
+            {hasAutomations
+              ? "Create another automation"
+              : "Create lead magnet automation"}
             <Icon className="ml-2" icon={ArrowRight01Icon} size={16} />
           </Link>
         </Button>
@@ -94,4 +113,24 @@ export function AutomationSetupStep() {
       </motion.div>
     </div>
   );
+}
+
+export function AutomationSetupStep() {
+  const workspace = useAutomationWorkspace();
+  if (workspace.isPending) {
+    return (
+      <p className="py-8 text-center text-muted-foreground">
+        Loading automations...
+      </p>
+    );
+  }
+  if (workspace.isError || !workspace.workspaceId) {
+    return (
+      <p className="py-8 text-center text-muted-foreground">
+        Automations are unavailable right now. You can continue onboarding and
+        set one up later.
+      </p>
+    );
+  }
+  return <AutomationSetupContent workspaceId={workspace.workspaceId} />;
 }

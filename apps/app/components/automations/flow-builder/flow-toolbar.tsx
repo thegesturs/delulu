@@ -17,6 +17,7 @@ interface FlowToolbarProps {
   onMetaChange: (meta: AutomationMeta) => void;
   isDirty: boolean;
   isSaving: boolean;
+  canSave?: boolean;
   onSave: () => void;
   onToggleActive: (active: boolean) => void;
 }
@@ -26,6 +27,7 @@ export function FlowToolbar({
   onMetaChange,
   isDirty,
   isSaving,
+  canSave = true,
   onSave,
   onToggleActive,
 }: FlowToolbarProps) {
@@ -39,6 +41,7 @@ export function FlowToolbar({
         </Link>
         <Input
           className="h-8 w-[240px] border-none bg-transparent font-semibold text-base shadow-none focus-visible:ring-1"
+          disabled={!canSave}
           onChange={(e) =>
             onMetaChange({ ...automationMeta, name: e.target.value })
           }
@@ -54,13 +57,14 @@ export function FlowToolbar({
           </Label>
           <Switch
             checked={automationMeta.isActive}
+            disabled={!canSave}
             id="active-toggle"
             onCheckedChange={onToggleActive}
           />
         </div>
 
         <Button
-          disabled={isSaving}
+          disabled={isSaving || !canSave}
           onClick={onSave}
           size="sm"
           variant={isDirty ? "default" : "outline"}

@@ -6,8 +6,8 @@ import {
   AUTOMATION_UPDATED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import type { AutomationScope } from "@delulu/client";
 import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { useIsMobile } from "@delulu/design-system/hooks/use-mobile";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -18,18 +18,30 @@ import {
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import {
+  useQueryClient,
+  useMutation as useResourceMutation,
+  useQuery as useResourceQuery,
+} from "@tanstack/react-query";
+import {
   type Connection,
   type Edge,
   type Node,
   ReactFlowProvider,
 } from "@xyflow/react";
-import { useMutation } from "convex/react";
 import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useSubscription } from "@/hooks/use-subscription";
+import {
+  automationFromResource,
+  getApiErrorDetails,
+  triggersToResource,
+  useAutomationWorkspace,
+} from "../automation-resource";
 import { FlowCanvas } from "./flow-canvas";
 import { FlowSidebarPanel } from "./flow-sidebar-panel";
 import { FlowToolbar } from "./flow-toolbar";
@@ -54,24 +66,75 @@ interface FlowBuilderProps {
   templateSlug?: string;
 }
 
-function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
+function FlowBuilderInner({
+  automationId,
+  templateSlug,
+  scope,
+}: FlowBuilderProps & { scope: AutomationScope }) {
   const router = useRouter();
   const isMobile = useIsMobile();
   const { isFree: isFreePlan } = useSubscription();
   const analytics = useAnalytics();
+  const queryClient = useQueryClient();
+  const { resources } = useApiClient();
+  const { canManageSocials } = usePermissions();
   const isNew = !automationId;
   const [isSaving, setIsSaving] = useState(false);
+  const [staleEditor, setStaleEditor] = useState(false);
   const [showTriggerWizard, setShowTriggerWizard] = useState(false);
   const initializedRef = useRef(false);
   const templateInitRef = useRef(false);
+  const loadedUpdatedAtRef = useRef<string | null>(null);
+  const submitRef = useRef(false);
 
-  const automation = useQuery(
-    api.automations.getAutomation,
-    automationId ? { id: automationId as Id<"automations"> } : "skip"
+  const detailOptions = useMemo(
+    () => resources.automations.get(scope, automationId ?? "new"),
+    [automationId, resources, scope]
   );
+  const automationQuery = useResourceQuery({
+    ...detailOptions,
+    enabled: Boolean(automationId),
+    queryKey: detailOptions.queryKey!,
+  });
+  const automation = automationQuery.data
+    ? automationFromResource(automationQuery.data)
+    : undefined;
+  const connectionsOptions = useMemo(
+    () => resources.connections.list(scope.workspaceId, { limit: 100 }),
+    [resources, scope.workspaceId]
+  );
+  const connectionsQuery = useResourceQuery({
+    ...connectionsOptions,
+    queryKey: connectionsOptions.queryKey!,
+  });
   const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
-  const createAutomation = useMutation(api.automations.createAutomation);
-  const updateAutomation = useMutation(api.automations.updateAutomation);
+  const createOptions = useMemo(
+    () => resources.automations.create(scope),
+    [resources, scope]
+  );
+  const updateOptions = useMemo(
+    () => resources.automations.update(scope, automationId ?? "new"),
+    [automationId, resources, scope]
+  );
+  const createAutomation = useResourceMutation(createOptions);
+  const updateAutomation = useResourceMutation({
+    ...updateOptions,
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: detailOptions.queryKey! });
+      const previous = queryClient.getQueryData(detailOptions.queryKey!);
+      queryClient.setQueryData(
+        detailOptions.queryKey!,
+        (current: typeof automationQuery.data) =>
+          current ? { ...current, ...payload } : current
+      );
+      return { previous };
+    },
+    onError: (_error, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(detailOptions.queryKey!, context.previous);
+      }
+    },
+  });
 
   const instagramProviders = useMemo(() => {
     if (!socialProviders) {
@@ -164,8 +227,14 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     setAutomationMeta({
       name: automation.name,
       description: automation.description || "",
-      isActive: automation.isActive,
-      socialProviderId: automation.socialProviderId,
+      isActive: automation.enabled,
+      socialProviderId:
+        socialProviders?.find((provider) => {
+          const connection = connectionsQuery.data?.data.find(
+            (candidate) => candidate.id === automation.connectionId
+          );
+          return connection?.profileId === provider.profileId;
+        })?._id ?? "",
     });
 
     // Recombine pendingPostIds into targetPostIds with pending: prefix for UI
@@ -178,18 +247,15 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     }));
     setTriggers(loadedTriggers);
     setSteps(automation.steps);
-    setNotes(((automation as Record<string, unknown>).notes as Note[]) ?? []);
-    setNodePositions(
-      ((automation as Record<string, unknown>)
-        .nodePositions as NodePositions) ?? {}
-    );
+    setNotes(automation.notes);
+    setNodePositions(automation.nodePositions as NodePositions);
     resetDirty(
       loadedTriggers,
       automation.steps,
-      ((automation as Record<string, unknown>).notes as Note[]) ?? [],
-      ((automation as Record<string, unknown>)
-        .nodePositions as NodePositions) ?? {}
+      automation.notes,
+      automation.nodePositions as NodePositions
     );
+    loadedUpdatedAtRef.current = automation.updatedAt;
   }, [
     automation,
     setAutomationMeta,
@@ -198,6 +264,8 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     setNotes,
     setNodePositions,
     resetDirty,
+    connectionsQuery.data,
+    socialProviders,
   ]);
 
   // Open trigger wizard automatically for new automations (without template)
@@ -407,8 +475,28 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
   );
 
   const handleSave = useCallback(async () => {
+    if (submitRef.current || isSaving) {
+      return;
+    }
+    if (!canManageSocials) {
+      toast.error("You do not have permission to change automations");
+      return;
+    }
     if (!automationMeta.socialProviderId) {
       toast.error("Please select an Instagram account");
+      return;
+    }
+
+    const selectedProvider = socialProviders?.find(
+      (provider) => provider._id === automationMeta.socialProviderId
+    );
+    const connection = connectionsQuery.data?.data.find(
+      (candidate) => candidate.profileId === selectedProvider?.profileId
+    );
+    if (!connection) {
+      toast.error(
+        "This Instagram account is not available in the current workspace"
+      );
       return;
     }
 
@@ -456,24 +544,24 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
       };
     });
 
+    submitRef.current = true;
     setIsSaving(true);
     try {
       if (isNew) {
-        const id = await createAutomation({
+        const created = await createAutomation.mutateAsync({
+          connectionId: connection.id,
           name,
-          description: automationMeta.description.trim() || undefined,
-          socialProviderId:
-            automationMeta.socialProviderId as Id<"socialProviders">,
-          isActive: automationMeta.isActive,
-          triggers: processedTriggers,
+          description: automationMeta.description.trim() || null,
+          enabled: automationMeta.isActive,
+          triggers: triggersToResource(processedTriggers),
           steps,
           notes: notes.length > 0 ? notes : undefined,
           nodePositions:
             Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
-        });
+        } as never);
 
         analytics.capture(AUTOMATION_CREATED, {
-          automation_id: id,
+          automation_id: created.id,
           trigger_count: processedTriggers.length,
           step_count: steps.length,
           trigger_types: processedTriggers.map((t) => t.triggerType),
@@ -484,19 +572,35 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
         });
 
         toast.success("Automation created");
-        router.push(`/automations/${id}`);
+        await queryClient.invalidateQueries({
+          queryKey: resources.automations.list(scope).queryKey,
+        });
+        router.push(`/automations/${created.id}`);
       } else {
-        await updateAutomation({
-          id: automationId as Id<"automations">,
+        const latest = await queryClient.fetchQuery({
+          ...detailOptions,
+          queryKey: detailOptions.queryKey!,
+          staleTime: 0,
+        });
+        if (
+          loadedUpdatedAtRef.current &&
+          latest.updatedAt !== loadedUpdatedAtRef.current
+        ) {
+          setStaleEditor(true);
+          return;
+        }
+
+        const updated = await updateAutomation.mutateAsync({
           name,
-          description: automationMeta.description.trim() || undefined,
-          isActive: automationMeta.isActive,
-          triggers: processedTriggers,
+          description: automationMeta.description.trim() || null,
+          enabled: automationMeta.isActive,
+          triggers: triggersToResource(processedTriggers),
           steps,
           notes: notes.length > 0 ? notes : undefined,
           nodePositions:
             Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
-        });
+        } as never);
+        loadedUpdatedAtRef.current = updated.updatedAt;
 
         analytics.capture(AUTOMATION_UPDATED, {
           automation_id: automationId,
@@ -509,15 +613,35 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
 
         toast.success("Automation saved");
         resetDirty(triggers, steps, notes, nodePositions);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: detailOptions.queryKey! }),
+          queryClient.invalidateQueries({
+            queryKey: resources.automations.list(scope).queryKey,
+          }),
+        ]);
       }
     } catch (error) {
       console.error("Failed to save automation:", error);
-      toast.error("Failed to save automation");
+      const details = getApiErrorDetails(error);
+      toast.error(
+        details.kind === "permission"
+          ? "You do not have permission to save automations"
+          : details.kind === "validation"
+            ? details.message
+            : details.kind === "conflict"
+              ? `This automation could not be saved: ${details.message}`
+              : `Automation could not be saved: ${details.message}`
+      );
     } finally {
+      submitRef.current = false;
       setIsSaving(false);
     }
   }, [
     automationMeta,
+    canManageSocials,
+    connectionsQuery.data,
+    socialProviders,
+    isSaving,
     isNew,
     automationId,
     triggers,
@@ -528,6 +652,10 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     updateAutomation,
     router,
     resetDirty,
+    queryClient,
+    resources,
+    scope,
+    detailOptions,
   ]);
 
   const handleNodeClick = useCallback(
@@ -627,7 +755,11 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
   );
 
   // Loading state for edit mode
-  if (!isNew && automation === undefined) {
+  if (
+    (!isNew && automationQuery.isPending) ||
+    connectionsQuery.isPending ||
+    socialProviders === undefined
+  ) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Icon
@@ -639,10 +771,34 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     );
   }
 
-  if (!isNew && automation === null) {
+  if ((!isNew && automationQuery.isError) || connectionsQuery.isError) {
+    const error = automationQuery.error ?? connectionsQuery.error;
+    const details = getApiErrorDetails(error);
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-background">
-        <p className="text-muted-foreground">Automation not found</p>
+      <div className="flex h-screen flex-col items-center justify-center gap-2 bg-background px-6 text-center">
+        <p className="font-medium">
+          {details.kind === "not-found"
+            ? "Automation not found"
+            : details.kind === "permission"
+              ? "You do not have permission to view this automation"
+              : "The automation editor is unavailable"}
+        </p>
+        <p className="max-w-md text-muted-foreground text-sm">
+          {details.message}
+        </p>
+        {details.kind === "transport" ? (
+          <Button
+            onClick={async () => {
+              await Promise.all([
+                automationQuery.refetch(),
+                connectionsQuery.refetch(),
+              ]);
+            }}
+            variant="outline"
+          >
+            Try again
+          </Button>
+        ) : null}
         <Link href="/automations">
           <Button variant="link">Back to Automations</Button>
         </Link>
@@ -650,9 +806,34 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     );
   }
 
+  if (staleEditor) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+        <div>
+          <h2 className="font-semibold text-lg">
+            This automation changed elsewhere
+          </h2>
+          <p className="mt-1 max-w-md text-muted-foreground text-sm">
+            Your draft was not submitted. Reload the latest version before
+            making more changes.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/automations">
+            <Button variant="outline">Back to Automations</Button>
+          </Link>
+          <Button onClick={() => window.location.reload()}>
+            Reload latest
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isMobile) {
     return (
       <MobileFlowEditor
+        canSave={canManageSocials}
         instagramProviders={instagramProviders}
         isNew={isNew}
         isSaving={isSaving}
@@ -668,6 +849,7 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
     <div className="flex h-screen flex-col bg-background">
       <FlowToolbar
         automationMeta={automationMeta}
+        canSave={canManageSocials}
         isDirty={isDirty}
         isSaving={isSaving}
         onMetaChange={handleMetaChange}
@@ -758,11 +940,42 @@ function FlowBuilderInner({ automationId, templateSlug }: FlowBuilderProps) {
 
 export function FlowBuilder({ automationId, templateSlug }: FlowBuilderProps) {
   const isMobile = useIsMobile();
+  const workspace = useAutomationWorkspace();
+
+  if (workspace.isPending) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Icon
+          className="animate-spin text-muted-foreground"
+          icon={Loading03Icon}
+          size={24}
+        />
+      </div>
+    );
+  }
+
+  if (workspace.isError || !workspace.scope) {
+    const details = getApiErrorDetails(
+      workspace.error ?? new Error("No workspace is available for this account")
+    );
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2 px-6 text-center">
+        <p className="font-medium">The automation editor is unavailable</p>
+        <p className="max-w-md text-muted-foreground text-sm">
+          {details.message}
+        </p>
+        <Link href="/automations">
+          <Button variant="link">Back to Automations</Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (isMobile) {
     return (
       <FlowBuilderInner
         automationId={automationId}
+        scope={workspace.scope}
         templateSlug={templateSlug}
       />
     );
@@ -772,6 +985,7 @@ export function FlowBuilder({ automationId, templateSlug }: FlowBuilderProps) {
     <ReactFlowProvider>
       <FlowBuilderInner
         automationId={automationId}
+        scope={workspace.scope}
         templateSlug={templateSlug}
       />
     </ReactFlowProvider>

@@ -46,6 +46,7 @@ interface MobileFlowEditorProps {
   instagramProviders: SocialProvider[];
   isNew: boolean;
   isSaving: boolean;
+  canSave?: boolean;
   onSave: () => Promise<void>;
   templateTriggerType?: "COMMENT" | "STORY_REPLY";
   templateFirstStepId?: string;
@@ -56,6 +57,7 @@ export function MobileFlowEditor({
   instagramProviders,
   isNew,
   isSaving,
+  canSave = true,
   onSave,
   templateTriggerType,
   templateFirstStepId,
@@ -258,7 +260,7 @@ export function MobileFlowEditor({
           </span>
         </div>
         <Button
-          disabled={isSaving}
+          disabled={isSaving || !canSave}
           onClick={onSave}
           size="sm"
           variant="outline"
@@ -542,7 +544,7 @@ export function MobileFlowEditor({
           ) : (
             <Button
               className="h-11 flex-1"
-              disabled={isSaving}
+              disabled={isSaving || !canSave}
               onClick={handleConfirmLaunch}
             >
               {isSaving ? (

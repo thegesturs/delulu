@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import {
@@ -30,14 +29,15 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import Link from "next/link";
 import { useState } from "react";
-import type { Automation } from "@/types/convex";
 import DeleteAlertDialog from "../alerts/delete-post";
+import type { AutomationResourceView } from "./automation-resource";
 
 interface AutomationCardProps {
-  automation: Automation;
+  automation: AutomationResourceView;
   viewMode: "grid" | "list";
-  onDelete: (id: Id<"automations">) => void;
-  onToggle: (id: Id<"automations">) => void;
+  canManage: boolean;
+  onDelete: (id: string) => Promise<void>;
+  onToggle: (id: string) => Promise<void>;
 }
 
 const triggerTypeLabels: Record<string, string> = {
@@ -52,14 +52,14 @@ const triggerTypeIcons: Record<string, typeof Comment01Icon> = {
   STORY_REPLY: Comment01Icon,
 };
 
-function getPrimaryTriggerType(automation: Automation): string {
+function getPrimaryTriggerType(automation: AutomationResourceView): string {
   if (automation.triggers.length === 0) {
     return "COMMENT";
   }
   return automation.triggers[0].triggerType;
 }
 
-function formatStepsSummary(automation: Automation): string {
+function formatStepsSummary(automation: AutomationResourceView): string {
   const conditionSteps = automation.steps.filter((s) => s.type === "condition");
   const dmSteps = automation.steps.filter((s) => s.type === "send_dm");
 
@@ -88,6 +88,7 @@ function formatStepsSummary(automation: Automation): string {
 
 export function AutomationCard({
   automation,
+  canManage,
   viewMode,
   onDelete,
   onToggle,
@@ -99,10 +100,10 @@ export function AutomationCard({
   const primaryTriggerType = getPrimaryTriggerType(automation);
   const TriggerIcon = triggerTypeIcons[primaryTriggerType] || Comment01Icon;
   const successRate =
-    automation.totalDMsSent + automation.totalFailed > 0
+    automation.totalDmsSent + automation.totalFailed > 0
       ? Math.round(
-          (automation.totalDMsSent /
-            (automation.totalDMsSent + automation.totalFailed)) *
+          (automation.totalDmsSent /
+            (automation.totalDmsSent + automation.totalFailed)) *
             100
         )
       : 0;
@@ -110,7 +111,7 @@ export function AutomationCard({
   const handleToggle = async () => {
     setIsToggling(true);
     try {
-      await onToggle(automation._id);
+      await onToggle(automation.id);
     } finally {
       setIsToggling(false);
     }
@@ -134,16 +135,16 @@ export function AutomationCard({
               <div className="absolute top-2.5 right-3 md:right-4">
                 <span
                   className={`block h-2 w-2 rounded-full ${
-                    automation.isActive ? "bg-green-500" : "bg-red-400"
+                    automation.enabled ? "bg-green-500" : "bg-red-400"
                   }`}
                 />
-                {automation.isActive && (
+                {automation.enabled && (
                   <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-40" />
                 )}
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              {automation.isActive ? "Active" : "Inactive"}
+              {automation.enabled ? "Active" : "Inactive"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -168,13 +169,13 @@ export function AutomationCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href={`/automations/${automation._id}`}>
+                      <Link href={`/automations/${automation.id}`}>
                         <Icon className="mr-2" icon={Edit01Icon} size={16} />
                         Edit
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href={`/automations/${automation._id}/analytics`}>
+                      <Link href={`/automations/${automation.id}/analytics`}>
                         <Icon
                           className="mr-2"
                           icon={AnalyticsUpIcon}
@@ -208,7 +209,7 @@ export function AutomationCard({
             <div className="hidden items-center gap-6 md:flex">
               <div className="text-center">
                 <p className="font-medium text-foreground text-sm">
-                  {automation.totalDMsSent}
+                  {automation.totalDmsSent}
                 </p>
                 <p className="text-muted-foreground text-xs">DMs Sent</p>
               </div>
@@ -219,8 +220,8 @@ export function AutomationCard({
                 <p className="text-muted-foreground text-xs">Success</p>
               </div>
               <Switch
-                checked={automation.isActive}
-                disabled={isToggling}
+                checked={automation.enabled}
+                disabled={isToggling || !canManage}
                 onCheckedChange={handleToggle}
               />
             </div>
@@ -229,9 +230,12 @@ export function AutomationCard({
         <DeleteAlertDialog
           description="Are you sure you want to delete this automation? This action cannot be undone."
           isLoading={isDeleting}
-          onConfirm={() => {
+          onConfirm={async () => {
             setIsDeleting(true);
-            onDelete(automation._id);
+            await onDelete(automation.id).finally(() => {
+              setIsDeleting(false);
+              setDeleteDialogOpen(false);
+            });
           }}
           onOpenChange={setDeleteDialogOpen}
           open={deleteDialogOpen}
@@ -251,16 +255,16 @@ export function AutomationCard({
             <div className="absolute top-3 right-3">
               <span
                 className={`block h-2 w-2 rounded-full ${
-                  automation.isActive ? "bg-green-500" : "bg-red-400"
+                  automation.enabled ? "bg-green-500" : "bg-red-400"
                 }`}
               />
-              {automation.isActive && (
+              {automation.enabled && (
                 <span className="absolute inset-0 animate-ping rounded-full bg-green-500 opacity-40" />
               )}
             </div>
           </TooltipTrigger>
           <TooltipContent>
-            {automation.isActive ? "Active" : "Inactive"}
+            {automation.enabled ? "Active" : "Inactive"}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -280,13 +284,13 @@ export function AutomationCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href={`/automations/${automation._id}`}>
+                  <Link href={`/automations/${automation.id}`}>
                     <Icon className="mr-2" icon={Edit01Icon} size={16} />
                     Edit
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href={`/automations/${automation._id}/analytics`}>
+                  <Link href={`/automations/${automation.id}/analytics`}>
                     <Icon className="mr-2" icon={AnalyticsUpIcon} size={16} />
                     View Analytics
                   </Link>
@@ -322,7 +326,7 @@ export function AutomationCard({
           <div className="flex items-center gap-1.5">
             <Icon className="text-green-500" icon={MailSend01Icon} size={14} />
             <span className="text-foreground text-sm">
-              {automation.totalDMsSent}
+              {automation.totalDmsSent}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -340,11 +344,11 @@ export function AutomationCard({
         {/* Toggle */}
         <div className="mt-4 flex items-center justify-between border-border border-t pt-4">
           <span className="text-muted-foreground text-sm">
-            {automation.isActive ? "Enabled" : "Disabled"}
+            {automation.enabled ? "Enabled" : "Disabled"}
           </span>
           <Switch
-            checked={automation.isActive}
-            disabled={isToggling}
+            checked={automation.enabled}
+            disabled={isToggling || !canManage}
             onCheckedChange={handleToggle}
           />
         </div>
@@ -352,9 +356,12 @@ export function AutomationCard({
       <DeleteAlertDialog
         description="Are you sure you want to delete this automation? This action cannot be undone."
         isLoading={isDeleting}
-        onConfirm={() => {
+        onConfirm={async () => {
           setIsDeleting(true);
-          onDelete(automation._id);
+          await onDelete(automation.id).finally(() => {
+            setIsDeleting(false);
+            setDeleteDialogOpen(false);
+          });
         }}
         onOpenChange={setDeleteDialogOpen}
         open={deleteDialogOpen}

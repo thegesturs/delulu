@@ -15,9 +15,13 @@ import {
 
 interface AutomationsHeaderProps {
   onCreateClick: () => void;
+  canCreate?: boolean;
 }
 
-export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
+export function AutomationsHeader({
+  onCreateClick,
+  canCreate = true,
+}: AutomationsHeaderProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -56,7 +60,11 @@ export function AutomationsHeader({ onCreateClick }: AutomationsHeaderProps) {
             they get a DM with your link. Automatically.
           </p>
         </div>
-        <Button className="shrink-0 gap-2" onClick={onCreateClick}>
+        <Button
+          className="shrink-0 gap-2"
+          disabled={!canCreate}
+          onClick={onCreateClick}
+        >
           <Icon icon={Add01Icon} size={16} />
           <span className="hidden sm:inline">Create Automation</span>
           <span className="sm:hidden">New</span>
