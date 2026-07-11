@@ -18,11 +18,12 @@ import {
 } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Plus } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation } from "@tanstack/react-query";
 import { useQuery } from "convex-helpers/react/cache";
-import Link from "next/link";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import { api } from "@/trpc/react";
 
 const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   "TWITTER",
@@ -46,10 +47,11 @@ function ConnectPlatformButton({
 }: {
   platform: SupportedSocialPlatform;
 }) {
-  const { data: connectUrl, isLoading } =
-    api.socialProvider.getSocialProviderConnectUrl.useQuery({
-      provider: platform,
-    });
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const connect = useMutation(
+    resources.connections.mint(workspaceId ?? "", platform),
+  );
 
   if (platform === "FARCASTER") {
     return (
@@ -75,7 +77,7 @@ function ConnectPlatformButton({
     );
   }
 
-  if (isLoading || !connectUrl) {
+  if (!workspaceId) {
     return (
       <Button
         className="flex h-14 items-center justify-start space-x-4 px-4"
@@ -101,25 +103,27 @@ function ConnectPlatformButton({
 
   return (
     <Button
-      asChild
       className="flex h-14 items-center justify-start space-x-4 px-4"
+      disabled={connect.isPending}
+      onClick={async () => {
+        const result = await connect.mutateAsync({ includeInsights: true });
+        window.location.assign(result.url);
+      }}
       variant="outline"
     >
-      <Link href={connectUrl}>
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-            socialBackgroundColors[platform]
-          } shadow-sm`}
-        >
-          <SocialIcon className="text-white" size="md" type={platform} />
-        </div>
-        <div className="flex flex-col items-start">
-          <span className="font-medium">{socialDisplayNames[platform]}</span>
-          <span className="text-muted-foreground text-sm">
-            {socialDescriptions[platform]}
-          </span>
-        </div>
-      </Link>
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+          socialBackgroundColors[platform]
+        } shadow-sm`}
+      >
+        <SocialIcon className="text-white" size="md" type={platform} />
+      </div>
+      <div className="flex flex-col items-start">
+        <span className="font-medium">{socialDisplayNames[platform]}</span>
+        <span className="text-muted-foreground text-sm">
+          {socialDescriptions[platform]}
+        </span>
+      </div>
     </Button>
   );
 }

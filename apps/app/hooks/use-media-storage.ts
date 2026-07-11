@@ -1,6 +1,8 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { useMutation } from "convex/react";
-import { uploadSingleFile } from "./use-upload-media";
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "./use-active-workspace";
 
 interface MediaUploadResult {
   bucketKey: string;
@@ -9,43 +11,43 @@ interface MediaUploadResult {
 }
 
 export function useMediaStorage() {
-  const createMedia = useMutation(api.media.createMedia);
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const queryClient = useQueryClient();
+  const requestUpload = useMutation(resources.media.uploads(workspaceId ?? ""));
+  const completeUpload = useMutation({
+    ...resources.media.complete(workspaceId ?? ""),
+    onSuccess: async () => {
+      if (!workspaceId) return;
+      await queryClient.invalidateQueries({
+        queryKey: resources.media.list(workspaceId).queryKey,
+      });
+    },
+  });
 
   const uploadAndSaveMedia = async (file: File): Promise<MediaUploadResult> => {
-    // First upload the file
-    const uploadResult = await uploadSingleFile(file);
-
-    try {
-      // Then save media details to database
-      const extension = file.name.split(".").pop() || "";
-      const mediaData = {
-        bucketKey: uploadResult.bucketKey,
-        url: uploadResult.url,
-        mediaType: file.type.startsWith("image/")
-          ? ("IMAGE" as const)
-          : file.type.startsWith("video/")
-            ? ("VIDEO" as const)
-            : ("DOCUMENT" as const),
-        originalFilename: file.name,
-        size: file.size,
-        extension,
-      };
-      console.log("mediaData", mediaData);
-
-      const savedMedia = await createMedia(mediaData);
-
-      return {
-        ...uploadResult,
-        mediaId: savedMedia,
-      };
-    } catch {
-      // Return upload result even if database save fails
-      return uploadResult;
-    }
+    if (!workspaceId)
+      throw new Error("Select a workspace before uploading media");
+    const [ticket] = await requestUpload.mutateAsync([
+      { filename: file.name, contentType: file.type },
+    ]);
+    if (!ticket) throw new Error("The API did not return an upload ticket");
+    const response = await fetch(ticket.uploadUrl, {
+      method: "PUT",
+      headers: { "content-type": file.type },
+      body: file,
+    });
+    if (!response.ok)
+      throw new Error(`Media upload failed (${response.status})`);
+    const [saved] = await completeUpload.mutateAsync([
+      { mediaId: ticket.mediaId },
+    ]);
+    if (!saved) throw new Error("The uploaded media could not be finalized");
+    return { bucketKey: saved.bucketKey, url: saved.url, mediaId: saved.id };
   };
 
   return {
     uploadAndSaveMedia,
-    isLoading: false, // Convex mutation doesn't expose loading state in the same way
+    isLoading: requestUpload.isPending || completeUpload.isPending,
   };
 }

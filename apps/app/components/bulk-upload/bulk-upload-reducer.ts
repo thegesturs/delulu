@@ -6,7 +6,7 @@ export interface BulkVideo {
   previewUrl: string;
   caption: string;
   uploadStatus: "pending" | "uploading" | "uploaded" | "failed";
-  uploadResult?: { bucketKey: string; url: string };
+  uploadResult?: { bucketKey: string; url: string; mediaId?: string };
   validationErrors: string[];
   postStatus?: "pending" | "creating" | "created" | "failed";
 }
@@ -34,15 +34,22 @@ export type BulkUploadAction =
       type: "SET_UPLOAD_STATUS";
       id: string;
       status: BulkVideo["uploadStatus"];
-      result?: { bucketKey: string; url: string };
+      result?: { bucketKey: string; url: string; mediaId?: string };
     }
-  | { type: "SET_POST_STATUS"; id: string; status: NonNullable<BulkVideo["postStatus"]> }
+  | {
+      type: "SET_POST_STATUS";
+      id: string;
+      status: NonNullable<BulkVideo["postStatus"]>;
+    }
   | { type: "SET_VALIDATION_ERRORS"; id: string; errors: string[] }
   | { type: "SET_PROVIDERS"; providers: SelectedProvider[] }
   | { type: "TOGGLE_PROVIDER"; provider: SelectedProvider }
   | { type: "SET_START_DATE"; date: Date | null }
   | { type: "SET_INTERVAL"; minutes: number }
-  | { type: "SET_SUBMISSION_STATUS"; status: BulkUploadState["submissionStatus"] }
+  | {
+      type: "SET_SUBMISSION_STATUS";
+      status: BulkUploadState["submissionStatus"];
+    }
   | { type: "RESET" };
 
 export const initialState: BulkUploadState = {
@@ -55,7 +62,7 @@ export const initialState: BulkUploadState = {
 
 export function bulkUploadReducer(
   state: BulkUploadState,
-  action: BulkUploadAction
+  action: BulkUploadAction,
 ): BulkUploadState {
   switch (action.type) {
     case "ADD_VIDEOS":
@@ -66,7 +73,10 @@ export function bulkUploadReducer(
       if (video) {
         URL.revokeObjectURL(video.previewUrl);
       }
-      return { ...state, videos: state.videos.filter((v) => v.id !== action.id) };
+      return {
+        ...state,
+        videos: state.videos.filter((v) => v.id !== action.id),
+      };
     }
 
     case "MOVE_VIDEO": {
@@ -83,7 +93,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, caption: action.caption } : v
+          v.id === action.id ? { ...v, caption: action.caption } : v,
         ),
       };
 
@@ -92,8 +102,12 @@ export function bulkUploadReducer(
         ...state,
         videos: state.videos.map((v) =>
           v.id === action.id
-            ? { ...v, uploadStatus: action.status, uploadResult: action.result ?? v.uploadResult }
-            : v
+            ? {
+                ...v,
+                uploadStatus: action.status,
+                uploadResult: action.result ?? v.uploadResult,
+              }
+            : v,
         ),
       };
 
@@ -101,7 +115,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, postStatus: action.status } : v
+          v.id === action.id ? { ...v, postStatus: action.status } : v,
         ),
       };
 
@@ -109,7 +123,7 @@ export function bulkUploadReducer(
       return {
         ...state,
         videos: state.videos.map((v) =>
-          v.id === action.id ? { ...v, validationErrors: action.errors } : v
+          v.id === action.id ? { ...v, validationErrors: action.errors } : v,
         ),
       };
 
@@ -118,12 +132,14 @@ export function bulkUploadReducer(
 
     case "TOGGLE_PROVIDER": {
       const exists = state.selectedProviders.some(
-        (p) => p.socialId === action.provider.socialId
+        (p) => p.socialId === action.provider.socialId,
       );
       return {
         ...state,
         selectedProviders: exists
-          ? state.selectedProviders.filter((p) => p.socialId !== action.provider.socialId)
+          ? state.selectedProviders.filter(
+              (p) => p.socialId !== action.provider.socialId,
+            )
           : [...state.selectedProviders, action.provider],
       };
     }
@@ -148,7 +164,7 @@ export function bulkUploadReducer(
 export function computeScheduledAt(
   index: number,
   startDate: Date,
-  intervalMinutes: number
+  intervalMinutes: number,
 ): number {
   return startDate.getTime() + index * intervalMinutes * 60 * 1000;
 }

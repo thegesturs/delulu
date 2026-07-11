@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -10,45 +8,52 @@ import {
   Comment01Icon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "convex/react";
-import { useQuery } from "convex-helpers/react/cache";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 
 interface ReviewActivityProps {
-  postId: Id<"posts">;
+  postId: string;
 }
 
 const activityConfig = {
-  SUBMITTED: {
+  "review.submitted": {
     icon: ArrowUp01Icon,
     color: "text-blue-500",
     bg: "bg-blue-500/10",
     label: "submitted for review",
   },
-  RESUBMITTED: {
-    icon: ArrowUp01Icon,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    label: "resubmitted for review",
-  },
-  APPROVED: {
+  "review.approved": {
     icon: Tick01Icon,
     color: "text-green-500",
     bg: "bg-green-500/10",
     label: "approved",
   },
-  REJECTED: {
+  "review.rejected": {
     icon: CancelCircleIcon,
     color: "text-red-500",
     bg: "bg-red-500/10",
     label: "declined",
   },
-  COMMENT: {
+  "review.commented": {
     icon: Comment01Icon,
     color: "text-muted-foreground",
     bg: "bg-muted",
     label: "commented",
+  },
+  "review.withdrawn": {
+    icon: CancelCircleIcon,
+    color: "text-muted-foreground",
+    bg: "bg-muted",
+    label: "withdrew from review",
+  },
+  "schedule.missed": {
+    icon: CancelCircleIcon,
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+    label: "missed its schedule",
   },
 } as const;
 
@@ -73,10 +78,26 @@ function timeAgo(timestamp: number): string {
 }
 
 export function ReviewActivity({ postId }: ReviewActivityProps) {
-  const activities = useQuery(api.post_reviews.getReviewActivity, { postId });
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const queryClient = useQueryClient();
+  const activities = useQuery({
+    ...resources.reviews.activity(workspaceId ?? "", postId),
+    enabled: Boolean(workspaceId),
+    staleTime: 15_000,
+    retry: 2,
+  });
   const [newComment, setNewComment] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const addCommentMutation = useMutation(api.post_reviews.addReviewComment);
+  const addCommentMutation = useMutation({
+    ...resources.reviews.act(workspaceId ?? "", postId),
+    onSuccess: async () => {
+      if (!workspaceId) return;
+      await queryClient.invalidateQueries({
+        queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
+      });
+    },
+  });
 
   const handleAddComment = async () => {
     if (!newComment.trim()) {
@@ -84,7 +105,11 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
     }
     setIsSubmitting(true);
     try {
-      await addCommentMutation({ postId, comment: newComment.trim() });
+      if (!workspaceId) throw new Error("Select a workspace before commenting");
+      await addCommentMutation.mutateAsync({
+        action: "comment",
+        comment: newComment.trim(),
+      });
       setNewComment("");
     } catch {
       toast.error("Failed to add comment");
@@ -93,7 +118,7 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
     }
   };
 
-  if (!activities) {
+  if (activities.isPending) {
     return (
       <div className="py-4 text-center text-muted-foreground text-sm">
         Loading activity...
@@ -101,7 +126,15 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
     );
   }
 
-  if (activities.length === 0) {
+  if (activities.isError) {
+    return (
+      <div className="py-4 text-destructive text-sm">
+        {activities.error.message}
+      </div>
+    );
+  }
+
+  if (activities.data.length === 0) {
     return null;
   }
 
@@ -114,10 +147,10 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
         {/* Vertical line */}
         <div className="absolute top-3 bottom-3 left-3.5 w-px bg-border" />
 
-        {activities.map((activity) => {
-          const config = activityConfig[activity.type];
+        {activities.data.map((activity) => {
+          const config = activityConfig[activity.activityType];
           return (
-            <div className="relative flex gap-3 pb-4" key={activity._id}>
+            <div className="relative flex gap-3 pb-4" key={activity.id}>
               {/* Icon dot */}
               <div
                 className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${config.bg}`}
@@ -129,13 +162,13 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
               <div className="min-w-0 flex-1 pt-0.5">
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-medium text-sm">
-                    {activity.userName}
+                    {activity.actorMemberId}
                   </span>
                   <span className="text-muted-foreground text-xs">
                     {config.label}
                   </span>
                   <span className="ml-auto shrink-0 text-muted-foreground text-xs">
-                    {timeAgo(activity.createdAt)}
+                    {timeAgo(new Date(activity.createdAt).getTime())}
                   </span>
                 </div>
 

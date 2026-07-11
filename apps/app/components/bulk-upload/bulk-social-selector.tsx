@@ -1,11 +1,17 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
-import { useQuery } from "convex-helpers/react/cache";
-import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  MotionConfig,
+  motion,
+} from "motion/react";
 import { IoCheckmarkCircle } from "react-icons/io5";
 import { SocialIcon } from "@/components/post/sidebar/social-icon";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import type { SelectedProvider } from "./bulk-upload-reducer";
 
 interface BulkSocialSelectorProps {
@@ -17,7 +23,14 @@ export function BulkSocialSelector({
   selectedProviders,
   onToggle,
 }: BulkSocialSelectorProps) {
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
+  const { workspaceId } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const socialProviders = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: 2,
+  });
 
   return (
     <div className="flex flex-col gap-2">
@@ -26,16 +39,16 @@ export function BulkSocialSelector({
         <motion.div className="grid grid-cols-1 gap-1">
           <LayoutGroup>
             <AnimatePresence initial={false} mode="popLayout">
-              {socialProviders?.map((account) => {
+              {socialProviders.data?.data.map((account) => {
                 const isSelected = selectedProviders.some(
-                  (p) => p.socialId === account._id
+                  (p) => p.socialId === account.id,
                 );
                 return (
                   <motion.div
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     initial={{ opacity: 0 }}
-                    key={account._id}
+                    key={account.id}
                     layout="position"
                   >
                     <motion.div layout>
@@ -43,20 +56,33 @@ export function BulkSocialSelector({
                         className="w-full cursor-pointer text-xs transition-colors duration-200"
                         onClick={() =>
                           onToggle({
-                            socialId: account._id,
-                            name: account.fullName ?? account.username,
-                            socialType: account.socialType,
+                            socialId: account.id,
+                            name:
+                              account.displayName ??
+                              account.username ??
+                              account.profileId,
+                            socialType:
+                              account.platform as SelectedProvider["socialType"],
                           })
                         }
                         size="lg"
                         variant={isSelected ? "blue" : "outline"}
                       >
-                        <motion.div className="flex w-full items-center gap-2" layout>
-                          <SocialIcon type={account.socialType} />
+                        <motion.div
+                          className="flex w-full items-center gap-2"
+                          layout
+                        >
+                          <SocialIcon
+                            type={
+                              account.platform as SelectedProvider["socialType"]
+                            }
+                          />
                           <motion.span className="flex-1 text-left" layout>
-                            {(account.fullName ?? account.username).length > 15
-                              ? (account.fullName ?? account.username).slice(0, 15) + "..."
-                              : (account.fullName ?? account.username)}
+                            {(
+                              account.displayName ??
+                              account.username ??
+                              account.profileId
+                            ).slice(0, 15)}
                           </motion.span>
                           {isSelected && (
                             <motion.span
@@ -77,7 +103,7 @@ export function BulkSocialSelector({
           </LayoutGroup>
         </motion.div>
       </MotionConfig>
-      {socialProviders?.length === 0 && (
+      {socialProviders.data?.data.length === 0 && (
         <p className="text-muted-foreground text-xs">
           No connected accounts. Connect a social account first.
         </p>

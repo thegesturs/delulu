@@ -1,141 +1,130 @@
 "use client";
+
 import { SOCIAL_ACCOUNT_DISCONNECTED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { Icon } from "@delulu/design-system/providers/icon";
-import { Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { Badge } from "@delulu/design-system/components/ui/badge";
+import { Button } from "@delulu/design-system/components/ui/button";
+import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { postActions } from "@/store/post";
-import { api as TrpcApi } from "@/trpc/react";
-import type { SocialProvider } from "@/types/convex";
+import { useApiClient } from "@/components/providers/api-client";
+import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { AccountFilters } from "./account-filter";
-import { AccountList } from "./account-list";
 import { AccountStats } from "./account-stats";
 import { ConnectedAccountsHeader } from "./connect-account-header";
 
-// Helper functions (isExpiringSoon, isExpired) should be co-located or imported if used elsewhere
-// For this refactor, assuming they are only used by logic within this main component or passed down
-function isExpiringSoon(expiresIn: number | undefined): boolean {
-  if (!expiresIn) {
-    return false;
-  }
-  const now = Date.now();
-  const diffInDays = Math.floor((expiresIn - now) / (1000 * 60 * 60 * 24));
-  return diffInDays <= 7 && diffInDays > 0;
-}
-
-function isExpired(expiresIn: number | undefined): boolean {
-  if (!expiresIn) {
-    return false;
-  }
-  return Date.now() > expiresIn;
-}
-
 export default function ConnectedAccounts() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterPlatform, setFilterPlatform] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const analytics = useAnalytics();
+  const queryClient = useQueryClient();
+  const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
+  const { resources } = useApiClient();
+  const accounts = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+    retry: 2,
+  });
+  const removeConnection = useMutation({
+    ...resources.connections.remove(workspaceId ?? ""),
+    onSuccess: async () => {
+      if (!workspaceId) return;
+      await queryClient.invalidateQueries({
+        queryKey: resources.connections.list(workspaceId).queryKey,
+      });
+    },
+  });
 
-  const accounts = useQuery(api.social_providers.getConnectedAccounts);
-  const isLoadingAccounts = accounts === undefined;
-
-  const deleteSocialMutation =
-    TrpcApi.socialProvider.deleteSocialProvider.useMutation();
-
-  const filteredAccounts = useMemo(() => {
-    if (!accounts) {
-      return [];
-    }
-
-    return accounts.filter((account: SocialProvider) => {
-      const matchesSearch =
-        account.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        account.username?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesPlatform =
-        filterPlatform === "all" || account.socialType === filterPlatform;
-
-      const isAccountExpired = isExpired(account.refreshTokenExpiresIn);
-      const isAccountExpiringSoon = isExpiringSoon(
-        account.refreshTokenExpiresIn
-      );
-
-      const matchesStatus =
-        filterStatus === "all" ||
-        (filterStatus === "active" && account.isActive && !isAccountExpired) ||
-        (filterStatus === "expired" && isAccountExpired) ||
-        (filterStatus === "expiring" && isAccountExpiringSoon) ||
-        (filterStatus === "inactive" && !account.isActive);
-
-      return matchesSearch && matchesPlatform && matchesStatus;
-    });
-  }, [accounts, searchQuery, filterPlatform, filterStatus]);
+  const filteredAccounts = useMemo(
+    () =>
+      (accounts.data?.data ?? []).filter((account) => {
+        const search = searchQuery.toLowerCase();
+        const matchesSearch =
+          (account.displayName ?? "").toLowerCase().includes(search) ||
+          (account.username ?? "").toLowerCase().includes(search);
+        const matchesPlatform =
+          filterPlatform === "all" ||
+          account.platform.toUpperCase() === filterPlatform;
+        const expired = account.expiresAt
+          ? new Date(account.expiresAt).getTime() <= Date.now()
+          : false;
+        const expiring = account.expiresAt
+          ? new Date(account.expiresAt).getTime() - Date.now() <=
+              7 * 86_400_000 && !expired
+          : false;
+        const matchesStatus =
+          filterStatus === "all" ||
+          (filterStatus === "active" && !expired) ||
+          (filterStatus === "expired" && expired) ||
+          (filterStatus === "expiring" && expiring);
+        return matchesSearch && matchesPlatform && matchesStatus;
+      }),
+    [accounts.data, filterPlatform, filterStatus, searchQuery],
+  );
 
   const stats = useMemo(() => {
-    if (!accounts) {
-      return { active: 0, expired: 0, expiring: 0, total: 0 };
+    const now = Date.now();
+    const values = accounts.data?.data ?? [];
+    const expired = values.filter(
+      (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now,
+    ).length;
+    const expiring = values.filter(
+      (item) =>
+        item.expiresAt &&
+        new Date(item.expiresAt).getTime() > now &&
+        new Date(item.expiresAt).getTime() - now <= 7 * 86_400_000,
+    ).length;
+    return {
+      total: values.length,
+      active: values.length - expired,
+      expired,
+      expiring,
+    };
+  }, [accounts.data]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await removeConnection.mutateAsync(id);
+      analytics.capture(SOCIAL_ACCOUNT_DISCONNECTED, {
+        provider:
+          accounts.data?.data
+            .find((item) => item.id === id)
+            ?.platform.toLowerCase() ?? "unknown",
+      });
+      toast.success("Account disconnected");
+    } catch (error) {
+      toast.error("Failed to disconnect account", {
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
-
-    const active = accounts.filter(
-      (a: SocialProvider) => a.isActive && !isExpired(a.refreshTokenExpiresIn)
-    ).length;
-    const expired = accounts.filter((a: SocialProvider) =>
-      isExpired(a.refreshTokenExpiresIn)
-    ).length;
-    const expiring = accounts.filter((a: SocialProvider) =>
-      isExpiringSoon(a.refreshTokenExpiresIn)
-    ).length;
-    return { active, expired, expiring, total: accounts.length };
-  }, [accounts]);
-
-  const handleDeleteSocial = (socialId: Id<"socialProviders">) => {
-    const account = accounts?.find((a) => a._id === socialId);
-    deleteSocialMutation.mutate(
-      { socialProviderId: socialId },
-      {
-        onSuccess: () => {
-          analytics.capture(SOCIAL_ACCOUNT_DISCONNECTED, {
-            provider: account?.socialType?.toLowerCase() ?? "unknown",
-          });
-          postActions.removeSocialProvider(socialId);
-          toast.success("Account deleted successfully");
-        },
-        onError: (error) => {
-          // Handle specific error messages from tRPC
-          if (error.message.includes("FORBIDDEN")) {
-            toast.error("You do not have permission to delete this account");
-          } else if (error.message.includes("NOT_FOUND")) {
-            toast.error("Account not found");
-          } else {
-            toast.error("Failed to delete account");
-          }
-          if (process.env.NODE_ENV === "development") {
-            console.error(error);
-          }
-        },
-      }
-    );
   };
 
-  if (isLoadingAccounts) {
+  if (isWorkspacePending || accounts.isPending)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex items-center gap-2">
-          <Icon
-            className="animate-spin text-muted-foreground"
-            icon={Loading03Icon}
-            size={20}
-          />
-          <span className="text-muted-foreground">Loading accounts...</span>
-        </div>
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Loading accounts...
       </div>
     );
-  }
+  if (accounts.isError || !workspaceId)
+    return (
+      <div className="m-6 rounded-lg border border-destructive/40 p-4 text-destructive">
+        <p>
+          {accounts.error?.message ??
+            "Select a workspace to manage connections."}
+        </p>
+        <Button
+          className="mt-3"
+          onClick={() => accounts.refetch()}
+          variant="outline"
+        >
+          Retry
+        </Button>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -152,11 +141,55 @@ export default function ConnectedAccounts() {
           setViewMode={setViewMode}
           viewMode={viewMode}
         />
-        <AccountList
-          accounts={filteredAccounts}
-          onDelete={handleDeleteSocial}
-          viewMode={viewMode}
-        />
+        {filteredAccounts.length === 0 ? (
+          <div className="py-16 text-center text-muted-foreground">
+            No accounts found.
+          </div>
+        ) : (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+                : "divide-y rounded-lg border"
+            }
+          >
+            {filteredAccounts.map((account) => (
+              <Card
+                className={viewMode === "list" ? "rounded-none border-0" : ""}
+                key={account.id}
+              >
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-medium">
+                        {account.displayName ??
+                          account.username ??
+                          account.profileId}
+                      </p>
+                      <Badge variant="secondary">{account.platform}</Badge>
+                    </div>
+                    <p className="truncate text-muted-foreground text-xs">
+                      {account.username
+                        ? `@${account.username}`
+                        : account.profileId}
+                      {account.expiresAt
+                        ? ` · expires ${new Date(account.expiresAt).toLocaleDateString()}`
+                        : ""}
+                    </p>
+                  </div>
+                  <Button
+                    disabled={removeConnection.isPending}
+                    onClick={() => handleDelete(account.id)}
+                    size="sm"
+                    variant="destructive"
+                  >
+                    Disconnect
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
