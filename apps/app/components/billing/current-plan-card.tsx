@@ -6,7 +6,6 @@
  * Displays the user's active subscription plan with details and management options
  */
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -25,7 +24,6 @@ import {
   Link01Icon,
   SparklesIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useAction } from "convex/react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,7 +32,6 @@ import { useSubscription } from "@/hooks/use-subscription";
 
 export function CurrentPlanCard() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
-  const getPortal = useAction(api.subscriptions.getCustomerPortal);
   const subscription = useSubscription();
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
@@ -42,15 +39,9 @@ export function CurrentPlanCard() {
   const plan = PLANS[subscription.planType];
 
   const handleManageSubscription = async () => {
-    try {
-      setIsLoadingPortal(true);
-      const { portal_url } = await getPortal();
-      window.location.href = portal_url;
-    } catch (error) {
-      console.error("Failed to open customer portal:", error);
-      toast.error("Failed to open billing portal. Please try again.");
-      setIsLoadingPortal(false);
-    }
+    setIsLoadingPortal(true);
+    toast.info("Billing management is not available in this environment yet.");
+    setIsLoadingPortal(false);
   };
 
   if (subscription.isLoading) {
@@ -60,6 +51,24 @@ export function CurrentPlanCard() {
           <CardTitle>Current Plan</CardTitle>
           <CardDescription>Loading subscription details...</CardDescription>
         </CardHeader>
+      </Card>
+    );
+  }
+
+  if (subscription.error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Plan</CardTitle>
+          <CardDescription>
+            Subscription details could not be loaded.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button onClick={subscription.retry} size="sm" variant="outline">
+            Retry
+          </Button>
+        </CardFooter>
       </Card>
     );
   }

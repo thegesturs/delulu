@@ -19,12 +19,12 @@ import {
   TabsTrigger,
 } from "@delulu/design-system/components/ui/tabs";
 import { useState } from "react";
-import type { AccountInsight } from "@/types/convex";
+import type { InsightPoint } from "./analytics-content";
 
 const { CartesianGrid, Line, LineChart, XAxis, YAxis } = RechartsPrimitive;
 
 interface EngagementChartProps {
-  insights: AccountInsight[];
+  insights: readonly InsightPoint[];
   isLoading: boolean;
 }
 
@@ -43,7 +43,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-function formatDate(timestamp: number, short = false): string {
+function formatDate(timestamp: string, short = false): string {
   const date = new Date(timestamp);
   if (short) {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -55,8 +55,8 @@ function formatDate(timestamp: number, short = false): string {
   });
 }
 
-function aggregateWeekly(daily: AccountInsight[]): Array<{
-  date: number;
+function aggregateWeekly(daily: readonly InsightPoint[]): Array<{
+  date: string;
   impressions: number;
   reach: number;
   profileViews: number;
@@ -66,7 +66,7 @@ function aggregateWeekly(daily: AccountInsight[]): Array<{
   }
 
   const weeks: Array<{
-    date: number;
+    date: string;
     impressions: number;
     reach: number;
     profileViews: number;
@@ -143,7 +143,7 @@ export function EngagementChart({ insights, isLoading }: EngagementChartProps) {
                 axisLine={false}
                 dataKey="date"
                 fontSize={11}
-                tickFormatter={(ts: number) => formatDate(ts, true)}
+                tickFormatter={(ts: string) => formatDate(ts, true)}
                 tickLine={false}
               />
               <YAxis

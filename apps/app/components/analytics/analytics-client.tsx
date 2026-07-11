@@ -1,86 +1,61 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { useQuery } from "convex-helpers/react/cache";
-import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { FeatureGate } from "@/components/feature-gate";
-import { api as trpcApi } from "@/trpc/react";
+import { OperationsError } from "@/components/operations/query-state";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { AnalyticsContent } from "./analytics-content";
 
 export function AnalyticsClient() {
-  const accounts = useQuery(api.social_providers.getConnectedAccounts);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [days, setDays] = useState<number>(30);
-
-  // Auto-select first Instagram account
-  const instagramAccounts = accounts?.filter(
-    (a) => a.socialType === "INSTAGRAM"
-  );
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const workspaceId = workspace.workspaceId ?? "";
+  const accountOptions = resources.connections.list(workspaceId, {
+    limit: 100,
+    offset: 0,
+  });
+  const accounts = useQuery({
+    ...accountOptions,
+    queryKey: accountOptions.queryKey!,
+    enabled: !!workspace.workspaceId,
+  });
+  const instagramAccounts =
+    accounts.data?.data.filter(
+      (account) => account.platform.toLowerCase() === "instagram"
+    ) ?? [];
+  const [selectedProviderId, setSelectedProviderId] = useState("");
+  const [days, setDays] = useState(30);
 
   useEffect(() => {
-    if (
-      !selectedProviderId &&
-      instagramAccounts &&
-      instagramAccounts.length > 0
-    ) {
-      setSelectedProviderId(instagramAccounts[0]._id);
+    if (!selectedProviderId && instagramAccounts[0]) {
+      setSelectedProviderId(instagramAccounts[0].id);
     }
   }, [instagramAccounts, selectedProviderId]);
 
-  // Fetch analytics data for selected account (Convex — reactive)
-  const overview = useQuery(
-    api.analytics.getAccountOverview,
-    selectedProviderId
-      ? {
-          socialProviderId: selectedProviderId as Id<"socialProviders">,
-          days,
-        }
-      : "skip"
+  const insightOptions = resources.analytics.insights(
+    workspaceId,
+    selectedProviderId,
+    { windowDays: days }
   );
+  const insights = useQuery({
+    ...insightOptions,
+    queryKey: insightOptions.queryKey!,
+    enabled: !!workspace.workspaceId && !!selectedProviderId,
+  });
 
-  const topPosts = useQuery(
-    api.analytics.getTopPosts,
-    selectedProviderId
-      ? {
-          socialProviderId: selectedProviderId as Id<"socialProviders">,
-          sortBy: "views",
-          limit: 25,
-        }
-      : "skip"
-  );
-
-  // Sync via tRPC (runs on Cloudflare Workers, not Convex)
-  const triggerSync = trpcApi.analytics.triggerSync.useMutation();
-  const hasSynced = useRef(false);
-
-  useEffect(() => {
-    if (
-      overview?.isStale &&
-      overview.syncStatus !== "SYNCING" &&
-      selectedProviderId &&
-      !hasSynced.current &&
-      !triggerSync.isPending
-    ) {
-      hasSynced.current = true;
-      triggerSync.mutate({
-        socialProviderId: selectedProviderId,
-      });
-    }
-  }, [overview, selectedProviderId, triggerSync]);
-
-  // Reset sync flag when account changes
-  useEffect(() => {
-    hasSynced.current = false;
-  }, [selectedProviderId]);
-
-  const handleManualSync = () => {
-    if (selectedProviderId && !triggerSync.isPending) {
-      triggerSync.mutate({
-        socialProviderId: selectedProviderId,
-      });
-    }
-  };
+  if (workspace.error || accounts.error) {
+    const error = workspace.error ?? accounts.error;
+    return (
+      <OperationsError
+        error={error!}
+        onRetry={async () => {
+          await (workspace.error ? workspace.retry() : accounts.refetch());
+        }}
+      />
+    );
+  }
 
   return (
     <FeatureGate
@@ -92,15 +67,22 @@ export function AnalyticsClient() {
       flag="analytics"
     >
       <AnalyticsContent
-        accounts={instagramAccounts ?? []}
+        accounts={instagramAccounts}
         days={days}
-        isLoading={overview === undefined && !!selectedProviderId}
+        error={insights.error}
+        insights={insights.data ?? null}
+        isLoading={
+          workspace.isLoading ||
+          accounts.isPending ||
+          (!!selectedProviderId && insights.isPending)
+        }
+        isRefreshing={insights.isFetching}
         onChangeDays={setDays}
         onSelectProvider={setSelectedProviderId}
-        onSync={handleManualSync}
-        overview={overview ?? null}
+        onSync={async () => {
+          await insights.refetch();
+        }}
         selectedProviderId={selectedProviderId}
-        topPosts={topPosts ?? []}
       />
     </FeatureGate>
   );

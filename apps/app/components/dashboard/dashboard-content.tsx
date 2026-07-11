@@ -12,10 +12,11 @@ import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardStatsClient } from "@/components/dashboard/dashboard-stats";
+import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
+import { FailedPostsAlert } from "@/components/dashboard/failed-posts-alert";
 import { PendingReviews } from "@/components/dashboard/pending-reviews";
 import { PlatformHealthAlert } from "@/components/dashboard/platform-health-alert";
 import { UpcomingSchedule } from "@/components/dashboard/upcoming-schedule";
-import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
 import type { DashboardStats, UpcomingPost } from "@/types/convex";
 import { Header } from "../layout/header";
 
@@ -47,6 +48,8 @@ export function DashboardContent({
 
       {/* Pending Reviews — shown prominently for admins, and for editors/members with submissions */}
       <PendingReviews />
+
+      <FailedPostsAlert />
 
       {/* Alerts Section */}
       <PlatformHealthAlert expiredTokens={dashboardStats?.expiredTokens || 0} />

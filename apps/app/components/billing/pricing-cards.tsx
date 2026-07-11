@@ -49,8 +49,9 @@ export function PricingCards({
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
-  const [upgradingPlan, setUpgradingPlan] =
-    useState<PublicPlanType | null>(null);
+  const [upgradingPlan, setUpgradingPlan] = useState<PublicPlanType | null>(
+    null
+  );
   const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
   const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const {
@@ -92,8 +93,7 @@ export function PricingCards({
       setUpgradingPlan(planType);
       const { checkout_url } = await createCheckout({
         productId,
-        returnUrl:
-          checkoutReturnUrl ?? `${window.location.origin}/billing`,
+        returnUrl: checkoutReturnUrl ?? `${window.location.origin}/billing`,
         billingCurrency: currency,
         affonsoReferral: getAffonsoReferral() ?? undefined,
       });

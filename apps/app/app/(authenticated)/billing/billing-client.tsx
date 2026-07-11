@@ -21,6 +21,7 @@ import { TickDouble01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { BillingOperations } from "@/components/billing/billing-operations";
 import { CurrentPlanCard } from "@/components/billing/current-plan-card";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { SortedAddonCard } from "@/components/billing/sorted-addon-card";
@@ -98,6 +99,8 @@ export default function BillingClient() {
         <CurrentPlanCard />
         <UsageStats />
       </div>
+
+      <BillingOperations />
 
       {/* Divider */}
       <div className="relative">
