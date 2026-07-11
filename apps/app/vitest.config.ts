@@ -1,12 +1,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import baseConfig from "@delulu/testing";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  ...baseConfig,
+  plugins: [react()],
+  test: { environment: "jsdom" },
   resolve: {
-    ...baseConfig.resolve,
     alias: [
       {
         find: "@delulu/client",
