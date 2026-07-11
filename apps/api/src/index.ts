@@ -1,19 +1,33 @@
+import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
+  AdminService,
   ApiKeyVerifier,
   AsTokenService,
+  AuthorizationService,
+  ClerkAdminService,
   ClerkTokenVerifier,
+  ConnectionStateService,
+  ConnectionsService,
   IdentityService,
+  JobService,
+  MediaService,
   MembershipService,
   OAuthFlowService,
+  PostService,
   QuotaGuard,
+  R2Service,
   RateLimiterService,
+  ReviewService,
+  WorkspaceAccessService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
 import { String as EffectString, Layer, Redacted } from "effect";
 import { type AppServices, buildWebHandler } from "./app";
+import { dispatchDueJobs } from "./dispatcher";
 import {
   authConfigLayer,
   databaseUrl,
+  domainConfigLayers,
   type Env,
   type ExecutionContext,
 } from "./env";
@@ -23,7 +37,15 @@ import {
  * uses the Cloudflare bindings when present, else an in-memory limiter (local
  * dev / `wrangler dev`). Postgres comes via Hyperdrive in production.
  */
-const makeBaseLayer = (env: Env): Layer.Layer<AppServices> => {
+export interface BaseLayerOverrides {
+  readonly clerk?: Layer.Layer<ClerkTokenVerifier>;
+  readonly rateLimiter?: Layer.Layer<RateLimiterService>;
+}
+
+export const makeBaseLayer = (
+  env: Env,
+  overrides: BaseLayerOverrides = {}
+): Layer.Layer<AppServices> => {
   const Pg = PgClient.layer({
     url: Redacted.make(databaseUrl(env)),
     transformQueryNames: EffectString.camelToSnake,
@@ -32,17 +54,45 @@ const makeBaseLayer = (env: Env): Layer.Layer<AppServices> => {
   });
   const Config = authConfigLayer(env);
   const AsToken = AsTokenService.layer;
-  const Clerk = ClerkTokenVerifier.layer;
+  const Clerk = overrides.clerk ?? ClerkTokenVerifier.layer;
+  const [ClerkAdminConfig, ConnectionConfig, R2Config] =
+    domainConfigLayers(env);
+  const Authorization = AuthorizationService.layer;
+  const Jobs = JobService.layer;
+  const ClerkAdmin = ClerkAdminService.layer.pipe(
+    Layer.provide(ClerkAdminConfig)
+  );
+  const ConnectionState = ConnectionStateService.layer.pipe(
+    Layer.provide(ConnectionConfig)
+  );
+  const Cipher = Layer.succeed(
+    TokenCipher,
+    TokenCipher.of(makeTokenCipher(env.ENCRYPTION_SECRET ?? ""))
+  );
+  const R2 = R2Service.layer.pipe(Layer.provide(R2Config));
+  const Access = WorkspaceAccessService.layer.pipe(
+    Layer.provide([MembershipService.layer, Authorization])
+  );
+  const Posts = PostService.layer.pipe(Layer.provide(Jobs));
+  const Reviews = ReviewService.layer.pipe(Layer.provide(Jobs));
+  const Media = MediaService.layer.pipe(
+    Layer.provide([Jobs, R2, QuotaGuard.layer])
+  );
+  const Connections = ConnectionsService.layer.pipe(
+    Layer.provide([ConnectionState, Cipher])
+  );
+  const Admin = AdminService.layer.pipe(Layer.provide([ClerkAdmin, Jobs]));
 
   const RateLimiter =
-    env.RL_API_20 && env.RL_API_60 && env.RL_API_120 && env.RL_SESSION_300
+    overrides.rateLimiter ??
+    (env.RL_API_20 && env.RL_API_60 && env.RL_API_120 && env.RL_SESSION_300
       ? RateLimiterService.workersLayer({
           api20: env.RL_API_20,
           api60: env.RL_API_60,
           api120: env.RL_API_120,
           session300: env.RL_SESSION_300,
         })
-      : RateLimiterService.inMemoryLayer();
+      : RateLimiterService.inMemoryLayer());
 
   return Layer.mergeAll(
     IdentityService.layer,
@@ -53,7 +103,18 @@ const makeBaseLayer = (env: Env): Layer.Layer<AppServices> => {
     RateLimiter,
     AsToken,
     Clerk,
-    Config
+    Config,
+    Authorization,
+    Jobs,
+    ClerkAdmin,
+    ConnectionState,
+    R2,
+    Access,
+    Posts,
+    Reviews,
+    Media,
+    Connections,
+    Admin
   ).pipe(
     Layer.provide(AsToken),
     Layer.provide(Config),
@@ -83,5 +144,8 @@ const handlerFor = (env: Env): WebHandler => {
 export default {
   fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     return handlerFor(env)(request);
+  },
+  scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
+    ctx.waitUntil(dispatchDueJobs(env, makeBaseLayer(env)));
   },
 };

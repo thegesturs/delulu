@@ -97,6 +97,7 @@ describe("Postgres Model.Class round trips", () => {
           parentOrgId: nullable,
           clerkOrgId: nullable,
           isPersonal: true,
+          deletedAt: nullable,
         })
       );
       const memberRepo = yield* makeWorkspaceMemberRepository();
@@ -143,6 +144,7 @@ describe("Postgres Model.Class round trips", () => {
           thumbnails: [],
           altText: "image",
           status: "ready",
+          deletedAt: nullable,
         })
       );
       const groupId = makeId(PostGroupId);
@@ -267,7 +269,7 @@ describe("Postgres Model.Class round trips", () => {
           postId: post.id,
           reviewId: review.id,
           actorMemberId: member.id,
-          activityType: "submitted",
+          activityType: "review.submitted",
           comment: nullable,
           metadata: json,
         })

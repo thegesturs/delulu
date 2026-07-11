@@ -71,6 +71,7 @@ export const roleScopeCeiling: Record<WorkspaceRole, readonly Scope[]> = {
     "media:write",
     "reviews:write",
     "members:write",
+    "apikeys:write",
   ],
   owner: [
     ...READ_SCOPES,

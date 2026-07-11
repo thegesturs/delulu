@@ -19,6 +19,7 @@ export const PostStatus = Schema.Literals([
   "partially_failed",
   "failed",
 ]);
+export type PostStatus = typeof PostStatus.Type;
 export const PostSource = Schema.Literals(["app", "api", "automation"]);
 export class Post extends Model.Class<Post>("Post")({
   ...entityFields(PostId),

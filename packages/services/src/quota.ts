@@ -1,6 +1,9 @@
 import { QuotaExceededError } from "@delulu/contracts";
 import { Subscription } from "@delulu/core";
-import { getPlanLimits, type PlanLimits } from "@delulu/payments/plans";
+import {
+  getPlanLimits,
+  type NumericPlanLimitKey,
+} from "@delulu/payments/plans";
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AuthConfig } from "./config";
@@ -13,7 +16,7 @@ export type QuotaResource =
   | "apiRequestsPerMonth"
   | "dmsSent";
 
-const LIMIT_KEY: Record<QuotaResource, keyof PlanLimits> = {
+const LIMIT_KEY: Record<QuotaResource, NumericPlanLimitKey> = {
   socialAccounts: "socialAccounts",
   monthlyPosts: "monthlyPosts",
   mediaStorageBytes: "mediaStorageBytes",
@@ -47,6 +50,10 @@ export class QuotaGuard extends Context.Service<
     readonly ensure: (
       check: QuotaCheck
     ) => Effect.Effect<void, QuotaExceededError>;
+    readonly reserveMediaStorage: (input: {
+      readonly billingOwnerUserId: string;
+      readonly delta: number;
+    }) => Effect.Effect<void, QuotaExceededError>;
   }
 >()("@delulu/services/QuotaGuard") {
   static readonly layer = Layer.effect(
@@ -107,7 +114,36 @@ export class QuotaGuard extends Context.Service<
           );
         });
 
-      return QuotaGuard.of({ ensure });
+      const reserveMediaStorage = (input: {
+        readonly billingOwnerUserId: string;
+        readonly delta: number;
+      }) =>
+        Effect.gen(function* () {
+          const rows = yield* sql<{
+            plan: string;
+            current: string;
+          }>`SELECT plan, media_storage_bytes::text AS current
+            FROM subscriptions WHERE billing_owner_user_id = ${input.billingOwnerUserId} FOR UPDATE`.pipe(
+            Effect.orDie
+          );
+          const current = Number(rows[0]?.current ?? 0);
+          const limit = getPlanLimits(rows[0]?.plan).mediaStorageBytes;
+          if (limit !== -1 && current + input.delta > limit) {
+            return yield* new QuotaExceededError({
+              message: "Quota exceeded for mediaStorageBytes",
+              resource: "mediaStorageBytes",
+              limit,
+              current: current + input.delta,
+              upgradeUrl: `${config.appBaseUrl}/billing`,
+            });
+          }
+          yield* sql`UPDATE subscriptions SET media_storage_bytes = media_storage_bytes + ${input.delta}
+            WHERE billing_owner_user_id = ${input.billingOwnerUserId}`.pipe(
+            Effect.orDie
+          );
+        });
+
+      return QuotaGuard.of({ ensure, reserveMediaStorage });
     })
   );
 }

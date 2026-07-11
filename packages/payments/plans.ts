@@ -34,7 +34,12 @@ export interface PlanLimits {
   apiRatePerMinute: number; // API-key request rate limit per minute
   apiRequestsPerMonth: number; // Pooled monthly API request budget (per billing owner)
   dmsPerMonth: number; // Monthly auto-DM budget (10% soft overage, see #159)
+  mediaRetentionDays: number | null; // null = unlimited retention
 }
+export type NumericPlanLimitKey = Exclude<
+  keyof PlanLimits,
+  "mediaRetentionDays"
+>;
 
 /**
  * Flat, plan-independent per-user rate limit for interactive session traffic
@@ -96,6 +101,7 @@ export const PLANS: Record<PlanType, Plan> = {
       apiRatePerMinute: 20,
       apiRequestsPerMonth: 15_000, // ≈ 500/day budget (#159; confirm at review)
       dmsPerMonth: 0,
+      mediaRetentionDays: 30,
     },
     features: {
       postScheduling: true,
@@ -119,7 +125,8 @@ export const PLANS: Record<PlanType, Plan> = {
       organizations: 0, // No org creation on Echo
       apiRatePerMinute: 60,
       apiRequestsPerMonth: 150_000,
-      dmsPerMonth: 1_000,
+      dmsPerMonth: 1000,
+      mediaRetentionDays: 60,
     },
     features: {
       postScheduling: true,
@@ -144,6 +151,7 @@ export const PLANS: Record<PlanType, Plan> = {
       apiRatePerMinute: 120,
       apiRequestsPerMonth: 600_000,
       dmsPerMonth: -1, // Unlimited
+      mediaRetentionDays: null,
     },
     features: {
       postScheduling: true,
@@ -201,7 +209,7 @@ export function hasFeature(
  */
 export function checkLimit(
   planType: PlanType,
-  limitType: keyof PlanLimits,
+  limitType: NumericPlanLimitKey,
   currentValue: number
 ): boolean {
   const limit = PLANS[planType].limits[limitType];
@@ -220,7 +228,7 @@ export function checkLimit(
  */
 export function getRemainingLimit(
   planType: PlanType,
-  limitType: keyof PlanLimits,
+  limitType: NumericPlanLimitKey,
   currentValue: number
 ): number {
   const limit = PLANS[planType].limits[limitType];

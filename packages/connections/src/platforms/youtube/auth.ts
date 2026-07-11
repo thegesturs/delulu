@@ -1,10 +1,11 @@
+import { api } from "@delulu/database/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { api } from "@delulu/database/convex/_generated/api";
 import { type ConnectionError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
+  ConnectContext,
   PlatformAuth,
   TokenRefreshResult,
 } from "../../types";
@@ -69,7 +70,7 @@ export const youtubeAuth: PlatformAuth = {
   scopes: SCOPES,
   isMultiStep: false,
 
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     const e = ytEnv();
     const params = new URLSearchParams({
       client_id: e.clientId,
@@ -78,7 +79,7 @@ export const youtubeAuth: PlatformAuth = {
       scope: SCOPES.join(" "),
       access_type: "offline",
       prompt: "consent",
-      state: nanoid(),
+      state: ctx?.state ?? nanoid(),
     });
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   },
@@ -91,7 +92,7 @@ export const youtubeAuth: PlatformAuth = {
    * byte-for-byte from the old route.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, convexToken, userId } = ctx;
+    const { code, error, convexToken } = ctx;
     const e = ytEnv();
 
     // Handle user denying access
@@ -109,20 +110,26 @@ export const youtubeAuth: PlatformAuth = {
 
     try {
       // Exchange code for access token
-      const tokenResponse = await fetchTimeout("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: e.clientId,
-          client_secret: e.clientSecret,
-          code,
-          grant_type: "authorization_code",
-          redirect_uri: e.callbackUrl,
-        }).toString(),
-      });
+      const tokenResponse = await fetchTimeout(
+        "https://oauth2.googleapis.com/token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: e.clientId,
+            client_secret: e.clientSecret,
+            code,
+            grant_type: "authorization_code",
+            redirect_uri: e.callbackUrl,
+          }).toString(),
+        }
+      );
 
       if (!tokenResponse.ok) {
-        console.error("YouTube token exchange failed:", await tokenResponse.text());
+        console.error(
+          "YouTube token exchange failed:",
+          await tokenResponse.text()
+        );
         return redirect(
           "/socials?error=youtube_auth_failed&code=YOUTUBE_002&provider=YOUTUBE"
         );
@@ -149,7 +156,8 @@ export const youtubeAuth: PlatformAuth = {
         );
       }
 
-      const channelData = (await channelResponse.json()) as YouTubeChannelResponse;
+      const channelData =
+        (await channelResponse.json()) as YouTubeChannelResponse;
 
       // Check if user has a YouTube channel
       if (!channelData.items || channelData.items.length === 0) {
@@ -164,36 +172,43 @@ export const youtubeAuth: PlatformAuth = {
         channel.snippet.title.replace(/\s+/g, "").toLowerCase();
 
       // Store the YouTube connection (per-call client carrying the user's token)
-      const convex = new ConvexHttpClient(e.convexUrl);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "YOUTUBE",
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token || "",
-          expiresIn: Date.now() + tokenData.expires_in * 1000,
-          profileId: channel.id,
-          username: channelUsername,
-          fullName: channel.snippet.title,
-          profileImage:
-            channel.snippet.thumbnails?.high?.url ||
-            channel.snippet.thumbnails?.medium?.url ||
-            channel.snippet.thumbnails?.default?.url ||
-            "",
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "YOUTUBE",
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || "",
+        expiresIn: Date.now() + tokenData.expires_in * 1000,
+        profileId: channel.id,
+        username: channelUsername,
+        fullName: channel.snippet.title,
+        profileImage:
+          channel.snippet.thumbnails?.high?.url ||
+          channel.snippet.thumbnails?.medium?.url ||
+          channel.snippet.thumbnails?.default?.url ||
+          "",
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.convexUrl);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
       // Handle different response statuses
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=youtube"
         );
       }
 
       ctx.onConnected?.({ provider: "youtube", username: channelUsername });
-      void userId;
       return redirect("/socials");
     } catch (err) {
       console.error("YouTube callback error:", err);

@@ -1,19 +1,38 @@
 import { Api } from "@delulu/contracts";
 import type {
+  AdminService,
   ApiKeyVerifier,
   AsTokenService,
   AuthConfig,
+  AuthorizationService,
+  ClerkAdminService,
   ClerkTokenVerifier,
+  ConnectionStateService,
+  ConnectionsService,
   IdentityService,
+  JobService,
+  MediaService,
   MembershipService,
   OAuthFlowService,
+  PostService,
   QuotaGuard,
+  R2Service,
   RateLimiterService,
+  ReviewService,
+  WorkspaceAccessService,
 } from "@delulu/services";
 import { Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 import type { SqlClient } from "effect/unstable/sql";
+import { ConnectionRoutes } from "./connection-routes";
+import {
+  AdminHandlers,
+  ConnectionsHandlers,
+  MediaHandlers,
+  PostsHandlers,
+  ReviewsHandlers,
+} from "./domain-handlers";
 import { HealthHandlers, MeHandlers } from "./handlers";
 import { OAuthRoutes } from "./oauth-routes";
 
@@ -28,7 +47,18 @@ export type AppServices =
   | MembershipService
   | OAuthFlowService
   | QuotaGuard
-  | RateLimiterService;
+  | RateLimiterService
+  | AuthorizationService
+  | WorkspaceAccessService
+  | JobService
+  | PostService
+  | MediaService
+  | R2Service
+  | ConnectionsService
+  | ConnectionStateService
+  | ReviewService
+  | AdminService
+  | ClerkAdminService;
 
 /**
  * Assemble the typed HttpApi (health + me), Scalar docs, `/openapi.json`, and
@@ -38,14 +68,26 @@ export type AppServices =
 export const buildWebHandler = (base: Layer.Layer<AppServices>) => {
   const ApiRoutes = HttpApiBuilder.layer(Api, {
     openapiPath: "/openapi.json",
-  }).pipe(Layer.provide([HealthHandlers, MeHandlers]));
+  }).pipe(
+    Layer.provide([
+      HealthHandlers,
+      MeHandlers,
+      PostsHandlers,
+      ReviewsHandlers,
+      MediaHandlers,
+      ConnectionsHandlers,
+      AdminHandlers,
+    ])
+  );
 
   const DocsRoute = HttpApiScalar.layer(Api, { path: "/docs" });
 
-  const AllRoutes = Layer.mergeAll(ApiRoutes, DocsRoute, OAuthRoutes).pipe(
-    Layer.provide(base),
-    Layer.provide(HttpServer.layerServices)
-  );
+  const AllRoutes = Layer.mergeAll(
+    ApiRoutes,
+    DocsRoute,
+    OAuthRoutes,
+    ConnectionRoutes
+  ).pipe(Layer.provide(base), Layer.provide(HttpServer.layerServices));
 
   return HttpRouter.toWebHandler(AllRoutes);
 };

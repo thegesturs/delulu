@@ -1,0 +1,344 @@
+import {
+  Connection,
+  ConnectionId,
+  makeConnectionRepository,
+  makeId,
+  makeTokenCipher,
+  PostGroupId,
+  TokenCipher,
+} from "@delulu/core";
+import { PgClient } from "@effect/sql-pg";
+import {
+  Effect,
+  String as EffectString,
+  Layer,
+  Option,
+  Redacted,
+} from "effect";
+import { SqlClient } from "effect/unstable/sql";
+import { beforeAll, describe, expect, it } from "vitest";
+import {
+  ConnectionStateConfig,
+  ConnectionStateService,
+  ConnectionsService,
+} from "../../src/connections";
+import { IdentityService } from "../../src/identity";
+import { JobService } from "../../src/jobs";
+import { MembershipService } from "../../src/membership";
+import { PostService } from "../../src/posts";
+
+const Pg = PgClient.layer({
+  url: Redacted.make(
+    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
+  ),
+  transformQueryNames: EffectString.camelToSnake,
+  transformResultNames: EffectString.snakeToCamel,
+  transformJson: true,
+});
+
+let AppLayer: Layer.Layer<
+  | IdentityService
+  | MembershipService
+  | JobService
+  | PostService
+  | ConnectionsService
+  | PgClient.PgClient
+>;
+
+beforeAll(() => {
+  const Jobs = JobService.layer;
+  const Posts = PostService.layer.pipe(Layer.provide(Jobs));
+  const StateConfig = Layer.succeed(
+    ConnectionStateConfig,
+    ConnectionStateConfig.of({ secret: "integration-state-secret" })
+  );
+  const State = ConnectionStateService.layer.pipe(Layer.provide(StateConfig));
+  const Cipher = Layer.succeed(
+    TokenCipher,
+    TokenCipher.of(makeTokenCipher("integration-encryption-secret"))
+  );
+  const Connections = ConnectionsService.layer.pipe(
+    Layer.provide([State, Cipher])
+  );
+  AppLayer = Layer.mergeAll(
+    IdentityService.layer,
+    MembershipService.layer,
+    Jobs,
+    Posts,
+    Connections
+  ).pipe(Layer.provideMerge(Pg));
+});
+
+describe("M2 PostService and JobService", () => {
+  it("atomically creates a scheduled post, target, and idempotent publish job", async () => {
+    const externalSubmissionId = `submission-${crypto.randomUUID()}`;
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const memberships = yield* MembershipService;
+      const posts = yield* PostService;
+      const connectionRepo = yield* makeConnectionRepository();
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing personal workspace");
+      }
+      const member = Option.getOrThrow(
+        yield* memberships.resolve({ workspaceId, userId: resolved.user.id })
+      );
+      const connection = yield* connectionRepo.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId,
+          platform: "INSTAGRAM",
+          profileId: crypto.randomUUID(),
+          username: "publisher",
+          displayName: "Publisher",
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const groupId = makeId(PostGroupId);
+      const value = {
+        groups: [
+          {
+            id: groupId,
+            isDefault: true,
+            segments: [{ text: "Scheduled", media: [] }],
+          },
+        ],
+        targets: [
+          {
+            connectionId: connection.id,
+            groupId,
+            settings: {
+              platform: "INSTAGRAM" as const,
+              values: {
+                shareToFeed: true,
+                shareToStory: false,
+                trialReels: false,
+                graduationStrategy: "MANUAL" as const,
+              },
+            },
+            scheduledAt: new Date(Date.now() + 60_000).toISOString(),
+          },
+        ],
+        source: "api" as const,
+        externalSubmissionId,
+      };
+      const actor = { memberId: member.memberId, role: member.role };
+      const first = yield* posts.create({ workspaceId, actor, value });
+      const second = yield* posts.create({ workspaceId, actor, value });
+      return { first, second };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.first.id).toBe(result.second.id);
+    expect(result.first.status).toBe("scheduled");
+    expect(result.first.targets).toHaveLength(1);
+  });
+
+  it("leases a due job once so concurrent dispatchers cannot double-claim it", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const jobs = yield* JobService;
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing workspace");
+      }
+      const id = yield* jobs.enqueue({
+        workspaceId,
+        payload: { _tag: "SweepPendingMedia" },
+        runAt: new Date(Date.now() - 1000),
+        idempotencyKey: `claim-${crypto.randomUUID()}`,
+      });
+      const first = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      const second = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      return { id, first, second };
+    });
+    const { id, first, second } = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(first.some((job) => job.id === id)).toBe(true);
+    expect(second.some((job) => job.id === id)).toBe(false);
+  });
+
+  it("always routes editor scheduling through review without a publish job", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const memberships = yield* MembershipService;
+      const posts = yield* PostService;
+      const sql = yield* SqlClient.SqlClient;
+      const connectionRepo = yield* makeConnectionRepository();
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing workspace");
+      }
+      const member = Option.getOrThrow(
+        yield* memberships.resolve({ workspaceId, userId: resolved.user.id })
+      );
+      const connection = yield* connectionRepo.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId,
+          platform: "INSTAGRAM",
+          profileId: crypto.randomUUID(),
+          username: "editor-target",
+          displayName: null,
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const groupId = makeId(PostGroupId);
+      const post = yield* posts.create({
+        workspaceId,
+        actor: { memberId: member.memberId, role: "editor" },
+        value: {
+          groups: [
+            {
+              id: groupId,
+              isDefault: true,
+              segments: [{ text: "Needs approval", media: [] }],
+            },
+          ],
+          targets: [
+            {
+              connectionId: connection.id,
+              groupId,
+              settings: {
+                platform: "INSTAGRAM",
+                values: {
+                  shareToFeed: true,
+                  shareToStory: false,
+                  trialReels: false,
+                  graduationStrategy: "MANUAL",
+                },
+              },
+              scheduledAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+          ],
+          source: "api",
+        },
+      });
+      const queued = yield* sql<{
+        count: string;
+      }>`SELECT count(*)::text AS count FROM jobs WHERE payload ->> 'targetId' = ${post.targets[0]?.id}`;
+      yield* posts.updateTarget({
+        workspaceId,
+        postId: post.id,
+        targetId: post.targets[0]?.id ?? "",
+        scheduledAt: null,
+        actor: { memberId: member.memberId, role: "editor" },
+      });
+      const reviews = yield* sql<{
+        status: string;
+      }>`SELECT status FROM post_reviews WHERE post_id = ${post.id}`;
+      return {
+        post,
+        queued: Number(queued[0]?.count ?? 0),
+        reviewStatus: reviews[0]?.status,
+      };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.post.status).toBe("pending_review");
+    expect(result.queued).toBe(0);
+    expect(result.reviewStatus).toBe("rejected");
+  });
+
+  it("moves an existing connection only after explicit transfer confirmation", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const connections = yield* ConnectionsService;
+      const repository = yield* makeConnectionRepository();
+      const source = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const destination = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      if (!(source.personalWorkspace && destination.personalWorkspace)) {
+        return yield* Effect.die("missing workspaces");
+      }
+      const connection = yield* repository.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId: source.personalWorkspace.id,
+          platform: "INSTAGRAM",
+          profileId: crypto.randomUUID(),
+          username: null,
+          displayName: null,
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      yield* connections.confirmTransfer({
+        connectionId: connection.id,
+        sourceWorkspaceId: source.personalWorkspace.id,
+        destinationWorkspaceId: destination.personalWorkspace.id,
+      });
+      return yield* connections.list(destination.personalWorkspace.id, 10, 0);
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.total).toBe(1);
+  });
+
+  it("re-arms an explicitly rescheduled durable job", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const jobs = yield* JobService;
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing workspace");
+      }
+      const key = `rearm-${crypto.randomUUID()}`;
+      const id = yield* jobs.enqueue({
+        workspaceId,
+        payload: { _tag: "SweepPendingMedia" },
+        runAt: new Date(Date.now() - 1000),
+        idempotencyKey: key,
+      });
+      yield* jobs.complete(id);
+      yield* jobs.enqueue({
+        workspaceId,
+        payload: { _tag: "SweepPendingMedia" },
+        runAt: new Date(Date.now() - 1000),
+        idempotencyKey: key,
+      });
+      const claimed = yield* jobs.claimDue({ limit: 100, leaseSeconds: 60 });
+      return { id, claimed };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.claimed.filter((job) => job.id === result.id)).toHaveLength(
+      1
+    );
+  });
+});

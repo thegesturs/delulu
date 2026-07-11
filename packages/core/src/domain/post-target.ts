@@ -14,6 +14,7 @@ export const TargetStatus = Schema.Literals([
   "published",
   "failed",
 ]);
+export type TargetStatus = typeof TargetStatus.Type;
 const settings = <Platform extends string, Values extends Schema.Top>(
   platform: Platform,
   values: Values

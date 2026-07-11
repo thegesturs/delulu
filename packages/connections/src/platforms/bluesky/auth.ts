@@ -1,6 +1,10 @@
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "@delulu/database/convex/_generated/api";
-import type { CallbackContext, PlatformAuth } from "../../types";
+import { ConvexHttpClient } from "convex/browser";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+} from "../../types";
 import { BLUESKY_HOST, CALLBACK_URL, CLIENT_METADATA_URL } from "./constants";
 
 const redirect = (location: string): Response =>
@@ -34,7 +38,7 @@ export const blueskyAuth: PlatformAuth = {
   scopes: ["atproto", "transition:generic"],
   isMultiStep: false,
 
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     // Bluesky OAuth URL — uses the client metadata URL as `client_id` per the
     // AT Protocol OAuth spec.
     const params = new URLSearchParams({
@@ -45,6 +49,9 @@ export const blueskyAuth: PlatformAuth = {
       code_challenge_method: "S256",
       // code_challenge would be generated dynamically in a real implementation.
     });
+    if (ctx?.state) {
+      params.set("state", ctx.state);
+    }
     return `${BLUESKY_HOST}/oauth/authorize?${params.toString()}`;
   },
 
@@ -112,25 +119,33 @@ export const blueskyAuth: PlatformAuth = {
 
       // Use Convex upsertSocialProvider to handle creation/update and potential
       // account transfers.
-      const convex = new ConvexHttpClient(convexUrl);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "BLUESKY",
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
-          refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
-          profileId: tokenData.did,
-          username: tokenData.handle,
-          fullName: profileData.displayName || tokenData.handle,
-          profileImage: profileData.avatar,
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "BLUESKY",
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
+        refreshTokenExpiresIn: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        profileId: tokenData.did,
+        username: tokenData.handle,
+        fullName: profileData.displayName || tokenData.handle,
+        profileImage: profileData.avatar,
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(convexUrl);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=bluesky"
         );

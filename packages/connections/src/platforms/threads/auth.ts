@@ -1,7 +1,11 @@
+import { api } from "@delulu/database/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { nanoid } from "nanoid";
-import { api } from "@delulu/database/convex/_generated/api";
-import type { CallbackContext, ConnectContext, PlatformAuth } from "../../types";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+} from "../../types";
 import { GRAPH_VERSION } from "./constants";
 
 /**
@@ -59,7 +63,7 @@ export const threadsAuth: PlatformAuth = {
       redirect_uri: threadsEnv().THREADS_CALLBACK_URL,
       response_type: "code",
       scope: BASE_SCOPES.join(","),
-      state: nanoid(),
+      state: _ctx?.state ?? nanoid(),
     });
     return `https://threads.net/oauth/authorize?${params.toString()}`;
   },
@@ -137,24 +141,32 @@ export const threadsAuth: PlatformAuth = {
       const user = (await userResponse.json()) as ThreadsUser;
 
       // 4. Upsert social provider (per-call client carrying the user's token)
-      const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "THREADS",
-          accessToken: longLived.access_token,
-          expiresIn: Date.now() + longLived.expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: user.id,
-          username: user.username,
-          fullName: user.name,
-          profileImage: user.threads_profile_picture_url,
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "THREADS",
+        accessToken: longLived.access_token,
+        expiresIn: Date.now() + longLived.expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: user.id,
+        username: user.username,
+        fullName: user.name,
+        profileImage: user.threads_profile_picture_url,
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=threads"
         );

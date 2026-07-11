@@ -1,10 +1,15 @@
+import { api } from "@delulu/database/convex/_generated/api";
 import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { api } from "@delulu/database/convex/_generated/api";
-import { fromUnknownHttp, type ConnectionError, tokenExpired } from "../../errors";
+import {
+  type ConnectionError,
+  fromUnknownHttp,
+  tokenExpired,
+} from "../../errors";
 import type {
   CallbackContext,
+  ConnectContext,
   PlatformAuth,
   TokenRefreshResult,
 } from "../../types";
@@ -41,14 +46,14 @@ export const pinterestAuth: PlatformAuth = {
   scopes: ["boards:read", "pins:write"],
   isMultiStep: false,
 
-  getConnectUrl(): string {
+  getConnectUrl(ctx?: ConnectContext): string {
     const e = igEnv();
     const params = new URLSearchParams({
       client_id: e.clientId,
       redirect_uri: e.callbackUrl,
       response_type: "code",
       scope: "boards:read,pins:write",
-      state: nanoid(),
+      state: ctx?.state ?? nanoid(),
     });
     return `https://www.pinterest.com/oauth/?${params.toString()}`;
   },
@@ -98,24 +103,32 @@ export const pinterestAuth: PlatformAuth = {
       }
       const user = (await userResponse.json()) as PinterestUserResponse;
 
-      const convex = new ConvexHttpClient(e.convexUrl);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "PINTEREST",
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          expiresIn: Date.now() + 3600 * 1000,
-          profileId: user.username,
-          username: user.username,
-          fullName: user.username,
-          profileImage: user.profile_image,
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "PINTEREST",
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresIn: Date.now() + 3600 * 1000,
+        profileId: user.username,
+        username: user.username,
+        fullName: user.username,
+        profileImage: user.profile_image,
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.convexUrl);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=pinterest"
         );

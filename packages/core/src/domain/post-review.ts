@@ -8,6 +8,7 @@ export const ReviewStatus = Schema.Literals([
   "approved",
   "rejected",
 ]);
+export type ReviewStatus = typeof ReviewStatus.Type;
 export class PostReview extends Model.Class<PostReview>("PostReview")({
   ...entityFields(PostReviewId),
   workspaceId: WorkspaceId,

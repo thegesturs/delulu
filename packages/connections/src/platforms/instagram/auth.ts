@@ -1,11 +1,15 @@
-import { ConvexHttpClient } from "convex/browser";
-import { nanoid } from "nanoid";
-import { Effect } from "effect";
 import { api } from "@delulu/database/convex/_generated/api";
-import type { CallbackContext, ConnectContext, PlatformAuth } from "../../types";
+import { ConvexHttpClient } from "convex/browser";
+import { Effect } from "effect";
+import { nanoid } from "nanoid";
 import { env } from "../../env";
-import { instagramWebhooks } from "./webhooks";
+import type {
+  CallbackContext,
+  ConnectContext,
+  PlatformAuth,
+} from "../../types";
 import { GRAPH_VERSION } from "./constants";
+import { instagramWebhooks } from "./webhooks";
 
 const BASE_SCOPES = [
   "instagram_business_basic",
@@ -55,7 +59,7 @@ export const instagramAuth: PlatformAuth = {
       redirect_uri: env().INSTAGRAM_CALLBACK_URL,
       response_type: "code",
       scope: scopes.join(","),
-      state: nanoid(),
+      state: ctx?.state ?? nanoid(),
     });
     return `https://www.instagram.com/oauth/authorize?${params.toString()}`;
   },
@@ -128,22 +132,30 @@ export const instagramAuth: PlatformAuth = {
       const user = (await userResponse.json()) as InstagramUserResponse;
 
       // 4. Upsert social provider (per-call client carrying the user's token)
-      const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-      convex.setAuth(convexToken);
-      const status = await convex.mutation(
-        api.social_providers.upsertSocialProvider,
-        {
-          socialType: "INSTAGRAM",
-          accessToken: longLived.access_token,
-          expiresIn: Date.now() + longLived.expires_in * 1000,
-          refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
-          profileId: user.user_id,
-          username: user.username,
-          fullName: user.name || user.username || "Instagram User",
-          profileImage: user.profile_picture_url,
-          isActive: true,
-        }
-      );
+      const connection = {
+        socialType: "INSTAGRAM",
+        accessToken: longLived.access_token,
+        expiresIn: Date.now() + longLived.expires_in * 1000,
+        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
+        profileId: user.user_id,
+        username: user.username,
+        fullName: user.name || user.username || "Instagram User",
+        profileImage: user.profile_picture_url,
+      } as const;
+      let status: string;
+      if (ctx.upsert) {
+        status = await ctx.upsert(connection);
+      } else {
+        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
+        convex.setAuth(convexToken);
+        status = await convex.mutation(
+          api.social_providers.upsertSocialProvider,
+          {
+            ...connection,
+            isActive: true,
+          }
+        );
+      }
 
       // 5. Subscribe webhooks (best effort)
       await Effect.runPromise(
@@ -153,7 +165,7 @@ export const instagramAuth: PlatformAuth = {
         })
       );
 
-      if (status === "account_transferred") {
+      if (status === "account_transferred" || status === "transfer_required") {
         return redirect(
           "/socials?notification=account_transferred&platform=instagram"
         );

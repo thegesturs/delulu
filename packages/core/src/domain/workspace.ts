@@ -11,6 +11,7 @@ export class Workspace extends Model.Class<Workspace>("Workspace")({
   parentOrgId: Schema.NullOr(WorkspaceId),
   clerkOrgId: Schema.NullOr(Schema.String),
   isPersonal: Schema.Boolean,
+  deletedAt: Schema.NullOr(Schema.DateTimeUtcFromDate),
 }) {}
 export class WorkspaceError extends Schema.TaggedErrorClass<WorkspaceError>()(
   "WorkspaceError",

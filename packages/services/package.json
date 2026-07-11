@@ -15,6 +15,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@delulu/connections": "workspace:*",
     "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/payments": "workspace:*",
