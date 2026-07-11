@@ -34,7 +34,7 @@ describe("automation KV abstraction", () => {
     expect(result.session).toBe(sessionId);
   });
 
-  it("removes empty trigger lists", async () => {
+  it("caches confirmed trigger misses", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const kv = yield* AutomationKvService;
@@ -42,6 +42,6 @@ describe("automation KV abstraction", () => {
         return yield* kv.getTriggerIds("profile-2", "media-2");
       }).pipe(Effect.provide(layer))
     );
-    expect(result).toBeNull();
+    expect(result).toEqual([]);
   });
 });

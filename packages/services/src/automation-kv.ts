@@ -144,9 +144,6 @@ export class AutomationKvService extends Context.Service<
           automationIds: readonly AutomationId[]
         ) {
           const key = triggerCacheKey(profileId, mediaId);
-          if (automationIds.length === 0) {
-            return yield* remove(key);
-          }
           yield* write(key, { automationIds });
         }
       );
