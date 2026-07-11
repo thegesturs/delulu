@@ -112,6 +112,7 @@ jobs:
           --health-retries 20
     env:
       DATABASE_URL: postgres://delulu:delulu@localhost:5432/delulu
+      ENCRYPTION_SECRET: ci-test-encryption-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -134,6 +135,7 @@ jobs:
       - run: pnpm --filter=@delulu/services test:integration
       - run: pnpm --filter=@delulu/http-api test:integration
       - run: pnpm --filter=@delulu/worker test:integration
+      - run: pnpm --filter=@delulu/migrate-convex test:integration
 
   invariants:
     needs: setup
