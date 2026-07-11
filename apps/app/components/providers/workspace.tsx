@@ -23,7 +23,9 @@ interface WorkspaceContextValue {
     readonly role: "owner" | "admin" | "editor" | "viewer";
   }[];
   readonly isLoading: boolean;
+  readonly isError: boolean;
   readonly error: Error | null;
+  readonly refetch: () => Promise<unknown>;
   readonly selectWorkspace: (workspaceId: string) => void;
 }
 
@@ -60,7 +62,9 @@ export function WorkspaceProvider({
       workspaceId: selected,
       workspaces,
       isLoading: memberships.isPending,
+      isError: memberships.isError,
       error: memberships.error,
+      refetch: memberships.refetch,
       selectWorkspace: (workspaceId) => {
         if (!workspaces.some((item) => item.workspaceId === workspaceId)) {
           return;
@@ -69,7 +73,14 @@ export function WorkspaceProvider({
         setSelected(workspaceId);
       },
     }),
-    [memberships.error, memberships.isPending, selected, workspaces]
+    [
+      memberships.error,
+      memberships.isError,
+      memberships.isPending,
+      memberships.refetch,
+      selected,
+      workspaces,
+    ]
   );
 
   return (

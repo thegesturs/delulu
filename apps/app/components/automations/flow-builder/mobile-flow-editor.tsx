@@ -15,7 +15,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { useSubscription } from "@/hooks/use-subscription";
-import { api as TrpcApi } from "@/trpc/react";
 import type { UseAutomationStateReturn } from "./hooks/use-automation-state";
 import { CommentReplyEditor } from "./panels/comment-reply-editor";
 import { DmComposer } from "./panels/dm-composer";
@@ -86,20 +85,9 @@ export function MobileFlowEditor({
     | SendDmStep
     | undefined;
 
-  // Fetch posts for review preview
-  const { data: allPosts } = TrpcApi.socialProvider.getInstagramPosts.useQuery(
-    { socialProviderId: automationMeta.socialProviderId! },
-    { enabled: !!automationMeta.socialProviderId && currentStep === 4 }
-  );
-
-  const selectedPosts = useMemo(() => {
-    if (!(allPosts && trigger?.targetPostIds?.length)) {
-      return [];
-    }
-    return allPosts.filter((p: { id: string }) =>
-      trigger.targetPostIds.includes(p.id)
-    );
-  }, [allPosts, trigger?.targetPostIds]);
+  // The M4 API exposes stable media ids but not a separate story-thumbnail
+  // feed. The review step therefore renders the selected-id summary below.
+  const selectedPosts: readonly [] = [];
 
   const handleSelectTriggerType = useCallback(
     (type: AutomationTriggerType) => {

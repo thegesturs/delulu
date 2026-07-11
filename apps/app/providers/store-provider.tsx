@@ -1,10 +1,9 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import type { ProviderSetting } from "@delulu/validators/post";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { useStore } from "@/store/post";
 
 interface StoreProviderProps {
@@ -13,13 +12,18 @@ interface StoreProviderProps {
 
 export function StoreProvider({ children }: StoreProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const { resources } = useApiClient();
+  const { workspaceId } = useWorkspace();
 
-  // Fetch user's current social providers from database
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
+  const connections = useQuery({
+    ...resources.connections.list(workspaceId ?? "", {}),
+    enabled: workspaceId !== null,
+  });
 
   useEffect(() => {
+    const socialProviders = connections.data?.data;
     if (!socialProviders) {
-      return; // Wait for database query
+      return;
     }
 
     // Rehydrate from localStorage
@@ -33,29 +37,25 @@ export function StoreProvider({ children }: StoreProviderProps) {
 
     // Validate and clean up stale provider references
     const validProviderIds = new Set(
-      socialProviders.map((provider) => provider._id)
+      socialProviders.map((provider) => provider.id)
     );
 
     // Filter out deleted providers from selectedSocialProviders
     const validSelectedProviders = state.selectedSocialProviders.filter(
-      (provider) =>
-        validProviderIds.has(provider.socialId as Id<"socialProviders">)
+      (provider) => validProviderIds.has(provider.socialId)
     );
 
     // Filter out deleted providers from alternative content
     const validAlternativeContent = state.post.alternativeContent.filter(
-      (alt) =>
-        validProviderIds.has(
-          alt.socialProvider.socialId as Id<"socialProviders">
-        )
+      (alt) => validProviderIds.has(alt.socialProvider.socialId)
     );
 
     // Clean up provider settings for deleted providers
-    const validProviderSettings: Record<string, ProviderSetting> = {};
+    const validProviderSettings: typeof state.providerSettings = {};
     for (const [providerId, setting] of Object.entries(
       state.providerSettings
     )) {
-      if (validProviderIds.has(providerId as Id<"socialProviders">)) {
+      if (validProviderIds.has(providerId)) {
         validProviderSettings[providerId] = setting;
       }
     }
@@ -89,7 +89,7 @@ export function StoreProvider({ children }: StoreProviderProps) {
     }
 
     setIsHydrated(true);
-  }, [socialProviders]);
+  }, [connections.data]);
 
   if (!isHydrated) {
     return null;

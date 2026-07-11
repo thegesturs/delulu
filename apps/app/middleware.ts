@@ -8,10 +8,8 @@ import { NextResponse } from "next/server";
 const publicRoutes = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/api/webhooks(.*)",
   "/verify-email(.*)",
-  "/api/trpc(.*)",
-  "/api/callback(.*)", // Add this line - OAuth callbacks must be public
+  "/api/callback(.*)",
   "/api/transcribe(.*)",
   "/extension-auth-success(.*)",
   "/mcp(.*)",

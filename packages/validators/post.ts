@@ -67,6 +67,7 @@ export const SocialProviderSchema = z.object({
 export type SocialProviderType = z.infer<typeof SocialProviderSchema>;
 
 export const mediaSchema = z.object({
+  id: z.string().optional(),
   url: z.string().optional(),
   mediaType: z.enum(["IMAGE", "VIDEO", "DOCUMENT"]),
   bucketUrl: z.string().optional(),

@@ -1,6 +1,7 @@
 import { TokenCipher } from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
+import { getPlanFromProductId } from "@delulu/payments";
 import {
   BillingWebhookApplication,
   PaymentWebhookSink,
@@ -228,23 +229,171 @@ export const AutomationProviderLive = Layer.mergeAll(
   )
 );
 
-const eventFromPaymentPayload = (eventId: string, input: unknown) => {
+const stringField = (value: unknown, key: string): string | undefined =>
+  Predicate.isObject(value) && Predicate.isString(value[key])
+    ? value[key]
+    : undefined;
+
+const numberField = (value: unknown, key: string): number | undefined =>
+  Predicate.isObject(value) && Predicate.isNumber(value[key])
+    ? value[key]
+    : undefined;
+
+const objectField = (value: unknown, key: string): object | undefined =>
+  Predicate.isObject(value) && Predicate.isObject(value[key])
+    ? value[key]
+    : undefined;
+
+const providerData = (input: unknown): object | undefined => {
   if (!Predicate.isObject(input)) {
-    return input;
+    return undefined;
   }
-  return { ...input, eventId };
+  return objectField(input, "object") ?? input;
 };
+
+const invalidBillingPayload = (message: string) =>
+  new WebhookIngressError({
+    reason: "invalid_payload",
+    message,
+    retryable: false,
+  });
+
+const billingLookupFailed = () =>
+  new WebhookIngressError({
+    reason: "processing_failed",
+    message: "Unable to resolve the payment webhook owner",
+    retryable: true,
+  });
 
 export const PaymentWebhookSinkLive = Layer.effect(
   PaymentWebhookSink,
   Effect.gen(function* () {
     const billing = yield* BillingWebhookApplication;
+    const sql = yield* SqlClient.SqlClient;
+
+    const resolveBillingOwner = Effect.fn("PaymentWebhook.resolveOwner")(
+      function* (data: object) {
+        const metadata = objectField(data, "metadata");
+        const metadataOwner = metadata
+          ? (stringField(metadata, "billing_owner_user_id") ??
+            stringField(metadata, "billingOwnerUserId"))
+          : undefined;
+        if (metadataOwner) {
+          return metadataOwner;
+        }
+
+        const customer = objectField(data, "customer");
+        const customerId = customer
+          ? stringField(customer, "customer_id")
+          : undefined;
+        if (customerId) {
+          const owners = yield* sql<{ billingOwnerUserId: string }>`
+            SELECT billing_owner_user_id FROM subscriptions
+            WHERE provider_customer_id = ${customerId} LIMIT 1`.pipe(
+            Effect.mapError(billingLookupFailed)
+          );
+          if (owners[0]) {
+            return owners[0].billingOwnerUserId;
+          }
+        }
+
+        const email = customer ? stringField(customer, "email") : undefined;
+        if (email) {
+          const users = yield* sql<{ id: string }>`
+            SELECT id FROM users WHERE lower(email) = lower(${email}) LIMIT 1`.pipe(
+            Effect.mapError(billingLookupFailed)
+          );
+          if (users[0]) {
+            return users[0].id;
+          }
+        }
+        return yield* invalidBillingPayload(
+          "Payment webhook could not be matched to a billing owner"
+        );
+      }
+    );
+
+    const normalize = Effect.fn("PaymentWebhook.normalize")(function* (
+      eventId: string,
+      type: string,
+      rawData: unknown
+    ) {
+      const data = providerData(rawData);
+      if (!data) {
+        return yield* invalidBillingPayload(
+          "Payment webhook data must be an object"
+        );
+      }
+      const billingOwnerUserId = yield* resolveBillingOwner(data);
+      const customer = objectField(data, "customer");
+      const customerId = customer
+        ? (stringField(customer, "customer_id") ?? null)
+        : null;
+
+      if (type.startsWith("subscription.")) {
+        const subscriptionId = stringField(data, "subscription_id");
+        const productId = stringField(data, "product_id");
+        const status = stringField(data, "status") ?? type.slice(13);
+        if (!(subscriptionId && productId)) {
+          return yield* invalidBillingPayload(
+            "Subscription webhook is missing its subscription or product id"
+          );
+        }
+        const plan = getPlanFromProductId(productId)?.planType ?? productId;
+        return {
+          _tag: "SubscriptionChanged" as const,
+          eventId,
+          billingOwnerUserId,
+          providerCustomerId: customerId,
+          providerSubscriptionId: subscriptionId,
+          plan,
+          status,
+          currentPeriodStart:
+            stringField(data, "previous_billing_date") ?? null,
+          currentPeriodEnd: stringField(data, "next_billing_date") ?? null,
+          addons: { items: "addons" in data ? data.addons : [] },
+        };
+      }
+
+      if (type.startsWith("payment.")) {
+        const paymentId = stringField(data, "payment_id");
+        const amount = numberField(data, "total_amount");
+        const currency = stringField(data, "currency");
+        if (!(paymentId && amount !== undefined && currency)) {
+          return yield* invalidBillingPayload(
+            "Payment webhook is missing its id, amount, or currency"
+          );
+        }
+        return {
+          _tag: "TransactionChanged" as const,
+          eventId,
+          billingOwnerUserId,
+          providerTransactionId: paymentId,
+          amountMinor: amount,
+          currency,
+          status: stringField(data, "status") ?? type.slice(8),
+          metadata: {
+            ...(objectField(data, "metadata") ?? {}),
+            providerCustomerId: customerId,
+            providerSubscriptionId:
+              stringField(data, "subscription_id") ?? null,
+          },
+        };
+      }
+
+      return null;
+    });
+
     return PaymentWebhookSink.of({
       process: Effect.fn("PaymentWebhookSink.process")(function* (input) {
-        const candidate = eventFromPaymentPayload(
+        const candidate = yield* normalize(
           input.eventId,
+          input.event.type,
           input.event.data
         );
+        if (candidate === null) {
+          return;
+        }
         const event = yield* Schema.decodeUnknownEffect(BillingWebhookEvent)(
           candidate
         ).pipe(

@@ -1,10 +1,8 @@
 "use client";
 
-import { useOrganization } from "@delulu/auth";
 import type { AutomationScope } from "@delulu/client";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import type {
   AutomationStep,
   Note,
@@ -132,42 +130,26 @@ export const getApiErrorDetails = (error: unknown): ApiErrorDetails => {
 };
 
 export function useAutomationWorkspace() {
-  const { organization } = useOrganization();
-  const { resources } = useApiClient();
-  const workspacesOptions = useMemo(
-    () => resources.me.workspaces(),
-    [resources]
-  );
-  const workspacesQuery = useQuery({
-    ...workspacesOptions,
-    queryKey: workspacesOptions.queryKey!,
-  });
-
-  const workspace = useMemo(() => {
-    const workspaces = workspacesQuery.data?.data ?? [];
-    if (organization) {
-      return workspaces.find(
-        (candidate) =>
-          (organization.slug && candidate.slug === organization.slug) ||
-          candidate.name === organization.name
-      );
-    }
-    return (
-      workspaces.find((candidate) => candidate.isPersonal) ?? workspaces[0]
-    );
-  }, [organization, workspacesQuery.data]);
+  const workspace = useWorkspace();
 
   const scope = useMemo<AutomationScope | undefined>(
     () =>
-      workspace
+      workspace.workspaceId
         ? {
             workspaceId: workspace.workspaceId,
             platform: AUTOMATION_PLATFORM,
             category: AUTOMATION_CATEGORY,
           }
         : undefined,
-    [workspace]
+    [workspace.workspaceId]
   );
 
-  return { ...workspacesQuery, scope, workspaceId: workspace?.workspaceId };
+  return {
+    scope,
+    workspaceId: workspace.workspaceId ?? undefined,
+    isPending: workspace.isLoading,
+    isError: workspace.isError,
+    error: workspace.error,
+    refetch: workspace.refetch,
+  };
 }

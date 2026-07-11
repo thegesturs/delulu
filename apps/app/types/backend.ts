@@ -1,4 +1,4 @@
-/** Compatibility view types used while UI components move to the typed HTTP API. */
+/** View-model types derived from the typed HTTP API for shared UI components. */
 export type PostStatus =
   | "SAVED"
   | "SCHEDULED"
@@ -91,6 +91,7 @@ export interface User {
 export interface Media {
   readonly id: string;
   readonly url?: string;
+  readonly bucketUrl?: string;
   readonly bucketKey: string;
   readonly type?: string;
   readonly mediaType?: "IMAGE" | "VIDEO" | "DOCUMENT";

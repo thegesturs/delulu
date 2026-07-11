@@ -352,7 +352,7 @@ export function MediaUploader({
 
     return (content?.media || [])
       .map((media) => ({
-        id: crypto.randomUUID(),
+        id: media.id ?? crypto.randomUUID(),
         mediaType: media.mediaType,
         previewUrl: media.url || "",
         bucketKey: media.bucketKey,
@@ -373,6 +373,7 @@ export function MediaUploader({
         .filter((media) => media.bucketKey || media.url)
         .map(
           ({
+            id,
             mediaType,
             url,
             bucketKey,
@@ -381,6 +382,7 @@ export function MediaUploader({
             thumbnailBucketUrl,
             thumbnailBucketKey,
           }) => ({
+            id,
             mediaType,
             url,
             bucketKey,
@@ -517,11 +519,13 @@ export function MediaUploader({
               socialType,
               orderId,
               id: mediaFile.id,
+              mediaId: uploadResult.mediaId,
               bucketKey: uploadResult.bucketKey,
               url: uploadResult.url,
             });
 
             appendPersistedMediaToStore({
+              id: uploadResult.mediaId,
               mediaType: mediaFile.mediaType,
               bucketKey: uploadResult.bucketKey,
               url: uploadResult.url,
@@ -534,6 +538,7 @@ export function MediaUploader({
                 item.id === mediaFile.id
                   ? {
                       ...item,
+                      id: uploadResult.mediaId ?? item.id,
                       bucketKey: uploadResult.bucketKey,
                       url: uploadResult.url,
                       originalFilename: mediaFile.file?.name,
@@ -546,6 +551,7 @@ export function MediaUploader({
 
             return {
               ...mediaFile,
+              id: uploadResult.mediaId ?? mediaFile.id,
               bucketKey: uploadResult.bucketKey,
               url: uploadResult.url,
               originalFilename: mediaFile.file?.name,

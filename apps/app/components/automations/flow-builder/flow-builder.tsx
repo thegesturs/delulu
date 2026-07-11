@@ -7,7 +7,6 @@ import {
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
 import type { AutomationScope } from "@delulu/client";
-import { api } from "@delulu/database/convex/_generated/api";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { useIsMobile } from "@delulu/design-system/hooks/use-mobile";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -28,7 +27,6 @@ import {
   type Node,
   ReactFlowProvider,
 } from "@xyflow/react";
-import { useQuery } from "convex-helpers/react/cache";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -107,7 +105,17 @@ function FlowBuilderInner({
     ...connectionsOptions,
     queryKey: connectionsOptions.queryKey!,
   });
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
+  const socialProviders = useMemo(
+    () =>
+      connectionsQuery.data?.data.map((connection) => ({
+        _id: connection.id,
+        socialType: connection.platform,
+        profileId: connection.profileId,
+        username: connection.username ?? undefined,
+        name: connection.displayName ?? connection.username ?? connection.id,
+      })),
+    [connectionsQuery.data]
+  );
   const createOptions = useMemo(
     () => resources.automations.create(scope),
     [resources, scope]
@@ -228,13 +236,7 @@ function FlowBuilderInner({
       name: automation.name,
       description: automation.description || "",
       isActive: automation.enabled,
-      socialProviderId:
-        socialProviders?.find((provider) => {
-          const connection = connectionsQuery.data?.data.find(
-            (candidate) => candidate.id === automation.connectionId
-          );
-          return connection?.profileId === provider.profileId;
-        })?._id ?? "",
+      socialProviderId: automation.connectionId,
     });
 
     // Recombine pendingPostIds into targetPostIds with pending: prefix for UI
@@ -487,11 +489,8 @@ function FlowBuilderInner({
       return;
     }
 
-    const selectedProvider = socialProviders?.find(
-      (provider) => provider._id === automationMeta.socialProviderId
-    );
     const connection = connectionsQuery.data?.data.find(
-      (candidate) => candidate.profileId === selectedProvider?.profileId
+      (candidate) => candidate.id === automationMeta.socialProviderId
     );
     if (!connection) {
       toast.error(

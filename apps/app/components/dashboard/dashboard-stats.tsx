@@ -21,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
-import type { DashboardStats } from "@/types/convex";
+import type { DashboardStats } from "@/types/backend";
 
 interface DashboardStatsClientProps {
   stats: DashboardStats;

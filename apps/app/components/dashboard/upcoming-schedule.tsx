@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { useRouter } from "next/navigation";
-import type { UpcomingPost } from "@/types/convex";
+import type { UpcomingPost } from "@/types/backend";
 
 interface UpcomingScheduleProps {
   upcomingPosts: UpcomingPost[];
@@ -42,7 +42,7 @@ export function UpcomingSchedule({ upcomingPosts }: UpcomingScheduleProps) {
                     {post.content?.[0]?.text?.slice(0, 50) || "No content"}...
                   </p>
                   <div className="flex space-x-1">
-                    {post.socialProviders.slice(0, 3).map((provider) =>
+                    {(post.socialProviders ?? []).slice(0, 3).map((provider) =>
                       provider ? (
                         <Badge
                           className="text-xs"

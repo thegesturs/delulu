@@ -79,7 +79,10 @@ interface PostActions {
     targets: readonly {
       readonly connectionId: string;
       readonly scheduledAt: string | null;
-      readonly settings: ProviderSetting["settings"];
+      readonly settings: {
+        readonly platform: ProviderSetting["type"];
+        readonly values: ProviderSetting["settings"];
+      };
     }[];
   }) => void;
   cleanupDeletedProviders: (validProviderIds: string[]) => void;
@@ -196,7 +199,7 @@ export const useStore = create<PostState & PostActions>()(
               media: segment.media.map((media) => ({
                 id: media.id,
                 url: "",
-                type: "IMAGE" as const,
+                mediaType: "IMAGE" as const,
               })),
               name: order === 0 ? "DEFAULT" : `PART_${order + 1}`,
               order,

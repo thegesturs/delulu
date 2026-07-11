@@ -1,13 +1,12 @@
 import { UserJot } from "@/components/analytics/userjot";
 import { ApiClientProvider } from "@/components/providers/api-client";
-import { ConvexClientProvider } from "@/components/providers/clerk-convex";
+import { AppQueryClientProvider } from "@/components/providers/query-client";
 import { WorkspaceProvider } from "@/components/providers/workspace";
 import "./styles.css";
 import { DesignSystemProvider } from "@delulu/design-system";
 import { fonts } from "@delulu/design-system/lib/fonts";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
-import { TRPCReactProvider } from "@/trpc/react";
 
 interface RootLayoutProperties {
   readonly children: ReactNode;
@@ -31,15 +30,13 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
         privacyUrl="https://delulu.social/legal/privacy-policy"
         termsUrl="https://delulu.social/legal/terms-of-service"
       >
-        <ConvexClientProvider>
-          <TRPCReactProvider>
-            <ApiClientProvider>
-              <WorkspaceProvider>
-                <NuqsAdapter>{children}</NuqsAdapter>
-              </WorkspaceProvider>
-            </ApiClientProvider>
-          </TRPCReactProvider>
-        </ConvexClientProvider>
+        <AppQueryClientProvider>
+          <ApiClientProvider>
+            <WorkspaceProvider>
+              <NuqsAdapter>{children}</NuqsAdapter>
+            </WorkspaceProvider>
+          </ApiClientProvider>
+        </AppQueryClientProvider>
       </DesignSystemProvider>
       <UserJot />
     </body>

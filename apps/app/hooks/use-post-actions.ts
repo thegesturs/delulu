@@ -60,7 +60,9 @@ export function usePostActions() {
     const payload = makeSimplePostWrite({
       caption: content?.text ?? "",
       connections: targets,
-      mediaIds: (content?.media ?? []).map((media) => media.id),
+      mediaIds: (content?.media ?? []).flatMap((media) =>
+        media.id ? [media.id] : []
+      ),
       scheduledAt,
     });
     const result = postId

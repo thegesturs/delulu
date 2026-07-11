@@ -4,7 +4,7 @@ import type {
 } from "@delulu/design-system/components/event-calendar";
 import type { SocialPostEventData } from "@delulu/design-system/components/event-calendar/social-post-event";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
-import type { Post } from "@/types/convex";
+import type { Post } from "@/types/backend";
 
 /**
  * Extended calendar event that includes full post data for social media display

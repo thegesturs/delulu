@@ -213,7 +213,7 @@ export function TikTokSettingsDisplay({
       const availableOptions = creatorInfo.data.privacy_level_options;
 
       // Check if stored privacy is in available options
-      if (!availableOptions.includes(storedPrivacy)) {
+      if (!(availableOptions as readonly string[]).includes(storedPrivacy)) {
         // Stored privacy not available, update to first available option
         const newPrivacy = availableOptions[0] as TiktokPrivacyLevels;
         updateTikTokSettings({ privacy: newPrivacy });

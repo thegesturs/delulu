@@ -55,11 +55,11 @@ export function BasicSettings() {
           disabled={disabled || selected.length === 0}
           onClick={actions.handlePostNow}
         >
-          <Icon
-            className="mr-2"
-            icon={actions.isProcessing ? Loading03Icon : PiPaperPlaneTiltFill}
-            size={16}
-          />
+          {actions.isProcessing ? (
+            <Icon className="mr-2" icon={Loading03Icon} size={16} />
+          ) : (
+            <PiPaperPlaneTiltFill className="mr-2 size-4" />
+          )}
           Publish now
         </Button>
         <Button

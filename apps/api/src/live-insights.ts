@@ -4,9 +4,9 @@ import {
   InsightMedia,
   InsightPeriod,
 } from "@delulu/core/domain/analytics";
+import { LiveInsightsProvider } from "@delulu/services";
 import { DateTime, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { LiveInsightsProvider } from "../../../packages/services/src/analytics";
 
 const API_BASE = "https://graph.instagram.com/v24.0";
 const PERIOD_METRICS = [
