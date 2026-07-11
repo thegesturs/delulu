@@ -1,0 +1,4 @@
+migration-out/
+node_modules/
+dist/
+*.tsbuildinfo

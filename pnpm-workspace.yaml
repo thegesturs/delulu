@@ -3,6 +3,7 @@ packages:
   - packages/*
   - turbo/*
   - scripts
+  - scripts/migrate-convex
 
 catalog:
   '@effect/sql-pg': 4.0.0-beta.97
