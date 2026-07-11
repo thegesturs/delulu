@@ -1,11 +1,20 @@
 /**
  * REST API client — wraps the Delulu public API.
  */
+import {
+  type ApiClient,
+  createApiClient,
+  resolveWorkspaceId,
+  runEffect,
+} from "@delulu/client";
+
 const TRAILING_SLASH = /\/$/;
 
 export class DeluluApiClient {
   private readonly baseUrl: string;
   private readonly getToken: () => string | Promise<string>;
+  private readonly client: ApiClient;
+  private workspaceId: string | undefined;
 
   constructor(
     baseUrl: string,
@@ -13,6 +22,21 @@ export class DeluluApiClient {
   ) {
     this.baseUrl = baseUrl.replace(TRAILING_SLASH, "");
     this.getToken = typeof token === "function" ? token : () => token;
+    this.client = createApiClient({
+      baseUrl: this.baseUrl,
+      getToken: this.getToken,
+    });
+  }
+
+  private async resolveWorkspaceId() {
+    if (this.workspaceId) {
+      return this.workspaceId;
+    }
+    this.workspaceId = await resolveWorkspaceId({
+      client: this.client,
+      workspaceId: process.env.DELULU_WORKSPACE_ID,
+    });
+    return this.workspaceId;
   }
 
   private async request(
@@ -51,22 +75,27 @@ export class DeluluApiClient {
     limit?: number;
     cursor?: string;
   }) {
-    const query = new URLSearchParams();
-    if (params?.status) {
-      query.set("status", params.status);
+    const offset =
+      params?.cursor === undefined ? undefined : Number(params.cursor);
+    if (offset !== undefined && !Number.isSafeInteger(offset)) {
+      throw new Error("The workspace API accepts a numeric pagination cursor.");
     }
-    if (params?.limit) {
-      query.set("limit", params.limit.toString());
-    }
-    if (params?.cursor) {
-      query.set("cursor", params.cursor);
-    }
-    const qs = query.toString();
-    return this.request("GET", `/v1/posts${qs ? `?${qs}` : ""}`);
+    const workspaceId = await this.resolveWorkspaceId();
+    return runEffect(
+      this.client.posts.list({
+        params: { workspaceId },
+        query: {
+          ...(params?.status ? { status: params.status } : {}),
+          ...(params?.limit ? { limit: params.limit } : {}),
+          ...(offset === undefined ? {} : { offset }),
+        },
+      })
+    );
   }
 
   async getPost(id: string) {
-    return this.request("GET", `/v1/posts/${id}`);
+    const workspaceId = await this.resolveWorkspaceId();
+    return runEffect(this.client.posts.get({ params: { workspaceId, id } }));
   }
 
   async createPost(data: Record<string, unknown>) {
@@ -78,12 +107,19 @@ export class DeluluApiClient {
   }
 
   async deletePost(id: string) {
-    return this.request("DELETE", `/v1/posts/${id}`);
+    const workspaceId = await this.resolveWorkspaceId();
+    return runEffect(this.client.posts.remove({ params: { workspaceId, id } }));
   }
 
   // Accounts
   async listAccounts() {
-    return this.request("GET", "/v1/accounts");
+    const workspaceId = await this.resolveWorkspaceId();
+    return runEffect(
+      this.client.connections.list({
+        params: { workspaceId },
+        query: {},
+      })
+    );
   }
 
   async getAccount(id: string) {

@@ -1,3 +1,4 @@
+import { createApiClient, resolveWorkspaceId } from "@delulu/client";
 import {
   DEFAULT_API_URL,
   readCredentials,
@@ -9,6 +10,20 @@ const TRAILING_SLASH = /\/$/;
 interface RequestOptions {
   apiUrl?: string;
   json?: boolean;
+}
+
+export function getContractClient(options: RequestOptions = {}) {
+  return createApiClient({
+    baseUrl: options.apiUrl || process.env.DELULU_API_URL || DEFAULT_API_URL,
+    getToken: getAccessToken,
+  });
+}
+
+export async function getWorkspaceId(options: RequestOptions = {}) {
+  return resolveWorkspaceId({
+    client: getContractClient(options),
+    workspaceId: process.env.DELULU_WORKSPACE_ID,
+  });
 }
 
 async function refreshCredentials(
