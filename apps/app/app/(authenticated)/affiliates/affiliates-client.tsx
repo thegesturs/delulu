@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import Link from "next/link";
-import { api } from "@/trpc/react";
 
 const PORTAL_URL = process.env.NEXT_PUBLIC_AFFONSO_PORTAL_URL || "#";
 
@@ -75,22 +74,10 @@ const faqs = [
 ];
 
 function EmbeddedDashboard() {
-  const { data } = api.affiliate.getEmbedToken.useQuery(undefined, {
-    retry: false,
-  });
-
-  if (!data?.token) {
-    return null;
-  }
-
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <iframe
-        allow="clipboard-write"
-        className="h-[600px] w-full border-0"
-        src={`https://affonso.io/embed/referrals?token=${data.token}&theme=system`}
-        title="Affiliate Dashboard"
-      />
+    <div className="rounded-lg border p-4 text-muted-foreground text-sm">
+      The embedded dashboard is temporarily unavailable during the API
+      migration. Use the affiliate portal to view referrals and earnings.
     </div>
   );
 }

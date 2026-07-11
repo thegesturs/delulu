@@ -6,8 +6,6 @@
  * Displays all available subscription plans with pricing and features
  */
 
-import { api } from "@delulu/database/convex/_generated/api";
-import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -28,12 +26,9 @@ import {
   type PublicPlanType,
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useAction } from "convex/react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
-import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 interface PricingCardsProps {
   productIds?: Record<PublicPlanType, { monthly: string; yearly: string }>;
@@ -41,19 +36,10 @@ interface PricingCardsProps {
   checkoutReturnUrl?: string;
 }
 
-export function PricingCards({
-  productIds,
-  onUpgradeSuccess,
-  checkoutReturnUrl,
-}: PricingCardsProps) {
+export function PricingCards(_props: PricingCardsProps) {
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
-  const [upgradingPlan, setUpgradingPlan] = useState<PublicPlanType | null>(
-    null
-  );
-  const [lastAttemptTime, setLastAttemptTime] = useState<number>(0);
-  const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const {
     planType: currentPlan,
     billingPeriod: currentBillingPeriod,
@@ -63,52 +49,6 @@ export function PricingCards({
 
   const plans = getPublicPlans();
   const yearlySavings = getMaxYearlySavingsPercent();
-
-  const handleUpgrade = async (planType: PublicPlanType) => {
-    // Debounce: prevent rapid retry attempts (3 second cooldown)
-    const now = Date.now();
-    const COOLDOWN_MS = 3000;
-    if (now - lastAttemptTime < COOLDOWN_MS) {
-      const remainingSeconds = Math.ceil(
-        (COOLDOWN_MS - (now - lastAttemptTime)) / 1000
-      );
-      toast.error(
-        `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? "s" : ""} before trying again.`
-      );
-      return;
-    }
-
-    // Get product ID for the selected plan and billing period
-    const productId = isAnnual
-      ? productIds?.[planType]?.yearly
-      : productIds?.[planType]?.monthly;
-
-    if (!productId) {
-      toast.error("Plan configuration error. Please contact support.");
-      return;
-    }
-
-    try {
-      setLastAttemptTime(now);
-      setUpgradingPlan(planType);
-      const { checkout_url } = await createCheckout({
-        productId,
-        returnUrl: checkoutReturnUrl ?? `${window.location.origin}/billing`,
-        billingCurrency: currency,
-        affonsoReferral: getAffonsoReferral() ?? undefined,
-      });
-
-      // Run callback before navigation so analytics/cleanup can complete
-      await onUpgradeSuccess?.();
-
-      // Navigate to checkout (this will leave the page)
-      window.location.href = checkout_url;
-    } catch (error) {
-      console.error("Failed to create checkout:", error);
-      toast.error("Failed to start checkout. Please try again.");
-      setUpgradingPlan(null);
-    }
-  };
 
   const getPlanPrice = (planType: PublicPlanType) => {
     const plan = PLANS[planType];
@@ -167,13 +107,9 @@ export function PricingCards({
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
           const isCurrent = isCurrentPlan(plan.id);
-          const isUpgrading = upgradingPlan === plan.id;
 
           // Determine button text
           const getButtonText = () => {
-            if (isUpgrading) {
-              return "Loading...";
-            }
             if (isLifetime && plan.id === "VIBE") {
               return "Lifetime Plan";
             }
@@ -185,7 +121,7 @@ export function PricingCards({
               return isAnnual ? "Switch to Annual" : "Switch to Monthly";
             }
 
-            return currentPlan === "FREE" ? "Get Started" : "Upgrade";
+            return "Checkout unavailable";
           };
 
           return (
@@ -288,12 +224,7 @@ export function PricingCards({
                       icon={Tick01Icon}
                       size={16}
                     />
-                    <span>
-                      {DM_PLAN_LIMITS[plan.id] === -1
-                        ? "Unlimited"
-                        : DM_PLAN_LIMITS[plan.id].toLocaleString()}{" "}
-                      auto-DMs/month
-                    </span>
+                    <span>Pooled auto-DM usage</span>
                   </li>
                   {plan.limits.organizations > 0 && (
                     <li className="flex items-start gap-2">
@@ -338,8 +269,7 @@ export function PricingCards({
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled={isCurrent || isUpgrading || isLoading || isLifetime}
-                  onClick={() => handleUpgrade(plan.id)}
+                  disabled
                   size="lg"
                   variant={plan.popular ? "default" : "outline"}
                 >

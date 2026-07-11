@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import {
   Alert,
   AlertDescription,
@@ -21,20 +20,17 @@ import {
   LIFETIME_DEAL_ACTIVE,
   LIFETIME_PRICE,
 } from "@delulu/payments";
-import Link from "next/link";
-import { getLifetimeProductId } from "@delulu/payments/product-ids";
 import {
   SparklesIcon,
   Tick01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useAction } from "convex/react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
-import { getAffonsoReferral } from "@/lib/affonso-referral";
 
 const FEATURES = [
   "Everything in VIBE plan",
@@ -55,8 +51,6 @@ export default function LifetimeClient() {
   const formatNum = (n: number) =>
     isINR ? Math.round(n).toLocaleString("en-IN") : n.toLocaleString();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const createCheckout = useAction(api.subscriptions.createCheckoutSession);
   const { isLifetime, isLoading: subLoading } = useSubscription();
 
   const searchParams = useSearchParams();
@@ -73,24 +67,6 @@ export default function LifetimeClient() {
       });
     }
   }, [status]);
-
-  const handleCheckout = async () => {
-    try {
-      setIsLoading(true);
-      const productId = getLifetimeProductId(currency);
-      const { checkout_url } = await createCheckout({
-        productId,
-        returnUrl: `${window.location.origin}/billing/lifetime`,
-        billingCurrency: currency,
-        affonsoReferral: getAffonsoReferral() ?? undefined,
-      });
-      window.location.href = checkout_url;
-    } catch (error) {
-      console.error("Failed to create checkout:", error);
-      toast.error("Failed to start checkout. Please try again.");
-      setIsLoading(false);
-    }
-  };
 
   if (!LIFETIME_DEAL_ACTIVE) {
     return (
@@ -178,17 +154,13 @@ export default function LifetimeClient() {
               You already have lifetime access
             </Button>
           ) : (
-            <Button
-              className="w-full"
-              disabled={isLoading || subLoading}
-              onClick={handleCheckout}
-              size="lg"
-            >
-              {isLoading ? "Loading..." : "Get Lifetime Access"}
+            <Button className="w-full" disabled size="lg">
+              {subLoading ? "Loading subscription…" : "Checkout unavailable"}
             </Button>
           )}
           <p className="text-center text-muted-foreground text-xs">
-            60-day money-back guarantee · One-time payment · Instant access
+            Lifetime checkout is temporarily unavailable during the billing
+            migration.
           </p>
         </CardFooter>
       </Card>
