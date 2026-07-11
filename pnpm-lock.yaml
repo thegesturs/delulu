@@ -179,6 +179,9 @@ importers:
       '@delulu/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@delulu/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@delulu/cloudflare-types':
         specifier: workspace:*
         version: link:../../packages/cloudflare-types
@@ -363,6 +366,9 @@ importers:
       '@clack/prompts':
         specifier: ^0.10.1
         version: 0.10.1
+      '@delulu/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       commander:
         specifier: ^13.1.0
         version: 13.1.0
@@ -419,6 +425,9 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@delulu/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.67)
