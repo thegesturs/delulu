@@ -997,10 +997,16 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.97
+      nanoid:
+        specifier: 5.1.6
+        version: 5.1.6
     devDependencies:
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      esbuild:
+        specifier: ^0.25.5
+        version: 0.25.5
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
