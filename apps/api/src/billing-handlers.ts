@@ -1,15 +1,13 @@
-import { ForbiddenError } from "@delulu/contracts";
+import { Api, ForbiddenError } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
+import {
+  BillingOwnerTransfers,
+  BillingService,
+  WorkspaceAccessService,
+} from "@delulu/services";
 import { Effect, Layer } from "effect";
-import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi";
-import { BillingGroup } from "../../../packages/contracts/src/billing";
-import { BillingService } from "../../../packages/services/src/billing";
-import { BillingOwnerTransfers } from "../../../packages/services/src/billing-transfer";
-import { WorkspaceAccessService } from "../../../packages/services/src/workspace-access";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { AuthenticationLive } from "./auth-middleware";
-
-/** Standalone lane API; shared assembly should add BillingGroup to Api. */
-export const BillingApi = HttpApi.make("billingApi").add(BillingGroup);
 
 const page = (query: {
   readonly limit?: number;
@@ -20,7 +18,7 @@ const page = (query: {
 });
 
 export const BillingHandlers = HttpApiBuilder.group(
-  BillingApi,
+  Api,
   "billing",
   Effect.fnUntraced(function* (handlers) {
     const billing = yield* BillingService;

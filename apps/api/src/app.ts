@@ -1,10 +1,13 @@
 import { Api } from "@delulu/contracts";
 import type {
   AdminService,
+  AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
   AuthConfig,
   AuthorizationService,
+  BillingOwnerTransfers,
+  BillingService,
   ClerkAdminService,
   ClerkTokenVerifier,
   ConnectionStateService,
@@ -25,6 +28,8 @@ import { Layer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 import type { SqlClient } from "effect/unstable/sql";
+import { AnalyticsHandlers } from "./analytics-handlers";
+import { BillingHandlers } from "./billing-handlers";
 import { ConnectionRoutes } from "./connection-routes";
 import {
   AdminHandlers,
@@ -58,6 +63,9 @@ export type AppServices =
   | ConnectionStateService
   | ReviewService
   | AdminService
+  | AnalyticsService
+  | BillingService
+  | BillingOwnerTransfers
   | ClerkAdminService;
 
 export interface WebHandlerOptions {
@@ -84,6 +92,8 @@ export const buildWebHandler = (
       MediaHandlers,
       ConnectionsHandlers,
       AdminHandlers,
+      AnalyticsHandlers,
+      BillingHandlers,
     ])
   );
 

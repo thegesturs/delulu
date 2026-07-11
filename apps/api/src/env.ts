@@ -1,4 +1,4 @@
-import type { CfRateLimiter } from "@delulu/services";
+import type { CfRateLimiter, KeyValueCacheBinding } from "@delulu/services";
 import {
   AuthConfig,
   ClerkAdminConfig,
@@ -38,6 +38,7 @@ export interface Env {
   readonly ENCRYPTION_SECRET?: string;
   readonly SQS_INGRESS_URL?: string;
   readonly SQS_INGRESS_SECRET?: string;
+  readonly EDGE_CACHE_KV?: KeyValueCacheBinding;
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;

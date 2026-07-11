@@ -1,6 +1,6 @@
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
+import { BillingWebhookApplication } from "@delulu/services";
 import { Effect, Schema } from "effect";
-import { BillingWebhookApplication } from "../../../packages/services/src/billing-webhooks";
 
 /**
  * Verified webhook ingress seam. Signature verification remains transport

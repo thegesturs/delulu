@@ -1,9 +1,14 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
   AdminService,
+  AnalyticsService,
   ApiKeyVerifier,
   AsTokenService,
   AuthorizationService,
+  BillingOwnerTransfers,
+  BillingReconciliation,
+  BillingService,
+  BillingWebhookApplication,
   ClerkAdminService,
   ClerkTokenVerifier,
   ConnectionStateService,
@@ -12,7 +17,10 @@ import {
   JobService,
   MediaService,
   MembershipService,
+  makeAnalyticsCacheLayer,
+  makeMemoryAnalyticsCacheLayer,
   OAuthFlowService,
+  PooledQuotaReservations,
   PostService,
   QuotaGuard,
   R2Service,
@@ -32,6 +40,7 @@ import {
   type Env,
   type ExecutionContext,
 } from "./env";
+import { LiveInsightsProviderLive } from "./live-insights";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -83,6 +92,18 @@ export const makeBaseLayer = (
     Layer.provide([ConnectionState, Cipher])
   );
   const Admin = AdminService.layer.pipe(Layer.provide([ClerkAdmin, Jobs]));
+  const AnalyticsCache = env.EDGE_CACHE_KV
+    ? makeAnalyticsCacheLayer(env.EDGE_CACHE_KV)
+    : makeMemoryAnalyticsCacheLayer();
+  const LiveInsights = LiveInsightsProviderLive.pipe(Layer.provide(Cipher));
+  const Analytics = AnalyticsService.layer.pipe(
+    Layer.provide([AnalyticsCache, LiveInsights])
+  );
+  const Billing = BillingService.layer;
+  const BillingTransfers = BillingOwnerTransfers.layer;
+  const BillingWebhooks = BillingWebhookApplication.layer;
+  const BillingReconcile = BillingReconciliation.layer;
+  const QuotaReservations = PooledQuotaReservations.layer;
 
   const RateLimiter =
     overrides.rateLimiter ??
@@ -115,7 +136,13 @@ export const makeBaseLayer = (
     Reviews,
     Media,
     Connections,
-    Admin
+    Admin,
+    Analytics,
+    Billing,
+    BillingTransfers,
+    BillingWebhooks,
+    BillingReconcile,
+    QuotaReservations
   ).pipe(
     Layer.provide(AsToken),
     Layer.provide(Config),

@@ -1,16 +1,12 @@
+import { Api } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
+import { AnalyticsService, WorkspaceAccessService } from "@delulu/services";
 import { Effect, Layer } from "effect";
-import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi";
-import { AnalyticsGroup } from "../../../packages/contracts/src/analytics";
-import { AnalyticsService } from "../../../packages/services/src/analytics";
-import { WorkspaceAccessService } from "../../../packages/services/src/workspace-access";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { AuthenticationLive } from "./auth-middleware";
 
-/** Standalone lane API; shared assembly should add AnalyticsGroup to Api. */
-export const AnalyticsApi = HttpApi.make("analyticsApi").add(AnalyticsGroup);
-
 export const AnalyticsHandlers = HttpApiBuilder.group(
-  AnalyticsApi,
+  Api,
   "analytics",
   Effect.fnUntraced(function* (handlers) {
     const analytics = yield* AnalyticsService;
