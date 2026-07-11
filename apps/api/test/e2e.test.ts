@@ -285,6 +285,18 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(await replay.json()).toEqual({ accepted: true, duplicate: true });
   });
 
+  it("acknowledges unrelated signed payment-provider event families", async () => {
+    const response = await postDodoWebhook(`refund_${crypto.randomUUID()}`, {
+      type: "refund.succeeded",
+      data: { payload_type: "Refund", refund_id: "refund_ignored" },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      accepted: true,
+      duplicate: false,
+    });
+  });
+
   it("GET /v1/me JIT-provisions and returns the user + personal workspace", async () => {
     const res = await get("/v1/me", "dev-token");
     expect(res.status).toBe(200);

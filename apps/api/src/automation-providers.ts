@@ -318,6 +318,9 @@ export const PaymentWebhookSinkLive = Layer.effect(
       type: string,
       rawData: unknown
     ) {
+      if (!(type.startsWith("subscription.") || type.startsWith("payment."))) {
+        return null;
+      }
       const data = providerData(rawData);
       if (!data) {
         return yield* invalidBillingPayload(
@@ -380,8 +383,6 @@ export const PaymentWebhookSinkLive = Layer.effect(
           },
         };
       }
-
-      return null;
     });
 
     return PaymentWebhookSink.of({
