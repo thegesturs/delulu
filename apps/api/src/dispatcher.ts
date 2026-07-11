@@ -56,10 +56,11 @@ const dispatchProgram = (env: Env) =>
             return;
           }
           case "ReclaimMedia": {
+            const mediaId = job.payload.mediaId;
             const referenced = yield* sql<{ exists: boolean }>`SELECT EXISTS(
               SELECT 1 FROM posts WHERE workspace_id = ${job.workspaceId} AND deleted_at IS NULL
               AND status IN ('draft','pending_review','changes_requested','scheduled','publishing')
-              AND content::text LIKE ${`%${job.payload.mediaId}%`}
+              AND content::text LIKE ${`%${mediaId}%`}
             ) AS exists`;
             if (referenced[0]?.exists) {
               yield* jobs.defer(
@@ -68,38 +69,47 @@ const dispatchProgram = (env: Env) =>
                 "Media remains referenced by an active post"
               );
             } else {
-              yield* sql`UPDATE media SET deleted_at = now() WHERE id = ${job.payload.mediaId} AND deleted_at IS NULL`;
-              yield* jobs.enqueue({
-                workspaceId: job.workspaceId,
-                payload: {
-                  _tag: "DeleteMediaObject",
-                  mediaId: job.payload.mediaId,
-                },
-                runAt: new Date(),
-                idempotencyKey: `delete-media:${job.payload.mediaId}`,
-              });
-              yield* jobs.complete(job.id);
+              yield* sql.withTransaction(
+                Effect.gen(function* () {
+                  yield* sql`UPDATE media SET deleted_at = now()
+                    WHERE id = ${mediaId} AND deleted_at IS NULL`;
+                  yield* jobs.enqueue({
+                    workspaceId: job.workspaceId,
+                    payload: {
+                      _tag: "DeleteMediaObject",
+                      mediaId,
+                    },
+                    runAt: new Date(),
+                    idempotencyKey: `delete-media:${mediaId}`,
+                  });
+                  yield* jobs.complete(job.id);
+                })
+              );
             }
             return;
           }
           case "SweepPendingMedia": {
-            const stale = yield* sql<{
-              id: string;
-            }>`UPDATE media SET deleted_at = now(), status = 'failed'
-              WHERE workspace_id = ${job.workspaceId} AND status = 'pending'
-                AND deleted_at IS NULL AND created_at < now() - interval '6 hours' RETURNING id`;
-            for (const media of stale) {
-              yield* jobs.enqueue({
-                workspaceId: job.workspaceId,
-                payload: {
-                  _tag: "DeleteMediaObject",
-                  mediaId: Schema.decodeUnknownSync(MediaId)(media.id),
-                },
-                runAt: new Date(),
-                idempotencyKey: `delete-media:${media.id}`,
-              });
-            }
-            yield* jobs.complete(job.id);
+            yield* sql.withTransaction(
+              Effect.gen(function* () {
+                const stale = yield* sql<{
+                  id: string;
+                }>`UPDATE media SET deleted_at = now(), status = 'failed'
+                  WHERE workspace_id = ${job.workspaceId} AND status = 'pending'
+                    AND deleted_at IS NULL AND created_at < now() - interval '6 hours' RETURNING id`;
+                for (const media of stale) {
+                  yield* jobs.enqueue({
+                    workspaceId: job.workspaceId,
+                    payload: {
+                      _tag: "DeleteMediaObject",
+                      mediaId: Schema.decodeUnknownSync(MediaId)(media.id),
+                    },
+                    runAt: new Date(),
+                    idempotencyKey: `delete-media:${media.id}`,
+                  });
+                }
+                yield* jobs.complete(job.id);
+              })
+            );
             return;
           }
           case "MirrorClerkMembership": {

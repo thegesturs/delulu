@@ -74,9 +74,17 @@ export class JobService extends Context.Service<
         }),
         Result: ClaimedJobRow,
         execute: ({ limit, leaseSeconds }) => sql`
-          WITH due AS (
+          WITH exhausted AS (
+            UPDATE jobs SET status = 'failed', locked_until = NULL,
+              last_error = COALESCE(last_error, 'Dispatch attempts exhausted')
+            WHERE status IN ('leased', 'dispatched')
+              AND locked_until < now() AND attempts >= max_attempts
+            RETURNING id
+          ), due AS (
             SELECT id FROM jobs
-            WHERE (status = 'pending' OR (status = 'leased' AND locked_until < now()))
+            WHERE (status = 'pending' OR (
+                status IN ('leased', 'dispatched') AND locked_until < now()
+              ))
               AND run_at <= now() AND attempts < max_attempts
             ORDER BY run_at, created_at
             FOR UPDATE SKIP LOCKED
@@ -99,7 +107,8 @@ export class JobService extends Context.Service<
           Effect.orDie
         );
       const markDispatched = (id: string) =>
-        sql`UPDATE jobs SET status = 'dispatched', locked_until = NULL WHERE id = ${id}`.pipe(
+        sql`UPDATE jobs SET status = 'dispatched',
+          locked_until = now() + interval '15 minutes' WHERE id = ${id}`.pipe(
           Effect.asVoid,
           Effect.orDie
         );
