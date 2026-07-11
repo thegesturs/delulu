@@ -28,7 +28,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FaFacebookF } from "react-icons/fa6";
 import { toast } from "sonner";
-import { api } from "@/trpc/react";
 
 interface FacebookPageSelectProps {
   pages: FacebookPagePublic[];
@@ -48,31 +47,17 @@ function formatNumber(num?: number): string {
   return num.toString();
 }
 
-export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
+export function FacebookPageSelect({
+  pages,
+  code: _code,
+}: FacebookPageSelectProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const router = useRouter();
   const analytics = useAnalytics();
 
-  const { mutate: connectPage, isPending } =
-    api.socialProvider.connectFacebookPage.useMutation({
-      onSuccess: () => {
-        analytics.capture(SOCIAL_ACCOUNT_CONNECTED, {
-          provider: "facebook",
-        });
-        router.push("/socials?success=true&provider=facebook");
-      },
-      onError: (error) => {
-        analytics.capture(SOCIAL_ACCOUNT_CONNECTION_FAILED, {
-          provider: "facebook",
-          error_type: String(error),
-        });
-        router.push(
-          `/socials?error=${error}&code=FACEBOOK_006&provider=facebook`
-        );
-      },
-    });
+  const isPending = false;
 
   const handleCancel = () => {
     setIsCancelling(true);
@@ -86,11 +71,13 @@ export function FacebookPageSelect({ pages, code }: FacebookPageSelectProps) {
       return;
     }
 
-    connectPage({
-      pageId: selectedPage.id,
-      pageName: selectedPage.name,
-      code,
+    analytics.capture(SOCIAL_ACCOUNT_CONNECTION_FAILED, {
+      provider: "facebook",
+      error_type: "page_selection_not_supported",
     });
+    toast.error(
+      "Facebook page selection is not available in this milestone. Reconnect from Connected Accounts when page selection support is enabled."
+    );
   };
 
   const filteredPages = pages.filter(

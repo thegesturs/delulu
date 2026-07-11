@@ -2,7 +2,6 @@
 
 import { BULK_UPLOAD_SCHEDULED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { api } from "@delulu/database/convex/_generated/api";
 import {
   Alert,
   AlertDescription,
@@ -21,9 +20,9 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import {
   useMutation as useApiMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useQuery } from "convex-helpers/react/cache";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
@@ -113,7 +112,7 @@ type PlatformSettingsValue =
     };
 
 function defaultPlatformSettings(
-  platform: SelectedProvider["socialType"],
+  platform: SelectedProvider["socialType"]
 ): PlatformSettingsValue {
   switch (platform) {
     case "BLUESKY":
@@ -176,7 +175,9 @@ export function BulkUploadPage() {
   const bulkCreate = useApiMutation({
     ...resources.posts.bulkCreate(workspaceId ?? ""),
     onSuccess: async () => {
-      if (!workspaceId) return;
+      if (!workspaceId) {
+        return;
+      }
       await queryClient.invalidateQueries({
         queryKey: resources.posts.list(workspaceId).queryKey,
       });
@@ -186,22 +187,25 @@ export function BulkUploadPage() {
   const analytics = useAnalytics();
   const { requiresApproval, isViewer } = usePermissions();
 
-  const user = useQuery(api.users.current);
-  const monthlyPostsCount = user?.usage?.monthlyPosts || 0;
+  const usage = useQuery({
+    ...resources.billing.usage(workspaceId ?? ""),
+    enabled: Boolean(workspaceId),
+  });
+  const monthlyPostsCount = usage.data?.usage.monthlyPosts ?? 0;
   const monthlyPostsLimit = useUsageLimit("monthlyPosts", monthlyPostsCount);
   const postsRemaining = monthlyPostsLimit.isUnlimited
-    ? Infinity
+    ? Number.POSITIVE_INFINITY
     : Math.max(0, (monthlyPostsLimit.limit ?? 0) - monthlyPostsCount);
 
   const isSubmitting = state.submissionStatus === "submitting";
   const allUploaded = state.videos.every(
-    (video) => video.uploadStatus === "uploaded" && video.uploadResult?.mediaId,
+    (video) => video.uploadStatus === "uploaded" && video.uploadResult?.mediaId
   );
   const hasVideos = state.videos.length > 0;
   const hasProviders = state.selectedProviders.length > 0;
   const hasSchedule = state.startDate !== null;
   const hasValidationErrors = state.videos.some(
-    (v) => v.validationErrors.length > 0,
+    (v) => v.validationErrors.length > 0
   );
   const exceedsLimit =
     !monthlyPostsLimit.isUnlimited && state.videos.length > postsRemaining;
@@ -218,7 +222,9 @@ export function BulkUploadPage() {
 
   // Warn before closing with in-progress work
   useEffect(() => {
-    if (!hasVideos) return;
+    if (!hasVideos) {
+      return;
+    }
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
     };
@@ -240,7 +246,7 @@ export function BulkUploadPage() {
             const result = await validateVideo(video.file, rules);
             if (!result.isValid) {
               errors.push(
-                ...result.errors.map((e) => `${provider.socialType}: ${e}`),
+                ...result.errors.map((e) => `${provider.socialType}: ${e}`)
               );
             }
           }
@@ -288,7 +294,7 @@ export function BulkUploadPage() {
           });
       }
     },
-    [uploadAndSaveMedia],
+    [uploadAndSaveMedia]
   );
 
   const handleToggleProvider = useCallback((provider: SelectedProvider) => {
@@ -296,7 +302,9 @@ export function BulkUploadPage() {
   }, []);
 
   const handleScheduleAll = useCallback(async () => {
-    if (!canSubmit || !state.startDate || !workspaceId) return;
+    if (!(canSubmit && state.startDate && workspaceId)) {
+      return;
+    }
     const startDate = state.startDate;
 
     dispatch({ type: "SET_SUBMISSION_STATUS", status: "submitting" });
@@ -304,14 +312,15 @@ export function BulkUploadPage() {
     let successCount = 0;
     let failCount = 0;
 
-    for (const video of state.videos)
+    for (const video of state.videos) {
       dispatch({ type: "SET_POST_STATUS", id: video.id, status: "creating" });
+    }
     try {
       const results = await bulkCreate.mutateAsync(
         state.videos.map((video, index) => {
           const groupId = crypto.randomUUID();
           const scheduledAt = new Date(
-            computeScheduledAt(index, startDate, state.intervalMinutes),
+            computeScheduledAt(index, startDate, state.intervalMinutes)
           ).toISOString();
           return {
             groups: [
@@ -337,23 +346,29 @@ export function BulkUploadPage() {
             source: "app" as const,
             submitForReview: requiresApproval,
           };
-        }),
+        })
       );
       results.forEach((result, index) => {
         const video = state.videos[index];
-        if (!video) return;
+        if (!video) {
+          return;
+        }
         dispatch({
           type: "SET_POST_STATUS",
           id: video.id,
           status: result.ok ? "created" : "failed",
         });
-        if (result.ok) successCount++;
-        else failCount++;
+        if (result.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
       });
     } catch {
       failCount = state.videos.length;
-      for (const video of state.videos)
+      for (const video of state.videos) {
         dispatch({ type: "SET_POST_STATUS", id: video.id, status: "failed" });
+      }
     }
 
     analytics.capture(BULK_UPLOAD_SCHEDULED, {
@@ -371,7 +386,7 @@ export function BulkUploadPage() {
     } else {
       dispatch({ type: "SET_SUBMISSION_STATUS", status: "partial-failure" });
       toast.error(
-        `${successCount} scheduled, ${failCount} failed. You can retry the failed ones.`,
+        `${successCount} scheduled, ${failCount} failed. You can retry the failed ones.`
       );
     }
   }, [
@@ -436,8 +451,7 @@ export function BulkUploadPage() {
               <InlineUpgradePrompt feature="monthlyPosts" requiredPlan="VIBE" />
             )}
 
-            {!monthlyPostsLimit.isUnlimited &&
-              !exceedsLimit &&
+            {!(monthlyPostsLimit.isUnlimited || exceedsLimit) &&
               hasVideos &&
               monthlyPostsLimit.percentageUsed >= 60 && (
                 <Alert>

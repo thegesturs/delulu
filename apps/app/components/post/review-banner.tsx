@@ -49,7 +49,7 @@ export function ReviewBanner({
         "p-2 transition-colors",
         isPending && "border-amber-300 dark:border-amber-700",
         isRejected && "border-red-300 dark:border-red-700",
-        isApproved && "border-green-300 dark:border-green-700",
+        isApproved && "border-green-300 dark:border-green-700"
       )}
     >
       <CardContent className="p-2">

@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   Tabs,
   TabsContent,
@@ -10,11 +8,12 @@ import {
 } from "@delulu/design-system/components/ui/tabs";
 import { cn } from "@delulu/design-system/lib/utils";
 import { SocialTypes } from "@delulu/validators/post";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { NodePositions } from "@/components/automations/flow-builder/hooks/use-automation-state";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { getSingleProviderInDefault } from "@/lib/platform-rules";
 import {
   useAlternativeContent,
@@ -42,6 +41,8 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
 
   // Get single provider in default for smart labeling (memoized for performance)
   const singleProviderInDefault = useMemo(
@@ -50,17 +51,17 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   );
 
   // Fetch post data if in edit mode
-  const postData = useQuery(
-    api.posts.getPostById,
-    postId ? { id: postId as Id<"posts"> } : "skip"
-  );
+  const postData = useQuery({
+    ...resources.posts.get(workspaceId ?? "", postId ?? ""),
+    enabled: Boolean(workspaceId && postId),
+  });
 
   // Load post data into store when fetched
   useEffect(() => {
-    if (postData && postId) {
-      loadPost(postData);
+    if (postData.data && postId) {
+      loadPost(postData.data);
     }
-  }, [postData, postId, loadPost]);
+  }, [postData.data, postId, loadPost]);
 
   // Handle scheduledAt query parameter from calendar
   useEffect(() => {
@@ -87,53 +88,6 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     }
   }, [postId]);
 
-  // Preload automation configs for edit mode so indicators show immediately
-  const allAutomations = useQuery(
-    api.automations.getAutomations,
-    postId ? {} : "skip"
-  );
-  const hasPreloaded = useRef(false);
-  const setAutomationConfig = useStore((state) => state.setAutomationConfig);
-
-  useEffect(() => {
-    if (hasPreloaded.current || !postId || !allAutomations || !postData) {
-      return;
-    }
-
-    const instagramProviders = postData.socialProviders.filter(
-      (p) => p.socialType === "INSTAGRAM"
-    );
-
-    for (const provider of instagramProviders) {
-      // Skip if config already loaded (e.g. from instagram-settings)
-      if (useStore.getState().automationConfigs[provider._id]) {
-        continue;
-      }
-
-      const linked = allAutomations.find(
-        (a) =>
-          a.socialProviderId === provider._id &&
-          a.triggers.some((t) => t.pendingPostIds?.includes(postId))
-      );
-
-      if (linked) {
-        setAutomationConfig(provider._id, {
-          templateSlug: "",
-          socialProviderId: provider._id,
-          name: linked.name,
-          triggers: linked.triggers,
-          steps: linked.steps,
-          notes: linked.notes ?? [],
-          nodePositions: (linked.nodePositions as NodePositions) ?? {},
-          isActive: linked.isActive,
-          existingAutomationId: linked._id,
-        });
-      }
-    }
-
-    hasPreloaded.current = true;
-  }, [postId, allAutomations, postData, setAutomationConfig]);
-
   const handleTabChange = useCallback(
     (value: string) => {
       if (value !== activeModuleId) {
@@ -156,7 +110,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }, [alternativeContent, activeModuleId]);
 
   // Show loading state while fetching post data
-  if (postId && !postData) {
+  if (postId && postData.isPending) {
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
@@ -173,7 +127,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     <div className="flex h-full flex-col gap-4 pb-20 lg:flex-row lg:pb-0">
       <div className="flex-1">
         {/* Show warning if post is already published */}
-        {postData && postData.status === "PUBLISHED" && (
+        {postData.data?.status === "published" && (
           <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-800">
             <h3 className="font-semibold">
               Warning: This post has already been published
@@ -187,12 +141,12 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         )}
 
         {/* Review status banner for org posts */}
-        {postData?.organizationId && (
+        {postData.data?.workspaceId && (
           <div className="mb-4">
             <ReviewBanner
-              organizationId={postData.organizationId}
-              postId={postData._id}
-              reviewStatus={postData.reviewStatus}
+              organizationId={postData.data.workspaceId}
+              postId={postData.data.id}
+              reviewStatus=""
             />
           </div>
         )}
@@ -266,7 +220,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       </div>
       <div className="hidden lg:block">
         <PostSidebar
-          organizationId={postData?.organizationId}
+          organizationId={postData.data?.workspaceId}
           postId={postId}
         />
       </div>

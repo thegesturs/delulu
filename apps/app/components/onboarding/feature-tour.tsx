@@ -1,14 +1,12 @@
 "use client";
 
-import { useUser } from "@delulu/auth";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useOnboarding } from "@/hooks/use-onboarding";
 
 export function FeatureTour() {
-  const { user } = useUser();
   const router = useRouter();
   const { handleCompleteTour } = useOnboarding();
 
@@ -110,29 +108,6 @@ export function FeatureTour() {
 
     driverObj.drive();
   }, [router, handleCompleteTour]);
-
-  useEffect(() => {
-    // Check if user should see the tour
-    const metadata = user?.publicMetadata as {
-      onboardingComplete?: boolean;
-      tourCompleted?: boolean;
-      tourDismissed?: boolean;
-    };
-
-    const shouldShowTour =
-      metadata?.onboardingComplete &&
-      !metadata?.tourCompleted &&
-      !metadata?.tourDismissed;
-
-    if (shouldShowTour) {
-      // Small delay to ensure DOM is ready
-      const timeoutId = setTimeout(() => {
-        startTour();
-      }, 500);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [user, startTour]);
 
   // This component doesn't render anything
   return null;

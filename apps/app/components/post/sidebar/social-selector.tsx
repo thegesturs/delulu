@@ -1,7 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +19,7 @@ import {
 } from "@delulu/validators/constants/settings";
 import type { SocialType } from "@delulu/validators/post";
 import { Settings01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -32,13 +30,14 @@ import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { IoCheckmarkCircle } from "react-icons/io5";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import {
   postActions,
   useAutomationConfig,
   useSelectedSocialProviders,
   useStore,
 } from "@/store/post";
-import { api as trpcApi } from "@/trpc/react";
 import { PlatformSettingsDialog } from "./platform-settings-dialog";
 import { SocialIcon } from "./social-icon";
 
@@ -49,19 +48,23 @@ interface SocialSelectorItemProps {
 }
 
 export default function SocialSelector() {
-  const socialProviders = useQuery(api.social_providers.getConnectedAccounts);
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const socialProviders = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+  });
+  const accounts = socialProviders.data?.data ?? [];
   const selectedProviders = useSelectedSocialProviders();
 
   // Validate that selected providers still exist in the database
   const validatedSelectedProviders = useMemo(() => {
-    if (!socialProviders) {
+    if (!socialProviders.data) {
       return selectedProviders;
     }
 
-    const validIds = new Set(socialProviders.map((p) => p._id));
-    const valid = selectedProviders.filter((p) =>
-      validIds.has(p.socialId as Id<"socialProviders">)
-    );
+    const validIds = new Set(accounts.map((p) => p.id));
+    const valid = selectedProviders.filter((p) => validIds.has(p.socialId));
 
     // Clean up if mismatch detected
     if (valid.length !== selectedProviders.length) {
@@ -71,11 +74,11 @@ export default function SocialSelector() {
     }
 
     return valid;
-  }, [socialProviders, selectedProviders]);
+  }, [accounts, socialProviders.data, selectedProviders]);
 
   // Show warning if providers were removed
   useEffect(() => {
-    if (!socialProviders) {
+    if (!socialProviders.data) {
       return;
     }
 
@@ -105,12 +108,14 @@ export default function SocialSelector() {
         <motion.div className="grid grid-cols-1 gap-1 md:grid-cols-2">
           <LayoutGroup>
             <AnimatePresence initial={false} mode="popLayout">
-              {socialProviders?.map((account) => (
+              {accounts.map((account) => (
                 <SocialSelectorItem
-                  key={account._id}
-                  name={account.fullName ?? account.username}
-                  socialId={account._id}
-                  socialProvider={account.socialType}
+                  key={account.id}
+                  name={
+                    account.displayName ?? account.username ?? account.profileId
+                  }
+                  socialId={account.id}
+                  socialProvider={account.platform as SocialType}
                 />
               ))}
             </AnimatePresence>
@@ -139,9 +144,6 @@ function SocialSelectorItem({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
-  // Prefetch TikTok creator info
-  const utils = trpcApi.useUtils();
-
   const isSelected = selectedSocialProviders?.some(
     (account) => account.socialId === socialId
   );
@@ -158,13 +160,6 @@ function SocialSelectorItem({
         postActions.removeSocialProvider(socialId);
       }
     } else {
-      // Prefetch TikTok creator info when selected
-      if (socialProvider === "TIKTOK") {
-        utils.socialProvider.getTikTokCreatorInfo.prefetch({
-          socialProviderId: socialId,
-        });
-      }
-
       postActions.addSocialProvider({
         socialId,
         name,

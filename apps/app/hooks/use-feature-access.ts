@@ -4,9 +4,10 @@
  * Checks if the current user has access to a specific feature based on their plan
  */
 
-import { api } from "@delulu/database/convex/_generated/api";
-import type { PlanType } from "@delulu/payments";
-import { useQuery } from "convex/react";
+import { getPlan, type PlanType, resolvePlanType } from "@delulu/payments";
+import { useQuery } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 
 export type Feature = "postScheduling" | "prioritySupport";
 
@@ -19,17 +20,21 @@ export interface UseFeatureAccessReturn {
 }
 
 export function useFeatureAccess(feature: Feature): UseFeatureAccessReturn {
-  const access = useQuery(api.subscriptions.checkFeatureAccess, { feature });
-
-  const isLoading = access === undefined;
-  const isChecking = access === null;
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const subscription = useQuery({
+    ...resources.billing.subscription(workspaceId ?? ""),
+    enabled: Boolean(workspaceId),
+  });
+  const planType = resolvePlanType(subscription.data?.plan);
+  const hasAccess = getPlan(planType).features[feature];
 
   return {
-    hasAccess: access?.hasAccess ?? false,
-    needsUpgrade: access?.needsUpgrade ?? true,
-    planType: access?.planType || "FREE",
-    isLoading,
-    isChecking,
+    hasAccess,
+    needsUpgrade: !hasAccess,
+    planType,
+    isLoading: subscription.isPending,
+    isChecking: subscription.isFetching,
   };
 }
 

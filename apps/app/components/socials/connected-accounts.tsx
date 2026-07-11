@@ -32,7 +32,9 @@ export default function ConnectedAccounts() {
   const removeConnection = useMutation({
     ...resources.connections.remove(workspaceId ?? ""),
     onSuccess: async () => {
-      if (!workspaceId) return;
+      if (!workspaceId) {
+        return;
+      }
       await queryClient.invalidateQueries({
         queryKey: resources.connections.list(workspaceId).queryKey,
       });
@@ -63,20 +65,20 @@ export default function ConnectedAccounts() {
           (filterStatus === "expiring" && expiring);
         return matchesSearch && matchesPlatform && matchesStatus;
       }),
-    [accounts.data, filterPlatform, filterStatus, searchQuery],
+    [accounts.data, filterPlatform, filterStatus, searchQuery]
   );
 
   const stats = useMemo(() => {
     const now = Date.now();
     const values = accounts.data?.data ?? [];
     const expired = values.filter(
-      (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now,
+      (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now
     ).length;
     const expiring = values.filter(
       (item) =>
         item.expiresAt &&
         new Date(item.expiresAt).getTime() > now &&
-        new Date(item.expiresAt).getTime() - now <= 7 * 86_400_000,
+        new Date(item.expiresAt).getTime() - now <= 7 * 86_400_000
     ).length;
     return {
       total: values.length,
@@ -103,13 +105,14 @@ export default function ConnectedAccounts() {
     }
   };
 
-  if (isWorkspacePending || accounts.isPending)
+  if (isWorkspacePending || accounts.isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
         Loading accounts...
       </div>
     );
-  if (accounts.isError || !workspaceId)
+  }
+  if (accounts.isError || !workspaceId) {
     return (
       <div className="m-6 rounded-lg border border-destructive/40 p-4 text-destructive">
         <p>
@@ -125,6 +128,7 @@ export default function ConnectedAccounts() {
         </Button>
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">

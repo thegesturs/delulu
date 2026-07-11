@@ -1,8 +1,9 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
 
@@ -44,7 +45,21 @@ export function usePreviewData(
 ) {
   const storePost = usePost();
   const selectedProviders = useSelectedSocialProviders();
-  const connectedAccounts = useQuery(api.social_providers.getConnectedAccounts);
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const connections = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+  });
+  const connectedAccounts = (connections.data?.data ?? []).map(
+    (connection) => ({
+      ...connection,
+      _id: connection.id,
+      fullName:
+        connection.displayName ?? connection.username ?? connection.profileId,
+      profileImage: undefined as string | undefined,
+    })
+  );
 
   // When post data is passed, derive from it instead of the store
   if (postData) {
@@ -67,7 +82,7 @@ export function usePreviewData(
       hasImage,
       allMedia,
       provider: provider
-        ? (connectedAccounts?.find((a) => a._id === provider._id) ?? provider)
+        ? (connectedAccounts.find((a) => a.id === provider._id) ?? provider)
         : undefined,
     };
   }
@@ -76,8 +91,8 @@ export function usePreviewData(
     (provider) => provider.socialType === socialType
   );
 
-  const provider = connectedAccounts?.find(
-    (account) => account._id === selectedProvider?.socialId
+  const provider = connectedAccounts.find(
+    (account) => account.id === selectedProvider?.socialId
   );
 
   const content = storePost.content[0];

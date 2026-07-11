@@ -1,6 +1,5 @@
 "use client";
 
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import {
   AnimatedTabs as Tabs,
   AnimatedTabsContent as TabsContent,
@@ -115,7 +114,7 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
         {showActivity && (
           <TabsContent className="mt-0" value="activity">
             <CardContent className="px-1 pt-4">
-              <ReviewActivity postId={postId as Id<"posts">} />
+              <ReviewActivity postId={postId} />
             </CardContent>
           </TabsContent>
         )}

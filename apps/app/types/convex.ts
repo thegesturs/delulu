@@ -1,59 +1,146 @@
-import type { api } from "@delulu/database/convex/_generated/api";
-import type { Doc, Id } from "@delulu/database/convex/_generated/dataModel";
-import type { FunctionReturnType } from "convex/server";
+/** Compatibility view types used while UI components move to the typed HTTP API. */
+export type PostStatus =
+  | "SAVED"
+  | "SCHEDULED"
+  | "PUBLISHED"
+  | "DELETED"
+  | "FAILED"
+  | "PROCESSING";
+export type SocialType =
+  | "BLUESKY"
+  | "FACEBOOK"
+  | "FARCASTER"
+  | "INSTAGRAM"
+  | "LINKEDIN"
+  | "PINTEREST"
+  | "THREADS"
+  | "TIKTOK"
+  | "TWITTER"
+  | "YOUTUBE";
 
-// Re-export imported types for convenience
-export type { PostStatus, SocialType } from "@delulu/database/convex/utils";
+export interface Post {
+  readonly id: string;
+  readonly _id: string;
+  readonly workspaceId: string;
+  readonly organizationId?: string;
+  readonly status: PostStatus;
+  readonly groups: readonly {
+    readonly id: string;
+    readonly isDefault: boolean;
+    readonly segments: readonly {
+      readonly text: string;
+      readonly media: readonly {
+        readonly id: string;
+        readonly altText?: string;
+      }[];
+    }[];
+  }[];
+  readonly targets: readonly PostTarget[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly scheduledAt?: number;
+  readonly content: readonly LegacyContent[];
+  readonly socialProviders?: readonly SocialProvider[];
+  readonly reviewStatus?: string;
+  readonly postFailureReason?: string;
+  readonly platformPosts?: readonly {
+    readonly socialProviderId: string;
+    readonly platformPostUrl?: string;
+    readonly failureReason?: string;
+  }[];
+}
 
-// Raw post type from Convex
-export type PostDoc = NonNullable<
-  FunctionReturnType<typeof api.posts.getPostById>
->;
-export type PostId = Id<"posts">;
+export interface PostTarget {
+  readonly id: string;
+  readonly connectionId: string;
+  readonly status: "pending" | "publishing" | "published" | "failed";
+  readonly scheduledAt: string | null;
+  readonly platformPostUrl: string | null;
+  readonly error: string | null;
+}
 
-// Post type as returned by getPosts function (now returns raw postSchema documents)
-export type Post = PostDoc;
-export type SocialProvider = Doc<"socialProviders">;
+export interface LegacyContent {
+  readonly text: string;
+  readonly media: readonly Media[];
+  readonly name?: string;
+}
 
-// User types
-export type User = Doc<"users">;
-export type UserId = Id<"users">;
+export interface SocialProvider {
+  readonly id: string;
+  readonly _id?: string;
+  readonly platform: string;
+  readonly socialType: SocialType;
+  readonly displayName: string | null;
+  readonly fullName: string;
+  readonly username: string | null;
+  readonly profileId: string;
+  readonly profilePicture?: string;
+  readonly profileImage?: string;
+  readonly isActive?: boolean;
+  readonly expiresAt: string | null;
+}
 
-// Media types
-export type Media = Doc<"media">;
-export type MediaId = Id<"media">;
-
-// Automation types
-export type Automation = Doc<"automations">;
-export type AutomationId = Id<"automations">;
-export type AutomationLog = Doc<"automationLogs">;
-
-// Layout types for components
+export type PostId = string;
+export type UserId = string;
+export type MediaId = string;
+export type AutomationId = string;
+export interface User {
+  readonly id: string;
+  readonly name?: string;
+}
+export interface Media {
+  readonly id: string;
+  readonly url?: string;
+  readonly bucketKey: string;
+  readonly type?: string;
+  readonly mediaType?: "IMAGE" | "VIDEO" | "DOCUMENT";
+  readonly altText?: string;
+}
+export interface Automation {
+  readonly id: string;
+  readonly name: string;
+}
+export interface AutomationLog {
+  readonly id: string;
+  readonly createdAt: string;
+}
 export type PostLayout = "grid" | "list";
 
-// Stats types
-export type DashboardStats = NonNullable<
-  FunctionReturnType<typeof api.stats.getDashboardStats>
->;
-
-// Enriched post types for stats queries that include populated socialProviders
-export type FailedPost = NonNullable<
-  FunctionReturnType<typeof api.stats.getFailedPosts>
->[0];
-
-export type UpcomingPost = NonNullable<
-  FunctionReturnType<typeof api.stats.getUpcomingPosts>
->[0];
-
-// Analytics types
-export type AccountInsight = Doc<"accountInsights">;
-export type MediaInsight = Doc<"mediaInsights">;
-export type AnalyticsSyncState = Doc<"analyticsSyncState">;
-
-export type AccountOverview = NonNullable<
-  FunctionReturnType<typeof api.analytics.getAccountOverview>
->;
-
-export type TopPosts = NonNullable<
-  FunctionReturnType<typeof api.analytics.getTopPosts>
->;
+export interface DashboardStats {
+  readonly totalPosts: number;
+  readonly publishedPosts: number;
+  readonly scheduledPosts: number;
+  readonly failedPosts: number;
+  readonly totalSocialAccounts: number;
+  readonly totalAutomations: number;
+  readonly publishedCount: number;
+  readonly scheduledCount: number;
+  readonly failedCount: number;
+  readonly savedCount: number;
+  readonly processingCount: number;
+  readonly upcomingPosts: number;
+  readonly postingStreak: number;
+  readonly longestStreak: number;
+  readonly connectedAccounts: number;
+  readonly expiredTokens: number;
+}
+export type FailedPost = Post;
+export type UpcomingPost = Post;
+export interface AccountInsight {
+  readonly id: string;
+  readonly value: number;
+}
+export interface MediaInsight {
+  readonly id: string;
+  readonly value: number;
+}
+export interface AnalyticsSyncState {
+  readonly updatedAt: string;
+  readonly stale: boolean;
+}
+export interface AccountOverview {
+  readonly data: readonly AccountInsight[];
+}
+export interface TopPosts {
+  readonly data: readonly MediaInsight[];
+}

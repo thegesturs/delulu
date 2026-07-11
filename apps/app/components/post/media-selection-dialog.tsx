@@ -74,7 +74,7 @@ function MediaGridItem({
           "cursor-not-allowed border-border opacity-50": !(
             canSelect || isSelected
           ),
-        },
+        }
       )}
       initial={{ opacity: 0, scale: 0.9 }}
       onClick={() => (isSelected || canSelect) && onMediaSelect(media)}
@@ -289,7 +289,7 @@ export function MediaSelectionDialog({
     const validation = canAddMediaType(
       socialType,
       media.mediaType,
-      allCurrentMedia,
+      allCurrentMedia
     );
     return validation.canAdd;
   };

@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@delulu/database/convex/_generated/api";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add01Icon,
@@ -14,15 +13,22 @@ import {
   ShareIcon,
   UserIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "convex-helpers/react/cache";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
 
 export function TikTokPreview() {
   const post = usePost();
   const selectedProviders = useSelectedSocialProviders();
-  const connectedAccounts = useQuery(api.social_providers.getConnectedAccounts);
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const connectedAccounts = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+  });
 
   // Find the selected TikTok provider ID
   const selectedTikTokProvider = selectedProviders.find(
@@ -30,9 +36,12 @@ export function TikTokPreview() {
   );
 
   // Get the full TikTok provider data from connected accounts
-  const tiktokProvider = connectedAccounts?.find(
-    (account) => account._id === selectedTikTokProvider?.socialId
+  const connection = connectedAccounts.data?.data.find(
+    (account) => account.id === selectedTikTokProvider?.socialId
   );
+  const tiktokProvider = connection
+    ? { username: connection.username, profileImage: undefined }
+    : undefined;
 
   // Get the first content item for preview
   const content = post.content[0];

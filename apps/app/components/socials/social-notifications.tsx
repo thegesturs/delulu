@@ -5,9 +5,11 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { useMutation } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { api } from "@/trpc/react";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
 import { SocialError } from "../error/social-error";
 
 const ERROR_MESSAGES = {
@@ -77,6 +79,8 @@ function SocialNotificationsContent() {
   const [visible, setVisible] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const analytics = useAnalytics();
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
   const trackedRef = useRef(false);
 
   // Reset visibility when search params change
@@ -113,11 +117,9 @@ function SocialNotificationsContent() {
   }, [success, error, provider, analytics]);
 
   // Fetch the connect URL if we have a provider and might need to retry
-  const { data: connectUrl } =
-    api.socialProvider.getSocialProviderConnectUrl.useQuery(
-      { provider: provider! },
-      { enabled: !!provider && !!error }
-    );
+  const connect = useMutation(
+    resources.connections.mint(workspaceId ?? "", provider ?? "TWITTER")
+  );
 
   if (!visible) {
     return null;
@@ -129,8 +131,9 @@ function SocialNotificationsContent() {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
-    if (providerToUse && connectUrl) {
-      window.location.href = connectUrl;
+    if (providerToUse && workspaceId) {
+      const result = await connect.mutateAsync({ includeInsights: true });
+      window.location.href = result.url;
     }
   };
 

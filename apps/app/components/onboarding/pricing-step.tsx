@@ -24,8 +24,8 @@ export function PricingStep() {
           Choose Your Plan
         </h2>
         <p className="text-lg text-muted-foreground tracking-tight">
-          Pick Echo or Vibe to unlock scheduling and auto-DMs. 14-day
-          money-back guarantee.
+          Pick Echo or Vibe to unlock scheduling and auto-DMs. 14-day money-back
+          guarantee.
         </p>
       </motion.div>
 

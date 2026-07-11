@@ -1,5 +1,3 @@
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import type { GetPostByIdSchema } from "@delulu/database/convex/schemas/posts_media";
 import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
 import type {
   FullPostType,
@@ -65,7 +63,25 @@ interface PostActions {
     providerId: string,
     config: InlineAutomationConfig | null
   ) => void;
-  loadPost: (postData: GetPostByIdSchema) => void;
+  loadPost: (postData: {
+    id: string;
+    workspaceId: string;
+    groups: readonly {
+      readonly isDefault: boolean;
+      readonly segments: readonly {
+        readonly text: string;
+        readonly media: readonly {
+          readonly id: string;
+          readonly altText?: string;
+        }[];
+      }[];
+    }[];
+    targets: readonly {
+      readonly connectionId: string;
+      readonly scheduledAt: string | null;
+      readonly settings: ProviderSetting["settings"];
+    }[];
+  }) => void;
   cleanupDeletedProviders: (validProviderIds: string[]) => void;
   reset: () => void;
 }
@@ -166,60 +182,47 @@ export const useStore = create<PostState & PostActions>()(
             };
           }),
         loadPost: (postData) => {
-          // Map Convex post data to store format
+          const defaultGroup =
+            postData.groups.find((group) => group.isDefault) ??
+            postData.groups[0];
+          const scheduledAt =
+            postData.targets.find((target) => target.scheduledAt)
+              ?.scheduledAt ?? null;
           const mappedPost: FullPostType = {
-            id: postData._id,
-            content: postData.content.map((content) => ({
-              ...content,
-              tags: content.tags || [],
-            })),
-            alternativeContent: postData.alternativeContent.map((alt) => ({
-              content: alt.content.map((content) => ({
-                ...content,
-                tags: content.tags || [],
+            id: postData.id,
+            content: (defaultGroup?.segments ?? []).map((segment, order) => ({
+              title: "",
+              text: segment.text,
+              media: segment.media.map((media) => ({
+                id: media.id,
+                url: "",
+                type: "IMAGE" as const,
               })),
-              socialProvider: {
-                name: alt.socialProvider.fullName,
-                socialId: alt.socialProvider._id,
-                socialType: alt.socialProvider.socialType,
-              },
+              name: order === 0 ? "DEFAULT" : `PART_${order + 1}`,
+              order,
+              tags: [],
             })),
-            scheduledTime: postData.scheduledAt
-              ? new Date(postData.scheduledAt)
-              : undefined,
-            orgId: postData.organizationId || "",
+            alternativeContent: [],
+            scheduledTime: scheduledAt ? new Date(scheduledAt) : undefined,
+            orgId: postData.workspaceId,
           };
 
           // Set scheduled date/time if exists
-          const scheduledDate = postData.scheduledAt
-            ? new Date(postData.scheduledAt)
-            : undefined;
+          const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
 
           // Load provider settings if they exist
           const providerSettings: Record<string, ProviderSetting> = {};
-          if (postData.providerSettings) {
-            postData.providerSettings.forEach((setting) => {
-              // Only add valid provider settings
-              if (
-                setting.type &&
-                setting.socialProviderId &&
-                setting.settings
-              ) {
-                providerSettings[setting.socialProviderId] =
-                  setting as ProviderSetting;
-              }
-            });
+          for (const target of postData.targets) {
+            providerSettings[target.connectionId] = {
+              socialProviderId: target.connectionId,
+              type: target.settings.platform,
+              settings: target.settings.values,
+            } as ProviderSetting;
           }
 
           set({
             post: mappedPost,
-            selectedSocialProviders: postData.socialProviders.map(
-              (provider) => ({
-                name: provider.fullName,
-                socialId: provider._id,
-                socialType: provider.socialType,
-              })
-            ),
+            selectedSocialProviders: [],
             date: scheduledDate,
             time: scheduledDate
               ? `${scheduledDate.getHours().toString().padStart(2, "0")}:${scheduledDate.getMinutes().toString().padStart(2, "0")}`
@@ -311,7 +314,7 @@ export const getProviderSettingsForConvex = () => {
 
   return values.map((setting) => ({
     type: setting.type,
-    socialProviderId: setting.socialProviderId as Id<"socialProviders">,
+    socialProviderId: setting.socialProviderId,
     settings: setting.settings,
   }));
 };
