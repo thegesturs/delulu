@@ -1,5 +1,9 @@
 import { getValidMediaUrls } from "@delulu/validators/post";
-import type { PlatformRules, ValidateInput, ValidationResult } from "../../types";
+import type {
+  PlatformRules,
+  ValidateInput,
+  ValidationResult,
+} from "../../types";
 import { CHARACTER_LIMIT, MAX_IMAGES } from "./constants";
 
 /**

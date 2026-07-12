@@ -1,5 +1,9 @@
 import { getValidMediaUrls } from "@delulu/validators/post";
-import type { PlatformRules, ValidateInput, ValidationResult } from "../../types";
+import type {
+  PlatformRules,
+  ValidateInput,
+  ValidationResult,
+} from "../../types";
 import { CAPTION_LIMIT, MAX_CAROUSEL_IMAGES } from "./constants";
 
 /**
@@ -21,7 +25,9 @@ export const instagramRules: PlatformRules = {
     const errors: string[] = [];
 
     if (input.text.length > CAPTION_LIMIT) {
-      errors.push(`Caption exceeds Instagram's ${CAPTION_LIMIT} character limit`);
+      errors.push(
+        `Caption exceeds Instagram's ${CAPTION_LIMIT} character limit`
+      );
     }
 
     const valid = getValidMediaUrls(input.media);

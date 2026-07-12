@@ -279,7 +279,7 @@ export const getForWebhook = query({
           q.eq("profileId", args.instagramAccountId as string)
         )
         .first();
-      if (!provider || provider.socialType !== "INSTAGRAM") {
+      if (provider?.socialType !== "INSTAGRAM") {
         return null;
       }
       const mediaId = args.mediaId;
@@ -304,7 +304,7 @@ export const getForWebhook = query({
     }
 
     const provider = await ctx.db.get(matchingAutomations[0].socialProviderId);
-    if (!provider || provider.socialType !== "INSTAGRAM") {
+    if (provider?.socialType !== "INSTAGRAM") {
       return null;
     }
 
@@ -425,7 +425,7 @@ export const getProviderDataForWebhook = query({
       )
       .first();
 
-    if (!provider || provider.socialType !== "INSTAGRAM") {
+    if (provider?.socialType !== "INSTAGRAM") {
       return null;
     }
 
@@ -1224,7 +1224,7 @@ export const buildTriggerKvMap = internalQuery({
         provider = await ctx.db.get(automation.socialProviderId);
         providerCache.set(automation.socialProviderId, provider);
       }
-      if (!provider || provider.socialType !== "INSTAGRAM") {
+      if (provider?.socialType !== "INSTAGRAM") {
         continue;
       }
       const mediaIds = new Set<string>();

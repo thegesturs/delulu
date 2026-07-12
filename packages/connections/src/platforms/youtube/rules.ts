@@ -1,5 +1,9 @@
 import { getValidMediaUrls } from "@delulu/validators/post";
-import type { PlatformRules, ValidateInput, ValidationResult } from "../../types";
+import type {
+  PlatformRules,
+  ValidateInput,
+  ValidationResult,
+} from "../../types";
 import { MAX_LENGTH } from "./constants";
 
 /**
@@ -26,7 +30,9 @@ export const youtubeRules: PlatformRules = {
     const errors: string[] = [];
 
     if (input.text.length > MAX_LENGTH) {
-      errors.push(`Description exceeds YouTube's ${MAX_LENGTH} character limit`);
+      errors.push(
+        `Description exceeds YouTube's ${MAX_LENGTH} character limit`
+      );
     }
 
     const valid = getValidMediaUrls(input.media);

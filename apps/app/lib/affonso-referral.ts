@@ -19,7 +19,7 @@ export function getAffonsoReferral(): string | null {
     .split("; ")
     .find((row) => row.startsWith("affonso_referral="));
   if (match) {
-    return match.substring(match.indexOf("=") + 1) || null;
+    return match.slice(match.indexOf("=") + 1) || null;
   }
 
   // 2. Fall back to a URL parameter (cross-domain hand-off)

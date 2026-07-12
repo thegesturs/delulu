@@ -29,7 +29,7 @@ function extractPostTitle(content: Post["content"]): string {
   if (firstTextBlock?.text) {
     // Truncate to 50 characters for calendar display
     const title = firstTextBlock.text.trim();
-    return title.length > 50 ? `${title.substring(0, 50)}...` : title;
+    return title.length > 50 ? `${title.slice(0, 50)}...` : title;
   }
 
   // Check if there's media in any block
@@ -51,7 +51,7 @@ function extractContentPreview(content: Post["content"]): string | undefined {
 
   if (firstTextBlock?.text) {
     const text = firstTextBlock.text.trim();
-    return text.length > 80 ? `${text.substring(0, 80)}...` : text;
+    return text.length > 80 ? `${text.slice(0, 80)}...` : text;
   }
 
   return undefined;

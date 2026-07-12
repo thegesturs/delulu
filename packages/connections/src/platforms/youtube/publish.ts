@@ -1,20 +1,24 @@
 import type { IncomingMessage } from "node:http";
 import https from "node:https";
 import type { Readable } from "node:stream";
-import { google } from "googleapis";
-import { Effect } from "effect";
 import {
   getValidMediaUrls,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import { Effect } from "effect";
+import { google } from "googleapis";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { MAX_FILE_SIZE, PROVIDER } from "./constants";
 
 interface YouTubeProfile {
@@ -46,9 +50,8 @@ const getProfile = (
 ): Effect.Effect<YouTubeProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile?.refreshToken)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -155,7 +158,10 @@ const getImageStream = (
                     }
                     const contentType =
                       redirectResponse.headers["content-type"] || "image/jpeg";
-                    resolve({ stream: redirectResponse, mimeType: contentType });
+                    resolve({
+                      stream: redirectResponse,
+                      mimeType: contentType,
+                    });
                   })
                   .on("error", reject);
                 return;
@@ -171,7 +177,8 @@ const getImageStream = (
               return;
             }
 
-            const contentType = response.headers["content-type"] || "image/jpeg";
+            const contentType =
+              response.headers["content-type"] || "image/jpeg";
             resolve({ stream: response, mimeType: contentType });
           })
           .on("error", reject);
@@ -268,7 +275,9 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const validMedia = getValidMediaUrls(firstContent.media);
@@ -309,7 +318,8 @@ const publishContent = (
       title = fullText.slice(0, 80);
       if (fullText.length > 80) {
         const lastSpace = title.lastIndexOf(" ");
-        title = lastSpace > 20 ? `${title.slice(0, lastSpace)}...` : `${title}...`;
+        title =
+          lastSpace > 20 ? `${title.slice(0, lastSpace)}...` : `${title}...`;
       }
     }
 

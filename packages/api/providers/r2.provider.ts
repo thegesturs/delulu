@@ -16,9 +16,7 @@ export class R2Provider {
   }
 
   /** Throws {@link R2DownloadError} on failure. */
-  async getFile(
-    key: string
-  ): Promise<{
+  async getFile(key: string): Promise<{
     content: ArrayBuffer;
     contentType: string;
     contentLength?: number;

@@ -42,11 +42,11 @@ function RequestError({ error, retry }: { error: unknown; retry: () => void }) {
           {details.message}
         </p>
       </div>
-      {details.kind !== "permission" ? (
+      {details.kind === "permission" ? null : (
         <Button onClick={retry} variant="outline">
           Try again
         </Button>
-      ) : null}
+      )}
     </div>
   );
 }

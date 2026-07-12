@@ -1,18 +1,22 @@
+import {
+  type ContentType,
+  getValidMediaUrls,
+  type SocialPublishInputType,
+} from "@delulu/validators/post";
 import axios from "axios";
 import { Effect } from "effect";
 import {
-  getValidMediaUrls,
-  type ContentType,
-  type SocialPublishInputType,
-} from "@delulu/validators/post";
-import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { BLUESKY_HOST, PROVIDER } from "./constants";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -100,9 +104,8 @@ const getProfile = (
 ): Effect.Effect<BlueskyProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId && profile.refreshToken)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -143,7 +146,8 @@ const uploadMediaBlob = (
         }
         return response.arrayBuffer();
       },
-      catch: () => invalidMedia(PROVIDER, "Failed to download media for upload"),
+      catch: () =>
+        invalidMedia(PROVIDER, "Failed to download media for upload"),
     });
 
     return yield* Effect.tryPromise({
@@ -175,8 +179,9 @@ const createRichText = (text: string): RichTextResult => {
     /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&=]*)/g;
   let urlMatch: RegExpExecArray | null = urlRegex.exec(text);
   while (urlMatch !== null) {
-    const start = new TextEncoder().encode(text.substring(0, urlMatch.index))
-      .length;
+    const start = new TextEncoder().encode(
+      text.slice(0, urlMatch.index)
+    ).length;
     const end = start + new TextEncoder().encode(urlMatch[0]).length;
     facets.push({
       index: { byteStart: start, byteEnd: end },
@@ -191,7 +196,7 @@ const createRichText = (text: string): RichTextResult => {
   let mentionMatch: RegExpExecArray | null = mentionRegex.exec(text);
   while (mentionMatch !== null) {
     const start = new TextEncoder().encode(
-      text.substring(0, mentionMatch.index)
+      text.slice(0, mentionMatch.index)
     ).length;
     const end = start + new TextEncoder().encode(mentionMatch[0]).length;
     // Mentions would ideally resolve the handle to a DID; for now include the
@@ -201,7 +206,7 @@ const createRichText = (text: string): RichTextResult => {
       features: [
         {
           $type: "app.bsky.richtext.facet#mention",
-          did: `at://${mentionMatch[0].substring(1)}`,
+          did: `at://${mentionMatch[0].slice(1)}`,
         },
       ],
     });
@@ -249,7 +254,7 @@ const createPost = (
       record.embed = {
         $type: "app.bsky.embed.images",
         images: mediaBlobs.map((blob) => ({
-          alt: content.text.substring(0, 100),
+          alt: content.text.slice(0, 100),
           image: blob.blob,
         })),
       };
@@ -301,7 +306,9 @@ const publishContent = (
   Effect.gen(function* () {
     const posts = [...content.content].sort((a, b) => a.order - b.order);
     if (posts.length === 0) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const authResponse = authenticateWithBluesky(profile);

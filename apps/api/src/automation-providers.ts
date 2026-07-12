@@ -32,7 +32,7 @@ const connectionCredentials = Effect.fn("AutomationProvider.credentials")(
     }>`SELECT platform, profile_id, access_token, cipher_version
         FROM connections WHERE id = ${connectionId} AND deleted_at IS NULL`;
     const row = rows[0];
-    if (!row || row.platform !== "INSTAGRAM") {
+    if (row?.platform !== "INSTAGRAM") {
       return yield* Effect.fail("connection_missing" as const);
     }
     const accessToken = yield* cipher.decrypt({

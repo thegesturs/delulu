@@ -92,9 +92,9 @@ export const transformReviews = async (
     reviewIdByPost.set(legacyPostId, reviewId);
 
     const resolvedByMemberId =
-      review.reviewedBy !== undefined
-        ? (ctx.authorMemberFor(workspaceId, review.reviewedBy) ?? null)
-        : null;
+      review.reviewedBy === undefined
+        ? null
+        : (ctx.authorMemberFor(workspaceId, review.reviewedBy) ?? null);
     const fingerprint = await fingerprintOf(content);
 
     ctx.load.postReviews.push({
@@ -169,9 +169,10 @@ export const transformReviews = async (
       list[list.indexOf(rejected)] = withReason;
     } else {
       const actorMemberId =
-        (review.reviewedBy !== undefined
-          ? ctx.authorMemberFor(workspaceId, review.reviewedBy)
-          : undefined) ?? ctx.authorMemberFor(workspaceId, review.submittedBy);
+        (review.reviewedBy === undefined
+          ? undefined
+          : ctx.authorMemberFor(workspaceId, review.reviewedBy)) ??
+        ctx.authorMemberFor(workspaceId, review.submittedBy);
       if (actorMemberId === undefined) {
         continue;
       }

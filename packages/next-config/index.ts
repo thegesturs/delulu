@@ -23,7 +23,6 @@ export const config: NextConfig = {
     "https://solulu.delulu.social",
   ],
 
-  // biome-ignore lint/suspicious/useAwait: rewrites is async
   async rewrites() {
     return [
       {

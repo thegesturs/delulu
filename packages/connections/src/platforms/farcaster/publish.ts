@@ -1,17 +1,21 @@
-import axios from "axios";
-import { Effect } from "effect";
 import {
   getValidMediaUrls,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { API_BASE, PROVIDER } from "./constants";
 
 interface FarcasterProfile {
@@ -77,7 +81,9 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     // Farcaster doesn't upload media directly, but can embed URLs.

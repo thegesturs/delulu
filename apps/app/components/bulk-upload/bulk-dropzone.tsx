@@ -20,7 +20,9 @@ export function BulkDropzone({ onFilesSelected, disabled }: BulkDropzoneProps) {
   const processFiles = useCallback(
     (files: File[]) => {
       const videoFiles = files.filter((f) => f.type.startsWith("video/"));
-      if (videoFiles.length === 0) return;
+      if (videoFiles.length === 0) {
+        return;
+      }
 
       const newVideos: BulkVideo[] = videoFiles.map((file) => ({
         id: crypto.randomUUID(),
@@ -40,7 +42,9 @@ export function BulkDropzone({ onFilesSelected, disabled }: BulkDropzoneProps) {
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
-      if (disabled) return;
+      if (disabled) {
+        return;
+      }
       processFiles(Array.from(e.dataTransfer.files));
     },
     [processFiles, disabled]
@@ -57,6 +61,8 @@ export function BulkDropzone({ onFilesSelected, disabled }: BulkDropzoneProps) {
   );
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target only; keyboard/AT users select files via the accessible "Select Videos" button below
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop target only; keyboard/AT users select files via the accessible "Select Videos" button below
     <div
       className={cn(
         "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors",
@@ -80,7 +86,11 @@ export function BulkDropzone({ onFilesSelected, disabled }: BulkDropzoneProps) {
         ref={fileInputRef}
         type="file"
       />
-      <Icon className="mb-3 text-muted-foreground" icon={CloudUploadIcon} size={40} />
+      <Icon
+        className="mb-3 text-muted-foreground"
+        icon={CloudUploadIcon}
+        size={40}
+      />
       <p className="mb-1 font-medium text-sm">
         Drop videos here or click to browse
       </p>

@@ -1,4 +1,3 @@
-import type { PlatformPublisher, PublishableSocialType } from "./types";
 import { blueskyPublisher } from "./platforms/bluesky/publish";
 import { facebookPublisher } from "./platforms/facebook/publish";
 import { farcasterPublisher } from "./platforms/farcaster/publish";
@@ -9,6 +8,7 @@ import { threadsPublisher } from "./platforms/threads/publish";
 import { tiktokPublisher } from "./platforms/tiktok/publish";
 import { twitterPublisher } from "./platforms/twitter/publish";
 import { youtubePublisher } from "./platforms/youtube/publish";
+import type { PlatformPublisher, PublishableSocialType } from "./types";
 
 /**
  * Node-only publish registry. Imports the concrete `publish` modules

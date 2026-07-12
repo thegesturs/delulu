@@ -55,7 +55,7 @@ function sanitizeText(text: string): string {
     .trim()
     .replace(/[^a-z0-9]/g, "")
     .replace(/\s+/g, "")
-    .substring(0, 20);
+    .slice(0, 20);
 }
 
 /**

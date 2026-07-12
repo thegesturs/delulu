@@ -1,14 +1,14 @@
-import { Client } from "@xdevplatform/xdk";
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   type MediaType,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import { Client } from "@xdevplatform/xdk";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
@@ -17,7 +17,11 @@ import {
   publishRejected,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { PROVIDER } from "./constants";
 
 const POLL_MAX_ATTEMPTS = 30;
@@ -76,9 +80,8 @@ const getProfile = (
 ): Effect.Effect<TwitterProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!profile?.accessToken) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -236,7 +239,10 @@ const waitForProcessing = (
       );
     }
 
-    const waitMs = Math.max((processingInfo.check_after_secs ?? 10) * 1000, 1000);
+    const waitMs = Math.max(
+      (processingInfo.check_after_secs ?? 10) * 1000,
+      1000
+    );
     yield* Effect.sleep(Duration.millis(waitMs));
     return yield* waitForProcessing(client, mediaId, attempt + 1);
   });
@@ -331,7 +337,9 @@ const postFirstTweet = (
       catch: (e) => fromUnknownHttp(PROVIDER, e),
     });
     if (!response.data?.id) {
-      return yield* Effect.fail(publishRejected(PROVIDER, "post creation failed"));
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "post creation failed")
+      );
     }
     return { tweetId: response.data.id };
   });

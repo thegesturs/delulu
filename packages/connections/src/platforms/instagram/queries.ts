@@ -1,5 +1,5 @@
-import type { PlatformQueries } from "../../types";
 import { fetchJson } from "../../services/http";
+import type { PlatformQueries } from "../../types";
 import { GRAPH_VERSION, PROVIDER } from "./constants";
 
 export interface InstagramMedia {

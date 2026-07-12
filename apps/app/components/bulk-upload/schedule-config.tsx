@@ -53,9 +53,9 @@ export function ScheduleConfig({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label className="mb-2 block font-medium text-muted-foreground text-sm">
+        <p className="mb-2 block font-medium text-muted-foreground text-sm">
           Start Date & Time
-        </label>
+        </p>
         <NaturalDatePicker
           className="w-full"
           onChange={onStartDateChange}
@@ -65,9 +65,9 @@ export function ScheduleConfig({
       </div>
 
       <div>
-        <label className="mb-2 block font-medium text-muted-foreground text-sm">
+        <p className="mb-2 block font-medium text-muted-foreground text-sm">
           Interval Between Posts
-        </label>
+        </p>
         <div className="grid grid-cols-2 gap-1.5">
           {INTERVAL_PRESETS.map((preset) => (
             <Button
@@ -112,9 +112,9 @@ export function ScheduleConfig({
 
       {startDate && videoCount > 0 && (
         <div>
-          <label className="mb-2 block font-medium text-muted-foreground text-sm">
+          <p className="mb-2 block font-medium text-muted-foreground text-sm">
             Schedule Preview
-          </label>
+          </p>
           <div className="max-h-32 space-y-1 overflow-y-auto rounded-md bg-muted/50 p-2">
             {Array.from({ length: Math.min(videoCount, 5) }).map((_, i) => {
               const time = new Date(

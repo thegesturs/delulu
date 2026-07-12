@@ -21,7 +21,7 @@ export function AffonsoCrossDomain() {
       return;
     }
 
-    const referralId = cookie.substring(cookie.indexOf("=") + 1);
+    const referralId = cookie.slice(cookie.indexOf("=") + 1);
     if (!referralId) {
       return;
     }

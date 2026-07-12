@@ -1060,7 +1060,7 @@ export const getScheduledPostsByProvider = query({
         scheduledAt: p.scheduledAt,
         status: p.status,
         thumbnailUrl: p.content[0]?.media?.[0]?.url,
-        caption: p.content[0]?.text?.substring(0, 100),
+        caption: p.content[0]?.text?.slice(0, 100),
       }));
   },
 });

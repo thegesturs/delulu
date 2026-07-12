@@ -1,9 +1,9 @@
 /**
  * Export utilities for reel data (JSON, CSV, Excel)
  */
-/** biome-ignore-all lint/performance/useTopLevelRegex: <explanation> */
+/** biome-ignore-all lint/performance/useTopLevelRegex: one-off regexes used only during export formatting */
 
-// biome-ignore lint/performance/noNamespaceImport: <explanation>
+// biome-ignore lint/performance/noNamespaceImport: xlsx is only available as a namespace import
 import * as XLSX from "xlsx";
 import type { ExportFormat, ReelData } from "../../shared/types";
 

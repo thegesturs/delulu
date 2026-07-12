@@ -259,7 +259,7 @@ export function ApiKeysClient() {
                   <span>&middot;</span>
                   <span>
                     {key.scopes.length} permission
-                    {key.scopes.length !== 1 ? "s" : ""}
+                    {key.scopes.length === 1 ? "" : "s"}
                   </span>
                 </div>
               </div>

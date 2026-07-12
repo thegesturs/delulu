@@ -999,7 +999,7 @@ async function processMessageEvent(
   // Find the current step (the send_dm that had the buttons)
   const stepMap = new Map(matchingAutomation.steps.map((s) => [s.id, s]));
   const currentStep = stepMap.get(session.currentStepId);
-  if (!currentStep || currentStep.type !== "send_dm") {
+  if (currentStep?.type !== "send_dm") {
     console.log(
       `[message] Current step ${session.currentStepId} is not a send_dm`
     );
@@ -1010,11 +1010,7 @@ async function processMessageEvent(
   const tappedButton = (currentStep as SendDmStep).buttons?.find(
     (b) => b.type === "quick_reply" && b.payload === buttonPayload
   );
-  if (
-    !tappedButton ||
-    tappedButton.type !== "quick_reply" ||
-    !tappedButton.nextStepId
-  ) {
+  if (tappedButton?.type !== "quick_reply" || !tappedButton?.nextStepId) {
     console.log(
       `[message] No branching button found for payload "${buttonPayload}"`
     );
@@ -1120,7 +1116,7 @@ async function processMessageEvent(
 // ============================================================================
 
 function isValidEmail(text: string): boolean {
-  // biome-ignore lint/performance/useTopLevelRegex: <explanation>
+  // biome-ignore lint/performance/useTopLevelRegex: simple email validation, not a hot path
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
 }
 

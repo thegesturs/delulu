@@ -48,11 +48,11 @@ export function TranscriptionModal({
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: modal backdrop
     // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: <explanation>
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: modal backdrop
     <div className="sorted-transcription-backdrop" onClick={onClose}>
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: modal content */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: modal content */}
-      {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: <explanation> */}
+      {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: modal content */}
       <div
         className="sorted-transcription-modal"
         onClick={(e) => e.stopPropagation()}

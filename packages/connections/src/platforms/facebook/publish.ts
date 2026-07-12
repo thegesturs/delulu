@@ -1,20 +1,24 @@
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   type MediaType,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import {
   GRAPH_VERSION,
   POLL_INTERVAL_MS,
@@ -62,9 +66,8 @@ const getProfile = (
 ): Effect.Effect<FacebookProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -179,7 +182,9 @@ const publishReel = (
       catch: (e) => fromUnknownHttp(PROVIDER, e),
     });
     if (!data.success) {
-      return yield* Effect.fail(mediaProcessingError(PROVIDER, "Reel publish failed"));
+      return yield* Effect.fail(
+        mediaProcessingError(PROVIDER, "Reel publish failed")
+      );
     }
     // Always return the videoId — we still wait for processing to complete.
     return videoId;
@@ -317,14 +322,18 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const validMedia = getValidMediaUrls(firstContent.media) as MediaType[];
 
     // Process all media in parallel (mirrors ResultAsync.combine).
     const mediaIds = yield* Effect.all(
-      validMedia.map((media) => processMedia(media, profile, firstContent.text)),
+      validMedia.map((media) =>
+        processMedia(media, profile, firstContent.text)
+      ),
       { concurrency: "unbounded" }
     );
 

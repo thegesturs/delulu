@@ -1,20 +1,24 @@
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   type ProviderSetting,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { CAPTION_LIMIT, GRAPH_VERSION, PROVIDER } from "./constants";
 
 const POLL_MAX_ATTEMPTS = 60; // 10 minutes at 10s intervals
@@ -58,9 +62,8 @@ const getProfile = (
 ): Effect.Effect<IgProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -86,7 +89,10 @@ const createSingleContainer = (
 ): Effect.Effect<IgContainer, ConnectionError> => {
   if (caption.length > CAPTION_LIMIT) {
     return Effect.fail(
-      invalidMedia(PROVIDER, `Caption exceeds Instagram's ${CAPTION_LIMIT} character limit`)
+      invalidMedia(
+        PROVIDER,
+        `Caption exceeds Instagram's ${CAPTION_LIMIT} character limit`
+      )
     );
   }
 
@@ -102,7 +108,10 @@ const createSingleContainer = (
     if (media.thumbnailBucketUrl?.startsWith("http")) {
       params.append("cover_url", media.thumbnailBucketUrl);
     } else if (media.thumbnailTimestamp && media.thumbnailTimestamp > 0) {
-      params.append("thumb_offset", Math.floor(media.thumbnailTimestamp * 1000).toString());
+      params.append(
+        "thumb_offset",
+        Math.floor(media.thumbnailTimestamp * 1000).toString()
+      );
     }
     if (
       providerSettings?.type === "INSTAGRAM" &&
@@ -111,7 +120,8 @@ const createSingleContainer = (
       params.append(
         "trial_params",
         JSON.stringify({
-          graduation_strategy: providerSettings.settings.graduationStrategy || "MANUAL",
+          graduation_strategy:
+            providerSettings.settings.graduationStrategy || "MANUAL",
         })
       );
     }
@@ -119,7 +129,9 @@ const createSingleContainer = (
     params.append("image_url", media.url);
   }
 
-  return post<IgContainer>(`${base(profile.profileId)}/media?${params.toString()}`);
+  return post<IgContainer>(
+    `${base(profile.profileId)}/media?${params.toString()}`
+  );
 };
 
 const createCarouselContainer = (
@@ -212,7 +224,9 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const valid = getValidMediaUrls(firstContent.media);
@@ -232,7 +246,10 @@ const publishContent = (
     }
     if (videos.length > 0 && images.length > 0) {
       return yield* Effect.fail(
-        invalidMedia(PROVIDER, "Instagram does not support mixing videos and images")
+        invalidMedia(
+          PROVIDER,
+          "Instagram does not support mixing videos and images"
+        )
       );
     }
 

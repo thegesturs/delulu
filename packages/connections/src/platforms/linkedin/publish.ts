@@ -1,19 +1,23 @@
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import {
   LINKEDIN_VERSION,
   MAX_DOCUMENT_BYTES,
@@ -70,9 +74,7 @@ const binaryHeaders = (accessToken: string) => ({
 });
 
 const ownerUrn = (profileId: string, isOrg: boolean) =>
-  isOrg
-    ? `urn:li:organization:${profileId}`
-    : `urn:li:person:${profileId}`;
+  isOrg ? `urn:li:organization:${profileId}` : `urn:li:person:${profileId}`;
 
 // ── Profile ─────────────────────────────────────────────────────────────────
 
@@ -81,9 +83,8 @@ const getProfile = (
 ): Effect.Effect<LinkedInProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -599,7 +600,9 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const validMedia = getValidMediaUrls(firstContent.media);

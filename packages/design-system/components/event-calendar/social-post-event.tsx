@@ -96,7 +96,6 @@ export function SocialPostEvent({
       {/* Media Thumbnail */}
       {event.mediaThumbnail && (
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
-          {/* biome-ignore lint/performance/noImgElement: Media thumbnail preview in calendar */}
           <img
             alt="Post media"
             className="h-full w-full object-cover"

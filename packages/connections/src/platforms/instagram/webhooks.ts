@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { PlatformWebhooks } from "../../types";
 import { fetchEffect } from "../../services/http";
+import type { PlatformWebhooks } from "../../types";
 import { PROVIDER, WEBHOOK_VERSION } from "./constants";
 
 /**
@@ -14,9 +14,9 @@ export const instagramWebhooks: PlatformWebhooks = {
     Effect.gen(function* () {
       const url = `https://graph.instagram.com/${WEBHOOK_VERSION}/${profileId}/subscribed_apps?subscribed_fields=comments,messages&access_token=${accessToken}`;
 
-      const response = yield* fetchEffect(PROVIDER, url, { method: "POST" }).pipe(
-        Effect.option
-      );
+      const response = yield* fetchEffect(PROVIDER, url, {
+        method: "POST",
+      }).pipe(Effect.option);
 
       if (response._tag === "None" || !response.value.ok) {
         yield* Effect.logWarning(

@@ -1,5 +1,9 @@
 import { getValidMediaUrls } from "@delulu/validators/post";
-import type { PlatformRules, ValidateInput, ValidationResult } from "../../types";
+import type {
+  PlatformRules,
+  ValidateInput,
+  ValidationResult,
+} from "../../types";
 import { MAX_IMAGES, MESSAGE_LIMIT } from "./constants";
 
 /**
@@ -21,7 +25,9 @@ export const facebookRules: PlatformRules = {
     const errors: string[] = [];
 
     if (input.text.length > MESSAGE_LIMIT) {
-      errors.push(`Message exceeds Facebook's ${MESSAGE_LIMIT} character limit`);
+      errors.push(
+        `Message exceeds Facebook's ${MESSAGE_LIMIT} character limit`
+      );
     }
 
     const valid = getValidMediaUrls(input.media);

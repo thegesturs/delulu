@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/performance/useTopLevelRegex: <explanation> */
+/** biome-ignore-all lint/performance/useTopLevelRegex: module-scoped regex constant */
 
 const REEL_URL_REGEX =
   /instagram\.com\/([^/]+)\/reel\/|instagram\.com\/reel\/([^/?]+)/;
