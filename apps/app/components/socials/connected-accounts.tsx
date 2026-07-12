@@ -154,12 +154,12 @@ export default function ConnectedAccounts() {
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-                : "divide-y rounded-lg border"
+                : "flex flex-col gap-3"
             }
           >
             {filteredAccounts.map((account) => (
               <Card
-                className={viewMode === "list" ? "rounded-none border-0" : ""}
+                className={viewMode === "list" ? "w-full py-0" : ""}
                 key={account.id}
               >
                 <CardContent className="flex items-center gap-4 p-4">

@@ -1,14 +1,16 @@
 "use client";
 
-import {
-  AnimatedTabs,
-  AnimatedTabsList,
-  AnimatedTabsTrigger,
-} from "@delulu/design-system/components/ui/animated-tabs";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@delulu/design-system/components/ui/select";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add01Icon,
@@ -120,21 +122,19 @@ export default function PostsClient() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b">
-        <div className="flex items-center justify-between">
-          <AnimatedTabs
-            className="no-scrollbar flex-1 overflow-x-auto pt-3"
+        <div className="flex items-center justify-between gap-3 p-3">
+          <Select
             onValueChange={(value) => setStatusFilter(value as StatusFilter)}
             value={statusFilter}
           >
-            <AnimatedTabsList className="flex w-max min-w-full gap-2 lg:grid lg:w-full lg:grid-cols-6 lg:gap-0">
+            <SelectTrigger className="w-56" size="default">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {statuses
                 .filter(({ value }) => value !== "review" || showReviewTab)
                 .map(({ value, label, icon }) => (
-                  <AnimatedTabsTrigger
-                    className="min-w-fit gap-1.5 px-4"
-                    key={value}
-                    value={value}
-                  >
+                  <SelectItem key={value} value={value}>
                     <Icon icon={icon} size={16} />
                     <span>{label}</span>
                     {value === "review" &&
@@ -143,17 +143,12 @@ export default function PostsClient() {
                           {reviewQueue.data?.total}
                         </Badge>
                       )}
-                  </AnimatedTabsTrigger>
+                  </SelectItem>
                 ))}
-            </AnimatedTabsList>
-          </AnimatedTabs>
+            </SelectContent>
+          </Select>
           {canCreate && (
-            <Button
-              asChild
-              className="mx-2 ml-auto"
-              size="sm"
-              variant="secondary"
-            >
+            <Button asChild size="sm" variant="secondary">
               <Link href="/post">
                 <Icon className="mr-1" icon={Add01Icon} size={16} />
                 Add Post
