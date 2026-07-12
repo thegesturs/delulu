@@ -5,19 +5,19 @@
   "type": "module",
   "exports": {
     "./post": {
+      "types": "./post.ts",
       "import": "./post.ts",
-      "require": "./post.ts",
-      "types": "./post.ts"
+      "require": "./post.ts"
     },
     "./facebook": {
+      "types": "./facebook.ts",
       "import": "./facebook.ts",
-      "require": "./facebook.ts",
-      "types": "./facebook.ts"
+      "require": "./facebook.ts"
     },
     "./constants/settings": {
+      "types": "./constants/settings.ts",
       "import": "./constants/settings.ts",
-      "require": "./constants/settings.ts",
-      "types": "./constants/settings.ts"
+      "require": "./constants/settings.ts"
     }
   },
   "scripts": {
