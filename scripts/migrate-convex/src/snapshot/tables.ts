@@ -92,6 +92,11 @@ export const TABLE_SPECS: readonly TableSpec[] = [
     note: "ephemeral mid-conversation state",
   },
   {
+    convex: "articles",
+    disposition: "drop",
+    note: "marketing blog content already served from Workers KV; Convex copy is a stale dump",
+  },
+  {
     convex: "accountInsights",
     disposition: "drop",
     note: "#158 live passthrough",
