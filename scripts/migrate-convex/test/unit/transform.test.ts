@@ -7,7 +7,7 @@ import {
   type TransformResult,
 } from "../../src/transform/pipeline";
 import { buildSnapshotZip } from "../fixtures/builder";
-import { legacyTables } from "../fixtures/legacy-data";
+import { legacyTables, T } from "../fixtures/legacy-data";
 
 const PUBLISH_JOB_KEY = /^publish-target:post_target_/;
 const POST_ID = /^post_/;
@@ -155,6 +155,42 @@ describe("runTransform (golden fixture)", () => {
       (c) => c.platform === "TIKTOK"
     );
     expect(tiktok?.expiresAt).toBeNull();
+  });
+});
+
+describe("runTransform org handling", () => {
+  it("drops a post whose org was deleted instead of failing", async () => {
+    const withOrphan = {
+      ...legacyTables,
+      posts: [
+        ...legacyTables.posts,
+        {
+          _id: "post_orphan_org",
+          _creationTime: T,
+          userId: "user_alice",
+          organizationId: "org_deleted_does_not_exist",
+          status: "SAVED",
+          reviewStatus: "PENDING",
+          isDeleted: false,
+          privacyStatus: "PUBLIC",
+          content: [{ order: 0, name: "d", text: "orphan", media: [] }],
+          socialProviderIds: ["sp_alice_ig"],
+          retryCount: 0,
+          createdAt: T,
+          updatedAt: T,
+        },
+      ],
+    };
+    const snapshot = await parseSnapshotBuffer(
+      Buffer.from(buildSnapshotZip(withOrphan))
+    );
+    const result = await runTransform(snapshot);
+    expect(
+      result.ctx.load.posts.some((p) => p.legacyConvexId === "post_orphan_org")
+    ).toBe(false);
+    expect(result.ctx.counters.get(COUNTER.postsDroppedDeletedOrg)).toBe(1);
+    // The other 9 golden posts still migrate.
+    expect(result.ctx.load.posts).toHaveLength(9);
   });
 });
 

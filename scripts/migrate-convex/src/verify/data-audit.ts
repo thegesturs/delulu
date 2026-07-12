@@ -318,14 +318,45 @@ export const checkOwnership = (
         workspaceId: string;
       }>`SELECT legacy_convex_id AS "legacyConvexId", workspace_id AS "workspaceId" FROM media WHERE legacy_convex_id IS NOT NULL`
     );
-    audit(
-      "automations",
-      mapById(data.automations),
-      yield* sql<{
-        legacyConvexId: string | null;
-        workspaceId: string;
-      }>`SELECT legacy_convex_id AS "legacyConvexId", workspace_id AS "workspaceId" FROM automations WHERE legacy_convex_id IS NOT NULL`
-    );
+    // Automations are workspace-scoped via their connection (not their own
+    // userId/organizationId, which may point elsewhere). Audit each against the
+    // workspace of the connection it references.
+    const connectionWorkspaceByProvider = new Map<string, string>();
+    for (const c of yield* sql<{
+      legacyConvexId: string | null;
+      workspaceId: string;
+    }>`
+      SELECT legacy_convex_id AS "legacyConvexId", workspace_id AS "workspaceId" FROM connections`) {
+      if (c.legacyConvexId) {
+        connectionWorkspaceByProvider.set(c.legacyConvexId, c.workspaceId);
+      }
+    }
+    const automationById = mapById(data.automations);
+    for (const row of yield* sql<{
+      legacyConvexId: string | null;
+      workspaceId: string;
+    }>`
+      SELECT legacy_convex_id AS "legacyConvexId", workspace_id AS "workspaceId" FROM automations WHERE legacy_convex_id IS NOT NULL`) {
+      const legacy = automationById.get(row.legacyConvexId as string);
+      if (!legacy) {
+        details.push(
+          `automations/${row.legacyConvexId}: no legacy doc for audit`
+        );
+        continue;
+      }
+      const expected = connectionWorkspaceByProvider.get(
+        legacy.socialProviderId
+      );
+      if (expected === undefined) {
+        details.push(
+          `automations/${row.legacyConvexId}: connection ${legacy.socialProviderId} has no workspace`
+        );
+      } else if (expected !== row.workspaceId) {
+        details.push(
+          `automations/${row.legacyConvexId}: workspace ${row.workspaceId} ≠ connection workspace ${expected}`
+        );
+      }
+    }
 
     return details.length === 0
       ? ok("Ownership audit", [

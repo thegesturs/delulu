@@ -31,6 +31,7 @@ export const COUNTER = {
   postsTagsDropped: "posts.tagsDropped",
   postsEmptyContent: "posts.emptyContentSynthesized",
   postsDuplicateSubmissionDropped: "posts.duplicateExternalSubmissionDropped",
+  postsDroppedDeletedOrg: "posts.droppedDeletedOrg",
   altContentDistinct: "posts.alternativeContentDistinctGroups",
   altContentCollapsed: "posts.alternativeContentCollapsed",
   targetsPrunedUnknownProvider: "targets.prunedUnknownProvider",

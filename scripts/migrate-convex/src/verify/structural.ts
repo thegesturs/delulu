@@ -65,7 +65,11 @@ export const checkRowCounts = (
         snap("organizations") + snap("users"),
       ],
       ["subscriptions", manifest.tables.subscriptions, snap("users")],
-      ["posts", manifest.tables.posts, snap("posts")],
+      [
+        "posts",
+        manifest.tables.posts,
+        snap("posts") - (c["posts.droppedDeletedOrg"] ?? 0),
+      ],
       [
         "connections",
         manifest.tables.connections,
