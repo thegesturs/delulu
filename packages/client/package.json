@@ -12,7 +12,8 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=neutral --format=esm --external:effect --external:effect/* --external:@tanstack/react-query --external:nanoid --outfile=dist/index.js",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "pnpm build"
   },
   "dependencies": {
     "@delulu/contracts": "workspace:*",

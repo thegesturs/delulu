@@ -6,9 +6,9 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./index.ts",
       "import": "./index.ts",
-      "require": "./index.ts",
-      "types": "./index.ts"
+      "require": "./index.ts"
     }
   },
   "scripts": {

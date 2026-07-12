@@ -114,7 +114,12 @@ export const buildWebHandler = (
   const CorsMiddleware = HttpRouter.middleware(
     HttpMiddleware.cors({
       allowedOrigins: (origin) => options.allowedOrigins.includes(origin),
-      allowedHeaders: ["authorization", "content-type"],
+      // Empty ⇒ reflect the browser's Access-Control-Request-Headers. The typed
+      // client attaches trace-propagation headers (W3C `traceparent`/`tracestate`
+      // and Zipkin `b3`); reflecting avoids enumerating an open-ended set. The
+      // origin allowlist above is the real access boundary; auth is enforced
+      // per-route regardless of which headers are sent.
+      allowedHeaders: [],
       exposedHeaders: ["retry-after"],
       maxAge: 86_400,
     }),

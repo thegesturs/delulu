@@ -77,7 +77,16 @@ export const makeBaseLayer = (
     url: Redacted.make(databaseUrl(env)),
     transformQueryNames: EffectString.camelToSnake,
     transformResultNames: EffectString.snakeToCamel,
-    transformJson: true,
+    // Transform column names only, NOT the keys inside jsonb values. Our jsonb
+    // content graphs (e.g. `automations.node_positions`, `trigger_config`) use
+    // data-derived identifiers — step/note ids — as object keys, and those ids
+    // are nanoids that can contain or end with `_`. Recursively camel-casing
+    // jsonb keys corrupts such maps (`note_gfc_1` -> `noteGfc1`, breaking the
+    // link to the step whose id is still `note_gfc_1`) and outright crashes on
+    // a trailing `_` (`snakeToCamel` reads past the string end). jsonb is
+    // written verbatim (`JSON.stringify(...)::jsonb`), so leaving it verbatim on
+    // read keeps writes and reads symmetric.
+    transformJson: false,
   });
   const Config = authConfigLayer(env);
   const AsToken = AsTokenService.layer;
@@ -234,25 +243,38 @@ export const makeBaseLayer = (
 
 type WebHandler = (request: Request) => Promise<Response>;
 
-// The env object is stable across requests in a Worker isolate, so building the
-// handler once per env (keyed by identity) effectively builds it once per boot.
-let cached: { readonly env: Env; readonly handler: WebHandler } | null = null;
-
-const handlerFor = (env: Env): WebHandler => {
-  if (cached && cached.env === env) {
-    return cached.handler;
-  }
-  const built = buildWebHandler(makeBaseLayer(env), {
+/**
+ * Build the web handler (which owns the Postgres pool) fresh for a single
+ * request and dispose it once the request settles.
+ *
+ * We cannot memoize the handler across requests: `@effect/sql-pg` uses
+ * node-postgres, whose sockets (over `nodejs_compat`) are bound to the workerd
+ * I/O context of the request that opened them. workerd cancels any request that
+ * touches a socket opened by a *different* request — surfacing as an instant
+ * "the Worker's code had hung" 500 (with no CORS headers, so the browser then
+ * reports a CORS failure). A per-isolate shared pool therefore fails on every
+ * request that reuses an idle connection. Building and disposing the pool per
+ * request keeps every socket within one I/O context. In production Hyperdrive
+ * holds the warm upstream pool, so the per-request connect stays cheap.
+ */
+const handleRequest = (
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> => {
+  const { handler, dispose } = buildWebHandler(makeBaseLayer(env), {
     allowedOrigins: appOrigins(env),
   });
-  const handler = built.handler as WebHandler;
-  cached = { env, handler };
-  return handler;
+  const run = (handler as WebHandler)(request);
+  // Release the pool after the response is produced, out of band so it never
+  // delays the response the client sees.
+  ctx.waitUntil(run.then(dispose, dispose));
+  return run;
 };
 
 export default {
-  fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-    return handlerFor(env)(request);
+  fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return handleRequest(request, env, ctx);
   },
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
     const layer = makeBaseLayer(env);
