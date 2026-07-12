@@ -56,8 +56,13 @@ export const legacyTables: FixtureTables = {
       email: "carol@example.com",
       name: "Carol",
       externalId: "clerk_carol",
-      // Carol owns the Acme org workspace: 2 org posts, 5000 bytes of media, 1 connection.
-      usage: { socialAccounts: 1, monthlyPosts: 2, mediaStorageBytes: 5000 },
+      // Carol owns the Acme org workspace: 2 org posts, 1 connection, and >2^31
+      // bytes of media (regression for int4 overflow in the verify read-casts).
+      usage: {
+        socialAccounts: 1,
+        monthlyPosts: 2,
+        mediaStorageBytes: 3_000_000_000,
+      },
       updatedAt: T,
     }),
     doc("user_dave", T, {
@@ -174,7 +179,8 @@ export const legacyTables: FixtureTables = {
       bucketKey: "media/acme.mp4",
       url: "https://cdn.example.com/acme.mp4",
       mediaType: "VIDEO",
-      size: 5000,
+      size: 3_000_000_000, // > 2^31 — exercises bigint read-casts in verify
+
       createdAt: T,
       updatedAt: T,
     }),

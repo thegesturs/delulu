@@ -56,7 +56,7 @@ export const checkSampledEquality = (
 
     const users = yield* sql<
       Record<string, unknown>
-    >`SELECT legacy_convex_id AS "legacyConvexId", external_id AS "externalId", email, monthly_posts::int AS "monthlyPosts" FROM users ORDER BY created_at`;
+    >`SELECT legacy_convex_id AS "legacyConvexId", external_id AS "externalId", email, monthly_posts::text AS "monthlyPosts" FROM users ORDER BY created_at`;
     compare("users", result.ctx.load.users, users, [
       "externalId",
       "email",
@@ -75,7 +75,7 @@ export const checkSampledEquality = (
 
     const media = yield* sql<
       Record<string, unknown>
-    >`SELECT legacy_convex_id AS "legacyConvexId", bucket_key AS "bucketKey", url, media_type AS "mediaType", size_bytes::int AS "sizeBytes" FROM media WHERE legacy_convex_id IS NOT NULL ORDER BY created_at`;
+    >`SELECT legacy_convex_id AS "legacyConvexId", bucket_key AS "bucketKey", url, media_type AS "mediaType", size_bytes::text AS "sizeBytes" FROM media WHERE legacy_convex_id IS NOT NULL ORDER BY created_at`;
     compare("media", result.ctx.load.media, media, [
       "bucketKey",
       "url",
@@ -85,7 +85,7 @@ export const checkSampledEquality = (
 
     const transactions = yield* sql<
       Record<string, unknown>
-    >`SELECT legacy_convex_id AS "legacyConvexId", provider_transaction_id AS "providerTransactionId", amount_minor::int AS "amountMinor", currency, status FROM transactions ORDER BY created_at`;
+    >`SELECT legacy_convex_id AS "legacyConvexId", provider_transaction_id AS "providerTransactionId", amount_minor::text AS "amountMinor", currency, status FROM transactions ORDER BY created_at`;
     compare("transactions", result.ctx.load.transactions, transactions, [
       "providerTransactionId",
       "amountMinor",
@@ -157,10 +157,12 @@ export const checkQuotaSeed = (
       transcriptionsUsed: number;
       socialAccounts: number;
     }
+    // Cast to float8 (JS number, exact < 2^53) — bigint columns like
+    // media_storage_bytes overflow int4 for owners with >2 GB of media.
     const query = sql<Row>`
       SELECT s.billing_owner_user_id AS "billingOwnerUserId", u.external_id AS "externalId",
-        s.monthly_posts::int AS "monthlyPosts", s.media_storage_bytes::int AS "mediaStorageBytes",
-        s.transcriptions_used::int AS "transcriptionsUsed", s.social_accounts::int AS "socialAccounts"
+        s.monthly_posts::float8 AS "monthlyPosts", s.media_storage_bytes::float8 AS "mediaStorageBytes",
+        s.transcriptions_used::float8 AS "transcriptionsUsed", s.social_accounts::float8 AS "socialAccounts"
       FROM subscriptions s JOIN users u ON u.id = s.billing_owner_user_id
       ORDER BY s.billing_owner_user_id`;
     const before = yield* query;
