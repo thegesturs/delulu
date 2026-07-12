@@ -208,6 +208,20 @@ export const transformPosts = (
   const seenSubmission = new Set<string>();
 
   for (const post of posts) {
+    // A post whose org was deleted (organizationId set but no workspace) is an
+    // orphan of a gone org — drop it rather than hard-failing (user decision).
+    if (
+      post.organizationId !== undefined &&
+      post.organizationId !== "" &&
+      !ctx.workspaceByClerkOrg.has(post.organizationId)
+    ) {
+      ctx.counters.bump(COUNTER.postsDroppedDeletedOrg);
+      ctx.warnings.push(
+        `posts/${post._id}: organizationId ${post.organizationId} has no workspace (deleted org) — post dropped`
+      );
+      continue;
+    }
+
     const workspaceId = resolveWorkspace(ctx, {
       organizationId: post.organizationId,
       userId: post.userId,
