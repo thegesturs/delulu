@@ -114,7 +114,14 @@ export const buildWebHandler = (
   const CorsMiddleware = HttpRouter.middleware(
     HttpMiddleware.cors({
       allowedOrigins: (origin) => options.allowedOrigins.includes(origin),
-      allowedHeaders: ["authorization", "content-type"],
+      // `traceparent`/`tracestate` are W3C trace-context headers the typed
+      // client attaches for distributed tracing; browsers preflight them.
+      allowedHeaders: [
+        "authorization",
+        "content-type",
+        "traceparent",
+        "tracestate",
+      ],
       exposedHeaders: ["retry-after"],
       maxAge: 86_400,
     }),
