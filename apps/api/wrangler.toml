@@ -32,10 +32,18 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 #   META_APP_SECRET / META_VERIFY_TOKEN
 #   CLERK_WEBHOOK_SECRET / DODO_WEBHOOK_SECRET
 
-# Postgres via Hyperdrive (fill id after `wrangler hyperdrive create`).
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "<hyperdrive-id>"
+# Postgres via Hyperdrive. In production `id` points at the real Hyperdrive
+# config (fill after `wrangler hyperdrive create`). In local `wrangler dev`,
+# Miniflare ignores `id` and runs its own Hyperdrive proxy against
+# `localConnectionString`, keeping a warm connection pool. That warm pool is
+# what makes local dev reliable: raw node-pg over `nodejs_compat` cold-opens a
+# TCP socket per request, which workerd's hang-watchdog kills ("code had hung")
+# under the parallel-request burst a page load produces. Routing Postgres
+# through Hyperdrive locally mirrors prod and eliminates those transient 500s.
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "delulu-local-dev-placeholder"
+localConnectionString = "postgres://delulu:delulu@localhost:5432/delulu"
 
 # One native Rate Limiting binding per distinct tier (static limit each).
 # [[unsafe.bindings]]
