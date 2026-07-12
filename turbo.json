@@ -28,8 +28,12 @@
       "dependsOn": ["^typecheck"]
     },
     "dev": {
+      "dependsOn": ["@delulu/client#build"],
       "cache": false,
       "persistent": true
+    },
+    "@delulu/client#build": {
+      "outputs": ["dist/**"]
     },
     "translate": {
       "dependsOn": ["^translate"],
