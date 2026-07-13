@@ -569,9 +569,6 @@ importers:
       '@delulu/cloudflare-types':
         specifier: workspace:*
         version: link:../../packages/cloudflare-types
-      '@delulu/database':
-        specifier: workspace:*
-        version: link:../../packages/database
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
@@ -1141,6 +1138,9 @@ importers:
       '@delulu/email':
         specifier: workspace:*
         version: link:../email
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
       '@dodopayments/convex':
         specifier: ^0.2.3
         version: 0.2.3(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(zod@3.25.67)
@@ -1166,9 +1166,6 @@ importers:
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../analytics
-      '@delulu/payments':
-        specifier: workspace:*
-        version: link:../payments
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config

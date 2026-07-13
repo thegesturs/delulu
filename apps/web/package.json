@@ -21,7 +21,6 @@
     "@delulu/analytics": "workspace:*",
     "@delulu/articles": "workspace:*",
     "@delulu/cloudflare-types": "workspace:*",
-    "@delulu/database": "workspace:*",
     "@delulu/design-system": "workspace:*",
     "@delulu/email": "workspace:*",
     "@delulu/next-config": "workspace:*",

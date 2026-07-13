@@ -302,13 +302,3 @@ export const automationMediaTriggerSchema = v.object({
 });
 
 export type AutomationMediaTrigger = Infer<typeof automationMediaTriggerSchema>;
-
-// ============================================================================
-// DM PLAN LIMITS
-// ============================================================================
-
-export const DM_PLAN_LIMITS = {
-  FREE: 100,
-  ECHO: 10_000,
-  VIBE: -1, // Unlimited
-} as const;

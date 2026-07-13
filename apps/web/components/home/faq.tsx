@@ -1,6 +1,10 @@
 "use client";
-import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
-import { type CurrencyCode, formatDmLimit, PLANS } from "@delulu/payments";
+import {
+  type CurrencyCode,
+  DM_PLAN_LIMITS,
+  formatDmLimit,
+  PLANS,
+} from "@delulu/payments";
 import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";

@@ -161,6 +161,13 @@ export const PLANS: Record<PlanType, Plan> = {
   },
 };
 
+/** Compatibility lookup for surfaces that display or enforce DM quotas. */
+export const DM_PLAN_LIMITS: Readonly<Record<PlanType, number>> = {
+  FREE: PLANS.FREE.limits.dmsPerMonth,
+  ECHO: PLANS.ECHO.limits.dmsPerMonth,
+  VIBE: PLANS.VIBE.limits.dmsPerMonth,
+};
+
 /**
  * Helper functions for working with plans
  */
