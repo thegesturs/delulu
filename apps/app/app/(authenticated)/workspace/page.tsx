@@ -1,13 +1,18 @@
-import { Header } from "@/components/layout/header";
+import { PageShell } from "@/components/layout/page-shell";
 import { WorkspaceMembers } from "@/components/operations/workspace-members";
 import { WorkspaceSettings } from "@/components/operations/workspace-settings";
 
 export default function WorkspacePage() {
   return (
-    <div className="space-y-4 overflow-auto p-4 md:p-8">
-      <Header page="Workspace" pages={["Settings"]} />
+    <PageShell
+      description="Manage your workspace details and team members."
+      page="Workspace"
+      pages={["Settings"]}
+    >
       <WorkspaceSettings />
+      {/* WorkspaceMembers renders null on personal workspaces, so it manages
+          its own section chrome rather than a PageSection that could dangle. */}
       <WorkspaceMembers />
-    </div>
+    </PageShell>
   );
 }

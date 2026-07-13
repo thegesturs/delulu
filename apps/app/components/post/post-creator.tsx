@@ -1,5 +1,6 @@
 "use client";
 
+import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   Tabs,
   TabsContent,
@@ -192,7 +193,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       <div className="flex-1">
         {/* Show warning if post is already published */}
         {postData.data?.status === "published" && (
-          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-800">
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
             <h3 className="font-semibold">
               Warning: This post has already been published
             </h3>
@@ -219,6 +220,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
             page={postId ? "Edit Post" : "Create Post"}
             pages={["Post"]}
           />
+          <DottedSeparator className="mb-4" />
         </div>
         <MobilePostHeader />
 

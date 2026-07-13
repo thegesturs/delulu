@@ -7,6 +7,7 @@ import {
   AnimatedTabsTrigger as TabsTrigger,
 } from "@delulu/design-system/components/ui/animated-tabs";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   type SupportedSocialPlatform,
   socialDisplayNames,
@@ -49,7 +50,7 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
       <Tabs className="w-full px-3" defaultValue="basic">
         <TabsList
           className={cn(
-            "grid w-full rounded-none border-b bg-transparent p-0",
+            "grid w-full rounded-none bg-transparent p-0",
             showActivity ? "grid-cols-3" : "grid-cols-2"
           )}
         >
@@ -69,6 +70,7 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
             </TabsTrigger>
           )}
         </TabsList>
+        <DottedSeparator className="-mt-px" />
 
         <TabsContent className="mt-0 space-y-0" value="basic">
           <BasicSettings />

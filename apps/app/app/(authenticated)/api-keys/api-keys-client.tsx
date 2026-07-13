@@ -30,7 +30,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
-import { Header } from "@/components/layout/header";
+import { DottedColumns } from "@/components/layout/dotted-columns";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
@@ -162,14 +163,17 @@ export function ApiKeysClient() {
   };
 
   return (
-    <div className="space-y-4 overflow-auto p-4 md:p-8">
-      <Header page="API Keys" pages={["Settings"]}>
+    <PageShell
+      actions={
         <Button onClick={() => setShowCreate(true)}>
           <Icon className="mr-1.5" icon={Key01Icon} size={14} />
           Create Key
         </Button>
-      </Header>
-
+      }
+      description="Programmatic access for AI agents and scripts to publish content to Delulu Social."
+      page="API Keys"
+      pages={["Settings"]}
+    >
       {workspace.workspace && !workspace.workspace.isPersonal && (
         <p className="text-muted-foreground text-sm">
           Org-scoped keys submit posts for review instead of publishing
@@ -221,7 +225,7 @@ export function ApiKeysClient() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-lg border">
+        <Card className="gap-0 p-0">
           {apiKeys.map((key, i) => (
             <div
               className={`flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30 ${
@@ -274,13 +278,12 @@ export function ApiKeysClient() {
               </Button>
             </div>
           ))}
-        </div>
+        </Card>
       )}
 
       {/* Quick start */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-sm">Quick Start</h2>
+      <PageSection
+        action={
           <a
             className="text-primary text-xs hover:underline"
             href="https://api.delulu.social/docs"
@@ -289,8 +292,10 @@ export function ApiKeysClient() {
           >
             Full API Docs &rarr;
           </a>
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
+        }
+        title="Quick Start"
+      >
+        <DottedColumns breakpoint="lg">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">
@@ -356,8 +361,8 @@ export function ApiKeysClient() {
               </pre>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </DottedColumns>
+      </PageSection>
 
       {/* Create dialog */}
       <Dialog
@@ -487,6 +492,6 @@ export function ApiKeysClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

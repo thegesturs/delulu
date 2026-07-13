@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import { Header } from "@/components/layout/header";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 
@@ -192,21 +193,14 @@ export function CalendarClient() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-3xl tracking-tight">Calendar</h1>
-          <p className="text-muted-foreground">
-            View and manage your scheduled posts
-            {scheduledPosts.isFetching ? " · refreshing" : ""}
-          </p>
-        </div>
-        <Button onClick={() => router.push("/post")} size="lg">
+    <div className="flex h-full flex-col">
+      <Header page="Calendar" pages={["Content"]}>
+        <Button onClick={() => router.push("/post")}>
           <Icon className="mr-2" icon={CalendarPlus} size={20} />
           Create Post
         </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto">
+      </Header>
+      <div className="flex-1 overflow-y-auto p-6">
         <EventCalendar
           events={events}
           initialView="week"

@@ -16,7 +16,7 @@ import {
   ArrowDataTransferHorizontalIcon,
   Loading03Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { Header } from "@/components/layout/header";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { OperationsError } from "@/components/operations/query-state";
 import { AnalyticsStatCards } from "./analytics-stat-cards";
 import { EngagementChart } from "./engagement-chart";
@@ -77,26 +77,25 @@ export function AnalyticsContent({
   // No accounts connected
   if (accounts.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header page="Analytics" pages={[]} />
-        <div className="mx-auto max-w-6xl p-4 md:p-6">
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="mb-4 rounded-full bg-muted/50 p-4">
-              <Icon
-                className="text-muted-foreground"
-                icon={Analytics01Icon}
-                size={32}
-              />
-            </div>
-            <h2 className="mb-2 font-semibold text-lg">
-              No accounts connected
-            </h2>
-            <p className="text-center text-muted-foreground text-sm">
-              Connect an Instagram account to start tracking analytics
-            </p>
+      <PageShell
+        description="Track reach, engagement, and your top-performing posts."
+        page="Analytics"
+        pages={[]}
+      >
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="mb-4 rounded-full bg-muted/50 p-4">
+            <Icon
+              className="text-muted-foreground"
+              icon={Analytics01Icon}
+              size={32}
+            />
           </div>
+          <h2 className="mb-2 font-semibold text-lg">No accounts connected</h2>
+          <p className="text-center text-muted-foreground text-sm">
+            Connect an Instagram account to start tracking analytics
+          </p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -105,87 +104,90 @@ export function AnalyticsContent({
   }
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-background pb-20 md:pb-0">
-      <Header page="Analytics" pages={[]} />
-      <div className="mx-auto max-w-6xl space-y-4 p-4 md:space-y-6 md:p-6">
-        {/* Controls row */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            {/* Account selector */}
-            <Select onValueChange={onSelectProvider} value={selectedProviderId}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select account" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    @{account.username || account.displayName || "account"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Period selector */}
-            <Select
-              onValueChange={(v) => onChangeDays(Number(v))}
-              value={String(days)}
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sync status */}
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs">
-              {formatSyncTime(insights?.cachedAt)}
-            </span>
-            {(insights?.stale || error) && (
-              <Badge className="text-xs" variant="secondary">
-                Cached data
-              </Badge>
-            )}
-            <Button
-              disabled={isRefreshing || !selectedProviderId}
-              onClick={onSync}
-              size="sm"
-              variant="outline"
-            >
-              <Icon
-                className={isRefreshing ? "animate-spin" : ""}
-                icon={
-                  isRefreshing ? Loading03Icon : ArrowDataTransferHorizontalIcon
-                }
-                size={14}
-              />
-              {isRefreshing ? "Refreshing..." : "Refresh"}
-            </Button>
-          </div>
+    <PageShell
+      actions={
+        <div className="flex items-center gap-2">
+          <span className="hidden text-muted-foreground text-xs sm:inline">
+            {formatSyncTime(insights?.cachedAt)}
+          </span>
+          {(insights?.stale || error) && (
+            <Badge className="text-xs" variant="secondary">
+              Cached data
+            </Badge>
+          )}
+          <Button
+            disabled={isRefreshing || !selectedProviderId}
+            onClick={onSync}
+            size="sm"
+            variant="outline"
+          >
+            <Icon
+              className={isRefreshing ? "animate-spin" : ""}
+              icon={
+                isRefreshing ? Loading03Icon : ArrowDataTransferHorizontalIcon
+              }
+              size={14}
+            />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
         </div>
+      }
+      description="Track reach, engagement, and your top-performing posts."
+      page="Analytics"
+      pages={[]}
+    >
+      {/* Account + period controls */}
+      <div className="flex items-center gap-2">
+        {/* Account selector */}
+        <Select onValueChange={onSelectProvider} value={selectedProviderId}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Select account" />
+          </SelectTrigger>
+          <SelectContent>
+            {accounts.map((account) => (
+              <SelectItem key={account.id} value={account.id}>
+                @{account.username || account.displayName || "account"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Stat cards */}
-        <AnalyticsStatCards
-          currentTotals={insights?.current.totals}
-          isLoading={isLoading}
-          percentageChange={insights?.percentageChange}
-          postsTracked={insights?.topPosts.length ?? 0}
-        />
+        {/* Period selector */}
+        <Select
+          onValueChange={(v) => onChangeDays(Number(v))}
+          value={String(days)}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Engagement chart */}
+      {/* Stat cards */}
+      <AnalyticsStatCards
+        currentTotals={insights?.current.totals}
+        isLoading={isLoading}
+        percentageChange={insights?.percentageChange}
+        postsTracked={insights?.topPosts.length ?? 0}
+      />
+
+      {/* Engagement chart */}
+      <PageSection>
         <EngagementChart
           insights={insights?.current.points ?? []}
           isLoading={isLoading}
         />
+      </PageSection>
 
-        {/* Top posts */}
+      {/* Top posts */}
+      <PageSection>
         <TopPostsList isLoading={isLoading} posts={insights?.topPosts ?? []} />
-      </div>
-    </div>
+      </PageSection>
+    </PageShell>
   );
 }

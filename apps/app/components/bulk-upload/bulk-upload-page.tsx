@@ -29,7 +29,7 @@ import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { toast } from "sonner";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
-import { Header } from "@/components/layout/header";
+import { PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useMediaStorage } from "@/hooks/use-media-storage";
@@ -399,115 +399,126 @@ export function BulkUploadPage() {
   ]);
 
   return (
-    <div className="flex h-full flex-col gap-4 pb-20 lg:flex-row lg:pb-0">
-      <div className="flex-1 space-y-4">
-        <Header page="Bulk Upload" pages={["Posts"]} />
+    <PageShell
+      description="Upload multiple videos and schedule them across your social accounts."
+      page="Bulk Upload"
+      pages={["Content"]}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="flex-1 space-y-4">
+          <BulkDropzone
+            disabled={isSubmitting}
+            onFilesSelected={handleFilesSelected}
+          />
 
-        <BulkDropzone
-          disabled={isSubmitting}
-          onFilesSelected={handleFilesSelected}
-        />
+          <BulkVideoList
+            disabled={isSubmitting}
+            intervalMinutes={state.intervalMinutes}
+            onCaptionChange={(id, caption) =>
+              dispatch({ type: "SET_CAPTION", id, caption })
+            }
+            onMove={(id, direction) =>
+              dispatch({ type: "MOVE_VIDEO", id, direction })
+            }
+            onRemove={(id) => dispatch({ type: "REMOVE_VIDEO", id })}
+            startDate={state.startDate}
+            videos={state.videos}
+          />
+        </div>
 
-        <BulkVideoList
-          disabled={isSubmitting}
-          intervalMinutes={state.intervalMinutes}
-          onCaptionChange={(id, caption) =>
-            dispatch({ type: "SET_CAPTION", id, caption })
-          }
-          onMove={(id, direction) =>
-            dispatch({ type: "MOVE_VIDEO", id, direction })
-          }
-          onRemove={(id) => dispatch({ type: "REMOVE_VIDEO", id })}
-          startDate={state.startDate}
-          videos={state.videos}
-        />
-      </div>
+        <div className="w-full lg:w-80">
+          <Card className="sticky top-4">
+            <CardHeader>
+              <CardTitle className="text-sm">Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <BulkSocialSelector
+                onToggle={handleToggleProvider}
+                selectedProviders={state.selectedProviders}
+              />
 
-      <div className="w-full lg:w-80">
-        <Card className="sticky top-4">
-          <CardHeader>
-            <CardTitle className="text-sm">Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <BulkSocialSelector
-              onToggle={handleToggleProvider}
-              selectedProviders={state.selectedProviders}
-            />
+              <ScheduleConfig
+                intervalMinutes={state.intervalMinutes}
+                onIntervalChange={(minutes) =>
+                  dispatch({ type: "SET_INTERVAL", minutes })
+                }
+                onStartDateChange={(date) =>
+                  dispatch({ type: "SET_START_DATE", date: date ?? null })
+                }
+                startDate={state.startDate}
+                videoCount={state.videos.length}
+              />
 
-            <ScheduleConfig
-              intervalMinutes={state.intervalMinutes}
-              onIntervalChange={(minutes) =>
-                dispatch({ type: "SET_INTERVAL", minutes })
-              }
-              onStartDateChange={(date) =>
-                dispatch({ type: "SET_START_DATE", date: date ?? null })
-              }
-              startDate={state.startDate}
-              videoCount={state.videos.length}
-            />
+              {exceedsLimit && (
+                <InlineUpgradePrompt
+                  feature="monthlyPosts"
+                  requiredPlan="VIBE"
+                />
+              )}
 
-            {exceedsLimit && (
-              <InlineUpgradePrompt feature="monthlyPosts" requiredPlan="VIBE" />
-            )}
+              {!(monthlyPostsLimit.isUnlimited || exceedsLimit) &&
+                hasVideos &&
+                monthlyPostsLimit.percentageUsed >= 60 && (
+                  <Alert>
+                    <Icon icon={AlertCircleIcon} size={16} />
+                    <AlertDescription className="text-xs">
+                      {postsRemaining} posts remaining this month. Scheduling{" "}
+                      {state.videos.length}.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            {!(monthlyPostsLimit.isUnlimited || exceedsLimit) &&
-              hasVideos &&
-              monthlyPostsLimit.percentageUsed >= 60 && (
+              {isViewer && (
                 <Alert>
-                  <Icon icon={AlertCircleIcon} size={16} />
                   <AlertDescription className="text-xs">
-                    {postsRemaining} posts remaining this month. Scheduling{" "}
-                    {state.videos.length}.
+                    Viewers cannot create posts.
                   </AlertDescription>
                 </Alert>
               )}
 
-            {isViewer && (
-              <Alert>
-                <AlertDescription className="text-xs">
-                  Viewers cannot create posts.
-                </AlertDescription>
-              </Alert>
-            )}
+              <Button
+                className="w-full justify-center gap-2"
+                disabled={!canSubmit}
+                onClick={handleScheduleAll}
+              >
+                {requiresApproval
+                  ? `Submit ${state.videos.length} for Approval`
+                  : `Schedule ${state.videos.length} Posts`}
+                {isSubmitting ? (
+                  <Icon
+                    className="animate-spin"
+                    icon={Loading03Icon}
+                    size={16}
+                  />
+                ) : (
+                  <PiPaperPlaneTiltFill className="size-4" />
+                )}
+              </Button>
 
-            <Button
-              className="w-full justify-center gap-2"
-              disabled={!canSubmit}
-              onClick={handleScheduleAll}
-            >
-              {requiresApproval
-                ? `Submit ${state.videos.length} for Approval`
-                : `Schedule ${state.videos.length} Posts`}
-              {isSubmitting ? (
-                <Icon className="animate-spin" icon={Loading03Icon} size={16} />
-              ) : (
-                <PiPaperPlaneTiltFill className="size-4" />
+              {!hasVideos && (
+                <p className="text-center text-muted-foreground text-xs">
+                  Drop videos above to get started
+                </p>
               )}
-            </Button>
-
-            {!hasVideos && (
-              <p className="text-center text-muted-foreground text-xs">
-                Drop videos above to get started
-              </p>
-            )}
-            {hasVideos && !hasProviders && (
-              <p className="text-center text-muted-foreground text-xs">
-                Select at least one social network
-              </p>
-            )}
-            {hasVideos && hasProviders && !hasSchedule && (
-              <p className="text-center text-muted-foreground text-xs">
-                Pick a start date and time
-              </p>
-            )}
-            {hasVideos && !allUploaded && (
-              <p className="text-center text-muted-foreground text-xs">
-                Waiting for uploads to complete...
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              {hasVideos && !hasProviders && (
+                <p className="text-center text-muted-foreground text-xs">
+                  Select at least one social network
+                </p>
+              )}
+              {hasVideos && hasProviders && !hasSchedule && (
+                <p className="text-center text-muted-foreground text-xs">
+                  Pick a start date and time
+                </p>
+              )}
+              {hasVideos && !allUploaded && (
+                <p className="text-center text-muted-foreground text-xs">
+                  Waiting for uploads to complete...
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

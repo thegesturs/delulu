@@ -27,6 +27,7 @@ import {
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useState } from "react";
+import { DottedColumns } from "@/components/layout/dotted-columns";
 import { useCurrency } from "@/hooks/use-currency";
 import { useSubscription } from "@/hooks/use-subscription";
 
@@ -101,8 +102,11 @@ export function PricingCards(_props: PricingCardsProps) {
         </span>
       </div>
 
+      {/* Full-bleed dotted rule under the heading block, meeting the frame rails. */}
+      <div className="-mx-6 border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
+
       {/* Pricing cards */}
-      <div className="mx-auto grid max-w-3xl gap-2 md:grid-cols-2">
+      <DottedColumns breakpoint="md">
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
@@ -279,7 +283,7 @@ export function PricingCards(_props: PricingCardsProps) {
             </Card>
           );
         })}
-      </div>
+      </DottedColumns>
 
       <p className="text-center text-muted-foreground text-sm">
         All plans include 14-day money-back guarantee • Cancel anytime

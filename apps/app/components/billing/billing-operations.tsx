@@ -13,6 +13,7 @@ import { Input } from "@delulu/design-system/components/ui/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DottedColumns } from "@/components/layout/dotted-columns";
 import {
   OperationsError,
   OperationsLoading,
@@ -93,7 +94,7 @@ export function BillingOperations() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <DottedColumns breakpoint="lg">
       <Card>
         <CardHeader>
           <CardTitle>Billing owner transfer</CardTitle>
@@ -220,6 +221,6 @@ export function BillingOperations() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </DottedColumns>
   );
 }

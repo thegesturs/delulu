@@ -1,49 +1,55 @@
 "use client";
 
 import { UserButton } from "@delulu/auth";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@delulu/design-system/components/ui/breadcrumb";
-import { Separator } from "@delulu/design-system/components/ui/separator";
 import { SidebarTrigger } from "@delulu/design-system/components/ui/sidebar";
 import { CreditCard } from "@delulu/design-system/icons";
-import { Fragment, type ReactNode } from "react";
+import { cn } from "@delulu/design-system/lib/utils";
+import type { ReactNode } from "react";
 
 interface HeaderProps {
-  pages: string[];
+  /** Breadcrumb trail — kept for API compatibility; not rendered. */
+  pages?: string[];
+  /** Current page / title. */
   page: string;
+  /** Optional larger title; defaults to `page`. */
+  title?: string;
+  description?: ReactNode;
+  /** Right-aligned actions (usually the primary button). */
   children?: ReactNode;
+  className?: string;
 }
 
-export const Header = ({ pages, page, children }: HeaderProps) => (
-  <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-    <div className="flex items-center gap-2">
-      <div className="font-bold text-lg md:hidden">Delulu</div>
-      <SidebarTrigger className="-ml-1 hidden md:flex" />
-      <Separator className="mr-2 hidden h-4 md:block" orientation="vertical" />
-      <Breadcrumb className="hidden md:flex">
-        <BreadcrumbList>
-          {pages.map((page, index) => (
-            <Fragment key={page}>
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">{page}</BreadcrumbLink>
-              </BreadcrumbItem>
-            </Fragment>
-          ))}
-          <BreadcrumbSeparator className="hidden md:block" />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{page}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+/**
+ * Compact page header: sidebar trigger + title/description on the left,
+ * actions + mobile user menu on the right. One slim row for every page.
+ */
+export const Header = ({
+  page,
+  title,
+  description,
+  children,
+  className,
+}: HeaderProps) => (
+  <header
+    className={cn(
+      "flex min-h-13 shrink-0 items-center justify-between gap-3 px-4 py-2 md:px-6",
+      className
+    )}
+  >
+    <div className="flex min-w-0 items-center gap-2">
+      <SidebarTrigger className="-ml-1 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <h1 className="truncate font-semibold text-base leading-tight tracking-tight">
+          {title ?? page}
+        </h1>
+        {description && (
+          <p className="truncate text-muted-foreground text-xs leading-tight">
+            {description}
+          </p>
+        )}
+      </div>
     </div>
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       {children}
       <div className="md:hidden">
         <UserButton>

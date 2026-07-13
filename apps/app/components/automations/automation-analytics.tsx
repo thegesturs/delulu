@@ -20,7 +20,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo } from "react";
-import { Header } from "@/components/layout/header";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import {
   automationFromResource,
@@ -65,18 +65,15 @@ function AnalyticsContent({
 
   if (automationQuery.isPending) {
     return (
-      <div className="flex h-full gap-4">
-        <div className="flex-1">
-          <Header page="Loading..." pages={["Automations"]} />
-          <div className="flex h-64 items-center justify-center">
-            <Icon
-              className="animate-spin text-muted-foreground"
-              icon={Loading03Icon}
-              size={24}
-            />
-          </div>
+      <PageShell page="Loading..." pages={["Automations"]}>
+        <div className="flex h-64 items-center justify-center">
+          <Icon
+            className="animate-spin text-muted-foreground"
+            icon={Loading03Icon}
+            size={24}
+          />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -84,119 +81,111 @@ function AnalyticsContent({
     const details = getApiErrorDetails(automationQuery.error);
     const notFound = details.kind === "not-found";
     return (
-      <div className="flex h-full gap-4">
-        <div className="flex-1">
-          <Header
-            page={notFound ? "Not Found" : "Unavailable"}
-            pages={["Automations"]}
-          />
-          <div className="flex h-64 flex-col items-center justify-center gap-2 px-6 text-center">
-            <p className="font-medium">
-              {details.kind === "permission"
-                ? "You do not have permission to view this automation"
-                : notFound
-                  ? "Automation not found"
-                  : "Automation analytics could not be loaded"}
-            </p>
-            <p className="max-w-md text-muted-foreground text-sm">
-              {details.message}
-            </p>
-            {details.kind === "transport" ? (
-              <Button
-                onClick={() => automationQuery.refetch()}
-                variant="outline"
-              >
-                Try again
-              </Button>
-            ) : null}
-            <Link href="/automations">
-              <Button variant="link">Back to Automations</Button>
-            </Link>
-          </div>
+      <PageShell
+        page={notFound ? "Not Found" : "Unavailable"}
+        pages={["Automations"]}
+      >
+        <div className="flex h-64 flex-col items-center justify-center gap-2 px-6 text-center">
+          <p className="font-medium">
+            {details.kind === "permission"
+              ? "You do not have permission to view this automation"
+              : notFound
+                ? "Automation not found"
+                : "Automation analytics could not be loaded"}
+          </p>
+          <p className="max-w-md text-muted-foreground text-sm">
+            {details.message}
+          </p>
+          {details.kind === "transport" ? (
+            <Button onClick={() => automationQuery.refetch()} variant="outline">
+              Try again
+            </Button>
+          ) : null}
+          <Link href="/automations">
+            <Button variant="link">Back to Automations</Button>
+          </Link>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   const automation = automationFromResource(automationQuery.data);
   const runs = runsQuery.data?.data ?? [];
   return (
-    <div className="min-h-screen overflow-y-auto bg-background pb-20 md:pb-0">
-      <div className="mx-auto max-w-6xl p-6">
-        <div className="mb-6 flex items-center gap-4">
-          <Link href="/automations">
-            <Button size="icon" variant="ghost">
-              <Icon icon={ArrowLeft01Icon} size={20} />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="font-semibold text-2xl">{automation.name}</h1>
-            <p className="text-muted-foreground text-sm">
-              Automation analytics
-            </p>
-          </div>
-        </div>
+    <PageShell
+      actions={
+        <Link href="/automations">
+          <Button size="sm" variant="outline">
+            <Icon icon={ArrowLeft01Icon} size={16} />
+            Back
+          </Button>
+        </Link>
+      }
+      description="Automation analytics"
+      page={automation.name}
+      pages={["Automations"]}
+    >
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <Icon
+                className="text-blue-600 dark:text-blue-400"
+                icon={Comment01Icon}
+                size={20}
+              />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-xl">
+                {automation.totalTriggered}
+              </p>
+              <p className="text-muted-foreground text-xs">Total Triggered</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+              <Icon
+                className="text-green-600 dark:text-green-400"
+                icon={MailSend01Icon}
+                size={20}
+              />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-xl">
+                {automation.totalDmsSent}
+              </p>
+              <p className="text-muted-foreground text-xs">DMs Sent</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+              <Icon
+                className="text-purple-600 dark:text-purple-400"
+                icon={TickDouble01Icon}
+                size={20}
+              />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-xl">
+                {automation.totalTriggered > 0
+                  ? Math.round(
+                      (automation.totalDmsSent / automation.totalTriggered) *
+                        100
+                    )
+                  : 0}
+                %
+              </p>
+              <p className="text-muted-foreground text-xs">Success Rate</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Icon
-                  className="text-blue-600 dark:text-blue-400"
-                  icon={Comment01Icon}
-                  size={20}
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-xl">
-                  {automation.totalTriggered}
-                </p>
-                <p className="text-muted-foreground text-xs">Total Triggered</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Icon
-                  className="text-green-600 dark:text-green-400"
-                  icon={MailSend01Icon}
-                  size={20}
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-xl">
-                  {automation.totalDmsSent}
-                </p>
-                <p className="text-muted-foreground text-xs">DMs Sent</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                <Icon
-                  className="text-purple-600 dark:text-purple-400"
-                  icon={TickDouble01Icon}
-                  size={20}
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-xl">
-                  {automation.totalTriggered > 0
-                    ? Math.round(
-                        (automation.totalDmsSent / automation.totalTriggered) *
-                          100
-                      )
-                    : 0}
-                  %
-                </p>
-                <p className="text-muted-foreground text-xs">Success Rate</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <PageSection>
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Run history</CardTitle>
@@ -271,8 +260,8 @@ function AnalyticsContent({
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </PageSection>
+    </PageShell>
   );
 }
 

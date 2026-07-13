@@ -8,11 +8,12 @@ import { useAnalytics } from "@delulu/analytics/posthog/client";
 import type { AutomationScope } from "@delulu/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
 import { AutomationFilters } from "./automation-filters";
@@ -23,7 +24,6 @@ import {
   useAutomationWorkspace,
 } from "./automation-resource";
 import { AutomationStats } from "./automation-stats";
-import { AutomationsHeader } from "./automations-header";
 import { TemplatePickerDialog } from "./flow-builder/templates/template-picker-dialog";
 
 function RequestError({ error, retry }: { error: unknown; retry: () => void }) {
@@ -264,19 +264,30 @@ function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <div className="mx-auto flex max-w-6xl flex-col space-y-3 p-4 md:space-y-6 md:p-6">
-        <AutomationsHeader
-          canCreate={canManageSocials}
-          onCreateClick={() => setShowTemplatePicker(true)}
-        />
-        {canManageSocials ? null : (
-          <p className="rounded-lg border bg-muted/30 px-4 py-3 text-muted-foreground text-sm">
-            You can view automations, but your workspace role cannot change
-            them.
-          </p>
-        )}
-        <AutomationStats stats={stats} />
+    <PageShell
+      actions={
+        <Button
+          className="gap-2"
+          disabled={!canManageSocials}
+          onClick={() => setShowTemplatePicker(true)}
+        >
+          <Icon icon={Add01Icon} size={16} />
+          <span className="hidden sm:inline">Create Automation</span>
+          <span className="sm:hidden">New</span>
+        </Button>
+      }
+      description="Turn Instagram comments into DMs automatically — someone comments a keyword, they get a DM with your link."
+      page="Automations"
+      pages={[]}
+      title="DM Automations"
+    >
+      {canManageSocials ? null : (
+        <p className="rounded-lg border bg-muted/30 px-4 py-3 text-muted-foreground text-sm">
+          You can view automations, but your workspace role cannot change them.
+        </p>
+      )}
+      <AutomationStats stats={stats} />
+      <PageSection>
         <AutomationFilters
           filterStatus={filterStatus}
           filterTrigger={filterTrigger}
@@ -294,13 +305,13 @@ function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
           onToggle={handleToggle}
           viewMode={viewMode}
         />
-      </div>
+      </PageSection>
       <TemplatePickerDialog
         onClose={() => setShowTemplatePicker(false)}
         onSelect={handleSelectTemplate}
         open={showTemplatePicker && canManageSocials}
       />
-    </div>
+    </PageShell>
   );
 }
 
