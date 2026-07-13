@@ -1,16 +1,15 @@
 "use client";
 
 import { Button } from "@delulu/design-system/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@delulu/design-system/components/ui/card";
+import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
+import {
+  Alert01Icon,
+  PencilEdit02Icon,
+  RefreshIcon,
+} from "@hugeicons-pro/core-solid-rounded";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OperationsError } from "@/components/operations/query-state";
@@ -50,25 +49,29 @@ export function FailedPostsAlert() {
     return null;
   }
 
+  const total = query.data?.total ?? failedPosts.length;
+
   return (
-    <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30">
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <Icon
-            className="text-red-600 dark:text-red-400"
-            icon={Alert01Icon}
-            size={20}
-          />
-          <CardTitle className="text-red-800 dark:text-red-200">
-            Failed Posts Need Attention
-          </CardTitle>
-        </div>
-        <CardDescription className="text-red-700 dark:text-red-300">
-          {query.data?.total} post{query.data?.total === 1 ? "" : "s"} failed to
-          publish
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Card className="gap-0 border-red-200/70 bg-red-50/40 p-0 dark:border-red-900/50 dark:bg-red-950/20">
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        <Icon
+          className="text-red-600 dark:text-red-400"
+          icon={Alert01Icon}
+          size={16}
+        />
+        <p className="font-medium text-red-800 text-sm dark:text-red-200">
+          {total} post{total === 1 ? "" : "s"} failed to publish
+        </p>
+        <Button
+          asChild
+          className="ml-auto h-7 text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200"
+          size="sm"
+          variant="ghost"
+        >
+          <Link href="/posts?status=failed">View all</Link>
+        </Button>
+      </div>
+      <div className="divide-y divide-red-200/60 border-red-200/60 border-t dark:divide-red-900/40 dark:border-red-900/40">
         {failedPosts.slice(0, 3).map((post) => (
           <FailedPostRow
             key={post.id}
@@ -81,7 +84,7 @@ export function FailedPostsAlert() {
             workspaceId={workspaceId}
           />
         ))}
-      </CardContent>
+      </div>
     </Card>
   );
 }
@@ -113,20 +116,30 @@ function FailedPostRow({
     (target) => target.status === "failed"
   );
   const retry = useMutation(resources.posts.retryTarget(workspaceId, post.id));
+  const excerpt = post.groups[0]?.segments[0]?.text || "Untitled post";
+  const error = failedTarget?.error || "Publishing failed";
   return (
-    <div className="flex items-center justify-between gap-3 rounded border bg-background p-3">
+    <div className="flex items-center gap-3 px-4 py-2">
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-sm">
-          {post.groups[0]?.segments[0]?.text || "Untitled post"}
-        </p>
-        <p className="truncate text-red-600 text-xs">
-          {failedTarget?.error || "Publishing failed"}
+        <p className="truncate text-sm leading-tight">{excerpt}</p>
+        <p
+          className="truncate text-red-600 text-xs leading-tight dark:text-red-400"
+          title={error}
+        >
+          {error}
         </p>
       </div>
-      <Button onClick={onEdit} size="sm" variant="outline">
-        Edit
+      <Button
+        aria-label="Edit post"
+        className="size-7 text-muted-foreground"
+        onClick={onEdit}
+        size="icon"
+        variant="ghost"
+      >
+        <Icon icon={PencilEdit02Icon} size={15} />
       </Button>
       <Button
+        className="h-7 gap-1.5 px-2.5"
         disabled={!failedTarget || retry.isPending}
         onClick={async () => {
           if (!failedTarget) {
@@ -136,14 +149,15 @@ function FailedPostRow({
             await retry.mutateAsync(failedTarget.id);
             await onRetried();
             toast.success("Publish retry queued");
-          } catch (error) {
+          } catch (error_) {
             toast.error(
-              error instanceof Error ? error.message : "Retry failed"
+              error_ instanceof Error ? error_.message : "Retry failed"
             );
           }
         }}
         size="sm"
       >
+        <Icon icon={RefreshIcon} size={14} />
         {retry.isPending ? "Retrying…" : "Retry"}
       </Button>
     </div>

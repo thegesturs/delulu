@@ -6,6 +6,8 @@ import { invalidateWorkspaceResource } from "@delulu/client";
 import type { CalendarEvent } from "@delulu/design-system/components/event-calendar";
 import { EventCalendar } from "@delulu/design-system/components/event-calendar";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { Card } from "@delulu/design-system/components/ui/card";
+import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { CalendarPlus } from "@hugeicons-pro/core-solid-rounded";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -164,43 +166,56 @@ export function CalendarClient() {
     [analytics, removePost, targetByEventId]
   );
 
+  const header = (
+    <>
+      <Header page="Calendar" pages={["Content"]}>
+        <Button onClick={() => router.push("/post")}>
+          <Icon icon={CalendarPlus} size={16} />
+          Create Post
+        </Button>
+      </Header>
+      <DottedSeparator fullBleed />
+    </>
+  );
+
   if (isWorkspacePending || scheduledPosts.isPending) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-24 w-24 animate-spin rounded-full border-primary border-t-2" />
-          <p className="mt-4 text-muted-foreground">Loading calendar...</p>
+      <div className="flex h-full flex-col">
+        {header}
+        <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground text-sm">
+          <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          Loading calendar…
         </div>
       </div>
     );
   }
   if (scheduledPosts.isError || !workspaceId) {
     return (
-      <div className="m-6 rounded-lg border border-destructive/40 p-4 text-destructive">
-        <p>
-          {scheduledPosts.error?.message ??
-            "Select a workspace to view its calendar."}
-        </p>
-        <Button
-          className="mt-3"
-          onClick={() => scheduledPosts.refetch()}
-          variant="outline"
-        >
-          Retry
-        </Button>
+      <div className="flex h-full flex-col">
+        {header}
+        <div className="p-4 md:p-6">
+          <Card className="p-4">
+            <p className="text-muted-foreground text-sm">
+              {scheduledPosts.error?.message ??
+                "Select a workspace to view its calendar."}
+            </p>
+            <Button
+              className="mt-3 w-fit"
+              onClick={() => scheduledPosts.refetch()}
+              variant="outline"
+            >
+              Retry
+            </Button>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex h-full flex-col">
-      <Header page="Calendar" pages={["Content"]}>
-        <Button onClick={() => router.push("/post")}>
-          <Icon className="mr-2" icon={CalendarPlus} size={20} />
-          Create Post
-        </Button>
-      </Header>
-      <div className="flex-1 overflow-y-auto p-6">
+      {header}
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <EventCalendar
           events={events}
           initialView="week"

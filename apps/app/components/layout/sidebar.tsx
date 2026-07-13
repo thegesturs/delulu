@@ -3,6 +3,7 @@ import { UserButton } from "@delulu/auth";
 import { Logo, LogoIcon } from "@delulu/design-system/components/logo";
 import { ModeToggle } from "@delulu/design-system/components/mode-toggle";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   Sidebar,
   SidebarContent,
@@ -73,9 +74,9 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
       <Sidebar
         className="group dark:bg-sidebar"
         collapsible="icon"
-        variant="inset"
+        variant="sidebar"
       >
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="gap-2 p-3">
           <Link
             className="mb-2 flex items-center group-data-[state=collapsed]:justify-center"
             href="/"
@@ -112,16 +113,19 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </Button>
         </SidebarHeader>
 
-        <SidebarContent className="px-3">
+        <DottedSeparator />
+
+        <SidebarContent className="px-2 py-1">
           <SidebarMenu className="group-data-[state=collapsed]:items-center">
             {visibleNavItems.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
                   className={cn(
-                    "group/menu ease relative mb-1 select-none rounded-md px-3 py-2.5 transition-colors duration-100 hover:bg-accent hover:text-primary-foreground",
-                    pathname === item.url &&
-                      "bg-[#F9F9FA] shadow-[0px_11px_4px_rgba(7,7,8,0.01),0px_6px_4px_rgba(7,7,8,0.02),0px_3px_3px_rgba(7,7,8,0.04),0px_1px_1px_rgba(7,7,8,0.05)] before:absolute before:inset-0 before:rounded-md before:border before:border-white/5 before:content-[''] after:absolute after:inset-0 after:rounded-md after:bg-[radial-gradient(at_top,rgba(255,255,255,0.05)_5%,rgba(255,255,255,0)_100%)] after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.06)] after:content-[''] dark:bg-[#2A2A2A] dark:shadow-md dark:after:shadow-[inset_0px_-2px_0px_0px_rgba(7,7,8,0.3)]",
+                    "relative mb-0.5 h-9 select-none rounded-md px-3 font-medium transition-all",
+                    pathname === item.url
+                      ? "surface-raised text-foreground"
+                      : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
                     "group-data-[state=collapsed]:justify-center"
                   )}
                   data-tour={item.dataTour}
@@ -135,21 +139,15 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                 >
                   <Link
                     className={cn(
-                      "relative z-10 flex py-3",
-                      "group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-0"
+                      "flex items-center",
+                      "group-data-[state=collapsed]:h-full group-data-[state=collapsed]:w-full group-data-[state=collapsed]:justify-center"
                     )}
                     href={item.url}
                   >
                     <span className="flex h-5 w-5 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
                       <item.icon />
                     </span>
-                    <span
-                      className={cn(
-                        "ml-3 font-medium text-muted-foreground text-sm",
-                        "group-hover/menu:text-foreground group-data-[state=collapsed]:hidden",
-                        pathname === item.url && "text-foreground"
-                      )}
-                    >
+                    <span className="ml-3 text-sm group-data-[state=collapsed]:hidden">
                       {item.title}
                     </span>
                   </Link>
@@ -206,6 +204,8 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarContent>
 
+        <DottedSeparator />
+
         <SidebarFooter>
           <SidebarMenu className="group-data-[state=collapsed]:items-center">
             <SidebarMenuItem className="flex items-center justify-between gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:items-center group-data-[state=collapsed]:p-2">
@@ -249,7 +249,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-h-[100dvh] flex-grow pb-20 md:max-h-[98vh] md:overflow-hidden md:pb-0 dark:border">
+      <SidebarInset className="min-h-[100dvh] flex-grow pb-20 md:max-h-[98vh] md:overflow-hidden md:pb-0">
         {children}
       </SidebarInset>
     </>

@@ -6,7 +6,7 @@ import {
   AnimatedTabsList as TabsList,
   AnimatedTabsTrigger as TabsTrigger,
 } from "@delulu/design-system/components/ui/animated-tabs";
-import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { CardContent } from "@delulu/design-system/components/ui/card";
 import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   type SupportedSocialPlatform,
@@ -46,11 +46,14 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
     "rounded-none border-0 border-transparent border-b-2 bg-transparent px-0 py-2 font-medium text-muted-foreground text-sm data-[state=active]:border-current data-[state=active]:bg-transparent data-[state=active]:text-current";
 
   return (
-    <Card className="w-full lg:w-[500px]">
-      <Tabs className="w-full px-3" defaultValue="basic">
+    <div className="flex h-full w-full flex-col bg-card lg:w-[420px] lg:border-border/60 lg:border-l">
+      <Tabs
+        className="flex min-h-0 w-full flex-1 flex-col"
+        defaultValue="basic"
+      >
         <TabsList
           className={cn(
-            "grid w-full rounded-none bg-transparent p-0",
+            "grid w-full shrink-0 rounded-none bg-transparent px-3 pt-1",
             showActivity ? "grid-cols-3" : "grid-cols-2"
           )}
         >
@@ -70,57 +73,59 @@ export function PostSidebar({ postId, organizationId }: PostSidebarProps) {
             </TabsTrigger>
           )}
         </TabsList>
-        <DottedSeparator className="-mt-px" />
+        <DottedSeparator className="-mt-px shrink-0" />
 
-        <TabsContent className="mt-0 space-y-0" value="basic">
-          <BasicSettings />
-        </TabsContent>
-
-        <TabsContent className="mt-0 space-y-0" value="preview">
-          {hasProviders && currentPlatform && (
-            <>
-              {/* Platform selector pills */}
-              {socialProviders.length > 1 && (
-                <div className="flex flex-wrap gap-2 px-2 pt-3">
-                  {socialProviders.map((provider) => {
-                    const platform =
-                      provider.socialType as SupportedSocialPlatform;
-                    const IconComponent = socialIcons[platform];
-                    const isActive = platform === currentPlatform;
-                    return (
-                      <button
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium text-xs transition-colors",
-                          isActive
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-background text-muted-foreground hover:bg-accent"
-                        )}
-                        key={provider.socialId}
-                        onClick={() => setActivePreviewPlatform(platform)}
-                        type="button"
-                      >
-                        {IconComponent && (
-                          <IconComponent className="h-3.5 w-3.5" />
-                        )}
-                        {socialDisplayNames[platform] || platform}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <PlatformPreview socialType={currentPlatform} />
-            </>
-          )}
-        </TabsContent>
-
-        {showActivity && (
-          <TabsContent className="mt-0" value="activity">
-            <CardContent className="px-1 pt-4">
-              <ReviewActivity postId={postId} />
-            </CardContent>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <TabsContent className="mt-0 space-y-0" value="basic">
+            <BasicSettings />
           </TabsContent>
-        )}
+
+          <TabsContent className="mt-0 space-y-0" value="preview">
+            {hasProviders && currentPlatform && (
+              <>
+                {/* Platform selector pills */}
+                {socialProviders.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+                    {socialProviders.map((provider) => {
+                      const platform =
+                        provider.socialType as SupportedSocialPlatform;
+                      const IconComponent = socialIcons[platform];
+                      const isActive = platform === currentPlatform;
+                      return (
+                        <button
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-xs transition-colors",
+                            isActive
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                          )}
+                          key={provider.socialId}
+                          onClick={() => setActivePreviewPlatform(platform)}
+                          type="button"
+                        >
+                          {IconComponent && (
+                            <IconComponent className="h-3.5 w-3.5" />
+                          )}
+                          {socialDisplayNames[platform] || platform}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <PlatformPreview socialType={currentPlatform} />
+              </>
+            )}
+          </TabsContent>
+
+          {showActivity && (
+            <TabsContent className="mt-0" value="activity">
+              <CardContent className="px-1 pt-4">
+                <ReviewActivity postId={postId} />
+              </CardContent>
+            </TabsContent>
+          )}
+        </div>
       </Tabs>
-    </Card>
+    </div>
   );
 }

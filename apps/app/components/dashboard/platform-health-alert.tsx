@@ -1,63 +1,57 @@
 "use client";
 
 import { Button } from "@delulu/design-system/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@delulu/design-system/components/ui/card";
+import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 
-interface PlatformHealthAlertProps {
-  expiredTokens: number;
-}
+export function PlatformHealthAlert() {
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const workspaceId = workspace.workspaceId ?? "";
+  const options = resources.connections.list(workspaceId, { limit: 100 });
+  const query = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: !!workspace.workspaceId,
+    staleTime: 60_000,
+  });
 
-export function PlatformHealthAlert({
-  expiredTokens,
-}: PlatformHealthAlertProps) {
-  const router = useRouter();
+  const now = Date.now();
+  const expired = (query.data?.data ?? []).filter(
+    (account) =>
+      account.expiresAt && new Date(account.expiresAt).getTime() <= now
+  ).length;
 
-  if (expiredTokens === 0) {
+  if (expired === 0) {
     return null;
   }
 
   return (
-    <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <Icon
-            className="text-amber-600 dark:text-amber-400"
-            icon={Alert01Icon}
-            size={20}
-          />
-          <CardTitle className="text-amber-800 dark:text-amber-200">
-            Platform Connection Issues
-          </CardTitle>
-        </div>
-        <CardDescription className="text-amber-700 dark:text-amber-300">
-          {expiredTokens} social account
-          {expiredTokens > 1 ? "s need" : " needs"} to be reconnected
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between">
-          <p className="text-amber-700 text-sm dark:text-amber-300">
-            Some of your social media accounts have expired authentication
-            tokens. Posts may fail to publish until these are reconnected.
-          </p>
-          <Button
-            className="ml-4"
-            onClick={() => router.push("/socials")}
-            size="sm"
-          >
-            Fix Now
-          </Button>
-        </div>
-      </CardContent>
+    <Card className="gap-0 border-amber-200/70 bg-amber-50/40 p-0 dark:border-amber-900/50 dark:bg-amber-950/20">
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        <Icon
+          className="text-amber-600 dark:text-amber-400"
+          icon={Alert01Icon}
+          size={16}
+        />
+        <p className="font-medium text-amber-800 text-sm dark:text-amber-200">
+          {expired} account{expired === 1 ? "" : "s"} need
+          {expired === 1 ? "s" : ""} reconnecting
+        </p>
+        <Button
+          asChild
+          className="ml-auto h-7 text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
+          size="sm"
+          variant="ghost"
+        >
+          <Link href="/socials">Reconnect</Link>
+        </Button>
+      </div>
     </Card>
   );
 }
