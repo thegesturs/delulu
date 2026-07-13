@@ -27,6 +27,7 @@ import {
   Schema,
 } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { normalizePostgresUrl } from "./postgres-url";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
 const PostgresMessage = Schema.Struct({
@@ -40,7 +41,10 @@ const decodeMessage = Schema.decodeUnknownSync(
 
 const Pg = PgClient.layer({
   url: Redacted.make(
-    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
+    normalizePostgresUrl(
+      process.env.DATABASE_URL ??
+        "postgres://delulu:delulu@localhost:5432/delulu"
+    )
   ),
   maxConnections: 3,
   transformQueryNames: EffectString.camelToSnake,
@@ -356,7 +360,10 @@ const processProgram = (
         } else {
           yield* sql`UPDATE post_targets SET status = ${outcome.retryable ? "pending" : "failed"}::target_status,
             error = ${outcome.message} WHERE id = ${message.targetId}`;
-          yield* sql`UPDATE jobs SET status = ${outcome.retryable ? "dispatched" : "failed"}::job_status,
+          yield* sql`UPDATE jobs SET status = ${outcome.retryable ? "pending" : "failed"}::job_status,
+            run_at = CASE WHEN ${outcome.retryable}
+              THEN now() + (LEAST(300, power(2, attempts)::integer) * interval '1 second')
+              ELSE run_at END,
             last_error = ${outcome.message}, locked_until = NULL WHERE id = ${message.jobId}`;
         }
         const statuses = yield* sql<{

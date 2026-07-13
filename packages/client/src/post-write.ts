@@ -1,5 +1,5 @@
 import { PostWrite } from "@delulu/contracts";
-import { makeId, PostGroupId } from "@delulu/core";
+import { MediaId, makeId, PostGroupId } from "@delulu/core";
 import { Schema } from "effect";
 
 export interface SimplePostConnection {
@@ -92,6 +92,12 @@ export const makeSimplePostWrite = (
   input: SimplePostInput
 ): typeof PostWrite.Type => {
   const groupId = makeId(PostGroupId);
+  const mediaIds = input.mediaIds ?? [];
+  if (mediaIds.some((id) => !Schema.is(MediaId)(id))) {
+    throw new Error(
+      "Selected media is not ready. Remove it and add it to the post again."
+    );
+  }
   return Schema.decodeUnknownSync(PostWrite)({
     groups: [
       {
@@ -100,7 +106,7 @@ export const makeSimplePostWrite = (
         segments: [
           {
             text: input.caption,
-            media: (input.mediaIds ?? []).map((id) => ({ id })),
+            media: mediaIds.map((id) => ({ id })),
           },
         ],
       },

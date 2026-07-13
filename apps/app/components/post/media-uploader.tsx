@@ -29,6 +29,10 @@ import {
   validateTikTokVideo,
 } from "@/lib/platform-rules";
 import { useStore } from "@/store/post";
+import {
+  type ExistingMediaSelection,
+  existingMediaFiles,
+} from "./existing-media";
 import { MediaSelectionDialog } from "./media-selection-dialog";
 
 interface MediaFile {
@@ -646,31 +650,8 @@ export function MediaUploader({
   }, [mediaFiles]);
 
   const handleSelectExistingMedia = useCallback(
-    (
-      selectedMedia: Array<{
-        id: string;
-        url: string;
-        bucketKey: string;
-        mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
-        originalFilename?: string | null;
-        size?: number | null;
-        extension?: string | null;
-        altText?: string | null;
-        createdAt: string | Date;
-      }>
-    ) => {
-      const newMediaFiles = selectedMedia.map((media) => ({
-        id: crypto.randomUUID(),
-        mediaType: media.mediaType,
-        previewUrl: media.url,
-        url: media.url,
-        bucketKey: media.bucketKey,
-        altText: media.altText || undefined,
-        size: media.size || undefined,
-        extension: media.extension || undefined,
-        originalFilename: media.originalFilename || undefined,
-        isUploading: false,
-      }));
+    (selectedMedia: ExistingMediaSelection[]) => {
+      const newMediaFiles = existingMediaFiles(selectedMedia);
 
       isUserAction.current = true;
       setMediaFiles((prev) => [...prev, ...newMediaFiles]);

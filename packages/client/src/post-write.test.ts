@@ -15,4 +15,14 @@ describe("makeSimplePostWrite", () => {
     expect(() => Schema.decodeUnknownSync(PostGroupId)(groupId)).not.toThrow();
     expect(post.targets[0]?.groupId).toBe(groupId);
   });
+
+  it("rejects temporary browser media ids before creating a poisoned post", () => {
+    expect(() =>
+      makeSimplePostWrite({
+        caption: "Production post",
+        connections: [{ id: "connection_aaaaaaaaaaaa", platform: "INSTAGRAM" }],
+        mediaIds: ["063286ba-6a68-4656-88bc-97a8e9b2a55e"],
+      })
+    ).toThrow("Selected media is not ready");
+  });
 });
