@@ -1,5 +1,6 @@
 "use client";
 
+import { invalidateWorkspaceResource } from "@delulu/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
@@ -55,9 +56,7 @@ export function ReviewActions({
         queryClient.invalidateQueries({
           queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
         }),
-        queryClient.invalidateQueries({
-          queryKey: resources.posts.list(workspaceId).queryKey,
-        }),
+        invalidateWorkspaceResource(queryClient, workspaceId, "posts"),
         queryClient.invalidateQueries({
           queryKey: resources.posts.get(workspaceId, postId).queryKey,
         }),

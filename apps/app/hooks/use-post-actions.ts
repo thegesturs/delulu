@@ -1,4 +1,8 @@
-import { makeSimplePostWrite, type SimplePostConnection } from "@delulu/client";
+import {
+  invalidateWorkspaceResource,
+  makeSimplePostWrite,
+  type SimplePostConnection,
+} from "@delulu/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -86,9 +90,7 @@ export function usePostActions() {
     const result = postId
       ? await updatePost.mutateAsync(payload)
       : await createPost.mutateAsync(payload);
-    await queryClient.invalidateQueries({
-      queryKey: resources.posts.list(workspaceId).queryKey,
-    });
+    await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
     return result;
   };
 

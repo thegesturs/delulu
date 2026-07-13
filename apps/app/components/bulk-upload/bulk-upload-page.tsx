@@ -2,6 +2,7 @@
 
 import { BULK_UPLOAD_SCHEDULED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { invalidateWorkspaceResource } from "@delulu/client";
 import {
   Alert,
   AlertDescription,
@@ -178,9 +179,7 @@ export function BulkUploadPage() {
       if (!workspaceId) {
         return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: resources.posts.list(workspaceId).queryKey,
-      });
+      await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
     },
   });
   const router = useRouter();
