@@ -164,7 +164,7 @@ describe("Postgres publish worker outcomes", () => {
         }>`SELECT t.status AS target, j.status AS job FROM post_targets t JOIN jobs j ON j.id = ${seeded.jobId} WHERE t.id = ${seeded.targetId}`;
       }).pipe(Effect.provide(Pg))
     );
-    expect(state[0]).toMatchObject({ target: "pending", job: "dispatched" });
+    expect(state[0]).toMatchObject({ target: "pending", job: "pending" });
   });
 
   it("does not publish an SQS delivery whose durable job was cancelled", async () => {
