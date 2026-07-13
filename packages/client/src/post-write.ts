@@ -8,10 +8,18 @@ export interface SimplePostConnection {
   readonly settings?: (typeof PostWrite.Type)["targets"][number]["settings"];
 }
 
+export interface SimplePostMedia {
+  readonly id: string;
+  readonly altText?: string;
+  readonly thumbnailMediaId?: string;
+  readonly thumbnailTimestamp?: number;
+}
+
 export interface SimplePostInput {
   readonly caption: string;
   readonly connections: readonly SimplePostConnection[];
   readonly mediaIds?: readonly string[];
+  readonly media?: readonly SimplePostMedia[];
   readonly scheduledAt?: string | null;
   readonly privacy?: string;
 }
@@ -93,8 +101,16 @@ export const makeSimplePostWrite = (
   input: SimplePostInput
 ): typeof PostWrite.Type => {
   const groupId = makeId(PostGroupId);
-  const mediaIds = input.mediaIds ?? [];
-  if (mediaIds.some((id) => !Schema.is(MediaId)(id))) {
+  const media: readonly SimplePostMedia[] =
+    input.media ?? (input.mediaIds ?? []).map((id) => ({ id }));
+  if (
+    media.some(
+      (item) =>
+        !Schema.is(MediaId)(item.id) ||
+        (item.thumbnailMediaId !== undefined &&
+          !Schema.is(MediaId)(item.thumbnailMediaId))
+    )
+  ) {
     throw new Error(
       "Selected media is not ready. Remove it and add it to the post again."
     );
@@ -107,7 +123,7 @@ export const makeSimplePostWrite = (
         segments: [
           {
             text: input.caption,
-            media: mediaIds.map((id) => ({ id })),
+            media,
           },
         ],
       },

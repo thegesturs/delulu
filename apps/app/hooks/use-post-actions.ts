@@ -82,8 +82,17 @@ export function usePostActions() {
     const payload = makeSimplePostWrite({
       caption: content?.text ?? "",
       connections: targets,
-      mediaIds: (content?.media ?? []).flatMap((media) =>
-        media.id ? [media.id] : []
+      media: (content?.media ?? []).flatMap((media) =>
+        media.id
+          ? [
+              {
+                id: media.id,
+                altText: media.altText,
+                thumbnailMediaId: media.thumbnailMediaId,
+                thumbnailTimestamp: media.thumbnailTimestamp,
+              },
+            ]
+          : []
       ),
       scheduledAt,
     });

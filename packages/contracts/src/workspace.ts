@@ -35,6 +35,8 @@ const Page = <A extends Schema.Top>(item: A) =>
 export const MediaRefInput = Schema.Struct({
   id: Schema.String,
   altText: Schema.optional(Schema.String),
+  thumbnailMediaId: Schema.optional(Schema.String),
+  thumbnailTimestamp: Schema.optional(Schema.Number),
 });
 export const PostSegmentInput = Schema.Struct({
   text: Schema.String,

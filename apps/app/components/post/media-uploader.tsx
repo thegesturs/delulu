@@ -50,6 +50,8 @@ interface MediaFile {
   bucketUrl?: string; // for backward compatibility
   thumbnailBucketUrl?: string;
   thumbnailBucketKey?: string;
+  thumbnailMediaId?: string;
+  thumbnailTimestamp?: number;
 }
 
 const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
@@ -365,6 +367,8 @@ export function MediaUploader({
         bucketUrl: media.bucketUrl,
         thumbnailBucketUrl: media.thumbnailBucketUrl,
         thumbnailBucketKey: media.thumbnailBucketKey,
+        thumbnailMediaId: media.thumbnailMediaId,
+        thumbnailTimestamp: media.thumbnailTimestamp,
         isUploading: false,
       }))
       .filter((m) => m.url || m.bucketKey);
@@ -385,6 +389,8 @@ export function MediaUploader({
             bucketUrl,
             thumbnailBucketUrl,
             thumbnailBucketKey,
+            thumbnailMediaId,
+            thumbnailTimestamp,
           }) => ({
             id,
             mediaType,
@@ -394,6 +400,8 @@ export function MediaUploader({
             bucketUrl,
             thumbnailBucketUrl,
             thumbnailBucketKey,
+            thumbnailMediaId,
+            thumbnailTimestamp,
           })
         );
 

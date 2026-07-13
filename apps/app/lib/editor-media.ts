@@ -3,6 +3,8 @@ import type { MediaType } from "@delulu/validators/post";
 export interface EditorMediaReference {
   readonly id: string;
   readonly altText?: string;
+  readonly thumbnailMediaId?: string;
+  readonly thumbnailTimestamp?: number;
 }
 
 export interface EditorMediaDetail {
@@ -24,12 +26,23 @@ export const hydrateEditorMedia = (
     if (!media) {
       throw new Error(`Media ${reference.id} could not be loaded`);
     }
+    const thumbnail = reference.thumbnailMediaId
+      ? details.get(reference.thumbnailMediaId)
+      : undefined;
+    if (reference.thumbnailMediaId && !thumbnail) {
+      throw new Error(
+        `Thumbnail ${reference.thumbnailMediaId} could not be loaded`
+      );
+    }
     return {
       id: media.id,
       url: media.url,
       bucketKey: media.bucketKey,
       mediaType: media.mediaType.toUpperCase() as MediaType["mediaType"],
       altText: reference.altText ?? media.altText ?? undefined,
-      thumbnailBucketUrl: media.thumbnails[0],
+      thumbnailMediaId: reference.thumbnailMediaId,
+      thumbnailBucketUrl: thumbnail?.url ?? media.thumbnails[0],
+      thumbnailBucketKey: thumbnail?.bucketKey,
+      thumbnailTimestamp: reference.thumbnailTimestamp,
     };
   });

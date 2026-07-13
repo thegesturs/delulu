@@ -56,4 +56,24 @@ describe("makeSimplePostWrite", () => {
       },
     });
   });
+
+  it("preserves a post-specific video thumbnail reference", () => {
+    const post = makeSimplePostWrite({
+      caption: "Video with a custom cover",
+      connections: [{ id: "connection_aaaaaaaaaaaa", platform: "INSTAGRAM" }],
+      media: [
+        {
+          id: "media_video1234567",
+          thumbnailMediaId: "media_thumb1234567",
+        },
+      ],
+    } as Parameters<typeof makeSimplePostWrite>[0]);
+
+    expect(post.groups[0]?.segments[0]?.media).toEqual([
+      {
+        id: "media_video1234567",
+        thumbnailMediaId: "media_thumb1234567",
+      },
+    ]);
+  });
 });

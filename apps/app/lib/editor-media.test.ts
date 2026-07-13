@@ -8,7 +8,7 @@ describe("hydrateEditorMedia", () => {
       url: "https://media.test/video.mp4",
       bucketKey: "workspace/video.mp4",
       mediaType: "video",
-      thumbnails: ["https://media.test/thumbnail.jpg"],
+      thumbnails: [],
       altText: null,
     };
     const thumbnail: EditorMediaDetail = {
@@ -21,7 +21,7 @@ describe("hydrateEditorMedia", () => {
     };
 
     const result = hydrateEditorMedia(
-      [{ id: video.id }],
+      [{ id: video.id, thumbnailMediaId: thumbnail.id }],
       new Map([
         [video.id, video],
         [thumbnail.id, thumbnail],
@@ -33,6 +33,7 @@ describe("hydrateEditorMedia", () => {
       mediaType: "VIDEO",
       url: video.url,
       thumbnailBucketUrl: thumbnail.url,
+      thumbnailMediaId: thumbnail.id,
     });
   });
 });

@@ -192,7 +192,12 @@ const processProgram = (
         id: string;
         segments: Array<{
           text: string;
-          media: Array<{ id: string; altText?: string }>;
+          media: Array<{
+            id: string;
+            altText?: string;
+            thumbnailMediaId?: string;
+            thumbnailTimestamp?: number;
+          }>;
           delayMinutes?: number;
         }>;
       }>;
@@ -202,22 +207,38 @@ const processProgram = (
       yield* failBeforePublish("Target content group not found");
       return;
     }
-    const mediaIds = group.segments.flatMap((segment) =>
+    const primaryMediaIds = group.segments.flatMap((segment) =>
       segment.media.map((item) => item.id)
     );
+    const thumbnailMediaIds = group.segments.flatMap((segment) =>
+      segment.media.flatMap((item) =>
+        item.thumbnailMediaId ? [item.thumbnailMediaId] : []
+      )
+    );
+    const mediaIds = [...primaryMediaIds, ...thumbnailMediaIds];
     const mediaRows =
       mediaIds.length === 0
         ? []
         : yield* sql<Record<string, unknown>>`
       SELECT id, url, bucket_key, media_type, mime_type, size_bytes, width, height,
              duration_seconds, alt_text, thumbnails FROM media
-      WHERE id IN ${sql.in(mediaIds)} AND status = 'ready' AND deleted_at IS NULL`;
+      WHERE id IN ${sql.in(mediaIds)} AND workspace_id = ${row.workspaceId}
+        AND status = 'ready' AND deleted_at IS NULL`;
     const byMedia = new Map(
       mediaRows.map((media) => [String(media.id), media])
     );
     const missingMediaId = mediaIds.find((id) => !byMedia.has(id));
     if (missingMediaId) {
       yield* failBeforePublish(`Media ${missingMediaId} is not ready`);
+      return;
+    }
+    const invalidThumbnailId = thumbnailMediaIds.find(
+      (id) => String(byMedia.get(id)?.mediaType).toUpperCase() !== "IMAGE"
+    );
+    if (invalidThumbnailId) {
+      yield* failBeforePublish(
+        `Thumbnail ${invalidThumbnailId} must be an image`
+      );
       return;
     }
     const publishInput: SocialPublishInputType = {
@@ -233,6 +254,9 @@ const processProgram = (
           if (!media) {
             throw new Error("Validated media disappeared");
           }
+          const thumbnail = reference.thumbnailMediaId
+            ? byMedia.get(reference.thumbnailMediaId)
+            : undefined;
           return {
             url: String(media.url),
             bucketUrl: String(media.url),
@@ -244,9 +268,15 @@ const processProgram = (
             altText:
               reference.altText ??
               (media.altText === null ? undefined : String(media.altText)),
-            thumbnailBucketUrl: Array.isArray(media.thumbnails)
-              ? String(media.thumbnails[0] ?? "") || undefined
+            thumbnailBucketUrl:
+              (thumbnail ? String(thumbnail.url) : undefined) ??
+              (Array.isArray(media.thumbnails)
+                ? String(media.thumbnails[0] ?? "") || undefined
+                : undefined),
+            thumbnailBucketKey: thumbnail
+              ? String(thumbnail.bucketKey)
               : undefined,
+            thumbnailTimestamp: reference.thumbnailTimestamp,
           };
         }),
       })),

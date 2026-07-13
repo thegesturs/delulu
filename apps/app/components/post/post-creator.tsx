@@ -62,7 +62,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         new Set(
           (postData.data?.groups ?? []).flatMap((group) =>
             group.segments.flatMap((segment) =>
-              segment.media.map((media) => media.id)
+              segment.media.flatMap((media) => [
+                media.id,
+                ...(media.thumbnailMediaId ? [media.thumbnailMediaId] : []),
+              ])
             )
           )
         )

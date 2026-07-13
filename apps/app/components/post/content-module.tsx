@@ -212,19 +212,22 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
       thumbnail: {
         thumbnailBucketUrl?: string;
         thumbnailBucketKey?: string;
+        thumbnailMediaId?: string;
         thumbnailTimestamp?: number;
       }
     ) => {
-      const isCustomImage = !!thumbnail.thumbnailBucketUrl;
+      const isCustomImage = !!thumbnail.thumbnailMediaId;
       const thumbnailFields = isCustomImage
         ? {
             thumbnailBucketUrl: thumbnail.thumbnailBucketUrl,
             thumbnailBucketKey: thumbnail.thumbnailBucketKey,
+            thumbnailMediaId: thumbnail.thumbnailMediaId,
             thumbnailTimestamp: undefined,
           }
         : {
             thumbnailBucketUrl: undefined,
             thumbnailBucketKey: undefined,
+            thumbnailMediaId: undefined,
             thumbnailTimestamp: thumbnail.thumbnailTimestamp,
           };
 
@@ -435,6 +438,7 @@ export function ContentModule({ socialId, socialType }: ContentModuleProps) {
                 altText?: string;
                 thumbnailBucketUrl?: string;
                 thumbnailBucketKey?: string;
+                thumbnailMediaId?: string;
                 thumbnailTimestamp?: number;
               }
             | undefined

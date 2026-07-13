@@ -75,6 +75,8 @@ interface PostActions {
           readonly media: readonly {
             readonly id: string;
             readonly altText?: string;
+            readonly thumbnailMediaId?: string;
+            readonly thumbnailTimestamp?: number;
           }[];
         }[];
       }[];
