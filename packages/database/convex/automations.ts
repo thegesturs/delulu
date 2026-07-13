@@ -1,3 +1,4 @@
+import { DM_PLAN_LIMITS } from "@delulu/payments";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -33,7 +34,6 @@ import {
   automationSessionSchema,
   automationStepSchema,
   automationUpdateSchema,
-  DM_PLAN_LIMITS,
   triggerStepSchema,
 } from "./schemas/automations";
 import { getCurrentUser } from "./users";

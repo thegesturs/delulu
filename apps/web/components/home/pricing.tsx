@@ -1,11 +1,11 @@
 "use client";
 
-import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
 import {
   CURRENCY_SYMBOLS,
+  DM_PLAN_LIMITS,
   formatDmLimit,
   getMaxYearlySavingsPercent,
   getPublicPlans,
