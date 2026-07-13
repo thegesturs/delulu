@@ -19,10 +19,10 @@
     "effect": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250214.0",
+    "@cloudflare/workers-types": "^5.20260713.1",
     "@delulu/typescript-config": "workspace:*",
     "typescript": "catalog:",
     "vitest": "^3.1.1",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.110.0"
   }
 }
