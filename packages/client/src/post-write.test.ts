@@ -25,4 +25,35 @@ describe("makeSimplePostWrite", () => {
       })
     ).toThrow("Selected media is not ready");
   });
+
+  it("preserves connection-specific Instagram trial reel settings", () => {
+    const post = makeSimplePostWrite({
+      caption: "Trial reel",
+      connections: [
+        {
+          id: "connection_aaaaaaaaaaaa",
+          platform: "INSTAGRAM",
+          settings: {
+            platform: "INSTAGRAM",
+            values: {
+              shareToFeed: true,
+              shareToStory: false,
+              trialReels: true,
+              graduationStrategy: "SS_PERFORMANCE",
+            },
+          },
+        },
+      ],
+    });
+
+    expect(post.targets[0]?.settings).toEqual({
+      platform: "INSTAGRAM",
+      values: {
+        shareToFeed: true,
+        shareToStory: false,
+        trialReels: true,
+        graduationStrategy: "SS_PERFORMANCE",
+      },
+    });
+  });
 });

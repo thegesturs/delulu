@@ -8,12 +8,13 @@ import {
 } from "@delulu/design-system/components/ui/tabs";
 import { cn } from "@delulu/design-system/lib/utils";
 import { SocialTypes } from "@delulu/validators/post";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import type { EditorMediaDetail } from "@/lib/editor-media";
 import { getSingleProviderInDefault } from "@/lib/platform-rules";
 import {
   useAlternativeContent,
@@ -55,13 +56,58 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     ...resources.posts.get(workspaceId ?? "", postId ?? ""),
     enabled: Boolean(workspaceId && postId),
   });
+  const mediaIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (postData.data?.groups ?? []).flatMap((group) =>
+            group.segments.flatMap((segment) =>
+              segment.media.map((media) => media.id)
+            )
+          )
+        )
+      ),
+    [postData.data]
+  );
+  const mediaResults = useQueries({
+    queries: mediaIds.map((id) => ({
+      ...resources.media.get(workspaceId ?? "", id),
+      enabled: Boolean(workspaceId && postId),
+    })),
+    combine: (results) => ({
+      data: results.flatMap((result) => (result.data ? [result.data] : [])),
+      isPending: results.some((result) => result.isPending),
+      isError: results.some((result) => result.isError),
+    }),
+  });
+  const mediaById = useMemo(
+    () =>
+      new Map(
+        mediaResults.data.map((media) => [
+          media.id,
+          media satisfies EditorMediaDetail,
+        ])
+      ),
+    [mediaResults.data]
+  );
 
   // Load post data into store when fetched
   useEffect(() => {
-    if (postData.data && postId) {
-      loadPost(postData.data);
+    if (
+      postData.data &&
+      postId &&
+      !(mediaResults.isPending || mediaResults.isError)
+    ) {
+      loadPost(postData.data, mediaById);
     }
-  }, [postData.data, postId, loadPost]);
+  }, [
+    postData.data,
+    postId,
+    loadPost,
+    mediaById,
+    mediaResults.isPending,
+    mediaResults.isError,
+  ]);
 
   // Handle scheduledAt query parameter from calendar
   useEffect(() => {
@@ -110,13 +156,28 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }, [alternativeContent, activeModuleId]);
 
   // Show loading state while fetching post data
-  if (postId && postData.isPending) {
+  if (postId && (postData.isPending || mediaResults.isPending)) {
     return (
       <div className="flex h-full gap-4">
         <div className="flex-1">
           <Header page="Loading..." pages={["Post"]} />
           <div className="flex h-64 items-center justify-center">
             <div className="text-muted-foreground">Loading post...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (postId && (postData.isError || mediaResults.isError)) {
+    return (
+      <div className="flex h-full gap-4">
+        <div className="flex-1">
+          <Header page="Unable to load post" pages={["Post"]} />
+          <div className="flex h-64 items-center justify-center">
+            <div className="text-muted-foreground">
+              The post media could not be loaded. Please retry.
+            </div>
           </div>
         </div>
       </div>

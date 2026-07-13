@@ -5,6 +5,7 @@ import { Schema } from "effect";
 export interface SimplePostConnection {
   readonly id: string;
   readonly platform: string;
+  readonly settings?: (typeof PostWrite.Type)["targets"][number]["settings"];
 }
 
 export interface SimplePostInput {
@@ -114,7 +115,8 @@ export const makeSimplePostWrite = (
     targets: input.connections.map((connection) => ({
       connectionId: connection.id,
       groupId,
-      settings: settingsFor(connection.platform, input.privacy),
+      settings:
+        connection.settings ?? settingsFor(connection.platform, input.privacy),
       scheduledAt: input.scheduledAt ?? null,
     })),
     source: "api",
