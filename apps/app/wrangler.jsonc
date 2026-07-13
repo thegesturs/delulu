@@ -3,6 +3,9 @@
   "main": ".open-next/worker.js",
   "name": "delulu-social",
   "compatibility_date": "2024-12-30",
+  "vars": {
+    "MAINTENANCE_MODE": "true"
+  },
   "placement": {
     "mode": "smart"
   },
@@ -46,6 +49,7 @@
     },
     "production": {
       "vars": {
+        "MAINTENANCE_MODE": "true",
         "NEXT_PUBLIC_API_URL": "https://api.delulu.social",
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
         "NEXT_PUBLIC_WEB_URL": "https://delulu.social",
