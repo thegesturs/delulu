@@ -176,14 +176,14 @@ export default $config({
         link: [
           GROQ_API_KEY,
           CLERK_SECRET_KEY,
-          CONVEX_URL,
-          SECRET_KEY,
+          POSTGRES_DATABASE_URL,
           DODO_PAYMENTS_API_KEY,
         ],
         timeout: "120 seconds",
         memory: "1024 MB",
         environment: {
           ENVIRONMENT: isProduction ? "production" : "development",
+          DATABASE_URL: POSTGRES_DATABASE_URL.value,
         },
       }
     );

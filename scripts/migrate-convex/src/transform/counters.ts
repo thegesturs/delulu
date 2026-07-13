@@ -52,5 +52,4 @@ export const COUNTER = {
   contactsAttachedToOldest: "contacts.attachedToOldestAutomation",
   contactsAttachedToPlaceholder: "contacts.attachedToPlaceholder",
   contactsDuplicateDropped: "contacts.duplicateDropped",
-  transcriptionsFieldsDropped: "transcriptions.reelFieldsDropped",
 } as const;

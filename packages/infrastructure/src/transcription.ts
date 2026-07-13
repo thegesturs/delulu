@@ -1,9 +1,28 @@
 import { verifyToken } from "@clerk/backend";
-import { api } from "@delulu/database/convex/_generated/api";
 import { SORTED_LIMITS } from "@delulu/payments/product-ids";
-import { ConvexHttpClient } from "convex/browser";
+import { TranscriptionService } from "@delulu/services";
+import { PgClient } from "@effect/sql-pg";
+import {
+  String as EffectString,
+  Layer,
+  ManagedRuntime,
+  Redacted,
+} from "effect";
 import Groq from "groq-sdk";
 import { Resource } from "sst";
+
+const Pg = PgClient.layer({
+  url: Redacted.make(
+    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
+  ),
+  maxConnections: 3,
+  transformQueryNames: EffectString.camelToSnake,
+  transformResultNames: EffectString.snakeToCamel,
+  transformJson: true,
+});
+const TranscriptionRuntime = ManagedRuntime.make(
+  TranscriptionService.layer.pipe(Layer.provideMerge(Pg), Layer.orDie)
+);
 
 // ============================================================================
 // Types
@@ -79,37 +98,43 @@ export async function handler(event: LambdaEvent) {
       });
     }
 
-    // 3. Initialize Convex client
-    const convex = new ConvexHttpClient(Resource.CONVEX_URL.value);
-    const webhookSecret = Resource.LAMBDA_SECRET_KEY.value;
-
     // 4. Check for cached transcription
-    const cached = await convex.query(
-      api.transcriptions.getTranscriptionByReelId,
-      {
-        webhookSecret,
-        reelId: body.reelId,
-        externalId: clerkUserId,
-      }
+    const cached = await TranscriptionRuntime.runPromise(
+      TranscriptionService.use((service) =>
+        service.getByReelId({
+          externalUserId: clerkUserId,
+          reelId: body.reelId,
+        })
+      )
     );
 
     if (cached) {
       // Cross-user cache hit: create a record for this user and count against their quota
       if (!cached.isOwnCache) {
-        await convex.mutation(api.transcriptions.createTranscription, {
-          webhookSecret,
-          externalId: clerkUserId,
-          reelId: body.reelId,
-          reelUrl: body.reelUrl,
-          text: cached.text,
-          altText: cached.altText,
-          language: cached.language ?? "unknown",
-          durationSeconds: cached.durationSeconds ?? 0,
-        });
-        await convex.mutation(api.transcriptions.incrementTranscriptionUsage, {
-          webhookSecret,
-          externalId: clerkUserId,
-        });
+        const claimed = await TranscriptionRuntime.runPromise(
+          TranscriptionService.use((service) =>
+            service.createAndIncrement({
+              externalUserId: clerkUserId,
+              reelId: body.reelId,
+              reelUrl: body.reelUrl,
+              text: cached.text,
+              altText: cached.altText,
+              language: cached.language ?? "unknown",
+              durationSeconds: cached.durationSeconds ?? 0,
+            })
+          )
+        );
+        if (!claimed.record) {
+          return jsonResponse(402, {
+            error: claimed.usage.isSortedActive
+              ? "hard_limit_reached"
+              : "quota_exceeded",
+            used: claimed.usage.used,
+            limit: claimed.usage.isSortedActive
+              ? SORTED_LIMITS.PAID_TRANSCRIPTION_HARD_LIMIT
+              : claimed.usage.limit,
+          });
+        }
       }
       return jsonResponse(200, {
         text: cached.text,
@@ -121,12 +146,8 @@ export async function handler(event: LambdaEvent) {
     }
 
     // 5. Check quota
-    const usage = await convex.query(
-      api.transcriptions.getUserTranscriptionUsage,
-      {
-        webhookSecret,
-        externalId: clerkUserId,
-      }
+    const usage = await TranscriptionRuntime.runPromise(
+      TranscriptionService.use((service) => service.usage(clerkUserId))
     );
 
     if (usage.used >= usage.limit && !usage.isSortedActive) {
@@ -238,23 +259,31 @@ export async function handler(event: LambdaEvent) {
       }
     }
 
-    // 8. Store transcription in Convex
-    await convex.mutation(api.transcriptions.createTranscription, {
-      webhookSecret,
-      externalId: clerkUserId,
-      reelId: body.reelId,
-      reelUrl: body.reelUrl,
-      text,
-      altText,
-      language,
-      durationSeconds,
-    });
-
-    // 9. Increment usage
-    await convex.mutation(api.transcriptions.incrementTranscriptionUsage, {
-      webhookSecret,
-      externalId: clerkUserId,
-    });
+    // 8. Store transcription in Postgres
+    const claimed = await TranscriptionRuntime.runPromise(
+      TranscriptionService.use((service) =>
+        service.createAndIncrement({
+          externalUserId: clerkUserId,
+          reelId: body.reelId,
+          reelUrl: body.reelUrl,
+          text,
+          altText,
+          language,
+          durationSeconds,
+        })
+      )
+    );
+    if (!claimed.record) {
+      return jsonResponse(402, {
+        error: claimed.usage.isSortedActive
+          ? "hard_limit_reached"
+          : "quota_exceeded",
+        used: claimed.usage.used,
+        limit: claimed.usage.isSortedActive
+          ? SORTED_LIMITS.PAID_TRANSCRIPTION_HARD_LIMIT
+          : claimed.usage.limit,
+      });
+    }
 
     // 10. Log to Dodo Payments metering (fire-and-forget)
     if (usage.isSortedActive && usage.dodoCustomerId) {

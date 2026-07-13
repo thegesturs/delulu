@@ -417,12 +417,6 @@ importers:
       '@clerk/chrome-extension':
         specifier: 2.9.2
         version: 2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.1.0)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.3))(utf-8-validate@5.0.10)(zod@4.3.6)
-      '@delulu/database':
-        specifier: workspace:*
-        version: link:../../packages/database
-      convex:
-        specifier: ^1.25.4
-        version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       react:
         specifier: catalog:react19
         version: 19.2.3
@@ -1499,6 +1493,9 @@ importers:
       '@delulu/database':
         specifier: workspace:*
         version: link:../database
+      '@delulu/services':
+        specifier: workspace:*
+        version: link:../services
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
@@ -1508,12 +1505,18 @@ importers:
       '@delulu/worker':
         specifier: workspace:*
         version: link:../worker
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       convex:
         specifier: ^1.28.2
         version: 1.28.2(@clerk/clerk-react@5.60.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97
       groq-sdk:
         specifier: ^0.12.0
         version: 0.12.0
@@ -1732,6 +1735,9 @@ importers:
       '@delulu/payments':
         specifier: workspace:*
         version: link:../payments
+      dodopayments:
+        specifier: 2.4.3
+        version: 2.4.3
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.97

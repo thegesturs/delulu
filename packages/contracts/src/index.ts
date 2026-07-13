@@ -4,6 +4,7 @@ import { AutomationsGroup } from "./automations";
 import { BillingGroup } from "./billing";
 import { HealthGroup } from "./health";
 import { MeGroup } from "./me";
+import { TranscriptionsGroup } from "./transcriptions";
 import {
   AdminGroup,
   ConnectionsGroup,
@@ -20,6 +21,7 @@ export * from "./errors";
 export * from "./health";
 export * from "./me";
 export * from "./middleware";
+export * from "./transcriptions";
 export * from "./webhooks";
 export * from "./workspace";
 
@@ -43,6 +45,7 @@ export const Api = HttpApi.make("deluluApi")
   .add(AnalyticsGroup)
   .add(AutomationsGroup)
   .add(BillingGroup)
+  .add(TranscriptionsGroup)
   .annotate(OpenApi.Title, "Delulu API")
   .annotate(OpenApi.Version, "1.0.0")
   .annotate(

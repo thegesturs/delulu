@@ -153,7 +153,7 @@ Sort Instagram reels by engagement metrics and transcribe reel audio to text usi
 - **Field:** Personally identifiable information
 - **Usage:** Used for authenticating users via Clerk to enable transcription features and subscription management
 - **Collected?** Yes — email address and user ID from Clerk authentication
-- **Transmitted off device?** Yes — to Clerk (authentication provider) and Convex (database)
+- **Transmitted off device?** Yes — to the authentication provider and Delulu application API
 - **Sold to third parties?** No
 - **Used for purposes unrelated to extension?** No
 
@@ -161,7 +161,7 @@ Sort Instagram reels by engagement metrics and transcribe reel audio to text usi
 - **Field:** User activity (transcription history)
 - **Usage:** Stores transcription results so users can access their history
 - **Collected?** Yes — transcription text, reel URLs, timestamps
-- **Transmitted off device?** Yes — to Convex (database) and our transcription API (AWS Lambda)
+- **Transmitted off device?** Yes — to the Delulu application and transcription APIs
 - **Sold to third parties?** No
 - **Used for purposes unrelated to extension?** No
 
@@ -279,18 +279,18 @@ When you transcribe a reel:
 - The reel's audio is extracted and sent to our secure transcription API hosted on AWS
 - Audio is processed by Groq's Whisper AI model for speech-to-text conversion
 - The audio is NOT stored — it is discarded after transcription
-- The resulting text, reel URL, and timestamp are stored in your account via Convex
+- The resulting text, reel URL, and timestamp are stored in your Delulu account
 - For Hindi audio, an additional Hinglish (Roman script) version is generated and stored
 - You can view your transcription history in the extension popup
 ```
 
-### Add — Database / Convex
+### Add — Delulu application data
 ```
-Sorted uses Convex (https://convex.dev) as its database:
+Sorted uses the Delulu application API to store account data:
 - Stores transcription text, reel URLs, timestamps, and usage counts
 - Data is associated with your authenticated user ID
-- Convex servers are located in the United States
-- Convex's privacy policy: https://www.convex.dev/legal/privacy
+- Data is stored in the United States
+- Delulu's privacy policy applies to stored account data
 ```
 
 ### Add — Payments

@@ -176,6 +176,7 @@ export interface SubscriptionRow {
   readonly dmsSent: number;
   readonly dmsSkipped: number;
   readonly transcriptionsUsed: number;
+  readonly transcriptionsPeriodStart: Date | null;
   readonly dmsSentPeriodStart: Date | null;
   readonly dmsReserved: number;
   readonly socialAccounts: number;
@@ -255,7 +256,10 @@ export interface TranscriptionRow {
   readonly legacyConvexId: string | null;
   readonly workspaceId: string;
   readonly mediaId: string | null;
+  readonly reelId: string | null;
+  readonly reelUrl: string | null;
   readonly text: string;
+  readonly altText: string | null;
   readonly language: string | null;
   readonly durationSeconds: number | null;
   readonly createdAt: Date;

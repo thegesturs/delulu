@@ -26,6 +26,8 @@ import type {
   RateLimiterService,
   ReviewService,
   SignedIngress,
+  TranscriptionCheckoutService,
+  TranscriptionService,
   WebhookIngressService,
   WorkspaceAccessService,
 } from "@delulu/services";
@@ -46,6 +48,7 @@ import {
 } from "./domain-handlers";
 import { HealthHandlers, MeHandlers } from "./handlers";
 import { OAuthRoutes } from "./oauth-routes";
+import { TranscriptionHandlers } from "./transcription-handlers";
 import { WebhookRoutes } from "./webhook-routes";
 
 /** Everything the assembled routes need a per-request environment to provide. */
@@ -76,6 +79,8 @@ export type AppServices =
   | BillingService
   | BillingOwnerTransfers
   | BillingReconciliation
+  | TranscriptionService
+  | TranscriptionCheckoutService
   | SignedIngress
   | WebhookIngressService
   | ClerkAdminService;
@@ -107,6 +112,7 @@ export const buildWebHandler = (
       AnalyticsHandlers,
       AutomationHandlers,
       BillingHandlers,
+      TranscriptionHandlers,
     ])
   );
 

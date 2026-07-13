@@ -9,7 +9,6 @@ import {
   useAuth,
   useUser,
 } from "@clerk/chrome-extension";
-import { api } from "@delulu/database/convex/_generated/api";
 import { useCallback, useEffect, useState } from "react";
 import { isReelsTab } from "../content/utils/url-detector";
 import "./App.css";
@@ -21,7 +20,12 @@ import type {
   Transcription,
   UsageData,
 } from "./components/types";
-import { convex, PAGE_SIZE, SYNC_HOST } from "./components/types";
+import {
+  apiRequest,
+  PAGE_SIZE,
+  SYNC_HOST,
+  type TranscriptionPage,
+} from "./components/types";
 import { UsageMeter } from "./components/usage-meter";
 
 function App() {
@@ -41,16 +45,21 @@ function App() {
   const handleSubscribe = async () => {
     try {
       setSubscribing(true);
-      const token = await getToken({ template: "convex" });
+      const token = await getToken();
       if (!token) {
         return;
       }
-      convex.setAuth(token);
-      const { checkout_url } = await convex.action(
-        api.subscriptions.createCheckoutSession,
-        { productId: import.meta.env.VITE_SORTED_PRODUCT_ID }
+      const { checkoutUrl } = await apiRequest<{ checkoutUrl: string }>(
+        "/v1/transcriptions/checkout",
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            productId: import.meta.env.VITE_SORTED_PRODUCT_ID,
+          }),
+        }
       );
-      chrome.tabs.create({ url: checkout_url });
+      chrome.tabs.create({ url: checkoutUrl });
     } catch (err) {
       console.error("Checkout failed:", err);
     } finally {
@@ -67,22 +76,22 @@ function App() {
     });
   }, []);
 
-  // Fetch first page of transcriptions + usage from Convex via HTTP
-  const fetchConvexData = useCallback(async () => {
+  // Fetch first page of transcriptions + usage from the application API.
+  const fetchTranscriptionData = useCallback(async () => {
     if (!user) {
       return;
     }
     try {
-      const token = await getToken({ template: "convex" });
+      const token = await getToken();
       if (!token) {
         return;
       }
-      convex.setAuth(token);
       const [result, usageData] = await Promise.all([
-        convex.query(api.transcriptions.getUserTranscriptions, {
-          paginationOpts: { numItems: PAGE_SIZE, cursor: null },
-        }),
-        convex.query(api.transcriptions.getMyTranscriptionUsage, {}),
+        apiRequest<TranscriptionPage>(
+          `/v1/transcriptions?limit=${PAGE_SIZE}`,
+          token
+        ),
+        apiRequest<UsageData>("/v1/transcriptions/usage", token),
       ]);
       setTranscriptions(result.page);
       setCursor(result.continueCursor);
@@ -100,14 +109,13 @@ function App() {
     }
     setLoadingMore(true);
     try {
-      const token = await getToken({ template: "convex" });
+      const token = await getToken();
       if (!token) {
         return;
       }
-      convex.setAuth(token);
-      const result = await convex.query(
-        api.transcriptions.getUserTranscriptions,
-        { paginationOpts: { numItems: PAGE_SIZE, cursor } }
+      const result = await apiRequest<TranscriptionPage>(
+        `/v1/transcriptions?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`,
+        token
       );
       setTranscriptions((prev) => [...prev, ...result.page]);
       setCursor(result.continueCursor);
@@ -120,11 +128,11 @@ function App() {
   }, [isDone, loadingMore, cursor, getToken]);
 
   useEffect(() => {
-    fetchConvexData();
-  }, [fetchConvexData]);
+    fetchTranscriptionData();
+  }, [fetchTranscriptionData]);
 
   // Load active transcription from chrome.storage (transient content-script state)
-  // and re-fetch Convex data when a transcription completes
+  // and re-fetch API data when a transcription completes
   useEffect(() => {
     if (!user) {
       return;
@@ -144,13 +152,13 @@ function App() {
         const newVal = changes.activeTranscription.newValue ?? null;
         setActive(newVal);
         if (!newVal) {
-          fetchConvexData();
+          fetchTranscriptionData();
         }
       }
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
-  }, [user, fetchConvexData]);
+  }, [user, fetchTranscriptionData]);
 
   const hasHistory = transcriptions.length > 0;
 

@@ -94,6 +94,7 @@ export const transformBilling = (
       dmsSent: usage.dmsSent ?? 0,
       dmsSkipped: 0,
       transcriptionsUsed: usage.transcriptionsUsed ?? 0,
+      transcriptionsPeriodStart: epochToDate(usage.transcriptionPeriodStart),
       dmsSentPeriodStart: null,
       dmsReserved: 0,
       socialAccounts: usage.socialAccounts ?? 0,

@@ -15,6 +15,7 @@ crons = ["* * * * *"]
 AS_ISSUER = "https://api-next.delulu.social"
 API_RESOURCE = "https://api-next.delulu.social"
 APP_BASE_URL = "https://app.delulu.social"
+DODO_PAYMENTS_ENVIRONMENT = "test_mode"
 CLERK_ISSUER = ""
 R2_BUCKET_NAME = "delulu-social"
 R2_PUBLIC_BASE_URL = "https://media.delulu.social"
@@ -31,6 +32,7 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 #   SQS_INGRESS_URL / SQS_INGRESS_SECRET
 #   META_APP_SECRET / META_VERIFY_TOKEN
 #   CLERK_WEBHOOK_SECRET / DODO_WEBHOOK_SECRET
+#   DODO_PAYMENTS_API_KEY
 
 # Postgres via Hyperdrive. In production `id` points at the real Hyperdrive
 # config (fill after `wrangler hyperdrive create`). In local `wrangler dev`,
