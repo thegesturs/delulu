@@ -55,8 +55,8 @@ export default $config({
         },
         copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
         nodejs: {
-          install: ["googleapis", "pg-native"],
-          esbuild: { external: ["googleapis", "pg-native"] },
+          install: ["googleapis"],
+          esbuild: { external: ["googleapis"] },
         },
       },
       { batch: { size: 1 } }
