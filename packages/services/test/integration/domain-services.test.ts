@@ -17,8 +17,8 @@ import {
 } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { beforeAll, describe, expect, it } from "vitest";
+import { AutomationKvService } from "../../src/automation-kv";
 import {
-  AutomationKvService,
   ConnectionStateConfig,
   ConnectionStateService,
   ConnectionsService,
