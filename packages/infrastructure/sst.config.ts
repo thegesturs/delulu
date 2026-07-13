@@ -95,46 +95,37 @@ export default $config({
       { batch: { size: 1 } }
     );
 
-    // M2 runs beside the legacy queue in non-production stages. Production
-    // stays entirely on the Convex-backed handler until the M6 routing flip.
-    let postgresTriggerUrl: typeof triggerFunction.url | undefined;
-    if (!isProduction) {
-      const postgresDeadLetterQueue = new sst.aws.Queue(
-        "PostgresSocialPostsDLQ"
-      );
-      const postgresQueue = new sst.aws.Queue("PostgresSocialPostsQueue", {
-        visibilityTimeout: "15 minutes",
-        dlq: { queue: postgresDeadLetterQueue.arn, retry: 5 },
-      });
-      const postgresTrigger = new sst.aws.Function(
-        "PostgresTriggerSqsFunction",
-        {
-          handler: "src/trigger-postgres-sqs.handler",
-          url: true,
-          link: [SECRET_KEY],
-          environment: { QUEUE_URL: postgresQueue.url },
-        }
-      );
-      postgresQueue.subscribe(
-        {
-          handler: "src/postgres-social-post-worker.handler",
-          timeout: "10 minutes",
-          memory: "1024 MB",
-          link: [POSTGRES_DATABASE_URL, ENCRYPTION_SECRET],
-          environment: {
-            DATABASE_URL: POSTGRES_DATABASE_URL.value,
-            ENCRYPTION_SECRET: ENCRYPTION_SECRET.value,
-          },
-          copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
-          nodejs: {
-            install: ["googleapis", "pg-native"],
-            esbuild: { external: ["googleapis", "pg-native"] },
-          },
+    // The Postgres lane is provisioned beside the legacy lane in every stage.
+    // It remains idle until the application API is configured to call its trigger.
+    const postgresDeadLetterQueue = new sst.aws.Queue("PostgresSocialPostsDLQ");
+    const postgresQueue = new sst.aws.Queue("PostgresSocialPostsQueue", {
+      visibilityTimeout: "15 minutes",
+      dlq: { queue: postgresDeadLetterQueue.arn, retry: 5 },
+    });
+    const postgresTrigger = new sst.aws.Function("PostgresTriggerSqsFunction", {
+      handler: "src/trigger-postgres-sqs.handler",
+      url: true,
+      link: [postgresQueue, SECRET_KEY],
+      environment: { QUEUE_URL: postgresQueue.url },
+    });
+    postgresQueue.subscribe(
+      {
+        handler: "src/postgres-social-post-worker.handler",
+        timeout: "10 minutes",
+        memory: "1024 MB",
+        link: [POSTGRES_DATABASE_URL, ENCRYPTION_SECRET],
+        environment: {
+          DATABASE_URL: POSTGRES_DATABASE_URL.value,
+          ENCRYPTION_SECRET: ENCRYPTION_SECRET.value,
         },
-        { batch: { size: 1 } }
-      );
-      postgresTriggerUrl = postgresTrigger.url;
-    }
+        copyFiles: [{ from: "../worker/.env.prod", to: ".env.prod" }],
+        nodejs: {
+          install: ["googleapis", "pg-native"],
+          esbuild: { external: ["googleapis", "pg-native"] },
+        },
+      },
+      { batch: { size: 1 } }
+    );
 
     // ============================================================================
     // INSTAGRAM WEBHOOK
@@ -191,7 +182,7 @@ export default $config({
     return {
       SocialPostsQueueURL: queue.url,
       SocialPostsApiEndpoint: triggerFunction.url,
-      PostgresSocialPostsApiEndpoint: postgresTriggerUrl,
+      PostgresSocialPostsApiEndpoint: postgresTrigger.url,
       InstagramWebhookURL: instagramWebhook.url,
       TranscriptionApiEndpoint: transcriptionFunction.url,
     };
