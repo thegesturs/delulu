@@ -321,7 +321,10 @@ describe("Postgres Model.Class round trips", () => {
           legacyConvexId: nullable,
           workspaceId: workspace.id,
           mediaId: media.id,
+          reelId: null,
+          reelUrl: null,
           text: "transcribed text",
+          altText: null,
           language: "en",
           durationSeconds: 1,
         })

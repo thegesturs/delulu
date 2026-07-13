@@ -19,6 +19,7 @@
     "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/payments": "workspace:*",
+    "dodopayments": "2.4.3",
     "effect": "catalog:"
   },
   "devDependencies": {

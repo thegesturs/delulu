@@ -1,7 +1,7 @@
 /**
  * Transcription API client.
  * Calls the Lambda endpoint to transcribe reel audio via OpenAI Whisper.
- * History is stored in Convex by the Lambda; only activeTranscription
+ * History is stored by the transcription service; only activeTranscription
  * is tracked in chrome.storage for the popup's in-progress indicator.
  */
 
@@ -72,7 +72,7 @@ export async function transcribeReel(
     throw new Error(data.message || data.error || "Transcription failed");
   }
 
-  // Clear active state — Convex handles history persistence
+  // Clear active state — the service handles history persistence
   await chrome.storage.local.remove("activeTranscription");
 
   return {

@@ -35,6 +35,9 @@ import {
   RateLimiterService,
   ReviewService,
   SignedIngress,
+  TranscriptionCheckoutConfig,
+  TranscriptionCheckoutService,
+  TranscriptionService,
   WebhookDeliveryService,
   WebhookIngressService,
   WebhookSecrets,
@@ -129,6 +132,21 @@ export const makeBaseLayer = (
   const BillingTransfers = BillingOwnerTransfers.layer;
   const BillingWebhooks = BillingWebhookApplication.layer;
   const BillingReconcile = BillingReconciliation.layer;
+  const Transcriptions = TranscriptionService.layer;
+  const TranscriptionCheckoutConfigLayer = Layer.succeed(
+    TranscriptionCheckoutConfig,
+    TranscriptionCheckoutConfig.of({
+      apiKey: env.DODO_PAYMENTS_API_KEY ?? "",
+      environment:
+        env.DODO_PAYMENTS_ENVIRONMENT === "live_mode"
+          ? "live_mode"
+          : "test_mode",
+      returnUrl: env.APP_BASE_URL ?? "http://localhost:3000",
+    })
+  );
+  const TranscriptionCheckout = TranscriptionCheckoutService.layer.pipe(
+    Layer.provide(TranscriptionCheckoutConfigLayer)
+  );
   const QuotaReservations = PooledQuotaReservations.layer;
   const AutomationKvBinding = env.AUTOMATION_KV
     ? Layer.succeed(
@@ -228,6 +246,8 @@ export const makeBaseLayer = (
     BillingTransfers,
     BillingWebhooks,
     BillingReconcile,
+    Transcriptions,
+    TranscriptionCheckout,
     QuotaReservations,
     WebhookVerification,
     WebhookIngress

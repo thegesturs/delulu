@@ -48,6 +48,8 @@ export interface Env {
   readonly META_VERIFY_TOKEN?: string;
   readonly CLERK_WEBHOOK_SECRET?: string;
   readonly DODO_WEBHOOK_SECRET?: string;
+  readonly DODO_PAYMENTS_API_KEY?: string;
+  readonly DODO_PAYMENTS_ENVIRONMENT?: "test_mode" | "live_mode";
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;

@@ -2,12 +2,10 @@ import { makeId, TranscriptionId } from "@delulu/core";
 import { epochToDateOr } from "../idmap";
 import type { LegacyTranscription } from "../legacy";
 import type { TransformContext } from "./context";
-import { COUNTER } from "./counters";
 
 /**
- * transcriptions → the owner's personal workspace, `media_id` null. Sorted
- * extension fields (reelId/reelUrl/altText) are dropped and counted; text,
- * language, and duration carry over verbatim (§4.5).
+ * transcriptions → the owner's personal workspace, `media_id` null. Extension
+ * reel identity and alternate text are retained for history and cache cutover.
  */
 export const transformTranscriptions = (
   ctx: TransformContext,
@@ -21,13 +19,15 @@ export const transformTranscriptions = (
       );
       continue;
     }
-    ctx.counters.bump(COUNTER.transcriptionsFieldsDropped);
     ctx.load.transcriptions.push({
       id: makeId(TranscriptionId),
       legacyConvexId: transcription._id,
       workspaceId,
       mediaId: null,
+      reelId: transcription.reelId,
+      reelUrl: transcription.reelUrl,
       text: transcription.text,
+      altText: transcription.altText ?? null,
       language: transcription.language ?? null,
       durationSeconds: transcription.durationSeconds ?? null,
       createdAt: epochToDateOr(
