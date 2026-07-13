@@ -240,12 +240,17 @@ export class PostService extends Context.Service<
         const targets = yield* findTargets(posts.map((post) => post.id)).pipe(
           Effect.orDie
         );
-        const totals = yield* sql<{
-          count: string;
-        }>`SELECT count(*)::text AS count FROM posts
-          WHERE workspace_id = ${input.workspaceId} AND deleted_at IS NULL`.pipe(
-          Effect.orDie
-        );
+        const totals = yield* (
+          input.status
+            ? sql<{
+                count: string;
+              }>`SELECT count(*)::text AS count FROM posts
+                WHERE workspace_id = ${input.workspaceId} AND deleted_at IS NULL AND status = ${input.status}`
+            : sql<{
+                count: string;
+              }>`SELECT count(*)::text AS count FROM posts
+                WHERE workspace_id = ${input.workspaceId} AND deleted_at IS NULL`
+        ).pipe(Effect.orDie);
         return {
           data: hydrate(posts, targets),
           total: Number(totals[0]?.count ?? 0),

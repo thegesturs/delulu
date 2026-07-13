@@ -129,7 +129,7 @@ export function DashboardContent({
       <DmSummaryCard />
       <PendingReviews />
       <FailedPostsAlert />
-      <PlatformHealthAlert expiredTokens={0} />
+      <PlatformHealthAlert />
 
       <div data-tour="dashboard-stats">
         <DashboardStats isLoading={isLoading} stats={dashboardStats} />

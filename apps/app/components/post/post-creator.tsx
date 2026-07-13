@@ -189,8 +189,8 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 pb-20 lg:flex-row lg:pb-0">
-      <div className="flex-1">
+    <div className="flex h-full flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 pb-24 lg:pr-6 lg:pb-6">
         {/* Show warning if post is already published */}
         {postData.data?.status === "published" && (
           <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50/60 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
@@ -284,7 +284,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
           ))}
         </Tabs>
       </div>
-      <div className="hidden lg:block">
+      <div className="hidden h-full shrink-0 lg:block">
         <PostSidebar
           organizationId={postData.data?.workspaceId}
           postId={postId}

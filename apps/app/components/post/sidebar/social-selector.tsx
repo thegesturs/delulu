@@ -10,28 +10,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@delulu/design-system/components/ui/alert-dialog";
-import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
+import { socialBackgroundColors } from "@delulu/design-system/lib/social-config";
+import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   DEFAULT_INSTAGRAM_SETTINGS,
   DEFAULT_TIKTOK_SETTINGS,
 } from "@delulu/validators/constants/settings";
 import type { SocialType } from "@delulu/validators/post";
-import { Settings01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import {
-  AnimatePresence,
-  LayoutGroup,
-  MotionConfig,
-  motion,
-} from "motion/react";
+  Settings01Icon,
+  UserGroupIcon,
+} from "@hugeicons-pro/core-solid-rounded";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { IoCheckmarkCircle } from "react-icons/io5";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { normalizePlatform } from "@/lib/social-platform";
 import {
   postActions,
   useAutomationConfig,
@@ -39,12 +39,41 @@ import {
   useStore,
 } from "@/store/post";
 import { PlatformSettingsDialog } from "./platform-settings-dialog";
-import { SocialIcon } from "./social-icon";
 
-interface SocialSelectorItemProps {
-  socialProvider: SocialType;
-  name: string;
-  socialId: string;
+interface AccountLike {
+  id: string;
+  platform: string;
+  displayName: string | null;
+  username: string | null;
+  profileId: string;
+}
+
+const accountName = (account: AccountLike) =>
+  account.displayName ?? account.username ?? account.profileId;
+
+/** Add a provider to the post and seed platform defaults (mirrors item logic). */
+function addProvider(account: AccountLike) {
+  const socialType = account.platform as SocialType;
+  postActions.addSocialProvider({
+    socialId: account.id,
+    name: accountName(account),
+    socialType,
+  });
+  const state = useStore.getState();
+  if (socialType === "TIKTOK" && !state.getProviderSettings(account.id)) {
+    state.setProviderSettings(account.id, {
+      socialProviderId: account.id,
+      type: "TIKTOK",
+      settings: DEFAULT_TIKTOK_SETTINGS,
+    });
+  }
+  if (socialType === "INSTAGRAM" && !state.getProviderSettings(account.id)) {
+    state.setProviderSettings(account.id, {
+      socialProviderId: account.id,
+      type: "INSTAGRAM",
+      settings: DEFAULT_INSTAGRAM_SETTINGS,
+    });
+  }
 }
 
 export default function SocialSelector() {
@@ -62,26 +91,18 @@ export default function SocialSelector() {
     if (!socialProviders.data) {
       return selectedProviders;
     }
-
     const validIds = new Set(accounts.map((p) => p.id));
     const valid = selectedProviders.filter((p) => validIds.has(p.socialId));
-
-    // Clean up if mismatch detected
     if (valid.length !== selectedProviders.length) {
-      // Use the cleanup helper from the store
-      const validProviderIds = Array.from(validIds);
-      useStore.getState().cleanupDeletedProviders(validProviderIds);
+      useStore.getState().cleanupDeletedProviders(Array.from(validIds));
     }
-
     return valid;
   }, [accounts, socialProviders.data, selectedProviders]);
 
-  // Show warning if providers were removed
   useEffect(() => {
     if (!socialProviders.data) {
       return;
     }
-
     const removed =
       selectedProviders.length - validatedSelectedProviders.length;
     if (removed > 0) {
@@ -95,104 +116,104 @@ export default function SocialSelector() {
     validatedSelectedProviders.length,
   ]);
 
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="font-medium text-sm">Select Social Networks</h3>
-      <MotionConfig
-        transition={{
-          duration: 0.4,
-          type: "spring",
-          bounce: 0.2,
-        }}
-      >
-        <motion.div className="grid grid-cols-1 gap-1 md:grid-cols-2">
-          <LayoutGroup>
-            <AnimatePresence initial={false} mode="popLayout">
-              {accounts.map((account) => (
-                <SocialSelectorItem
-                  key={account.id}
-                  name={
-                    account.displayName ?? account.username ?? account.profileId
-                  }
-                  socialId={account.id}
-                  socialProvider={account.platform as SocialType}
-                />
-              ))}
-            </AnimatePresence>
-          </LayoutGroup>
-        </motion.div>
-      </MotionConfig>
-    </div>
+  const selectedIds = new Set(
+    validatedSelectedProviders.map((p) => p.socialId)
   );
-}
+  const allSelected =
+    accounts.length > 0 && selectedIds.size === accounts.length;
 
-// Helper function to determine which platforms have settings
-function hasSettings(platform: SocialType): boolean {
-  return platform === "TIKTOK" || platform === "INSTAGRAM";
-}
-
-function SocialSelectorItem({
-  socialProvider,
-  name,
-  socialId,
-}: SocialSelectorItemProps) {
-  const selectedSocialProviders = useSelectedSocialProviders();
-  const post = useStore((state) => state.post);
-  const setProviderSettings = useStore((state) => state.setProviderSettings);
-  const getProviderSettings = useStore((state) => state.getProviderSettings);
-  const automationConfig = useAutomationConfig(socialId);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-
-  const isSelected = selectedSocialProviders?.some(
-    (account) => account.socialId === socialId
-  );
-
-  const hasAlternativeContent = post.alternativeContent.some(
-    (content) => content.socialProvider.socialId === socialId
-  );
-
-  const handleSelect = () => {
-    if (isSelected) {
-      if (hasAlternativeContent) {
-        setShowDeleteDialog(true);
-      } else {
-        postActions.removeSocialProvider(socialId);
-      }
-    } else {
-      postActions.addSocialProvider({
-        socialId,
-        name,
-        socialType: socialProvider,
-      });
-
-      // Auto-initialize default settings for platforms that require them
-      if (socialProvider === "TIKTOK") {
-        // Only set defaults if no settings exist for this provider
-        const existingSettings = getProviderSettings(socialId);
-        if (!existingSettings) {
-          setProviderSettings(socialId, {
-            socialProviderId: socialId,
-            type: "TIKTOK",
-            settings: DEFAULT_TIKTOK_SETTINGS,
-          });
-        }
-      }
-      if (socialProvider === "INSTAGRAM") {
-        const existingSettings = getProviderSettings(socialId);
-        if (!existingSettings) {
-          setProviderSettings(socialId, {
-            socialProviderId: socialId,
-            type: "INSTAGRAM",
-            settings: DEFAULT_INSTAGRAM_SETTINGS,
-          });
-        }
+  const handleSelectAll = () => {
+    for (const account of accounts) {
+      if (!selectedIds.has(account.id)) {
+        addProvider(account);
       }
     }
   };
 
-  const handleSettingsClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation(); // Prevent badge click
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <h3 className="font-medium text-sm">Publish to</h3>
+          {selectedIds.size > 0 && (
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 font-medium text-[11px] text-primary">
+              {selectedIds.size}
+            </span>
+          )}
+        </div>
+        {accounts.length > 1 && !allSelected && (
+          <button
+            className="flex items-center gap-1 text-muted-foreground text-xs transition-colors hover:text-foreground"
+            onClick={handleSelectAll}
+            type="button"
+          >
+            <Icon icon={UserGroupIcon} size={13} />
+            Select all
+          </button>
+        )}
+      </div>
+
+      {accounts.length === 0 ? (
+        <div className="flex flex-col items-start gap-1 rounded-lg border border-dashed p-3">
+          <p className="text-muted-foreground text-xs">No accounts connected</p>
+          <Button asChild className="h-7 px-2 text-xs" size="sm" variant="link">
+            <Link href="/socials">Connect an account →</Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {accounts.map((account) => (
+            <SocialSelectorChip
+              account={account}
+              key={account.id}
+              selected={selectedIds.has(account.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function hasSettings(platform: SocialType): boolean {
+  return platform === "TIKTOK" || platform === "INSTAGRAM";
+}
+
+function SocialSelectorChip({
+  account,
+  selected,
+}: {
+  account: AccountLike;
+  selected: boolean;
+}) {
+  const post = useStore((state) => state.post);
+  const automationConfig = useAutomationConfig(account.id);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+
+  const socialType = account.platform as SocialType;
+  const displayPlatform = normalizePlatform(account.platform);
+  const name = accountName(account);
+  const showGear = selected && hasSettings(socialType);
+
+  const hasAlternativeContent = post.alternativeContent.some(
+    (content) => content.socialProvider.socialId === account.id
+  );
+
+  const handleSelect = () => {
+    if (selected) {
+      if (hasAlternativeContent) {
+        setShowDeleteDialog(true);
+      } else {
+        postActions.removeSocialProvider(account.id);
+      }
+    } else {
+      addProvider(account);
+    }
+  };
+
+  const handleSettingsClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     setShowSettingsDialog(true);
   };
 
@@ -201,17 +222,17 @@ function SocialSelectorItem({
       <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Social Network</AlertDialogTitle>
+            <AlertDialogTitle>Remove social network</AlertDialogTitle>
             <AlertDialogDescription>
-              This social network has custom content. Removing it will delete
-              all associated custom content. Are you sure you want to continue?
+              This account has custom content. Removing it will delete all its
+              custom content. Continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                postActions.removeSocialProvider(socialId);
+                postActions.removeSocialProvider(account.id);
                 setShowDeleteDialog(false);
               }}
             >
@@ -221,63 +242,56 @@ function SocialSelectorItem({
         </AlertDialogContent>
       </AlertDialog>
 
-      <motion.div
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        initial={{ opacity: 0 }}
-        layout="position"
-      >
-        <motion.div layout>
-          <Badge
-            className="w-full cursor-pointer text-xs transition-colors duration-200"
-            onClick={handleSelect}
-            size="lg"
-            variant={isSelected ? "blue" : "outline"}
+      <div className="relative inline-flex">
+        <button
+          className={cn(
+            "flex items-center gap-2 rounded-lg border py-1.5 pl-1.5 font-medium text-sm transition-all",
+            showGear ? "pr-8" : "pr-3.5",
+            selected
+              ? "border-primary/30 bg-primary/10 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.5),0_1px_2px_-1px_rgb(16_24_40/0.12)] dark:shadow-[inset_0_1px_0_0_rgb(255_255_255/0.06),0_1px_2px_-1px_rgb(0_0_0/0.4)]"
+              : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+          )}
+          onClick={handleSelect}
+          type="button"
+        >
+          <span
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-md",
+              displayPlatform
+                ? socialBackgroundColors[displayPlatform]
+                : "bg-muted"
+            )}
           >
-            <motion.div className="flex w-full items-center gap-2" layout>
-              <SocialIcon type={socialProvider} />
-              <motion.span className="flex-1 text-left" layout>
-                {name.trim().length > 10
-                  ? name.slice(0, 13) + "..."
-                  : name.trim()}
-              </motion.span>
-              <div className="flex items-center gap-1">
-                {isSelected && hasSettings(socialProvider) && (
-                  <div className="relative">
-                    <Button
-                      className="h-6 w-6 hover:bg-white/20"
-                      onClick={handleSettingsClick}
-                      size="icon"
-                      variant="ghost"
-                    >
-                      <Icon icon={Settings01Icon} size={12} />
-                    </Button>
-                    {socialProvider === "INSTAGRAM" && automationConfig && (
-                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 ring-1 ring-white" />
-                    )}
-                  </div>
-                )}
-                {isSelected && (
-                  <motion.span
-                    animate={{ scale: 1 }}
-                    className="ml-1"
-                    initial={{ scale: 0 }}
-                  >
-                    <IoCheckmarkCircle className="h-4 w-4" />
-                  </motion.span>
-                )}
-              </div>
-            </motion.div>
-          </Badge>
-        </motion.div>
-      </motion.div>
+            {displayPlatform && (
+              <SocialIcon
+                className="size-3.5 text-white"
+                type={displayPlatform}
+              />
+            )}
+          </span>
+          <span className="max-w-[10rem] truncate">{name}</span>
+        </button>
+        {showGear && (
+          <button
+            aria-label="Platform settings"
+            className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded-full text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary"
+            onClick={handleSettingsClick}
+            type="button"
+          >
+            <Icon icon={Settings01Icon} size={13} />
+            {socialType === "INSTAGRAM" && automationConfig && (
+              <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-green-500 ring-1 ring-card" />
+            )}
+          </button>
+        )}
+      </div>
 
       <PlatformSettingsDialog
         isOpen={showSettingsDialog}
         onClose={() => setShowSettingsDialog(false)}
-        platform={socialProvider}
+        platform={socialType}
         platformName={name}
-        socialId={socialId}
+        socialId={account.id}
       />
     </>
   );
