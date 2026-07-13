@@ -12,6 +12,10 @@ compatibility_flags = ["nodejs_compat"]
 crons = ["* * * * *"]
 
 [vars]
+# Cutover deploy: replace the active staging pair below with these values just
+# before attaching the production custom domain to this existing Worker.
+# AS_ISSUER = "https://api.delulu.social"
+# API_RESOURCE = "https://api.delulu.social"
 AS_ISSUER = "https://api-next.delulu.social"
 API_RESOURCE = "https://api-next.delulu.social"
 APP_BASE_URL = "https://app.delulu.social"

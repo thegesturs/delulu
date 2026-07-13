@@ -34,6 +34,7 @@
   "env": {
     "staging": {
       "vars": {
+        "NEXT_PUBLIC_API_URL": "https://api-next.delulu.social",
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
         "NEXT_PUBLIC_WEB_URL": "https://delulu.social",
         "NEXT_PUBLIC_DOCS_URL": "https://docs.delulu.social",
@@ -53,6 +54,7 @@
     },
     "production": {
       "vars": {
+        "NEXT_PUBLIC_API_URL": "https://api.delulu.social",
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
         "NEXT_PUBLIC_WEB_URL": "https://delulu.social",
         "NEXT_PUBLIC_DOCS_URL": "https://docs.delulu.social",

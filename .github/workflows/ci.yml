@@ -166,3 +166,4 @@ jobs:
           fail-on-cache-miss: true
       - run: pnpm pg:migration-lint
       - run: pnpm check:connections-boundary
+      - run: pnpm check:backend-cutover
