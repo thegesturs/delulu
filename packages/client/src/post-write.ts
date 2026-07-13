@@ -1,6 +1,6 @@
 import { PostWrite } from "@delulu/contracts";
+import { makeId, PostGroupId } from "@delulu/core";
 import { Schema } from "effect";
-import { nanoid } from "nanoid";
 
 export interface SimplePostConnection {
   readonly id: string;
@@ -91,7 +91,7 @@ const settingsFor = (platform: string, privacy?: string) => {
 export const makeSimplePostWrite = (
   input: SimplePostInput
 ): typeof PostWrite.Type => {
-  const groupId = `post_group_${nanoid()}`;
+  const groupId = makeId(PostGroupId);
   return Schema.decodeUnknownSync(PostWrite)({
     groups: [
       {

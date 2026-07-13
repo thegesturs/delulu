@@ -97,7 +97,7 @@ export function usePostActions() {
   return {
     handlePostNow: () =>
       run(
-        () => write(null),
+        () => write(new Date().toISOString()),
         "Post sent for processing, will be published shortly.",
         "Failed to publish post",
         "/posts?status=publishing"
