@@ -2,7 +2,7 @@ import { Cause, Effect, Exit, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { apiError, invalidMedia, isConnectionError } from "../../errors";
 import { ConnectionStore } from "../../services/connection-store";
-import { instagramPublisher } from "./publish";
+import { buildSingleContainerParams, instagramPublisher } from "./publish";
 import { instagramRules } from "./rules";
 
 const media = (mediaType: "IMAGE" | "VIDEO", url = "https://x/y.jpg") => ({
@@ -42,6 +42,46 @@ describe("instagramRules.validate", () => {
     });
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
+  });
+});
+
+describe("Instagram video container parameters", () => {
+  it("sends an uploaded cover image instead of a timestamp", () => {
+    const params = buildSingleContainerParams(
+      {
+        url: "https://media.test/video.mp4",
+        mediaType: "VIDEO",
+        thumbnailBucketUrl: "https://media.test/cover.jpg",
+        thumbnailTimestamp: 12,
+      },
+      "token",
+      "caption"
+    );
+
+    expect(params.get("cover_url")).toBe("https://media.test/cover.jpg");
+    expect(params.has("thumb_offset")).toBe(false);
+  });
+
+  it("sends trial reel parameters when the toggle is enabled", () => {
+    const params = buildSingleContainerParams(
+      { url: "https://media.test/video.mp4", mediaType: "VIDEO" },
+      "token",
+      "caption",
+      {
+        socialProviderId: "connection_1",
+        type: "INSTAGRAM",
+        settings: {
+          shareToFeed: true,
+          shareToStory: false,
+          trialReels: true,
+          graduationStrategy: "SS_PERFORMANCE",
+        },
+      }
+    );
+
+    expect(JSON.parse(params.get("trial_params") ?? "null")).toEqual({
+      graduation_strategy: "SS_PERFORMANCE",
+    });
   });
 });
 

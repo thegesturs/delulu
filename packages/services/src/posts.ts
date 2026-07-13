@@ -1,6 +1,7 @@
 import {
   ConflictError,
   NotFoundError,
+  PostGroupInput,
   type PostView,
   type PostWrite,
   ValidationError,
@@ -9,7 +10,6 @@ import {
   contentFingerprint,
   makeId,
   PlatformSettings,
-  PostContent,
   PostId,
   PostTargetId,
   rolePermissions,
@@ -23,6 +23,13 @@ import { JobService } from "./jobs";
 
 type PostWriteInput = typeof PostWrite.Type;
 type PostOutput = typeof PostView.Type;
+
+// API rows created before client-side ID generation was corrected can contain
+// non-canonical group or media IDs. They are still valid PostView strings and
+// must remain readable so a user can open and replace those drafts.
+export const decodePostContentForView = Schema.decodeUnknownSync(
+  Schema.Struct({ groups: Schema.Array(PostGroupInput) })
+);
 
 export interface PostActor {
   readonly memberId: string;
@@ -128,7 +135,6 @@ export class PostService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const jobs = yield* JobService;
-      const decodeContent = Schema.decodeUnknownSync(PostContent);
       const decodeSettings = Schema.decodeUnknownSync(PlatformSettings);
 
       const hydrate = (
@@ -142,7 +148,7 @@ export class PostService extends Context.Service<
           byPost.set(target.postId, entries);
         }
         return posts.map((post) => {
-          const content = decodeContent(post.content);
+          const content = decodePostContentForView(post.content);
           return {
             id: post.id,
             workspaceId: post.workspaceId,
@@ -536,7 +542,7 @@ export class PostService extends Context.Service<
                     resource: "post_target",
                   });
                 }
-                const content = decodeContent(existing[0].content);
+                const content = decodePostContentForView(existing[0].content);
                 const nextGroupId = input.groupId ?? existing[0].groupId;
                 const issues: { path: string; message: string }[] = [];
                 if (!content.groups.some((group) => group.id === nextGroupId)) {

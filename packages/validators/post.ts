@@ -75,6 +75,7 @@ export const mediaSchema = z.object({
   altText: z.string().optional(),
   thumbnailBucketUrl: z.string().optional(),
   thumbnailBucketKey: z.string().optional(),
+  thumbnailMediaId: z.string().optional(),
   thumbnailTimestamp: z.number().optional(), // Timestamp in seconds when video frame was extracted
 });
 

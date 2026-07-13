@@ -1,4 +1,8 @@
-import { makeSimplePostWrite } from "@delulu/client";
+import {
+  invalidateWorkspaceResource,
+  makeSimplePostWrite,
+  type SimplePostConnection,
+} from "@delulu/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -6,12 +10,18 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
-import { useDateTime, usePost, useSelectedSocialProviders } from "@/store/post";
+import {
+  useDateTime,
+  usePost,
+  useSelectedSocialProviders,
+  useStore,
+} from "@/store/post";
 
 export function usePostActions() {
   const { date } = useDateTime();
   const post = usePost();
   const selected = useSelectedSocialProviders();
+  const providerSettings = useStore((state) => state.providerSettings);
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -54,23 +64,42 @@ export function usePostActions() {
           if (!connection) {
             throw new Error(`Connection ${item.name} is no longer available`);
           }
-          return { id: connection.id, platform: connection.platform };
+          const configured = providerSettings[connection.id];
+          const settings =
+            configured?.type === connection.platform
+              ? ({
+                  platform: configured.type,
+                  values: configured.settings,
+                } as SimplePostConnection["settings"])
+              : undefined;
+          return {
+            id: connection.id,
+            platform: connection.platform,
+            settings,
+          };
         });
     const content = post.content[0];
     const payload = makeSimplePostWrite({
       caption: content?.text ?? "",
       connections: targets,
-      mediaIds: (content?.media ?? []).flatMap((media) =>
-        media.id ? [media.id] : []
+      media: (content?.media ?? []).flatMap((media) =>
+        media.id
+          ? [
+              {
+                id: media.id,
+                altText: media.altText,
+                thumbnailMediaId: media.thumbnailMediaId,
+                thumbnailTimestamp: media.thumbnailTimestamp,
+              },
+            ]
+          : []
       ),
       scheduledAt,
     });
     const result = postId
       ? await updatePost.mutateAsync(payload)
       : await createPost.mutateAsync(payload);
-    await queryClient.invalidateQueries({
-      queryKey: resources.posts.list(workspaceId).queryKey,
-    });
+    await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
     return result;
   };
 
@@ -97,7 +126,7 @@ export function usePostActions() {
   return {
     handlePostNow: () =>
       run(
-        () => write(null),
+        () => write(new Date().toISOString()),
         "Post sent for processing, will be published shortly.",
         "Failed to publish post",
         "/posts?status=publishing"

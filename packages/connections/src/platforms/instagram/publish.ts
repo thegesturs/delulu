@@ -96,10 +96,30 @@ const createSingleContainer = (
     );
   }
 
-  const params = new URLSearchParams({
-    access_token: profile.accessToken,
+  const params = buildSingleContainerParams(
+    media,
+    profile.accessToken,
     caption,
-  });
+    providerSettings
+  );
+
+  return post<IgContainer>(
+    `${base(profile.profileId)}/media?${params.toString()}`
+  );
+};
+
+export function buildSingleContainerParams(
+  media: {
+    url: string;
+    mediaType: "IMAGE" | "VIDEO";
+    thumbnailBucketUrl?: string;
+    thumbnailTimestamp?: number;
+  },
+  accessToken: string,
+  caption: string,
+  providerSettings?: ProviderSetting
+): URLSearchParams {
+  const params = new URLSearchParams({ access_token: accessToken, caption });
 
   if (media.mediaType === "VIDEO") {
     params.append("media_type", "REELS");
@@ -129,10 +149,8 @@ const createSingleContainer = (
     params.append("image_url", media.url);
   }
 
-  return post<IgContainer>(
-    `${base(profile.profileId)}/media?${params.toString()}`
-  );
-};
+  return params;
+}
 
 const createCarouselContainer = (
   imageUrls: string[],

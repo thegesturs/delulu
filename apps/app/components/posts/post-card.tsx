@@ -2,6 +2,7 @@
 
 import { POST_DELETED, POST_PUBLISH_RETRIED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { invalidateWorkspaceResource } from "@delulu/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
@@ -36,9 +37,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
   const refresh = async () => {
     if (workspaceId) {
-      await queryClient.invalidateQueries({
-        queryKey: resources.posts.list(workspaceId).queryKey,
-      });
+      await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
     }
   };
   const handleDelete = async () => {

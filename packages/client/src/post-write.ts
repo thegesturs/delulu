@@ -1,16 +1,25 @@
 import { PostWrite } from "@delulu/contracts";
+import { MediaId, makeId, PostGroupId } from "@delulu/core";
 import { Schema } from "effect";
-import { nanoid } from "nanoid";
 
 export interface SimplePostConnection {
   readonly id: string;
   readonly platform: string;
+  readonly settings?: (typeof PostWrite.Type)["targets"][number]["settings"];
+}
+
+export interface SimplePostMedia {
+  readonly id: string;
+  readonly altText?: string;
+  readonly thumbnailMediaId?: string;
+  readonly thumbnailTimestamp?: number;
 }
 
 export interface SimplePostInput {
   readonly caption: string;
   readonly connections: readonly SimplePostConnection[];
   readonly mediaIds?: readonly string[];
+  readonly media?: readonly SimplePostMedia[];
   readonly scheduledAt?: string | null;
   readonly privacy?: string;
 }
@@ -91,7 +100,21 @@ const settingsFor = (platform: string, privacy?: string) => {
 export const makeSimplePostWrite = (
   input: SimplePostInput
 ): typeof PostWrite.Type => {
-  const groupId = `post_group_${nanoid()}`;
+  const groupId = makeId(PostGroupId);
+  const media: readonly SimplePostMedia[] =
+    input.media ?? (input.mediaIds ?? []).map((id) => ({ id }));
+  if (
+    media.some(
+      (item) =>
+        !Schema.is(MediaId)(item.id) ||
+        (item.thumbnailMediaId !== undefined &&
+          !Schema.is(MediaId)(item.thumbnailMediaId))
+    )
+  ) {
+    throw new Error(
+      "Selected media is not ready. Remove it and add it to the post again."
+    );
+  }
   return Schema.decodeUnknownSync(PostWrite)({
     groups: [
       {
@@ -100,7 +123,7 @@ export const makeSimplePostWrite = (
         segments: [
           {
             text: input.caption,
-            media: (input.mediaIds ?? []).map((id) => ({ id })),
+            media,
           },
         ],
       },
@@ -108,7 +131,8 @@ export const makeSimplePostWrite = (
     targets: input.connections.map((connection) => ({
       connectionId: connection.id,
       groupId,
-      settings: settingsFor(connection.platform, input.privacy),
+      settings:
+        connection.settings ?? settingsFor(connection.platform, input.privacy),
       scheduledAt: input.scheduledAt ?? null,
     })),
     source: "api",

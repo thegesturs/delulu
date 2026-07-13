@@ -90,6 +90,8 @@ export function AlternativeContentSelector() {
                 altText: m.altText,
                 thumbnailBucketUrl: m.thumbnailBucketUrl,
                 thumbnailBucketKey: m.thumbnailBucketKey,
+                thumbnailMediaId: m.thumbnailMediaId,
+                thumbnailTimestamp: m.thumbnailTimestamp,
               })),
               text: contentItem.text,
               title: contentItem.title, // Copy YouTube title

@@ -2,6 +2,7 @@
 
 import { POST_DELETED, POST_RESCHEDULED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { invalidateWorkspaceResource } from "@delulu/client";
 import type { CalendarEvent } from "@delulu/design-system/components/event-calendar";
 import { EventCalendar } from "@delulu/design-system/components/event-calendar";
 import { Button } from "@delulu/design-system/components/ui/button";
@@ -40,9 +41,7 @@ export function CalendarClient() {
     if (!workspaceId) {
       return;
     }
-    await queryClient.invalidateQueries({
-      queryKey: resources.posts.list(workspaceId).queryKey,
-    });
+    await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
   }, [queryClient, resources, workspaceId]);
 
   const updateTarget = useMutation({

@@ -40,6 +40,7 @@ interface VideoThumbnailSelectorProps {
     // For custom image upload: thumbnailBucketUrl + thumbnailBucketKey
     thumbnailBucketUrl?: string;
     thumbnailBucketKey?: string;
+    thumbnailMediaId?: string;
     thumbnailTimestamp?: number; // Timestamp in seconds when video frame was extracted
   }) => void;
   isOpen: boolean;
@@ -94,9 +95,13 @@ export function VideoThumbnailSelector({
         `thumbnail-${Date.now()}.jpg`
       );
       const result = await uploadAndSaveMedia(thumbnailToUpload);
+      if (!result.mediaId) {
+        throw new Error("Thumbnail upload did not return a media ID");
+      }
       onThumbnailUpdate({
         thumbnailBucketUrl: result.url,
         thumbnailBucketKey: result.bucketKey,
+        thumbnailMediaId: result.mediaId,
       });
       toast.success(`Thumbnail set to ${formatTimestamp(currentTime)}`);
       onClose();
@@ -143,10 +148,14 @@ export function VideoThumbnailSelector({
       const blob = await response.blob();
       const thumbnailToUpload = blobToFile(blob, `thumbnail-${Date.now()}.jpg`);
       const result = await uploadAndSaveMedia(thumbnailToUpload);
+      if (!result.mediaId) {
+        throw new Error("Thumbnail upload did not return a media ID");
+      }
 
       onThumbnailUpdate({
         thumbnailBucketUrl: result.url,
         thumbnailBucketKey: result.bucketKey,
+        thumbnailMediaId: result.mediaId,
       });
 
       toast.success("Thumbnail saved");

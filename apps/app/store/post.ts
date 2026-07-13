@@ -15,6 +15,7 @@ import type {
   Note,
   TriggerStep,
 } from "@/components/automations/flow-builder/utils/flow-types";
+import { type EditorMediaDetail, hydrateEditorMedia } from "@/lib/editor-media";
 
 export interface InlineAutomationConfig {
   templateSlug: string;
@@ -63,28 +64,33 @@ interface PostActions {
     providerId: string,
     config: InlineAutomationConfig | null
   ) => void;
-  loadPost: (postData: {
-    id: string;
-    workspaceId: string;
-    groups: readonly {
-      readonly isDefault: boolean;
-      readonly segments: readonly {
-        readonly text: string;
-        readonly media: readonly {
-          readonly id: string;
-          readonly altText?: string;
+  loadPost: (
+    postData: {
+      id: string;
+      workspaceId: string;
+      groups: readonly {
+        readonly isDefault: boolean;
+        readonly segments: readonly {
+          readonly text: string;
+          readonly media: readonly {
+            readonly id: string;
+            readonly altText?: string;
+            readonly thumbnailMediaId?: string;
+            readonly thumbnailTimestamp?: number;
+          }[];
         }[];
       }[];
-    }[];
-    targets: readonly {
-      readonly connectionId: string;
-      readonly scheduledAt: string | null;
-      readonly settings: {
-        readonly platform: ProviderSetting["type"];
-        readonly values: ProviderSetting["settings"];
-      };
-    }[];
-  }) => void;
+      targets: readonly {
+        readonly connectionId: string;
+        readonly scheduledAt: string | null;
+        readonly settings: {
+          readonly platform: ProviderSetting["type"];
+          readonly values: ProviderSetting["settings"];
+        };
+      }[];
+    },
+    mediaById: ReadonlyMap<string, EditorMediaDetail>
+  ) => void;
   cleanupDeletedProviders: (validProviderIds: string[]) => void;
   reset: () => void;
 }
@@ -184,7 +190,7 @@ export const useStore = create<PostState & PostActions>()(
               },
             };
           }),
-        loadPost: (postData) => {
+        loadPost: (postData, mediaById) => {
           const defaultGroup =
             postData.groups.find((group) => group.isDefault) ??
             postData.groups[0];
@@ -196,11 +202,7 @@ export const useStore = create<PostState & PostActions>()(
             content: (defaultGroup?.segments ?? []).map((segment, order) => ({
               title: "",
               text: segment.text,
-              media: segment.media.map((media) => ({
-                id: media.id,
-                url: "",
-                mediaType: "IMAGE" as const,
-              })),
+              media: hydrateEditorMedia(segment.media, mediaById),
               name: order === 0 ? "DEFAULT" : `PART_${order + 1}`,
               order,
               tags: [],

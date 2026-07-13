@@ -29,6 +29,10 @@ import {
   validateTikTokVideo,
 } from "@/lib/platform-rules";
 import { useStore } from "@/store/post";
+import {
+  type ExistingMediaSelection,
+  existingMediaFiles,
+} from "./existing-media";
 import { MediaSelectionDialog } from "./media-selection-dialog";
 
 interface MediaFile {
@@ -46,6 +50,8 @@ interface MediaFile {
   bucketUrl?: string; // for backward compatibility
   thumbnailBucketUrl?: string;
   thumbnailBucketKey?: string;
+  thumbnailMediaId?: string;
+  thumbnailTimestamp?: number;
 }
 
 const VIDEO_UPLOAD_LOG_PREFIX = "[video-upload-layout]";
@@ -361,6 +367,8 @@ export function MediaUploader({
         bucketUrl: media.bucketUrl,
         thumbnailBucketUrl: media.thumbnailBucketUrl,
         thumbnailBucketKey: media.thumbnailBucketKey,
+        thumbnailMediaId: media.thumbnailMediaId,
+        thumbnailTimestamp: media.thumbnailTimestamp,
         isUploading: false,
       }))
       .filter((m) => m.url || m.bucketKey);
@@ -381,6 +389,8 @@ export function MediaUploader({
             bucketUrl,
             thumbnailBucketUrl,
             thumbnailBucketKey,
+            thumbnailMediaId,
+            thumbnailTimestamp,
           }) => ({
             id,
             mediaType,
@@ -390,6 +400,8 @@ export function MediaUploader({
             bucketUrl,
             thumbnailBucketUrl,
             thumbnailBucketKey,
+            thumbnailMediaId,
+            thumbnailTimestamp,
           })
         );
 
@@ -646,31 +658,8 @@ export function MediaUploader({
   }, [mediaFiles]);
 
   const handleSelectExistingMedia = useCallback(
-    (
-      selectedMedia: Array<{
-        id: string;
-        url: string;
-        bucketKey: string;
-        mediaType: "IMAGE" | "VIDEO" | "DOCUMENT";
-        originalFilename?: string | null;
-        size?: number | null;
-        extension?: string | null;
-        altText?: string | null;
-        createdAt: string | Date;
-      }>
-    ) => {
-      const newMediaFiles = selectedMedia.map((media) => ({
-        id: crypto.randomUUID(),
-        mediaType: media.mediaType,
-        previewUrl: media.url,
-        url: media.url,
-        bucketKey: media.bucketKey,
-        altText: media.altText || undefined,
-        size: media.size || undefined,
-        extension: media.extension || undefined,
-        originalFilename: media.originalFilename || undefined,
-        isUploading: false,
-      }));
+    (selectedMedia: ExistingMediaSelection[]) => {
+      const newMediaFiles = existingMediaFiles(selectedMedia);
 
       isUserAction.current = true;
       setMediaFiles((prev) => [...prev, ...newMediaFiles]);
