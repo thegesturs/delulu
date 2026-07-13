@@ -8,5 +8,4 @@ export const env = () => ({
   INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID ?? "",
   INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET ?? "",
   INSTAGRAM_CALLBACK_URL: process.env.INSTAGRAM_CALLBACK_URL ?? "",
-  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });

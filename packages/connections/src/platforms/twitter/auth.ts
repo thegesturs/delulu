@@ -1,6 +1,5 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
+import { callbackRedirect } from "../../callback-response";
 import {
   type ConnectionError,
   fromUnknownHttp,
@@ -25,11 +24,7 @@ const twitterEnv = () => ({
   TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET ?? "",
   TWITTER_CALLBACK_URL: process.env.TWITTER_CALLBACK_URL ?? "",
   TWITTER_STATE: process.env.TWITTER_STATE ?? "",
-  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 interface TwitterTokenResponse {
   access_token: string;
@@ -82,19 +77,19 @@ export const twitterAuth: PlatformAuth = {
   },
 
   /**
-   * OAuth callback. The thin Next.js route resolves Clerk auth + Convex token
-   * and passes them in via `CallbackContext`; everything else (code exchange,
+   * OAuth callback. The API verifies state and supplies persistence through
+   * `CallbackContext`; everything else (code exchange,
    * profile fetch, upsert) lives here. Returns redirect Responses matching the
    * old route's error codes/paths.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, convexToken } = ctx;
+    const { code } = ctx;
     const e = twitterEnv();
 
     // The old route required both `state` and `code`; the thin route validates
     // state (CSRF) and only forwards `code`. A missing code → same PARAM_001.
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=TWITTER"
       );
     }
@@ -159,34 +154,21 @@ export const twitterAuth: PlatformAuth = {
         fullName: userObject.name ?? "",
         profileImage: userObject.profile_image_url ?? "",
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=twitter"
         );
       }
 
       ctx.onConnected?.({ provider: "twitter", username: userObject.username });
-      return redirect("/socials?success=true&provider=twitter");
+      return callbackRedirect("/socials?success=true&provider=twitter");
     } catch (error) {
       console.error("Twitter callback error:", error);
       const errorType =
         error instanceof Error ? error.message : "internal_error";
-      return redirect(
+      return callbackRedirect(
         `/socials?error=${errorType}&code=TWITTER_ERR&provider=TWITTER`
       );
     }

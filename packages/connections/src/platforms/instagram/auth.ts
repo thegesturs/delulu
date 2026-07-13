@@ -1,7 +1,6 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import { env } from "../../env";
 import type {
   CallbackContext,
@@ -17,9 +16,6 @@ const BASE_SCOPES = [
   "instagram_business_manage_messages",
   "instagram_business_manage_comments",
 ];
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 interface InstagramTokenResponse {
   access_token: string;
@@ -65,22 +61,22 @@ export const instagramAuth: PlatformAuth = {
   },
 
   /**
-   * OAuth callback. The thin Next.js route resolves Clerk auth + Convex token
-   * and passes them in via `CallbackContext`; everything else (code exchange,
+   * OAuth callback. The API verifies state and supplies persistence through
+   * `CallbackContext`; everything else (code exchange,
    * long-lived token, profile fetch, upsert, webhook subscribe) lives here.
    * Returns redirect Responses matching the old route's error codes.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, errorReason, convexToken } = ctx;
+    const { code, error, errorReason } = ctx;
     const e = env();
 
     if (error === "access_denied" && errorReason === "user_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_denied&code=INSTAGRAM_001&provider=instagram"
       );
     }
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=instagram"
       );
     }
@@ -102,7 +98,7 @@ export const instagramAuth: PlatformAuth = {
         }
       );
       if (!tokenResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=INSTAGRAM_002&provider=instagram"
         );
       }
@@ -113,7 +109,7 @@ export const instagramAuth: PlatformAuth = {
         `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${e.INSTAGRAM_CLIENT_SECRET}&access_token=${tokenData.access_token}`
       );
       if (!longLivedResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=INSTAGRAM_003&provider=instagram"
         );
       }
@@ -125,7 +121,7 @@ export const instagramAuth: PlatformAuth = {
         `https://graph.instagram.com/${GRAPH_VERSION}/me?fields=id,user_id,name,username,account_type,profile_picture_url&access_token=${longLived.access_token}`
       );
       if (!userResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=user_fetch_failed&code=INSTAGRAM_004&provider=instagram"
         );
       }
@@ -142,20 +138,7 @@ export const instagramAuth: PlatformAuth = {
         fullName: user.name || user.username || "Instagram User",
         profileImage: user.profile_picture_url,
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
       // 5. Subscribe webhooks (best effort)
       await Effect.runPromise(
@@ -165,17 +148,17 @@ export const instagramAuth: PlatformAuth = {
         })
       );
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=instagram"
         );
       }
 
       ctx.onConnected?.({ provider: "instagram", username: user.username });
-      return redirect("/socials?success=true&provider=instagram");
+      return callbackRedirect("/socials?success=true&provider=instagram");
     } catch (err) {
       console.error("Instagram callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=server_error&code=INSTAGRAM_500&provider=instagram"
       );
     }

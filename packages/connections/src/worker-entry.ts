@@ -6,4 +6,4 @@
  */
 export * from "./index";
 export { getPublisher, publisherRegistry } from "./publish-registry";
-export { type PublishOutcome, runPublish, WorkerLayer } from "./runtime";
+export { type PublishOutcome, runPublish } from "./runtime";

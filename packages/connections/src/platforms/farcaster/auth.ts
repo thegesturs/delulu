@@ -1,8 +1,6 @@
+import { callbackRedirect } from "../../callback-response";
 import type { CallbackContext, PlatformAuth } from "../../types";
 import { CONNECT_URL } from "./constants";
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 /**
  * Farcaster has no standard OAuth. Connecting happens through Warpcast's
@@ -23,7 +21,7 @@ export const farcasterAuth: PlatformAuth = {
 
   handleCallback(_ctx: CallbackContext): Promise<Response> {
     return Promise.resolve(
-      redirect("/socials?success=true&provider=farcaster")
+      callbackRedirect("/socials?success=true&provider=farcaster")
     );
   },
 };

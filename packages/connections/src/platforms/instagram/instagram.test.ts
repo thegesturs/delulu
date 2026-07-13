@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import { apiError, invalidMedia, isConnectionError } from "../../errors";
-import { ConvexClient } from "../../services/convex";
+import { ConnectionStore } from "../../services/connection-store";
 import { instagramPublisher } from "./publish";
 import { instagramRules } from "./rules";
 
@@ -56,8 +56,8 @@ describe("error retryable classification", () => {
 
 describe("instagramPublisher.publish (Effect DI)", () => {
   it("fails with PROFILE_NOT_FOUND when the provider has no token", async () => {
-    // Stub the Convex service so no network is touched.
-    const StubConvex = Layer.succeed(ConvexClient, {
+    // Stub the connection store so no network is touched.
+    const StubStore = Layer.succeed(ConnectionStore, {
       getSocialProviderWithDecryptedTokens: () => Effect.succeed(null),
       updateSocialProvider: () => Effect.void,
     });
@@ -80,7 +80,7 @@ describe("instagramPublisher.publish (Effect DI)", () => {
             ],
           },
         })
-        .pipe(Effect.provide(StubConvex))
+        .pipe(Effect.provide(StubStore))
     );
 
     expect(Exit.isFailure(exit)).toBe(true);

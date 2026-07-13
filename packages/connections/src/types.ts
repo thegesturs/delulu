@@ -5,7 +5,7 @@ import type {
 } from "@delulu/validators/post";
 import type { Effect } from "effect";
 import type { ConnectionError } from "./errors";
-import type { ConvexClient } from "./services/convex";
+import type { ConnectionStore } from "./services/connection-store";
 
 /** Every publishable network — excludes the non-publishing sentinels. */
 export type PublishableSocialType = Exclude<SocialType, "DEFAULT" | "LENS">;
@@ -39,10 +39,20 @@ export interface ConnectContext {
   includeInsights?: boolean;
 }
 
+/** Minimal temporary storage needed by multi-step connection callbacks. */
+export interface ConnectionTemporaryStore {
+  get(key: string): Promise<string | null>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number }
+  ): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
 /**
- * Everything the OAuth callback needs. The thin Next.js route resolves the
- * Clerk session + Convex token and hands them in — connections stay free of
- * Clerk/Next dependencies so the module remains workerd-safe.
+ * Everything the OAuth callback needs. The API verifies the signed state and
+ * provides Postgres persistence while connections stay framework-independent.
  */
 export interface CallbackContext {
   /** Raw provider state, verified centrally by the M2 API before dispatch. */
@@ -50,15 +60,15 @@ export interface CallbackContext {
   code: string | null;
   error: string | null;
   errorReason: string | null;
-  /** Convex auth token (Clerk `convex` template) for the current user. */
-  convexToken: string;
   userId: string;
   /** Optional analytics hook fired on a successful connect. */
   onConnected?: (info: { provider: string; username: string }) => void;
-  /** M2 callback persistence seam. Legacy callers omit it and keep Convex. */
-  upsert?: (
+  /** Persist the provider credentials in the authoritative connection store. */
+  upsert: (
     input: ConnectionUpsertInput
   ) => Promise<"created" | "updated" | "transfer_required">;
+  /** Short-lived state for callbacks that require a second browser step. */
+  temporaryStore: ConnectionTemporaryStore;
 }
 
 export interface ConnectionUpsertInput {
@@ -201,10 +211,10 @@ export interface PlatformConnection {
   queries?: PlatformQueries;
 }
 
-/** Node-only publishing half. Its `R` requires the Convex service. */
+/** Node-only publishing half. Its `R` requires connection token storage. */
 export interface PlatformPublisher {
   id: PublishableSocialType;
   publish(
     ctx: PublishContext
-  ): Effect.Effect<PostResult, ConnectionError, ConvexClient>;
+  ): Effect.Effect<PostResult, ConnectionError, ConnectionStore>;
 }

@@ -15,7 +15,7 @@ fi
 echo "Copying env files from $SOURCE..."
 
 # Copy .env* and .dev.vars files from each location
-for dir in apps/app apps/web packages/database packages/worker packages/infrastructure; do
+for dir in apps/app apps/api apps/web packages/worker packages/infrastructure; do
   if [ -d "$SOURCE/$dir" ]; then
     cp "$SOURCE/$dir"/.env* "./$dir/" 2>/dev/null && echo "  ✓ $dir/.env*"
     cp "$SOURCE/$dir"/.dev.vars "./$dir/" 2>/dev/null && echo "  ✓ $dir/.dev.vars"

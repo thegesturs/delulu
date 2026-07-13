@@ -311,17 +311,6 @@ export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
 export const useAutomationConfig = (providerId: string) =>
   useStore((state) => state.automationConfigs[providerId] ?? null);
 // Stable function that gets state directly without React hooks
-export const getProviderSettingsForConvex = () => {
-  const state = useStore.getState();
-  const values = Object.values(state.providerSettings);
-
-  return values.map((setting) => ({
-    type: setting.type,
-    socialProviderId: setting.socialProviderId,
-    settings: setting.settings,
-  }));
-};
-
 // Action creators with proper typing
 export const postActions = {
   addSocialProvider: (provider: SocialProviderType) =>

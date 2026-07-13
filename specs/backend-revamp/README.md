@@ -1,6 +1,6 @@
 # Backend Revamp — Locked Architecture Spec
 
-> **Status:** M0–M2 merged; M3 + M4 implementation is assembled on `codex/backend-m3-m4` for one integration PR. M5 and M6 remain intentionally unstarted.
+> **Status:** M0–M5 implementation is merged. M6 is implemented as one consolidated cutover and retired-runtime removal; production migration rehearsal sign-off and dashboard operations remain gated by the cutover runbook.
 > **Provenance:** Wayfinder map [#141](https://github.com/thegesturs/delulu/issues/141); every decision below resolved in a closed child ticket (linked inline). Assembled and the migration plan decided in [#154](https://github.com/thegesturs/delulu/issues/154).
 > **Review:** independently reviewed pre-lock by a second model (Codex `codex exec -s read-only`, 2026-07-10) — 7 findings (freeze completeness, staging-vs-routed milestones, `pendingPostIds` remap, ownership/role audits, `packages/database` downstream imports, usage-counter carry-over, `platformPosts` mapping), all fixed in this revision.
 > **Rule of reading:** this document is the *index and synthesis*. Each decision's full rationale, alternatives considered, and edge-case discussion live in its ticket — zoom there before re-litigating anything here.
@@ -144,8 +144,8 @@ Each row is locked. Gist here; full detail in the ticket.
 
 - During the window, "rollback" is trivial: don't flip; Convex is untouched.
 - **Once reopened, the door closes.** Bugs are fixed forward on Postgres. If a transform bug mangled data, repair it by re-reading the **frozen Convex copy** for the affected rows.
-- The Convex deployment stays frozen and intact for a **14-day soak** after reopening — a reference/recovery dataset, not a live rollback target.
-- After the soak: full Convex export archived to **R2** (permanent), then the Convex deployment is decommissioned.
+- Because production has no active users, the accepted M6 plan does not require a 14-day soak. Archive the canonical export to **R2** after the production smoke test, verify its checksum, then decommission the frozen source deployment.
+- The migration CLI and `legacy_convex_id` columns remain until the production import, audit sign-off, and archive are confirmed; they are the recovery path during the operator-controlled cutover.
 
 ### 4.3 Token handling: ciphertext verbatim
 
@@ -202,29 +202,28 @@ Each row is locked. Gist here; full detail in the ticket.
 
 ### 4.7 Cutover runbook (the rehearsed script)
 
-1. Announce + flip Clerk to waitlist mode; put app + API in maintenance/read-only; pause the publish worker and Convex scheduler; disable all webhook ingress (IG Lambda, Clerk, Dodo).
-2. `npx convex export` — the canonical snapshot, taken only after step 1's full write freeze is verified (no mutations in the Convex dashboard log for a few minutes).
-3. Run the migration CLI against production Postgres; run the verification suite.
-4. Rebuild `automationMediaTriggers`; write-through the Meta KV fast-path keys; seed quota counters.
-5. Deploy `apps/api` (Worker), `apps/worker` (Lambda), `apps/app` — all pointed at Postgres.
-6. Smoke-test the golden paths: login → dashboard, connect flow mint (no callback needed), schedule a post, webhook signature verification, checkout session.
-7. Reopen: disable waitlist, resume publish worker. Post-reopen, the forward-only clock (§4.2) starts.
+The executable operator checklist, abort gates, exact migration commands,
+dashboard changes, smoke tests, and monitoring requirements live in
+[`cutover-runbook.md`](./cutover-runbook.md). No maintenance-page code is
+required because production has no active users; the write freeze is an
+operator action. The latest rehearsal artifact record is in
+[`m5-rehearsal-signoff.md`](./m5-rehearsal-signoff.md).
 
 ---
 
 ## 5. tRPC retirement & package disposition
 
-The new stack is built **in parallel** — tRPC keeps serving production until cutover; there is no per-route hybrid. `apps/app` swaps wholesale to the typed client (#155) on a branch, QA'd against a staging Postgres, and ships as part of the cutover deploy.
+The new stack was built in parallel and `apps/app` now consumes the typed client. This M6 change removes the retired runtime wholesale; there is no hybrid production route.
 
 Retired at cutover (deleted, not deprecated):
 
 | Surface | Fate |
 |---|---|
-| `packages/api` (tRPC routers + Hono) | **Deleted**; replaced by `packages/contracts` + `apps/api`. `utils/oauth-state.ts` is revived/moved into the connections runtime first (#150) |
+| `packages/api` (tRPC routers + Hono) | **Deleted**; replaced by `packages/contracts` + `apps/api`. Its unused OAuth-state helper was not moved because the connections runtime already owns signed state (#150) |
 | `apps/app/trpc` + in-process router | **Deleted**; replaced by the shared typed-client package (#155) |
-| `packages/database` (Convex) | Frozen at cutover; deleted after the 14-day soak + R2 archive. **Pre-deletion extraction required:** `apps/web` (out of scope, must keep building) imports schema constants from it (`apps/web/components/home/pricing.tsx`), and `packages/infrastructure/src/transcription.ts` calls its Convex transcriptions API — move the shared constants into `packages/payments`/`packages/core` and port the transcriptions call to the new API during M4, so deletion breaks nothing |
+| `packages/database` (Convex) | **Deleted** after plan-limit and transcription consumers were moved to Postgres-backed packages. The standalone migration CLI remains self-contained until production import and archive sign-off |
 | `packages/rate-limit` (Upstash, unused) | **Deleted** (#159) |
-| `packages/validators` `post.ts` zod | **Deleted**; folded into Effect Schema (#161) |
+| `packages/validators` `post.ts` zod | **Deferred**; it remains a live app/connections dependency and is not part of the runtime cutover |
 | CallMeLater dependency | **Deleted**; replaced by the jobs table + Cron dispatcher (#144, #161) |
 | Instagram-webhook Lambda | **Deleted**; ingress consolidated on the API worker (#156) |
 | Analytics sync worker | **Deleted**; live passthrough + KV cache (#158) |
@@ -233,15 +232,15 @@ Retired at cutover (deleted, not deprecated):
 
 ## 6. Implementation milestones
 
-Sequencing decided here (this was the map's last fog item on sequencing). Each milestone is independently mergeable to `main`, but **merged ≠ routed**: M0–M5 deploy only to a **staging environment with its own staging Postgres** (the new Worker, Lambda job types, and webhook routes take no production traffic). Production keeps running entirely on Convex — same Lambda publish path, same webhook endpoints — until the M6 cutover deploy flips routing in one step. No dual-running, no feature-flag interleaving of the two backends in production.
+M0–M5 established and rehearsed the Postgres stack without changing production routing. M6 packages the routing configuration and retired-runtime deletion in one change; the external production flip still follows §4.7. No dual-running or feature-flag interleaving is introduced.
 
 - **M0 — Foundations.** Pin `effect@4.0.0-beta.x` workspace-wide. Scaffold `packages/core` / `contracts` / `services`. Postgres schema v1 + PgMigrator setup. `TokenCipher`, ids, time, `validateMediaFile` in core kernel. CI: typecheck + migration-lint + `swift`-style boundary check for the connections export split (#160).
 - **M1 — API skeleton + auth.** `apps/api` Worker serving the HttpApi contract; Clerk JWT verification + `CurrentUser`/`CurrentOrg` context; `workspace_members` live role resolution; rate-limit binding + `QuotaGuard` middleware chain (#159); minimal own-AS (auth-code + PKCE + refresh + RFC 9728) for CLI/MCP (#149).
 - **M2 — Domain services on Postgres.** Posts/groups/targets model + rollup (#147); media pipeline endpoints (#161); connections upsert + mint/callback with signed state (#150); workspaces/members/api-keys admin family (#148); reviews + activity feed (#152); jobs table + Cron dispatcher feeding SQS/Lambda (#144); Lambda publish path reads Postgres.
 - **M3 — Webhook ingress + automations.** Meta/Clerk/Dodo consolidated on the Worker; KV fast-path write-through; synchronous auto-DM path; `dmsSent`/`dmsSkipped` counters (#156, #158, #159).
 - **M4 — Consumers.** Shared typed-client package + TanStack Query mapper; `apps/app` wholesale swap on a branch (#155); CLI + MCP on the same client; analytics passthrough + edge-cached operational counters (#158). Billing webhooks + quota pooling + transfer flow (#157).
-- **M5 — Migration tooling + rehearsal.** `scripts/migrate-convex` CLI + verification suite (§4.6); dry-run against a production export; fix transform bugs until verification is green twice in a row.
-- **M6 — Cutover.** Execute §4.7. Soak 14 days → archive → decommission Convex → drop `legacy_convex_id` columns → delete retired packages (§5).
+- **M5 — Migration tooling + rehearsal.** The `scripts/migrate-convex` CLI and verification suite are merged. Existing local artifacts are not a coherent green-twice sign-off; §4.7 requires a same-export production rehearsal and report review before routing.
+- **M6 — Cutover.** **Implementation prepared.** Retired packages and infrastructure are removed in one PR. Execute §4.7, archive the verified export, then decommission the source deployment. Drop `legacy_convex_id` and retire the migration CLI only after production import/archive sign-off.
 
 ---
 

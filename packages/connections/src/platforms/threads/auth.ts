@@ -1,6 +1,5 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -15,7 +14,7 @@ import { GRAPH_VERSION } from "./constants";
 const BASE_SCOPES = ["threads_basic", "threads_content_publish"];
 
 /**
- * Threads env. `src/env.ts` only carries the Instagram/Convex vars and is
+ * Threads env. `src/env.ts` only carries the Instagram vars and is
  * off-limits here, so we read the Threads vars straight off `process.env`
  * (isomorphic — present on Node + workerd via `keep_vars`).
  */
@@ -23,11 +22,7 @@ const threadsEnv = () => ({
   THREADS_CLIENT_ID: process.env.THREADS_CLIENT_ID ?? "",
   THREADS_CLIENT_SECRET: process.env.THREADS_CLIENT_SECRET ?? "",
   THREADS_CALLBACK_URL: process.env.THREADS_CALLBACK_URL ?? "",
-  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 interface ThreadsTokenResponse {
   access_token: string;
@@ -69,22 +64,22 @@ export const threadsAuth: PlatformAuth = {
   },
 
   /**
-   * OAuth callback. The thin Next.js route resolves Clerk auth + Convex token
-   * and passes them in via `CallbackContext`; everything else (code exchange,
+   * OAuth callback. The API verifies state and supplies persistence through
+   * `CallbackContext`; everything else (code exchange,
    * long-lived token, profile fetch, upsert) lives here. Returns redirect
    * Responses matching the old route's exact error codes.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, errorReason, convexToken } = ctx;
+    const { code, error, errorReason } = ctx;
     const e = threadsEnv();
 
     if (error === "access_denied" && errorReason === "user_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_denied&code=THREADS_001&provider=threads"
       );
     }
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=threads"
       );
     }
@@ -106,7 +101,7 @@ export const threadsAuth: PlatformAuth = {
         }
       );
       if (!tokenResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=THREADS_002&provider=threads"
         );
       }
@@ -121,7 +116,7 @@ export const threadsAuth: PlatformAuth = {
           "Threads long-lived token exchange failed:",
           await longLivedResponse.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=THREADS_003&provider=threads"
         );
       }
@@ -134,7 +129,7 @@ export const threadsAuth: PlatformAuth = {
       );
       if (!userResponse.ok) {
         console.error("Threads user fetch failed:", await userResponse.text());
-        return redirect(
+        return callbackRedirect(
           "/socials?error=user_fetch_failed&code=THREADS_004&provider=threads"
         );
       }
@@ -151,32 +146,19 @@ export const threadsAuth: PlatformAuth = {
         fullName: user.name,
         profileImage: user.threads_profile_picture_url,
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=threads"
         );
       }
 
       ctx.onConnected?.({ provider: "threads", username: user.username });
-      return redirect("/socials?success=true&provider=threads");
+      return callbackRedirect("/socials?success=true&provider=threads");
     } catch (err) {
       console.error("Threads callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=server_error&code=THREADS_500&provider=threads"
       );
     }

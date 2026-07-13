@@ -1,7 +1,6 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import { type ConnectionError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
@@ -19,11 +18,7 @@ const ytEnv = () => ({
   clientId: process.env.GOOGLE_CLIENT_ID ?? "",
   clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   callbackUrl: process.env.YOUTUBE_CALLBACK_URL ?? "",
-  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 const fetchTimeout = (url: string, init?: RequestInit, timeoutMs = 15_000) => {
   const controller = new AbortController();
@@ -86,24 +81,24 @@ export const youtubeAuth: PlatformAuth = {
 
   /**
    * OAuth callback. Ported from `app/api/callback/youtube/route.ts`. The thin
-   * Next.js route resolves Clerk auth + the Convex token and hands them in via
-   * `CallbackContext`; everything else (code exchange, scope validation, channel
+   * The API verifies state and supplies persistence through `CallbackContext`;
+   * everything else (code exchange, scope validation, channel
    * fetch, upsert) lives here. Redirect Locations + error codes are preserved
    * byte-for-byte from the old route.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, convexToken } = ctx;
+    const { code, error } = ctx;
     const e = ytEnv();
 
     // Handle user denying access
     if (error === "access_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_cancelled&code=YOUTUBE_001&provider=YOUTUBE"
       );
     }
 
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=YOUTUBE"
       );
     }
@@ -130,7 +125,7 @@ export const youtubeAuth: PlatformAuth = {
           "YouTube token exchange failed:",
           await tokenResponse.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=youtube_auth_failed&code=YOUTUBE_002&provider=YOUTUBE"
         );
       }
@@ -139,7 +134,7 @@ export const youtubeAuth: PlatformAuth = {
 
       // Check if user granted all required permissions
       if (!validatePermissions(tokenData.scope)) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=youtube_insufficient_permissions&code=YOUTUBE_003&provider=YOUTUBE"
         );
       }
@@ -151,7 +146,7 @@ export const youtubeAuth: PlatformAuth = {
       );
 
       if (!channelResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=youtube_user_fetch_failed&code=YOUTUBE_005&provider=YOUTUBE"
         );
       }
@@ -161,7 +156,7 @@ export const youtubeAuth: PlatformAuth = {
 
       // Check if user has a YouTube channel
       if (!channelData.items || channelData.items.length === 0) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=youtube_no_channel&code=YOUTUBE_006&provider=YOUTUBE"
         );
       }
@@ -186,33 +181,20 @@ export const youtubeAuth: PlatformAuth = {
           channel.snippet.thumbnails?.default?.url ||
           "",
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.convexUrl);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
       // Handle different response statuses
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=youtube"
         );
       }
 
       ctx.onConnected?.({ provider: "youtube", username: channelUsername });
-      return redirect("/socials");
+      return callbackRedirect("/socials");
     } catch (err) {
       console.error("YouTube callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=internal_error&code=YOUTUBE_500&provider=YOUTUBE"
       );
     }

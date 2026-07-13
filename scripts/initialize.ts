@@ -61,27 +61,12 @@ const setupEnvironmentVariables = async () => {
     { source: join("apps", "app"), target: ".env.local" },
     { source: join("apps", "web"), target: ".env.local" },
     { source: join("packages", "cms"), target: ".env.local" },
-    { source: join("packages", "database"), target: ".env" },
     { source: join("packages", "internationalization"), target: ".env.local" },
   ];
 
   for (const { source, target } of files) {
     await copyFile(join(source, ".env.example"), join(source, target));
   }
-};
-
-const setupOrm = async (packageManager: string) => {
-  const filterCommand = packageManager === "npm" ? "--workspace" : "--filter";
-
-  const command = [
-    packageManager,
-    "run",
-    "build",
-    filterCommand,
-    "@delulu/database",
-  ].join(" ");
-
-  await exec(command, execSyncOpts);
 };
 
 const updatePackageManagerConfiguration = async (
@@ -250,9 +235,6 @@ export const initialize = async (options: {
 
     s.message("Installing dependencies...");
     await installDependencies(packageManager);
-
-    s.message("Setting up ORM...");
-    await setupOrm(packageManager);
 
     if (!options.disableGit) {
       s.message("Initializing Git repository...");

@@ -9,7 +9,6 @@ const publicRoutes = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/verify-email(.*)",
-  "/api/callback(.*)",
   "/api/transcribe(.*)",
   "/extension-auth-success(.*)",
   "/mcp(.*)",

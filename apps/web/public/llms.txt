@@ -47,7 +47,7 @@ Delulu Social streamlines social media management by allowing creators, business
 
 **Frontend**: Next.js 15 with React 19, TypeScript, Tailwind CSS, and Radix UI components
 
-**Backend**: Prisma ORM with PostgreSQL, tRPC for type-safe APIs, Convex for real-time data
+**Backend**: PostgreSQL with a typed Effect API
 
 **Authentication**: Clerk for user management with OAuth integrations for social platforms
 

@@ -1,4 +1,4 @@
-// Using proper Convex types
+// Shared composer types.
 export type { Post, PostLayout } from "@/types/backend";
 
 export const statusColors = {

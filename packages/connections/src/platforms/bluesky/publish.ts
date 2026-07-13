@@ -11,7 +11,7 @@ import {
   invalidMedia,
   profileNotFound,
 } from "../../errors";
-import { ConvexClient } from "../../services/convex";
+import { ConnectionStore } from "../../services/connection-store";
 import type {
   PlatformPublisher,
   PostResult,
@@ -101,11 +101,11 @@ interface BlueskyPostRecord {
 
 const getProfile = (
   socialProviderId: string
-): Effect.Effect<BlueskyProfile, ConnectionError, ConvexClient> =>
+): Effect.Effect<BlueskyProfile, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
-    const convex = yield* ConvexClient;
+    const store = yield* ConnectionStore;
     const profile =
-      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
+      yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId && profile.refreshToken)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }

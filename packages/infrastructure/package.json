@@ -11,21 +11,16 @@
     "remove": "sst remove",
     "console": "sst console",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "simulate:comment": "tsx scripts/simulate-ig-webhook.ts comment",
-    "simulate:message": "tsx scripts/simulate-ig-webhook.ts message",
-    "simulate:quick-reply": "tsx scripts/simulate-ig-webhook.ts quick-reply"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.840.0",
     "@clerk/backend": "^1.25.0",
     "@delulu/services": "workspace:*",
     "@effect/sql-pg": "catalog:",
-    "@delulu/database": "workspace:*",
     "@delulu/typescript-config": "workspace:*",
     "@delulu/validators": "workspace:*",
     "@delulu/worker": "workspace:*",
-    "convex": "^1.28.2",
     "dotenv": "^16.4.7",
     "effect": "catalog:",
     "groq-sdk": "^0.12.0",

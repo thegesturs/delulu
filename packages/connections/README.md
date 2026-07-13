@@ -7,8 +7,8 @@ neverthrow / not raw throws).
 
 ## Two entry points — the runtime split (Path A)
 
-The frontend (`apps/app`) and tRPC (`packages/api`) run on **Cloudflare Workers
-(workerd)**; the publish worker runs on **AWS Lambda (Node)**. Publishing pulls
+The frontend and API run on **Cloudflare Workers (workerd)**; the publish worker
+runs on **AWS Lambda (Node)**. Publishing pulls
 in Node-only deps (`axios`, `googleapis`) that do not run on workerd, so the
 package is split:
 
@@ -26,7 +26,7 @@ isomorphic `PlatformConnection`) deliberately has **no `publish` field**.
 
 `ConnectionError` (`src/errors.ts`) is one `Data.TaggedError` carrying
 `{ code, provider, message, retryable }`. Publishers return
-`Effect.Effect<PostResult, ConnectionError, ConvexClient>`. The worker boundary
+`Effect.Effect<PostResult, ConnectionError, ConnectionStore>`. The worker boundary
 (`runPublish`) runs the Effect, and rethrows only `retryable` failures so SQS
 re-delivers after the visibility timeout.
 
@@ -41,10 +41,5 @@ Copy `src/platforms/instagram/`, implement `meta / auth / rules / settings /
 publish` (+ optional `webhooks / queries`), then register the isomorphic half in
 `registry.ts` and the publisher in `publish-registry.ts`.
 
-## Migration status
-
-- ✅ Phase 1 — scaffold, Effect core, **Instagram**, worker boundary, connect-URL delegation
-- ⬜ Phase 2 — remaining 9 platforms
-- ⬜ Phase 3 — collapse `platform-rules.ts`
-- ⬜ Phase 4 — dynamic `/api/callback/[provider]` + api port + delete `connect-url.service.ts`
-- ⬜ Phase 5 — remove `neverthrow`, delete legacy `worker/providers`
+OAuth callbacks persist exclusively through the API-provided Postgres seam;
+there is no fallback storage path.

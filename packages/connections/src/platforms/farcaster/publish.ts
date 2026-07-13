@@ -10,7 +10,7 @@ import {
   invalidMedia,
   profileNotFound,
 } from "../../errors";
-import { ConvexClient } from "../../services/convex";
+import { ConnectionStore } from "../../services/connection-store";
 import type {
   PlatformPublisher,
   PostResult,
@@ -42,11 +42,11 @@ interface FarcasterCastResponse {
 
 const getProfile = (
   socialProviderId: string
-): Effect.Effect<FarcasterProfile, ConnectionError, ConvexClient> =>
+): Effect.Effect<FarcasterProfile, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
-    const convex = yield* ConvexClient;
+    const store = yield* ConnectionStore;
     const profile =
-      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
+      yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }

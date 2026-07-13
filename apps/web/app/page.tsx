@@ -2,8 +2,7 @@ import { createMetadata } from "@delulu/seo/metadata";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-// ISR: home page contains a Convex-backed blog preview; revalidate hourly so
-// every landing-page visit doesn't hit Convex.
+// ISR: the home page contains a blog preview; revalidate hourly.
 export const revalidate = 3600;
 
 import { BlogSection } from "@/components/home/blog-section";

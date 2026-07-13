@@ -1,15 +1,12 @@
 import { runEffectExit } from "@delulu/core/kernel/boundary";
 import { Effect, type Layer } from "effect";
 import { getPublisher } from "./publish-registry";
-import { type ConvexClient, ConvexClientLive } from "./services/convex";
+import type { ConnectionStore } from "./services/connection-store";
 import type {
   PostResult,
   PublishableSocialType,
   PublishContext,
 } from "./types";
-
-/** Everything the worker Lambda needs to run a publish Effect. */
-export const WorkerLayer = ConvexClientLive;
 
 export type PublishOutcome =
   | { status: "PUBLISHED"; result: PostResult }
@@ -17,14 +14,13 @@ export type PublishOutcome =
 
 /**
  * The single publish boundary for the worker. Runs the publish Effect, provides
- * the live Convex layer, and collapses success/typed-failure/defect into a flat
- * outcome the SQS handler can act on. Replaces the old `result.isErr()` branch
- * in `worker/client.ts`.
+ * the connection store, and collapses success/typed-failure/defect into a flat
+ * outcome the SQS handler can act on.
  */
 export const runPublish = async (
   id: PublishableSocialType,
   ctx: PublishContext,
-  connectionStore: Layer.Layer<ConvexClient> = WorkerLayer
+  connectionStore: Layer.Layer<ConnectionStore>
 ): Promise<PublishOutcome> => {
   const publisher = getPublisher(id);
   const outcome = await runEffectExit(publisher.publish(ctx), {

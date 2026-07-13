@@ -17,6 +17,7 @@ import {
 } from "@delulu/core";
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { AutomationKvNamespace } from "./automation-kv";
 
 type ConnectionOutput = typeof ConnectionView.Type;
 const BASE64_PADDING = /=+$/;
@@ -207,6 +208,7 @@ export class ConnectionsService extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       const states = yield* ConnectionStateService;
       const cipher = yield* TokenCipher;
+      const temporaryStore = yield* AutomationKvNamespace;
       const list = Effect.fn("ConnectionsService.list")(function* (
         workspaceId: WorkspaceId,
         limit: number,
@@ -355,8 +357,8 @@ export class ConnectionsService extends Context.Service<
                 error: input.error,
                 errorReason: input.errorReason,
                 state: input.state,
-                convexToken: "",
                 userId: verified.principal,
+                temporaryStore,
                 upsert: (value) =>
                   Effect.runPromise(
                     upsertFromOAuth(verified.workspaceId as WorkspaceId, value)
@@ -403,7 +405,7 @@ export class ConnectionsService extends Context.Service<
                 pageId: input.pageId,
                 pageName: input.pageName,
                 externalId: verified.principal,
-                convexToken: "",
+                temporaryStore,
                 upsert: (value) =>
                   Effect.runPromise(
                     upsertFromOAuth(verified.workspaceId as WorkspaceId, value)

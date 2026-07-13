@@ -117,8 +117,14 @@ export const makeBaseLayer = (
   const Media = MediaService.layer.pipe(
     Layer.provide([Jobs, R2, QuotaGuard.layer])
   );
+  const AutomationKvBinding = env.AUTOMATION_KV
+    ? Layer.succeed(
+        AutomationKvNamespace,
+        AutomationKvNamespace.of(env.AUTOMATION_KV)
+      )
+    : AutomationKvService.memoryLayer();
   const Connections = ConnectionsService.layer.pipe(
-    Layer.provide([ConnectionState, Cipher])
+    Layer.provide([ConnectionState, Cipher, AutomationKvBinding])
   );
   const Admin = AdminService.layer.pipe(Layer.provide([ClerkAdmin, Jobs]));
   const AnalyticsCache = env.EDGE_CACHE_KV
@@ -148,12 +154,6 @@ export const makeBaseLayer = (
     Layer.provide(TranscriptionCheckoutConfigLayer)
   );
   const QuotaReservations = PooledQuotaReservations.layer;
-  const AutomationKvBinding = env.AUTOMATION_KV
-    ? Layer.succeed(
-        AutomationKvNamespace,
-        AutomationKvNamespace.of(env.AUTOMATION_KV)
-      )
-    : AutomationKvService.memoryLayer();
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
   );

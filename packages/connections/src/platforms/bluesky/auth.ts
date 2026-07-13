@@ -1,14 +1,10 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
+import { callbackRedirect } from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
   PlatformAuth,
 } from "../../types";
 import { BLUESKY_HOST, CALLBACK_URL, CLIENT_METADATA_URL } from "./constants";
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 const fetchTimeout = (url: string, init?: RequestInit, timeoutMs = 8000) => {
   const controller = new AbortController();
@@ -56,16 +52,15 @@ export const blueskyAuth: PlatformAuth = {
   },
 
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, convexToken } = ctx;
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "";
+    const { code, error } = ctx;
 
     if (error === "access_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_denied&code=BLUESKY_001&provider=bluesky"
       );
     }
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=bluesky"
       );
     }
@@ -89,7 +84,7 @@ export const blueskyAuth: PlatformAuth = {
           "Bluesky token exchange failed:",
           await tokenResponse.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=BLUESKY_002&provider=bluesky"
         );
       }
@@ -110,15 +105,15 @@ export const blueskyAuth: PlatformAuth = {
           "Bluesky profile fetch failed:",
           await profileResponse.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=user_fetch_failed&code=BLUESKY_003&provider=bluesky"
         );
       }
 
       const profileData = (await profileResponse.json()) as BlueskyProfile;
 
-      // Use Convex upsertSocialProvider to handle creation/update and potential
-      // account transfers.
+      // Persist through the API-provided store, including ownership transfer
+      // detection when another workspace already owns the profile.
       const connection = {
         socialType: "BLUESKY",
         accessToken: tokenData.access_token,
@@ -130,32 +125,19 @@ export const blueskyAuth: PlatformAuth = {
         fullName: profileData.displayName || tokenData.handle,
         profileImage: profileData.avatar,
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(convexUrl);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=bluesky"
         );
       }
 
       ctx.onConnected?.({ provider: "bluesky", username: tokenData.handle });
-      return redirect("/socials?success=true&provider=bluesky");
+      return callbackRedirect("/socials?success=true&provider=bluesky");
     } catch (err) {
       console.error("Bluesky callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=server_error&code=BLUESKY_500&provider=bluesky"
       );
     }

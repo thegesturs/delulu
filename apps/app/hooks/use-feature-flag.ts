@@ -3,7 +3,7 @@
 import { useUser } from "@delulu/auth";
 
 // Comma-separated admin allowlist, configured via env (keep in sync with the
-// server-side ADMIN_EMAILS in packages/api/keys.ts).
+// server-side ADMIN_EMAILS configuration).
 const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
   .split(",")
   .map((email) => email.trim().toLowerCase())

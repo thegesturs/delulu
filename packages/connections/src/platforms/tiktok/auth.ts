@@ -1,7 +1,6 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import { type ConnectionError, networkError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
@@ -19,18 +18,14 @@ import {
 
 /**
  * TikTok reads its OAuth config off `process.env` directly (the shared `env()`
- * helper only carries Instagram + Convex vars, which we must not edit). Note
+ * helper only carries Instagram vars, which we must not edit). Note
  * TikTok's OAuth uses `client_key` — not `client_id`.
  */
 const tiktokEnv = () => ({
   TIKTOK_CLIENT_ID: process.env.TIKTOK_CLIENT_ID ?? "",
   TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET ?? "",
   TIKTOK_CALLBACK_URL: process.env.TIKTOK_CALLBACK_URL ?? "",
-  NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 interface TikTokTokenResponse {
   access_token: string;
@@ -78,19 +73,19 @@ export const tiktokAuth: PlatformAuth = {
   },
 
   /**
-   * OAuth callback. The thin Next.js route resolves Clerk auth + Convex token
-   * and passes them in via `CallbackContext`; the code exchange, profile fetch
+   * OAuth callback. The API verifies state and supplies persistence through
+   * `CallbackContext`; the code exchange, profile fetch
    * and upsert live here. Redirect Responses preserve the old route's exact
    * Location + error codes.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, convexToken } = ctx;
+    const { code } = ctx;
     const e = tiktokEnv();
 
     // The old route required both `state` and `code`; CallbackContext only
     // carries `code`, and a missing code is the observable failure case.
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=TIKTOK"
       );
     }
@@ -113,7 +108,7 @@ export const tiktokAuth: PlatformAuth = {
       });
 
       if (!tokenResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=auth_failed&code=AUTH_002&provider=TIKTOK"
         );
       }
@@ -128,14 +123,14 @@ export const tiktokAuth: PlatformAuth = {
       });
 
       if (!userResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=auth_failed&code=AUTH_002&provider=TIKTOK"
         );
       }
 
       const userData = (await userResponse.json()) as TikTokUserResponse;
       if (!userData.data?.user) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=auth_failed&code=AUTH_002&provider=TIKTOK"
         );
       }
@@ -153,32 +148,19 @@ export const tiktokAuth: PlatformAuth = {
         fullName: display_name,
         profileImage: avatar_url,
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.NEXT_PUBLIC_CONVEX_URL);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=tiktok"
         );
       }
 
       ctx.onConnected?.({ provider: "tiktok", username });
-      return redirect("/socials?success=true&provider=TIKTOK");
+      return callbackRedirect("/socials?success=true&provider=TIKTOK");
     } catch (err) {
       console.error("TikTok callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=auth_failed&code=AUTH_002&provider=TIKTOK"
       );
     }

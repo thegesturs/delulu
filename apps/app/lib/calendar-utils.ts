@@ -91,7 +91,7 @@ function getColorByStatus(status: Post["status"]): EventColor {
 }
 
 /**
- * Transform a Convex Post to a SocialCalendarEvent with full post data
+ * Transform a post into a SocialCalendarEvent with full post data.
  */
 export function postToCalendarEvent(post: Post): SocialCalendarEvent | null {
   // Only include posts with scheduledAt that are scheduled, processing, or failed

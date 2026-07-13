@@ -16,10 +16,9 @@ export {
   listPublishable,
 } from "./registry";
 export {
-  ConvexClient,
-  ConvexClientLive,
+  ConnectionStore,
   type SocialProviderTokens,
   type SocialProviderUpdate,
-} from "./services/convex";
+} from "./services/connection-store";
 export { ensureFreshToken } from "./services/token-service";
 export * from "./types";
