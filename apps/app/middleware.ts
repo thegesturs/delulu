@@ -11,6 +11,7 @@ const publicRoutes = createRouteMatcher([
   "/verify-email(.*)",
   "/api/transcribe(.*)",
   "/extension-auth-success(.*)",
+  "/maintenance(.*)",
   "/mcp(.*)",
   "/.well-known(.*)",
 ]);
@@ -24,6 +25,13 @@ const authRoutes = createRouteMatcher([
 const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 /** Allow automation builder during onboarding (step 3) */
 const onboardingAutomationRoute = createRouteMatcher(["/automations(.*)"]);
+const maintenanceRoute = createRouteMatcher(["/maintenance(.*)"]);
+const maintenanceBypassRoutes = createRouteMatcher([
+  "/api(.*)",
+  "/mcp(.*)",
+  "/.well-known(.*)",
+  "/extension-auth-success(.*)",
+]);
 
 // Create security headers middleware
 const securityHeaders = noseconeMiddleware(noseconeOptions);
@@ -31,6 +39,19 @@ const securityHeaders = noseconeMiddleware(noseconeOptions);
 export default clerkMiddleware(async (auth, req) => {
   // Get the security headers
   await securityHeaders();
+
+  // Keep machine-to-machine routes available while the customer app is paused.
+  if (
+    process.env.MAINTENANCE_MODE === "true" &&
+    !maintenanceRoute(req) &&
+    !maintenanceBypassRoutes(req)
+  ) {
+    const response = NextResponse.redirect(
+      new URL("/maintenance", req.nextUrl.origin)
+    );
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
 
   // Geo-detection: read Cloudflare country header and set cookie
   const country = req.headers.get("cf-ipcountry") || "US";
