@@ -1,15 +1,22 @@
 import { readdir, readFile } from "node:fs/promises";
 import { extname, relative, resolve } from "node:path";
 
-const root = resolve("apps/app");
-const allowedLegacyServerFiles = new Set([
-  "app/api/callback/[provider]/route.ts",
-]);
+const roots = [
+  "apps/app",
+  "apps/api",
+  "packages/connections",
+  "packages/infrastructure",
+  "packages/worker",
+];
 const forbidden = [
   "@/trpc",
+  "@delulu/api",
   "@delulu/database",
+  "@delulu/rate-limit",
   "convex/react",
   "convex-helpers",
+  "NEXT_PUBLIC_CONVEX_URL",
+  "CONVEX_URL",
 ];
 
 const files = [];
@@ -27,13 +34,12 @@ async function walk(directory) {
   }
 }
 
-await walk(root);
+for (const root of roots) {
+  await walk(resolve(root));
+}
 const violations = [];
 for (const file of files) {
-  const path = relative(root, file);
-  if (allowedLegacyServerFiles.has(path)) {
-    continue;
-  }
+  const path = relative(process.cwd(), file);
   const source = await readFile(file, "utf8");
   for (const token of forbidden) {
     if (source.includes(token)) {
@@ -46,5 +52,5 @@ if (violations.length > 0) {
   console.error("Legacy backend imports remain:\n" + violations.join("\n"));
   process.exitCode = 1;
 } else {
-  console.log("Authenticated app backend cutover boundary is clean.");
+  console.log("Runtime backend cutover boundary is clean.");
 }

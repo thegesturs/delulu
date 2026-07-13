@@ -1,6 +1,6 @@
 /**
  * AWS Signature Version 4 presigned URL generator for R2 downloads.
- * Extracted from packages/api/providers/r2.provider.ts.
+ * Shared R2 presigning boundary used by the publishing worker.
  * Uses crypto.subtle (Node 18+ / Cloudflare Workers).
  * Zero external dependencies.
  */

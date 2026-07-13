@@ -15,7 +15,7 @@ import {
   profileNotFound,
   tokenExpired,
 } from "../../errors";
-import { ConvexClient } from "../../services/convex";
+import { ConnectionStore } from "../../services/connection-store";
 import type {
   PlatformPublisher,
   PostResult,
@@ -68,11 +68,11 @@ const tiktokEnv = () => ({
 
 const getProfile = (
   socialProviderId: string
-): Effect.Effect<TikTokProfile, ConnectionError, ConvexClient> =>
+): Effect.Effect<TikTokProfile, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
-    const convex = yield* ConvexClient;
+    const store = yield* ConnectionStore;
     const profile =
-      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
+      yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.refreshToken)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }

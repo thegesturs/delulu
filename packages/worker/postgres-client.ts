@@ -3,7 +3,7 @@ import {
   networkError,
   type SocialProviderTokens,
 } from "@delulu/connections";
-import { ConvexClient, runPublish } from "@delulu/connections/worker";
+import { ConnectionStore, runPublish } from "@delulu/connections/worker";
 import {
   JobId,
   makeId,
@@ -53,11 +53,11 @@ const Cipher = Layer.succeed(
 );
 
 const PostgresConnectionStore = Layer.effect(
-  ConvexClient,
+  ConnectionStore,
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     const cipher = yield* TokenCipher;
-    return ConvexClient.of({
+    return ConnectionStore.of({
       getSocialProviderWithDecryptedTokens: (id) =>
         Effect.gen(function* () {
           const rows = yield* sql<

@@ -1,12 +1,11 @@
 name: Deploy Infra (SST)
 
-# Deploys the AWS side of Delulu: the SocialPostsQueue, the social-post-worker
-# Lambda (bundles @delulu/connections/worker), the Instagram webhook, the SQS
-# trigger, and the transcription function — everything defined in
+# Deploys the AWS side of Delulu: the publishing queue, worker Lambda (bundles
+# @delulu/connections/worker), SQS ingress, and transcription function —
+# everything defined in
 # packages/infrastructure/sst.config.ts.
 #
-# This does NOT deploy apps/app (Cloudflare / OpenNext) or Convex — those have
-# their own deploy paths.
+# This does NOT deploy the Cloudflare API or app workers.
 
 on:
   # Manual trigger — pick the stage. This is the primary, safe path.
@@ -19,21 +18,6 @@ on:
         options:
           - production
           - dev
-  # Auto-deploy production on merge to main, but only when infra or a package
-  # the Lambda bundle depends on actually changed. An unrelated docs/frontend PR
-  # won't trigger it. Still gated by the `production` environment below (add
-  # required reviewers in repo Settings → Environments to keep a human in the loop).
-  push:
-    branches: [main]
-    paths:
-      - packages/infrastructure/**
-      - packages/worker/**
-      - packages/connections/**
-      - packages/api/**
-      - packages/validators/**
-      - packages/database/convex/**
-      - .github/workflows/deploy-infra.yml
-
 concurrency:
   # One infra deploy at a time per stage — SST state locks anyway, this just
   # avoids queued duplicate runs stepping on each other.

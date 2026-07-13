@@ -80,10 +80,9 @@ for the third-party services above:
 ```bash
 cp apps/app/.env.example apps/app/.env
 cp apps/web/.env.example apps/web/.env
-cp packages/database/.env.example packages/database/.env
 ```
 
-At minimum you'll need Clerk, Convex, and a database URL to boot the app; the
+At minimum you'll need Clerk and a Postgres database URL to boot the app; the
 remaining keys enable individual integrations (payments, social providers,
 email, analytics, etc.). Admin-only features read a comma-separated allowlist
 from `ADMIN_EMAILS` / `NEXT_PUBLIC_ADMIN_EMAILS`.
@@ -94,7 +93,7 @@ from `ADMIN_EMAILS` / `NEXT_PUBLIC_ADMIN_EMAILS`.
 pnpm dev          # run everything via Turborepo
 pnpm dev:app      # just the dashboard (http://localhost:3000)
 pnpm dev:web      # just the marketing site
-pnpm dev:worker   # just the publishing worker
+pnpm dev:api      # just the Postgres-backed API worker
 ```
 
 ## Common scripts
@@ -106,7 +105,7 @@ pnpm dev:worker   # just the publishing worker
 | `pnpm test`        | Run the test suites             |
 | `pnpm check`       | Lint / format check (Ultracite) |
 | `pnpm fix`         | Auto-fix lint & formatting      |
-| `pnpm db:generate` | Generate database types         |
+| `pnpm pg:migrate`  | Apply local Postgres migrations |
 
 ## Contributing
 

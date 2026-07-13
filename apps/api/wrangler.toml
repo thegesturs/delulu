@@ -1,28 +1,29 @@
-# Staging-only worker for the backend revamp (M1). NEVER name this "delulu-api"
-# until the M6 cutover — that name belongs to the production Hono worker in
-# apps/api-legacy. Ids below are placeholders filled in at first provisioning
-# (see README.md runbook). This config exists for `wrangler dev` + types only;
-# no deploy happens until all milestones land (per user decision).
+# Production API worker. The deployment name remains stable through cutover so
+# existing secrets, Hyperdrive, KV, and rate-limit bindings stay attached.
 name = "delulu-api-next"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
 [triggers]
 crons = ["* * * * *"]
 
 [vars]
-# Cutover deploy: replace the active staging pair below with these values just
-# before attaching the production custom domain to this existing Worker.
-# AS_ISSUER = "https://api.delulu.social"
-# API_RESOURCE = "https://api.delulu.social"
-AS_ISSUER = "https://api-next.delulu.social"
-API_RESOURCE = "https://api-next.delulu.social"
-APP_BASE_URL = "https://app.delulu.social"
-DODO_PAYMENTS_ENVIRONMENT = "test_mode"
-CLERK_ISSUER = ""
+AS_ISSUER = "https://api.delulu.social"
+API_RESOURCE = "https://api.delulu.social"
+APP_BASE_URL = "https://solulu.delulu.social"
+DODO_PAYMENTS_ENVIRONMENT = "live_mode"
+CLERK_ISSUER = "https://clerk.delulu.social"
 R2_BUCKET_NAME = "delulu-social"
 R2_PUBLIC_BASE_URL = "https://media.delulu.social"
+TWITTER_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/twitter"
+LINKEDIN_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/linkedin"
+TIKTOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/tiktok"
+INSTAGRAM_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/instagram"
+FACEBOOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/facebook"
+PINTEREST_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/pinterest"
+YOUTUBE_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/youtube"
+THREADS_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/threads"
 
 # Secrets (set via `wrangler secret put`):
 #   CLERK_JWT_KEY     PEM public key for networkless Clerk verification
@@ -37,6 +38,14 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 #   META_APP_SECRET / META_VERIFY_TOKEN
 #   CLERK_WEBHOOK_SECRET / DODO_WEBHOOK_SECRET
 #   DODO_PAYMENTS_API_KEY
+#   TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET
+#   LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET
+#   TIKTOK_CLIENT_ID / TIKTOK_CLIENT_SECRET
+#   INSTAGRAM_CLIENT_ID / INSTAGRAM_CLIENT_SECRET
+#   FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET
+#   PINTEREST_CLIENT_ID / PINTEREST_CLIENT_SECRET
+#   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+#   THREADS_CLIENT_ID / THREADS_CLIENT_SECRET
 
 # Postgres via Hyperdrive. In production `id` points at the real Hyperdrive
 # config (fill after `wrangler hyperdrive create`). In local `wrangler dev`,
@@ -48,43 +57,38 @@ R2_PUBLIC_BASE_URL = "https://media.delulu.social"
 # through Hyperdrive locally mirrors prod and eliminates those transient 500s.
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "delulu-local-dev-placeholder"
+id = "d1629bb1372f441cb3fe7d870acf9ca3"
 localConnectionString = "postgres://delulu:delulu@localhost:5432/delulu"
 
 # One native Rate Limiting binding per distinct tier (static limit each).
-# [[unsafe.bindings]]
-# name = "RL_API_20"
-# type = "ratelimit"
-# namespace_id = "1001"
-# simple = { limit = 20, period = 60 }
-# [[unsafe.bindings]]
-# name = "RL_API_60"
-# type = "ratelimit"
-# namespace_id = "1002"
-# simple = { limit = 60, period = 60 }
-# [[unsafe.bindings]]
-# name = "RL_API_120"
-# type = "ratelimit"
-# namespace_id = "1003"
-# simple = { limit = 120, period = 60 }
-# [[unsafe.bindings]]
-# name = "RL_SESSION_300"
-# type = "ratelimit"
-# namespace_id = "1004"
-# simple = { limit = 300, period = 60 }
+[[unsafe.bindings]]
+name = "RL_API_20"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+[[unsafe.bindings]]
+name = "RL_API_60"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+[[unsafe.bindings]]
+name = "RL_API_120"
+type = "ratelimit"
+namespace_id = "1003"
+simple = { limit = 120, period = 60 }
+[[unsafe.bindings]]
+name = "RL_SESSION_300"
+type = "ratelimit"
+namespace_id = "1004"
+simple = { limit = 300, period = 60 }
 
-# KV namespace for the monthly API-request counter (apiRequestsPerMonth budget).
-# [[kv_namespaces]]
-# binding = "API_USAGE_KV"
-# id = "<kv-namespace-id>"
+# Automation/session fast path and temporary multi-step OAuth state. Keys are
+# namespaced by feature; Postgres remains authoritative.
+[[kv_namespaces]]
+binding = "AUTOMATION_KV"
+id = "e4eecde6b80f429b94485436a905c864"
 
-# M3 automation trigger/session fast path. Postgres remains authoritative and
-# the minute Cron repairs missed or stale writes.
-# [[kv_namespaces]]
-# binding = "AUTOMATION_KV"
-# id = "<automation-kv-namespace-id>"
-
-# M4 operational (30s) and provider-insights (1h) response cache.
-# [[kv_namespaces]]
-# binding = "EDGE_CACHE_KV"
-# id = "<edge-cache-kv-namespace-id>"
+# Operational (30s) and provider-insights (1h) response cache.
+[[kv_namespaces]]
+binding = "EDGE_CACHE_KV"
+id = "0fa4faf775ec4ab28e259c8a5503dc3c"

@@ -18,6 +18,7 @@ import {
 import { SqlClient } from "effect/unstable/sql";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
+  AutomationKvService,
   ConnectionStateConfig,
   ConnectionStateService,
   ConnectionsService,
@@ -60,8 +61,9 @@ beforeAll(() => {
     TokenCipher,
     TokenCipher.of(makeTokenCipher("integration-encryption-secret"))
   );
+  const TemporaryStore = AutomationKvService.memoryLayer();
   const Connections = ConnectionsService.layer.pipe(
-    Layer.provide([State, Cipher])
+    Layer.provide([State, Cipher, TemporaryStore])
   );
   AppLayer = Layer.mergeAll(
     IdentityService.layer,

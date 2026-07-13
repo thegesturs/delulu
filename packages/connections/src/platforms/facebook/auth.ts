@@ -1,13 +1,11 @@
-import { getCloudflareEnv } from "@delulu/cloudflare-types";
-import { api } from "@delulu/database/convex/_generated/api";
-import type { Id } from "@delulu/database/convex/_generated/dataModel";
-import { decryptData, encryptData } from "@delulu/database/convex/utils";
+import { makeTokenCipher } from "@delulu/core";
 import {
   type FacebookPagesWithToken,
   FacebookPagesWithTokenSchema,
 } from "@delulu/validators/facebook";
-import { ConvexHttpClient } from "convex/browser";
+import { Effect } from "effect";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -19,7 +17,6 @@ const fbEnv = () => ({
   clientId: process.env.FACEBOOK_CLIENT_ID ?? "",
   clientSecret: process.env.FACEBOOK_CLIENT_SECRET ?? "",
   callbackUrl: process.env.FACEBOOK_CALLBACK_URL ?? "",
-  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
 
 /**
@@ -27,9 +24,6 @@ const fbEnv = () => ({
  * Next.js callback route used so the `/socials` and `/facebook-page-select`
  * pages keep working unchanged.
  */
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
-
 const fetchTimeout = (url: string, init?: RequestInit, timeoutMs = 15_000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -131,12 +125,12 @@ export const facebookAuth: PlatformAuth = {
     const e = fbEnv();
 
     if (error === "access_denied" && errorReason === "user_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_denied&code=FACEBOOK_001&provider=facebook"
       );
     }
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=facebook"
       );
     }
@@ -159,7 +153,7 @@ export const facebookAuth: PlatformAuth = {
           "Facebook token exchange failed:",
           await tokenRequest.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=FACEBOOK_002&provider=facebook"
         );
       }
@@ -186,7 +180,7 @@ export const facebookAuth: PlatformAuth = {
           "Facebook long-lived token exchange failed:",
           await longLivedTokenResponse.text()
         );
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=FACEBOOK_003&provider=facebook"
         );
       }
@@ -197,31 +191,33 @@ export const facebookAuth: PlatformAuth = {
       try {
         const allPages = await getAllPages(longLivedTokenData.access_token);
         if (!allPages || allPages.length === 0) {
-          return redirect(
+          return callbackRedirect(
             "/socials?error=no_pages_found&code=FACEBOOK_005&provider=facebook"
           );
         }
 
         const key = `fb-pages-${userId}-${code}`;
-        const cfEnv = await getCloudflareEnv();
-        const encryptedData = await encryptData(JSON.stringify(allPages));
-        await cfEnv.DELULU_FACEBOOK_PAGES.put(key, encryptedData, {
+        const cipher = makeTokenCipher(process.env.ENCRYPTION_SECRET ?? "");
+        const encrypted = await Effect.runPromise(
+          cipher.encrypt(JSON.stringify(allPages))
+        );
+        await ctx.temporaryStore.put(key, encrypted.ciphertext, {
           expirationTtl: 600, // 10 minutes
         });
 
         // Redirect to the page-selection UI with the KV data key.
-        return redirect(
+        return callbackRedirect(
           `/facebook-page-select?key=${encodeURIComponent(key)}&code=${encodeURIComponent(code)}&state=${encodeURIComponent(ctx.state ?? "")}`
         );
       } catch (pagesError) {
         console.error("Error fetching Facebook pages:", pagesError);
-        return redirect(
+        return callbackRedirect(
           "/socials?error=pages_fetch_failed&code=FACEBOOK_004&provider=facebook"
         );
       }
     } catch (err) {
       console.error("Facebook callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=server_error&code=FACEBOOK_500&provider=facebook"
       );
     }
@@ -237,13 +233,8 @@ export interface ConnectFacebookPageInput {
   pageName: string;
   /** External (Clerk) user id used to build the KV key. */
   externalId: string;
-  /** Convex org id (undefined for personal workspaces). */
-  organizationId?: string;
-  /** Convex user id (undefined when an org owns the connection). */
-  userId?: string;
-  /** Convex auth token for the current user. */
-  convexToken: string;
-  upsert?: CallbackContext["upsert"];
+  upsert: CallbackContext["upsert"];
+  temporaryStore: CallbackContext["temporaryStore"];
 }
 
 export interface ConnectFacebookPageResult {
@@ -251,11 +242,9 @@ export interface ConnectFacebookPageResult {
 }
 
 /**
- * Finalises a Facebook connection after the user picks a page. Ported from
- * `packages/api/router/social-provider.ts#connectFacebookPage`. Reads the
+ * Finalises a Facebook connection after the user picks a page. Reads the
  * encrypted page list from Cloudflare KV, decrypts it, extracts the selected
- * page's access token, deletes the KV entry, then calls the Convex
- * `connectFacebookPage` mutation.
+ * page's access token, deletes the KV entry, then persists the connection.
  *
  * Exported as a STANDALONE async function (and re-exported named below) rather
  * than a `PlatformAuth` method because `PlatformAuth`/`types.ts` has no
@@ -264,16 +253,18 @@ export interface ConnectFacebookPageResult {
 export async function connectFacebookPage(
   input: ConnectFacebookPageInput
 ): Promise<ConnectFacebookPageResult> {
-  const env = await getCloudflareEnv();
   const key = `fb-pages-${input.externalId}-${input.code}`;
-  const facebookPagesKV = env.DELULU_FACEBOOK_PAGES;
+  const facebookPagesKV = input.temporaryStore;
 
   const encryptedData = await facebookPagesKV.get(key);
   if (!encryptedData) {
     throw new Error("Facebook pages data not found or expired");
   }
 
-  const decryptedData = await decryptData(encryptedData);
+  const cipher = makeTokenCipher(process.env.ENCRYPTION_SECRET ?? "");
+  const decryptedData = await Effect.runPromise(
+    cipher.decrypt({ ciphertext: encryptedData, cipherVersion: "v1" })
+  );
   const rawPages = JSON.parse(decryptedData);
 
   const parsed = FacebookPagesWithTokenSchema.safeParse(rawPages);
@@ -291,33 +282,14 @@ export async function connectFacebookPage(
   // Clean up the one-time KV entry once the token has been extracted.
   await facebookPagesKV.delete(key);
 
-  if (input.upsert) {
-    const status = await input.upsert({
-      socialType: "FACEBOOK",
-      accessToken: pageAccessToken,
-      profileId: input.pageId,
-      username: input.pageName,
-      fullName: input.pageName,
-    });
-    return {
-      status: status === "transfer_required" ? "transferred" : "connected",
-    };
-  }
-
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL ?? "");
-  convex.setAuth(input.convexToken);
-  const result = await convex.mutation(
-    api.social_providers.connectFacebookPage,
-    {
-      userId: input.organizationId
-        ? undefined
-        : (input.userId as Id<"users"> | undefined),
-      organizationId: input.organizationId,
-      pageId: input.pageId,
-      pageName: input.pageName,
-      accessToken: pageAccessToken,
-    }
-  );
-
-  return result;
+  const status = await input.upsert({
+    socialType: "FACEBOOK",
+    accessToken: pageAccessToken,
+    profileId: input.pageId,
+    username: input.pageName,
+    fullName: input.pageName,
+  });
+  return {
+    status: status === "transfer_required" ? "transferred" : "connected",
+  };
 }

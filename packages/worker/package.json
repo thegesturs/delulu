@@ -6,7 +6,6 @@
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "dev": "dotenv -e .env.local -- tsx index.ts",
     "test": "vitest run --passWithNoTests",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:prod": "dotenv -e .env.prod -- vitest run",
@@ -14,8 +13,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@delulu/api": "workspace:*",
-    "@delulu/database": "workspace:*",
     "@delulu/connections": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/payments": "workspace:*",
@@ -26,7 +23,6 @@
     "@types/node": "22.14.1",
     "axios": "^1.9.0",
     "dotenv": "^17.2.1",
-    "dotenv-cli": "^7.4.1",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
     "@xdevplatform/xdk": "0.5.0",

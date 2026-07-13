@@ -1,7 +1,6 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
+import { callbackRedirect } from "../../callback-response";
 import {
   type ConnectionError,
   fromUnknownHttp,
@@ -19,11 +18,7 @@ const igEnv = () => ({
   clientId: process.env.PINTEREST_CLIENT_ID ?? "",
   clientSecret: process.env.PINTEREST_CLIENT_SECRET ?? "",
   callbackUrl: process.env.PINTEREST_CALLBACK_URL ?? "",
-  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL ?? "",
 });
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 const fetchTimeout = (url: string, init?: RequestInit, timeoutMs = 8000) => {
   const controller = new AbortController();
@@ -59,16 +54,16 @@ export const pinterestAuth: PlatformAuth = {
   },
 
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, error, convexToken } = ctx;
+    const { code, error } = ctx;
     const e = igEnv();
 
     if (error === "access_denied") {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=user_denied&code=PINTEREST_001&provider=pinterest"
       );
     }
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=pinterest"
       );
     }
@@ -86,7 +81,7 @@ export const pinterestAuth: PlatformAuth = {
         }).toString(),
       });
       if (!tokenResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=token_invalid&code=PINTEREST_002&provider=pinterest"
         );
       }
@@ -97,7 +92,7 @@ export const pinterestAuth: PlatformAuth = {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
       if (!userResponse.ok) {
-        return redirect(
+        return callbackRedirect(
           "/socials?error=user_fetch_failed&code=PINTEREST_003&provider=pinterest"
         );
       }
@@ -113,31 +108,18 @@ export const pinterestAuth: PlatformAuth = {
         fullName: user.username,
         profileImage: user.profile_image,
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(e.convexUrl);
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=pinterest"
         );
       }
       ctx.onConnected?.({ provider: "pinterest", username: user.username });
-      return redirect("/socials?success=true&provider=pinterest");
+      return callbackRedirect("/socials?success=true&provider=pinterest");
     } catch (err) {
       console.error("Pinterest callback error:", err);
-      return redirect(
+      return callbackRedirect(
         "/socials?error=server_error&code=PINTEREST_500&provider=pinterest"
       );
     }

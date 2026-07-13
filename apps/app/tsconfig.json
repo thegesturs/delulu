@@ -4,18 +4,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@delulu/*": ["../../packages/*"],
-      "@api/*": ["../../packages/api/*"]
+      "@delulu/*": ["../../packages/*"]
     },
     "strictFunctionTypes": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
     "strictNullChecks": true
   },
-  "exclude": [
-    "../../packages/database/prisma/types/zod/**/*",
-    "../../packages/database/prisma/types/zod/index.ts"
-  ],
   "include": [
     "next-env.d.ts",
     "next.config.ts",

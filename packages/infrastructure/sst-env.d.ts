@@ -9,11 +9,11 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "CONVEX_URL": {
+    "DODO_PAYMENTS_API_KEY": {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "DODO_PAYMENTS_API_KEY": {
+    "ENCRYPTION_SECRET": {
       "type": "sst.sst.Secret"
       "value": string
     }
@@ -21,33 +21,28 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "INSTAGRAM_APP_SECRET": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "INSTAGRAM_WEBHOOK_VERIFY_TOKEN": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "InstagramWebhook": {
-      "name": string
-      "type": "sst.aws.Function"
-      "url": string
-    }
     "LAMBDA_SECRET_KEY": {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "SocialPostsQueue": {
+    "POSTGRES_DATABASE_URL": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "PostgresSocialPostsDLQ": {
       "type": "sst.aws.Queue"
       "url": string
     }
-    "TranscriptionFunction": {
+    "PostgresSocialPostsQueue": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
+    "PostgresTriggerSqsFunction": {
       "name": string
       "type": "sst.aws.Function"
       "url": string
     }
-    "TriggerSqsFunction": {
+    "TranscriptionFunction": {
       "name": string
       "type": "sst.aws.Function"
       "url": string

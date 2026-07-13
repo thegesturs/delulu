@@ -41,15 +41,7 @@
         "NEXT_PUBLIC_POSTHOG_KEY": "phc_A5NWdEHAyUyzoUUSKnemshpamt3MCdbh9ztSxH0RvQV",
         "NEXT_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "NEXT_PUBLIC_POSTHOG_PROXY_HOST": "https://metrics.delulu.social",
-        "NEXTJS_ENV": "production",
-        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
-        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
-        "TIKTOK_CALLBACK_URL": "https://solulu.delulu.social/api/callback/tiktok",
-        "INSTAGRAM_CALLBACK_URL": "https://solulu.delulu.social/api/callback/instagram",
-        "FACEBOOK_CALLBACK_URL": "https://solulu.delulu.social/api/callback/facebook",
-        "PINTEREST_CALLBACK_URL": "https://solulu.delulu.social/api/callback/pinterest",
-        "YOUTUBE_CALLBACK_URL": "https://solulu.delulu.social/api/callback/youtube",
-        "THREADS_CALLBACK_URL": "https://solulu.delulu.social/api/callback/threads"
+        "NEXTJS_ENV": "production"
       }
     },
     "production": {
@@ -61,15 +53,7 @@
         "NEXT_PUBLIC_POSTHOG_KEY": "phc_A5NWdEHAyUyzoUUSKnemshpamt3MCdbh9ztSxH0RvQV",
         "NEXT_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
         "NEXT_PUBLIC_POSTHOG_PROXY_HOST": "https://metrics.delulu.social",
-        "NEXTJS_ENV": "production",
-        "TWITTER_CALLBACK_URL": "https://solulu.delulu.social/api/callback/twitter",
-        "LINKEDIN_CALLBACK_URL": "https://solulu.delulu.social/api/callback/linkedin",
-        "TIKTOK_CALLBACK_URL": "https://solulu.delulu.social/api/callback/tiktok",
-        "INSTAGRAM_CALLBACK_URL": "https://solulu.delulu.social/api/callback/instagram",
-        "FACEBOOK_CALLBACK_URL": "https://solulu.delulu.social/api/callback/facebook",
-        "PINTEREST_CALLBACK_URL": "https://solulu.delulu.social/api/callback/pinterest",
-        "YOUTUBE_CALLBACK_URL": "https://solulu.delulu.social/api/callback/youtube",
-        "THREADS_CALLBACK_URL": "https://solulu.delulu.social/api/callback/threads"
+        "NEXTJS_ENV": "production"
       }
     }
   },

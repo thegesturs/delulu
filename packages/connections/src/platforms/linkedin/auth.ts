@@ -1,5 +1,4 @@
-import { api } from "@delulu/database/convex/_generated/api";
-import { ConvexHttpClient } from "convex/browser";
+import { callbackRedirect } from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -17,9 +16,6 @@ const SCOPES = [
   "w_member_social",
   "w_organization_social",
 ];
-
-const redirect = (location: string): Response =>
-  new Response(null, { status: 302, headers: { Location: location } });
 
 interface LinkedInResponse {
   access_token: string;
@@ -96,19 +92,19 @@ export const linkedinAuth: PlatformAuth = {
   },
 
   /**
-   * OAuth callback. The thin Next.js route resolves Clerk auth + Convex token
-   * and passes them in via `CallbackContext`; code exchange, profile fetch, and
+   * OAuth callback. The API verifies state and supplies persistence through
+   * `CallbackContext`; code exchange, profile fetch, and
    * upsert live here. Returns redirect Responses preserving the old route's
    * exact Location paths and error codes.
    */
   async handleCallback(ctx: CallbackContext): Promise<Response> {
-    const { code, convexToken } = ctx;
+    const { code } = ctx;
     const clientId = process.env.LINKEDIN_CLIENT_ID ?? "";
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET ?? "";
     const callbackUrl = process.env.LINKEDIN_CALLBACK_URL ?? "";
 
     if (!code) {
-      return redirect(
+      return callbackRedirect(
         "/socials?error=invalid_request&code=PARAM_001&provider=LINKEDIN"
       );
     }
@@ -180,36 +176,21 @@ export const linkedinAuth: PlatformAuth = {
         fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
         profileImage: profileImage ?? "/images/user.png",
       } as const;
-      let status: string;
-      if (ctx.upsert) {
-        status = await ctx.upsert(connection);
-      } else {
-        const convex = new ConvexHttpClient(
-          process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
-        );
-        convex.setAuth(convexToken);
-        status = await convex.mutation(
-          api.social_providers.upsertSocialProvider,
-          {
-            ...connection,
-            isActive: true,
-          }
-        );
-      }
+      const status = await ctx.upsert(connection);
 
-      if (status === "account_transferred" || status === "transfer_required") {
-        return redirect(
+      if (status === "transfer_required") {
+        return callbackRedirect(
           "/socials?notification=account_transferred&platform=linkedin"
         );
       }
 
       ctx.onConnected?.({ provider: "linkedin", username });
-      return redirect("/socials");
+      return callbackRedirect("/socials");
     } catch (error) {
       console.error("LinkedIn callback error:", error);
       const errorType =
         error instanceof Error ? error.message : "internal_error";
-      return redirect(
+      return callbackRedirect(
         `/socials?error=${errorType}&code=LINKEDIN_ERR&provider=LINKEDIN`
       );
     }

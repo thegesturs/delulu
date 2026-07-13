@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { type ConnectionError, profileNotFound } from "../errors";
 import { getConnection } from "../registry";
-import { ConvexClient } from "./convex";
+import { ConnectionStore } from "./connection-store";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
@@ -15,11 +15,11 @@ const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
  */
 export const ensureFreshToken = (
   socialProviderId: string
-): Effect.Effect<string, ConnectionError, ConvexClient> =>
+): Effect.Effect<string, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
-    const convex = yield* ConvexClient;
+    const store = yield* ConnectionStore;
     const provider =
-      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
+      yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
 
     if (!provider?.accessToken) {
       return yield* Effect.fail(profileNotFound("token-service"));
@@ -52,7 +52,7 @@ export const ensureFreshToken = (
       return provider.accessToken;
     }
 
-    yield* convex.updateSocialProvider({
+    yield* store.updateSocialProvider({
       socialProviderId,
       accessToken: refreshed.value.accessToken,
       refreshToken: refreshed.value.refreshToken,

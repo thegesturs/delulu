@@ -1,10 +1,10 @@
-# `@delulu/http-api` — Effect worker (backend revamp)
+# `@delulu/http-api` — production Effect API worker
 
 The new Cloudflare Worker serving the typed `HttpApi` contract
 (`@delulu/contracts`) plus our own OAuth 2.1 Authorization Server. Built in M1;
-domain resources landed in M2 and the M3/M4 surfaces are now assembled. **Staging-only** until the M6 cutover — the
-production Hono worker lives in `apps/api-legacy` (wrangler `name = "delulu-api"`,
-untouched). This worker deploys as `delulu-api-next`.
+domain resources landed in M2 and the M3/M4 surfaces are now assembled. This
+worker is the production API and retains the `delulu-api-next` deployment name
+so its secrets and bindings remain stable through cutover.
 
 ## Surface (M1–M4)
 
@@ -61,25 +61,22 @@ public key and `CLERK_ISSUER` to its issuer to accept real session JWTs.
   `/v1/me/workspaces`, M2 resources, 401/429, AS metadata, and the full
   authorization-code → token → refresh → reuse-detection flow.
 
-## First deploy runbook (code-only in M1 — no deploy yet)
+## Deployment prerequisites
 
-When ready to stand up staging:
+Before deploying a new environment:
 
 1. **Postgres** — provision the staging database; apply `packages/db/migrations`.
-2. **Hyperdrive** — `wrangler hyperdrive create delulu-next --connection-string …`;
-   uncomment the `[[hyperdrive]]` block in `wrangler.toml` with the returned id.
-3. **Rate-limit bindings** — uncomment the four `[[unsafe.bindings]]` ratelimit
-   blocks (limits 20/60/120/300, period 60). One binding per distinct limit.
-4. **KV** — create and bind `API_USAGE_KV`, `AUTOMATION_KV`, and
-   `EDGE_CACHE_KV`; the latter two hold automation trigger/session fast paths
-   and versioned analytics/provider caches. Postgres remains authoritative.
+2. **Hyperdrive** — verify the committed production Hyperdrive id still points
+   at the intended database before deployment.
+3. **Rate-limit bindings** — verify the four committed bindings (limits
+   20/60/120/300, period 60) in the Cloudflare dashboard.
+4. **KV** — verify the committed `AUTOMATION_KV` and `EDGE_CACHE_KV` namespace
+   ids. They hold automation/temporary OAuth state and versioned
+   analytics/provider caches. Postgres remains authoritative.
 5. **Secrets** — `wrangler secret put` for `CLERK_JWT_KEY`, `AS_SIGNING_KEY`,
    `AS_SIGNING_KID`, `META_APP_SECRET`, `META_VERIFY_TOKEN`,
    `CLERK_WEBHOOK_SECRET`, and `DODO_WEBHOOK_SECRET`. Set `CLERK_ISSUER`,
    `AS_ISSUER`, `API_RESOURCE`, `APP_BASE_URL` in `[vars]`.
 6. **Deploy** — `pnpm --filter @delulu/http-api deploy` (name stays `delulu-api-next`).
-7. **Smoke** — `GET /health`, `GET /openapi.json`, `GET /v1/me` with a Clerk dev
+7. **Smoke** — `GET /health`, `GET /openapi.json`, `GET /v1/me` with a Clerk
    JWT, and the scripted AS flow (discovery → authorize+PKCE → token → refresh).
-
-The worker `name` must never become `delulu-api` before M6 — that would collide
-with the production worker in `apps/api-legacy`.
