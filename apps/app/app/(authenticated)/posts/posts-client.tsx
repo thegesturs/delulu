@@ -2,7 +2,7 @@
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { Card } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
 import {
   Select,
@@ -24,11 +24,15 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { PageShell } from "@/components/layout/page-shell";
+import { PostRow } from "@/components/posts/post-row";
+import { PostViewPreviewDialog } from "@/components/posts/post-view-preview-dialog";
 import { ReviewQueue } from "@/components/posts/review-queue";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
+import type { ConnectionView, PostView } from "@/types/workspace-views";
 
 const statuses = [
   { value: "draft", label: "Draft", icon: DocumentAttachmentIcon },
@@ -44,6 +48,7 @@ type StatusFilter = (typeof statuses)[number]["value"];
 export default function PostsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [previewPost, setPreviewPost] = useState<PostView | null>(null);
   const [statusFilter, setStatusFilter] = useQueryState(
     "status",
     parseAsStringLiteral(statuses.map(({ value }) => value)).withDefault(
@@ -82,6 +87,19 @@ export default function PostsClient() {
     staleTime: 15_000,
     retry: 2,
   });
+  const connectionsQuery = useQuery({
+    ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
+    enabled: Boolean(workspaceId),
+    staleTime: 60_000,
+  });
+
+  const connectionsMap = useMemo(() => {
+    const map = new Map<string, ConnectionView>();
+    for (const connection of connectionsQuery.data?.data ?? []) {
+      map.set(connection.id, connection);
+    }
+    return map;
+  }, [connectionsQuery.data]);
 
   const filteredPosts = (posts.data?.data ?? []).filter((post) => {
     if (!debouncedSearchTerm) {
@@ -94,143 +112,119 @@ export default function PostsClient() {
     return haystack.includes(debouncedSearchTerm.toLowerCase());
   });
   const error = workspaceError ?? posts.error;
+  const isLoading =
+    isWorkspacePending || (statusFilter !== "review" && posts.isPending);
 
-  if (isWorkspacePending || (statusFilter !== "review" && posts.isPending)) {
-    return <PostsLoading />;
-  }
+  const addPostAction = canCreate ? (
+    <Button asChild size="sm">
+      <Link href="/post">
+        <Icon icon={Add01Icon} size={16} />
+        Add Post
+      </Link>
+    </Button>
+  ) : null;
 
-  if (!workspaceId || error) {
-    return (
-      <div className="container py-10">
-        <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <Select
+        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+        value={statusFilter}
+      >
+        <SelectTrigger className="w-48" size="default">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {statuses
+            .filter(({ value }) => value !== "review" || showReviewTab)
+            .map(({ value, label, icon }) => (
+              <SelectItem key={value} value={value}>
+                <Icon icon={icon} size={16} />
+                <span>{label}</span>
+                {value === "review" && (reviewQueue.data?.total ?? 0) > 0 && (
+                  <Badge variant="secondary">{reviewQueue.data?.total}</Badge>
+                )}
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+      {statusFilter !== "review" && (
+        <Input
+          className="max-w-xs flex-1"
+          onChange={(event) => setSearchTerm(event.target.value)}
+          placeholder="Search posts..."
+          value={searchTerm}
+        />
+      )}
+      {posts.isFetching && !posts.isPending && (
+        <span className="text-muted-foreground text-xs">Refreshing…</span>
+      )}
+    </div>
+  );
+
+  return (
+    <PageShell
+      actions={addPostAction}
+      description="Manage drafts, scheduled, and published posts."
+      page="Posts"
+      pages={["Content"]}
+    >
+      {!workspaceId || error ? (
+        <Card className="p-4">
           <h3 className="font-semibold">Unable to load this workspace</h3>
-          <p className="text-sm">
+          <p className="text-muted-foreground text-sm">
             {error?.message ?? "Select a workspace and try again."}
           </p>
           <Button
-            className="mt-3"
+            className="mt-3 w-fit"
             onClick={() => posts.refetch()}
             variant="outline"
           >
             Retry
           </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="border-b">
-        <div className="flex items-center justify-between gap-3 p-3">
-          <Select
-            onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-            value={statusFilter}
-          >
-            <SelectTrigger className="w-56" size="default">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statuses
-                .filter(({ value }) => value !== "review" || showReviewTab)
-                .map(({ value, label, icon }) => (
-                  <SelectItem key={value} value={value}>
-                    <Icon icon={icon} size={16} />
-                    <span>{label}</span>
-                    {value === "review" &&
-                      (reviewQueue.data?.total ?? 0) > 0 && (
-                        <Badge variant="secondary">
-                          {reviewQueue.data?.total}
-                        </Badge>
-                      )}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          {canCreate && (
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/post">
-                <Icon className="mr-1" icon={Add01Icon} size={16} />
-                Add Post
-              </Link>
-            </Button>
+        </Card>
+      ) : (
+        <>
+          {toolbar}
+          {statusFilter === "review" ? (
+            <ReviewQueue />
+          ) : isLoading ? (
+            <Card className="divide-y divide-border/60 p-0">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div className="flex items-center gap-3 px-4 py-3" key={item}>
+                  <div className="size-6 animate-pulse rounded-full bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                    <div className="h-2.5 w-1/3 animate-pulse rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </Card>
+          ) : filteredPosts.length === 0 ? (
+            <Card className="items-center justify-center gap-2 py-16 text-center">
+              <p className="text-muted-foreground text-sm">No posts found.</p>
+              {addPostAction}
+            </Card>
+          ) : (
+            <Card className="divide-y divide-border/60 p-0">
+              {filteredPosts.map((post) => (
+                <PostRow
+                  connections={connectionsMap}
+                  key={post.id}
+                  onPreview={() => setPreviewPost(post)}
+                  post={post}
+                />
+              ))}
+            </Card>
           )}
-        </div>
-      </div>
+        </>
+      )}
 
-      <div className="flex-1 space-y-4 overflow-auto p-4">
-        {statusFilter === "review" ? (
-          <ReviewQueue />
-        ) : (
-          <>
-            <div className="flex items-center gap-3">
-              <Input
-                className="max-w-sm"
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search posts..."
-                value={searchTerm}
-              />
-              {posts.isFetching && !posts.isPending && (
-                <span className="text-muted-foreground text-xs">
-                  Refreshing…
-                </span>
-              )}
-              {posts.isStale && <Badge variant="outline">Cached</Badge>}
-            </div>
-            {filteredPosts.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">
-                No posts found.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {filteredPosts.map((post) => {
-                  const text = post.groups
-                    .flatMap((group) => group.segments)
-                    .find((segment) => segment.text.trim())?.text;
-                  const scheduledAt = post.targets.find(
-                    (target) => target.scheduledAt
-                  )?.scheduledAt;
-                  return (
-                    <Card key={post.id}>
-                      <CardContent className="space-y-3 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge variant="secondary">
-                            {post.status.replaceAll("_", " ")}
-                          </Badge>
-                          <span className="text-muted-foreground text-xs">
-                            {new Date(post.updatedAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="line-clamp-3 min-h-12 text-sm">
-                          {text || "Untitled post"}
-                        </p>
-                        {scheduledAt && (
-                          <p className="text-muted-foreground text-xs">
-                            Scheduled {new Date(scheduledAt).toLocaleString()}
-                          </p>
-                        )}
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/post/${post.id}`}>Open post</Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PostsLoading() {
-  return (
-    <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-      {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div className="h-36 animate-pulse rounded-lg bg-muted" key={item} />
-      ))}
-    </div>
+      <PostViewPreviewDialog
+        connections={connectionsMap}
+        onOpenChange={(open) => !open && setPreviewPost(null)}
+        open={previewPost !== null}
+        post={previewPost}
+      />
+    </PageShell>
   );
 }

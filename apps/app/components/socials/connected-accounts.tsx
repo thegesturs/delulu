@@ -4,21 +4,73 @@ import { SOCIAL_ACCOUNT_DISCONNECTED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { Card, CardContent } from "@delulu/design-system/components/ui/card";
+import { Card } from "@delulu/design-system/components/ui/card";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
+import { socialBackgroundColors } from "@delulu/design-system/lib/social-config";
+import { cn } from "@delulu/design-system/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import { normalizePlatform } from "@/lib/social-platform";
+import type { ConnectionView } from "@/types/workspace-views";
+import { AccountActionsMenu } from "./account-actions-menu";
 import { AccountFilters } from "./account-filter";
 import { AccountStats } from "./account-stats";
-import { ConnectedAccountsHeader } from "./connect-account-header";
+import { ConnectAccountDialog } from "./connect-account-header";
+import { SocialNotifications } from "./social-notifications";
+
+type AccountStatus = "active" | "expiring" | "expired";
+
+function accountStatus(expiresAt: string | null): {
+  status: AccountStatus;
+  label: string;
+  variant: "green" | "amber" | "red";
+  stateLine: string;
+} {
+  if (!expiresAt) {
+    return {
+      status: "active",
+      label: "Active",
+      variant: "green",
+      stateLine: "No expiry",
+    };
+  }
+  const expires = new Date(expiresAt).getTime();
+  const now = Date.now();
+  if (expires <= now) {
+    return {
+      status: "expired",
+      label: "Expired",
+      variant: "red",
+      stateLine: `Expired ${formatDistanceToNow(new Date(expiresAt), {
+        addSuffix: true,
+      })}`,
+    };
+  }
+  if (expires - now <= 7 * 86_400_000) {
+    return {
+      status: "expiring",
+      label: "Expires soon",
+      variant: "amber",
+      stateLine: `Token expires ${new Date(expiresAt).toLocaleDateString()}`,
+    };
+  }
+  return {
+    status: "active",
+    label: "Active",
+    variant: "green",
+    stateLine: `Token expires ${new Date(expiresAt).toLocaleDateString()}`,
+  };
+}
 
 export default function ConnectedAccounts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const analytics = useAnalytics();
   const queryClient = useQueryClient();
   const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
@@ -51,35 +103,30 @@ export default function ConnectedAccounts() {
         const matchesPlatform =
           filterPlatform === "all" ||
           account.platform.toUpperCase() === filterPlatform;
-        const expired = account.expiresAt
-          ? new Date(account.expiresAt).getTime() <= Date.now()
-          : false;
-        const expiring = account.expiresAt
-          ? new Date(account.expiresAt).getTime() - Date.now() <=
-              7 * 86_400_000 && !expired
-          : false;
+        const status = accountStatus(account.expiresAt).status;
         const matchesStatus =
           filterStatus === "all" ||
-          (filterStatus === "active" && !expired) ||
-          (filterStatus === "expired" && expired) ||
-          (filterStatus === "expiring" && expiring);
+          (filterStatus === "active" && status === "active") ||
+          (filterStatus === "expired" && status === "expired") ||
+          (filterStatus === "expiring" && status === "expiring");
         return matchesSearch && matchesPlatform && matchesStatus;
       }),
     [accounts.data, filterPlatform, filterStatus, searchQuery]
   );
 
   const stats = useMemo(() => {
-    const now = Date.now();
     const values = accounts.data?.data ?? [];
-    const expired = values.filter(
-      (item) => item.expiresAt && new Date(item.expiresAt).getTime() <= now
-    ).length;
-    const expiring = values.filter(
-      (item) =>
-        item.expiresAt &&
-        new Date(item.expiresAt).getTime() > now &&
-        new Date(item.expiresAt).getTime() - now <= 7 * 86_400_000
-    ).length;
+    let expired = 0;
+    let expiring = 0;
+    for (const item of values) {
+      const status = accountStatus(item.expiresAt).status;
+      if (status === "expired") {
+        expired += 1;
+      }
+      if (status === "expiring") {
+        expiring += 1;
+      }
+    }
     return {
       total: values.length,
       active: values.length - expired,
@@ -88,14 +135,11 @@ export default function ConnectedAccounts() {
     };
   }, [accounts.data]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (account: ConnectionView) => {
     try {
-      await removeConnection.mutateAsync(id);
+      await removeConnection.mutateAsync(account.id);
       analytics.capture(SOCIAL_ACCOUNT_DISCONNECTED, {
-        provider:
-          accounts.data?.data
-            .find((item) => item.id === id)
-            ?.platform.toLowerCase() ?? "unknown",
+        provider: account.platform.toLowerCase(),
       });
       toast.success("Account disconnected");
     } catch (error) {
@@ -105,96 +149,116 @@ export default function ConnectedAccounts() {
     }
   };
 
-  if (isWorkspacePending || accounts.isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Loading accounts...
-      </div>
-    );
-  }
-  if (accounts.isError || !workspaceId) {
-    return (
-      <div className="m-6 rounded-lg border border-destructive/40 p-4 text-destructive">
-        <p>
-          {accounts.error?.message ??
-            "Select a workspace to manage connections."}
-        </p>
-        <Button
-          className="mt-3"
-          onClick={() => accounts.refetch()}
-          variant="outline"
-        >
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
-      <div className="mx-auto flex max-w-6xl flex-col space-y-3 p-4 md:space-y-6 md:p-0">
-        <ConnectedAccountsHeader />
-        <AccountStats stats={stats} />
-        <AccountFilters
-          filterPlatform={filterPlatform}
-          filterStatus={filterStatus}
-          searchQuery={searchQuery}
-          setFilterPlatform={setFilterPlatform}
-          setFilterStatus={setFilterStatus}
-          setSearchQuery={setSearchQuery}
-          setViewMode={setViewMode}
-          viewMode={viewMode}
-        />
-        {filteredAccounts.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">
-            No accounts found.
-          </div>
-        ) : (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-                : "flex flex-col gap-3"
-            }
+    <PageShell
+      actions={<ConnectAccountDialog />}
+      description="Manage your social media connections and token health."
+      page="Connected Accounts"
+      pages={["Settings"]}
+    >
+      <SocialNotifications />
+      {isWorkspacePending || accounts.isPending ? (
+        <Card className="divide-y divide-border/60 p-0">
+          {[1, 2, 3].map((item) => (
+            <div className="flex items-center gap-3 px-4 py-3" key={item}>
+              <div className="size-10 animate-pulse rounded-lg bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
+                <div className="h-2.5 w-1/4 animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </Card>
+      ) : accounts.isError || !workspaceId ? (
+        <Card className="p-4">
+          <p className="text-muted-foreground text-sm">
+            {accounts.error?.message ??
+              "Select a workspace to manage connections."}
+          </p>
+          <Button
+            className="mt-3 w-fit"
+            onClick={() => accounts.refetch()}
+            variant="outline"
           >
-            {filteredAccounts.map((account) => (
-              <Card
-                className={viewMode === "list" ? "w-full py-0" : ""}
-                key={account.id}
-              >
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">
-                        {account.displayName ??
-                          account.username ??
-                          account.profileId}
-                      </p>
-                      <Badge variant="secondary">{account.platform}</Badge>
-                    </div>
-                    <p className="truncate text-muted-foreground text-xs">
-                      {account.username
-                        ? `@${account.username}`
-                        : account.profileId}
-                      {account.expiresAt
-                        ? ` · expires ${new Date(account.expiresAt).toLocaleDateString()}`
-                        : ""}
-                    </p>
-                  </div>
-                  <Button
-                    disabled={removeConnection.isPending}
-                    onClick={() => handleDelete(account.id)}
-                    size="sm"
-                    variant="destructive"
-                  >
-                    Disconnect
-                  </Button>
-                </CardContent>
+            Retry
+          </Button>
+        </Card>
+      ) : (
+        <>
+          <AccountStats stats={stats} />
+
+          <PageSection>
+            <AccountFilters
+              filterPlatform={filterPlatform}
+              filterStatus={filterStatus}
+              searchQuery={searchQuery}
+              setFilterPlatform={setFilterPlatform}
+              setFilterStatus={setFilterStatus}
+              setSearchQuery={setSearchQuery}
+            />
+            {filteredAccounts.length === 0 ? (
+              <Card className="items-center justify-center gap-2 py-16 text-center">
+                <p className="text-muted-foreground text-sm">
+                  No accounts found.
+                </p>
+                <ConnectAccountDialog />
               </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+            ) : (
+              <Card className="divide-y divide-border/60 p-0">
+                {filteredAccounts.map((account) => {
+                  const platform = normalizePlatform(account.platform);
+                  const status = accountStatus(account.expiresAt);
+                  return (
+                    <div
+                      className="flex items-center gap-3 px-4 py-3"
+                      key={account.id}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                          platform
+                            ? socialBackgroundColors[platform]
+                            : "bg-muted"
+                        )}
+                      >
+                        {platform && (
+                          <SocialIcon
+                            className="size-5 text-white"
+                            type={platform}
+                          />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-medium text-sm">
+                            {account.displayName ??
+                              account.username ??
+                              account.profileId}
+                          </p>
+                          <Badge size="sm" variant={status.variant}>
+                            {status.label}
+                          </Badge>
+                        </div>
+                        <p className="truncate text-muted-foreground text-xs">
+                          {account.username
+                            ? `@${account.username}`
+                            : account.profileId}{" "}
+                          · {status.stateLine}
+                        </p>
+                      </div>
+                      <AccountActionsMenu
+                        account={account}
+                        disconnecting={removeConnection.isPending}
+                        onDisconnect={() => handleDelete(account)}
+                      />
+                    </div>
+                  );
+                })}
+              </Card>
+            )}
+          </PageSection>
+        </>
+      )}
+    </PageShell>
   );
 }

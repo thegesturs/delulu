@@ -5,6 +5,13 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
+# Local `wrangler dev` server. Wrangler's default 8787 is frequently taken by
+# other local services, so pin the dev port here. The app reaches this via
+# NEXT_PUBLIC_API_URL (set in apps/app/.env.local for local dev).
+[dev]
+ip = "127.0.0.1"
+port = 8788
+
 [observability]
 enabled = false
 head_sampling_rate = 1

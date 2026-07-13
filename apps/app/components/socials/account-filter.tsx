@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@delulu/design-system/components/ui/button";
 import { Input } from "@delulu/design-system/components/ui/input";
 import {
   Select,
@@ -11,11 +10,7 @@ import {
 } from "@delulu/design-system/components/ui/select";
 import { Icon } from "@delulu/design-system/providers/icon";
 
-import {
-  GridViewIcon,
-  Menu01Icon,
-  Search01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Search01Icon } from "@hugeicons-pro/core-solid-rounded";
 
 interface AccountFiltersProps {
   searchQuery: string;
@@ -24,8 +19,6 @@ interface AccountFiltersProps {
   setFilterPlatform: (platform: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
-  viewMode: "grid" | "list";
-  setViewMode: (mode: "grid" | "list") => void;
 }
 
 export function AccountFilters({
@@ -35,8 +28,6 @@ export function AccountFilters({
   setFilterPlatform,
   filterStatus,
   setFilterStatus,
-  viewMode,
-  setViewMode,
 }: AccountFiltersProps) {
   return (
     <div className="flex items-center gap-2">
@@ -77,25 +68,6 @@ export function AccountFilters({
           <SelectItem value="inactive">Inactive</SelectItem>
         </SelectContent>
       </Select>
-
-      <div className="hidden items-center gap-1 rounded-lg border border-border bg-background p-1 md:flex">
-        <Button
-          className="h-8 px-3"
-          onClick={() => setViewMode("list")}
-          size="sm"
-          variant={viewMode === "list" ? "secondary" : "ghost"}
-        >
-          <Icon icon={Menu01Icon} size={16} />
-        </Button>
-        <Button
-          className="h-8 px-3"
-          onClick={() => setViewMode("grid")}
-          size="sm"
-          variant={viewMode === "grid" ? "secondary" : "ghost"}
-        >
-          <Icon icon={GridViewIcon} size={16} />
-        </Button>
-      </div>
     </div>
   );
 }

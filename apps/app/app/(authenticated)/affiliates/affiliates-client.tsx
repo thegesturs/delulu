@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import Link from "next/link";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 
 const PORTAL_URL = process.env.NEXT_PUBLIC_AFFONSO_PORTAL_URL || "#";
 
@@ -84,15 +85,18 @@ function EmbeddedDashboard() {
 
 export default function AffiliatesClient() {
   return (
-    <div className="mx-auto h-full max-w-5xl space-y-8 overflow-y-auto px-4 py-8">
-      {/* Header */}
-      <div>
-        <h1 className="font-bold text-3xl tracking-tight">Refer & Earn</h1>
-        <p className="mt-1 text-muted-foreground">
-          Earn recurring commissions by referring others to Delulu Social
-        </p>
-      </div>
-
+    <PageShell
+      actions={
+        <Button asChild size="sm">
+          <Link href={PORTAL_URL} rel="noopener noreferrer" target="_blank">
+            Open Portal
+          </Link>
+        </Button>
+      }
+      description="Earn recurring commissions by referring others to Delulu Social."
+      page="Refer & Earn"
+      pages={["Settings"]}
+    >
       {/* Embedded Affiliate Dashboard */}
       <EmbeddedDashboard />
 
@@ -111,8 +115,7 @@ export default function AffiliatesClient() {
       </div>
 
       {/* How It Works */}
-      <div>
-        <h2 className="mb-4 font-semibold text-xl">How It Works</h2>
+      <PageSection title="How It Works">
         <div className="grid gap-3 md:grid-cols-3">
           {steps.map((s) => (
             <div className="rounded-lg border p-4" key={s.step}>
@@ -124,11 +127,10 @@ export default function AffiliatesClient() {
             </div>
           ))}
         </div>
-      </div>
+      </PageSection>
 
       {/* Why Join */}
-      <div>
-        <h2 className="mb-4 font-semibold text-xl">Why Join?</h2>
+      <PageSection title="Why Join?">
         <div className="grid gap-3 md:grid-cols-2">
           {benefits.map((b) => (
             <div className="rounded-lg border p-4" key={b.title}>
@@ -137,11 +139,10 @@ export default function AffiliatesClient() {
             </div>
           ))}
         </div>
-      </div>
+      </PageSection>
 
       {/* FAQ */}
-      <div>
-        <h2 className="mb-4 font-semibold text-xl">FAQ</h2>
+      <PageSection title="FAQ">
         <div className="grid gap-3 md:grid-cols-2">
           {faqs.map((f) => (
             <Card className="shadow-none" key={f.q}>
@@ -154,7 +155,7 @@ export default function AffiliatesClient() {
             </Card>
           ))}
         </div>
-      </div>
-    </div>
+      </PageSection>
+    </PageShell>
   );
 }

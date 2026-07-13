@@ -16,7 +16,7 @@ import {
   socialDisplayNames,
 } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Plus } from "@hugeicons-pro/core-solid-rounded";
+import { Loading03Icon, Plus } from "@hugeicons-pro/core-solid-rounded";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
 import { useApiClient } from "@/components/providers/api-client";
@@ -115,19 +115,27 @@ function ConnectPlatformButton({
           socialBackgroundColors[platform]
         } shadow-sm`}
       >
-        <SocialIcon className="text-white" size="md" type={platform} />
+        {connect.isPending ? (
+          <Icon
+            className="animate-spin text-white"
+            icon={Loading03Icon}
+            size={20}
+          />
+        ) : (
+          <SocialIcon className="text-white" size="md" type={platform} />
+        )}
       </div>
       <div className="flex flex-col items-start">
         <span className="font-medium">{socialDisplayNames[platform]}</span>
         <span className="text-muted-foreground text-sm">
-          {socialDescriptions[platform]}
+          {connect.isPending ? "Connecting…" : socialDescriptions[platform]}
         </span>
       </div>
     </Button>
   );
 }
 
-export function ConnectedAccountsHeader() {
+export function ConnectAccountDialog() {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
   const accounts = useQuery({
@@ -139,44 +147,32 @@ export function ConnectedAccountsHeader() {
   const platforms = useSocialPlatforms();
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-bold text-foreground text-xl tracking-tight md:text-3xl">
-            Connected Accounts
-          </h1>
-          <p className="mt-0.5 hidden text-muted-foreground text-sm md:block">
-            Manage your social media connections and sync settings
-          </p>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button disabled={isAtLimit}>
+          <Icon className="mr-2" icon={Plus} size={16} />
+          Connect Account
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Connect Social Account</DialogTitle>
+          <DialogDescription>
+            {isAtLimit
+              ? `You've reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts`
+              : "All connections use official platform APIs. Your passwords never touch our servers."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-4 py-4">
+          {isAtLimit ? (
+            <InlineUpgradePrompt feature="socialAccounts" />
+          ) : (
+            platforms.map((platform) => (
+              <ConnectPlatformButton key={platform} platform={platform} />
+            ))
+          )}
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button disabled={isAtLimit}>
-              <Icon className="mr-2" icon={Plus} size={16} />
-              Connect Account
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Connect Social Account</DialogTitle>
-              <DialogDescription>
-                {isAtLimit
-                  ? `You've reached your ${limitCheck.planType} plan limit of ${limitCheck.limit} social accounts`
-                  : "All connections use official platform APIs. Your passwords never touch our servers."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-1 gap-4 py-4">
-              {isAtLimit ? (
-                <InlineUpgradePrompt feature="socialAccounts" />
-              ) : (
-                platforms.map((platform) => (
-                  <ConnectPlatformButton key={platform} platform={platform} />
-                ))
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

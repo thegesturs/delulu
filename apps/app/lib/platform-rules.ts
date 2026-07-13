@@ -146,8 +146,10 @@ export function getSingleProviderInDefault(
 }
 
 /**
- * Determines if Default should use video-only layout
- * True if ONLY video platforms (TikTok, YouTube, Instagram) are in default
+ * Determines if Default should use the video-first layout.
+ * True when ANY selected platform is video-first (TikTok, YouTube) — so a mixed
+ * selection like Instagram + TikTok keeps the video layout instead of dropping
+ * it. (An uploaded video also forces the video layout upstream.)
  */
 export function shouldDefaultUseVideoLayout(
   platformsInDefault: SocialType[]
@@ -158,7 +160,7 @@ export function shouldDefaultUseVideoLayout(
 
   const videoPlatforms = [SocialTypes.TIKTOK, SocialTypes.YOUTUBE] as const;
 
-  return platformsInDefault.every((platform) =>
+  return platformsInDefault.some((platform) =>
     (videoPlatforms as readonly SocialType[]).includes(platform)
   );
 }

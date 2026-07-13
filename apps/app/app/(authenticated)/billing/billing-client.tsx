@@ -15,6 +15,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@delulu/design-system/components/ui/alert";
+import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { getProductIds } from "@delulu/payments/product-ids";
 import { TickDouble01Icon } from "@hugeicons-pro/core-solid-rounded";
@@ -26,6 +27,8 @@ import { CurrentPlanCard } from "@/components/billing/current-plan-card";
 import { PricingCards } from "@/components/billing/pricing-cards";
 import { SortedAddonCard } from "@/components/billing/sorted-addon-card";
 import { UsageStats } from "@/components/billing/usage-stats";
+import { DottedColumns } from "@/components/layout/dotted-columns";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useCurrency } from "@/hooks/use-currency";
 
 export default function BillingClient() {
@@ -55,17 +58,12 @@ export default function BillingClient() {
   }, [status, cancelled]);
 
   return (
-    <div className="container mx-auto h-full max-w-7xl space-y-8 overflow-y-auto px-2 py-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="font-bold text-3xl tracking-tight">
-          Billing & Subscription
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Manage your subscription, view usage, and upgrade your plan
-        </p>
-      </div>
-
+    <PageShell
+      description="Manage your subscription, view usage, and upgrade your plan."
+      page="Billing"
+      pages={["Settings"]}
+      title="Billing & Subscription"
+    >
       {/* Success Alert */}
       {(status === "succeeded" || status === "active") && (
         <Alert className="border-green-500/50 bg-green-500/10">
@@ -95,30 +93,18 @@ export default function BillingClient() {
       )}
 
       {/* Current Plan & Usage - Top Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <DottedColumns breakpoint="lg">
         <CurrentPlanCard />
         <UsageStats />
-      </div>
+      </DottedColumns>
 
       <BillingOperations />
 
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Available Plans
-          </span>
-        </div>
-      </div>
-
       {/* Pricing Section */}
-      <div className="space-y-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="mb-2 font-bold text-2xl">Choose Your Perfect Plan</h2>
-          <p className="text-muted-foreground">
+      <PageSection>
+        <div className="mx-auto max-w-3xl space-y-1 text-center">
+          <h2 className="font-bold text-xl">Choose Your Perfect Plan</h2>
+          <p className="text-muted-foreground text-sm">
             Plans start at Echo ($4.99/mo). All plans include a 14-day
             money-back guarantee.
           </p>
@@ -130,61 +116,50 @@ export default function BillingClient() {
           }}
           productIds={productIds}
         />
-      </div>
-
-      {/* Add-Ons Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Add-Ons
-          </span>
-        </div>
-      </div>
+      </PageSection>
 
       {/* Sorted Add-On */}
-      <div className="mx-auto max-w-md">
-        <SortedAddonCard />
-      </div>
+      <PageSection title="Add-ons">
+        <div className="grid gap-4 md:grid-cols-2">
+          <SortedAddonCard />
+        </div>
+      </PageSection>
 
       {/* FAQ Section */}
-      <div className="mx-auto mt-12 max-w-3xl space-y-6">
-        <h3 className="font-semibold text-xl">Frequently Asked Questions</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border p-4">
-            <h4 className="mb-2 font-medium">Can I change plans later?</h4>
+      <PageSection title="Frequently asked questions">
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card className="gap-1.5 p-4">
+            <h4 className="font-medium text-sm">Can I change plans later?</h4>
             <p className="text-muted-foreground text-sm">
               Yes! You can upgrade or downgrade your plan at any time. Changes
               take effect immediately for upgrades.
             </p>
-          </div>
-          <div className="rounded-lg border p-4">
-            <h4 className="mb-2 font-medium">
+          </Card>
+          <Card className="gap-1.5 p-4">
+            <h4 className="font-medium text-sm">
               What payment methods do you accept?
             </h4>
             <p className="text-muted-foreground text-sm">
               We accept all major credit cards through our secure payment
               processor, Dodo Payments.
             </p>
-          </div>
-          <div className="rounded-lg border p-4">
-            <h4 className="mb-2 font-medium">Is there a refund policy?</h4>
+          </Card>
+          <Card className="gap-1.5 p-4">
+            <h4 className="font-medium text-sm">Is there a refund policy?</h4>
             <p className="text-muted-foreground text-sm">
               Yes! All paid plans come with a 14-day money-back guarantee.
               Contact support for a full refund.
             </p>
-          </div>
-          <div className="rounded-lg border p-4">
-            <h4 className="mb-2 font-medium">Can I cancel anytime?</h4>
+          </Card>
+          <Card className="gap-1.5 p-4">
+            <h4 className="font-medium text-sm">Can I cancel anytime?</h4>
             <p className="text-muted-foreground text-sm">
               Absolutely. Cancel anytime and retain access until the end of your
               billing period.
             </p>
-          </div>
+          </Card>
         </div>
-      </div>
-    </div>
+      </PageSection>
+    </PageShell>
   );
 }

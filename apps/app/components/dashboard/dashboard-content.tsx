@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@delulu/design-system/components/ui/button";
+import { Card } from "@delulu/design-system/components/ui/card";
+import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
   Add,
@@ -9,15 +11,20 @@ import {
 } from "@hugeicons-pro/core-solid-rounded";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { DashboardStatsClient } from "@/components/dashboard/dashboard-stats";
+import { useMemo, useState } from "react";
+import { DashboardChart } from "@/components/dashboard/dashboard-chart";
+import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import { DmSummaryCard } from "@/components/dashboard/dm-summary-card";
 import { FailedPostsAlert } from "@/components/dashboard/failed-posts-alert";
 import { PendingReviews } from "@/components/dashboard/pending-reviews";
 import { PlatformHealthAlert } from "@/components/dashboard/platform-health-alert";
+import { PageSection, PageShell } from "@/components/layout/page-shell";
+import { getPostScheduledAt } from "@/components/posts/post-helpers";
+import { PostRow } from "@/components/posts/post-row";
+import { PostViewPreviewDialog } from "@/components/posts/post-view-preview-dialog";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
-import { Header } from "../layout/header";
+import type { ConnectionView, PostView } from "@/types/workspace-views";
 
 interface OperationalStats {
   readonly counts: {
@@ -27,6 +34,7 @@ interface OperationalStats {
     readonly failed: number;
     readonly partiallyFailed: number;
     readonly scheduledNextSevenDays: number;
+    readonly publishedLastThirtyDays: number;
   };
   readonly streak: {
     readonly currentDays: number;
@@ -41,96 +49,232 @@ export function DashboardContent({
   dashboardStats: OperationalStats | null;
   isLoading: boolean;
 }) {
-  const router = useRouter();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const scope = workspace.workspaceId
-    ? {
-        workspaceId: workspace.workspaceId,
-        platform: "instagram" as const,
-        category: "dm",
-      }
-    : undefined;
-  const options = resources.automations.list(
-    scope ?? { workspaceId: "", platform: "instagram", category: "dm" },
-    { limit: 100, offset: 0 }
-  );
-  const automations = useQuery({
-    ...options,
-    queryKey: options.queryKey!,
-    enabled: !!scope,
+  const workspaceId = workspace.workspaceId ?? "";
+  const [previewPost, setPreviewPost] = useState<PostView | null>(null);
+
+  const automationScope = {
+    workspaceId,
+    platform: "instagram" as const,
+    category: "dm",
+  };
+  const automationOptions = resources.automations.list(automationScope, {
+    limit: 100,
+    offset: 0,
   });
+  const automations = useQuery({
+    ...automationOptions,
+    queryKey: automationOptions.queryKey!,
+    enabled: Boolean(workspaceId),
+  });
+  const postsQuery = useQuery({
+    ...resources.posts.list(workspaceId, { limit: 100 }),
+    enabled: Boolean(workspaceId),
+    staleTime: 30_000,
+  });
+  const connectionsQuery = useQuery({
+    ...resources.connections.list(workspaceId, { limit: 100 }),
+    enabled: Boolean(workspaceId),
+    staleTime: 60_000,
+  });
+
+  const connectionsMap = useMemo(() => {
+    const map = new Map<string, ConnectionView>();
+    for (const connection of connectionsQuery.data?.data ?? []) {
+      map.set(connection.id, connection);
+    }
+    return map;
+  }, [connectionsQuery.data]);
+
+  const posts = useMemo(() => postsQuery.data?.data ?? [], [postsQuery.data]);
+  const upcoming = useMemo(
+    () =>
+      posts
+        .filter((post) => post.status === "scheduled")
+        .sort((a, b) =>
+          (getPostScheduledAt(a) ?? "").localeCompare(
+            getPostScheduledAt(b) ?? ""
+          )
+        )
+        .slice(0, 5),
+    [posts]
+  );
+  const recent = useMemo(
+    () =>
+      [...posts]
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .slice(0, 5),
+    [posts]
+  );
+
   const automationItems = automations.data?.data ?? [];
   const hasAutomations = automationItems.length > 0;
-  const counts = dashboardStats?.counts;
+  const postsLoading = isLoading || postsQuery.isPending;
 
   return (
-    <div className="space-y-4 overflow-auto p-4 md:p-8">
-      <Header page="Overview" pages={["Dashboard"]}>
-        <Button onClick={() => router.push("/post")}>
-          <Icon className="mr-2" icon={Add} size={16} />
-          Create Post
+    <PageShell
+      actions={
+        <Button asChild>
+          <Link href="/post">
+            <Icon icon={Add} size={16} />
+            Create Post
+          </Link>
         </Button>
-      </Header>
+      }
+      description="An overview of your content, schedule, and account health."
+      page="Overview"
+      pages={["Dashboard"]}
+    >
       <DmSummaryCard />
       <PendingReviews />
       <FailedPostsAlert />
       <PlatformHealthAlert expiredTokens={0} />
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-        <Link className="block" href="/automations/new">
-          <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
-            <Icon className="text-primary" icon={MailSend01Icon} size={16} />
-            <span className="flex-1">
-              {hasAutomations ? "New DM Automation" : "Set up DM Automation"}
-            </span>
-            <Icon
-              className="text-muted-foreground"
-              icon={ArrowRight01Icon}
-              size={14}
+
+      <div data-tour="dashboard-stats">
+        <DashboardStats isLoading={isLoading} stats={dashboardStats} />
+      </div>
+
+      <PageSection>
+        <div className="grid items-start gap-x-8 gap-y-4 lg:grid-cols-[2fr_auto_1fr]">
+          <Card className="p-4">
+            <DashboardChart isLoading={postsLoading} posts={posts} />
+          </Card>
+          {/* Dedicated divider column: self-stretches to the row height and the
+              line bleeds into the section gaps so it meets the rules above/below. */}
+          <div aria-hidden className="relative hidden self-stretch lg:block">
+            <span className="pointer-events-none absolute -top-5 -bottom-5 left-0 border-zinc-950/10 border-l-[1.5px] border-dotted dark:border-white/10" />
+          </div>
+          <div className="space-y-4">
+            <PostList
+              connections={connectionsMap}
+              emptyLabel="Nothing scheduled."
+              isLoading={postsLoading}
+              onPreview={setPreviewPost}
+              posts={upcoming}
+              title="Upcoming"
+            />
+            <PostList
+              connections={connectionsMap}
+              emptyLabel="No posts yet."
+              isLoading={postsLoading}
+              onPreview={setPreviewPost}
+              posts={recent}
+              title="Recent"
             />
           </div>
-        </Link>
-        {hasAutomations && (
-          <Link className="block" href="/automations">
-            <div className="flex items-center gap-2 rounded-lg border px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/50">
-              <span className="flex-1">Automations</span>
-              <span className="text-muted-foreground text-xs">
-                {
-                  automationItems.filter((automation) => automation.enabled)
-                    .length
-                }
-                /{automationItems.length}
-              </span>
-              <Icon
-                className="text-muted-foreground"
-                icon={ArrowRight01Icon}
-                size={14}
-              />
+        </div>
+      </PageSection>
+
+      <PageSection title="Automations">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <QuickLink
+            href="/automations/new"
+            icon={MailSend01Icon}
+            label={
+              hasAutomations ? "New DM automation" : "Set up DM automation"
+            }
+          />
+          {hasAutomations && (
+            <QuickLink
+              href="/automations"
+              icon={MailSend01Icon}
+              label="Manage automations"
+              meta={`${
+                automationItems.filter((automation) => automation.enabled)
+                  .length
+              }/${automationItems.length} active`}
+            />
+          )}
+        </div>
+      </PageSection>
+
+      <PostViewPreviewDialog
+        connections={connectionsMap}
+        onOpenChange={(open) => !open && setPreviewPost(null)}
+        open={previewPost !== null}
+        post={previewPost}
+      />
+    </PageShell>
+  );
+}
+
+function PostList({
+  title,
+  posts,
+  connections,
+  onPreview,
+  isLoading,
+  emptyLabel,
+}: {
+  title: string;
+  posts: readonly PostView[];
+  connections: Map<string, ConnectionView>;
+  onPreview: (post: PostView) => void;
+  isLoading: boolean;
+  emptyLabel: string;
+}) {
+  return (
+    <Card className="gap-0 p-0">
+      <div className="px-4 py-3">
+        <h3 className="font-medium text-sm tracking-tight">{title}</h3>
+      </div>
+      <div className="divide-y divide-border/60 border-border/60 border-t">
+        {isLoading ? (
+          [1, 2, 3].map((item) => (
+            <div className="flex items-center gap-3 px-4 py-3" key={item}>
+              <div className="size-6 animate-pulse rounded-full bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                <div className="h-2.5 w-1/3 animate-pulse rounded bg-muted" />
+              </div>
             </div>
-          </Link>
+          ))
+        ) : posts.length === 0 ? (
+          <p className="px-4 py-6 text-center text-muted-foreground text-sm">
+            {emptyLabel}
+          </p>
+        ) : (
+          posts.map((post) => (
+            <PostRow
+              connections={connections}
+              key={post.id}
+              onPreview={() => onPreview(post)}
+              post={post}
+            />
+          ))
         )}
       </div>
-      <DashboardStatsClient
-        isLoading={isLoading}
-        stats={{
-          totalPosts: counts?.totalPosts ?? 0,
-          publishedPosts: counts?.published ?? 0,
-          scheduledPosts: counts?.scheduled ?? 0,
-          failedPosts: (counts?.failed ?? 0) + (counts?.partiallyFailed ?? 0),
-          totalSocialAccounts: 0,
-          totalAutomations: automationItems.length,
-          publishedCount: counts?.published ?? 0,
-          scheduledCount: counts?.scheduled ?? 0,
-          failedCount: (counts?.failed ?? 0) + (counts?.partiallyFailed ?? 0),
-          savedCount: 0,
-          processingCount: 0,
-          upcomingPosts: counts?.scheduledNextSevenDays ?? 0,
-          connectedAccounts: 0,
-          expiredTokens: 0,
-          postingStreak: dashboardStats?.streak.currentDays ?? 0,
-          longestStreak: dashboardStats?.streak.longestDays ?? 0,
-        }}
+    </Card>
+  );
+}
+
+function QuickLink({
+  href,
+  icon,
+  label,
+  meta,
+}: {
+  href: string;
+  icon: typeof MailSend01Icon;
+  label: string;
+  meta?: string;
+}) {
+  return (
+    <Link
+      className={cn(
+        "surface-raised flex items-center gap-2 rounded-lg px-4 py-2.5 font-medium text-sm transition-colors hover:bg-muted/40"
+      )}
+      href={href}
+    >
+      <Icon className="text-primary" icon={icon} size={16} />
+      <span className="flex-1">{label}</span>
+      {meta && <span className="text-muted-foreground text-xs">{meta}</span>}
+      <Icon
+        className="text-muted-foreground"
+        icon={ArrowRight01Icon}
+        size={14}
       />
-    </div>
+    </Link>
   );
 }

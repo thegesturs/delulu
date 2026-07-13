@@ -6,6 +6,7 @@ import {
 } from "@delulu/design-system/components/ui/alert";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { CardContent } from "@delulu/design-system/components/ui/card";
+import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import { NaturalDatePicker } from "@delulu/design-system/components/ui/natural-date-picker";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
@@ -38,8 +39,6 @@ export function BasicSettings() {
 
   return (
     <CardContent className="space-y-5 p-4">
-      <SocialSelector />
-      <TikTokConsentBanner promotionContent="NONE" />
       <NaturalDatePicker onChange={setDate} value={date} />
       {actions.isAtPostLimit && (
         <Alert variant="destructive">
@@ -50,7 +49,7 @@ export function BasicSettings() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="grid gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           disabled={disabled || selected.length === 0}
           onClick={actions.handlePostNow}
@@ -63,6 +62,7 @@ export function BasicSettings() {
           Publish now
         </Button>
         <Button
+          className="surface-raised"
           disabled={disabled || !date || selected.length === 0}
           onClick={actions.handleSchedulePost}
           variant="outline"
@@ -70,6 +70,7 @@ export function BasicSettings() {
           Schedule
         </Button>
         <Button
+          className="col-span-2"
           disabled={disabled}
           onClick={actions.handleSaveAsDraft}
           variant="ghost"
@@ -77,6 +78,14 @@ export function BasicSettings() {
           <FaBookmark className="mr-2" /> Save draft
         </Button>
       </div>
+      {selected.length === 0 && (
+        <p className="text-center text-muted-foreground text-xs">
+          Select at least one account below to publish or schedule.
+        </p>
+      )}
+      <DottedSeparator />
+      <SocialSelector />
+      <TikTokConsentBanner promotionContent="NONE" />
     </CardContent>
   );
 }
