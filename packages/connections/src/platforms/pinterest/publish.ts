@@ -1,19 +1,23 @@
-import axios from "axios";
-import { Effect } from "effect";
 import {
   getValidMediaUrls,
   type MediaType,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   profileNotFound,
   publishRejected,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { API_BASE, PROVIDER, TITLE_LIMIT } from "./constants";
 
 interface PinterestProfile {
@@ -26,9 +30,8 @@ const getProfile = (
 ): Effect.Effect<PinterestProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!profile?.accessToken) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -85,18 +88,24 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
     const image = getValidMediaUrls(firstContent.media).find(
       (m) => m.mediaType === "IMAGE" && m.url
     );
     if (!image) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "Pinterest requires an image"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "Pinterest requires an image")
+      );
     }
 
     const boards = yield* getUserBoards(profile.accessToken);
     if (boards.length === 0) {
-      return yield* Effect.fail(publishRejected(PROVIDER, "No boards available"));
+      return yield* Effect.fail(
+        publishRejected(PROVIDER, "No boards available")
+      );
     }
     const pin = yield* createPin(
       image as MediaType,

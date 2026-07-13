@@ -1,8 +1,3 @@
-import type {
-  PlatformConnection,
-  PlatformMediaRules,
-  PublishableSocialType,
-} from "./types";
 import { blueskyConnection } from "./platforms/bluesky/definition";
 import { facebookConnection } from "./platforms/facebook/definition";
 import { farcasterConnection } from "./platforms/farcaster/definition";
@@ -13,6 +8,11 @@ import { threadsConnection } from "./platforms/threads/definition";
 import { tiktokConnection } from "./platforms/tiktok/definition";
 import { twitterConnection } from "./platforms/twitter/definition";
 import { youtubeConnection } from "./platforms/youtube/definition";
+import type {
+  PlatformConnection,
+  PlatformMediaRules,
+  PublishableSocialType,
+} from "./types";
 
 /**
  * Isomorphic metadata registry — the single source of truth for meta, auth,

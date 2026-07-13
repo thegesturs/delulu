@@ -1,20 +1,24 @@
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   type MediaType,
   type SocialPublishInputType,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
   profileNotFound,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import { GRAPH_VERSION, PROVIDER } from "./constants";
 
 const POLL_MAX_ATTEMPTS = 30;
@@ -45,9 +49,8 @@ const getProfile = (
 ): Effect.Effect<ThreadsProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.profileId)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -64,7 +67,10 @@ const createMediaContainer = (
   text: string,
   options: { isCarouselItem?: boolean; replyToId?: string } = {}
 ): Effect.Effect<Container, ConnectionError> => {
-  const params = new URLSearchParams({ access_token: profile.accessToken, text });
+  const params = new URLSearchParams({
+    access_token: profile.accessToken,
+    text,
+  });
 
   if (media?.url) {
     const mediaType = media.mediaType === "VIDEO" ? "VIDEO" : "IMAGE";
@@ -84,7 +90,9 @@ const createMediaContainer = (
     params.append("reply_to_id", options.replyToId);
   }
 
-  return post<Container>(`${base(profile.profileId)}/threads?${params.toString()}`);
+  return post<Container>(
+    `${base(profile.profileId)}/threads?${params.toString()}`
+  );
 };
 
 const createCarouselContainer = (
@@ -98,7 +106,9 @@ const createCarouselContainer = (
     children: childrenIds.join(","),
     text,
   });
-  return post<Container>(`${base(profile.profileId)}/threads?${params.toString()}`);
+  return post<Container>(
+    `${base(profile.profileId)}/threads?${params.toString()}`
+  );
 };
 
 const waitForProcessing = (
@@ -137,10 +147,7 @@ const waitForProcessing = (
     }
     if (status === "ERROR" || status === "EXPIRED") {
       return yield* Effect.fail(
-        mediaProcessingError(
-          PROVIDER,
-          statusData.value.error_message ?? status
-        )
+        mediaProcessingError(PROVIDER, statusData.value.error_message ?? status)
       );
     }
     yield* Effect.sleep(Duration.millis(POLL_INTERVAL_MS));
@@ -220,7 +227,9 @@ const publishContent = (
   Effect.gen(function* () {
     const posts = [...content.content].sort((a, b) => a.order - b.order);
     if (posts.length === 0) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     // Post sequentially so each item replies to the previous (thread order).

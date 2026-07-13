@@ -872,8 +872,8 @@ function LifetimeEnded() {
       </h1>
       <p className="mb-8 text-lg text-muted-foreground">
         The lifetime offer is no longer available for new customers. Subscribe
-        to Echo or Vibe — same auto-DM power, monthly billing, 14-day
-        money-back guarantee.
+        to Echo or Vibe — same auto-DM power, monthly billing, 14-day money-back
+        guarantee.
       </p>
       <Button asChild size="lg">
         <Link href="/pricing">View plans</Link>

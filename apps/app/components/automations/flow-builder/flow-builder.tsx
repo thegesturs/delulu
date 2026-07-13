@@ -719,7 +719,7 @@ function FlowBuilderInner({
     (stepId: string, buttonIndex: number) => {
       setSteps((prev) => {
         const parentStep = prev.find((s) => s.id === stepId);
-        if (!parentStep || parentStep.type !== "send_dm") {
+        if (parentStep?.type !== "send_dm") {
           return prev;
         }
         const btn = parentStep.buttons?.[buttonIndex];

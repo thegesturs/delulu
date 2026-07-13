@@ -103,7 +103,7 @@ export const transformAutomations = (
     recordOwnership(ctx, {
       entity: "automations",
       legacyId: auto._id,
-      kind: auto.organizationId !== undefined ? "org" : "user",
+      kind: auto.organizationId === undefined ? "user" : "org",
       workspaceId,
       resolvedVia: `connection=${auto.socialProviderId}`,
     });

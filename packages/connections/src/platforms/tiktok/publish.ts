@@ -1,14 +1,14 @@
-import axios from "axios";
-import { Duration, Effect } from "effect";
 import {
   getValidMediaUrls,
   promotionContentTypes,
   type SocialPublishInputType,
   type TikTokSettings,
 } from "@delulu/validators/post";
+import axios from "axios";
+import { Duration, Effect } from "effect";
 import {
-  fromUnknownHttp,
   type ConnectionError,
+  fromUnknownHttp,
   invalidMedia,
   mediaProcessingError,
   mediaProcessingTimeout,
@@ -16,7 +16,11 @@ import {
   tokenExpired,
 } from "../../errors";
 import { ConvexClient } from "../../services/convex";
-import type { PlatformPublisher, PostResult, PublishContext } from "../../types";
+import type {
+  PlatformPublisher,
+  PostResult,
+  PublishContext,
+} from "../../types";
 import {
   POLL_INTERVAL_MS,
   POLL_MAX_ATTEMPTS,
@@ -67,9 +71,8 @@ const getProfile = (
 ): Effect.Effect<TikTokProfile, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const profile = yield* convex.getSocialProviderWithDecryptedTokens(
-      socialProviderId
-    );
+    const profile =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
     if (!(profile?.accessToken && profile.refreshToken)) {
       return yield* Effect.fail(profileNotFound(PROVIDER));
     }
@@ -220,7 +223,10 @@ const checkPostStatus = (
         mediaProcessingError(PROVIDER, "Failed to get post status from TikTok")
       );
     }
-    return { status: data.data.status ?? "", fail_reason: data.data.fail_reason };
+    return {
+      status: data.data.status ?? "",
+      fail_reason: data.data.fail_reason,
+    };
   });
 
 /** Poll publish status until PUBLISH_COMPLETE / FAILED / timeout. */
@@ -311,13 +317,13 @@ const publishContent = (
   Effect.gen(function* () {
     const firstContent = content.content[0];
     if (!firstContent) {
-      return yield* Effect.fail(invalidMedia(PROVIDER, "No content to publish"));
+      return yield* Effect.fail(
+        invalidMedia(PROVIDER, "No content to publish")
+      );
     }
 
     const validMedia = getValidMediaUrls(firstContent.media);
-    const videoMedia = validMedia.find(
-      (m) => m.mediaType === "VIDEO" && m.url
-    );
+    const videoMedia = validMedia.find((m) => m.mediaType === "VIDEO" && m.url);
     if (!videoMedia?.url) {
       return yield* Effect.fail(
         invalidMedia(PROVIDER, "TikTok requires exactly one video file")

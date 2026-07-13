@@ -6,4 +6,4 @@ import {
 const handler = authServerMetadataHandlerClerk();
 const corsHandler = metadataCorsOptionsRequestHandler();
 
-export { handler as GET, corsHandler as OPTIONS };
+export { corsHandler as OPTIONS, handler as GET };

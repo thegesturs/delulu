@@ -83,13 +83,21 @@ export const tiktokQueries: PlatformQueries = {
           );
         }
         return yield* Effect.fail(
-          apiError(PROVIDER, 500, data.error.message || "Failed to get creator info")
+          apiError(
+            PROVIDER,
+            500,
+            data.error.message || "Failed to get creator info"
+          )
         );
       }
 
       if (!data.data?.creator_username) {
         return yield* Effect.fail(
-          apiError(PROVIDER, 500, "Failed to get creator info from TikTok response")
+          apiError(
+            PROVIDER,
+            500,
+            "Failed to get creator info from TikTok response"
+          )
         );
       }
 

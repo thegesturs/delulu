@@ -3,7 +3,7 @@ import { LogoIcon } from "@delulu/design-system/components/logo";
 import { cn } from "@delulu/design-system/lib/utils";
 import Link from "next/link";
 
-export { LogoIcon };
+export { LogoIcon } from "@delulu/design-system/components/logo";
 
 export const Logo = ({ className }: { className?: string }) => {
   return (

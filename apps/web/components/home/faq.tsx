@@ -1,10 +1,6 @@
 "use client";
 import { DM_PLAN_LIMITS } from "@delulu/database/convex/schemas/automations";
-import {
-  formatDmLimit,
-  PLANS,
-  type CurrencyCode,
-} from "@delulu/payments";
+import { type CurrencyCode, formatDmLimit, PLANS } from "@delulu/payments";
 import { Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -52,8 +48,7 @@ function getFaqs(currency: CurrencyCode) {
     },
     {
       question: "Can I cancel anytime?",
-      answer:
-        "Yes. No contracts. Cancel in one click from billing, anytime.",
+      answer: "Yes. No contracts. Cancel in one click from billing, anytime.",
     },
     {
       question: "What if something breaks?",

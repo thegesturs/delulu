@@ -1,14 +1,14 @@
+import { runPublish } from "@delulu/connections/worker";
 import { api } from "@delulu/database/convex/_generated/api";
 import type { Id } from "@delulu/database/convex/_generated/dataModel";
 import { convex } from "@delulu/database/node";
-import { runPublish } from "@delulu/connections/worker";
 import type {
   SocialPublishInputType,
   SocialType,
 } from "@delulu/validators/post";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
-type UpdateArgs = {
+interface UpdateArgs {
   postId: Id<"posts">;
   status: "PUBLISHED" | "FAILED";
   platformPostData: {
@@ -19,7 +19,7 @@ type UpdateArgs = {
     postedAt: number;
     postId: Id<"posts">;
   };
-};
+}
 
 const markFailed = (input: SocialPublishInputType, failureReason: string) =>
   convex.mutation(api.posts.updatePostPublishStatus, {

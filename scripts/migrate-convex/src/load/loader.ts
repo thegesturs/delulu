@@ -137,4 +137,4 @@ export const runLoad = (
     })
   );
 
-export { TRUNCATE_TABLES, INSERT_ORDER };
+export { INSERT_ORDER, TRUNCATE_TABLES };

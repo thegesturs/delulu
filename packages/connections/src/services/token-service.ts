@@ -18,7 +18,8 @@ export const ensureFreshToken = (
 ): Effect.Effect<string, ConnectionError, ConvexClient> =>
   Effect.gen(function* () {
     const convex = yield* ConvexClient;
-    const provider = yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
+    const provider =
+      yield* convex.getSocialProviderWithDecryptedTokens(socialProviderId);
 
     if (!provider?.accessToken) {
       return yield* Effect.fail(profileNotFound("token-service"));
@@ -28,7 +29,7 @@ export const ensureFreshToken = (
       provider.expiresIn !== undefined &&
       provider.expiresIn < Date.now() + TWO_HOURS_MS;
 
-    if (!needsRefresh || !provider.refreshToken) {
+    if (!(needsRefresh && provider.refreshToken)) {
       return provider.accessToken;
     }
 

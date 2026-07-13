@@ -35,7 +35,9 @@ export function BulkVideoList({
   onCaptionChange,
   disabled,
 }: BulkVideoListProps) {
-  if (videos.length === 0) return null;
+  if (videos.length === 0) {
+    return null;
+  }
 
   return (
     <div className="space-y-3">
@@ -115,7 +117,11 @@ function BulkVideoCard({
         <UploadStatusOverlay status={video.uploadStatus} />
         {video.postStatus === "created" && (
           <div className="absolute inset-0 flex items-center justify-center bg-green-500/20">
-            <Icon className="text-green-500" icon={CheckmarkCircle02Icon} size={20} />
+            <Icon
+              className="text-green-500"
+              icon={CheckmarkCircle02Icon}
+              size={20}
+            />
           </div>
         )}
       </div>
@@ -135,29 +141,29 @@ function BulkVideoCard({
           </div>
           <div className="flex items-center gap-0.5">
             <Button
+              className="h-6 w-6"
               disabled={isFirst || disabled}
               onClick={() => onMove(video.id, "up")}
               size="icon"
               variant="ghost"
-              className="h-6 w-6"
             >
               <Icon icon={ArrowUp01Icon} size={12} />
             </Button>
             <Button
+              className="h-6 w-6"
               disabled={isLast || disabled}
               onClick={() => onMove(video.id, "down")}
               size="icon"
               variant="ghost"
-              className="h-6 w-6"
             >
               <Icon icon={ArrowDown01Icon} size={12} />
             </Button>
             <Button
+              className="h-6 w-6 text-destructive hover:text-destructive"
               disabled={disabled}
               onClick={() => onRemove(video.id)}
               size="icon"
               variant="ghost"
-              className="h-6 w-6 text-destructive hover:text-destructive"
             >
               <Icon icon={Cancel01Icon} size={12} />
             </Button>
@@ -196,7 +202,9 @@ function UploadStatusOverlay({
 }: {
   status: BulkVideo["uploadStatus"];
 }) {
-  if (status === "uploaded") return null;
+  if (status === "uploaded") {
+    return null;
+  }
 
   return (
     <div
@@ -206,7 +214,11 @@ function UploadStatusOverlay({
       )}
     >
       {status === "uploading" || status === "pending" ? (
-        <Icon className="animate-spin text-white" icon={Loading03Icon} size={16} />
+        <Icon
+          className="animate-spin text-white"
+          icon={Loading03Icon}
+          size={16}
+        />
       ) : (
         <span className="font-medium text-destructive text-xs">Failed</span>
       )}

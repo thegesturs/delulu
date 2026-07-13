@@ -53,7 +53,6 @@ export default defineContentScript({
     ) {
       // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest extension requires any
       (this as any)._url = url.toString();
-      // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires rest params
       // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
       return originalOpen.apply(this, [_method, url, ...rest] as any);
     };
@@ -71,7 +70,7 @@ export default defineContentScript({
       ) {
         console.log(
           "[Sorted] Suppressed reel-loading XHR:",
-          requestUrl.substring(0, 100)
+          requestUrl.slice(0, 100)
         );
         this.abort();
         return;
@@ -83,7 +82,7 @@ export default defineContentScript({
 
         // Log all XHR for debugging
         if (url) {
-          console.log("[Sorted] XHR:", url.substring(0, 150));
+          console.log("[Sorted] XHR:", url.slice(0, 150));
         }
 
         if (url?.includes("/graphql/query")) {
@@ -171,7 +170,6 @@ export default defineContentScript({
         }
       });
 
-      // biome-ignore lint/complexity/noArguments: XMLHttpRequest override requires rest params
       // biome-ignore lint/suspicious/noExplicitAny: XMLHttpRequest override requires any
       return originalSend.apply(this, [_body] as any);
     };

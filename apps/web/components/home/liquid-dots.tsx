@@ -174,7 +174,6 @@ function renderWebGLFrame(
   time: number
 ): void {
   const { gl, program, locations } = context;
-  // biome-ignore lint/correctness/useHookAtTopLevel: WebGL context setup function
   gl.useProgram(program);
   gl.uniform2f(locations.resolution, canvas.width, canvas.height);
   gl.uniform1f(locations.time, time);

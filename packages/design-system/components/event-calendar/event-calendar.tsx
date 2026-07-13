@@ -203,7 +203,7 @@ export function EventCalendar({
     } else {
       onEventAdd?.({
         ...event,
-        id: Math.random().toString(36).substring(2, 11),
+        id: Math.random().toString(36).slice(2, 11),
       });
       // Show toast notification when an event is added
       toast(`Event "${event.title}" added`, {

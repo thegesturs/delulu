@@ -1,9 +1,8 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import superjson from "superjson";
 import type { AppRouter } from "./root";
 
+export { default as superjson } from "superjson";
 export type { AppRouter } from "./root";
-export { superjson };
 
 /**
  * Inference helpers for input/output types

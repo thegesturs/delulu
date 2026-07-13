@@ -18,7 +18,8 @@
       "!**/packages/database/prisma/types/zod",
       "!**/packages/infrastructure/.sst",
       "!**/*.d.ts",
-      "!**/packages/database/convex/_generated"
+      "!**/packages/database/convex/_generated",
+      "!**/specs"
     ]
   },
   "assist": {
