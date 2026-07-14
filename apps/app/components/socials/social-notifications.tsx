@@ -5,7 +5,7 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
@@ -81,7 +81,9 @@ function SocialNotificationsContent() {
   const analytics = useAnalytics();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
+  const queryClient = useQueryClient();
   const trackedRef = useRef(false);
+  const invalidatedRef = useRef(false);
 
   // Reset visibility when search params change
   useEffect(() => {
@@ -115,6 +117,22 @@ function SocialNotificationsContent() {
       });
     }
   }, [success, error, provider, analytics]);
+
+  // The OAuth callback lands back here (a full-page redirect) after a connect,
+  // transfer, or failure. Drop the cached connections list once so the freshly
+  // connected account — or its absence, on failure — shows without a manual
+  // reload, regardless of browser back/forward cache.
+  useEffect(() => {
+    if (invalidatedRef.current || !workspaceId) {
+      return;
+    }
+    if (success === "true" || notification || error) {
+      invalidatedRef.current = true;
+      queryClient.invalidateQueries({
+        queryKey: resources.connections.list(workspaceId).queryKey,
+      });
+    }
+  }, [success, notification, error, workspaceId, queryClient, resources]);
 
   // Fetch the connect URL if we have a provider and might need to retry
   const connect = useMutation(

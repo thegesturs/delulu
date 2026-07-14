@@ -22,10 +22,14 @@ export function FailedPostsAlert() {
   const workspace = useOperationsWorkspace();
   const queryClient = useQueryClient();
   const workspaceId = workspace.workspaceId ?? "";
+  // "Needs attention" = every post that failed to publish on at least one
+  // target: fully failed and partially failed alike. The count and the rows
+  // below both come from this one filtered query, so the headline number always
+  // matches the posts shown (and never reflects the workspace's total posts).
   const options = resources.posts.list(workspaceId, {
     limit: 4,
     offset: 0,
-    status: "failed",
+    status: "failed,partially_failed",
   });
   const query = useQuery({
     ...options,
