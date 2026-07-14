@@ -29,6 +29,11 @@ export default $config({
     const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");
     const POSTGRES_DATABASE_URL = new sst.Secret("POSTGRES_DATABASE_URL");
     const ENCRYPTION_SECRET = new sst.Secret("ENCRYPTION_SECRET");
+    // YouTube trimmer (marketing /tools). Image URI is produced by
+    // youtube-trimmer/build-and-push.sh; auth secret is the shared bearer the
+    // web route sends so the public Function URL can't be abused directly.
+    const YOUTUBE_TRIMMER_IMAGE_URI = new sst.Secret("YoutubeTrimmerImageUri");
+    const YOUTUBE_TRIMMER_AUTH = new sst.Secret("YoutubeTrimmerAuthSecret");
 
     // Primary publishing lane. Existing logical names remain stable so the
     // cutover updates resources in place instead of replacing the queue.
@@ -91,9 +96,61 @@ export default $config({
       }
     );
 
+    // ============================================================================
+    // YOUTUBE TRIMMER FUNCTION (marketing /tools)
+    // Container image (yt-dlp + ffmpeg) — can't run on Cloudflare Workers.
+    // Raw aws.* resources because sst.aws.Function is zip-only (no container image).
+    // ============================================================================
+    const trimmerRole = new aws.iam.Role("YoutubeTrimmerRole", {
+      assumeRolePolicy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Action: "sts:AssumeRole",
+            Effect: "Allow",
+            Principal: { Service: "lambda.amazonaws.com" },
+          },
+        ],
+      }),
+    });
+    new aws.iam.RolePolicyAttachment("YoutubeTrimmerLogs", {
+      role: trimmerRole.name,
+      policyArn:
+        "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+    });
+    const trimmerFunction = new aws.lambda.Function("YoutubeTrimmerFunction", {
+      packageType: "Image",
+      imageUri: YOUTUBE_TRIMMER_IMAGE_URI.value,
+      role: trimmerRole.arn,
+      architectures: ["x86_64"],
+      memorySize: 2048,
+      timeout: 120,
+      // Hard cap on parallel invocations: bounds cost and avoids hammering
+      // YouTube from our IP (which would get us rate-limited faster).
+      reservedConcurrentExecutions: 5,
+      environment: {
+        variables: {
+          TRIM_SECRET: YOUTUBE_TRIMMER_AUTH.value,
+          MAX_CLIP_SECONDS: "600",
+        },
+      },
+    });
+    const trimmerUrl = new aws.lambda.FunctionUrl("YoutubeTrimmerUrl", {
+      functionName: trimmerFunction.name,
+      authorizationType: "NONE",
+      invokeMode: "RESPONSE_STREAM",
+      cors: {
+        allowOrigins: ["*"],
+        allowMethods: ["POST"],
+        allowHeaders: ["content-type", "x-trim-secret"],
+        maxAge: 86_400,
+      },
+    });
+
     return {
       PostgresSocialPostsApiEndpoint: postgresTrigger.url,
       TranscriptionApiEndpoint: transcriptionFunction.url,
+      YoutubeTrimmerApiEndpoint: trimmerUrl.functionUrl,
     };
   },
 });

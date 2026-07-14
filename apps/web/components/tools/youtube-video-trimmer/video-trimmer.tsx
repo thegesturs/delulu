@@ -25,39 +25,44 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFfmpeg } from "./use-ffmpeg";
+import { useYouTubePlayer } from "./use-youtube-player";
 
-// ffmpeg.wasm loads the whole input into wasm memory, so cap input size to keep
-// browser tabs from OOMing.
+// ffmpeg.wasm (Upload path) loads the whole input into wasm memory, so cap size.
 const MAX_INPUT_BYTES = 400 * 1024 * 1024; // 400 MB
 const NUMERIC_SEGMENT_RE = /^\d+$/;
 const FILE_EXTENSION_RE = /\.[^.]+$/;
+const YOUTUBE_ID_RE = /^[\w-]{11}$/;
+const YOUTUBE_PATH_ID_RE = /\/(?:shorts|embed|live|v)\/([\w-]{11})/;
+const WWW_RE = /^www\./;
 
 type Phase = "input" | "loaded" | "processing" | "done";
+type SourceKind = "youtube" | "upload";
 
-interface AdaptiveTrack {
-  itag: number;
-  approxSizeBytes: number | null;
-}
-
-interface ResolvedVideo {
-  videoId: string;
-  title: string;
-  durationSec: number;
-  thumbnail: string | null;
-  mode: "progressive" | "adaptive";
-  /** Present when mode === "progressive". */
-  formats?: Array<{
-    itag: number;
-    qualityLabel: string;
-    approxSizeBytes: number | null;
-    height: number | null;
-  }>;
-  /** Video-only track; present when mode === "adaptive". */
-  video?: AdaptiveTrack & { qualityLabel: string; height: number | null };
-  /** Audio-only track; present when mode === "adaptive". */
-  audio?: AdaptiveTrack;
-  /** Adaptive video is VP9/AV1 — ffmpeg must re-encode it (can't stream-copy). */
-  videoNeedsReencode?: boolean;
+function extractVideoId(input: string): string | null {
+  const trimmed = input.trim();
+  if (YOUTUBE_ID_RE.test(trimmed)) {
+    return trimmed;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.replace(WWW_RE, "");
+  if (host === "youtu.be") {
+    const id = parsed.pathname.slice(1).split("/")[0];
+    return YOUTUBE_ID_RE.test(id) ? id : null;
+  }
+  if (host.endsWith("youtube.com")) {
+    const v = parsed.searchParams.get("v");
+    if (v && YOUTUBE_ID_RE.test(v)) {
+      return v;
+    }
+    const m = parsed.pathname.match(YOUTUBE_PATH_ID_RE);
+    return m ? m[1] : null;
+  }
+  return null;
 }
 
 function formatTime(totalSeconds: number): string {
@@ -138,10 +143,7 @@ function TimePartsInput({
     if (rawValue !== "" && !NUMERIC_SEGMENT_RE.test(rawValue)) {
       return;
     }
-    const next = {
-      ...draft,
-      [part]: rawValue,
-    };
+    const next = { ...draft, [part]: rawValue };
     setDraft(next);
     commit(next);
   };
@@ -215,59 +217,77 @@ function TimePartsInput({
 }
 
 export function VideoTrimmer() {
-  const { trim, loadState, progress } = useFfmpeg();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const ffmpeg = useFfmpeg();
+  const ytPlayer = useYouTubePlayer();
+  const uploadVideoRef = useRef<HTMLVideoElement>(null);
 
   const [phase, setPhase] = useState<Phase>("input");
+  const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [urlValue, setUrlValue] = useState("");
-  const [resolving, setResolving] = useState(false);
 
-  // Loaded video state
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  const [trimSource, setTrimSource] = useState<File | string | null>(null);
-  // Separate audio track for YouTube "adaptive" videos (video preview is silent).
-  const [audioSrc, setAudioSrc] = useState<string | null>(null);
-  // Adaptive video that isn't H.264 — ffmpeg must re-encode it during the mux.
-  const [videoNeedsReencode, setVideoNeedsReencode] = useState(false);
-  const [title, setTitle] = useState("");
+  // YouTube state
+  const [videoId, setVideoId] = useState<string | null>(null);
+  // Upload state
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadUrl, setUploadUrl] = useState<string | null>(null);
+
+  const [title, setTitle] = useState("clip");
   const [duration, setDuration] = useState(0);
   const [range, setRange] = useState<[number, number]>([0, 0]);
   const [reencode, setReencode] = useState(false);
-
-  // Result state
   const [resultUrl, setResultUrl] = useState<string | null>(null);
 
+  // Mount the YouTube player once we enter the loaded phase for a YT source.
+  useEffect(() => {
+    if (sourceKind === "youtube" && videoId && phase !== "input") {
+      ytPlayer.load(videoId).catch(() => {
+        // Player failures leave an empty preview; nothing to recover here.
+      });
+    }
+    // biome-ignore lint/correctness/useExhaustiveDependencies: load is stable; only re-run on source change
+  }, [sourceKind, videoId, phase]);
+
+  // Pick up the duration once the YouTube player reports it.
+  useEffect(() => {
+    if (sourceKind === "youtube" && ytPlayer.duration > 0) {
+      setDuration(ytPlayer.duration);
+      setRange((prev) => (prev[1] === 0 ? [0, ytPlayer.duration] : prev));
+    }
+  }, [sourceKind, ytPlayer.duration]);
+
   const resetAll = useCallback(() => {
-    if (videoSrc?.startsWith("blob:")) {
-      URL.revokeObjectURL(videoSrc);
+    if (uploadUrl) {
+      URL.revokeObjectURL(uploadUrl);
     }
     if (resultUrl) {
       URL.revokeObjectURL(resultUrl);
     }
+    ytPlayer.destroy();
     setPhase("input");
-    setVideoSrc(null);
-    setTrimSource(null);
-    setAudioSrc(null);
-    setVideoNeedsReencode(false);
-    setTitle("");
+    setSourceKind(null);
+    setVideoId(null);
+    setUploadFile(null);
+    setUploadUrl(null);
+    setTitle("clip");
     setDuration(0);
     setRange([0, 0]);
     setResultUrl(null);
     setUrlValue("");
-  }, [videoSrc, resultUrl]);
+  }, [uploadUrl, resultUrl, ytPlayer]);
 
-  const onLoadedMetadata = useCallback(() => {
-    const el = videoRef.current;
-    if (!el) {
+  const handleLoadYoutube = useCallback(() => {
+    const id = extractVideoId(urlValue);
+    if (!id) {
+      toast.error("That doesn't look like a YouTube link.");
       return;
     }
-    const dur =
-      Number.isFinite(el.duration) && el.duration > 0 ? el.duration : duration;
-    if (dur > 0) {
-      setDuration(dur);
-      setRange((prev) => (prev[1] === 0 ? [0, dur] : prev));
-    }
-  }, [duration]);
+    setSourceKind("youtube");
+    setVideoId(id);
+    setTitle("youtube-clip");
+    setDuration(0);
+    setRange([0, 0]);
+    setPhase("loaded");
+  }, [urlValue]);
 
   const handleFile = useCallback((file: File | undefined) => {
     if (!file) {
@@ -283,124 +303,102 @@ export function VideoTrimmer() {
       );
       return;
     }
-    const objectUrl = URL.createObjectURL(file);
-    setVideoSrc(objectUrl);
-    setTrimSource(file);
-    setAudioSrc(null);
-    setVideoNeedsReencode(false);
+    setSourceKind("upload");
+    setUploadFile(file);
+    setUploadUrl(URL.createObjectURL(file));
     setTitle(file.name.replace(FILE_EXTENSION_RE, ""));
     setRange([0, 0]);
     setDuration(0);
     setPhase("loaded");
   }, []);
 
-  const handleResolveUrl = useCallback(async () => {
-    if (!urlValue.trim()) {
+  const onUploadMetadata = useCallback(() => {
+    const el = uploadVideoRef.current;
+    if (!el) {
       return;
     }
-    setResolving(true);
-    try {
-      const res = await fetch(
-        `/api/tools/youtube?mode=resolve&url=${encodeURIComponent(urlValue.trim())}`
-      );
-      const data = (await res.json()) as ResolvedVideo & { error?: string };
-      if (!res.ok) {
-        throw new Error(data.error ?? "Could not load that video.");
-      }
-
-      const proxy = (itag: number) =>
-        `/api/tools/youtube?mode=proxy&id=${data.videoId}&itag=${itag}`;
-
-      let videoUrl: string;
-      let audioUrl: string | null = null;
-      let approxSize: number;
-
-      if (data.mode === "adaptive" && data.video && data.audio) {
-        // Video-only + audio-only pair; muxed together at trim time.
-        videoUrl = proxy(data.video.itag);
-        audioUrl = proxy(data.audio.itag);
-        approxSize =
-          (data.video.approxSizeBytes ?? 0) + (data.audio.approxSizeBytes ?? 0);
-      } else {
-        const best = data.formats?.[0];
-        if (!best) {
-          throw new Error("No downloadable format found for this video.");
-        }
-        videoUrl = proxy(best.itag);
-        approxSize = best.approxSizeBytes ?? 0;
-      }
-
-      if (approxSize > MAX_INPUT_BYTES) {
-        toast.warning(
-          "This video is large — trimming may be slow or run out of memory."
-        );
-      }
-
-      setVideoSrc(videoUrl);
-      setTrimSource(videoUrl);
-      setAudioSrc(audioUrl);
-      setVideoNeedsReencode(Boolean(data.videoNeedsReencode));
-      setTitle(data.title);
-      setDuration(data.durationSec);
-      setRange([0, data.durationSec]);
-      setPhase("loaded");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong."
-      );
-    } finally {
-      setResolving(false);
+    const dur =
+      Number.isFinite(el.duration) && el.duration > 0 ? el.duration : duration;
+    if (dur > 0) {
+      setDuration(dur);
+      setRange((prev) => (prev[1] === 0 ? [0, dur] : prev));
     }
-  }, [urlValue]);
+  }, [duration]);
+
+  const trimYoutube = useCallback(
+    async (start: number, end: number) => {
+      const res = await fetch("/api/tools/youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          start,
+          end,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Couldn't trim that video.");
+      }
+      return res.blob();
+    },
+    [videoId]
+  );
 
   const handleTrim = useCallback(async () => {
-    if (!trimSource) {
-      return;
-    }
     const [start, end] = range;
     if (end - start < 0.1) {
       toast.error("Pick a start and end point first.");
       return;
     }
+    ytPlayer.pause();
     setPhase("processing");
     try {
-      const blob = await trim({
-        source: trimSource,
-        audioSource: audioSrc ?? undefined,
-        startSec: start,
-        endSec: end,
-        reencode,
-        reencodeVideo: videoNeedsReencode,
-      });
-      const url = URL.createObjectURL(blob);
-      setResultUrl(url);
+      const blob =
+        sourceKind === "youtube"
+          ? await trimYoutube(start, end)
+          : await ffmpeg.trim({
+              source: uploadFile as File,
+              startSec: start,
+              endSec: end,
+              reencode,
+            });
+      setResultUrl(URL.createObjectURL(blob));
       setPhase("done");
     } catch (error) {
-      console.error(error);
       toast.error(
-        "Couldn't trim that video. Try the frame-accurate toggle or a different file."
+        error instanceof Error ? error.message : "Something went wrong."
       );
       setPhase("loaded");
     }
-  }, [trimSource, audioSrc, range, reencode, videoNeedsReencode, trim]);
+  }, [range, sourceKind, uploadFile, reencode, trimYoutube, ffmpeg, ytPlayer]);
 
   const setStartToCurrent = () => {
-    const el = videoRef.current;
-    if (el) {
-      setRange(([, end]) => [clamp(el.currentTime, 0, end - 0.1), end]);
-    }
+    const t =
+      sourceKind === "youtube"
+        ? ytPlayer.getCurrentTime()
+        : (uploadVideoRef.current?.currentTime ?? 0);
+    setRange(([, end]) => [clamp(t, 0, end - 0.1), end]);
   };
   const setEndToCurrent = () => {
-    const el = videoRef.current;
-    if (el) {
-      setRange(([start]) => [
-        start,
-        clamp(el.currentTime, start + 0.1, duration),
-      ]);
+    const t =
+      sourceKind === "youtube"
+        ? ytPlayer.getCurrentTime()
+        : (uploadVideoRef.current?.currentTime ?? 0);
+    setRange(([start]) => [start, clamp(t, start + 0.1, duration)]);
+  };
+
+  const seekPreview = (seconds: number) => {
+    if (sourceKind === "youtube") {
+      ytPlayer.seekTo(seconds);
+    } else if (uploadVideoRef.current) {
+      uploadVideoRef.current.currentTime = seconds;
     }
   };
 
   const clipLength = range[1] - range[0];
+  const showEditor =
+    phase === "loaded" || phase === "processing" || phase === "done";
 
   return (
     <Card className="mx-auto w-full max-w-3xl">
@@ -423,7 +421,7 @@ export function VideoTrimmer() {
                   onChange={(e) => setUrlValue(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleResolveUrl();
+                      handleLoadYoutube();
                     }
                   }}
                   placeholder="https://www.youtube.com/watch?v=..."
@@ -431,22 +429,15 @@ export function VideoTrimmer() {
                 />
                 <Button
                   className="shrink-0"
-                  disabled={resolving || !urlValue.trim()}
-                  onClick={handleResolveUrl}
+                  disabled={!urlValue.trim()}
+                  onClick={handleLoadYoutube}
                 >
-                  {resolving ? (
-                    <>
-                      <Loader2 className="mr-1.5 size-4 animate-spin" />{" "}
-                      Loading…
-                    </>
-                  ) : (
-                    "Load video"
-                  )}
+                  Load video
                 </Button>
               </div>
               <p className="mt-3 text-muted-foreground text-xs">
-                Paste any YouTube link. The video is fetched, then trimmed
-                entirely in your browser — nothing is uploaded to our servers.
+                Paste any YouTube link, pick your start and end on the player,
+                then trim. We fetch and cut just that section for you.
               </p>
             </TabsContent>
 
@@ -482,83 +473,73 @@ export function VideoTrimmer() {
           </Tabs>
         )}
 
-        {(phase === "loaded" || phase === "processing" || phase === "done") &&
-          videoSrc && (
-            <div className="flex flex-col gap-5">
-              <div className="overflow-hidden rounded-lg border bg-black">
-                {/* biome-ignore lint/a11y/useMediaCaption: user-provided media, no captions available */}
-                <video
-                  className="mx-auto max-h-[420px] w-full"
-                  controls
-                  onLoadedMetadata={onLoadedMetadata}
-                  playsInline
-                  ref={videoRef}
-                  src={videoSrc}
-                />
-              </div>
-
-              <p
-                className="truncate text-center font-medium text-sm"
-                title={title}
-              >
-                {title}
-              </p>
-
-              {audioSrc && phase !== "done" && (
-                <p className="text-center text-muted-foreground text-xs">
-                  Preview has no sound — your trimmed clip will include audio.
-                </p>
-              )}
-
-              {duration > 0 && phase !== "done" && (
-                <div className="flex flex-col gap-4">
-                  <Slider
-                    max={duration}
-                    min={0}
-                    onValueChange={(v) => {
-                      const next = [v[0], v[1]] as [number, number];
-                      setRange(next);
-                      if (videoRef.current) {
-                        videoRef.current.currentTime = next[0];
-                      }
-                    }}
-                    step={0.1}
-                    value={range}
+        {showEditor && (
+          <div className="flex flex-col gap-5">
+            {/* Preview: YouTube embed OR uploaded <video> */}
+            <div className="aspect-video w-full overflow-hidden rounded-lg border bg-black">
+              {sourceKind === "youtube" ? (
+                <div className="h-full w-full" ref={ytPlayer.mountRef} />
+              ) : (
+                uploadUrl && (
+                  // biome-ignore lint/a11y/useMediaCaption: user-provided media, no captions
+                  <video
+                    className="h-full w-full"
+                    controls
+                    onLoadedMetadata={onUploadMetadata}
+                    playsInline
+                    ref={uploadVideoRef}
+                    src={uploadUrl}
                   />
+                )
+              )}
+            </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TimePartsInput
-                      idPrefix="start-time"
-                      label="Start"
-                      maxSeconds={Math.max(range[1] - 0.1, 0)}
-                      minSeconds={0}
-                      onChange={(seconds) => {
-                        setRange(([, end]) => [
-                          clamp(seconds, 0, end - 0.1),
-                          end,
-                        ]);
-                      }}
-                      onSetCurrent={setStartToCurrent}
-                      value={range[0]}
-                    />
-                    <TimePartsInput
-                      idPrefix="end-time"
-                      label="End"
-                      maxSeconds={duration}
-                      minSeconds={Math.min(range[0] + 0.1, duration)}
-                      onChange={(seconds) => {
-                        setRange(([start]) => [
-                          start,
-                          clamp(seconds, start + 0.1, duration),
-                        ]);
-                      }}
-                      onSetCurrent={setEndToCurrent}
-                      value={range[1]}
-                    />
-                  </div>
+            {duration > 0 && phase !== "done" && (
+              <div className="flex flex-col gap-4">
+                <Slider
+                  max={duration}
+                  min={0}
+                  onValueChange={(v) => {
+                    const next = [v[0], v[1]] as [number, number];
+                    const movedEnd = next[1] !== range[1];
+                    setRange(next);
+                    seekPreview(movedEnd ? next[1] : next[0]);
+                  }}
+                  step={0.1}
+                  value={range}
+                />
 
-                  <div className="flex items-center justify-between text-muted-foreground text-xs">
-                    <span>Clip length: {formatTime(clipLength)}</span>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TimePartsInput
+                    idPrefix="start-time"
+                    label="Start"
+                    maxSeconds={Math.max(range[1] - 0.1, 0)}
+                    minSeconds={0}
+                    onChange={(seconds) =>
+                      setRange(([, end]) => [clamp(seconds, 0, end - 0.1), end])
+                    }
+                    onSetCurrent={setStartToCurrent}
+                    value={range[0]}
+                  />
+                  <TimePartsInput
+                    idPrefix="end-time"
+                    label="End"
+                    maxSeconds={duration}
+                    minSeconds={Math.min(range[0] + 0.1, duration)}
+                    onChange={(seconds) =>
+                      setRange(([start]) => [
+                        start,
+                        clamp(seconds, start + 0.1, duration),
+                      ])
+                    }
+                    onSetCurrent={setEndToCurrent}
+                    value={range[1]}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-muted-foreground text-xs">
+                  <span>Clip length: {formatTime(clipLength)}</span>
+                  {sourceKind === "upload" && (
                     <label className="flex cursor-pointer items-center gap-2">
                       <input
                         checked={reencode}
@@ -567,60 +548,68 @@ export function VideoTrimmer() {
                       />
                       Frame-accurate (slower, re-encodes)
                     </label>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {phase === "processing" && (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="size-4 animate-spin" />
-                    {loadState === "loading"
+            {phase === "loaded" && duration === 0 && (
+              <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                <Loader2 className="size-4 animate-spin" /> Loading player…
+              </div>
+            )}
+
+            {phase === "processing" && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  {sourceKind === "youtube"
+                    ? "Trimming your clip… (this can take up to a minute)"
+                    : ffmpeg.loadState === "loading"
                       ? "Loading the trimmer engine…"
                       : "Trimming your clip…"}
-                  </div>
-                  <Progress
-                    value={progress >= 0 ? progress * 100 : undefined}
-                  />
                 </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {phase === "loaded" && (
-                  <Button onClick={handleTrim} size="lg">
-                    <Scissors className="mr-1.5 size-4" /> Trim video
-                  </Button>
+                {sourceKind === "upload" && (
+                  <Progress
+                    value={
+                      ffmpeg.progress >= 0 ? ffmpeg.progress * 100 : undefined
+                    }
+                  />
                 )}
-                {phase === "done" && resultUrl && (
-                  <Button asChild size="lg">
-                    <a
-                      download={`${title || "clip"}-trimmed.mp4`}
-                      href={resultUrl}
-                    >
-                      <Download className="mr-1.5 size-4" /> Download clip
-                    </a>
-                  </Button>
-                )}
-                <Button
-                  disabled={phase === "processing"}
-                  onClick={
-                    phase === "done" ? () => setPhase("loaded") : resetAll
-                  }
-                  variant="outline"
-                >
-                  <RotateCcw className="mr-1.5 size-4" />
-                  {phase === "done" ? "Trim again" : "Start over"}
-                </Button>
               </div>
+            )}
 
-              {phase === "done" && (
-                <p className="text-center text-muted-foreground text-xs">
-                  Tip: stream-copy cuts snap to the nearest keyframe. For an
-                  exact cut, enable “Frame-accurate” and trim again.
-                </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {phase === "loaded" && (
+                <Button
+                  disabled={duration === 0}
+                  onClick={handleTrim}
+                  size="lg"
+                >
+                  <Scissors className="mr-1.5 size-4" /> Trim video
+                </Button>
               )}
+              {phase === "done" && resultUrl && (
+                <Button asChild size="lg">
+                  <a
+                    download={`${title || "clip"}-trimmed.mp4`}
+                    href={resultUrl}
+                  >
+                    <Download className="mr-1.5 size-4" /> Download clip
+                  </a>
+                </Button>
+              )}
+              <Button
+                disabled={phase === "processing"}
+                onClick={phase === "done" ? () => setPhase("loaded") : resetAll}
+                variant="outline"
+              >
+                <RotateCcw className="mr-1.5 size-4" />
+                {phase === "done" ? "Trim again" : "Start over"}
+              </Button>
             </div>
-          )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
