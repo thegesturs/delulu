@@ -64,6 +64,46 @@ describe("AsTokenService (ES256)", () => {
     expect([...claims.scopes].sort()).toEqual(["media:write", "posts:read"]);
   });
 
+  it("defaults the audience to the API resource when none is requested", async () => {
+    const program = Effect.gen(function* () {
+      const service = yield* AsTokenService;
+      const issued = yield* service.issueAccessToken({
+        sub: "user_abc",
+        scopes: ["posts:read"],
+        resource: "",
+      });
+      return yield* service.verifyAccessToken(issued.token);
+    });
+    const claims = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+    expect(claims.aud).toBe(RESOURCE);
+  });
+
+  it("round-trips a workspace binding via the wid claim", async () => {
+    const program = Effect.gen(function* () {
+      const service = yield* AsTokenService;
+      const bound = yield* service.issueAccessToken({
+        sub: "user_abc",
+        scopes: ["posts:read"],
+        resource: RESOURCE,
+        workspaceId: "workspace_abc123def456",
+      });
+      const unbound = yield* service.issueAccessToken({
+        sub: "user_abc",
+        scopes: ["posts:read"],
+        resource: RESOURCE,
+      });
+      return {
+        bound: yield* service.verifyAccessToken(bound.token),
+        unbound: yield* service.verifyAccessToken(unbound.token),
+      };
+    });
+    const { bound, unbound } = await Effect.runPromise(
+      program.pipe(Effect.provide(layer))
+    );
+    expect(bound.workspaceId).toBe("workspace_abc123def456");
+    expect(unbound.workspaceId).toBe(null);
+  });
+
   it("rejects a token whose audience does not match the API resource", async () => {
     const program = Effect.gen(function* () {
       const service = yield* AsTokenService;

@@ -4,6 +4,7 @@ import {
   CurrentAuth,
   CurrentUser,
   type UserId,
+  type WorkspaceId,
 } from "@delulu/core";
 import { getPlanLimits } from "@delulu/payments/plans";
 import {
@@ -80,7 +81,7 @@ export const AuthenticationLive = Layer.effect(
             credential: "apiKey",
             scopes: key.scopes,
             frozenRole: key.role,
-            keyWorkspaceId: key.workspaceId,
+            boundWorkspaceId: key.workspaceId,
             apiKeyId: key.apiKeyId,
           };
           rateKey = `apikey:${key.apiKeyId}`;
@@ -96,6 +97,9 @@ export const AuthenticationLive = Layer.effect(
             userId: resolved.user.id,
             credential: "oauth",
             scopes: claims.scopes,
+            ...(claims.workspaceId
+              ? { boundWorkspaceId: claims.workspaceId as WorkspaceId }
+              : {}),
           };
           rateKey = `user:${resolved.user.id}`;
           tier = { kind: "session" };

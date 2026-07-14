@@ -17,7 +17,7 @@
     "dev:app+api": "turbo dev --filter=app --filter=@delulu/http-api",
     "dev:web+api": "turbo dev --filter=web --filter=@delulu/http-api",
     "dev:mcp+api": "turbo dev --filter=@delulu/mcp --filter=@delulu/http-api",
-    "cli": "pnpm --filter=@delulu/cli exec tsx src/index.ts",
+    "cli": "pnpm --filter=delulu-cli exec tsx src/index.ts",
     "mcp": "pnpm --filter=@delulu/mcp exec tsx src/index.ts",
     "typecheck": "turbo typecheck",
     "cf-typegen": "pnpm --filter=@delulu/cloudflare-types cf-typegen",

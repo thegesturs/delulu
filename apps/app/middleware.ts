@@ -25,6 +25,8 @@ const authRoutes = createRouteMatcher([
 const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 /** Allow automation builder during onboarding (step 3) */
 const onboardingAutomationRoute = createRouteMatcher(["/automations(.*)"]);
+/** OAuth consent must stay reachable for signed-in users pre-onboarding. */
+const oauthConsentRoute = createRouteMatcher(["/oauth/consent(.*)"]);
 const maintenanceRoute = createRouteMatcher(["/maintenance(.*)"]);
 const maintenanceBypassRoutes = createRouteMatcher([
   "/api(.*)",
@@ -82,6 +84,12 @@ export default clerkMiddleware(async (auth, req) => {
 
   // For authenticated users visiting /onboarding or setting up automations, allow access
   if (userId && (onboardingRoute(req) || onboardingAutomationRoute(req))) {
+    return withGeoCookie(NextResponse.next());
+  }
+
+  // Signed-in users authorizing an OAuth client (e.g. the CLI) must reach the
+  // consent screen even if onboarding is incomplete.
+  if (userId && oauthConsentRoute(req)) {
     return withGeoCookie(NextResponse.next());
   }
 

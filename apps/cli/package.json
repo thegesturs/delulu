@@ -1,24 +1,32 @@
 {
-  "name": "@delulu/cli",
-  "version": "0.0.0",
-  "private": true,
+  "name": "delulu-cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for Delulu Social.",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "bin": {
     "delulu": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "node build.mjs",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@clack/prompts": "^0.10.1",
-    "@delulu/client": "workspace:*",
-    "commander": "^13.1.0"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@clack/prompts": "^0.10.1",
+    "@delulu/client": "workspace:*",
     "@types/node": "^22.14.1",
+    "commander": "^13.1.0",
+    "esbuild": "^0.25.5",
     "tsx": "^4.19.0",
     "typescript": "catalog:",
     "vitest": "^3.1.1"
