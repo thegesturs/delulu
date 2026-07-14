@@ -1,5 +1,5 @@
 {
-  "name": "@delulu/cli",
+  "name": "delulu-cli",
   "version": "0.1.0",
   "description": "Command-line interface for Delulu Social.",
   "license": "SEE LICENSE IN LICENSE",
@@ -11,9 +11,6 @@
     "dist",
     "LICENSE"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "engines": {
     "node": ">=20"
   },

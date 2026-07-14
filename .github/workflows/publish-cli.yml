@@ -1,12 +1,11 @@
 name: Publish CLI
 
-# Publishes the CLI to npm as @delulu/cli (plus a defensive delulu-cli alias
-# with identical contents) whenever the version in apps/cli/package.json is new.
-# The api/app/web workers deploy via Cloudflare's own git integration — this
-# workflow only handles the npm package.
+# Publishes the CLI to npm as delulu-cli whenever the version in
+# apps/cli/package.json is new. The api/app/web workers deploy via Cloudflare's
+# own git integration — this workflow only handles the npm package.
 #
-# Required secret: NPM_TOKEN — an npm automation token. The `delulu` npm org
-# must exist for the @delulu scope (npmjs.com/org/create, free for public pkgs).
+# Required secret: NPM_TOKEN — an npm automation token (no npm org needed; the
+# package is unscoped).
 
 on:
   push:
@@ -43,22 +42,17 @@ jobs:
       # CLI dependency subgraph only — never pulls apps/app or the Hugeicons
       # registry, so no HUGEICONS_TOKEN is needed.
       - name: Install (cli subgraph)
-        run: pnpm install --frozen-lockfile --filter=@delulu/cli...
+        run: pnpm install --frozen-lockfile --filter=delulu-cli...
       - name: Build CLI
-        run: pnpm --filter=@delulu/cli build
-      - name: Publish @delulu/cli and delulu-cli (if new version)
+        run: pnpm --filter=delulu-cli build
+      - name: Publish delulu-cli (if new version)
         working-directory: apps/cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          if npm view "@delulu/cli@$VERSION" version >/dev/null 2>&1; then
-            echo "@delulu/cli@$VERSION already published — nothing to do."
+          if npm view "delulu-cli@$VERSION" version >/dev/null 2>&1; then
+            echo "delulu-cli@$VERSION already published — nothing to do."
             exit 0
           fi
-          # Primary scoped package.
           npm publish --access public
-          # Defensive unscoped alias, identical tarball.
-          node -e "const fs=require('fs');const p=require('./package.json');p.name='delulu-cli';delete p.publishConfig;fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
-          npm publish --access public
-          git checkout -- package.json
