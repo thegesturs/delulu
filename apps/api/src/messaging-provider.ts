@@ -22,49 +22,44 @@ const loopsRequest = (token: string, path: string, body: unknown) =>
 
 /** Cloudflare owns transactional delivery; Loops receives only lifecycle data. */
 export const messagingProviderLayer = (env: Env) => {
-  if (!(env.EMAIL && env.CLOUDFLARE_EMAIL_FROM && env.LOOPS_API_KEY)) {
-    return Layer.succeed(
-      MessagingProvider,
-      MessagingProvider.of({
-        name: "noop",
-        identify: () => Effect.void,
-        track: () => Effect.void,
-        sendTransactional: () => Effect.succeed({}),
-      })
-    );
-  }
   return Layer.succeed(
     MessagingProvider,
     MessagingProvider.of({
       name: "cloudflare-loops",
       identify: (input) =>
-        loopsRequest(env.LOOPS_API_KEY!, "/contacts/create", {
-          email: input.email,
-          userId: input.userId,
-          ...input.attributes,
-        }),
+        env.LOOPS_API_KEY
+          ? loopsRequest(env.LOOPS_API_KEY, "/contacts/create", {
+              email: input.email,
+              userId: input.userId,
+              ...input.attributes,
+            })
+          : Effect.fail(new Error("Lifecycle provider is not configured")),
       track: (input) =>
-        loopsRequest(env.LOOPS_API_KEY!, "/events/send", {
-          email: input.email,
-          eventName: input.event,
-          eventProperties: input.properties,
-        }),
+        env.LOOPS_API_KEY
+          ? loopsRequest(env.LOOPS_API_KEY, "/events/send", {
+              email: input.email,
+              eventName: input.event,
+              eventProperties: input.properties,
+            })
+          : Effect.fail(new Error("Lifecycle provider is not configured")),
       sendTransactional: (input) =>
-        Effect.tryPromise({
-          try: () =>
-            env.EMAIL!.send({
-              from: env.CLOUDFLARE_EMAIL_FROM!,
-              to: input.to,
-              subject: input.subject,
-              html: input.html,
-              text: input.text,
-              headers: {
-                "x-idempotency-key": input.idempotencyKey,
-                ...(input.replyTo ? { "reply-to": input.replyTo } : {}),
-              },
-            }),
-          catch: (cause) => cause,
-        }).pipe(Effect.as({})),
+        env.EMAIL && env.CLOUDFLARE_EMAIL_FROM
+          ? Effect.tryPromise({
+              try: () =>
+                env.EMAIL!.send({
+                  from: env.CLOUDFLARE_EMAIL_FROM!,
+                  to: input.to,
+                  subject: input.subject,
+                  html: input.html,
+                  text: input.text,
+                  headers: {
+                    "x-idempotency-key": input.idempotencyKey,
+                    ...(input.replyTo ? { "reply-to": input.replyTo } : {}),
+                  },
+                }),
+              catch: (cause) => cause,
+            }).pipe(Effect.as({}))
+          : Effect.fail(new Error("Transactional email is not configured")),
     })
   );
 };

@@ -71,8 +71,14 @@ export const BillingHandlers = HttpApiBuilder.group(
     return handlers
       .handle("subscription", ({ params }) =>
         Effect.gen(function* () {
-          const { workspace } = yield* billingAccess(params.workspaceId);
-          return yield* billing.subscription(workspace.billingOwnerUserId);
+          const { auth, workspace } = yield* billingAccess(params.workspaceId);
+          const result = yield* billing.subscription(
+            workspace.billingOwnerUserId
+          );
+          return {
+            ...result,
+            canManageBilling: auth.userId === workspace.billingOwnerUserId,
+          };
         })
       )
       .handle("usage", ({ params }) =>
@@ -175,8 +181,12 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("cancellation", ({ params }) =>
         Effect.gen(function* () {
-          const { workspace } = yield* billingAccess(params.workspaceId);
-          return yield* cancellations.get(workspace.billingOwnerUserId);
+          const { auth, workspace } = yield* payerAccess(params.workspaceId);
+          const result = yield* cancellations.get(workspace.billingOwnerUserId);
+          return {
+            ...result,
+            canManageCancellation: auth.userId === workspace.billingOwnerUserId,
+          };
         })
       )
       .handle("startCancellation", ({ params, payload }) =>

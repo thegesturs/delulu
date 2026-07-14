@@ -214,6 +214,31 @@ export class MessagingService extends Context.Service<
               WHEN ${input.productLifecycleEnabled === true} THEN NULL
               ELSE unsubscribed_at END
             WHERE user_id = ${input.userId}`.pipe(Effect.orDie);
+          const contacts = yield* sql<{
+            email: string | null;
+            productLifecycleEnabled: boolean;
+            marketingEnabled: boolean;
+          }>`SELECT u.email, p.product_lifecycle_enabled, p.marketing_enabled
+            FROM users u JOIN email_preferences p ON p.user_id = u.id
+            WHERE u.id = ${input.userId}`.pipe(Effect.orDie);
+          const contact = contacts[0];
+          if (contact?.email) {
+            yield* enqueue({
+              userId: input.userId,
+              idempotencyKey: `preferences:${input.userId}:${contact.productLifecycleEnabled}:${contact.marketingEnabled}:${crypto.randomUUID()}`,
+              channel: "lifecycle",
+              messageType: "preferences_updated",
+              payload: {
+                kind: "identify",
+                userId: input.userId,
+                email: contact.email,
+                attributes: {
+                  product_lifecycle_enabled: contact.productLifecycleEnabled,
+                  marketing_enabled: contact.marketingEnabled,
+                },
+              },
+            });
+          }
         }
       );
       const sendTransactional = Effect.fn("MessagingService.sendTransactional")(

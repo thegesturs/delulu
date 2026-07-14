@@ -43,7 +43,15 @@ export function CurrentPlanCard() {
     resources.billing.portal(workspace.workspaceId ?? "")
   );
   const currency = useCurrency();
-  const currencySymbol = CURRENCY_SYMBOLS[currency];
+  const displayCurrency =
+    subscription.currency === "USD" || subscription.currency === "INR"
+      ? subscription.currency
+      : currency;
+  const currencySymbol = CURRENCY_SYMBOLS[displayCurrency];
+  const recurringAmount =
+    subscription.recurringAmountMinor === null
+      ? null
+      : subscription.recurringAmountMinor / 100;
 
   const plan = PLANS[subscription.planType];
 
@@ -124,7 +132,7 @@ export function CurrentPlanCard() {
           <div>
             <CardTitle className="flex items-center gap-2">
               {plan.name} Plan
-              {subscription.isPaid && (
+              {(subscription.isActive || subscription.isTrialing) && (
                 <Badge variant="default">
                   <Icon className="mr-1" icon={SparklesIcon} size={12} />
                   Active
@@ -160,10 +168,24 @@ export function CurrentPlanCard() {
             <span className="font-bold text-3xl">
               {subscription.isLifetime
                 ? "Lifetime"
-                : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
+                : `${currencySymbol}${
+                    recurringAmount === null
+                      ? plan.price[displayCurrency][
+                          subscription.billingPeriod === "YEARLY"
+                            ? "yearly"
+                            : "monthly"
+                        ]
+                      : displayCurrency === "INR"
+                        ? recurringAmount.toLocaleString("en-IN")
+                        : recurringAmount.toLocaleString("en-US", {
+                            maximumFractionDigits: 2,
+                          })
+                  }`}
             </span>
-            {!subscription.isLifetime && plan.price[currency].monthly > 0 && (
-              <span className="text-muted-foreground">/month</span>
+            {!subscription.isLifetime && (
+              <span className="text-muted-foreground">
+                /{subscription.billingPeriod === "YEARLY" ? "year" : "month"}
+              </span>
             )}
           </div>
           {subscription.isLifetime && (
@@ -292,7 +314,9 @@ export function CurrentPlanCard() {
             Change Plan
           </Button>
         )}
-        {!subscription.isLifetime && <CancellationFlow />}
+        {!subscription.isLifetime && subscription.canManageBilling && (
+          <CancellationFlow />
+        )}
       </CardFooter>
     </Card>
   );

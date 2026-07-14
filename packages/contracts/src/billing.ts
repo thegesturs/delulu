@@ -34,6 +34,7 @@ export const SubscriptionResponse = Schema.Struct({
   currency: Schema.NullOr(Schema.String),
   recurringAmountMinor: Schema.NullOr(Schema.Number),
   cancelAtPeriodEnd: Schema.Boolean,
+  canManageBilling: Schema.Boolean,
 });
 
 export const CancellationReason = Schema.Literals([
@@ -77,6 +78,7 @@ export const CancellationResponse = Schema.Struct({
   calendarReference: Schema.NullOr(Schema.String),
   calendarBookingAt: Schema.NullOr(Schema.String),
   recoveryUrl: Schema.NullOr(Schema.String),
+  canManageCancellation: Schema.Boolean,
 });
 
 export const UsageResponse = Schema.Struct({

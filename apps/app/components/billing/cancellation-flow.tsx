@@ -85,12 +85,29 @@ export function CancellationFlow() {
   );
   const cancellation = query.data;
 
+  const resetWizard = () => {
+    setStep(1);
+    setReason("");
+    setComment("");
+    setConfirmation("");
+    setCalendarReference(null);
+  };
+  const setDialogOpen = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      resetWizard();
+    }
+  };
+  const reportError = (error: unknown) => {
+    toast.error(error instanceof Error ? error.message : "Please try again");
+  };
+
   useEffect(() => {
     if (open && cancellation?.status === "call_booked") {
       toast.success("Your retention call is booked", {
         description: "No cancellation has been scheduled.",
       });
-      setOpen(false);
+      setDialogOpen(false);
     }
   }, [cancellation?.status, open]);
 
@@ -113,7 +130,25 @@ export function CancellationFlow() {
     ]);
   };
 
+  if (query.error) {
+    return (
+      <Button
+        className="flex-1"
+        onClick={() => query.refetch()}
+        variant="outline"
+      >
+        Retry cancellation controls
+      </Button>
+    );
+  }
   if (query.isPending || !cancellation) {
+    return (
+      <Button className="flex-1" disabled variant="outline">
+        Loading cancellation…
+      </Button>
+    );
+  }
+  if (!cancellation.canManageCancellation) {
     return null;
   }
   if (cancellation.status === "scheduled") {
@@ -125,9 +160,14 @@ export function CancellationFlow() {
           if (!cancellation.id) {
             return;
           }
-          await reactivate.mutateAsync(cancellation.id);
-          await invalidate();
-          toast.success("Your subscription will continue");
+          try {
+            await reactivate.mutateAsync(cancellation.id);
+            await invalidate();
+            resetWizard();
+            toast.success("Your subscription will continue");
+          } catch (error) {
+            reportError(error);
+          }
         }}
         variant="outline"
       >
@@ -147,9 +187,13 @@ export function CancellationFlow() {
           if (!cancellation.id) {
             return;
           }
-          const result = await reactivate.mutateAsync(cancellation.id);
-          if (result.recoveryUrl) {
-            window.location.assign(result.recoveryUrl);
+          try {
+            const result = await reactivate.mutateAsync(cancellation.id);
+            if (result.recoveryUrl) {
+              window.location.assign(result.recoveryUrl);
+            }
+          } catch (error) {
+            reportError(error);
           }
         }}
       >
@@ -175,12 +219,12 @@ export function CancellationFlow() {
     <>
       <Button
         className="flex-1"
-        onClick={() => setOpen(true)}
+        onClick={() => setDialogOpen(true)}
         variant="outline"
       >
         Cancel subscription
       </Button>
-      <Dialog onOpenChange={setOpen} open={open}>
+      <Dialog onOpenChange={setDialogOpen} open={open}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -251,7 +295,17 @@ export function CancellationFlow() {
                   </label>
                 ))}
               </RadioGroup>
+              <label
+                className="font-medium text-sm"
+                htmlFor="cancellation-comment"
+              >
+                Additional details{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </label>
               <Textarea
+                id="cancellation-comment"
                 maxLength={1000}
                 onChange={(event) => setComment(event.target.value)}
                 placeholder="Anything else you want us to know? (optional)"
@@ -303,10 +357,14 @@ export function CancellationFlow() {
                       if (!cancellation.id) {
                         return;
                       }
-                      await acceptOffer.mutateAsync(cancellation.id);
-                      await invalidate();
-                      setOpen(false);
-                      toast.success("Your next plan charge is covered");
+                      try {
+                        await acceptOffer.mutateAsync(cancellation.id);
+                        await invalidate();
+                        setDialogOpen(false);
+                        toast.success("Your next plan charge is covered");
+                      } catch (error) {
+                        reportError(error);
+                      }
                     }}
                     size="sm"
                   >
@@ -315,10 +373,16 @@ export function CancellationFlow() {
                 </Alert>
               )}
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                <p className="font-medium text-sm">
+                <label
+                  className="font-medium text-sm"
+                  htmlFor="cancellation-confirmation"
+                >
                   Type CANCEL AND DELETE to schedule cancellation.
-                </p>
-                <p className="mt-1 text-muted-foreground text-sm">
+                </label>
+                <p
+                  className="mt-1 text-muted-foreground text-sm"
+                  id="cancellation-confirmation-help"
+                >
                   Paid access continues until the displayed term end, when
                   publishing and automations stop. Every listed billed workspace
                   and all product data will be permanently deleted on{" "}
@@ -329,7 +393,9 @@ export function CancellationFlow() {
                   deletion cancels the deletion.
                 </p>
                 <Input
+                  aria-describedby="cancellation-confirmation-help"
                   className="mt-3"
+                  id="cancellation-confirmation"
                   onChange={(event) => setConfirmation(event.target.value)}
                   placeholder="CANCEL AND DELETE"
                   value={confirmation}
@@ -352,12 +418,17 @@ export function CancellationFlow() {
                 disabled={(step === 2 && !reason) || start.isPending}
                 onClick={async () => {
                   if (step === 2) {
-                    const result = await start.mutateAsync({
-                      reason: reason as (typeof reasons)[number][0],
-                      comment: comment.trim() || undefined,
-                    });
-                    setCalendarReference(result.calendarReference);
-                    await invalidate();
+                    try {
+                      const result = await start.mutateAsync({
+                        reason: reason as (typeof reasons)[number][0],
+                        comment: comment.trim() || undefined,
+                      });
+                      setCalendarReference(result.calendarReference);
+                      await invalidate();
+                    } catch (error) {
+                      reportError(error);
+                      return;
+                    }
                   }
                   setStep((value) => value + 1);
                 }}
@@ -376,13 +447,17 @@ export function CancellationFlow() {
                   if (!cancellation.id) {
                     return;
                   }
-                  await schedule.mutateAsync({
-                    id: cancellation.id,
-                    confirmation,
-                  });
-                  await invalidate();
-                  setOpen(false);
-                  toast.success("Cancellation scheduled");
+                  try {
+                    await schedule.mutateAsync({
+                      id: cancellation.id,
+                      confirmation,
+                    });
+                    await invalidate();
+                    setDialogOpen(false);
+                    toast.success("Cancellation scheduled");
+                  } catch (error) {
+                    reportError(error);
+                  }
                 }}
                 variant="destructive"
               >

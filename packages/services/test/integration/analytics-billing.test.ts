@@ -164,6 +164,49 @@ describe("M4 analytics and billing services", () => {
     expect(result.transactions.data[0]?.amountMinor).toBe(499);
   });
 
+  it("does not let an older provider event roll subscription state backward", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const webhook = yield* BillingWebhookApplication;
+      const billing = yield* BillingService;
+      const resolved = yield* identity.resolve({
+        sub: `billing_order_${crypto.randomUUID()}`,
+      });
+      const base = {
+        _tag: "SubscriptionChanged" as const,
+        billingOwnerUserId: resolved.user.id,
+        providerCustomerId: `customer_${crypto.randomUUID()}`,
+        providerSubscriptionId: `subscription_${crypto.randomUUID()}`,
+        plan: "ECHO",
+        currentPeriodStart: "2026-07-01T00:00:00.000Z",
+        currentPeriodEnd: "2026-08-01T00:00:00.000Z",
+      };
+      yield* webhook.apply({
+        ...base,
+        eventId: `event_${crypto.randomUUID()}`,
+        providerEventType: "subscription.active",
+        providerOccurredAt: "2026-07-10T00:00:00.000Z",
+        status: "active",
+      });
+      const stale = yield* webhook.apply({
+        ...base,
+        eventId: `event_${crypto.randomUUID()}`,
+        providerEventType: "subscription.expired",
+        providerOccurredAt: "2026-07-09T00:00:00.000Z",
+        status: "expired",
+      });
+      return {
+        stale,
+        subscription: yield* billing.subscription(resolved.user.id),
+      };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.stale.applied).toBe(false);
+    expect(result.subscription.status).toBe("active");
+  });
+
   it("reserves pooled quota transactionally before committing usage", async () => {
     const program = Effect.gen(function* () {
       const identity = yield* IdentityService;

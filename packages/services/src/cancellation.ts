@@ -1,7 +1,10 @@
 import { ConflictError, NotFoundError } from "@delulu/contracts";
 import { Context, DateTime, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { BillingProviderService } from "./billing-provider";
+import {
+  BillingProviderConfig,
+  BillingProviderService,
+} from "./billing-provider";
 import {
   CANCELLATION_CONFIRMATION,
   type CancellationReason,
@@ -10,7 +13,6 @@ import {
 } from "./cancellation-policy";
 import { MessagingService } from "./messaging";
 import { R2Service } from "./r2";
-import { stopBilledWorkspaceWork } from "./subscription-access";
 
 export interface CancellationImpactView {
   readonly workspaces: number;
@@ -42,6 +44,7 @@ export interface CancellationView {
   readonly calendarReference: string | null;
   readonly calendarBookingAt: string | null;
   readonly recoveryUrl: string | null;
+  readonly canManageCancellation: boolean;
 }
 
 interface SubscriptionRow {
@@ -116,12 +119,13 @@ const cancellationEmail = (input: {
   posts: number;
   workspaceNames: readonly string[];
   reason: CancellationReason;
+  recoveryUrl: string;
 }) => {
   const names = input.workspaceNames.join(", ") || "None";
-  const text = `${input.title}\n\n${input.message}\n\nAccess ends: ${input.termEnd}\nPermanent deletion: ${input.deletionAt}\nReason: ${input.reason.replaceAll("_", " ")}\nAffected workspaces: ${input.workspaces} (${names})\nPosts: ${input.posts}\nRestore access: https://app.delulu.social`;
+  const text = `${input.title}\n\n${input.message}\n\nAccess ends: ${input.termEnd}\nPermanent deletion: ${input.deletionAt}\nReason: ${input.reason.replaceAll("_", " ")}\nAffected workspaces: ${input.workspaces} (${names})\nPosts: ${input.posts}\nRestore access: ${input.recoveryUrl}`;
   return {
     text,
-    html: `<h1>${escapeHtml(input.title)}</h1><p>${escapeHtml(input.message)}</p><ul><li>Access ends: ${escapeHtml(input.termEnd)}</li><li>Permanent deletion: ${escapeHtml(input.deletionAt)}</li><li>Reason: ${escapeHtml(input.reason.replaceAll("_", " "))}</li><li>Affected workspaces: ${input.workspaces} (${escapeHtml(names)})</li><li>Posts: ${input.posts}</li></ul><p><a href="https://app.delulu.social">Restore access</a></p>`,
+    html: `<h1>${escapeHtml(input.title)}</h1><p>${escapeHtml(input.message)}</p><ul><li>Access ends: ${escapeHtml(input.termEnd)}</li><li>Permanent deletion: ${escapeHtml(input.deletionAt)}</li><li>Reason: ${escapeHtml(input.reason.replaceAll("_", " "))}</li><li>Affected workspaces: ${input.workspaces} (${escapeHtml(names)})</li><li>Posts: ${input.posts}</li></ul><p><a href="${escapeHtml(input.recoveryUrl)}">Restore access</a></p>`,
   };
 };
 
@@ -155,7 +159,7 @@ export class CancellationService extends Context.Service<
     readonly abandon: (input: {
       readonly billingOwnerUserId: string;
       readonly requestId: string;
-    }) => Effect.Effect<CancellationView, NotFoundError>;
+    }) => Effect.Effect<CancellationView, NotFoundError | ConflictError>;
     readonly handleCalendar: (input: {
       readonly event:
         | "BOOKING_CREATED"
@@ -174,6 +178,7 @@ export class CancellationService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const billingProvider = yield* BillingProviderService;
+      const providerConfig = yield* BillingProviderConfig;
       const messaging = yield* MessagingService;
       const r2 = yield* R2Service;
 
@@ -181,7 +186,7 @@ export class CancellationService extends Context.Service<
         function* (ownerId: string) {
           const rows =
             yield* sql<SubscriptionRow>`SELECT provider_subscription_id,
-            provider_customer_id, current_period_start, current_period_end,
+            provider_customer_id, COALESCE(paid_since, current_period_start) AS current_period_start, current_period_end,
             billing_interval, currency, recurring_amount_minor, plan
             FROM subscriptions WHERE billing_owner_user_id = ${ownerId}`.pipe(
               Effect.orDie
@@ -283,6 +288,7 @@ export class CancellationService extends Context.Service<
           calendarReference,
           calendarBookingAt: request ? iso(request.calendarBookingAt) : null,
           recoveryUrl,
+          canManageCancellation: true,
         } satisfies CancellationView;
       });
       const requireRequest = Effect.fn("CancellationService.requireRequest")(
@@ -314,6 +320,15 @@ export class CancellationService extends Context.Service<
         }
         const sub = yield* subscription(input.billingOwnerUserId);
         const existing = yield* activeRequest(input.billingOwnerUserId);
+        if (
+          existing[0] &&
+          !(
+            existing[0].status === "open" ||
+            existing[0].status === "offer_accepted"
+          )
+        ) {
+          return yield* view(input.billingOwnerUserId);
+        }
         const currentImpact = yield* impact(input.billingOwnerUserId);
         const reference = `${crypto.randomUUID()}${crypto.randomUUID()}`;
         const referenceHash = yield* hashReference(reference);
@@ -362,6 +377,12 @@ export class CancellationService extends Context.Service<
           if (request.saveOfferAccepted) {
             return yield* view(input.billingOwnerUserId);
           }
+          if (request.status !== "open") {
+            return yield* new ConflictError({
+              message: "The cancellation request cannot accept an offer now",
+              resource: "cancellation_request",
+            });
+          }
           const used = yield* alreadyUsedOffer(input.billingOwnerUserId);
           if (
             !(
@@ -387,11 +408,21 @@ export class CancellationService extends Context.Service<
             currency: sub.currency,
             idempotencyKey: `retention:${request.id}`,
           });
-          yield* sql`UPDATE cancellation_requests SET status = 'offer_accepted',
+          const accepted = yield* sql<{
+            id: string;
+          }>`UPDATE cancellation_requests SET status = 'offer_accepted',
             save_offer_accepted = true, offer_amount_minor = ${amount},
-            offer_currency = ${sub.currency} WHERE id = ${request.id}`.pipe(
+            offer_currency = ${sub.currency} WHERE id = ${request.id}
+            AND status = 'open' AND save_offer_accepted = false RETURNING id`.pipe(
             Effect.orDie
           );
+          if (!accepted[0]) {
+            return yield* new ConflictError({
+              message:
+                "The cancellation request changed while applying the offer",
+              resource: "cancellation_request",
+            });
+          }
           return yield* view(input.billingOwnerUserId);
         }
       );
@@ -425,6 +456,7 @@ export class CancellationService extends Context.Service<
             posts: request.impact.posts,
             workspaceNames: recipient.workspaceNames,
             reason: request.reason,
+            recoveryUrl: `${providerConfig.appBaseUrl}/billing`,
           });
           yield* messaging.sendTransactional({
             userId: recipient.userId,
@@ -456,7 +488,38 @@ export class CancellationService extends Context.Service<
           if (request.status === "scheduled") {
             return yield* view(input.billingOwnerUserId);
           }
+          if (request.status !== "open") {
+            return yield* new ConflictError({
+              message: "The cancellation request cannot be scheduled now",
+              resource: "cancellation_request",
+            });
+          }
           const sub = yield* subscription(input.billingOwnerUserId);
+          const currentImpact = yield* impact(input.billingOwnerUserId);
+          yield* sql
+            .withTransaction(
+              Effect.gen(function* () {
+                yield* sql`UPDATE cancellation_requests SET
+                impact = ${JSON.stringify(currentImpact)}::jsonb WHERE id = ${request.id}`;
+                yield* sql`DELETE FROM cancellation_recipients
+                WHERE cancellation_request_id = ${request.id}`;
+                yield* sql`INSERT INTO cancellation_recipients
+                (cancellation_request_id, user_id, email, workspace_names, is_payer)
+                SELECT ${request.id}, u.id, u.email,
+                  array_agg(DISTINCT w.name ORDER BY w.name), u.id = ${input.billingOwnerUserId}
+                FROM workspaces w JOIN workspace_members wm ON wm.workspace_id = w.id
+                JOIN users u ON u.id = wm.user_id
+                WHERE w.billing_owner_user_id = ${input.billingOwnerUserId} AND u.email IS NOT NULL
+                GROUP BY u.id, u.email`;
+                yield* sql`INSERT INTO cancellation_recipients
+                (cancellation_request_id, user_id, email, workspace_names, is_payer)
+                SELECT ${request.id}, u.id, u.email, ${currentImpact.workspaceNames}::text[], true
+                FROM users u WHERE u.id = ${input.billingOwnerUserId} AND u.email IS NOT NULL
+                ON CONFLICT (cancellation_request_id, email) DO UPDATE SET
+                  workspace_names = EXCLUDED.workspace_names, is_payer = true`;
+              })
+            )
+            .pipe(Effect.orDie);
           if (!sub.currentPeriodEnd) {
             return yield* new ConflictError({
               message: "The subscription has no paid term end",
@@ -469,10 +532,20 @@ export class CancellationService extends Context.Service<
             comment: request.comment ?? undefined,
           });
           const deletionAt = cancellationDeletionAt(sub.currentPeriodEnd);
-          yield* sql`UPDATE cancellation_requests SET status = 'scheduled',
+          const scheduled = yield* sql<{
+            id: string;
+          }>`UPDATE cancellation_requests SET status = 'scheduled',
           scheduled_for = ${sub.currentPeriodEnd}, data_deletion_at = ${deletionAt},
           provider_response = ${JSON.stringify(providerResponse)}::jsonb
-          WHERE id = ${request.id}`.pipe(Effect.orDie);
+          WHERE id = ${request.id} AND status = 'open' RETURNING id`.pipe(
+            Effect.orDie
+          );
+          if (!scheduled[0]) {
+            return yield* new ConflictError({
+              message: "The cancellation request changed while scheduling",
+              resource: "cancellation_request",
+            });
+          }
           yield* sql`UPDATE subscriptions SET cancel_at_period_end = true
           WHERE billing_owner_user_id = ${input.billingOwnerUserId}`.pipe(
             Effect.orDie
@@ -533,11 +606,28 @@ export class CancellationService extends Context.Service<
               resource: "subscription",
             });
           }
+          if (request.status === "reactivated") {
+            return yield* view(input.billingOwnerUserId);
+          }
+          if (request.status !== "scheduled") {
+            return yield* new ConflictError({
+              message: "The cancellation request is not awaiting reactivation",
+              resource: "cancellation_request",
+            });
+          }
           yield* billingProvider.undoCancellation(sub.providerSubscriptionId!);
-          yield* sql`UPDATE cancellation_requests SET status = 'reactivated',
-            data_deletion_at = NULL WHERE id = ${request.id}`.pipe(
-            Effect.orDie
-          );
+          const reactivated = yield* sql<{
+            id: string;
+          }>`UPDATE cancellation_requests SET status = 'reactivated',
+            data_deletion_at = NULL WHERE id = ${request.id}
+            AND status = 'scheduled' RETURNING id`.pipe(Effect.orDie);
+          if (!reactivated[0]) {
+            return yield* new ConflictError({
+              message:
+                "The cancellation request changed while restoring access",
+              resource: "cancellation_request",
+            });
+          }
           yield* sql`UPDATE subscriptions SET cancel_at_period_end = false
             WHERE billing_owner_user_id = ${input.billingOwnerUserId}`.pipe(
             Effect.orDie
@@ -547,9 +637,30 @@ export class CancellationService extends Context.Service<
       );
       const abandon = Effect.fn("CancellationService.abandon")(
         function* (input: { billingOwnerUserId: string; requestId: string }) {
-          yield* requireRequest(input.billingOwnerUserId, input.requestId);
-          yield* sql`UPDATE cancellation_requests SET status = 'abandoned'
-          WHERE id = ${input.requestId}`.pipe(Effect.orDie);
+          const request = yield* requireRequest(
+            input.billingOwnerUserId,
+            input.requestId
+          );
+          if (
+            !(request.status === "open" || request.status === "call_booked")
+          ) {
+            return yield* new ConflictError({
+              message:
+                "Only an unfinished cancellation request can be abandoned",
+              resource: "cancellation_request",
+            });
+          }
+          const abandoned = yield* sql<{
+            id: string;
+          }>`UPDATE cancellation_requests SET status = 'abandoned'
+          WHERE id = ${input.requestId} AND status IN ('open','call_booked')
+          RETURNING id`.pipe(Effect.orDie);
+          if (!abandoned[0]) {
+            return yield* new ConflictError({
+              message: "The cancellation request changed before it was closed",
+              resource: "cancellation_request",
+            });
+          }
           return yield* view(input.billingOwnerUserId);
         }
       );
@@ -568,7 +679,8 @@ export class CancellationService extends Context.Service<
           const rows = yield* sql<{
             id: string;
           }>`SELECT id FROM cancellation_requests
-            WHERE reference_hash = ${referenceHash} AND reference_expires_at > now()
+            WHERE reference_hash = ${referenceHash}
+              AND (${input.event} <> 'BOOKING_CREATED' OR reference_expires_at > now())
               AND CASE
                 WHEN ${input.event} = 'BOOKING_CREATED' THEN
                   (status = 'open' AND calendar_booking_uid IS NULL)
@@ -604,31 +716,28 @@ export class CancellationService extends Context.Service<
             dataDeletionAt: Date;
             scheduledFor: Date;
           }>`SELECT id, billing_owner_user_id, status, data_deletion_at, scheduled_for
-            FROM cancellation_requests WHERE status IN ('scheduled','effective','deleting')
+            FROM cancellation_requests WHERE status IN ('scheduled','effective','deleting','deleted')
               AND data_deletion_at IS NOT NULL`.pipe(Effect.orDie);
           const now = Date.now();
           for (const request of due) {
-            if (
-              request.status === "scheduled" &&
-              request.scheduledFor.getTime() <= now
-            ) {
-              yield* sql
-                .withTransaction(
-                  Effect.gen(function* () {
-                    const transitioned = yield* sql<{
-                      id: string;
-                    }>`UPDATE cancellation_requests
-                    SET status = 'effective' WHERE id = ${request.id} AND status = 'scheduled'
-                    RETURNING id`;
-                    if (!transitioned[0]) {
-                      return;
-                    }
-                    yield* stopBilledWorkspaceWork(
-                      request.billingOwnerUserId
-                    ).pipe(Effect.provideService(SqlClient.SqlClient, sql));
-                  })
-                )
-                .pipe(Effect.orDie);
+            if (request.status === "deleted") {
+              yield* notify(
+                request.id,
+                request.billingOwnerUserId,
+                "data_deleted",
+                "Workspace data permanently deleted",
+                "The workspaces funded by the cancelled subscription and their product data have been deleted."
+              ).pipe(Effect.orDie);
+              continue;
+            }
+            if (request.status === "scheduled") {
+              yield* notify(
+                request.id,
+                request.billingOwnerUserId,
+                "cancellation_scheduled",
+                "Subscription cancellation scheduled",
+                "Every workspace funded by this subscription and its product data will be permanently deleted unless the subscription is restored."
+              ).pipe(Effect.orDie);
             }
             const remaining = request.dataDeletionAt.getTime() - now;
             if (remaining <= 30 * 86_400_000 && remaining > 7 * 86_400_000) {
@@ -651,7 +760,7 @@ export class CancellationService extends Context.Service<
             }
             if (remaining <= 0) {
               yield* sql`UPDATE cancellation_requests SET status = 'deleting'
-                WHERE id = ${request.id} AND status IN ('scheduled','effective')`.pipe(
+                WHERE id = ${request.id} AND status = 'effective'`.pipe(
                 Effect.orDie
               );
               const objects = yield* sql<{ id: string; bucketKey: string }>`
@@ -666,10 +775,14 @@ export class CancellationService extends Context.Service<
                 if (!state[0]?.active) {
                   break;
                 }
-                yield* r2.remove(object.bucketKey).pipe(Effect.orDie);
-                yield* sql`DELETE FROM media WHERE id = ${object.id}`.pipe(
-                  Effect.orDie
-                );
+                const removed = yield* r2
+                  .remove(object.bucketKey)
+                  .pipe(Effect.result);
+                if (removed._tag === "Success") {
+                  yield* sql`DELETE FROM media WHERE id = ${object.id}`.pipe(
+                    Effect.orDie
+                  );
+                }
               }
               if (objects.length === 0) {
                 const state = yield* sql<{ active: boolean }>`SELECT EXISTS(
@@ -679,13 +792,6 @@ export class CancellationService extends Context.Service<
                 if (!state[0]?.active) {
                   continue;
                 }
-                yield* notify(
-                  request.id,
-                  request.billingOwnerUserId,
-                  "data_deleted",
-                  "Workspace data permanently deleted",
-                  "The workspaces funded by the cancelled subscription and their product data have been deleted."
-                ).pipe(Effect.orDie);
                 yield* sql
                   .withTransaction(
                     Effect.gen(function* () {
@@ -710,6 +816,13 @@ export class CancellationService extends Context.Service<
                     })
                   )
                   .pipe(Effect.orDie);
+                yield* notify(
+                  request.id,
+                  request.billingOwnerUserId,
+                  "data_deleted",
+                  "Workspace data permanently deleted",
+                  "The workspaces funded by the cancelled subscription and their product data have been deleted."
+                ).pipe(Effect.orDie);
               }
             }
           }

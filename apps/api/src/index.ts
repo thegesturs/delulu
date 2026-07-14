@@ -162,7 +162,7 @@ export const makeBaseLayer = (
     Layer.provide(BillingProviderConfigLayer)
   );
   const Cancellations = CancellationService.layer.pipe(
-    Layer.provide([BillingProvider, Messaging, R2])
+    Layer.provide([BillingProvider, BillingProviderConfigLayer, Messaging, R2])
   );
   const CalendarConfig = Layer.succeed(
     CalendarWebhookConfig,

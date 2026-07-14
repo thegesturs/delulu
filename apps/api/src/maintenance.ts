@@ -22,7 +22,13 @@ export const runMaintenance = (
     const messaging = yield* MessagingService;
     const lifecycle = yield* LifecycleService;
     yield* billing.run();
-    yield* cancellations.runRetention();
+    yield* cancellations
+      .runRetention()
+      .pipe(
+        Effect.catchCause((cause) =>
+          Effect.logError("Cancellation maintenance failed", cause)
+        )
+      );
     yield* lifecycle.runScheduled();
     yield* messaging.dispatchPending(50);
     for (let batch = 0; batch < MAX_AUTOMATION_KV_BATCHES; batch += 1) {

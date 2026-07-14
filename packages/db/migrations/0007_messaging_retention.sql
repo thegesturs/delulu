@@ -7,7 +7,9 @@ ALTER TABLE subscriptions
   ADD COLUMN currency text,
   ADD COLUMN recurring_amount_minor bigint,
   ADD COLUMN cancel_at_period_end boolean NOT NULL DEFAULT false,
-  ADD COLUMN last_renewed_at timestamptz;
+  ADD COLUMN last_renewed_at timestamptz,
+  ADD COLUMN paid_since timestamptz,
+  ADD COLUMN provider_updated_at timestamptz;
 
 CREATE TABLE email_preferences (
   user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -32,7 +34,7 @@ CREATE TABLE message_deliveries (
   provider_response jsonb NOT NULL DEFAULT '{}'::jsonb,
   suppression_reason text,
   attempts integer NOT NULL DEFAULT 0,
-  max_attempts integer NOT NULL DEFAULT 5,
+  max_attempts integer NOT NULL DEFAULT 72,
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   locked_until timestamptz,
   last_error text,

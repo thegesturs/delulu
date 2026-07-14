@@ -313,7 +313,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
     const normalize = Effect.fn("PaymentWebhook.normalize")(function* (
       eventId: string,
       type: string,
-      rawData: unknown
+      rawData: unknown,
+      occurredAt: string | number | undefined
     ) {
       if (!(type.startsWith("subscription.") || type.startsWith("payment."))) {
         return null;
@@ -325,6 +326,12 @@ export const PaymentWebhookSinkLive = Layer.effect(
         );
       }
       const billingOwnerUserId = yield* resolveBillingOwner(data);
+      const providerOccurredAt =
+        typeof occurredAt === "number"
+          ? new Date(
+              occurredAt < 10_000_000_000 ? occurredAt * 1000 : occurredAt
+            ).toISOString()
+          : (occurredAt ?? null);
       const customer = objectField(data, "customer");
       const customerId = customer
         ? (stringField(customer, "customer_id") ?? null)
@@ -344,6 +351,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
           _tag: "SubscriptionChanged" as const,
           eventId,
           providerEventType: type,
+          providerOccurredAt,
           billingOwnerUserId,
           providerCustomerId: customerId,
           providerSubscriptionId: subscriptionId,
@@ -377,6 +385,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
           _tag: "TransactionChanged" as const,
           eventId,
           providerEventType: type,
+          providerOccurredAt,
           billingOwnerUserId,
           providerTransactionId: paymentId,
           amountMinor: amount,
@@ -397,7 +406,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
         const candidate = yield* normalize(
           input.eventId,
           input.event.type,
-          input.event.data
+          input.event.data,
+          input.event.created_at ?? input.event.timestamp
         );
         if (candidate === null) {
           return;
@@ -415,7 +425,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
               })
           )
         );
-        yield* billing.apply(event).pipe(
+        const application = yield* billing.apply(event).pipe(
           Effect.mapError(
             (error) =>
               new WebhookIngressError({
@@ -425,6 +435,9 @@ export const PaymentWebhookSinkLive = Layer.effect(
               })
           )
         );
+        if ("stale" in application && application.stale) {
+          return;
+        }
         // Re-run durable outbox writes on provider replay. Their idempotency
         // keys make this safe and recover a prior attempt that committed the
         // billing event but failed before enqueueing lifecycle messages.
