@@ -24,6 +24,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
     </head>
     <body>
       <DesignSystemProvider
+        platform="app"
         privacyUrl="https://delulu.social/legal/privacy-policy"
         termsUrl="https://delulu.social/legal/terms-of-service"
       >

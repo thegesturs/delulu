@@ -30,6 +30,7 @@ import {
   OAuthFlowService,
   PooledQuotaReservations,
   PostService,
+  ProductAnalytics,
   QuotaGuard,
   R2Service,
   RateLimiterService,
@@ -58,6 +59,7 @@ import {
   domainConfigLayers,
   type Env,
   type ExecutionContext,
+  postHogConfigLayer,
 } from "./env";
 import { LiveInsightsProviderLive } from "./live-insights";
 import { runMaintenance } from "./maintenance";
@@ -92,6 +94,13 @@ export const makeBaseLayer = (
     transformJson: false,
   });
   const Config = authConfigLayer(env);
+  // Server-side product analytics. Disabled (fully inert) when POSTHOG_KEY is
+  // unset. Flushes buffered events on layer dispose, which upstream runs inside
+  // ctx.waitUntil for both the fetch and scheduled handlers. Defined early so it
+  // can be provided into services that capture events (ClerkSync, billing).
+  const Telemetry = ProductAnalytics.layer.pipe(
+    Layer.provide(postHogConfigLayer(env))
+  );
   const AsToken = AsTokenService.layer;
   const Clerk = overrides.clerk ?? ClerkTokenVerifier.layer;
   const [ClerkAdminConfig, ConnectionConfig, R2Config] =
@@ -136,7 +145,9 @@ export const makeBaseLayer = (
   );
   const Billing = BillingService.layer;
   const BillingTransfers = BillingOwnerTransfers.layer;
-  const BillingWebhooks = BillingWebhookApplication.layer;
+  const BillingWebhooks = BillingWebhookApplication.layer.pipe(
+    Layer.provide(Telemetry)
+  );
   const BillingReconcile = BillingReconciliation.layer;
   const Transcriptions = TranscriptionService.layer;
   const TranscriptionCheckoutConfigLayer = Layer.succeed(
@@ -180,7 +191,7 @@ export const makeBaseLayer = (
   );
   const WebhookDeliveries = WebhookDeliveryService.layer;
   const ClerkSync = ClerkSyncService.layer.pipe(
-    Layer.provide(IdentityService.layer)
+    Layer.provide([IdentityService.layer, Telemetry])
   );
   const PaymentSink = PaymentWebhookSinkLive.pipe(
     Layer.provide(BillingWebhooks)
@@ -225,6 +236,7 @@ export const makeBaseLayer = (
     OAuthFlowService.layer,
     QuotaGuard.layer,
     RateLimiter,
+    Telemetry,
     AsToken,
     Clerk,
     Config,

@@ -1,14 +1,40 @@
 "use client";
 
-import {
-  FEATURE_USED,
-  SESSION_STARTED,
-  SIGNUP_COMPLETED,
-} from "@delulu/analytics/events";
+import { FEATURE_USED, SESSION_STARTED } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { useUser } from "@delulu/auth";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
+
+/**
+ * Read the first-touch acquisition cookie set on the marketing site
+ * (apps/web/components/analytics/capture-attribution.tsx) and shape it into
+ * `initial_*` PostHog person properties. Applied via `$set_once` at identify so
+ * a person's acquisition source is recorded exactly once — the basis for
+ * source→paid analysis.
+ */
+function readAttribution(): Record<string, unknown> | null {
+  const match = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith("dl_attr="));
+  if (!match) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(
+      decodeURIComponent(match.slice("dl_attr=".length))
+    );
+    const initial: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value !== null && value !== undefined) {
+        initial[`initial_${key}`] = value;
+      }
+    }
+    return Object.keys(initial).length > 0 ? initial : null;
+  } catch {
+    return null;
+  }
+}
 
 // Map pathname segments to human-readable feature names for tracking
 function getFeatureFromPath(pathname: string): string | null {
@@ -66,28 +92,25 @@ function PostHogIdentifierContent() {
       return;
     }
 
-    analytics.identify(user.id, {
-      email: user.primaryEmailAddress?.emailAddress,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      createdAt: user.createdAt,
-      avatar: user.imageUrl,
-    });
-
-    // Detect new signups: user created within the last 60 seconds
-    const createdAt = user.createdAt
-      ? new Date(user.createdAt).getTime()
-      : null;
-    if (createdAt && Date.now() - createdAt < 60_000) {
-      analytics.capture(SIGNUP_COMPLETED, {
-        method: user.primaryEmailAddress ? "email" : "oauth",
+    analytics.identify(
+      user.id,
+      {
         email: user.primaryEmailAddress?.emailAddress,
-      });
-      analytics.people?.set({
-        signup_date: new Date(createdAt).toISOString(),
-      });
-    }
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        createdAt: user.createdAt,
+        avatar: user.imageUrl,
+      },
+      // First-touch acquisition props ($set_once) carried over from the
+      // marketing site via the `dl_attr` cookie.
+      readAttribution() ?? undefined
+    );
+
+    // Note: `signup_completed` is captured authoritatively server-side from the
+    // Clerk `user.created` webhook (see packages/services/src/clerk-sync.ts),
+    // which is more reliable than the previous client-side `createdAt < 60s`
+    // heuristic and fires exactly once per new user.
 
     identified.current = true;
   }, [user, analytics]);

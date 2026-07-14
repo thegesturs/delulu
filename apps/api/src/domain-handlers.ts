@@ -1,3 +1,12 @@
+import {
+  API_KEY_CREATED,
+  MEMBER_INVITED,
+  POST_CREATED,
+  POST_SAVED_AS_DRAFT,
+  POST_SCHEDULED,
+  POST_UPDATED,
+  REVIEW_ACTIONED,
+} from "@delulu/analytics/events";
 import { Api } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
@@ -5,12 +14,31 @@ import {
   ConnectionsService,
   MediaService,
   PostService,
+  ProductAnalytics,
   ReviewService,
   WorkspaceAccessService,
+  workspaceEvent,
 } from "@delulu/services";
 import { Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { AuthenticationLive } from "./auth-middleware";
+
+/**
+ * Map a freshly-created post's status to its lifecycle analytics event. This is
+ * the single, cross-surface source for post-creation events: the dashboard, CLI,
+ * MCP, and direct API all create through this handler, so capturing here (keyed
+ * on `post.source`) avoids the double-counting that a parallel client-side event
+ * would cause.
+ */
+const postCreateEvent = (status: string): string => {
+  if (status === "scheduled") {
+    return POST_SCHEDULED;
+  }
+  if (status === "draft") {
+    return POST_SAVED_AS_DRAFT;
+  }
+  return POST_CREATED;
+};
 
 const page = (query: {
   readonly limit?: number;
@@ -26,6 +54,7 @@ export const PostsHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const posts = yield* PostService;
     const workspaces = yield* WorkspaceAccessService;
+    const analytics = yield* ProductAnalytics;
     return handlers
       .handle("list", ({ params, query }) =>
         Effect.gen(function* () {
@@ -50,11 +79,25 @@ export const PostsHandlers = HttpApiBuilder.group(
             auth,
             scope: "posts:write",
           });
-          return yield* posts.create({
+          const post = yield* posts.create({
             workspaceId: access.workspaceId,
             actor: { memberId: access.memberId, role: access.role },
             value: payload,
           });
+          yield* analytics.capture(
+            workspaceEvent({
+              auth,
+              access,
+              event: postCreateEvent(post.status),
+              properties: {
+                post_id: post.id,
+                status: post.status,
+                source: post.source,
+                target_count: post.targets.length,
+              },
+            })
+          );
+          return post;
         })
       )
       .handle("bulkCreate", ({ params, payload }) =>
@@ -113,12 +156,21 @@ export const PostsHandlers = HttpApiBuilder.group(
             auth,
             scope: "posts:write",
           });
-          return yield* posts.update({
+          const updated = yield* posts.update({
             workspaceId: access.workspaceId,
             postId: params.id,
             actor: { memberId: access.memberId, role: access.role },
             value: payload,
           });
+          yield* analytics.capture(
+            workspaceEvent({
+              auth,
+              access,
+              event: POST_UPDATED,
+              properties: { post_id: params.id, status: updated.status },
+            })
+          );
+          return updated;
         })
       )
       .handle("remove", ({ params }) =>
@@ -185,6 +237,7 @@ export const ReviewsHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const reviews = yield* ReviewService;
     const workspaces = yield* WorkspaceAccessService;
+    const analytics = yield* ProductAnalytics;
     return handlers
       .handle("queue", ({ params, query }) =>
         Effect.gen(function* () {
@@ -232,13 +285,22 @@ export const ReviewsHandlers = HttpApiBuilder.group(
             auth,
             scope: "reviews:write",
           });
-          return yield* reviews.act({
+          const result = yield* reviews.act({
             workspaceId: access.workspaceId,
             postId: params.postId,
             memberId: access.memberId,
             role: access.role,
             action: payload,
           });
+          yield* analytics.capture(
+            workspaceEvent({
+              auth,
+              access,
+              event: REVIEW_ACTIONED,
+              properties: { action: payload.action, post_id: params.postId },
+            })
+          );
+          return result;
         })
       )
       .handle("bulkAct", ({ params, payload }) =>
@@ -262,6 +324,18 @@ export const ReviewsHandlers = HttpApiBuilder.group(
               .pipe(Effect.result);
             results.push({ postId, ok: result._tag === "Success" });
           }
+          yield* analytics.capture(
+            workspaceEvent({
+              auth,
+              access,
+              event: REVIEW_ACTIONED,
+              properties: {
+                action: payload.action.action,
+                bulk: true,
+                count: payload.postIds.length,
+              },
+            })
+          );
           return results;
         })
       );
@@ -428,6 +502,7 @@ export const AdminHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const admin = yield* AdminService;
     const workspaces = yield* WorkspaceAccessService;
+    const analytics = yield* ProductAnalytics;
     return handlers
       .handle("workspace", ({ params }) =>
         Effect.gen(function* () {
@@ -487,13 +562,23 @@ export const AdminHandlers = HttpApiBuilder.group(
             auth,
             scope: "members:write",
           });
-          return yield* admin.inviteMember({
+          const invited = yield* admin.inviteMember({
             workspaceId: access.workspaceId,
             clerkOrgId: access.clerkOrgId,
             email: payload.email,
             role: payload.role,
             actorRole: access.role,
           });
+          yield* analytics.capture(
+            workspaceEvent({
+              auth,
+              access,
+              event: MEMBER_INVITED,
+              // Role only — never the invitee's email (PII).
+              properties: { role: payload.role },
+            })
+          );
+          return invited;
         })
       )
       .handle("updateMember", ({ params, payload }) =>
@@ -552,12 +637,16 @@ export const AdminHandlers = HttpApiBuilder.group(
             auth,
             scope: "apikeys:write",
           });
-          return yield* admin.createApiKey({
+          const created = yield* admin.createApiKey({
             workspaceId: access.workspaceId,
             memberId: access.memberId,
             actorRole: access.role,
             ...payload,
           });
+          yield* analytics.capture(
+            workspaceEvent({ auth, access, event: API_KEY_CREATED })
+          );
+          return created;
         })
       )
       .handle("revokeApiKey", ({ params }) =>
