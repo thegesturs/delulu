@@ -61,6 +61,22 @@ accounts.command("list").action(async () => {
   printResult(result, options.json);
 });
 
+accounts
+  .command("connect <platform>")
+  .description("Generate a connection URL for a platform")
+  .option("--insights", "Request insights permissions")
+  .action(async (platform, cmd) => {
+    const options = program.opts<GlobalOptions>();
+    const workspaceId = await getWorkspaceId(options);
+    const result = await runEffect(
+      getContractClient(options).connections.mint({
+        params: { workspaceId, platform },
+        payload: cmd.insights ? { includeInsights: true } : {},
+      })
+    );
+    printResult(result, options.json);
+  });
+
 const stats = program.command("stats").description("View stats");
 stats.command("usage").action(async () => {
   const options = program.opts<GlobalOptions>();

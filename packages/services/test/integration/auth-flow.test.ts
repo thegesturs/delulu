@@ -194,6 +194,7 @@ describe("OAuth 2.1 authorization-code flow", () => {
         codeChallenge: challenge,
         codeChallengeMethod: "S256",
         resource: RESOURCE,
+        workspaceId: null,
       });
 
       const first = yield* flow.exchangeCode({
@@ -257,6 +258,7 @@ describe("OAuth 2.1 authorization-code flow", () => {
           codeChallenge: "challenge",
           codeChallengeMethod: "S256",
           resource: RESOURCE,
+          workspaceId: null,
         })
         .pipe(Effect.flip);
     });

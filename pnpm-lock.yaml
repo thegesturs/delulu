@@ -132,7 +132,7 @@ importers:
     dependencies:
       '@clerk/mcp-tools':
         specifier: ^0.5.0
-        version: 0.5.0(express@5.2.1)(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.22.0)(redis@4.7.1)(zod@3.25.67)
+        version: 0.5.0(express@5.2.1)(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.22.0)(redis@4.7.1)(zod@3.25.67)
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
@@ -177,7 +177,7 @@ importers:
         version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
       '@sentry/nextjs':
         specifier: ^9.12.0
-        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
+        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -213,7 +213,7 @@ importers:
         version: 1.14.2
       mcp-handler:
         specifier: ^1.1.0
-        version: 1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.67))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+        version: 1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.67))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
       motion:
         specifier: ^12.15.0
         version: 12.19.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -231,7 +231,7 @@ importers:
         version: 20.19.4
       nuqs:
         specifier: ^2.7.2
-        version: 2.7.2(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+        version: 2.7.2(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       react:
         specifier: catalog:react19
         version: 19.2.3
@@ -301,20 +301,22 @@ importers:
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
 
   apps/cli:
-    dependencies:
+    devDependencies:
       '@clack/prompts':
         specifier: ^0.10.1
         version: 0.10.1
       '@delulu/client':
         specifier: workspace:*
         version: link:../../packages/client
-      commander:
-        specifier: ^13.1.0
-        version: 13.1.0
-    devDependencies:
       '@types/node':
         specifier: ^22.14.1
         version: 22.15.34
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
+      esbuild:
+        specifier: ^0.25.5
+        version: 0.25.5
       tsx:
         specifier: ^4.19.0
         version: 4.20.3
@@ -582,7 +584,7 @@ importers:
         version: 3.0.4(@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.3(react@19.2.3))(react-native@0.84.0(@babel/core@7.27.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.3)(utf-8-validate@5.0.10))(react@19.2.3)(three@0.177.0))(@types/three@0.177.0)(react@19.2.3)(three@0.177.0)
       '@sentry/nextjs':
         specifier: ^9.12.0
-        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
+        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -1390,7 +1392,7 @@ importers:
         version: 0.2.0(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       '@sentry/nextjs':
         specifier: ^9.12.0
-        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
+        version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
@@ -18725,7 +18727,7 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/mcp-tools@0.5.0(express@5.2.1)(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.22.0)(redis@4.7.1)(zod@3.25.67)':
+  '@clerk/mcp-tools@0.5.0(express@5.2.1)(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(pg@8.22.0)(redis@4.7.1)(zod@3.25.67)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.67)
     optionalDependencies:
@@ -22391,7 +22393,7 @@ snapshots:
 
   '@sentry/core@9.33.0': {}
 
-  '@sentry/nextjs@9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))':
+  '@sentry/nextjs@9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(webpack@5.99.9(esbuild@0.25.5))':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.34.0
@@ -28923,7 +28925,7 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mcp-handler@1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.67))(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)):
+  mcp-handler@1.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.67))(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)):
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.67)
       chalk: 5.6.2
@@ -30008,7 +30010,7 @@ snapshots:
 
   nullthrows@1.1.1: {}
 
-  nuqs@2.7.2(next@15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3):
+  nuqs@2.7.2(next@15.3.3(@babel/core@7.27.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3):
     dependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.2.3
