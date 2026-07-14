@@ -74,6 +74,7 @@ describe("OAuth AS model round trips", () => {
           codeChallengeMethod: "S256",
           redirectUri: "http://127.0.0.1/callback",
           resource: "https://api.delulu.social",
+          workspaceId: nullable,
           expiresAt: DateTime.nowUnsafe(),
           consumedAt: nullable,
         })
@@ -102,6 +103,7 @@ describe("OAuth AS model round trips", () => {
           clientId: "delulu-cli",
           scopes: ["posts:read", "posts:write"],
           resource: "https://api.delulu.social",
+          workspaceId: nullable,
           familyId: crypto.randomUUID(),
           rotatedFrom: nullable,
           expiresAt: DateTime.nowUnsafe(),

@@ -13,6 +13,8 @@ export interface StatTileProps {
   hint?: string
   href?: string
   className?: string
+  /** "sm" tightens padding and shrinks the value for denser rows. */
+  size?: "sm" | "default"
 }
 
 const trendClasses = {
@@ -49,15 +51,18 @@ function StatTile({
   hint,
   href,
   className,
+  size = "default",
 }: StatTileProps) {
   const isLoading = value === undefined
   const Comp = href ? "a" : "div"
+  const dense = size === "sm"
 
   return (
     <Comp
       href={href}
       className={cn(
-        "flex flex-col gap-2 border-t border-l border-border/60 p-4",
+        "flex flex-col border-t border-l border-border/60",
+        dense ? "gap-1 p-3" : "gap-2 p-4",
         href &&
           "transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none",
         className
@@ -65,13 +70,20 @@ function StatTile({
     >
       <div className="flex items-center gap-2 text-muted-foreground">
         {icon && <span className="flex items-center [&_svg]:size-4">{icon}</span>}
-        <span className="text-sm font-medium">{label}</span>
+        <span className={cn("font-medium", dense ? "text-xs" : "text-sm")}>
+          {label}
+        </span>
       </div>
       <div className="flex items-end justify-between gap-2">
         {isLoading ? (
-          <Skeleton className="h-8 w-16" />
+          <Skeleton className={cn("w-16", dense ? "h-6" : "h-8")} />
         ) : (
-          <span className="text-2xl font-semibold tabular-nums leading-none">
+          <span
+            className={cn(
+              "font-semibold tabular-nums leading-none",
+              dense ? "text-lg" : "text-2xl"
+            )}
+          >
             {value}
           </span>
         )}
