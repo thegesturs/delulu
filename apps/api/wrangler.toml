@@ -51,6 +51,8 @@ FACEBOOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/faceb
 PINTEREST_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/pinterest"
 YOUTUBE_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/youtube"
 THREADS_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/threads"
+CLOUDFLARE_EMAIL_FROM = "notify@delulu.social"
+CAL_RETENTION_EVENT_SLUG = "retention"
 
 # Secrets (set via `wrangler secret put`):
 #   CLERK_JWT_KEY     PEM public key for networkless Clerk verification
@@ -73,6 +75,11 @@ THREADS_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/thread
 #   PINTEREST_CLIENT_ID / PINTEREST_CLIENT_SECRET
 #   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 #   THREADS_CLIENT_ID / THREADS_CLIENT_SECRET
+#   LOOPS_API_KEY
+#   CAL_WEBHOOK_SECRET
+
+[[send_email]]
+name = "EMAIL"
 
 # Postgres via Hyperdrive. In production `id` points at the real Hyperdrive
 # config (fill after `wrangler hyperdrive create`). In local `wrangler dev`,

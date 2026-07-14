@@ -1,12 +1,9 @@
 import {
   MemberId,
   makeId,
-  makeSubscriptionRepository,
   makeUserRepository,
   makeWorkspaceMemberRepository,
   makeWorkspaceRepository,
-  Subscription,
-  SubscriptionId,
   User,
   UserId,
   Workspace,
@@ -31,7 +28,8 @@ export interface ResolvedIdentity {
 
 /**
  * Resolves a Clerk `sub` to our `users` row, provisioning the user + their
- * personal workspace + a free subscription on first sight (JIT). Idempotent and
+ * personal workspace on first sight (JIT). A paid subscription is created only
+ * by the verified billing webhook; there is no free fallback entitlement.
  * keyed on `external_id`, so it is safe under the webhook-lag window post-cutover
  * and makes local dev work end-to-end without seeding.
  */
@@ -55,7 +53,6 @@ export class IdentityService extends Context.Service<
       const userRepo = yield* makeUserRepository();
       const workspaceRepo = yield* makeWorkspaceRepository();
       const memberRepo = yield* makeWorkspaceMemberRepository();
-      const subscriptionRepo = yield* makeSubscriptionRepository();
 
       const findUser = SqlSchema.findOneOption({
         Request: Schema.String,
@@ -131,24 +128,6 @@ export class IdentityService extends Context.Service<
                   workspaceId: workspace.id,
                   userId: user.id,
                   role: "owner",
-                })
-              );
-              yield* subscriptionRepo.insert(
-                Subscription.insert.make({
-                  id: makeId(SubscriptionId),
-                  legacyConvexId: null,
-                  billingOwnerUserId: user.id,
-                  providerCustomerId: null,
-                  providerSubscriptionId: null,
-                  plan: "free",
-                  status: "active",
-                  currentPeriodStart: null,
-                  currentPeriodEnd: null,
-                  monthlyPosts: 0n,
-                  mediaStorageBytes: 0n,
-                  dmsSent: 0n,
-                  dmsSkipped: 0n,
-                  transcriptionsUsed: 0n,
                 })
               );
               return {

@@ -25,6 +25,7 @@ import {
 } from "../../src/connections";
 import { IdentityService } from "../../src/identity";
 import { JobService } from "../../src/jobs";
+import { LifecycleService } from "../../src/lifecycle";
 import { MembershipService } from "../../src/membership";
 import { PostService } from "../../src/posts";
 import { ReviewService } from "../../src/reviews";
@@ -62,8 +63,16 @@ beforeAll(() => {
     TokenCipher.of(makeTokenCipher("integration-encryption-secret"))
   );
   const TemporaryStore = AutomationKvService.memoryLayer();
+  const Lifecycle = Layer.succeed(
+    LifecycleService,
+    LifecycleService.of({
+      record: () => Effect.void,
+      syncWorkspace: () => Effect.void,
+      runScheduled: () => Effect.void,
+    })
+  );
   const Connections = ConnectionsService.layer.pipe(
-    Layer.provide([State, Cipher, TemporaryStore])
+    Layer.provide([State, Cipher, TemporaryStore, Lifecycle])
   );
   AppLayer = Layer.mergeAll(
     IdentityService.layer,

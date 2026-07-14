@@ -3,6 +3,7 @@ import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { describe, expect, it } from "vitest";
 import { IdentityService } from "../../src/identity";
 import { TranscriptionService } from "../../src/transcriptions";
+import { provisionPaidSubscription } from "./paid-subscription";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -26,6 +27,7 @@ describe("TranscriptionService", () => {
         const identity = yield* IdentityService;
         const transcriptions = yield* TranscriptionService;
         const resolved = yield* identity.resolve({ sub: externalUserId });
+        yield* provisionPaidSubscription(resolved.user.id);
 
         const claimed = yield* transcriptions.createAndIncrement({
           externalUserId,

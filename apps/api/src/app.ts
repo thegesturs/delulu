@@ -9,16 +9,21 @@ import type {
   AutomationKvRepairJob,
   AutomationService,
   BillingOwnerTransfers,
+  BillingProviderService,
   BillingReconciliation,
   BillingService,
+  CalendarWebhookConfig,
+  CancellationService,
   ClerkAdminService,
   ClerkTokenVerifier,
   ConnectionStateService,
   ConnectionsService,
   IdentityService,
   JobService,
+  LifecycleService,
   MediaService,
   MembershipService,
+  MessagingService,
   OAuthFlowService,
   PostService,
   ProductAnalytics,
@@ -68,8 +73,10 @@ export type AppServices =
   | AuthorizationService
   | WorkspaceAccessService
   | JobService
+  | LifecycleService
   | PostService
   | MediaService
+  | MessagingService
   | R2Service
   | ConnectionsService
   | ConnectionStateService
@@ -79,6 +86,9 @@ export type AppServices =
   | AutomationKvRepairJob
   | AutomationService
   | BillingService
+  | BillingProviderService
+  | CancellationService
+  | CalendarWebhookConfig
   | BillingOwnerTransfers
   | BillingReconciliation
   | TranscriptionService

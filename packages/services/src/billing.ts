@@ -14,6 +14,10 @@ export interface SubscriptionSummary {
   readonly currentPeriodStart: string | null;
   readonly currentPeriodEnd: string | null;
   readonly addons: Readonly<Record<string, unknown>>;
+  readonly billingInterval: string | null;
+  readonly currency: string | null;
+  readonly recurringAmountMinor: number | null;
+  readonly cancelAtPeriodEnd: boolean;
 }
 
 export interface BillingTransactionSummary {
@@ -86,6 +90,14 @@ export class BillingService extends Context.Service<
           ),
           currentPeriodEnd: isoNullable(row.currentPeriodEnd as Date | null),
           addons: (row.addons ?? {}) as Readonly<Record<string, unknown>>,
+          billingInterval:
+            row.billingInterval === null ? null : String(row.billingInterval),
+          currency: row.currency === null ? null : String(row.currency),
+          recurringAmountMinor:
+            row.recurringAmountMinor === null
+              ? null
+              : Number(row.recurringAmountMinor),
+          cancelAtPeriodEnd: Boolean(row.cancelAtPeriodEnd),
         };
       });
       const usage = Effect.fn("BillingService.usage")(function* (

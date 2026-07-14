@@ -13,8 +13,7 @@ export interface CloudflareEnv {
   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: string;
   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: string;
   NEXTJS_ENV: string;
-  RESEND_FROM: string;
-  RESEND_TOKEN: string;
+  CLOUDFLARE_EMAIL_FROM: string;
   POSTING_SECRET_KEY: string;
   DATABASE_URL: string;
   NEXT_PUBLIC_APP_URL: string;

@@ -23,7 +23,7 @@ const authRoutes = createRouteMatcher([
 ]);
 
 const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
-/** Allow automation builder during onboarding (step 3) */
+/** Allow the automation builder while onboarding is in progress. */
 const onboardingAutomationRoute = createRouteMatcher(["/automations(.*)"]);
 /** OAuth consent must stay reachable for signed-in users pre-onboarding. */
 const oauthConsentRoute = createRouteMatcher(["/oauth/consent(.*)"]);

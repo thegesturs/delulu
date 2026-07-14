@@ -46,10 +46,10 @@ export function OnboardingStepper() {
 
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === 5;
-  const isPricingStep = currentStep === 5;
+  const isPricingStep = currentStep === 2;
 
   const canContinue = (() => {
-    if (currentStep === 2) {
+    if (currentStep === 3) {
       return !!hasInstagram;
     }
     if (isPricingStep) {
@@ -83,16 +83,16 @@ export function OnboardingStepper() {
     if (isLastStep) {
       return hasPaidPlan ? "Start Using Delulu" : "Choose a plan above";
     }
-    if (currentStep === 2) {
+    if (currentStep === 3) {
       return hasInstagram ? "Continue" : "Connect Instagram to continue";
     }
-    if (currentStep === 3) {
+    if (currentStep === 4) {
       return "Continue";
     }
     return "Get Started";
   };
 
-  const showSkip = !isPricingStep;
+  const showSkip = !(isPricingStep || isLastStep);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -110,10 +110,10 @@ export function OnboardingStepper() {
               transition={{ duration: 0.2 }}
             >
               {currentStep === 1 && <WelcomeStep />}
-              {currentStep === 2 && <ConnectAccountsStep />}
-              {currentStep === 3 && <AutomationSetupStep />}
-              {currentStep === 4 && <SurveyStep />}
-              {currentStep === 5 && <PricingStep />}
+              {currentStep === 2 && <PricingStep />}
+              {currentStep === 3 && <ConnectAccountsStep />}
+              {currentStep === 4 && <AutomationSetupStep />}
+              {currentStep === 5 && <SurveyStep />}
             </motion.div>
           </AnimatePresence>
         </div>

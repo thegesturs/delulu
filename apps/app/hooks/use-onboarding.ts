@@ -284,10 +284,10 @@ export function useOnboarding() {
 function getStepName(step: number): string {
   const stepNames = {
     1: "welcome",
-    2: "connect",
-    3: "automation",
-    4: "survey",
-    5: "pricing",
+    2: "pricing",
+    3: "connect",
+    4: "automation",
+    5: "survey",
   };
   return stepNames[step as keyof typeof stepNames] || "unknown";
 }

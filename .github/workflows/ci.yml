@@ -165,5 +165,9 @@ jobs:
           key: ci-install-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           fail-on-cache-miss: true
       - run: pnpm pg:migration-lint
+      - run: >-
+          node --test
+          scripts/validate-production-database-url.test.mjs
+          scripts/run-cloudflare-production-migration.test.mjs
       - run: pnpm check:connections-boundary
       - run: pnpm check:backend-cutover

@@ -5,7 +5,11 @@ import {
   AutomationPersistenceError,
 } from "@delulu/core/domain/automation";
 import { timestampToWire } from "@delulu/core/kernel/time";
-import { AutomationService, WorkspaceAccessService } from "@delulu/services";
+import {
+  AutomationService,
+  LifecycleService,
+  WorkspaceAccessService,
+} from "@delulu/services";
 import { Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { AuthenticationLive } from "./auth-middleware";
@@ -56,6 +60,7 @@ export const AutomationHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const service = yield* AutomationService;
     const workspaces = yield* WorkspaceAccessService;
+    const lifecycle = yield* LifecycleService;
     const requireAccess = Effect.fn("AutomationHandlers.requireAccess")(
       function* (
         workspaceId: string,
@@ -93,15 +98,19 @@ export const AutomationHandlers = HttpApiBuilder.group(
             params.workspaceId,
             "accounts:write"
           );
-          return view(
-            yield* exposePersistence(
-              service.create(access.workspaceId, {
-                ...payload,
-                platform: params.platform,
-                category: params.category,
-              })
-            )
+          const created = yield* exposePersistence(
+            service.create(access.workspaceId, {
+              ...payload,
+              platform: params.platform,
+              category: params.category,
+            })
           );
+          yield* lifecycle.syncWorkspace({
+            workspaceId: access.workspaceId,
+            event: "automation_created",
+            idempotencyKey: `automation-created:${created.id}`,
+          });
+          return view(created);
         })
       )
       .handle(
@@ -163,6 +172,11 @@ export const AutomationHandlers = HttpApiBuilder.group(
           yield* exposePersistence(
             service.remove(access.workspaceId, params.id)
           );
+          yield* lifecycle.syncWorkspace({
+            workspaceId: access.workspaceId,
+            event: "automation_deleted",
+            idempotencyKey: `automation-deleted:${params.id}`,
+          });
           return { deleted: true };
         })
       )

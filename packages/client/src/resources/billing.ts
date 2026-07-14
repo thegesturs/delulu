@@ -36,6 +36,19 @@ export const createBillingOptions = defineResourceOptions(
           client.billing.transactions({ params: { workspaceId }, query }),
         runner,
       }),
+    portal: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(workspaceId, "billing-portal"),
+        effect: () => client.billing.portal({ params: { workspaceId } }),
+        runner,
+      }),
+    checkout: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(workspaceId, "billing-checkout"),
+        effect: (payload: EndpointPayload<ApiClient["billing"]["checkout"]>) =>
+          client.billing.checkout({ params: { workspaceId }, payload }),
+        runner,
+      }),
     transfers: (workspaceId: string) =>
       effectQuery({
         queryKey: workspaceKeys.resource(workspaceId, "billing-transfers"),
@@ -63,6 +76,77 @@ export const createBillingOptions = defineResourceOptions(
         mutationKey: workspaceKeys.resource(workspaceId, "billing-transfers"),
         effect: (id: string) =>
           client.billing.cancelTransfer({ params: { workspaceId, id } }),
+        runner,
+      }),
+    cancellation: (workspaceId: string) =>
+      effectQuery({
+        queryKey: workspaceKeys.resource(workspaceId, "billing-cancellation"),
+        effect: () => client.billing.cancellation({ params: { workspaceId } }),
+        runner,
+      }),
+    startCancellation: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(
+          workspaceId,
+          "billing-cancellation-start"
+        ),
+        effect: (
+          payload: EndpointPayload<ApiClient["billing"]["startCancellation"]>
+        ) =>
+          client.billing.startCancellation({
+            params: { workspaceId },
+            payload,
+          }),
+        runner,
+      }),
+    acceptCancellationOffer: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(
+          workspaceId,
+          "billing-cancellation-offer"
+        ),
+        effect: (id: string) =>
+          client.billing.acceptCancellationOffer({
+            params: { workspaceId, id },
+          }),
+        runner,
+      }),
+    scheduleCancellation: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(
+          workspaceId,
+          "billing-cancellation-schedule"
+        ),
+        effect: (input: {
+          readonly id: string;
+          readonly confirmation: string;
+        }) =>
+          client.billing.scheduleCancellation({
+            params: { workspaceId, id: input.id },
+            payload: { confirmation: input.confirmation },
+          }),
+        runner,
+      }),
+    reactivateCancellation: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(
+          workspaceId,
+          "billing-cancellation-reactivate"
+        ),
+        effect: (id: string) =>
+          client.billing.reactivateCancellation({
+            params: { workspaceId, id },
+          }),
+        runner,
+      }),
+    abandonCancellation: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(
+          workspaceId,
+          "billing-cancellation-abandon"
+        ),
+        effect: (id: string) =>
+          client.billing.abandonCancellation({ params: { workspaceId, id } }),
         runner,
       }),
   })

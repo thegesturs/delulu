@@ -1,6 +1,10 @@
 import { Api } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
-import { IdentityService, MembershipService } from "@delulu/services";
+import {
+  IdentityService,
+  MembershipService,
+  MessagingService,
+} from "@delulu/services";
 import { DateTime, Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { SqlClient } from "effect/unstable/sql";
@@ -29,6 +33,7 @@ export const MeHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const identity = yield* IdentityService;
     const membership = yield* MembershipService;
+    const messaging = yield* MessagingService;
 
     return handlers
       .handle("current", () =>
@@ -63,6 +68,22 @@ export const MeHandlers = HttpApiBuilder.group(
             limit: rows.length,
             offset: 0,
           };
+        })
+      )
+      .handle("emailPreferences", () =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          return yield* messaging.preferences(auth.userId);
+        })
+      )
+      .handle("updateEmailPreferences", ({ payload }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          yield* messaging.updatePreferences({
+            userId: auth.userId,
+            ...payload,
+          });
+          return yield* messaging.preferences(auth.userId);
         })
       );
   })

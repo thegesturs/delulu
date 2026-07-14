@@ -1,4 +1,10 @@
-import { AutomationKvRepairJob, BillingReconciliation } from "@delulu/services";
+import {
+  AutomationKvRepairJob,
+  BillingReconciliation,
+  CancellationService,
+  LifecycleService,
+  MessagingService,
+} from "@delulu/services";
 import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import type { AppServices } from "./app";
@@ -8,7 +14,7 @@ const makeLayer = (
   runBatch: AutomationKvRepairJob["Service"]["runBatch"],
   onBillingRun: () => void = () => undefined
 ) =>
-  Layer.merge(
+  Layer.mergeAll(
     Layer.succeed(
       BillingReconciliation,
       BillingReconciliation.of({
@@ -19,7 +25,22 @@ const makeLayer = (
           }),
       })
     ),
-    Layer.succeed(AutomationKvRepairJob, AutomationKvRepairJob.of({ runBatch }))
+    Layer.succeed(
+      AutomationKvRepairJob,
+      AutomationKvRepairJob.of({ runBatch })
+    ),
+    Layer.succeed(
+      CancellationService,
+      CancellationService.of({ runRetention: () => Effect.void } as never)
+    ),
+    Layer.succeed(
+      LifecycleService,
+      LifecycleService.of({ runScheduled: () => Effect.void } as never)
+    ),
+    Layer.succeed(
+      MessagingService,
+      MessagingService.of({ dispatchPending: () => Effect.succeed(0) } as never)
+    )
   ) as Layer.Layer<AppServices>;
 
 describe("runMaintenance", () => {
