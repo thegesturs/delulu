@@ -58,6 +58,28 @@ interface SubscriptionRow {
   plan: string;
 }
 
+interface GrantableSaveSubscription extends SubscriptionRow {
+  providerCustomerId: string;
+  currency: string;
+  recurringAmountMinor: string | number;
+}
+
+const canGrantMonthlySave = (
+  subscription: SubscriptionRow,
+  saveAlreadyUsed: boolean
+): subscription is GrantableSaveSubscription =>
+  canOfferMonthlySave({
+    billingPeriod: subscription.billingInterval,
+    currentPeriodStart: subscription.currentPeriodStart,
+    saveAlreadyUsed,
+  }) &&
+  Boolean(
+    subscription.providerCustomerId &&
+      subscription.recurringAmountMinor &&
+      Number(subscription.recurringAmountMinor) > 0 &&
+      subscription.currency
+  );
+
 interface RequestRow {
   id: string;
   status: string;
@@ -274,11 +296,7 @@ export class CancellationService extends Context.Service<
               ? iso(cancellationDeletionAt(sub.currentPeriodEnd))
               : null,
           impact: currentImpact,
-          canOfferSave: canOfferMonthlySave({
-            billingPeriod: sub.billingInterval,
-            currentPeriodStart: sub.currentPeriodStart,
-            saveAlreadyUsed: used,
-          }),
+          canOfferSave: canGrantMonthlySave(sub, used),
           offerAmountMinor: request?.offerAmountMinor
             ? Number(request.offerAmountMinor)
             : sub.recurringAmountMinor
@@ -384,18 +402,7 @@ export class CancellationService extends Context.Service<
             });
           }
           const used = yield* alreadyUsedOffer(input.billingOwnerUserId);
-          if (
-            !(
-              canOfferMonthlySave({
-                billingPeriod: sub.billingInterval,
-                currentPeriodStart: sub.currentPeriodStart,
-                saveAlreadyUsed: used,
-              }) &&
-              sub.providerCustomerId &&
-              sub.recurringAmountMinor &&
-              sub.currency
-            )
-          ) {
+          if (!canGrantMonthlySave(sub, used)) {
             return yield* new ConflictError({
               message: "This subscription is not eligible for the save offer",
               resource: "cancellation_offer",

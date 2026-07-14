@@ -39,6 +39,11 @@ const reasons = [
   ["other", "Other"],
 ] as const;
 
+interface SaveOfferSnapshot {
+  readonly amountMinor: number;
+  readonly currency: string;
+}
+
 const readableBytes = (bytes: number) => {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -77,6 +82,7 @@ export function CancellationFlow() {
   );
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(1);
+  const [saveOffer, setSaveOffer] = useState<SaveOfferSnapshot | null>(null);
   const [reason, setReason] = useState<(typeof reasons)[number][0] | "">("");
   const [comment, setComment] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -91,8 +97,21 @@ export function CancellationFlow() {
     setComment("");
     setConfirmation("");
     setCalendarReference(null);
+    setSaveOffer(null);
   };
   const setDialogOpen = (next: boolean) => {
+    if (next) {
+      setSaveOffer(
+        cancellation?.canOfferSave &&
+          cancellation.offerAmountMinor !== null &&
+          cancellation.offerCurrency
+          ? {
+              amountMinor: cancellation.offerAmountMinor,
+              currency: cancellation.offerCurrency,
+            }
+          : null
+      );
+    }
     setOpen(next);
     if (!next) {
       resetWizard();
@@ -214,6 +233,24 @@ export function CancellationFlow() {
       `${cancellation.impact.mediaItems} (${readableBytes(cancellation.impact.mediaBytes)})`,
     ],
   ] as const;
+  const totalSteps = saveOffer ? 5 : 4;
+  const isOfferStep = saveOffer !== null && step === 4;
+  const isConfirmationStep = step === totalSteps;
+
+  const acceptSaveOffer = async () => {
+    if (!cancellation.id) {
+      return;
+    }
+    try {
+      const accepted = await acceptOffer.mutateAsync(cancellation.id);
+      queryClient.setQueryData(options.queryKey!, accepted);
+      setDialogOpen(false);
+      toast.success("Your next plan charge is covered");
+      await invalidate().catch(() => undefined);
+    } catch (error) {
+      reportError(error);
+    }
+  };
 
   return (
     <>
@@ -231,11 +268,14 @@ export function CancellationFlow() {
               {step === 1 && "Before you cancel"}
               {step === 2 && "What could we improve?"}
               {step === 3 && "Let us help"}
-              {step === 4 && "Final decision"}
+              {isOfferStep && "Stay one more month on us"}
+              {isConfirmationStep && "Final confirmation"}
             </DialogTitle>
-            <DialogDescription>Step {step} of 4</DialogDescription>
+            <DialogDescription>
+              Step {step} of {totalSteps}
+            </DialogDescription>
           </DialogHeader>
-          <Progress value={step * 25} />
+          <Progress value={(step / totalSteps) * 100} />
 
           {step === 1 && (
             <div className="space-y-4">
@@ -339,39 +379,26 @@ export function CancellationFlow() {
             </div>
           )}
 
-          {step === 4 && (
+          {isOfferStep && saveOffer && (
             <div className="space-y-4">
-              {cancellation.canOfferSave && (
-                <Alert>
-                  <AlertTitle>Stay for one more cycle on us</AlertTitle>
-                  <AlertDescription>
-                    We will credit your next plan charge of{" "}
-                    {cancellation.offerCurrency}{" "}
-                    {((cancellation.offerAmountMinor ?? 0) / 100).toFixed(2)}.
-                    Applicable taxes may remain.
-                  </AlertDescription>
-                  <Button
-                    className="mt-3"
-                    disabled={acceptOffer.isPending || !cancellation.id}
-                    onClick={async () => {
-                      if (!cancellation.id) {
-                        return;
-                      }
-                      try {
-                        await acceptOffer.mutateAsync(cancellation.id);
-                        await invalidate();
-                        setDialogOpen(false);
-                        toast.success("Your next plan charge is covered");
-                      } catch (error) {
-                        reportError(error);
-                      }
-                    }}
-                    size="sm"
-                  >
-                    Accept free cycle
-                  </Button>
-                </Alert>
-              )}
+              <Alert>
+                <AlertTitle>Your next month is covered</AlertTitle>
+                <AlertDescription>
+                  We will add {saveOffer.currency}{" "}
+                  {(saveOffer.amountMinor / 100).toFixed(2)} to your customer
+                  wallet. It will automatically cover your next recurring plan
+                  charge. Applicable taxes may remain.
+                </AlertDescription>
+              </Alert>
+              <p className="text-muted-foreground text-sm">
+                Take the free month and keep everything running, or skip this
+                offer to continue to the cancellation confirmation.
+              </p>
+            </div>
+          )}
+
+          {isConfirmationStep && (
+            <div className="space-y-4">
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
                 <label
                   className="font-medium text-sm"
@@ -413,7 +440,7 @@ export function CancellationFlow() {
                 Back
               </Button>
             )}
-            {step < 4 && (
+            {step < totalSteps && !isOfferStep && (
               <Button
                 disabled={(step === 2 && !reason) || start.isPending}
                 onClick={async () => {
@@ -436,7 +463,26 @@ export function CancellationFlow() {
                 {step === 3 ? "Continue without booking" : "Continue"}
               </Button>
             )}
-            {step === 4 && (
+            {isOfferStep && (
+              <>
+                <Button
+                  disabled={acceptOffer.isPending}
+                  onClick={() => setStep((value) => value + 1)}
+                  variant="outline"
+                >
+                  Skip and continue to cancellation
+                </Button>
+                <Button
+                  disabled={acceptOffer.isPending || !cancellation.id}
+                  onClick={acceptSaveOffer}
+                >
+                  {acceptOffer.isPending
+                    ? "Applying free month…"
+                    : "Take one month free"}
+                </Button>
+              </>
+            )}
+            {isConfirmationStep && (
               <Button
                 disabled={
                   confirmation !== "CANCEL AND DELETE" ||
