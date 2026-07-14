@@ -11,6 +11,7 @@ import { BillingOwnerTransfers } from "../../src/billing-transfer";
 import { BillingWebhookApplication } from "../../src/billing-webhooks";
 import { AuthConfig } from "../../src/config";
 import { IdentityService } from "../../src/identity";
+import { PostHogConfig, ProductAnalytics } from "../../src/product-analytics";
 import { PooledQuotaReservations } from "../../src/quota-reservations";
 import { provisionPaidSubscription } from "./paid-subscription";
 
@@ -55,12 +56,27 @@ const Config = Layer.succeed(
   })
 );
 const Reservations = PooledQuotaReservations.layer.pipe(Layer.provide(Config));
+// Disabled telemetry — BillingWebhookApplication now depends on ProductAnalytics
+// (for the "became paid" event). With `enabled: false` it is a no-op.
+const Telemetry = ProductAnalytics.layer.pipe(
+  Layer.provide(
+    Layer.succeed(
+      PostHogConfig,
+      PostHogConfig.of({
+        apiKey: "",
+        host: "https://us.i.posthog.com",
+        environment: "test",
+        enabled: false,
+      })
+    )
+  )
+);
 const AppLayer = Layer.mergeAll(
   IdentityService.layer,
   Analytics,
   BillingService.layer,
   BillingReconciliation.layer,
-  BillingWebhookApplication.layer,
+  BillingWebhookApplication.layer.pipe(Layer.provide(Telemetry)),
   BillingOwnerTransfers.layer,
   Reservations
 ).pipe(Layer.provideMerge(Pg));

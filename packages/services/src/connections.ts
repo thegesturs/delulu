@@ -138,17 +138,39 @@ export class ConnectionStateService extends Context.Service<
   );
 }
 
-const toOutput = (row: Record<string, unknown>): ConnectionOutput => ({
-  id: String(row.id),
-  platform: String(row.platform),
-  profileId: String(row.profileId),
-  username: row.username === null ? null : String(row.username),
-  displayName: row.displayName === null ? null : String(row.displayName),
-  expiresAt:
-    row.expiresAt === null
+const toIso = (value: unknown): string | null =>
+  value === null || value === undefined
+    ? null
+    : new Date(value as Date | string).toISOString();
+
+const toOutput = (row: Record<string, unknown>): ConnectionOutput => {
+  // `expires_at` is the short-lived access-token expiry. When a connection can
+  // be renewed without the user re-authenticating — an OAuth refresh token, or
+  // a self-refreshing long-lived token that records its refresh window in
+  // `metadata.refreshTokenExpiresIn` — the real re-auth deadline is when that
+  // renewal capability lapses, not when the access token does. Surfacing the
+  // effective deadline is what makes YouTube (hourly access token, durable
+  // refresh token) read as "no expiry" instead of "expires in an hour", and
+  // keeps it visually distinct from LinkedIn (no refresh, genuine ~60d expiry).
+  const refreshExpiresMs =
+    row.refreshExpiresAt === null || row.refreshExpiresAt === undefined
       ? null
-      : new Date(row.expiresAt as Date | string).toISOString(),
-});
+      : Number(row.refreshExpiresAt);
+  const refreshable = row.hasRefresh === true || refreshExpiresMs !== null;
+  const expiresAt = refreshable
+    ? refreshExpiresMs && Number.isFinite(refreshExpiresMs)
+      ? new Date(refreshExpiresMs).toISOString()
+      : null
+    : toIso(row.expiresAt);
+  return {
+    id: String(row.id),
+    platform: String(row.platform),
+    profileId: String(row.profileId),
+    username: row.username === null ? null : String(row.username),
+    displayName: row.displayName === null ? null : String(row.displayName),
+    expiresAt,
+  };
+};
 
 export class ConnectionsService extends Context.Service<
   ConnectionsService,
@@ -218,7 +240,9 @@ export class ConnectionsService extends Context.Service<
       ) {
         const rows = yield* sql<
           Record<string, unknown>
-        >`SELECT id, platform, profile_id, username, display_name, expires_at
+        >`SELECT id, platform, profile_id, username, display_name, expires_at,
+            (refresh_token IS NOT NULL) AS has_refresh,
+            metadata->>'refreshTokenExpiresIn' AS refresh_expires_at
           FROM connections WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`.pipe(
           Effect.orDie
         );

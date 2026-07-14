@@ -26,6 +26,7 @@ import type {
   MessagingService,
   OAuthFlowService,
   PostService,
+  ProductAnalytics,
   QuotaGuard,
   R2Service,
   RateLimiterService,
@@ -67,6 +68,7 @@ export type AppServices =
   | MembershipService
   | OAuthFlowService
   | QuotaGuard
+  | ProductAnalytics
   | RateLimiterService
   | AuthorizationService
   | WorkspaceAccessService

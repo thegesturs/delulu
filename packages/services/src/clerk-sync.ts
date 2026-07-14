@@ -1,9 +1,11 @@
+import { SIGNUP_COMPLETED } from "@delulu/analytics/events";
 import type { ClerkWebhookPayload } from "@delulu/contracts";
 import type { WorkspaceRole } from "@delulu/core/domain/workspace-member";
 import { MemberId, makeId, WorkspaceId } from "@delulu/core/kernel/ids";
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { IdentityService } from "./identity";
+import { ProductAnalytics } from "./product-analytics";
 
 export class ClerkSyncError extends Schema.TaggedErrorClass<ClerkSyncError>()(
   "ClerkSyncError",
@@ -48,6 +50,7 @@ export class ClerkSyncService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const identities = yield* IdentityService;
+      const analytics = yield* ProductAnalytics;
       const execute = <A, E>(eventType: string, effect: Effect.Effect<A, E>) =>
         effect.pipe(
           Effect.mapError(() =>
@@ -80,6 +83,46 @@ export class ClerkSyncService extends Context.Service<
               event.type,
               sql`UPDATE users SET email = ${email}, name = ${name}, image_url = ${event.data.image_url ?? null}, identity_deleted_at = NULL WHERE id = ${resolved.user.id}`
             );
+            // Authoritative signup signal. Clerk emits `user.created` exactly
+            // once per new user, so this is more reliable than the client-side
+            // `createdAt < 60s` heuristic. We key the person on our internal
+            // user id (the canonical server-side id) and merge the Clerk id
+            // (used by web/CLI) into it via `$create_alias`.
+            if (event.type === "user.created") {
+              const internalId = resolved.user.id;
+              const clerkId = event.data.id;
+              const workspace = resolved.personalWorkspace;
+              yield* analytics.identify({
+                distinctId: internalId,
+                set: { email, name, clerk_id: clerkId },
+                setOnce: { first_platform: "api", signup_via: "clerk" },
+              });
+              yield* analytics.alias({
+                distinctId: internalId,
+                alias: clerkId,
+              });
+              if (workspace) {
+                yield* analytics.groupIdentify({
+                  type: "workspace",
+                  key: workspace.id,
+                  set: {
+                    name: workspace.name,
+                    plan: "FREE",
+                    is_personal: true,
+                  },
+                });
+              }
+              yield* analytics.capture({
+                distinctId: internalId,
+                event: SIGNUP_COMPLETED,
+                ...(workspace ? { groups: { workspace: workspace.id } } : {}),
+                properties: {
+                  platform: "api",
+                  has_workspace: workspace !== null,
+                  ...(email ? { email } : {}),
+                },
+              });
+            }
             return;
           }
           case "user.deleted":

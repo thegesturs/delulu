@@ -37,43 +37,6 @@ interface LinkedInUserResponse {
   };
 }
 
-/**
- * Sanitizes and creates a safe username fragment from a name (ported verbatim
- * from the callback route).
- */
-function sanitizeText(text: string): string {
-  if (!text || typeof text !== "string") {
-    return "";
-  }
-
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]/g, "")
-    .replace(/\s+/g, "")
-    .slice(0, 20);
-}
-
-/**
- * Generates a username from first and last names with fallback strategies
- * (ported verbatim from the callback route).
- */
-function generateUniqueUsername(firstName: string, lastName: string): string {
-  const sanitizedFirst = sanitizeText(firstName);
-  const sanitizedLast = sanitizeText(lastName);
-
-  if (sanitizedFirst && sanitizedLast) {
-    return `${sanitizedFirst}.${sanitizedLast}`;
-  }
-  if (sanitizedFirst) {
-    return sanitizedFirst;
-  }
-  if (sanitizedLast) {
-    return sanitizedLast;
-  }
-  return "user";
-}
-
 export const linkedinAuth: PlatformAuth = {
   scopes: SCOPES,
   isMultiStep: false,
@@ -156,10 +119,12 @@ export const linkedinAuth: PlatformAuth = {
 
       const userObject = (await userResponse.json()) as LinkedInUserResponse;
 
-      const username = generateUniqueUsername(
-        userObject.localizedFirstName,
-        userObject.localizedLastName
-      );
+      // LinkedIn's API exposes no public @handle, so we don't fabricate one —
+      // the account surfaces under its full name only. (`expiresIn` is the
+      // access-token expiry; LinkedIn issues no refresh token here, so this is
+      // the genuine re-auth deadline.)
+      const fullName =
+        `${userObject.localizedFirstName} ${userObject.localizedLastName}`.trim();
 
       const profileImage =
         userObject.profilePicture?.["displayImage~"]?.elements[0]
@@ -170,10 +135,8 @@ export const linkedinAuth: PlatformAuth = {
         socialType: "LINKEDIN",
         accessToken: access_token,
         expiresIn: Date.now() + expires_in * 1000,
-        refreshTokenExpiresIn: Date.now() + 2 * 30 * 24 * 60 * 60 * 1000,
         profileId: userObject.id,
-        username,
-        fullName: `${userObject.localizedFirstName} ${userObject.localizedLastName}`,
+        fullName,
         profileImage: profileImage ?? "/images/user.png",
       } as const;
       const status = await ctx.upsert(connection);
@@ -184,7 +147,7 @@ export const linkedinAuth: PlatformAuth = {
         );
       }
 
-      ctx.onConnected?.({ provider: "linkedin", username });
+      ctx.onConnected?.({ provider: "linkedin", username: fullName });
       return callbackRedirect("/socials");
     } catch (error) {
       console.error("LinkedIn callback error:", error);

@@ -29,14 +29,16 @@ function accountStatus(expiresAt: string | null): {
   status: AccountStatus;
   label: string;
   variant: "green" | "amber" | "red";
-  stateLine: string;
+  /** Null when healthy — a far-off or auto-renewing token needs no callout. */
+  stateLine: string | null;
 } {
   if (!expiresAt) {
+    // Auto-renewing (refresh token / long-lived) — no manual action, no date.
     return {
       status: "active",
       label: "Active",
       variant: "green",
-      stateLine: "No expiry",
+      stateLine: null,
     };
   }
   const expires = new Date(expiresAt).getTime();
@@ -48,22 +50,25 @@ function accountStatus(expiresAt: string | null): {
       variant: "red",
       stateLine: `Expired ${formatDistanceToNow(new Date(expiresAt), {
         addSuffix: true,
-      })}`,
+      })} — reconnect`,
     };
   }
   if (expires - now <= 7 * 86_400_000) {
+    // Only inside the 7-day window do we surface the date, since these tokens
+    // (e.g. LinkedIn) don't auto-refresh and need a manual reconnect.
     return {
       status: "expiring",
       label: "Expires soon",
       variant: "amber",
-      stateLine: `Token expires ${new Date(expiresAt).toLocaleDateString()}`,
+      stateLine: `Reconnect by ${new Date(expiresAt).toLocaleDateString()}`,
     };
   }
+  // Expires, but far enough out that showing a date is just noise.
   return {
     status: "active",
     label: "Active",
     variant: "green",
-    stateLine: `Token expires ${new Date(expiresAt).toLocaleDateString()}`,
+    stateLine: null,
   };
 }
 
@@ -78,7 +83,12 @@ export default function ConnectedAccounts() {
   const accounts = useQuery({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
-    staleTime: 30_000,
+    // Token health changes out-of-band: a connect/disconnect completes on the
+    // provider (a full-page OAuth round-trip) and the background refresh worker
+    // renews tokens. Treat the list as always stale so returning to this tab —
+    // or the post-OAuth redirect landing here — refetches instead of showing a
+    // cached snapshot. SocialNotifications also invalidates it on `?success`.
+    staleTime: 0,
     retry: 2,
   });
   const removeConnection = useMutation({
@@ -208,6 +218,12 @@ export default function ConnectedAccounts() {
                 {filteredAccounts.map((account) => {
                   const platform = normalizePlatform(account.platform);
                   const status = accountStatus(account.expiresAt);
+                  const subtitle = [
+                    account.username ? `@${account.username}` : null,
+                    status.stateLine,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
                   return (
                     <div
                       className="flex items-center gap-3 px-4 py-3"
@@ -239,12 +255,11 @@ export default function ConnectedAccounts() {
                             {status.label}
                           </Badge>
                         </div>
-                        <p className="truncate text-muted-foreground text-xs">
-                          {account.username
-                            ? `@${account.username}`
-                            : account.profileId}{" "}
-                          · {status.stateLine}
-                        </p>
+                        {subtitle && (
+                          <p className="truncate text-muted-foreground text-xs">
+                            {subtitle}
+                          </p>
+                        )}
                       </div>
                       <AccountActionsMenu
                         account={account}

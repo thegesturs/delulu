@@ -7,6 +7,7 @@ import {
   AuthConfig,
   ClerkAdminConfig,
   ConnectionStateConfig,
+  PostHogConfig,
   R2Config,
 } from "@delulu/services";
 import { Layer } from "effect";
@@ -64,6 +65,9 @@ export interface Env {
       readonly headers?: Readonly<Record<string, string>>;
     }): Promise<void>;
   };
+  readonly POSTHOG_KEY?: string;
+  readonly POSTHOG_HOST?: string;
+  readonly ENVIRONMENT?: string;
 
   readonly RL_API_20?: CfRateLimiter;
   readonly RL_API_60?: CfRateLimiter;
@@ -103,6 +107,18 @@ export const authConfigLayer = (env: Env): Layer.Layer<AuthConfig> =>
       appBaseUrl: env.APP_BASE_URL ?? "http://localhost:3000",
       asSigningKeyPem: env.AS_SIGNING_KEY,
       asSigningKid: env.AS_SIGNING_KID,
+    })
+  );
+
+/** Build the `PostHogConfig` layer from the Worker env. Disabled when no key. */
+export const postHogConfigLayer = (env: Env): Layer.Layer<PostHogConfig> =>
+  Layer.succeed(
+    PostHogConfig,
+    PostHogConfig.of({
+      apiKey: env.POSTHOG_KEY ?? "",
+      host: env.POSTHOG_HOST ?? "https://us.i.posthog.com",
+      environment: env.ENVIRONMENT ?? "development",
+      enabled: Boolean(env.POSTHOG_KEY),
     })
   );
 

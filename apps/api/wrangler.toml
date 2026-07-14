@@ -35,6 +35,11 @@ AS_ISSUER = "https://api.delulu.social"
 API_RESOURCE = "https://api.delulu.social"
 APP_BASE_URL = "https://solulu.delulu.social"
 DODO_PAYMENTS_ENVIRONMENT = "live_mode"
+# Public PostHog ingestion key (same client key shipped in the web/app bundles)
+# and server-side product-analytics config. Not a secret.
+POSTHOG_KEY = "phc_A5NWdEHAyUyzoUUSKnemshpamt3MCdbh9ztSxH0RvQV"
+POSTHOG_HOST = "https://us.i.posthog.com"
+ENVIRONMENT = "production"
 CLERK_ISSUER = "https://clerk.delulu.social"
 R2_BUCKET_NAME = "delulu-social"
 R2_PUBLIC_BASE_URL = "https://media.delulu.social"
