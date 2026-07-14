@@ -26,6 +26,8 @@ const onboardingRoute = createRouteMatcher(["/onboarding(.*)"]);
 /** Allow automation builder during onboarding (step 3) */
 const onboardingAutomationRoute = createRouteMatcher(["/automations(.*)"]);
 const oauthDeviceRoute = createRouteMatcher(["/oauth/device(.*)"]);
+/** OAuth consent must stay reachable for signed-in users pre-onboarding. */
+const oauthConsentRoute = createRouteMatcher(["/oauth/consent(.*)"]);
 const maintenanceRoute = createRouteMatcher(["/maintenance(.*)"]);
 const maintenanceBypassRoutes = createRouteMatcher([
   "/api(.*)",
@@ -86,7 +88,8 @@ export default clerkMiddleware(async (auth, req) => {
     userId &&
     (onboardingRoute(req) ||
       onboardingAutomationRoute(req) ||
-      oauthDeviceRoute(req))
+      oauthDeviceRoute(req) ||
+      oauthConsentRoute(req))
   ) {
     return withGeoCookie(NextResponse.next());
   }

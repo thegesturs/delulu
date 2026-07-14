@@ -58,14 +58,18 @@ export class AuthorizationService extends Context.Service<
         }),
       enforceWorkspaceBinding: (auth, pathWorkspaceId) =>
         Effect.suspend(() => {
+          // API keys and workspace-bound OAuth tokens may only act on the one
+          // workspace they were pinned to; a session/unbound token is unaffected.
           if (
-            auth.credential === "apiKey" &&
-            auth.keyWorkspaceId !== undefined &&
-            auth.keyWorkspaceId !== pathWorkspaceId
+            auth.boundWorkspaceId !== undefined &&
+            auth.boundWorkspaceId !== pathWorkspaceId
           ) {
             return Effect.fail(
               new ForbiddenError({
-                message: "API key is not valid for this workspace",
+                message:
+                  auth.credential === "apiKey"
+                    ? "API key is not valid for this workspace"
+                    : "This authorization is not valid for this workspace",
               })
             );
           }

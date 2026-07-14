@@ -6,7 +6,7 @@ description: Set up and operate Delulu Social through its CLI or hosted MCP tool
 # Manage Social Publishing
 
 Use hosted MCP tools when they are already available. Otherwise install and run
-the `@delulu/cli` package. Never print, paste into conversation, or manually copy
+the `delulu-cli` package. Never print, paste into conversation, or manually copy
 access or refresh tokens.
 
 ## Authorize

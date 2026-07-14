@@ -1,3 +1,4 @@
+-- Agent authorization, onboarding reconciliation, and remote media imports.
 CREATE TYPE oauth_device_status AS ENUM (
   'pending',
   'approved',

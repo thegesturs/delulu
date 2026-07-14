@@ -68,6 +68,25 @@ const ConnectionPlatform = Schema.Struct({
 const iso = (value: DateTime.Utc | null): string | null =>
   value === null ? null : DateTime.formatIso(value);
 
+/**
+ * Normalizes the optional `status` filter into a status list. Accepts a single
+ * value ("failed") or a comma-separated set ("failed,partially_failed") so a
+ * caller like the dashboard's failed-posts card can count every post that needs
+ * attention. Returns null when no usable filter was supplied, meaning "no
+ * status constraint" — critically, both the row query and the total count read
+ * from this same parse so the headline number can never drift from the rows.
+ */
+const parseStatuses = (status: string | undefined): string[] | null => {
+  if (!status) {
+    return null;
+  }
+  const list = status
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : null;
+};
+
 /** Post graph commands and hydrated reads. All cross-row changes are atomic. */
 export class PostService extends Context.Service<
   PostService,
@@ -188,14 +207,16 @@ export class PostService extends Context.Service<
           status: Schema.optional(Schema.String),
         }),
         Result: PostRow,
-        execute: ({ workspaceId, limit, offset, status }) =>
-          status
+        execute: ({ workspaceId, limit, offset, status }) => {
+          const statuses = parseStatuses(status);
+          return statuses
             ? sql`SELECT id, workspace_id, status, content, source, external_submission_id, created_at, updated_at
-                  FROM posts WHERE workspace_id = ${workspaceId} AND deleted_at IS NULL AND status = ${status}
+                  FROM posts WHERE workspace_id = ${workspaceId} AND deleted_at IS NULL AND status IN ${sql.in(statuses)}
                   ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
             : sql`SELECT id, workspace_id, status, content, source, external_submission_id, created_at, updated_at
                   FROM posts WHERE workspace_id = ${workspaceId} AND deleted_at IS NULL
-                  ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+                  ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+        },
       });
       const findPost = SqlSchema.findOneOption({
         Request: Schema.Struct({
@@ -245,12 +266,13 @@ export class PostService extends Context.Service<
         const targets = yield* findTargets(posts.map((post) => post.id)).pipe(
           Effect.orDie
         );
+        const statuses = parseStatuses(input.status);
         const totals = yield* (
-          input.status
+          statuses
             ? sql<{
                 count: string;
               }>`SELECT count(*)::text AS count FROM posts
-                WHERE workspace_id = ${input.workspaceId} AND deleted_at IS NULL AND status = ${input.status}`
+                WHERE workspace_id = ${input.workspaceId} AND deleted_at IS NULL AND status IN ${sql.in(statuses)}`
             : sql<{
                 count: string;
               }>`SELECT count(*)::text AS count FROM posts

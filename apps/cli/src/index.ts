@@ -12,6 +12,11 @@ import { Command } from "commander";
 import { getContractClient, getWorkspaceId, printResult } from "./api.js";
 import { deleteCredentials } from "./config.js";
 import { login } from "./oauth.js";
+import {
+  reportInvocation,
+  shutdownTelemetry,
+  trackCommand,
+} from "./telemetry.js";
 import { uploadLocalMedia } from "./upload.js";
 
 interface GlobalOptions {
@@ -27,6 +32,21 @@ program
   .option("--api-url <url>", "Delulu API URL")
   .option("--workspace <id>", "Workspace ID for this command")
   .option("--json", "Print JSON output");
+
+// Record which command ran, for a single metadata-only analytics event per
+// invocation (fired from the parse handlers below). The full command path
+// (e.g. "posts create") is reconstructed from the action command's ancestry.
+program.hook("preAction", (_thisCommand, actionCommand) => {
+  const parts: string[] = [];
+  for (
+    let current: Command | null = actionCommand;
+    current && current !== program;
+    current = current.parent
+  ) {
+    parts.unshift(current.name());
+  }
+  trackCommand(parts.join(" ") || actionCommand.name());
+});
 
 program
   .command("login")
@@ -170,6 +190,22 @@ media
       }),
       options.json
     );
+  });
+
+accounts
+  .command("connect <platform>")
+  .description("Generate a connection URL for a platform")
+  .option("--insights", "Request insights permissions")
+  .action(async (platform, cmd) => {
+    const options = program.opts<GlobalOptions>();
+    const workspaceId = await getWorkspaceId(options);
+    const result = await runEffect(
+      getContractClient(options).connections.mint({
+        params: { workspaceId, platform },
+        payload: cmd.insights ? { includeInsights: true } : {},
+      })
+    );
+    printResult(result, options.json);
   });
 
 const stats = program.command("stats").description("View stats");
@@ -471,7 +507,15 @@ async function commandPostPayload(
   });
 }
 
-program.parseAsync(process.argv).catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+program
+  .parseAsync(process.argv)
+  .then(async () => {
+    await reportInvocation(true);
+    await shutdownTelemetry();
+  })
+  .catch(async (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    await reportInvocation(false);
+    await shutdownTelemetry();
+    process.exit(1);
+  });

@@ -6,6 +6,7 @@ import {
   OAuthGrantId,
   OAuthRefreshTokenId,
   UserId,
+  WorkspaceId,
 } from "../kernel/ids";
 import { Scope } from "./auth";
 import { domainErrorFields, entityFields, repository } from "./shared";
@@ -48,6 +49,7 @@ export class OAuthAuthorizationCode extends Model.Class<OAuthAuthorizationCode>(
   codeChallengeMethod: Schema.Literals(["S256"]),
   redirectUri: Schema.String,
   resource: Schema.NullOr(Schema.String),
+  workspaceId: Schema.NullOr(WorkspaceId),
   expiresAt: Schema.DateTimeUtcFromDate,
   consumedAt: Schema.NullOr(Schema.DateTimeUtcFromDate),
 }) {}
@@ -97,6 +99,7 @@ export class OAuthRefreshToken extends Model.Class<OAuthRefreshToken>(
   clientId: Schema.String,
   scopes: Schema.Array(Scope),
   resource: Schema.NullOr(Schema.String),
+  workspaceId: Schema.NullOr(WorkspaceId),
   familyId: Schema.String,
   rotatedFrom: Schema.NullOr(Schema.String),
   expiresAt: Schema.DateTimeUtcFromDate,

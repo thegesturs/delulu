@@ -22,6 +22,8 @@ export interface AccessTokenClaims {
   readonly sub: string;
   readonly scopes: readonly Scope[];
   readonly aud: string;
+  /** Workspace the token is bound to (`wid` claim); null ⇒ unrestricted. */
+  readonly workspaceId: string | null;
 }
 
 export interface IssuedAccessToken {
@@ -41,6 +43,7 @@ export class AsTokenService extends Context.Service<
       readonly sub: string;
       readonly scopes: readonly Scope[];
       readonly resource: string;
+      readonly workspaceId?: string | null;
     }) => Effect.Effect<IssuedAccessToken>;
     readonly verifyAccessToken: (
       token: string
@@ -99,6 +102,7 @@ export class AsTokenService extends Context.Service<
         readonly sub: string;
         readonly scopes: readonly Scope[];
         readonly resource: string;
+        readonly workspaceId?: string | null;
       }) =>
         Effect.gen(function* () {
           const now = Math.floor(Date.now() / 1000);
@@ -109,8 +113,12 @@ export class AsTokenService extends Context.Service<
               {
                 iss: config.asIssuer,
                 sub: input.sub,
-                aud: input.resource,
+                // RFC 8707: when the client requests no specific resource, the
+                // token is audience-bound to our own API so it verifies here.
+                aud: input.resource || config.apiResource,
                 scope: scopesToString(input.scopes),
+                // Optional workspace binding — omitted when unrestricted.
+                ...(input.workspaceId ? { wid: input.workspaceId } : {}),
                 iat: now,
                 exp: now + ACCESS_TOKEN_TTL_SECONDS,
               }
@@ -167,6 +175,8 @@ export class AsTokenService extends Context.Service<
                 : undefined
             ),
             aud: config.apiResource,
+            workspaceId:
+              typeof parsed.claims.wid === "string" ? parsed.claims.wid : null,
           } satisfies AccessTokenClaims;
         });
 

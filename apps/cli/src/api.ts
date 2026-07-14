@@ -18,8 +18,32 @@ export function getContractClient(options: RequestOptions = {}) {
   });
 }
 
+/**
+ * The workspace a workspace-bound token was minted for, read from its `wid`
+ * claim. A bound token only works against this workspace, so it is the correct
+ * default when the user has not overridden it.
+ */
+async function boundWorkspaceId() {
+  const credentials = await readCredentials();
+  const payload = credentials?.accessToken.split(".")[1];
+  if (!payload) {
+    return undefined;
+  }
+  try {
+    const claims = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    ) as { wid?: string };
+    return typeof claims.wid === "string" ? claims.wid : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function getWorkspaceId(options: RequestOptions = {}) {
-  const selected = options.workspace || process.env.DELULU_WORKSPACE_ID;
+  const selected =
+    options.workspace ||
+    process.env.DELULU_WORKSPACE_ID ||
+    (await boundWorkspaceId());
   if (selected) {
     return selected;
   }

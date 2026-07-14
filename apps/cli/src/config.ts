@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 export const DEFAULT_API_URL = "https://api.delulu.social";
-export const REDIRECT_URI = "http://127.0.0.1:32123/oauth/callback";
+export const REDIRECT_URI = "http://127.0.0.1:32123/callback";
 export const OAUTH_SCOPES =
   "posts:read posts:write accounts:read accounts:write stats:read media:write billing:write";
 

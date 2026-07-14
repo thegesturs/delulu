@@ -326,6 +326,7 @@ export const OAuthRoutes = HttpRouter.use((router) =>
             codeChallenge: body.code_challenge ?? "",
             codeChallengeMethod: body.code_challenge_method ?? "S256",
             resource: body.resource ?? null,
+            workspaceId: body.workspace_id ?? null,
           })
           .pipe(Effect.result);
         if (issue._tag === "Failure") {

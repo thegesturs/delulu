@@ -65,6 +65,8 @@ export interface IssueCodeInput {
   readonly codeChallenge: string;
   readonly codeChallengeMethod: string;
   readonly resource: string | null;
+  /** Workspace the resulting token is bound to; null ⇒ unrestricted. */
+  readonly workspaceId: string | null;
 }
 
 export interface ExchangeCodeInput {
@@ -300,6 +302,7 @@ export class OAuthFlowService extends Context.Service<
         readonly clientId: string;
         readonly scopes: readonly Scope[];
         readonly resource: string | null;
+        readonly workspaceId: string | null;
         readonly familyId: string;
         readonly rotatedFrom: string | null;
       }): Effect.Effect<string> =>
@@ -320,6 +323,8 @@ export class OAuthFlowService extends Context.Service<
                 clientId: input.clientId,
                 scopes: input.scopes,
                 resource: input.resource,
+                workspaceId:
+                  input.workspaceId as OAuthRefreshToken["workspaceId"],
                 familyId: input.familyId,
                 rotatedFrom: input.rotatedFrom,
                 expiresAt,
@@ -334,6 +339,7 @@ export class OAuthFlowService extends Context.Service<
         readonly userId: string;
         readonly scopes: readonly Scope[];
         readonly resource: string;
+        readonly workspaceId: string | null;
         readonly refreshToken: string;
       }): Effect.Effect<OAuthTokenResponse> =>
         tokens
@@ -341,6 +347,7 @@ export class OAuthFlowService extends Context.Service<
             sub: input.userId,
             scopes: input.scopes,
             resource: input.resource,
+            workspaceId: input.workspaceId,
           })
           .pipe(
             Effect.map((access) => ({
@@ -390,6 +397,8 @@ export class OAuthFlowService extends Context.Service<
                 codeChallengeMethod: "S256",
                 redirectUri: input.redirectUri,
                 resource: input.resource,
+                workspaceId:
+                  input.workspaceId as OAuthAuthorizationCode["workspaceId"],
                 expiresAt,
                 consumedAt: null,
               })
@@ -443,6 +452,7 @@ export class OAuthFlowService extends Context.Service<
             clientId: code.clientId,
             scopes: code.scopes,
             resource: code.resource,
+            workspaceId: code.workspaceId,
             familyId,
             rotatedFrom: null,
           });
@@ -450,6 +460,7 @@ export class OAuthFlowService extends Context.Service<
             userId: code.userId,
             scopes: code.scopes,
             resource,
+            workspaceId: code.workspaceId,
             refreshToken,
           });
         });
@@ -491,6 +502,7 @@ export class OAuthFlowService extends Context.Service<
             clientId: token.clientId,
             scopes: token.scopes,
             resource: token.resource,
+            workspaceId: token.workspaceId,
             familyId: token.familyId,
             rotatedFrom: token.id,
           });
@@ -498,6 +510,7 @@ export class OAuthFlowService extends Context.Service<
             userId: token.userId,
             scopes: token.scopes,
             resource: token.resource ?? "",
+            workspaceId: token.workspaceId,
             refreshToken: newRefresh,
           });
         });
@@ -676,6 +689,7 @@ export class OAuthFlowService extends Context.Service<
                 clientId: device.clientId,
                 scopes: device.scopes,
                 resource: device.resource,
+                workspaceId: null,
                 familyId: randomTokenBase64Url(16),
                 rotatedFrom: null,
               });
@@ -686,6 +700,7 @@ export class OAuthFlowService extends Context.Service<
           userId: approvedUserId,
           scopes: device.scopes,
           resource: device.resource ?? "",
+          workspaceId: null,
           refreshToken,
         });
       });
