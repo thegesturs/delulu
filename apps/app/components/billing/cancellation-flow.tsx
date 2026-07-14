@@ -1,0 +1,397 @@
+"use client";
+
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@delulu/design-system/components/ui/alert";
+import { Button } from "@delulu/design-system/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@delulu/design-system/components/ui/dialog";
+import { Input } from "@delulu/design-system/components/ui/input";
+import { Progress } from "@delulu/design-system/components/ui/progress";
+import {
+  RadioGroup,
+  RadioGroupItem,
+} from "@delulu/design-system/components/ui/radio-group";
+import { Textarea } from "@delulu/design-system/components/ui/textarea";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+
+const reasons = [
+  ["too_expensive", "Too expensive"],
+  ["missing_features", "Missing features"],
+  ["switched_service", "Switched to another service"],
+  ["unused", "I am not using it enough"],
+  ["customer_service", "Customer service"],
+  ["low_quality", "Quality did not meet expectations"],
+  ["too_complex", "Too complex"],
+  ["other", "Other"],
+] as const;
+
+const readableBytes = (bytes: number) => {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 ** 2) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  if (bytes < 1024 ** 3) {
+    return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  }
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+};
+
+export function CancellationFlow() {
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const workspaceId = workspace.workspaceId ?? "";
+  const queryClient = useQueryClient();
+  const options = resources.billing.cancellation(workspaceId);
+  const query = useQuery({
+    ...options,
+    queryKey: options.queryKey!,
+    enabled: Boolean(workspace.workspaceId),
+    refetchInterval: (state) =>
+      state.state.data?.status === "open" ? 5000 : false,
+  });
+  const start = useMutation(resources.billing.startCancellation(workspaceId));
+  const acceptOffer = useMutation(
+    resources.billing.acceptCancellationOffer(workspaceId)
+  );
+  const schedule = useMutation(
+    resources.billing.scheduleCancellation(workspaceId)
+  );
+  const reactivate = useMutation(
+    resources.billing.reactivateCancellation(workspaceId)
+  );
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  const [reason, setReason] = useState<(typeof reasons)[number][0] | "">("");
+  const [comment, setComment] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [calendarReference, setCalendarReference] = useState<string | null>(
+    null
+  );
+  const cancellation = query.data;
+
+  useEffect(() => {
+    if (open && cancellation?.status === "call_booked") {
+      toast.success("Your retention call is booked", {
+        description: "No cancellation has been scheduled.",
+      });
+      setOpen(false);
+    }
+  }, [cancellation?.status, open]);
+
+  const calendarUrl = useMemo(() => {
+    if (!calendarReference) {
+      return null;
+    }
+    const url = new URL("https://cal.com/swaraj/retention");
+    url.searchParams.set("embed", "true");
+    url.searchParams.set("metadata[cancellationReference]", calendarReference);
+    return url.toString();
+  }, [calendarReference]);
+
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: options.queryKey! }),
+      queryClient.invalidateQueries({
+        queryKey: resources.billing.subscription(workspaceId).queryKey!,
+      }),
+    ]);
+  };
+
+  if (query.isPending || !cancellation) {
+    return null;
+  }
+  if (cancellation.status === "scheduled") {
+    return (
+      <Button
+        className="flex-1"
+        disabled={reactivate.isPending || !cancellation.id}
+        onClick={async () => {
+          if (!cancellation.id) {
+            return;
+          }
+          await reactivate.mutateAsync(cancellation.id);
+          await invalidate();
+          toast.success("Your subscription will continue");
+        }}
+        variant="outline"
+      >
+        {reactivate.isPending ? "Restoring…" : "Keep subscription"}
+      </Button>
+    );
+  }
+  if (
+    cancellation.status === "effective" ||
+    cancellation.status === "deleting"
+  ) {
+    return (
+      <Button
+        className="flex-1"
+        disabled={reactivate.isPending || !cancellation.id}
+        onClick={async () => {
+          if (!cancellation.id) {
+            return;
+          }
+          const result = await reactivate.mutateAsync(cancellation.id);
+          if (result.recoveryUrl) {
+            window.location.assign(result.recoveryUrl);
+          }
+        }}
+      >
+        {reactivate.isPending ? "Opening checkout…" : "Restore access"}
+      </Button>
+    );
+  }
+
+  const impactItems = [
+    ["Workspaces", cancellation.impact.workspaces],
+    ["Workspace members", cancellation.impact.members],
+    ["Posts", cancellation.impact.posts],
+    ["Scheduled posts", cancellation.impact.scheduledPosts],
+    ["Connections", cancellation.impact.connections],
+    ["Automations", cancellation.impact.automations],
+    [
+      "Media",
+      `${cancellation.impact.mediaItems} (${readableBytes(cancellation.impact.mediaBytes)})`,
+    ],
+  ] as const;
+
+  return (
+    <>
+      <Button
+        className="flex-1"
+        onClick={() => setOpen(true)}
+        variant="outline"
+      >
+        Cancel subscription
+      </Button>
+      <Dialog onOpenChange={setOpen} open={open}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {step === 1 && "Before you cancel"}
+              {step === 2 && "What could we improve?"}
+              {step === 3 && "Let us help"}
+              {step === 4 && "Final decision"}
+            </DialogTitle>
+            <DialogDescription>Step {step} of 4</DialogDescription>
+          </DialogHeader>
+          <Progress value={step * 25} />
+
+          {step === 1 && (
+            <div className="space-y-4">
+              <Alert variant="destructive">
+                <AlertTitle>
+                  All funded workspace data will be deleted
+                </AlertTitle>
+                <AlertDescription>
+                  Access continues until{" "}
+                  {cancellation.currentPeriodEnd
+                    ? format(new Date(cancellation.currentPeriodEnd), "PPP")
+                    : "the paid term ends"}
+                  . Permanent deletion is scheduled for{" "}
+                  {cancellation.dataDeletionAt
+                    ? format(new Date(cancellation.dataDeletionAt), "PPP")
+                    : "60 days after term end"}
+                  , unless you restore the subscription.
+                </AlertDescription>
+              </Alert>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {impactItems.map(([label, value]) => (
+                  <div
+                    className="flex justify-between rounded-lg border p-3 text-sm"
+                    key={label}
+                  >
+                    <span className="text-muted-foreground">{label}</span>
+                    <strong>{value}</strong>
+                  </div>
+                ))}
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Affected:{" "}
+                {cancellation.impact.workspaceNames.join(", ") ||
+                  "No workspaces"}
+                . Every member will receive advance warnings.
+              </p>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <RadioGroup
+                onValueChange={(value) => setReason(value as typeof reason)}
+                value={reason}
+              >
+                {reasons.map(([value, label]) => (
+                  <label
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border p-3"
+                    htmlFor={`cancellation-reason-${value}`}
+                    key={value}
+                  >
+                    <RadioGroupItem
+                      id={`cancellation-reason-${value}`}
+                      value={value}
+                    />
+                    <span className="text-sm">{label}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+              <Textarea
+                maxLength={1000}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Anything else you want us to know? (optional)"
+                rows={4}
+                value={comment}
+              />
+              <p className="text-right text-muted-foreground text-xs">
+                {comment.length}/1000
+              </p>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                Book a free 15-minute call. You may use any attendee email—the
+                booking is securely linked to this request without matching your
+                name or email.
+              </p>
+              {calendarUrl ? (
+                <iframe
+                  className="h-[540px] w-full rounded-lg border"
+                  src={calendarUrl}
+                  title="Book a retention call"
+                />
+              ) : (
+                <div className="rounded-lg border p-6 text-center text-muted-foreground text-sm">
+                  Preparing the secure calendar…
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4">
+              {cancellation.canOfferSave && (
+                <Alert>
+                  <AlertTitle>Stay for one more cycle on us</AlertTitle>
+                  <AlertDescription>
+                    We will credit your next plan charge of{" "}
+                    {cancellation.offerCurrency}{" "}
+                    {((cancellation.offerAmountMinor ?? 0) / 100).toFixed(2)}.
+                    Applicable taxes may remain.
+                  </AlertDescription>
+                  <Button
+                    className="mt-3"
+                    disabled={acceptOffer.isPending || !cancellation.id}
+                    onClick={async () => {
+                      if (!cancellation.id) {
+                        return;
+                      }
+                      await acceptOffer.mutateAsync(cancellation.id);
+                      await invalidate();
+                      setOpen(false);
+                      toast.success("Your next plan charge is covered");
+                    }}
+                    size="sm"
+                  >
+                    Accept free cycle
+                  </Button>
+                </Alert>
+              )}
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                <p className="font-medium text-sm">
+                  Type CANCEL AND DELETE to schedule cancellation.
+                </p>
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Paid access continues until the displayed term end, when
+                  publishing and automations stop. Every listed billed workspace
+                  and all product data will be permanently deleted on{" "}
+                  {cancellation.dataDeletionAt
+                    ? format(new Date(cancellation.dataDeletionAt), "PPP")
+                    : "the day-60 deletion date"}
+                  . Other members lose access and data too. Reactivating before
+                  deletion cancels the deletion.
+                </p>
+                <Input
+                  className="mt-3"
+                  onChange={(event) => setConfirmation(event.target.value)}
+                  placeholder="CANCEL AND DELETE"
+                  value={confirmation}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {step > 1 && (
+              <Button
+                onClick={() => setStep((value) => value - 1)}
+                variant="outline"
+              >
+                Back
+              </Button>
+            )}
+            {step < 4 && (
+              <Button
+                disabled={(step === 2 && !reason) || start.isPending}
+                onClick={async () => {
+                  if (step === 2) {
+                    const result = await start.mutateAsync({
+                      reason: reason as (typeof reasons)[number][0],
+                      comment: comment.trim() || undefined,
+                    });
+                    setCalendarReference(result.calendarReference);
+                    await invalidate();
+                  }
+                  setStep((value) => value + 1);
+                }}
+              >
+                {step === 3 ? "Continue without booking" : "Continue"}
+              </Button>
+            )}
+            {step === 4 && (
+              <Button
+                disabled={
+                  confirmation !== "CANCEL AND DELETE" ||
+                  schedule.isPending ||
+                  !cancellation.id
+                }
+                onClick={async () => {
+                  if (!cancellation.id) {
+                    return;
+                  }
+                  await schedule.mutateAsync({
+                    id: cancellation.id,
+                    confirmation,
+                  });
+                  await invalidate();
+                  setOpen(false);
+                  toast.success("Cancellation scheduled");
+                }}
+                variant="destructive"
+              >
+                {schedule.isPending ? "Scheduling…" : "Schedule cancellation"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

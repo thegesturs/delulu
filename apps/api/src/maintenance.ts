@@ -1,4 +1,10 @@
-import { AutomationKvRepairJob, BillingReconciliation } from "@delulu/services";
+import {
+  AutomationKvRepairJob,
+  BillingReconciliation,
+  CancellationService,
+  LifecycleService,
+  MessagingService,
+} from "@delulu/services";
 import { Effect, type Layer } from "effect";
 import type { AppServices } from "./app";
 
@@ -12,7 +18,13 @@ export const runMaintenance = (
   Effect.gen(function* () {
     const billing = yield* BillingReconciliation;
     const automationKv = yield* AutomationKvRepairJob;
+    const cancellations = yield* CancellationService;
+    const messaging = yield* MessagingService;
+    const lifecycle = yield* LifecycleService;
     yield* billing.run();
+    yield* cancellations.runRetention();
+    yield* lifecycle.runScheduled();
+    yield* messaging.dispatchPending(50);
     for (let batch = 0; batch < MAX_AUTOMATION_KV_BATCHES; batch += 1) {
       const result = yield* automationKv.runBatch(
         // Successful repairs delete their queue rows, so drain from the front.

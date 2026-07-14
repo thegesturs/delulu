@@ -18,6 +18,7 @@ import {
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { AutomationKvNamespace } from "./automation-kv";
+import { LifecycleService } from "./lifecycle";
 
 type ConnectionOutput = typeof ConnectionView.Type;
 const BASE64_PADDING = /=+$/;
@@ -206,6 +207,7 @@ export class ConnectionsService extends Context.Service<
     ConnectionsService,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
+      const lifecycle = yield* LifecycleService;
       const states = yield* ConnectionStateService;
       const cipher = yield* TokenCipher;
       const temporaryStore = yield* AutomationKvNamespace;
@@ -247,6 +249,11 @@ export class ConnectionsService extends Context.Service<
             resource: "connection",
           });
         }
+        yield* lifecycle.syncWorkspace({
+          workspaceId,
+          event: "social_account_disconnected",
+          idempotencyKey: `connection-deleted:${id}`,
+        });
       });
       const mint = Effect.fn("ConnectionsService.mint")(function* (
         workspaceId: WorkspaceId,
@@ -315,6 +322,7 @@ export class ConnectionsService extends Context.Service<
             metadata = ${JSON.stringify(metadata)}::jsonb WHERE id = ${String(row.id)}`.pipe(
               Effect.orDie
             );
+            yield* lifecycle.syncWorkspace({ workspaceId });
             return "updated" as const;
           }
           yield* sql`INSERT INTO connections
@@ -325,6 +333,14 @@ export class ConnectionsService extends Context.Service<
             'v1', ${input.expiresIn ? new Date(input.expiresIn) : null}, ${JSON.stringify(metadata)}::jsonb)`.pipe(
             Effect.orDie
           );
+          yield* lifecycle.syncWorkspace({
+            workspaceId,
+            event:
+              input.socialType.toLowerCase() === "instagram"
+                ? "instagram_connected"
+                : "social_account_connected",
+            idempotencyKey: `connection-created:${input.socialType}:${input.profileId}`,
+          });
           return "created" as const;
         }
       );

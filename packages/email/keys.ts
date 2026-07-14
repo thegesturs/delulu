@@ -4,11 +4,9 @@ import { z } from "zod";
 export const keys = () =>
   createEnv({
     server: {
-      RESEND_FROM: z.string().min(1).email().optional(),
-      RESEND_TOKEN: z.string().min(1).startsWith("re_").optional(),
+      CLOUDFLARE_EMAIL_FROM: z.string().min(1).email().optional(),
     },
     runtimeEnv: {
-      RESEND_FROM: process.env.RESEND_FROM,
-      RESEND_TOKEN: process.env.RESEND_TOKEN,
+      CLOUDFLARE_EMAIL_FROM: process.env.CLOUDFLARE_EMAIL_FROM,
     },
   });

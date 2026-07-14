@@ -1,4 +1,6 @@
-import { effectQuery } from "../query.js";
+import type { ApiClient } from "../client.js";
+import { effectMutation, effectQuery } from "../query.js";
+import type { EndpointPayload } from "./shared.js";
 import { defineResourceOptions } from "./shared.js";
 
 export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
@@ -12,6 +14,20 @@ export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
     effectQuery({
       queryKey: ["me", "workspaces"] as const,
       effect: () => client.me.workspaces(),
+      runner,
+    }),
+  emailPreferences: () =>
+    effectQuery({
+      queryKey: ["me", "email-preferences"] as const,
+      effect: () => client.me.emailPreferences(),
+      runner,
+    }),
+  updateEmailPreferences: () =>
+    effectMutation({
+      mutationKey: ["me", "email-preferences"] as const,
+      effect: (
+        payload: EndpointPayload<ApiClient["me"]["updateEmailPreferences"]>
+      ) => client.me.updateEmailPreferences({ payload }),
       runner,
     }),
 }));

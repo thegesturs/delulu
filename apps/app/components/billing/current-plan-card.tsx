@@ -24,15 +24,24 @@ import {
   Link01Icon,
   SparklesIcon,
 } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
 import { useCurrency } from "@/hooks/use-currency";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { CancellationFlow } from "./cancellation-flow";
 
 export function CurrentPlanCard() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const subscription = useSubscription();
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const portal = useMutation(
+    resources.billing.portal(workspace.workspaceId ?? "")
+  );
   const currency = useCurrency();
   const currencySymbol = CURRENCY_SYMBOLS[currency];
 
@@ -40,8 +49,17 @@ export function CurrentPlanCard() {
 
   const handleManageSubscription = async () => {
     setIsLoadingPortal(true);
-    toast.info("Billing management is not available in this environment yet.");
-    setIsLoadingPortal(false);
+    try {
+      const result = await portal.mutateAsync(undefined);
+      window.location.assign(result.url);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to open billing management"
+      );
+      setIsLoadingPortal(false);
+    }
   };
 
   if (subscription.isLoading) {
@@ -67,6 +85,32 @@ export function CurrentPlanCard() {
         <CardFooter>
           <Button onClick={subscription.retry} size="sm" variant="outline">
             Retry
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  if (subscription.isFree) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription required</CardTitle>
+          <CardDescription>
+            Choose a paid plan to publish, run automations, and keep workspace
+            data active.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button
+            className="w-full"
+            onClick={() => {
+              document
+                .querySelector("[data-pricing-plans]")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            Choose a plan
           </Button>
         </CardFooter>
       </Card>
@@ -116,9 +160,7 @@ export function CurrentPlanCard() {
             <span className="font-bold text-3xl">
               {subscription.isLifetime
                 ? "Lifetime"
-                : plan.price[currency].monthly === 0
-                  ? "Free"
-                  : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
+                : `${currencySymbol}${currency === "INR" ? plan.price[currency].monthly.toLocaleString("en-IN") : plan.price[currency].monthly}`}
             </span>
             {!subscription.isLifetime && plan.price[currency].monthly > 0 && (
               <span className="text-muted-foreground">/month</span>
@@ -229,42 +271,28 @@ export function CurrentPlanCard() {
         )}
       </CardContent>
 
-      <CardFooter className="flex gap-2">
-        {subscription.isFree ? (
+      <CardFooter className="flex flex-wrap gap-2">
+        <Button
+          className="flex-1"
+          disabled={isLoadingPortal}
+          onClick={handleManageSubscription}
+          variant="outline"
+        >
+          <Icon className="mr-2" icon={CreditCardIcon} size={16} />
+          {isLoadingPortal ? "Loading..." : "Billing Portal"}
+        </Button>
+        {!subscription.cancelAtPeriodEnd && (
           <Button
-            className="w-full"
+            className="flex-1"
             onClick={() => {
               window.location.href = "/billing";
             }}
-            size="lg"
+            variant="outline"
           >
-            <Icon className="mr-2" icon={SparklesIcon} size={16} />
-            Upgrade Plan
+            Change Plan
           </Button>
-        ) : (
-          <>
-            <Button
-              className="flex-1"
-              disabled={isLoadingPortal}
-              onClick={handleManageSubscription}
-              variant="outline"
-            >
-              <Icon className="mr-2" icon={CreditCardIcon} size={16} />
-              {isLoadingPortal ? "Loading..." : "Billing Portal"}
-            </Button>
-            {!subscription.cancelAtPeriodEnd && (
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  window.location.href = "/billing";
-                }}
-                variant="outline"
-              >
-                Change Plan
-              </Button>
-            )}
-          </>
         )}
+        {!subscription.isLifetime && <CancellationFlow />}
       </CardFooter>
     </Card>
   );

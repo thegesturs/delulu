@@ -3,6 +3,7 @@ import { CurrentAuth } from "@delulu/core";
 import {
   AdminService,
   ConnectionsService,
+  LifecycleService,
   MediaService,
   PostService,
   ReviewService,
@@ -26,6 +27,7 @@ export const PostsHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const posts = yield* PostService;
     const workspaces = yield* WorkspaceAccessService;
+    const lifecycle = yield* LifecycleService;
     return handlers
       .handle("list", ({ params, query }) =>
         Effect.gen(function* () {
@@ -50,11 +52,20 @@ export const PostsHandlers = HttpApiBuilder.group(
             auth,
             scope: "posts:write",
           });
-          return yield* posts.create({
+          const created = yield* posts.create({
             workspaceId: access.workspaceId,
             actor: { memberId: access.memberId, role: access.role },
             value: payload,
           });
+          if (created.status === "scheduled") {
+            yield* lifecycle.record({
+              billingOwnerUserId: access.billingOwnerUserId,
+              event: "post_scheduled",
+              properties: { post_id: created.id },
+              idempotencyKey: `post-scheduled:${created.id}`,
+            });
+          }
+          return created;
         })
       )
       .handle("bulkCreate", ({ params, payload }) =>

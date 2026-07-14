@@ -5,6 +5,7 @@ import {
 } from "@delulu/core/domain/billing";
 import { Context, DateTime, Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { stopBilledWorkspaceWork } from "./subscription-access";
 
 const optionalDate = (value: string | null): Date | null => {
   if (value === null) {
@@ -53,12 +54,16 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
           yield* sql`INSERT INTO subscriptions
             (id, billing_owner_user_id, provider_customer_id,
               provider_subscription_id, plan, status, current_period_start,
-              current_period_end, addons)
+              current_period_end, addons, billing_interval, currency,
+              recurring_amount_minor, cancel_at_period_end, last_renewed_at)
             VALUES (${id}, ${event.billingOwnerUserId}, ${event.providerCustomerId},
               ${event.providerSubscriptionId}, ${event.plan}, ${event.status},
               ${optionalDate(event.currentPeriodStart)},
               ${optionalDate(event.currentPeriodEnd)},
-              ${JSON.stringify(event.addons ?? {})}::jsonb)
+              ${JSON.stringify(event.addons ?? {})}::jsonb,
+              ${event.billingInterval}, ${event.currency},
+              ${event.recurringAmountMinor}, ${event.cancelAtPeriodEnd ?? false},
+              ${event.providerEventType === "subscription.renewed" ? new Date() : null})
             ON CONFLICT (billing_owner_user_id) DO UPDATE SET
               provider_customer_id = EXCLUDED.provider_customer_id,
               provider_subscription_id = EXCLUDED.provider_subscription_id,
@@ -72,7 +77,34 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
               dms_sent_period_start = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN EXCLUDED.current_period_start ELSE subscriptions.dms_sent_period_start END,
               current_period_start = EXCLUDED.current_period_start,
               current_period_end = EXCLUDED.current_period_end,
-              addons = EXCLUDED.addons`;
+              addons = EXCLUDED.addons,
+              billing_interval = ${event.billingInterval},
+              currency = ${event.currency},
+              recurring_amount_minor = ${event.recurringAmountMinor},
+              cancel_at_period_end = ${event.cancelAtPeriodEnd ?? false},
+              last_renewed_at = CASE WHEN ${event.providerEventType === "subscription.renewed"} THEN now() ELSE subscriptions.last_renewed_at END`;
+          if (
+            event.providerEventType === "subscription.cancelled" ||
+            event.providerEventType === "subscription.expired"
+          ) {
+            const effective = yield* sql<{
+              id: string;
+            }>`UPDATE cancellation_requests SET status = 'effective'
+              WHERE billing_owner_user_id = ${event.billingOwnerUserId}
+                AND status = 'scheduled' RETURNING id`;
+            if (effective[0]) {
+              yield* stopBilledWorkspaceWork(event.billingOwnerUserId);
+            }
+          }
+          if (
+            event.providerEventType === "subscription.active" &&
+            event.cancelAtPeriodEnd !== true
+          ) {
+            yield* sql`UPDATE cancellation_requests SET status = 'reactivated',
+              data_deletion_at = NULL
+              WHERE billing_owner_user_id = ${event.billingOwnerUserId}
+                AND status IN ('scheduled','effective','deleting')`;
+          }
         } else {
           const id = makeId(TransactionId);
           yield* sql`INSERT INTO transactions

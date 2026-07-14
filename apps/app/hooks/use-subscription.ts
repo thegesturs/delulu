@@ -12,6 +12,8 @@ export interface SubscriptionView {
   status: string;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
+  billingInterval: string | null;
+  cancelAtPeriodEnd: boolean;
   addons: Readonly<Record<string, unknown>>;
 }
 
@@ -53,10 +55,10 @@ export function useSubscription(): UseSubscriptionReturn {
   const planType = toPlanType(subscription?.plan);
   const status = subscription?.status.toUpperCase();
   const billingPeriod =
-    subscription?.addons.billingPeriod === "MONTHLY" ||
-    subscription?.addons.billingPeriod === "YEARLY" ||
-    subscription?.addons.billingPeriod === "LIFETIME"
-      ? subscription.addons.billingPeriod
+    subscription?.billingInterval === "MONTHLY" ||
+    subscription?.billingInterval === "YEARLY" ||
+    subscription?.billingInterval === "LIFETIME"
+      ? subscription.billingInterval
       : null;
 
   return {
@@ -76,7 +78,7 @@ export function useSubscription(): UseSubscriptionReturn {
     currentPeriodEnd: subscription?.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)
       : null,
-    cancelAtPeriodEnd: subscription?.addons.cancelAtPeriodEnd === true,
+    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd === true,
     error: workspace.error ?? query.error,
     retry: async () => {
       await (workspace.error ? workspace.retry() : query.refetch());

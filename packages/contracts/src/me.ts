@@ -42,11 +42,25 @@ export const MeWorkspacesResponse = Schema.Struct({
   offset: Schema.Number,
 }).annotate({ identifier: "MeWorkspacesResponse" });
 
+export const EmailPreferencesResponse = Schema.Struct({
+  productLifecycleEnabled: Schema.Boolean,
+  marketingEnabled: Schema.Boolean,
+});
+
 export const MeGroup = HttpApiGroup.make("me")
   .add(
     HttpApiEndpoint.get("current", "/", {
       success: MeResponse,
     }).annotate(OpenApi.Summary, "Get the authenticated user")
+  )
+  .add(
+    HttpApiEndpoint.get("emailPreferences", "/email-preferences", {
+      success: EmailPreferencesResponse,
+    }),
+    HttpApiEndpoint.put("updateEmailPreferences", "/email-preferences", {
+      payload: EmailPreferencesResponse,
+      success: EmailPreferencesResponse,
+    })
   )
   .add(
     HttpApiEndpoint.get("workspaces", "/workspaces", {

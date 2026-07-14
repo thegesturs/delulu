@@ -12,6 +12,7 @@ import { BillingWebhookApplication } from "../../src/billing-webhooks";
 import { AuthConfig } from "../../src/config";
 import { IdentityService } from "../../src/identity";
 import { PooledQuotaReservations } from "../../src/quota-reservations";
+import { provisionPaidSubscription } from "./paid-subscription";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -171,6 +172,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reservation_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id, "FREE");
       const first = yield* reservations.reserve({
         id: `quota_reservation_${crypto.randomUUID()}`,
         workspaceId: resolved.personalWorkspace!.id,
@@ -207,6 +209,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reservation_race_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id, "FREE");
       return yield* Effect.all(
         Array.from({ length: 20 }, (_, index) =>
           reservations
@@ -243,6 +246,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reconcile_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id);
       yield* sql`UPDATE subscriptions SET monthly_posts = 99,
         social_accounts = 88, media_storage_bytes = 77,
         transcriptions_used = 66
