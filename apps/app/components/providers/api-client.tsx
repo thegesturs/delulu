@@ -19,7 +19,9 @@ const ApiClientContext = createContext<ApiClientContextValue | null>(null);
 
 const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === "development" ? "http://localhost:8787" : null);
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8788"
+    : "https://api.delulu.social");
 
 export function ApiClientProvider({
   children,

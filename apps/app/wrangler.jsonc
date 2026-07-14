@@ -4,7 +4,10 @@
   "name": "delulu-social",
   "compatibility_date": "2024-12-30",
   "vars": {
-    "MAINTENANCE_MODE": "false"
+    "MAINTENANCE_MODE": "false",
+    // Default API origin. The staging/production envs below override this; a
+    // plain `wrangler deploy` (no --env) picks up production's public API.
+    "NEXT_PUBLIC_API_URL": "https://api.delulu.social"
   },
   "placement": {
     "mode": "smart"
