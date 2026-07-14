@@ -1,4 +1,4 @@
-import { createApiClient, resolveWorkspaceId } from "@delulu/client";
+import { createApiClient, runEffect } from "@delulu/client";
 import {
   DEFAULT_API_URL,
   readCredentials,
@@ -8,6 +8,7 @@ import {
 interface RequestOptions {
   apiUrl?: string;
   json?: boolean;
+  workspace?: string;
 }
 
 export function getContractClient(options: RequestOptions = {}) {
@@ -18,10 +19,23 @@ export function getContractClient(options: RequestOptions = {}) {
 }
 
 export async function getWorkspaceId(options: RequestOptions = {}) {
-  return resolveWorkspaceId({
-    client: getContractClient(options),
-    workspaceId: process.env.DELULU_WORKSPACE_ID,
-  });
+  const selected = options.workspace || process.env.DELULU_WORKSPACE_ID;
+  if (selected) {
+    return selected;
+  }
+  const memberships = await runEffect(
+    getContractClient(options).me.workspaces()
+  );
+  if (memberships.data.length !== 1) {
+    throw new Error(
+      "Choose a workspace with --workspace or DELULU_WORKSPACE_ID. Run `delulu workspaces list` to inspect memberships."
+    );
+  }
+  const only = memberships.data[0]?.workspaceId;
+  if (!only) {
+    throw new Error("No workspace is available for this account.");
+  }
+  return only;
 }
 
 async function refreshCredentials(

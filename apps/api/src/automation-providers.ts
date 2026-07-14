@@ -1,4 +1,4 @@
-import { TokenCipher } from "@delulu/core";
+import { TokenCipher, type UserId, type WorkspaceId } from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { getPlanFromProductId } from "@delulu/payments";
@@ -9,6 +9,7 @@ import {
   ProviderAudienceService,
   ProviderDmError,
   ProviderDmService,
+  SetupService,
 } from "@delulu/services";
 import { Effect, Layer, Predicate, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -269,6 +270,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
   PaymentWebhookSink,
   Effect.gen(function* () {
     const billing = yield* BillingWebhookApplication;
+    const setup = yield* SetupService;
     const sql = yield* SqlClient.SqlClient;
 
     const resolveBillingOwner = Effect.fn("PaymentWebhook.resolveOwner")(
@@ -416,6 +418,17 @@ export const PaymentWebhookSinkLive = Layer.effect(
                 message: error.message,
                 retryable: error.retryable,
               })
+          )
+        );
+        const workspaces = yield* sql<{ id: string }>`
+          SELECT id FROM workspaces
+          WHERE billing_owner_user_id = ${event.billingOwnerUserId}`.pipe(
+          Effect.mapError(billingLookupFailed)
+        );
+        yield* Effect.forEach(workspaces, (workspace) =>
+          setup.status(
+            workspace.id as WorkspaceId,
+            event.billingOwnerUserId as UserId
           )
         );
       }),

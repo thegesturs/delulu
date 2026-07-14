@@ -11,6 +11,7 @@ import type {
   BillingOwnerTransfers,
   BillingReconciliation,
   BillingService,
+  CheckoutService,
   ClerkAdminService,
   ClerkTokenVerifier,
   ConnectionStateService,
@@ -25,6 +26,7 @@ import type {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SetupService,
   SignedIngress,
   TranscriptionCheckoutService,
   TranscriptionService,
@@ -81,6 +83,8 @@ export type AppServices =
   | BillingReconciliation
   | TranscriptionService
   | TranscriptionCheckoutService
+  | CheckoutService
+  | SetupService
   | SignedIngress
   | WebhookIngressService
   | ClerkAdminService;

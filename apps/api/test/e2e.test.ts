@@ -12,6 +12,7 @@ import { makeBaseLayer } from "../src/index";
 const ISSUER = "http://localhost:8787";
 const DEV_SUB = `clerk_e2e_${crypto.randomUUID()}`;
 const API_KEY_PREFIX = /^dsk_/;
+const DEVICE_USER_CODE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const WEBHOOK_SECRET_BYTES = new TextEncoder().encode("e2e-webhook-secret");
 const WEBHOOK_SECRET = `whsec_${btoa(
   String.fromCharCode(...WEBHOOK_SECRET_BYTES)
@@ -396,12 +397,107 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
   it("serves RFC 8414 metadata and JWKS", async () => {
     const meta = await get("/.well-known/oauth-authorization-server");
     expect(meta.status).toBe(200);
-    const metaBody = (await meta.json()) as { token_endpoint: string };
+    const metaBody = (await meta.json()) as {
+      token_endpoint: string;
+      device_authorization_endpoint: string;
+      agent_auth: { skill: string };
+    };
     expect(metaBody.token_endpoint).toBe(`${ISSUER}/oauth/token`);
+    expect(metaBody.device_authorization_endpoint).toBe(
+      `${ISSUER}/oauth/device/authorize`
+    );
+    expect(metaBody.agent_auth.skill).toBe("http://localhost:3000/auth.md");
 
     const jwks = await get("/.well-known/jwks.json");
     const jwksBody = (await jwks.json()) as { keys: Array<{ alg: string }> };
     expect(jwksBody.keys[0].alg).toBe("ES256");
+  });
+
+  it("runs device authorization from pending approval to a single-use token", async () => {
+    const start = await postForm("/oauth/device/authorize", {
+      client_id: "delulu-cli",
+      scope: "posts:read accounts:read",
+      resource: ISSUER,
+    });
+    expect(start.status).toBe(200);
+    const device = (await start.json()) as {
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      verification_uri_complete: string;
+      interval: number;
+    };
+    expect(device.user_code).toMatch(DEVICE_USER_CODE);
+    expect(device.verification_uri).toBe("http://localhost:3000/oauth/device");
+    expect(device.verification_uri_complete).toContain(
+      encodeURIComponent(device.user_code)
+    );
+
+    const pending = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(pending.status).toBe(400);
+    expect((await pending.json()) as { error: string }).toMatchObject({
+      error: "authorization_pending",
+    });
+
+    const tooFast = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(tooFast.status).toBe(400);
+    expect((await tooFast.json()) as { error: string }).toMatchObject({
+      error: "slow_down",
+    });
+
+    const transaction = await get(
+      `/oauth/device/transaction?user_code=${encodeURIComponent(device.user_code)}`,
+      "dev-token"
+    );
+    expect(transaction.status).toBe(200);
+    expect(await transaction.json()).toMatchObject({
+      clientId: "delulu-cli",
+      scopes: ["posts:read", "accounts:read"],
+      resource: ISSUER,
+    });
+
+    const approve = await postJson(
+      "/oauth/device/approve",
+      { user_code: device.user_code },
+      "dev-token"
+    );
+    expect(approve.status).toBe(200);
+
+    const token = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(token.status).toBe(200);
+    const tokenBody = (await token.json()) as { access_token: string };
+    expect(tokenBody).toHaveProperty("access_token");
+
+    const introspection = await postForm("/oauth/introspect", {
+      token: tokenBody.access_token,
+    });
+    expect(await introspection.json()).toMatchObject({
+      active: true,
+      scopes: ["posts:read", "accounts:read"],
+      aud: ISSUER,
+    });
+
+    const replay = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(replay.status).toBe(400);
+    expect((await replay.json()) as { error: string }).toMatchObject({
+      error: "expired_token",
+    });
   });
 
   it("runs the full OAuth code→token→refresh flow and accepts the AS token", async () => {

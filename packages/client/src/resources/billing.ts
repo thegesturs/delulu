@@ -25,6 +25,13 @@ export const createBillingOptions = defineResourceOptions(
         effect: () => client.billing.usage({ params: { workspaceId } }),
         runner,
       }),
+    checkout: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(workspaceId, "billing-checkout"),
+        effect: (payload: EndpointPayload<ApiClient["billing"]["checkout"]>) =>
+          client.billing.checkout({ params: { workspaceId }, payload }),
+        runner,
+      }),
     transactions: (workspaceId: string, query: TransactionsQuery = {}) =>
       effectQuery({
         queryKey: workspaceKeys.list(

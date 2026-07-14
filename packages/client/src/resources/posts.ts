@@ -23,6 +23,13 @@ export const createPostOptions = defineResourceOptions(
         effect: () => client.posts.get({ params: { workspaceId, id } }),
         runner,
       }),
+    publishNow: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(workspaceId, "posts"),
+        effect: (id: string) =>
+          client.posts.publishNow({ params: { workspaceId, id } }),
+        runner,
+      }),
     targets: (workspaceId: string, id: string) =>
       effectQuery({
         queryKey: workspaceKeys.detail(workspaceId, "post-targets", id),

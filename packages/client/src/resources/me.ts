@@ -1,4 +1,6 @@
-import { effectQuery } from "../query.js";
+import type { ApiClient } from "../client.js";
+import { effectMutation, effectQuery } from "../query.js";
+import type { EndpointPayload } from "./shared.js";
 import { defineResourceOptions } from "./shared.js";
 
 export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
@@ -12,6 +14,19 @@ export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
     effectQuery({
       queryKey: ["me", "workspaces"] as const,
       effect: () => client.me.workspaces(),
+      runner,
+    }),
+  setup: (workspaceId: string) =>
+    effectQuery({
+      queryKey: ["me", "setup", workspaceId] as const,
+      effect: () => client.me.setup({ params: { workspaceId } }),
+      runner,
+    }),
+  updateSetup: (workspaceId: string) =>
+    effectMutation({
+      mutationKey: ["me", "setup", workspaceId] as const,
+      effect: (payload: EndpointPayload<ApiClient["me"]["updateSetup"]>) =>
+        client.me.updateSetup({ params: { workspaceId }, payload }),
       runner,
     }),
 }));

@@ -30,6 +30,13 @@ export const createMediaOptions = defineResourceOptions(
           client.media.uploads({ params: { workspaceId }, payload }),
         runner,
       }),
+    import: (workspaceId: string) =>
+      effectMutation({
+        mutationKey: workspaceKeys.resource(workspaceId, "media"),
+        effect: (payload: EndpointPayload<ApiClient["media"]["import"]>) =>
+          client.media.import({ params: { workspaceId }, payload }),
+        runner,
+      }),
     complete: (workspaceId: string) =>
       effectMutation({
         mutationKey: workspaceKeys.resource(workspaceId, "media"),

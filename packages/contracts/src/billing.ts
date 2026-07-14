@@ -96,6 +96,18 @@ export const BillingGroup = HttpApiGroup.make("billing")
       error: billingErrors,
     })
   )
+  .add(
+    HttpApiEndpoint.post("checkout", "/checkout", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        plan: Schema.Literals(["ECHO", "VIBE"]),
+        interval: Schema.Literals(["MONTHLY", "YEARLY"]),
+        currency: Schema.Literals(["USD", "INR"]),
+      }),
+      success: Schema.Struct({ checkoutUrl: Schema.String }),
+      error: billingErrors,
+    })
+  )
   .middleware(Authentication)
   .prefix("/v1/workspaces/:workspaceId/billing")
   .annotate(OpenApi.Title, "Billing");

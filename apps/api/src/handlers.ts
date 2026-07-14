@@ -1,6 +1,11 @@
 import { Api } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
-import { IdentityService, MembershipService } from "@delulu/services";
+import {
+  IdentityService,
+  MembershipService,
+  SetupService,
+  WorkspaceAccessService,
+} from "@delulu/services";
 import { DateTime, Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { SqlClient } from "effect/unstable/sql";
@@ -29,6 +34,8 @@ export const MeHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const identity = yield* IdentityService;
     const membership = yield* MembershipService;
+    const setup = yield* SetupService;
+    const workspaces = yield* WorkspaceAccessService;
 
     return handlers
       .handle("current", () =>
@@ -63,6 +70,32 @@ export const MeHandlers = HttpApiBuilder.group(
             limit: rows.length,
             offset: 0,
           };
+        })
+      )
+      .handle("setup", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "accounts:read",
+          });
+          return yield* setup.status(access.workspaceId, auth.userId);
+        })
+      )
+      .handle("updateSetup", ({ params, payload }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "accounts:write",
+          });
+          yield* setup.updateOptionalSteps({
+            userId: auth.userId,
+            optionalSteps: payload.optionalSteps,
+          });
+          return { updated: true };
         })
       );
   })

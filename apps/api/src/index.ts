@@ -15,6 +15,7 @@ import {
   BillingReconciliation,
   BillingService,
   BillingWebhookApplication,
+  CheckoutService,
   ClerkAdminService,
   ClerkSyncService,
   ClerkTokenVerifier,
@@ -34,6 +35,7 @@ import {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SetupService,
   SignedIngress,
   TranscriptionCheckoutConfig,
   TranscriptionCheckoutService,
@@ -153,6 +155,10 @@ export const makeBaseLayer = (
   const TranscriptionCheckout = TranscriptionCheckoutService.layer.pipe(
     Layer.provide(TranscriptionCheckoutConfigLayer)
   );
+  const Checkout = CheckoutService.layer.pipe(
+    Layer.provide(TranscriptionCheckoutConfigLayer)
+  );
+  const Setup = SetupService.layer.pipe(Layer.provide(ClerkAdmin));
   const QuotaReservations = PooledQuotaReservations.layer;
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
@@ -183,7 +189,7 @@ export const makeBaseLayer = (
     Layer.provide(IdentityService.layer)
   );
   const PaymentSink = PaymentWebhookSinkLive.pipe(
-    Layer.provide(BillingWebhooks)
+    Layer.provide([BillingWebhooks, Setup])
   );
   const WebhookSecretConfig = Layer.succeed(
     WebhookSecrets,
@@ -248,6 +254,8 @@ export const makeBaseLayer = (
     BillingReconcile,
     Transcriptions,
     TranscriptionCheckout,
+    Checkout,
+    Setup,
     QuotaReservations,
     WebhookVerification,
     WebhookIngress

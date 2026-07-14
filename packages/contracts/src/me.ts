@@ -5,6 +5,7 @@ import {
   HttpApiGroup,
   OpenApi,
 } from "effect/unstable/httpapi";
+import { ForbiddenErrorResponse, NotFoundErrorResponse } from "./errors";
 import { Authentication } from "./middleware";
 
 /** The authenticated user, plus their personal workspace (identity tier). */
@@ -47,6 +48,39 @@ export const MeGroup = HttpApiGroup.make("me")
     HttpApiEndpoint.get("current", "/", {
       success: MeResponse,
     }).annotate(OpenApi.Summary, "Get the authenticated user")
+  )
+  .add(
+    HttpApiEndpoint.get("setup", "/setup/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      success: Schema.Struct({
+        workspaceId: Schema.String,
+        connectedPlatforms: Schema.Array(Schema.String),
+        subscription: Schema.Struct({
+          plan: Schema.String,
+          status: Schema.String,
+          paid: Schema.Boolean,
+        }),
+        optionalSteps: Schema.Record(Schema.String, Schema.String),
+        outstandingAction: Schema.NullOr(
+          Schema.Literals(["connect_account", "complete_payment"])
+        ),
+        onboardingComplete: Schema.Boolean,
+      }),
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    })
+  )
+  .add(
+    HttpApiEndpoint.patch("updateSetup", "/setup/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      payload: Schema.Struct({
+        optionalSteps: Schema.Record(
+          Schema.String,
+          Schema.Literals(["completed", "skipped"])
+        ),
+      }),
+      success: Schema.Struct({ updated: Schema.Boolean }),
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    })
   )
   .add(
     HttpApiEndpoint.get("workspaces", "/workspaces", {

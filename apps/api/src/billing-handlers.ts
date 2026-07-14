@@ -3,6 +3,7 @@ import { CurrentAuth } from "@delulu/core";
 import {
   BillingOwnerTransfers,
   BillingService,
+  CheckoutService,
   WorkspaceAccessService,
 } from "@delulu/services";
 import { Effect, Layer } from "effect";
@@ -24,6 +25,7 @@ export const BillingHandlers = HttpApiBuilder.group(
     const billing = yield* BillingService;
     const transfers = yield* BillingOwnerTransfers;
     const workspaces = yield* WorkspaceAccessService;
+    const checkout = yield* CheckoutService;
 
     const access = Effect.fn("BillingHandlers.access")(function* (
       workspaceId: string
@@ -56,6 +58,24 @@ export const BillingHandlers = HttpApiBuilder.group(
         Effect.gen(function* () {
           const { workspace } = yield* billingAccess(params.workspaceId);
           return yield* billing.subscription(workspace.billingOwnerUserId);
+        })
+      )
+      .handle("checkout", ({ params, payload }) =>
+        Effect.gen(function* () {
+          const { workspace, auth } = yield* billingAccess(params.workspaceId);
+          if (
+            auth.scopes !== "full" &&
+            !auth.scopes.includes("billing:write")
+          ) {
+            return yield* new ForbiddenError({
+              message: "The credential lacks billing delegation",
+            });
+          }
+          return yield* checkout.create({
+            billingOwnerUserId: workspace.billingOwnerUserId,
+            workspaceId: workspace.workspaceId,
+            ...payload,
+          });
         })
       )
       .handle("usage", ({ params }) =>

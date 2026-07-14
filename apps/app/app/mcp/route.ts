@@ -1,9 +1,9 @@
-import { verifyClerkToken } from "@clerk/mcp-tools/next";
-import { auth } from "@delulu/auth/server";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { DeluluApiClient } from "../../../mcp/src/api-client";
 import { registerAccountTools } from "../../../mcp/src/tools/accounts";
+import { registerMediaTools } from "../../../mcp/src/tools/media";
 import { registerPostTools } from "../../../mcp/src/tools/posts";
+import { registerSetupTools } from "../../../mcp/src/tools/setup";
 import { registerStatsTools } from "../../../mcp/src/tools/stats";
 
 interface ToolExtra {
@@ -13,6 +13,48 @@ interface ToolExtra {
 }
 
 const apiUrl = process.env.DELULU_API_URL || "https://api.delulu.social";
+
+interface McpAuthInfo {
+  token: string;
+  clientId: string;
+  scopes: string[];
+  expiresAt?: number;
+  resource?: URL;
+}
+
+const validatedAuthInfo = async (
+  bearerToken?: string
+): Promise<McpAuthInfo | undefined> => {
+  if (!bearerToken) {
+    return undefined;
+  }
+  const response = await fetch(`${apiUrl}/oauth/introspect`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ token: bearerToken }),
+  });
+  if (!response.ok) {
+    return undefined;
+  }
+  try {
+    const payload = (await response.json()) as {
+      active?: boolean;
+      scopes?: readonly string[];
+      aud?: string;
+    };
+    if (!payload.active) {
+      return undefined;
+    }
+    return {
+      token: bearerToken,
+      clientId: "delulu-mcp",
+      scopes: [...(payload.scopes ?? [])],
+      resource: new URL(payload.aud ?? apiUrl),
+    };
+  } catch {
+    return undefined;
+  }
+};
 
 const mcpHandler = createMcpHandler(
   (server) => {
@@ -26,6 +68,8 @@ const mcpHandler = createMcpHandler(
     registerPostTools(server, clientForRequest);
     registerAccountTools(server, clientForRequest);
     registerStatsTools(server, clientForRequest);
+    registerSetupTools(server, clientForRequest);
+    registerMediaTools(server, clientForRequest);
   },
   {
     serverInfo: {
@@ -41,13 +85,11 @@ const mcpHandler = createMcpHandler(
 
 const handler = withMcpAuth(
   mcpHandler,
-  async (_request, bearerToken) => {
-    const authData = await auth({ acceptsToken: "oauth_token" });
-    return verifyClerkToken(authData, bearerToken);
-  },
+  async (_request, bearerToken) => validatedAuthInfo(bearerToken),
   {
     required: true,
     resourceMetadataPath: "/.well-known/oauth-protected-resource/mcp",
+    resourceUrl: apiUrl,
   }
 );
 
