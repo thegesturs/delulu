@@ -1,5 +1,4 @@
 import "./styles.css";
-import { AnalyticsProvider } from "@delulu/analytics";
 import { DesignSystemProvider } from "@delulu/design-system";
 import { fonts } from "@delulu/design-system/lib/fonts";
 import { cn } from "@delulu/design-system/lib/utils";
@@ -13,6 +12,7 @@ import { createMetadata } from "@delulu/seo/metadata";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AffonsoCrossDomain } from "@/components/affonso-cross-domain";
+import { CaptureAttribution } from "@/components/analytics/capture-attribution";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { env } from "@/env";
@@ -55,14 +55,13 @@ const RootLayout = ({ children }: RootLayoutProperties) => {
         )}
       </head>
       <body>
-        <DesignSystemProvider>
-          <AnalyticsProvider>
-            <Navbar />
-            {children}
-            <Footer />
-          </AnalyticsProvider>
+        <DesignSystemProvider platform="web">
+          <Navbar />
+          {children}
+          <Footer />
         </DesignSystemProvider>
         <AffonsoCrossDomain />
+        <CaptureAttribution />
         {/* <Toolbar /> */}
       </body>
     </html>

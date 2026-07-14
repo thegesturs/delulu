@@ -12,6 +12,8 @@ type DesignSystemProviderProperties = ThemeProviderProps & {
   privacyUrl?: string;
   termsUrl?: string;
   helpUrl?: string;
+  /** Surface for analytics attribution (`"app" | "web"`). */
+  platform?: string;
 };
 
 export const DesignSystemProvider = ({
@@ -19,6 +21,7 @@ export const DesignSystemProvider = ({
   privacyUrl,
   termsUrl,
   helpUrl,
+  platform,
   ...properties
 }: DesignSystemProviderProperties) => {
   return (
@@ -28,7 +31,7 @@ export const DesignSystemProvider = ({
         privacyUrl={privacyUrl}
         termsUrl={termsUrl}
       >
-        <AnalyticsProvider>
+        <AnalyticsProvider platform={platform}>
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
         </AnalyticsProvider>

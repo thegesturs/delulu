@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@delulu/analytics": "workspace:*",
     "@delulu/connections": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/payments": "workspace:*",

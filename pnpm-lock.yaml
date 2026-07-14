@@ -317,6 +317,9 @@ importers:
       esbuild:
         specifier: ^0.25.5
         version: 0.25.5
+      posthog-node:
+        specifier: ^4.11.3
+        version: 4.18.0
       tsx:
         specifier: ^4.19.0
         version: 4.20.3
@@ -1315,6 +1318,9 @@ importers:
       groq-sdk:
         specifier: ^0.12.0
         version: 0.12.0
+      posthog-node:
+        specifier: ^4.11.3
+        version: 4.18.0
       sst:
         specifier: ^3.17.10
         version: 3.17.10
@@ -1496,6 +1502,9 @@ importers:
 
   packages/services:
     dependencies:
+      '@delulu/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@delulu/connections':
         specifier: workspace:*
         version: link:../connections
@@ -1591,6 +1600,9 @@ importers:
 
   packages/worker:
     dependencies:
+      '@delulu/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@delulu/connections':
         specifier: workspace:*
         version: link:../connections

@@ -30,6 +30,7 @@ export * from "./membership";
 export * from "./oauth-flow";
 export * from "./pkce";
 export * from "./posts";
+export * from "./product-analytics";
 export * from "./quota";
 export * from "./quota-reservations";
 export * from "./r2";

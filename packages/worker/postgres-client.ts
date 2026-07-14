@@ -1,3 +1,4 @@
+import { POST_PUBLISH_FAILED, POST_PUBLISHED } from "@delulu/analytics/events";
 import {
   getConnection,
   networkError,
@@ -146,9 +147,25 @@ const providerSettings = (
 
 type PublishRunner = typeof runPublish;
 
+/**
+ * Minimal analytics sink for the SQS publish worker (plain Node/Lambda). The
+ * Lambda handler injects a `posthog-node`-backed implementation and flushes
+ * after the batch; passing it in keeps the pure publish transition testable and
+ * lets tests run without any PostHog client. Left undefined ⇒ no-op.
+ */
+export interface WorkerTelemetry {
+  readonly capture: (input: {
+    readonly distinctId: string;
+    readonly event: string;
+    readonly properties?: Record<string, unknown>;
+    readonly groups?: Record<string, string>;
+  }) => void;
+}
+
 const processProgram = (
   message: PostgresMessage,
-  publishRunner: PublishRunner
+  publishRunner: PublishRunner,
+  telemetry?: WorkerTelemetry
 ) =>
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
@@ -405,6 +422,38 @@ const processProgram = (
           WHERE id = ${row.postId}`;
       })
     );
+    // Authoritative publish signal — this is the true status transition (apps/api
+    // only forwards to SQS). Fired AFTER the transaction commits. We only emit for
+    // terminal outcomes: a success, or a non-retryable failure — retryable
+    // failures will be re-attempted, so counting them would inflate failures.
+    if (telemetry) {
+      const published = outcome.status === "PUBLISHED";
+      const terminalFailure = outcome.status === "FAILED" && !outcome.retryable;
+      if (published || terminalFailure) {
+        const owners = yield* sql<{ billingOwnerUserId: string }>`
+          SELECT billing_owner_user_id FROM workspaces WHERE id = ${row.workspaceId}`.pipe(
+          Effect.catchCause(() =>
+            Effect.succeed([] as { billingOwnerUserId: string }[])
+          )
+        );
+        const distinctId = owners[0]?.billingOwnerUserId;
+        if (distinctId) {
+          yield* Effect.sync(() =>
+            telemetry.capture({
+              distinctId,
+              event: published ? POST_PUBLISHED : POST_PUBLISH_FAILED,
+              groups: { workspace: String(row.workspaceId) },
+              properties: {
+                platform: "worker",
+                social_platform: platform,
+                post_id: String(row.postId),
+                ...(published ? {} : { error: outcome.message }),
+              },
+            })
+          );
+        }
+      }
+    }
     if (outcome.status === "FAILED" && outcome.retryable) {
       throw new Error(`Retryable publish failure: ${outcome.message}`);
     }
@@ -412,7 +461,8 @@ const processProgram = (
 
 export const processPostgresMessage = (
   messageBody: string,
-  publishRunner: PublishRunner = runPublish
+  publishRunner: PublishRunner = runPublish,
+  telemetry?: WorkerTelemetry
 ): Promise<void> => {
   let message: PostgresMessage;
   try {
@@ -421,6 +471,6 @@ export const processPostgresMessage = (
     return Promise.reject(new Error("Invalid Postgres publish message"));
   }
   return Effect.runPromise(
-    processProgram(message, publishRunner).pipe(Effect.provide(Pg))
+    processProgram(message, publishRunner, telemetry).pipe(Effect.provide(Pg))
   );
 };
