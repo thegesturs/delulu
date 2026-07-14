@@ -14,6 +14,10 @@ import { SCOPES } from "./constants";
  * Google/YouTube OAuth env. Read directly from `process.env` (connections
  * `env.ts` only carries Instagram keys and must not be edited here).
  */
+/** Strips the leading "@" YouTube prefixes onto channel handles. */
+const YT_HANDLE_PREFIX = /^@+/;
+const WHITESPACE = /\s+/g;
+
 const ytEnv = () => ({
   clientId: process.env.GOOGLE_CLIENT_ID ?? "",
   clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
@@ -162,9 +166,11 @@ export const youtubeAuth: PlatformAuth = {
       }
 
       const channel = channelData.items[0];
+      // YouTube's `customUrl` already carries a leading "@" (e.g. "@delulu").
+      // Store the bare handle so the UI's single "@" prefix doesn't render "@@".
       const channelUsername =
-        channel.snippet.customUrl ||
-        channel.snippet.title.replace(/\s+/g, "").toLowerCase();
+        channel.snippet.customUrl?.replace(YT_HANDLE_PREFIX, "") ||
+        channel.snippet.title.replace(WHITESPACE, "").toLowerCase();
 
       // Store the YouTube connection (per-call client carrying the user's token)
       const connection = {
