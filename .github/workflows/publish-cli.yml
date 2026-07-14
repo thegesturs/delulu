@@ -4,8 +4,11 @@ name: Publish CLI
 # apps/cli/package.json is new. The api/app/web workers deploy via Cloudflare's
 # own git integration — this workflow only handles the npm package.
 #
-# Required secret: NPM_TOKEN — an npm automation token (no npm org needed; the
-# package is unscoped).
+# Auth is npm Trusted Publishing (OIDC) — NO token/secret is stored or rotated.
+# One-time setup on npmjs.com: package delulu-cli -> Settings -> Trusted
+# Publisher -> GitHub Actions, repo `thegesturs/delulu`, workflow
+# `publish-cli.yml`, environment `production`. (The package must exist first;
+# do the initial `npm publish` once locally, then OIDC handles every release.)
 
 on:
   push:
@@ -29,6 +32,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      # Required for npm Trusted Publishing (OIDC) and provenance attestation.
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -39,6 +46,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
           cache: pnpm
+      # Trusted Publishing needs npm >= 11.5.1 (Node 22 ships npm 10.x).
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@latest
       # CLI dependency subgraph only — never pulls apps/app or the Hugeicons
       # registry, so no HUGEICONS_TOKEN is needed.
       - name: Install (cli subgraph)
@@ -47,12 +57,11 @@ jobs:
         run: pnpm --filter=delulu-cli build
       - name: Publish delulu-cli (if new version)
         working-directory: apps/cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           if npm view "delulu-cli@$VERSION" version >/dev/null 2>&1; then
             echo "delulu-cli@$VERSION already published — nothing to do."
             exit 0
           fi
-          npm publish --access public
+          # OIDC (no token): npm authenticates via the id-token above.
+          npm publish --access public --provenance
