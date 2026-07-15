@@ -1,6 +1,6 @@
 {
   "name": "delulu-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line interface for Delulu Social.",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",

@@ -9,6 +9,7 @@ import {
   JobId,
   makeId,
   makeTokenCipher,
+  normalizePostgresUrl,
   PostTargetId,
   rollupPostStatus,
   TokenCipher,
@@ -28,7 +29,6 @@ import {
   Schema,
 } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { normalizePostgresUrl } from "./postgres-url";
 import { resolveMediaUrls } from "./resolve-media-urls";
 
 const PostgresMessage = Schema.Struct({

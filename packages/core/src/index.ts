@@ -28,6 +28,7 @@ export * from "./domain/workspace-member";
 export * from "./kernel/boundary";
 export * from "./kernel/ids";
 export * from "./kernel/media";
+export * from "./kernel/postgres-url";
 export * from "./kernel/sql";
 export * from "./kernel/time";
 export * from "./kernel/token-cipher";
