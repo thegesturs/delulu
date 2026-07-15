@@ -32,6 +32,7 @@ const toPem = (der: ArrayBuffer): string => {
 };
 
 let handler: (request: Request) => Promise<Response>;
+let personalWorkspaceId = "";
 
 beforeAll(async () => {
   const keyPair = await crypto.subtle.generateKey(
@@ -303,10 +304,11 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       user: { externalId: string };
-      personalWorkspace: { name: string } | null;
+      personalWorkspace: { id: string; name: string } | null;
     };
     expect(body.user.externalId).toBe(DEV_SUB);
     expect(body.personalWorkspace?.name).toBe("Personal");
+    personalWorkspaceId = body.personalWorkspace?.id ?? "";
   });
 
   it("GET /v1/me/workspaces lists the personal workspace with the owner role", async () => {
@@ -436,11 +438,8 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
   });
 
   it("runs device authorization from pending approval to a single-use token", async () => {
-    const me = await get("/v1/me", "dev-token");
-    const identity = (await me.json()) as {
-      personalWorkspace: { id: string };
-    };
-    const workspaceId = identity.personalWorkspace.id;
+    expect(personalWorkspaceId).toBeTruthy();
+    const workspaceId = personalWorkspaceId;
     const start = await postForm("/oauth/device/authorize", {
       client_id: "delulu-cli",
       scope: "posts:read accounts:read",
