@@ -146,6 +146,8 @@ export const OAuthRoutes = HttpRouter.use((router) =>
           .approveDeviceAuthorization({
             userCode: body.user_code ?? "",
             userId: resolved.user.id,
+            workspaceId: body.workspace_id ?? "",
+            scopes: parseScopes(body.scope),
           })
           .pipe(Effect.result);
         return result._tag === "Failure"

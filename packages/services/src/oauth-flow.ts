@@ -10,12 +10,14 @@ import {
   OAuthGrantId,
   OAuthRefreshToken,
   OAuthRefreshTokenId,
+  roleScopeCeiling,
   Scope,
 } from "@delulu/core";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AsTokenService, REFRESH_TOKEN_TTL_SECONDS } from "./as-token";
 import { randomTokenBase64Url, sha256Hex } from "./crypto";
+import { MembershipService } from "./membership";
 import { verifyPkceS256 } from "./pkce";
 
 const AUTHORIZATION_CODE_TTL_SECONDS = 60;
@@ -106,6 +108,7 @@ interface DeviceAuthorizationRow {
   readonly id: string;
   readonly clientId: string;
   readonly userId: string | null;
+  readonly workspaceId: string | null;
   readonly scopes: readonly Scope[];
   readonly resource: string | null;
   readonly status: "pending" | "approved" | "denied" | "consumed";
@@ -184,6 +187,8 @@ export class OAuthFlowService extends Context.Service<
     readonly approveDeviceAuthorization: (input: {
       readonly userCode: string;
       readonly userId: string;
+      readonly workspaceId: string;
+      readonly scopes: readonly Scope[];
     }) => Effect.Effect<void, OAuthError>;
     readonly inspectDeviceAuthorization: (userCode: string) => Effect.Effect<
       {
@@ -209,6 +214,7 @@ export class OAuthFlowService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const tokens = yield* AsTokenService;
+      const membership = yield* MembershipService;
       const codeRepo = yield* makeOAuthAuthorizationCodeRepository();
       const grantRepo = yield* makeOAuthGrantRepository();
       const refreshRepo = yield* makeOAuthRefreshTokenRepository();
@@ -250,6 +256,7 @@ export class OAuthFlowService extends Context.Service<
           id: Schema.String,
           clientId: Schema.String,
           userId: Schema.NullOr(Schema.String),
+          workspaceId: Schema.NullOr(Schema.String),
           scopes: Schema.Array(Scope),
           resource: Schema.NullOr(Schema.String),
           status: Schema.Literals([
@@ -263,7 +270,7 @@ export class OAuthFlowService extends Context.Service<
           expiresAt: Schema.DateTimeUtcFromDate,
         }),
         execute: (deviceCodeHash) =>
-          sql`SELECT id, client_id, user_id, scopes, resource, status,
+          sql`SELECT id, client_id, user_id, workspace_id, scopes, resource, status,
             interval_seconds, last_polled_at, expires_at
             FROM oauth_device_authorizations
             WHERE device_code_hash = ${deviceCodeHash}`,
@@ -576,14 +583,47 @@ export class OAuthFlowService extends Context.Service<
 
       const approveDeviceAuthorization = Effect.fn(
         "OAuthFlowService.approveDeviceAuthorization"
-      )(function* (input: { userCode: string; userId: string }) {
+      )(function* (input: {
+        userCode: string;
+        userId: string;
+        workspaceId: string;
+        scopes: readonly Scope[];
+      }) {
+        if (input.scopes.length === 0) {
+          return yield* invalidRequest("Select at least one scope");
+        }
         const codeHash = yield* Effect.promise(() =>
           sha256Hex(normalizeUserCode(input.userCode))
         );
+        const pending = yield* inspectDeviceAuthorization(input.userCode);
+        const requestedScopes = new Set(pending.scopes);
+        if (input.scopes.some((scope) => !requestedScopes.has(scope))) {
+          return yield* invalidRequest(
+            "Approved scopes must be a subset of the requested scopes"
+          );
+        }
+        const currentMembership = yield* membership.resolve({
+          workspaceId: input.workspaceId,
+          userId: input.userId,
+        });
+        if (Option.isNone(currentMembership)) {
+          return yield* invalidRequest(
+            "Select a workspace where you are currently a member"
+          );
+        }
+        const roleCeiling = new Set(
+          roleScopeCeiling[currentMembership.value.role]
+        );
+        if (input.scopes.some((scope) => !roleCeiling.has(scope))) {
+          return yield* invalidRequest(
+            "One or more selected scopes exceed your current workspace role"
+          );
+        }
         const rows = yield* sql<{
           id: string;
         }>`UPDATE oauth_device_authorizations
-          SET status = 'approved', user_id = ${input.userId}
+          SET status = 'approved', user_id = ${input.userId},
+            workspace_id = ${input.workspaceId}, scopes = ${input.scopes}
           WHERE user_code_hash = ${codeHash} AND status = 'pending'
             AND expires_at > now()
           RETURNING id`.pipe(Effect.orDie);
@@ -689,7 +729,7 @@ export class OAuthFlowService extends Context.Service<
                 clientId: device.clientId,
                 scopes: device.scopes,
                 resource: device.resource,
-                workspaceId: null,
+                workspaceId: device.workspaceId,
                 familyId: randomTokenBase64Url(16),
                 rotatedFrom: null,
               });
@@ -700,7 +740,7 @@ export class OAuthFlowService extends Context.Service<
           userId: approvedUserId,
           scopes: device.scopes,
           resource: device.resource ?? "",
-          workspaceId: null,
+          workspaceId: device.workspaceId,
           refreshToken,
         });
       });

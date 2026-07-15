@@ -12,6 +12,7 @@ CREATE TABLE oauth_device_authorizations (
   user_code_hash text NOT NULL UNIQUE,
   client_id text NOT NULL REFERENCES oauth_clients(client_id),
   user_id text REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id text REFERENCES workspaces(id) ON DELETE CASCADE,
   scopes text[] NOT NULL DEFAULT '{}',
   resource text,
   status oauth_device_status NOT NULL DEFAULT 'pending',

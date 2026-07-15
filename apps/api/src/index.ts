@@ -265,12 +265,15 @@ export const makeBaseLayer = (
           session300: env.RL_SESSION_300,
         })
       : RateLimiterService.inMemoryLayer());
+  const OAuthFlow = OAuthFlowService.layer.pipe(
+    Layer.provide(MembershipService.layer)
+  );
 
   return Layer.mergeAll(
     IdentityService.layer,
     MembershipService.layer,
     ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
+    OAuthFlow,
     QuotaGuard.layer,
     RateLimiter,
     Telemetry,

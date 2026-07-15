@@ -436,6 +436,11 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
   });
 
   it("runs device authorization from pending approval to a single-use token", async () => {
+    const me = await get("/v1/me", "dev-token");
+    const identity = (await me.json()) as {
+      personalWorkspace: { id: string };
+    };
+    const workspaceId = identity.personalWorkspace.id;
     const start = await postForm("/oauth/device/authorize", {
       client_id: "delulu-cli",
       scope: "posts:read accounts:read",
@@ -486,9 +491,27 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       resource: ISSUER,
     });
 
+    const escalatedApproval = await postJson(
+      "/oauth/device/approve",
+      {
+        user_code: device.user_code,
+        scope: "posts:write",
+        workspace_id: workspaceId,
+      },
+      "dev-token"
+    );
+    expect(escalatedApproval.status).toBe(400);
+    expect(await escalatedApproval.json()).toMatchObject({
+      error: "invalid_request",
+    });
+
     const approve = await postJson(
       "/oauth/device/approve",
-      { user_code: device.user_code },
+      {
+        user_code: device.user_code,
+        scope: "accounts:read",
+        workspace_id: workspaceId,
+      },
       "dev-token"
     );
     expect(approve.status).toBe(200);
@@ -507,8 +530,9 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     });
     expect(await introspection.json()).toMatchObject({
       active: true,
-      scopes: ["posts:read", "accounts:read"],
+      scopes: ["accounts:read"],
       aud: ISSUER,
+      workspaceId,
     });
 
     const replay = await postForm("/oauth/token", {
