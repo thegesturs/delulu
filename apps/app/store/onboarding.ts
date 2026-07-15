@@ -1,21 +1,20 @@
-import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { useAtomValue } from "@effect/atom-react";
+import { Atom } from "effect/unstable/reactivity";
+import { appRegistry } from "@/state/resources";
 
-// Define the store's state types
 interface OnboardingState {
-  currentStep: number; // 1–5
-  accountsConnected: number; // Real-time count for Step 2
-  surveyAnswer: string | null;
+  readonly currentStep: number;
+  readonly accountsConnected: number;
+  readonly surveyAnswer: string | null;
 }
 
-// Define the store's actions
 interface OnboardingActions {
-  setCurrentStep: (step: number) => void;
-  nextStep: () => void;
-  previousStep: () => void;
-  setAccountsConnected: (count: number) => void;
-  setSurveyAnswer: (answer: string | null) => void;
-  reset: () => void;
+  readonly setCurrentStep: (step: number) => void;
+  readonly nextStep: () => void;
+  readonly previousStep: () => void;
+  readonly setAccountsConnected: (count: number) => void;
+  readonly setSurveyAnswer: (answer: string | null) => void;
+  readonly reset: () => void;
 }
 
 const initialState: OnboardingState = {
@@ -24,50 +23,44 @@ const initialState: OnboardingState = {
   surveyAnswer: null,
 };
 
-// Create the Zustand store
-export const useOnboardingStore = create<OnboardingState & OnboardingActions>()(
-  devtools(
-    (set) => ({
-      ...initialState,
+const onboardingAtom = Atom.make(initialState).pipe(Atom.keepAlive);
 
-      setCurrentStep: (step: number) =>
-        set({ currentStep: step }, false, "onboarding/setCurrentStep"),
+const update = (f: (state: OnboardingState) => OnboardingState): void => {
+  appRegistry.set(onboardingAtom, f(appRegistry.get(onboardingAtom)));
+};
 
-      nextStep: () =>
-        set(
-          (state) => ({
-            currentStep: Math.min(state.currentStep + 1, 5),
-          }),
-          false,
-          "onboarding/nextStep"
-        ),
+const actions: OnboardingActions = {
+  setCurrentStep: (currentStep) =>
+    update((state) => ({
+      ...state,
+      currentStep: Math.max(1, Math.min(currentStep, 5)),
+    })),
+  nextStep: () =>
+    update((state) => ({
+      ...state,
+      currentStep: Math.min(state.currentStep + 1, 5),
+    })),
+  previousStep: () =>
+    update((state) => ({
+      ...state,
+      currentStep: Math.max(state.currentStep - 1, 1),
+    })),
+  setAccountsConnected: (accountsConnected) =>
+    update((state) =>
+      state.accountsConnected === accountsConnected
+        ? state
+        : { ...state, accountsConnected }
+    ),
+  setSurveyAnswer: (surveyAnswer) =>
+    update((state) => ({ ...state, surveyAnswer })),
+  reset: () => appRegistry.set(onboardingAtom, initialState),
+};
 
-      previousStep: () =>
-        set(
-          (state) => ({
-            currentStep: Math.max(state.currentStep - 1, 1),
-          }),
-          false,
-          "onboarding/previousStep"
-        ),
+type StoreValue = OnboardingState & OnboardingActions;
 
-      setAccountsConnected: (count: number) =>
-        set(
-          (state) => {
-            if (state.accountsConnected === count) {
-              return state;
-            }
-            return { accountsConnected: count };
-          },
-          false,
-          "onboarding/setAccountsConnected"
-        ),
-
-      setSurveyAnswer: (answer: string | null) =>
-        set({ surveyAnswer: answer }, false, "onboarding/setSurveyAnswer"),
-
-      reset: () => set(initialState, false, "onboarding/reset"),
-    }),
-    { name: "onboarding-store" }
-  )
-);
+export const useOnboardingStore = <T>(
+  selector: (state: StoreValue) => T
+): T => {
+  const state = useAtomValue(onboardingAtom);
+  return selector({ ...state, ...actions });
+};

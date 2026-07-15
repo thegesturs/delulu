@@ -10,28 +10,27 @@ export * from "./posts.js";
 export * from "./reviews.js";
 export * from "./shared.js";
 
-import { createAdminOptions } from "./admin.js";
-import { createAnalyticsOptions } from "./analytics.js";
-import { createAutomationOptions } from "./automations.js";
-import { createBillingOptions } from "./billing.js";
-import { createConnectionOptions } from "./connections.js";
-import { createHealthOptions } from "./health.js";
-import { createMeOptions } from "./me.js";
-import { createMediaOptions } from "./media.js";
-import { createPostOptions } from "./posts.js";
-import { createReviewOptions } from "./reviews.js";
-import { defineResourceOptions } from "./shared.js";
+import { createAdminEffects } from "./admin.js";
+import { createAnalyticsEffects } from "./analytics.js";
+import { createAutomationEffects } from "./automations.js";
+import { createBillingEffects } from "./billing.js";
+import { createConnectionEffects } from "./connections.js";
+import { createHealthEffects } from "./health.js";
+import { createMeEffects } from "./me.js";
+import { createMediaEffects } from "./media.js";
+import { createPostEffects } from "./posts.js";
+import { createReviewEffects } from "./reviews.js";
+import { defineResourceEffects } from "./shared.js";
 
-/** Current contract-backed options. New M3/M4 modules compose beside these. */
-export const createResourceOptions = defineResourceOptions((runtime) => ({
-  health: createHealthOptions(runtime),
-  me: createMeOptions(runtime),
-  posts: createPostOptions(runtime),
-  reviews: createReviewOptions(runtime),
-  media: createMediaOptions(runtime),
-  connections: createConnectionOptions(runtime),
-  admin: createAdminOptions(runtime),
-  analytics: createAnalyticsOptions(runtime),
-  automations: createAutomationOptions(runtime),
-  billing: createBillingOptions(runtime),
+export const createResourceEffects = defineResourceEffects((runtime) => ({
+  health: createHealthEffects(runtime),
+  me: createMeEffects(runtime),
+  posts: createPostEffects(runtime),
+  reviews: createReviewEffects(runtime),
+  media: createMediaEffects(runtime),
+  connections: createConnectionEffects(runtime),
+  admin: createAdminEffects(runtime),
+  analytics: createAnalyticsEffects(runtime),
+  automations: createAutomationEffects(runtime),
+  billing: createBillingEffects(runtime),
 }));

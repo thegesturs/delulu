@@ -1,13 +1,10 @@
-import { effectQuery } from "../query.js";
-import { defineResourceOptions } from "./shared.js";
+import { resourceEffect } from "../resource.js";
+import { defineResourceEffects } from "./shared.js";
 
-export const createHealthOptions = defineResourceOptions(
-  ({ client, runner }) => ({
-    check: () =>
-      effectQuery({
-        queryKey: ["health"] as const,
-        effect: () => client.health.check(),
-        runner,
-      }),
-  })
-);
+export const createHealthEffects = defineResourceEffects(({ client }) => ({
+  check: () =>
+    resourceEffect({
+      queryKey: ["health"] as const,
+      effect: () => client.health.check(),
+    }),
+}));

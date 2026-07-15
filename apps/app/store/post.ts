@@ -6,9 +6,9 @@ import type {
   TikTokSettings,
 } from "@delulu/validators/post";
 import { promotionContentTypes } from "@delulu/validators/post";
-import { create } from "zustand";
-import { createJSONStorage, devtools, persist } from "zustand/middleware";
-import { useShallow } from "zustand/shallow";
+import { useAtomValue } from "@effect/atom-react";
+import { Exit, Predicate, Schema } from "effect";
+import { Atom } from "effect/unstable/reactivity";
 import type { NodePositions } from "@/components/automations/flow-builder/hooks/use-automation-state";
 import type {
   AutomationStep,
@@ -16,6 +16,7 @@ import type {
   TriggerStep,
 } from "@/components/automations/flow-builder/utils/flow-types";
 import { type EditorMediaDetail, hydrateEditorMedia } from "@/lib/editor-media";
+import { appRegistry } from "@/state/resources";
 
 export interface InlineAutomationConfig {
   templateSlug: string;
@@ -126,190 +127,254 @@ const initialState: PostState = {
   automationConfigs: {},
 };
 
-// Create the store with SSR support and persistence
-export const useStore = create<PostState & PostActions>()(
-  devtools(
-    persist(
-      (set, get) => ({
-        ...initialState,
-        setShouldReset: (shouldReset) => set({ shouldReset }),
-        setDateAlongWithTime: (date) => set({ date }),
-        setTime: (time) => set({ time }),
-        setPost: (post) =>
-          set((state) => ({
-            post: typeof post === "function" ? post(state.post) : post,
-          })),
-        setSelectedSocialProviders: (providers) =>
-          set({ selectedSocialProviders: providers }),
-        setTikTokSettings: (settings) =>
-          set((state) => {
-            // Initialize with defaults if not set
-            const currentSettings =
-              state.tiktokSettings || DEFAULT_TIKTOK_SETTINGS;
+const STORAGE_KEY = "post-storage";
+type PersistedPostState = Omit<PostState, "isMediaUploading">;
+const { isMediaUploading: initialUploadState, ...initialDraftState } =
+  initialState;
+const postStateAtom = Atom.make<PersistedPostState>(initialDraftState).pipe(
+  Atom.keepAlive
+);
+const mediaUploadingAtom = Atom.make(initialUploadState).pipe(Atom.keepAlive);
 
-            // Merge new settings
-            const newSettings = { ...currentSettings, ...settings };
-
-            // Enforce business rule: paid partnerships can't be private
-            if (
-              (newSettings.promotionContent === promotionContentTypes.PAID ||
-                newSettings.promotionContent === promotionContentTypes.BOTH) &&
-              newSettings.privacy === "SELF_ONLY"
-            ) {
-              newSettings.privacy = DEFAULT_TIKTOK_SETTINGS.privacy;
-            }
-
-            return {
-              ...state,
-              tiktokSettings: newSettings,
-            };
-          }),
-        setProviderSettings: (providerId, setting) =>
-          set((state) => ({
-            providerSettings: {
-              ...state.providerSettings,
-              [providerId]: setting,
-            },
-          })),
-        getProviderSettings: (providerId) => {
-          const state = get();
-          return state.providerSettings[providerId];
-        },
-        setIsMediaUploading: (isUploading) =>
-          set({ isMediaUploading: isUploading }),
-        setAutomationConfig: (providerId, config) =>
-          set((state) => {
-            if (config === null) {
-              const { [providerId]: _, ...rest } = state.automationConfigs;
-              return { automationConfigs: rest };
-            }
-            return {
-              automationConfigs: {
-                ...state.automationConfigs,
-                [providerId]: config,
-              },
-            };
-          }),
-        loadPost: (postData, mediaById) => {
-          const defaultGroup =
-            postData.groups.find((group) => group.isDefault) ??
-            postData.groups[0];
-          const scheduledAt =
-            postData.targets.find((target) => target.scheduledAt)
-              ?.scheduledAt ?? null;
-          const mappedPost: FullPostType = {
-            id: postData.id,
-            content: (defaultGroup?.segments ?? []).map((segment, order) => ({
-              title: "",
-              text: segment.text,
-              media: hydrateEditorMedia(segment.media, mediaById),
-              name: order === 0 ? "DEFAULT" : `PART_${order + 1}`,
-              order,
-              tags: [],
-            })),
-            alternativeContent: [],
-            scheduledTime: scheduledAt ? new Date(scheduledAt) : undefined,
-            orgId: postData.workspaceId,
-          };
-
-          // Set scheduled date/time if exists
-          const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
-
-          // Load provider settings if they exist
-          const providerSettings: Record<string, ProviderSetting> = {};
-          for (const target of postData.targets) {
-            providerSettings[target.connectionId] = {
-              socialProviderId: target.connectionId,
-              type: target.settings.platform,
-              settings: target.settings.values,
-            } as ProviderSetting;
-          }
-
-          set({
-            post: mappedPost,
-            selectedSocialProviders: [],
-            date: scheduledDate,
-            time: scheduledDate
-              ? `${scheduledDate.getHours().toString().padStart(2, "0")}:${scheduledDate.getMinutes().toString().padStart(2, "0")}`
-              : "00:00",
-            providerSettings,
-          });
-        },
-        cleanupDeletedProviders: (validProviderIds) => {
-          const state = get();
-          const validIds = new Set(validProviderIds);
-
-          // Filter selectedSocialProviders
-          const validSelectedProviders = state.selectedSocialProviders.filter(
-            (provider) => validIds.has(provider.socialId)
-          );
-
-          // Filter alternative content
-          const validAlternativeContent = state.post.alternativeContent.filter(
-            (alt) => validIds.has(alt.socialProvider.socialId)
-          );
-
-          // Filter provider settings
-          const validProviderSettings: Record<string, ProviderSetting> = {};
-          for (const [providerId, setting] of Object.entries(
-            state.providerSettings
-          )) {
-            if (validIds.has(providerId)) {
-              validProviderSettings[providerId] = setting;
-            }
-          }
-
-          set({
-            selectedSocialProviders: validSelectedProviders,
-            post: {
-              ...state.post,
-              alternativeContent: validAlternativeContent,
-            },
-            providerSettings: validProviderSettings,
-          });
-        },
-        reset: () => set(initialState),
-      }),
-      {
-        name: "post-storage",
-        storage: createJSONStorage(() => localStorage),
-        skipHydration: true,
-        partialize: (state) => {
-          // Exclude transient state that should never persist across sessions
-          const { isMediaUploading, ...rest } = state;
-          return rest;
-        },
-        merge: (persistedState, currentState) => ({
-          ...currentState,
-          ...(persistedState as Partial<PostState & PostActions>),
-          // Always reset transient upload state on hydration
-          isMediaUploading: false,
-        }),
-      }
-    )
-  )
+const persistedEnvelope = Schema.fromJsonString(
+  Schema.Union([
+    Schema.Struct({ state: Schema.Unknown, version: Schema.Number }),
+    Schema.Struct({ draft: Schema.Unknown, version: Schema.Literal(1) }),
+  ])
 );
 
+const isPersistedDraft = (value: unknown): value is Partial<PostState> =>
+  Predicate.isObject(value) &&
+  (value.time === undefined ||
+    value.time === null ||
+    Predicate.isString(value.time)) &&
+  (value.selectedSocialProviders === undefined ||
+    Array.isArray(value.selectedSocialProviders)) &&
+  (value.providerSettings === undefined ||
+    Predicate.isObject(value.providerSettings)) &&
+  (value.automationConfigs === undefined ||
+    Predicate.isObject(value.automationConfigs)) &&
+  (value.post === undefined ||
+    (Predicate.isObject(value.post) &&
+      Array.isArray(value.post.content) &&
+      Array.isArray(value.post.alternativeContent)));
+
+const restoreDate = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+  if (!Predicate.isString(value)) {
+    return undefined;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const persistState = (state: PostState): void => {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  const { isMediaUploading: _, ...draft } = state;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, draft }));
+};
+
+const getState = (): PostState => ({
+  ...appRegistry.get(postStateAtom),
+  isMediaUploading: appRegistry.get(mediaUploadingAtom),
+});
+
+const setState = (
+  update:
+    | Partial<PostState>
+    | ((state: PostState) => Partial<PostState> | PostState)
+): void => {
+  const current = getState();
+  const patch = typeof update === "function" ? update(current) : update;
+  const next = { ...current, ...patch };
+  const { isMediaUploading, ...draft } = next;
+  appRegistry.set(postStateAtom, draft);
+  appRegistry.set(mediaUploadingAtom, isMediaUploading);
+  persistState(next);
+};
+
+const actions: PostActions = {
+  setShouldReset: (shouldReset) => setState({ shouldReset }),
+  setDateAlongWithTime: (date) => setState({ date }),
+  setTime: (time) => setState({ time }),
+  setPost: (post) =>
+    setState((state) => ({
+      post: typeof post === "function" ? post(state.post) : post,
+    })),
+  setSelectedSocialProviders: (selectedSocialProviders) =>
+    setState({ selectedSocialProviders }),
+  setTikTokSettings: (settings) =>
+    setState((state) => {
+      const newSettings = {
+        ...(state.tiktokSettings ?? DEFAULT_TIKTOK_SETTINGS),
+        ...settings,
+      };
+      if (
+        (newSettings.promotionContent === promotionContentTypes.PAID ||
+          newSettings.promotionContent === promotionContentTypes.BOTH) &&
+        newSettings.privacy === "SELF_ONLY"
+      ) {
+        newSettings.privacy = DEFAULT_TIKTOK_SETTINGS.privacy;
+      }
+      return { tiktokSettings: newSettings };
+    }),
+  setProviderSettings: (providerId, setting) =>
+    setState((state) => ({
+      providerSettings: { ...state.providerSettings, [providerId]: setting },
+    })),
+  getProviderSettings: (providerId) => getState().providerSettings[providerId],
+  setIsMediaUploading: (isMediaUploading) => setState({ isMediaUploading }),
+  setAutomationConfig: (providerId, config) =>
+    setState((state) => {
+      if (config === null) {
+        const { [providerId]: _, ...automationConfigs } =
+          state.automationConfigs;
+        return { automationConfigs };
+      }
+      return {
+        automationConfigs: {
+          ...state.automationConfigs,
+          [providerId]: config,
+        },
+      };
+    }),
+  loadPost: (postData, mediaById) => {
+    const defaultGroup =
+      postData.groups.find((group) => group.isDefault) ?? postData.groups[0];
+    const scheduledAt =
+      postData.targets.find((target) => target.scheduledAt)?.scheduledAt ??
+      null;
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
+    const providerSettings: Record<string, ProviderSetting> = {};
+    for (const target of postData.targets) {
+      providerSettings[target.connectionId] = {
+        socialProviderId: target.connectionId,
+        type: target.settings.platform,
+        settings: target.settings.values,
+      } as ProviderSetting;
+    }
+    setState({
+      post: {
+        id: postData.id,
+        content: (defaultGroup?.segments ?? []).map((segment, order) => ({
+          title: "",
+          text: segment.text,
+          media: hydrateEditorMedia(segment.media, mediaById),
+          name: order === 0 ? "DEFAULT" : `PART_${order + 1}`,
+          order,
+          tags: [],
+        })),
+        alternativeContent: [],
+        scheduledTime: scheduledDate,
+        orgId: postData.workspaceId,
+      },
+      selectedSocialProviders: [],
+      date: scheduledDate,
+      time: scheduledDate
+        ? `${scheduledDate.getHours().toString().padStart(2, "0")}:${scheduledDate.getMinutes().toString().padStart(2, "0")}`
+        : "00:00",
+      providerSettings,
+    });
+  },
+  cleanupDeletedProviders: (validProviderIds) => {
+    const validIds = new Set(validProviderIds);
+    setState((state) => ({
+      selectedSocialProviders: state.selectedSocialProviders.filter(
+        (provider) => validIds.has(provider.socialId)
+      ),
+      post: {
+        ...state.post,
+        alternativeContent: state.post.alternativeContent.filter((content) =>
+          validIds.has(content.socialProvider.socialId)
+        ),
+      },
+      providerSettings: Object.fromEntries(
+        Object.entries(state.providerSettings).filter(([providerId]) =>
+          validIds.has(providerId)
+        )
+      ),
+    }));
+  },
+  reset: () => setState(initialState),
+};
+
+type StoreValue = PostState & PostActions;
+interface StoreHook {
+  <T = StoreValue>(selector?: (state: StoreValue) => T): T;
+  getState: () => StoreValue;
+  setState: typeof setState;
+  persist: { rehydrate: () => Promise<void> };
+}
+
+export const useStore: StoreHook = (<T>(
+  selector: (state: StoreValue) => T = (state) => state as T
+): T => {
+  const draft = useAtomValue(postStateAtom);
+  const isMediaUploading = useAtomValue(mediaUploadingAtom);
+  return selector({ ...draft, isMediaUploading, ...actions });
+}) as StoreHook;
+
+useStore.getState = () => ({ ...getState(), ...actions });
+useStore.setState = setState;
+useStore.persist = {
+  rehydrate: async () => {
+    if (typeof localStorage === "undefined") {
+      return;
+    }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const decoded = Schema.decodeUnknownExit(persistedEnvelope)(raw);
+    if (!Exit.isSuccess(decoded)) {
+      setState(initialState);
+      return;
+    }
+    const candidate =
+      "draft" in decoded.value ? decoded.value.draft : decoded.value.state;
+    if (!isPersistedDraft(candidate)) {
+      setState(initialState);
+      return;
+    }
+    const restored = candidate;
+    const date = restoreDate(restored.date);
+    const scheduledTime = restoreDate(restored.post?.scheduledTime);
+    setState({
+      ...restored,
+      date,
+      post: restored.post
+        ? { ...restored.post, scheduledTime }
+        : initialState.post,
+      isMediaUploading: false,
+    });
+  },
+};
+
 // Stable selectors
-const postSelector = (state: PostState & PostActions) => state.post;
-const dateTimeSelector = (state: PostState & PostActions) => ({
+const postAtom = Atom.map(postStateAtom, (state) => state.post);
+const dateTimeAtom = Atom.map(postStateAtom, (state) => ({
   date: state.date,
   time: state.time,
-});
-const selectedProvidersSelector = (state: PostState & PostActions) =>
-  state.selectedSocialProviders;
-const alternativeContentSelector = (state: PostState & PostActions) =>
-  state.post.alternativeContent;
-const mediaUploadingSelector = (state: PostState & PostActions) =>
-  state.isMediaUploading;
+}));
+const selectedProvidersAtom = Atom.map(
+  postStateAtom,
+  (state) => state.selectedSocialProviders
+);
+const alternativeContentAtom = Atom.map(
+  postStateAtom,
+  (state) => state.post.alternativeContent
+);
 
-export const usePost = () => useStore(postSelector);
-export const useAlternativeContent = () =>
-  useStore(useShallow(alternativeContentSelector));
-export const useDateTime = () => useStore(useShallow(dateTimeSelector));
+export const usePost = () => useAtomValue(postAtom);
+export const useAlternativeContent = () => useAtomValue(alternativeContentAtom);
+export const useDateTime = () => useAtomValue(dateTimeAtom);
 export const useSelectedSocialProviders = () =>
-  useStore(useShallow(selectedProvidersSelector));
-export const useIsMediaUploading = () => useStore(mediaUploadingSelector);
+  useAtomValue(selectedProvidersAtom);
+export const useIsMediaUploading = () => useAtomValue(mediaUploadingAtom);
 export const useAutomationConfig = (providerId: string) =>
   useStore((state) => state.automationConfigs[providerId] ?? null);
 // Stable function that gets state directly without React hooks

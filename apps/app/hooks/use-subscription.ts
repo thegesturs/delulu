@@ -1,8 +1,8 @@
 "use client";
 
 import type { PlanType } from "@delulu/payments";
-import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
+import { useResourceAtom } from "@/state/resources";
 import { useOperationsWorkspace } from "./use-operations-workspace";
 
 export interface SubscriptionView {
@@ -44,7 +44,7 @@ export function useSubscription(): UseSubscriptionReturn {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const options = resources.billing.subscription(workspace.workspaceId ?? "");
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,

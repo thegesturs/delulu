@@ -25,11 +25,11 @@ import {
   Image01Icon,
   UserMultipleIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useResourceAtom } from "@/state/resources";
 
 interface UsageStatItemProps {
   icon: React.ReactNode;
@@ -121,19 +121,19 @@ export function UsageStats() {
   const subscription = useSubscription();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const usageOptions = resources.billing.usage(workspace.workspaceId ?? "");
-  const memberOptions = resources.admin.members(workspace.workspaceId ?? "", {
+  const usageResource = resources.billing.usage(workspace.workspaceId ?? "");
+  const memberResource = resources.admin.members(workspace.workspaceId ?? "", {
     limit: 1,
     offset: 0,
   });
-  const usageQuery = useQuery({
-    ...usageOptions,
-    queryKey: usageOptions.queryKey!,
+  const usageQuery = useResourceAtom({
+    ...usageResource,
+    queryKey: usageResource.queryKey!,
     enabled: !!workspace.workspaceId,
   });
-  const membersQuery = useQuery({
-    ...memberOptions,
-    queryKey: memberOptions.queryKey!,
+  const membersQuery = useResourceAtom({
+    ...memberResource,
+    queryKey: memberResource.queryKey!,
     enabled: !!workspace.workspaceId,
   });
   const usage = usageQuery.data?.usage;
@@ -336,10 +336,10 @@ export function CompactUsageStats() {
   const subscription = useSubscription();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const usageOptions = resources.billing.usage(workspace.workspaceId ?? "");
-  const usageQuery = useQuery({
-    ...usageOptions,
-    queryKey: usageOptions.queryKey!,
+  const usageResource = resources.billing.usage(workspace.workspaceId ?? "");
+  const usageQuery = useResourceAtom({
+    ...usageResource,
+    queryKey: usageResource.queryKey!,
     enabled: !!workspace.workspaceId,
   });
   const usage = usageQuery.data?.usage;

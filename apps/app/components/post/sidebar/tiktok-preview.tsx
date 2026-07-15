@@ -13,11 +13,11 @@ import {
   ShareIcon,
   UserIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
+import { useResourceAtom } from "@/state/resources";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
 
 export function TikTokPreview() {
@@ -25,7 +25,7 @@ export function TikTokPreview() {
   const selectedProviders = useSelectedSocialProviders();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const connectedAccounts = useQuery({
+  const connectedAccounts = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });

@@ -10,13 +10,18 @@ import { Card } from "@delulu/design-system/components/ui/card";
 import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { CalendarPlus } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Effect } from "effect";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/header";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 interface TargetMutation {
   postId: string;
@@ -27,10 +32,10 @@ interface TargetMutation {
 export function CalendarClient() {
   const router = useRouter();
   const analytics = useAnalytics();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const scheduledPosts = useQuery({
+  const scheduledPosts = useResourceAtom({
     ...resources.posts.list(workspaceId ?? "", {
       limit: 250,
       status: "scheduled",
@@ -44,36 +49,28 @@ export function CalendarClient() {
     if (!workspaceId) {
       return;
     }
-    await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
-  }, [queryClient, resources, workspaceId]);
+    await invalidateWorkspaceResource(registry, workspaceId, "posts");
+  }, [registry, resources, workspaceId]);
 
-  const updateTarget = useMutation({
-    mutationFn: async ({ postId, targetId, scheduledAt }: TargetMutation) => {
+  const updateTarget = useMutationAtom({
+    mutationKey: ["workspace", workspaceId, "posts"],
+    effect: ({ postId, targetId, scheduledAt }: TargetMutation) => {
       if (!workspaceId) {
-        throw new Error("Select a workspace before rescheduling");
+        return Effect.fail(new Error("Select a workspace before rescheduling"));
       }
-      const mutation = resources.posts.updateTarget(
-        workspaceId,
-        postId,
-        targetId
-      );
-      if (!mutation.mutationFn) {
-        throw new Error("Update target is unavailable");
-      }
-      return mutation.mutationFn({ scheduledAt });
+      return resources.posts
+        .updateTarget(workspaceId, postId, targetId)
+        .effect({ scheduledAt });
     },
     onSuccess: invalidatePosts,
   });
-  const removePost = useMutation({
-    mutationFn: async (postId: string) => {
+  const removePost = useMutationAtom({
+    mutationKey: ["workspace", workspaceId, "posts"],
+    effect: (postId: string) => {
       if (!workspaceId) {
-        throw new Error("Select a workspace before deleting");
+        return Effect.fail(new Error("Select a workspace before deleting"));
       }
-      const mutation = resources.posts.remove(workspaceId);
-      if (!mutation.mutationFn) {
-        throw new Error("Delete post is unavailable");
-      }
-      return mutation.mutationFn(postId);
+      return resources.posts.remove(workspaceId).effect(postId);
     },
     onSuccess: invalidatePosts,
   });

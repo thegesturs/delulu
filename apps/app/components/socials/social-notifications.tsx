@@ -5,11 +5,11 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import { SocialError } from "../error/social-error";
 
 const ERROR_MESSAGES = {
@@ -81,7 +81,7 @@ function SocialNotificationsContent() {
   const analytics = useAnalytics();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const trackedRef = useRef(false);
   const invalidatedRef = useRef(false);
 
@@ -128,14 +128,14 @@ function SocialNotificationsContent() {
     }
     if (success === "true" || notification || error) {
       invalidatedRef.current = true;
-      queryClient.invalidateQueries({
+      registry.invalidateResources({
         queryKey: resources.connections.list(workspaceId).queryKey,
       });
     }
-  }, [success, notification, error, workspaceId, queryClient, resources]);
+  }, [success, notification, error, workspaceId, registry, resources]);
 
   // Fetch the connect URL if we have a provider and might need to retry
-  const connect = useMutation(
+  const connect = useMutationAtom(
     resources.connections.mint(workspaceId ?? "", provider ?? "TWITTER")
   );
 

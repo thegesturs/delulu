@@ -8,19 +8,23 @@ import {
   PencilEdit02Icon,
   RefreshIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 export function FailedPostsAlert() {
   const router = useRouter();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = workspace.workspaceId ?? "";
   // "Needs attention" = every post that failed to publish on at least one
   // target: fully failed and partially failed alike. The count and the rows
@@ -31,7 +35,7 @@ export function FailedPostsAlert() {
     offset: 0,
     status: "failed,partially_failed",
   });
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,
@@ -81,7 +85,7 @@ export function FailedPostsAlert() {
             key={post.id}
             onEdit={() => router.push(`/post/${post.id}`)}
             onRetried={() =>
-              queryClient.invalidateQueries({ queryKey: options.queryKey! })
+              registry.invalidateResources({ queryKey: options.queryKey! })
             }
             post={post}
             resources={resources}
@@ -119,7 +123,9 @@ function FailedPostRow({
   const failedTarget = post.targets.find(
     (target) => target.status === "failed"
   );
-  const retry = useMutation(resources.posts.retryTarget(workspaceId, post.id));
+  const retry = useMutationAtom(
+    resources.posts.retryTarget(workspaceId, post.id)
+  );
   const excerpt = post.groups[0]?.segments[0]?.text || "Untitled post";
   const error = failedTarget?.error || "Publishing failed";
   return (

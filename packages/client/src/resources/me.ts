@@ -1,17 +1,15 @@
-import { effectQuery } from "../query.js";
-import { defineResourceOptions } from "./shared.js";
+import { resourceEffect } from "../resource.js";
+import { defineResourceEffects } from "./shared.js";
 
-export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
+export const createMeEffects = defineResourceEffects(({ client }) => ({
   current: () =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "current"] as const,
       effect: () => client.me.current(),
-      runner,
     }),
   workspaces: () =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "workspaces"] as const,
       effect: () => client.me.workspaces(),
-      runner,
     }),
 }));

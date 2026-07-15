@@ -13,6 +13,7 @@ import {
   type Node,
   type NodeChange,
   type NodeTypes,
+  type OnNodeDrag,
   ReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -79,8 +80,8 @@ export function FlowCanvas({
     [onEdgeDelete]
   );
 
-  const handleNodeDragStop = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+  const handleNodeDragStop: OnNodeDrag = useCallback(
+    (_, node) => {
       onNodeDragStop?.(node.id, node.position);
     },
     [onNodeDragStop]

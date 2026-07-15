@@ -3,12 +3,12 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
+import { useMutationAtom, useResourceAtom } from "@/state/resources";
 import { useOnboardingStore } from "@/store/onboarding";
 
 const platforms: SupportedSocialPlatform[] = [
@@ -32,7 +32,7 @@ function ConnectButton({
 }) {
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const connect = useMutation(
+  const connect = useMutationAtom(
     resources.connections.mint(workspaceId ?? "", platform)
   );
   return (
@@ -63,7 +63,7 @@ export function ConnectAccountsStep() {
   const setAccountsConnected = useOnboardingStore(
     (state) => state.setAccountsConnected
   );
-  const accounts = useQuery({
+  const accounts = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });
@@ -83,7 +83,9 @@ export function ConnectAccountsStep() {
         </p>
       </div>
       {accounts.isError && (
-        <p className="text-center text-destructive">{accounts.error.message}</p>
+        <p className="text-center text-destructive">
+          {accounts.error?.message ?? "Accounts could not be loaded"}
+        </p>
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         {platforms.map((platform) => (

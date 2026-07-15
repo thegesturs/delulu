@@ -8,7 +8,6 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import { type SocialType, SocialTypes } from "@delulu/validators/post";
 import { Add01Icon, Remove01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useCallback, useMemo, useRef } from "react";
-import { useShallow } from "zustand/shallow";
 import {
   getDefaultCharacterLimit,
   getDefaultPlaceholder,
@@ -45,12 +44,10 @@ interface ContentModuleProps {
 // This function is no longer used, replaced by dynamic placeholder from default-platform-rules
 
 export function ContentModule({ socialId, socialType }: ContentModuleProps) {
-  const { post, setPost } = useStore(
-    useShallow((state) => ({
-      post: state.post,
-      setPost: state.setPost,
-    }))
-  );
+  const { post, setPost } = useStore((state) => ({
+    post: state.post,
+    setPost: state.setPost,
+  }));
   const selectedSocialProviders = useSelectedSocialProviders();
   const isMediaUploading = useIsMediaUploading();
 

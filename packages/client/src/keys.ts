@@ -1,4 +1,4 @@
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { ResourceKey } from "./resource.js";
 
 export type WorkspaceQueryKey = readonly [
   "workspace",
@@ -27,16 +27,31 @@ export const workspaceKeys = {
     workspaceQueryKey(workspaceId, resource, "detail", id),
 };
 
-export const invalidateKey = (queryClient: QueryClient, queryKey: QueryKey) =>
-  queryClient.invalidateQueries({ queryKey });
+export const resourceKeyStartsWith = (
+  key: ResourceKey,
+  prefix: ResourceKey
+): boolean =>
+  prefix.length <= key.length &&
+  prefix.every((part, index) => Object.is(part, key[index]));
+
+export interface ResourceInvalidationRegistry {
+  readonly invalidateResources: (options: {
+    readonly queryKey: ResourceKey;
+  }) => Promise<unknown>;
+}
+
+export const invalidateKey = (
+  registry: ResourceInvalidationRegistry,
+  queryKey: ResourceKey
+) => registry.invalidateResources({ queryKey });
 
 export const invalidateWorkspace = (
-  queryClient: QueryClient,
+  registry: ResourceInvalidationRegistry,
   workspaceId: string
-) => invalidateKey(queryClient, workspaceKeys.workspace(workspaceId));
+) => invalidateKey(registry, workspaceKeys.workspace(workspaceId));
 
 export const invalidateWorkspaceResource = (
-  queryClient: QueryClient,
+  registry: ResourceInvalidationRegistry,
   workspaceId: string,
   resource: string
-) => invalidateKey(queryClient, workspaceKeys.resource(workspaceId, resource));
+) => invalidateKey(registry, workspaceKeys.resource(workspaceId, resource));

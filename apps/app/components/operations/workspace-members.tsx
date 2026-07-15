@@ -16,11 +16,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@delulu/design-system/components/ui/select";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import { OperationsError } from "./query-state";
 
 const roles = ["owner", "admin", "editor", "viewer"] as const;
@@ -29,7 +33,7 @@ type Role = (typeof roles)[number];
 export function WorkspaceMembers() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = workspace.workspaceId ?? "";
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>("viewer");
@@ -37,21 +41,26 @@ export function WorkspaceMembers() {
     limit: 100,
     offset: 0,
   });
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,
   });
-  const invite = useMutation(resources.admin.inviteMember(workspaceId));
-  const remove = useMutation(resources.admin.removeMember(workspaceId));
+  const invite = useMutationAtom(resources.admin.inviteMember(workspaceId));
+  const remove = useMutationAtom(resources.admin.removeMember(workspaceId));
+  const updateMember = useMutationAtom({
+    mutationKey: ["workspace", workspaceId, "members"],
+    effect: ({ memberId, nextRole }: { memberId: string; nextRole: Role }) =>
+      resources.admin
+        .updateMember(workspaceId, memberId)
+        .effect({ role: nextRole }),
+  });
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: options.queryKey! });
+    registry.invalidateResources({ queryKey: options.queryKey! });
   const updateRole = async (memberId: string, nextRole: Role) => {
     try {
-      await resources.admin.updateMember(workspaceId, memberId).mutationFn!({
-        role: nextRole,
-      });
+      await updateMember.mutateAsync({ memberId, nextRole });
       await refresh();
       toast.success("Member role updated");
     } catch (error) {

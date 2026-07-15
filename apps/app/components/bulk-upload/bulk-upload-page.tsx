@@ -19,11 +19,6 @@ import {
   AlertCircleIcon,
   Loading03Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import {
-  useMutation as useApiMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
@@ -36,6 +31,11 @@ import { useMediaStorage } from "@/hooks/use-media-storage";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
 import { PLATFORM_VIDEO_RULES, validateVideo } from "@/lib/platform-rules";
+import {
+  useMutationAtom as useApiMutation,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import { BulkDropzone } from "./bulk-dropzone";
 import { BulkSocialSelector } from "./bulk-social-selector";
 import type { BulkVideo, SelectedProvider } from "./bulk-upload-reducer";
@@ -172,21 +172,21 @@ export function BulkUploadPage() {
   const { uploadAndSaveMedia } = useMediaStorage();
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const bulkCreate = useApiMutation({
     ...resources.posts.bulkCreate(workspaceId ?? ""),
     onSuccess: async () => {
       if (!workspaceId) {
         return;
       }
-      await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
+      await invalidateWorkspaceResource(registry, workspaceId, "posts");
     },
   });
   const router = useRouter();
   const analytics = useAnalytics();
   const { requiresApproval, isViewer } = usePermissions();
 
-  const usage = useQuery({
+  const usage = useResourceAtom({
     ...resources.billing.usage(workspaceId ?? ""),
     enabled: Boolean(workspaceId),
   });
