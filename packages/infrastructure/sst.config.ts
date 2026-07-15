@@ -18,6 +18,9 @@ export default $config({
           profile: process.env.GITHUB_ACTIONS ? undefined : "delulu_social",
           region: "us-east-1",
         },
+        // Builds + pushes the YouTube trimmer container image to ECR as part of
+        // `sst deploy` (see awsx.ecr.Image below). Added via `sst add awsx`.
+        awsx: "3.7.0",
       },
     };
   },
@@ -29,10 +32,10 @@ export default $config({
     const DODO_PAYMENTS_API_KEY = new sst.Secret("DODO_PAYMENTS_API_KEY");
     const POSTGRES_DATABASE_URL = new sst.Secret("POSTGRES_DATABASE_URL");
     const ENCRYPTION_SECRET = new sst.Secret("ENCRYPTION_SECRET");
-    // YouTube trimmer (marketing /tools). Image URI is produced by
-    // youtube-trimmer/build-and-push.sh; auth secret is the shared bearer the
-    // web route sends so the public Function URL can't be abused directly.
-    const YOUTUBE_TRIMMER_IMAGE_URI = new sst.Secret("YoutubeTrimmerImageUri");
+    // YouTube trimmer (marketing /tools). The container image is built + pushed
+    // to ECR by `sst deploy` (awsx.ecr.Image below) — no manual docker/ECR steps.
+    // Auth secret is the shared bearer the web route sends so the public Function
+    // URL can't be abused directly.
     const YOUTUBE_TRIMMER_AUTH = new sst.Secret("YoutubeTrimmerAuthSecret");
 
     // Primary publishing lane. Existing logical names remain stable so the
@@ -100,7 +103,32 @@ export default $config({
     // YOUTUBE TRIMMER FUNCTION (marketing /tools)
     // Container image (yt-dlp + ffmpeg) — can't run on Cloudflare Workers.
     // Raw aws.* resources because sst.aws.Function is zip-only (no container image).
+    //
+    // awsx.ecr.Image builds the Dockerfile and pushes it to a managed ECR repo
+    // during `sst deploy` (needs the local Docker daemon running). No separate
+    // build/push script or image-URI secret — one command deploys everything.
     // ============================================================================
+    const trimmerRepo = new awsx.ecr.Repository("YoutubeTrimmerRepo", {
+      // Keep only the last few images so ECR storage doesn't grow unbounded.
+      lifecyclePolicy: {
+        rules: [
+          {
+            tagStatus: "any",
+            maximumNumberOfImages: 5,
+            description: "Keep last 5 images",
+          },
+        ],
+      },
+      forceDelete: true,
+    });
+    const trimmerImage = new awsx.ecr.Image("YoutubeTrimmerImage", {
+      repositoryUrl: trimmerRepo.url,
+      context: "youtube-trimmer",
+      dockerfile: "youtube-trimmer/Dockerfile",
+      // Lambda runs x86_64 (see architectures below); build must match.
+      platform: "linux/amd64",
+    });
+
     const trimmerRole = new aws.iam.Role("YoutubeTrimmerRole", {
       assumeRolePolicy: JSON.stringify({
         Version: "2012-10-17",
@@ -120,7 +148,7 @@ export default $config({
     });
     const trimmerFunction = new aws.lambda.Function("YoutubeTrimmerFunction", {
       packageType: "Image",
-      imageUri: YOUTUBE_TRIMMER_IMAGE_URI.value,
+      imageUri: trimmerImage.imageUri,
       role: trimmerRole.arn,
       architectures: ["x86_64"],
       memorySize: 2048,

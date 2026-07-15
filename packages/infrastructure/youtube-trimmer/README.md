@@ -16,26 +16,31 @@ this Lambda.
 
 - `Dockerfile` — Lambda node20 base + static ffmpeg/ffprobe + `yt-dlp_linux`.
 - `index.mjs` — streaming handler. POST `{ url, start, end, maxHeight? }` → MP4.
-- `build-and-push.sh` — build linux/amd64 + push to ECR, prints the image URI.
-- SST wiring lives in `../sst.config.ts` (`YoutubeTrimmerFunction`).
+- SST wiring lives in `../sst.config.ts`. `awsx.ecr.Image` builds + pushes this
+  Dockerfile to ECR during `sst deploy` — there is no separate build/push script.
 
 ## Deploy
 
-```bash
-# 1. Build + push the image
-aws sso login --profile delulu_social
-packages/infrastructure/youtube-trimmer/build-and-push.sh      # prints an image URI
+`sst deploy` builds the image, pushes it to a managed ECR repo, and wires up the
+Lambda + Function URL in one shot. You just need the Docker daemon running and an
+AWS session.
 
-# 2. Set secrets + deploy the Lambda
+```bash
+# 0. First time only: fetch the awsx provider referenced by sst.config.ts.
 cd packages/infrastructure
-pnpm sst secret set YoutubeTrimmerImageUri  "<image-uri-from-step-1>" --stage production
+pnpm sst install                    # (or: pnpm sst add awsx)
+
+# 1. Log in + set the shared auth secret (one time; any random hex works).
+aws sso login --profile delulu_social
 pnpm sst secret set YoutubeTrimmerAuthSecret "$(openssl rand -hex 32)" --stage production
+
+# 2. Deploy — builds the container, pushes to ECR, deploys the Lambda.
 pnpm sst deploy --stage production
 # → outputs YoutubeTrimmerApiEndpoint (the Function URL)
 
-# 3. Point the web app at it (Cloudflare secrets on delulu-social-landing)
-cd apps/web
-wrangler secret put YOUTUBE_TRIMMER_URL     # paste the Function URL
+# 3. Point the web app at it (Cloudflare secrets on delulu-social-landing).
+cd ../../apps/web
+wrangler secret put YOUTUBE_TRIMMER_URL      # paste the Function URL from step 2
 wrangler secret put YOUTUBE_TRIMMER_SECRET   # paste the SAME value as YoutubeTrimmerAuthSecret
 ```
 
@@ -56,8 +61,9 @@ YOUTUBE_TRIMMER_SECRET=<same-secret>
 
 ## Maintenance
 
-- **Update yt-dlp** (YouTube changes often): re-run `build-and-push.sh` (it pulls
-  the latest yt-dlp release), then re-set `YoutubeTrimmerImageUri` + `sst deploy`.
+- **Update yt-dlp** (YouTube changes often): the Dockerfile pulls the latest
+  yt-dlp on build, so just re-run `pnpm sst deploy --stage production` — awsx
+  rebuilds the image and rolls the Lambda to the new digest.
 - **Age-restricted videos**: bake a `cookies.txt` from a burner account into the
   image and set `YT_COOKIES_FILE=/var/task/cookies.txt`. Not enabled by default.
 - AWS egress is a datacenter IP; if YouTube's bot rate climbs, add cookies and/or
