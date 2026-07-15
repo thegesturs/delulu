@@ -29,4 +29,18 @@ export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
         client.me.updateSetup({ params: { workspaceId }, payload }),
       runner,
     }),
+  emailPreferences: () =>
+    effectQuery({
+      queryKey: ["me", "email-preferences"] as const,
+      effect: () => client.me.emailPreferences(),
+      runner,
+    }),
+  updateEmailPreferences: () =>
+    effectMutation({
+      mutationKey: ["me", "email-preferences"] as const,
+      effect: (
+        payload: EndpointPayload<ApiClient["me"]["updateEmailPreferences"]>
+      ) => client.me.updateEmailPreferences({ payload }),
+      runner,
+    }),
 }));

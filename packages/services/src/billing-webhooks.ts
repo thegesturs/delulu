@@ -7,6 +7,7 @@ import {
 import { Context, DateTime, Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { ProductAnalytics } from "./product-analytics";
+import { stopBilledWorkspaceWork } from "./subscription-access";
 
 /** Active subscription statuses that mean the customer is currently paying. */
 const ACTIVE_STATUSES = new Set(["active", "trialing", "on_trial"]);
@@ -62,15 +63,24 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
             });
           }
           const id = makeId(SubscriptionId);
-          yield* sql`INSERT INTO subscriptions
+          const subscriptionChanges = yield* sql<{
+            id: string;
+          }>`INSERT INTO subscriptions
             (id, billing_owner_user_id, provider_customer_id,
               provider_subscription_id, plan, status, current_period_start,
-              current_period_end, addons)
+              current_period_end, addons, billing_interval, currency,
+              recurring_amount_minor, cancel_at_period_end, last_renewed_at,
+              paid_since, provider_updated_at)
             VALUES (${id}, ${event.billingOwnerUserId}, ${event.providerCustomerId},
               ${event.providerSubscriptionId}, ${event.plan}, ${event.status},
               ${optionalDate(event.currentPeriodStart)},
               ${optionalDate(event.currentPeriodEnd)},
-              ${JSON.stringify(event.addons ?? {})}::jsonb)
+              ${JSON.stringify(event.addons ?? {})}::jsonb,
+              ${event.billingInterval}, ${event.currency},
+              ${event.recurringAmountMinor}, ${event.cancelAtPeriodEnd ?? false},
+              ${event.providerEventType === "subscription.renewed" ? new Date() : null},
+              ${event.status === "active" || event.status === "trialing" ? (optionalDate(event.currentPeriodStart) ?? new Date()) : null},
+              ${optionalDate(event.providerOccurredAt ?? null)})
             ON CONFLICT (billing_owner_user_id) DO UPDATE SET
               provider_customer_id = EXCLUDED.provider_customer_id,
               provider_subscription_id = EXCLUDED.provider_subscription_id,
@@ -84,7 +94,58 @@ export const applyBillingWebhook = Effect.fn("applyBillingWebhook")(function* (
               dms_sent_period_start = CASE WHEN subscriptions.current_period_start IS DISTINCT FROM EXCLUDED.current_period_start THEN EXCLUDED.current_period_start ELSE subscriptions.dms_sent_period_start END,
               current_period_start = EXCLUDED.current_period_start,
               current_period_end = EXCLUDED.current_period_end,
-              addons = EXCLUDED.addons`;
+              addons = EXCLUDED.addons,
+              billing_interval = ${event.billingInterval},
+              currency = ${event.currency},
+              recurring_amount_minor = ${event.recurringAmountMinor},
+              cancel_at_period_end = ${event.cancelAtPeriodEnd ?? false},
+              last_renewed_at = CASE WHEN ${event.providerEventType === "subscription.renewed"} THEN now() ELSE subscriptions.last_renewed_at END,
+              paid_since = COALESCE(subscriptions.paid_since, EXCLUDED.paid_since),
+              provider_updated_at = EXCLUDED.provider_updated_at
+            WHERE subscriptions.provider_updated_at IS NULL
+              OR (EXCLUDED.provider_updated_at IS NOT NULL
+                AND EXCLUDED.provider_updated_at >= subscriptions.provider_updated_at)
+            RETURNING id`;
+          if (!subscriptionChanges[0]) {
+            return {
+              applied: false as const,
+              stale: true as const,
+              paid: null,
+            };
+          }
+          if (
+            event.providerEventType === "subscription.cancelled" ||
+            event.providerEventType === "subscription.expired"
+          ) {
+            const effective = yield* sql<{
+              id: string;
+            }>`UPDATE cancellation_requests SET status = 'effective'
+              WHERE billing_owner_user_id = ${event.billingOwnerUserId}
+                AND status = 'scheduled' RETURNING id`;
+            if (effective[0]) {
+              yield* stopBilledWorkspaceWork(event.billingOwnerUserId);
+            }
+          }
+          if (
+            event.cancelAtPeriodEnd !== true &&
+            event.providerEventType !== "subscription.cancelled" &&
+            event.providerEventType !== "subscription.expired"
+          ) {
+            yield* sql`UPDATE cancellation_requests SET status = 'reactivated',
+              data_deletion_at = NULL
+              WHERE billing_owner_user_id = ${event.billingOwnerUserId}
+                AND status = 'scheduled'`;
+            if (
+              event.providerEventType === "subscription.active" &&
+              event.providerSubscriptionId !== null
+            ) {
+              yield* sql`UPDATE cancellation_requests SET status = 'reactivated',
+                data_deletion_at = NULL
+                WHERE billing_owner_user_id = ${event.billingOwnerUserId}
+                  AND status IN ('effective','deleting')
+                  AND provider_subscription_id IS DISTINCT FROM ${event.providerSubscriptionId}`;
+            }
+          }
           const paid: PaidFacts | null =
             event.plan !== "FREE" && ACTIVE_STATUSES.has(event.status)
               ? {

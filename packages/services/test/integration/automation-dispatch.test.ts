@@ -8,6 +8,7 @@ import {
   ProviderDmService,
 } from "../../src/dm-dispatch";
 import { IdentityService } from "../../src/identity";
+import { provisionPaidSubscription } from "./paid-subscription";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -36,8 +37,7 @@ const seededInput = Effect.gen(function* () {
     sub: `automation_dispatch_${crypto.randomUUID()}`,
   });
   const workspaceId = resolved.personalWorkspace!.id;
-  yield* sql`UPDATE subscriptions SET plan = 'ECHO', status = 'active'
-    WHERE billing_owner_user_id = ${resolved.user.id}`;
+  yield* provisionPaidSubscription(resolved.user.id);
   const connectionId = `connection_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
   const automationId = `automation_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
   yield* sql`INSERT INTO connections

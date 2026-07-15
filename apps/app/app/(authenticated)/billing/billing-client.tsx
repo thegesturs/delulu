@@ -101,22 +101,24 @@ export default function BillingClient() {
       <BillingOperations />
 
       {/* Pricing Section */}
-      <PageSection>
-        <div className="mx-auto max-w-3xl space-y-1 text-center">
-          <h2 className="font-bold text-xl">Choose Your Perfect Plan</h2>
-          <p className="text-muted-foreground text-sm">
-            Plans start at Echo ($4.99/mo). All plans include a 14-day
-            money-back guarantee.
-          </p>
-        </div>
+      <div data-pricing-plans>
+        <PageSection>
+          <div className="mx-auto max-w-3xl space-y-1 text-center">
+            <h2 className="font-bold text-xl">Choose Your Perfect Plan</h2>
+            <p className="text-muted-foreground text-sm">
+              Plans start at Echo ($4.99/mo). All plans include a 14-day
+              money-back guarantee.
+            </p>
+          </div>
 
-        <PricingCards
-          onUpgradeSuccess={() => {
-            toast.success("Redirecting to checkout...");
-          }}
-          productIds={productIds}
-        />
-      </PageSection>
+          <PricingCards
+            onUpgradeSuccess={() => {
+              toast.success("Redirecting to checkout...");
+            }}
+            productIds={productIds}
+          />
+        </PageSection>
+      </div>
 
       {/* Sorted Add-On */}
       <PageSection title="Add-ons">

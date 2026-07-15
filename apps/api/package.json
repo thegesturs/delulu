@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build:cloudflare": "node ../../scripts/run-cloudflare-production-migration.mjs",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",

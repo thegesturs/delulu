@@ -3,6 +3,7 @@ import { CurrentAuth } from "@delulu/core";
 import {
   IdentityService,
   MembershipService,
+  MessagingService,
   SetupService,
   WorkspaceAccessService,
 } from "@delulu/services";
@@ -34,6 +35,7 @@ export const MeHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const identity = yield* IdentityService;
     const membership = yield* MembershipService;
+    const messaging = yield* MessagingService;
     const setup = yield* SetupService;
     const workspaces = yield* WorkspaceAccessService;
 
@@ -96,6 +98,22 @@ export const MeHandlers = HttpApiBuilder.group(
             optionalSteps: payload.optionalSteps,
           });
           return { updated: true };
+        })
+      )
+      .handle("emailPreferences", () =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          return yield* messaging.preferences(auth.userId);
+        })
+      )
+      .handle("updateEmailPreferences", ({ payload }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          yield* messaging.updatePreferences({
+            userId: auth.userId,
+            ...payload,
+          });
+          return yield* messaging.preferences(auth.userId);
         })
       );
   })

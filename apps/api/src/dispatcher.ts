@@ -16,6 +16,19 @@ const dispatchProgram = (env: Env) =>
       const result = yield* Effect.gen(function* () {
         switch (job.payload._tag) {
           case "PublishTarget": {
+            const subscriptions = yield* sql<{ active: boolean }>`SELECT EXISTS(
+              SELECT 1 FROM subscriptions s JOIN workspaces w
+                ON w.billing_owner_user_id = s.billing_owner_user_id
+              WHERE w.id = ${job.workspaceId} AND s.status IN ('active','trialing')
+                AND NOT EXISTS (SELECT 1 FROM cancellation_requests c
+                  WHERE c.billing_owner_user_id = s.billing_owner_user_id
+                    AND c.status IN ('effective','deleting','deleted'))
+            ) AS active`;
+            if (!subscriptions[0]?.active) {
+              return yield* Effect.fail(
+                new Error("Subscription is not active")
+              );
+            }
             if (!(env.SQS_INGRESS_URL && env.SQS_INGRESS_SECRET)) {
               return yield* Effect.fail(
                 new Error("SQS ingress is not configured")

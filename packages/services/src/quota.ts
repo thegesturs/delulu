@@ -93,6 +93,23 @@ export class QuotaGuard extends Context.Service<
           const subscription = yield* findSubscription(
             check.billingOwnerUserId
           ).pipe(Effect.map(Option.getOrNull), Effect.orDie);
+          if (
+            subscription === null ||
+            !(
+              subscription.status === "active" ||
+              subscription.status === "trialing"
+            )
+          ) {
+            return yield* Effect.fail(
+              new QuotaExceededError({
+                message: "An active subscription is required",
+                resource: check.resource,
+                limit: 0,
+                current: 0,
+                upgradeUrl: `${config.appBaseUrl}/billing`,
+              })
+            );
+          }
           const limits = getPlanLimits(subscription?.plan);
           const limit = limits[LIMIT_KEY[check.resource]];
           const current =
@@ -123,7 +140,8 @@ export class QuotaGuard extends Context.Service<
             plan: string;
             current: string;
           }>`SELECT plan, media_storage_bytes::text AS current
-            FROM subscriptions WHERE billing_owner_user_id = ${input.billingOwnerUserId} FOR UPDATE`.pipe(
+            FROM subscriptions WHERE billing_owner_user_id = ${input.billingOwnerUserId}
+              AND status IN ('active','trialing') FOR UPDATE`.pipe(
             Effect.orDie
           );
           const current = Number(rows[0]?.current ?? 0);

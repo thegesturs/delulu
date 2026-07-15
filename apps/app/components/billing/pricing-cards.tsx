@@ -26,9 +26,13 @@ import {
   type PublicPlanType,
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";
+import { useApiClient } from "@/components/providers/api-client";
 import { useCurrency } from "@/hooks/use-currency";
+import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
 
 interface PricingCardsProps {
@@ -37,14 +41,23 @@ interface PricingCardsProps {
   checkoutReturnUrl?: string;
 }
 
-export function PricingCards(_props: PricingCardsProps) {
+export function PricingCards(props: PricingCardsProps) {
   const currency = useCurrency();
+  const { resources } = useApiClient();
+  const workspace = useOperationsWorkspace();
+  const checkout = useMutation(
+    resources.billing.checkout(workspace.workspaceId ?? "")
+  );
+  const portal = useMutation(
+    resources.billing.portal(workspace.workspaceId ?? "")
+  );
   const currencySymbol = CURRENCY_SYMBOLS[currency];
   const [isAnnual, setIsAnnual] = useState(false);
   const {
     planType: currentPlan,
     billingPeriod: currentBillingPeriod,
     isLifetime,
+    isPaid,
     isLoading,
   } = useSubscription();
 
@@ -91,7 +104,11 @@ export function PricingCards(_props: PricingCardsProps) {
         >
           Monthly
         </span>
-        <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+        <Switch
+          aria-label="Bill annually"
+          checked={isAnnual}
+          onCheckedChange={setIsAnnual}
+        />
         <span
           className={`text-sm ${isAnnual ? "font-medium" : "text-muted-foreground"}`}
         >
@@ -125,7 +142,7 @@ export function PricingCards(_props: PricingCardsProps) {
               return isAnnual ? "Switch to Annual" : "Switch to Monthly";
             }
 
-            return "Checkout unavailable";
+            return "Choose plan";
           };
 
           return (
@@ -160,9 +177,10 @@ export function PricingCards(_props: PricingCardsProps) {
                 <div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-4xl">
-                      {price === 0
-                        ? "Free"
-                        : `${currencySymbol}${currency === "INR" ? price.toLocaleString("en-IN") : price}`}
+                      {currencySymbol}
+                      {currency === "INR"
+                        ? price.toLocaleString("en-IN")
+                        : price}
                     </span>
                     {price > 0 && (
                       <span className="text-muted-foreground">
@@ -273,7 +291,38 @@ export function PricingCards(_props: PricingCardsProps) {
               <CardFooter>
                 <Button
                   className="w-full"
-                  disabled
+                  disabled={isCurrent || checkout.isPending || portal.isPending}
+                  onClick={async () => {
+                    try {
+                      if (isPaid) {
+                        const result = await portal.mutateAsync(undefined);
+                        window.location.assign(result.url);
+                        return;
+                      }
+                      const configuredReturn = props.checkoutReturnUrl
+                        ? new URL(
+                            props.checkoutReturnUrl,
+                            window.location.origin
+                          )
+                        : null;
+                      const result = await checkout.mutateAsync({
+                        plan: plan.id,
+                        interval: isAnnual ? "YEARLY" : "MONTHLY",
+                        currency,
+                        returnPath: configuredReturn
+                          ? `${configuredReturn.pathname}${configuredReturn.search}`
+                          : undefined,
+                      });
+                      props.onUpgradeSuccess?.();
+                      window.location.assign(result.url);
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Unable to open billing"
+                      );
+                    }
+                  }}
                   size="lg"
                   variant={plan.popular ? "default" : "outline"}
                 >
