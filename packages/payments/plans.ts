@@ -11,6 +11,10 @@ export type PlanType = "FREE" | "VIBE" | "ECHO";
 
 /** Paid tiers shown on marketing and billing surfaces */
 export type PublicPlanType = Exclude<PlanType, "FREE">;
+export const PAID_PLAN_TYPES = [
+  "ECHO",
+  "VIBE",
+] as const satisfies readonly PublicPlanType[];
 
 /** Lifetime deal is no longer offered to new customers */
 export const LIFETIME_DEAL_ACTIVE = false;
@@ -193,6 +197,10 @@ export function resolvePlanType(plan: string | null | undefined): PlanType {
     default:
       return "FREE";
   }
+}
+
+export function isPaidPlan(plan: string | null | undefined): boolean {
+  return resolvePlanType(plan) !== "FREE";
 }
 
 /** Resolve the plan limits for a stored subscription plan string. */

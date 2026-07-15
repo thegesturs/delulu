@@ -2,6 +2,7 @@ import { TokenCipher, type UserId, type WorkspaceId } from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { getPlanFromProductId } from "@delulu/payments";
+import { isSortedProductId } from "@delulu/payments/product-ids";
 import {
   BillingWebhookApplication,
   MessagingService,
@@ -359,7 +360,39 @@ export const PaymentWebhookSinkLive = Layer.effect(
             "Subscription webhook is missing its subscription or product id"
           );
         }
-        const plan = getPlanFromProductId(productId)?.planType ?? productId;
+        if (isSortedProductId(productId)) {
+          return {
+            _tag: "AddonSubscriptionChanged" as const,
+            eventId,
+            providerEventType: type,
+            providerOccurredAt,
+            billingOwnerUserId,
+            providerCustomerId: customerId,
+            providerSubscriptionId: subscriptionId,
+            addon: "sorted" as const,
+            status,
+            currentPeriodStart:
+              stringField(data, "previous_billing_date") ?? null,
+            currentPeriodEnd: stringField(data, "next_billing_date") ?? null,
+            cancelAtPeriodEnd:
+              booleanField(data, "cancel_at_next_billing_date") ?? false,
+          };
+        }
+        const recognizedPlan = getPlanFromProductId(productId);
+        if (!recognizedPlan) {
+          return {
+            _tag: "UnrecognizedSubscriptionChanged" as const,
+            eventId,
+            providerEventType: type,
+            providerOccurredAt,
+            billingOwnerUserId,
+            providerCustomerId: customerId,
+            providerSubscriptionId: subscriptionId,
+            productId,
+            status,
+          };
+        }
+        const plan = recognizedPlan.planType;
         return {
           _tag: "SubscriptionChanged" as const,
           eventId,
@@ -499,6 +532,30 @@ export const PaymentWebhookSinkLive = Layer.effect(
               cancellation_pending: event.cancelAtPeriodEnd,
             },
             idempotencyKey: `billing:${event.eventId}:subscription`,
+          });
+        } else if (event._tag === "AddonSubscriptionChanged") {
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event: event.providerEventType,
+            properties: {
+              addon: event.addon,
+              status: event.status,
+              cancellation_pending: event.cancelAtPeriodEnd,
+            },
+            idempotencyKey: `billing:${event.eventId}:addon`,
+          });
+        } else if (event._tag === "UnrecognizedSubscriptionChanged") {
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event: event.providerEventType,
+            properties: {
+              product_id: event.productId,
+              status: event.status,
+              recognized_product: false,
+            },
+            idempotencyKey: `billing:${event.eventId}:unrecognized`,
           });
         } else {
           yield* messaging.track({

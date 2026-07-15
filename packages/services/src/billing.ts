@@ -61,10 +61,20 @@ export class BillingService extends Context.Service<
       const find = Effect.fn("BillingService.find")(function* (
         billingOwnerUserId: string
       ) {
-        const rows = yield* sql<
-          Record<string, unknown>
-        >`SELECT * FROM subscriptions
-          WHERE billing_owner_user_id = ${billingOwnerUserId}`.pipe(
+        const rows = yield* sql<Record<string, unknown>>`SELECT s.*,
+          COALESCE((
+            SELECT jsonb_object_agg(a.addon_key, jsonb_strip_nulls(jsonb_build_object(
+              'status', a.status,
+              'providerSubscriptionId', a.provider_subscription_id,
+              'currentPeriodStart', a.current_period_start,
+              'currentPeriodEnd', a.current_period_end,
+              'cancelAtPeriodEnd', a.cancel_at_period_end
+            )))
+            FROM subscription_addons a
+            WHERE a.base_subscription_id = s.id
+          ), '{}'::jsonb) AS addons
+          FROM subscriptions s
+          WHERE s.billing_owner_user_id = ${billingOwnerUserId}`.pipe(
           Effect.orDie
         );
         const row = rows[0];

@@ -1,5 +1,9 @@
 import { UnauthorizedError } from "@delulu/contracts";
 import {
+  SORTED_TEST_PRODUCT_ID,
+  TEST_PRODUCT_IDS,
+} from "@delulu/payments/product-ids";
+import {
   ClerkTokenVerifier,
   deriveChallengeS256,
   RateLimiterService,
@@ -390,6 +394,90 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       "dev-token"
     );
     expect(media.status).toBe(200);
+  });
+
+  it("keeps the base plan when an add-on subscription webhook arrives", async () => {
+    const current = await get("/v1/me", "dev-token");
+    const currentBody = (await current.json()) as { user: { id: string } };
+    const customerId = `customer_${crypto.randomUUID()}`;
+    const base = {
+      payload_type: "Subscription",
+      status: "active",
+      previous_billing_date: "2026-07-01T00:00:00Z",
+      next_billing_date: "2026-08-01T00:00:00Z",
+      addons: [],
+      customer: { customer_id: customerId },
+      metadata: { billing_owner_user_id: currentBody.user.id },
+    };
+
+    const plan = await postDodoWebhook(`plan_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        ...base,
+        subscription_id: `sub_plan_${crypto.randomUUID()}`,
+        product_id: TEST_PRODUCT_IDS.VIBE.monthly,
+      },
+    });
+    expect(plan.status).toBe(200);
+
+    const addon = await postDodoWebhook(`addon_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      created_at: "2026-07-03T00:00:00Z",
+      data: {
+        ...base,
+        subscription_id: `sub_addon_${crypto.randomUUID()}`,
+        product_id: SORTED_TEST_PRODUCT_ID,
+      },
+    });
+    expect(addon.status).toBe(200);
+
+    const renewal = await postDodoWebhook(`renewal_${crypto.randomUUID()}`, {
+      type: "subscription.renewed",
+      data: {
+        ...base,
+        subscription_id: `sub_plan_${crypto.randomUUID()}`,
+        product_id: TEST_PRODUCT_IDS.VIBE.monthly,
+        previous_billing_date: "2026-08-01T00:00:00Z",
+        next_billing_date: "2026-09-01T00:00:00Z",
+      },
+    });
+    expect(renewal.status).toBe(200);
+
+    const unknown = await postDodoWebhook(`unknown_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        ...base,
+        subscription_id: `sub_unknown_${crypto.randomUUID()}`,
+        product_id: `pdt_unknown_${crypto.randomUUID()}`,
+      },
+    });
+    expect(unknown.status).toBe(200);
+
+    const staleAddon = await postDodoWebhook(
+      `stale_addon_${crypto.randomUUID()}`,
+      {
+        type: "subscription.cancelled",
+        created_at: "2026-07-02T00:00:00Z",
+        data: {
+          ...base,
+          status: "cancelled",
+          subscription_id: `sub_addon_${crypto.randomUUID()}`,
+          product_id: SORTED_TEST_PRODUCT_ID,
+        },
+      }
+    );
+    expect(staleAddon.status).toBe(200);
+
+    const subscription = await get(
+      `/v1/workspaces/${personalWorkspaceId}/billing/subscription`,
+      "dev-token"
+    );
+    expect(subscription.status).toBe(200);
+    expect(await subscription.json()).toMatchObject({
+      plan: "VIBE",
+      status: "active",
+      addons: { sorted: { status: "active" } },
+    });
   });
 
   it("rejects a garbage bearer with a 401 error envelope", async () => {
