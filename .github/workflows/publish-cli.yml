@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     permissions:
-      # Required for npm Trusted Publishing (OIDC) and provenance attestation.
+      # Required for npm Trusted Publishing (OIDC).
       id-token: write
       contents: read
     steps:
@@ -63,5 +63,7 @@ jobs:
             echo "delulu-cli@$VERSION already published — nothing to do."
             exit 0
           fi
-          # OIDC (no token): npm authenticates via the id-token above.
-          npm publish --access public --provenance
+          # OIDC (no token): npm authenticates via the id-token above. Do not
+          # force provenance here: npm does not support provenance attestations
+          # when the workflow's source repository is private.
+          npm publish --access public
