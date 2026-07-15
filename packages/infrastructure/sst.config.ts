@@ -123,8 +123,10 @@ export default $config({
     });
     const trimmerImage = new awsx.ecr.Image("YoutubeTrimmerImage", {
       repositoryUrl: trimmerRepo.url,
-      context: "youtube-trimmer",
-      dockerfile: "youtube-trimmer/Dockerfile",
+      // Paths are resolved by the docker-build provider relative to its working
+      // dir (<infra>/.sst/platform), so climb two levels back to the infra root.
+      context: "../../youtube-trimmer",
+      dockerfile: "../../youtube-trimmer/Dockerfile",
       // Lambda runs x86_64 (see architectures below); build must match.
       platform: "linux/amd64",
     });
