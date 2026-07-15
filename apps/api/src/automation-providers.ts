@@ -306,8 +306,19 @@ export const PaymentWebhookSinkLive = Layer.effect(
           }
         }
 
+        const email = customer ? stringField(customer, "email") : undefined;
+        if (email) {
+          const users = yield* sql<{ id: string }>`
+            SELECT id FROM users WHERE lower(email) = lower(${email}) LIMIT 1`.pipe(
+            Effect.mapError(billingLookupFailed)
+          );
+          if (users[0]) {
+            return users[0].id;
+          }
+        }
+
         return yield* invalidBillingPayload(
-          "Payment webhook requires billing-owner metadata or a known provider customer"
+          "Payment webhook could not be matched to a billing owner"
         );
       }
     );

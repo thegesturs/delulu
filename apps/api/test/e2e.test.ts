@@ -332,6 +332,37 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     const workspace = await get(`/v1/workspaces/${workspaceId}`, "dev-token");
     expect(workspace.status).toBe(200);
 
+    // Account connection is an onboarding prerequisite and must be available
+    // before payment is complete.
+    const mint = await postJson(
+      `/v1/workspaces/${workspaceId}/connections/connect/instagram`,
+      {},
+      "dev-token"
+    );
+    expect(mint.status).toBe(200);
+    const mintBody = (await mint.json()) as { url: string };
+    expect(mintBody.url).toContain("state=");
+
+    const current = await get("/v1/me", "dev-token");
+    const currentBody = (await current.json()) as { user: { id: string } };
+    const paid = await postDodoWebhook(`paid_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        payload_type: "Subscription",
+        subscription_id: `sub_${crypto.randomUUID()}`,
+        product_id: "pdt_mPTd8gsQS8YUISdStWURf",
+        status: "active",
+        previous_billing_date: "2026-07-01T00:00:00Z",
+        next_billing_date: "2026-08-01T00:00:00Z",
+        addons: [],
+        customer: {
+          customer_id: `customer_${crypto.randomUUID()}`,
+        },
+        metadata: { billing_owner_user_id: currentBody.user.id },
+      },
+    });
+    expect(paid.status).toBe(200);
+
     const key = await postJson(
       `/v1/workspaces/${workspaceId}/api-keys`,
       { name: "e2e", role: "owner", scopes: ["posts:read"] },
@@ -357,15 +388,6 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       "dev-token"
     );
     expect(media.status).toBe(200);
-
-    const mint = await postJson(
-      `/v1/workspaces/${workspaceId}/connections/connect/instagram`,
-      {},
-      "dev-token"
-    );
-    expect(mint.status).toBe(200);
-    const mintBody = (await mint.json()) as { url: string };
-    expect(mintBody.url).toContain("state=");
   });
 
   it("rejects a garbage bearer with a 401 error envelope", async () => {
