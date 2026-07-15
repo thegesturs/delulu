@@ -3,6 +3,7 @@ import {
   AsTokenService,
   AuthConfig,
   ClerkTokenVerifier,
+  DEVICE_GRANT_TYPE,
   IdentityService,
   OAuthFlowService,
 } from "@delulu/services";
@@ -77,17 +78,146 @@ export const OAuthRoutes = HttpRouter.use((router) =>
             issuer: config.asIssuer,
             authorization_endpoint: `${config.asIssuer}/oauth/authorize`,
             token_endpoint: `${config.asIssuer}/oauth/token`,
+            device_authorization_endpoint: `${config.asIssuer}/oauth/device/authorize`,
             revocation_endpoint: `${config.asIssuer}/oauth/revoke`,
+            introspection_endpoint: `${config.asIssuer}/oauth/introspect`,
             jwks_uri: `${config.asIssuer}/.well-known/jwks.json`,
             response_types_supported: ["code"],
-            grant_types_supported: ["authorization_code", "refresh_token"],
+            grant_types_supported: [
+              "authorization_code",
+              "refresh_token",
+              DEVICE_GRANT_TYPE,
+            ],
             code_challenge_methods_supported: ["S256"],
             token_endpoint_auth_methods_supported: ["none"],
             scopes_supported: [...SCOPES],
+            agent_auth: {
+              skill: `${config.appBaseUrl}/auth.md`,
+              device_authorization_endpoint: `${config.asIssuer}/oauth/device/authorize`,
+            },
           },
           cache
         )
       )
+    );
+
+    yield* router.add("POST", "/oauth/device/authorize", (request) =>
+      Effect.gen(function* () {
+        const body = yield* readBody(request);
+        const result = yield* flow
+          .startDeviceAuthorization({
+            clientId: body.client_id ?? "",
+            scopes: parseScopes(body.scope),
+            resource: body.resource ?? config.apiResource,
+            verificationUri: `${config.appBaseUrl}/oauth/device`,
+          })
+          .pipe(Effect.result);
+        return result._tag === "Failure"
+          ? jsonError(
+              result.failure.error,
+              result.failure.description,
+              result.failure.status
+            )
+          : HttpServerResponse.jsonUnsafe(result.success, {
+              headers: { "cache-control": "no-store" },
+            });
+      })
+    );
+
+    yield* router.add("POST", "/oauth/device/approve", (request) =>
+      Effect.gen(function* () {
+        const token = bearerFromHeaders(request);
+        if (token === null) {
+          return jsonError(
+            "invalid_request",
+            "Missing Clerk session token",
+            401
+          );
+        }
+        const clerkResult = yield* clerk.verify(token).pipe(Effect.result);
+        if (clerkResult._tag === "Failure") {
+          return jsonError("access_denied", "Session verification failed", 401);
+        }
+        const resolved = yield* identity.resolve({
+          sub: clerkResult.success.sub,
+        });
+        const body = yield* readBody(request);
+        const result = yield* flow
+          .approveDeviceAuthorization({
+            userCode: body.user_code ?? "",
+            userId: resolved.user.id,
+            workspaceId: body.workspace_id ?? "",
+            scopes: parseScopes(body.scope),
+          })
+          .pipe(Effect.result);
+        return result._tag === "Failure"
+          ? jsonError(
+              result.failure.error,
+              result.failure.description,
+              result.failure.status
+            )
+          : HttpServerResponse.jsonUnsafe({ approved: true });
+      })
+    );
+
+    yield* router.add("GET", "/oauth/device/transaction", (request) =>
+      Effect.gen(function* () {
+        const token = bearerFromHeaders(request);
+        if (token === null) {
+          return jsonError(
+            "invalid_request",
+            "Missing Clerk session token",
+            401
+          );
+        }
+        const clerkResult = yield* clerk.verify(token).pipe(Effect.result);
+        if (clerkResult._tag === "Failure") {
+          return jsonError("access_denied", "Session verification failed", 401);
+        }
+        const code =
+          new URL(request.url, config.asIssuer).searchParams.get("user_code") ??
+          "";
+        const result = yield* flow
+          .inspectDeviceAuthorization(code)
+          .pipe(Effect.result);
+        return result._tag === "Failure"
+          ? jsonError(
+              result.failure.error,
+              result.failure.description,
+              result.failure.status
+            )
+          : HttpServerResponse.jsonUnsafe(result.success, {
+              headers: { "cache-control": "no-store" },
+            });
+      })
+    );
+
+    yield* router.add("POST", "/oauth/device/deny", (request) =>
+      Effect.gen(function* () {
+        const token = bearerFromHeaders(request);
+        if (token === null) {
+          return jsonError(
+            "invalid_request",
+            "Missing Clerk session token",
+            401
+          );
+        }
+        const clerkResult = yield* clerk.verify(token).pipe(Effect.result);
+        if (clerkResult._tag === "Failure") {
+          return jsonError("access_denied", "Session verification failed", 401);
+        }
+        const body = yield* readBody(request);
+        const result = yield* flow
+          .denyDeviceAuthorization(body.user_code ?? "")
+          .pipe(Effect.result);
+        return result._tag === "Failure"
+          ? jsonError(
+              result.failure.error,
+              result.failure.description,
+              result.failure.status
+            )
+          : HttpServerResponse.jsonUnsafe({ denied: true });
+      })
     );
 
     // JWKS for our AS signing key.
@@ -97,6 +227,22 @@ export const OAuthRoutes = HttpRouter.use((router) =>
       tokens
         .jwks()
         .pipe(Effect.map((jwks) => HttpServerResponse.jsonUnsafe(jwks, cache)))
+    );
+
+    yield* router.add("POST", "/oauth/introspect", (request) =>
+      Effect.gen(function* () {
+        const body = yield* readBody(request);
+        const token = body.token ?? bearerFromHeaders(request) ?? "";
+        const verified = yield* tokens
+          .verifyAccessToken(token)
+          .pipe(Effect.result);
+        return HttpServerResponse.jsonUnsafe(
+          verified._tag === "Failure"
+            ? { active: false }
+            : { active: true, ...verified.success },
+          { headers: { "cache-control": "no-store" } }
+        );
+      })
     );
 
     // RFC 9728 protected-resource metadata.
@@ -232,6 +378,21 @@ export const OAuthRoutes = HttpRouter.use((router) =>
           const result = yield* flow
             .refresh({
               refreshToken: body.refresh_token ?? "",
+              clientId: body.client_id ?? "",
+            })
+            .pipe(Effect.result);
+          return result._tag === "Failure"
+            ? jsonError(
+                result.failure.error,
+                result.failure.description,
+                result.failure.status
+              )
+            : HttpServerResponse.jsonUnsafe(result.success, noStore);
+        }
+        if (grantType === DEVICE_GRANT_TYPE) {
+          const result = yield* flow
+            .exchangeDeviceCode({
+              deviceCode: body.device_code ?? "",
               clientId: body.client_id ?? "",
             })
             .pipe(Effect.result);

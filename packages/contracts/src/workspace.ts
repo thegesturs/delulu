@@ -117,6 +117,11 @@ export const PostsGroup = HttpApiGroup.make("posts")
       success: PostView,
       error: domainErrors,
     }),
+    HttpApiEndpoint.post("publishNow", "/:id/publish", {
+      params: ResourcePath,
+      success: PostView,
+      error: domainErrors,
+    }),
     HttpApiEndpoint.post("bulkCreate", "/bulk", {
       params: WorkspacePath,
       payload: Schema.Array(PostWrite),
@@ -306,6 +311,17 @@ export const MediaGroups = HttpApiGroup.make("media")
           uploadUrl: Schema.String,
         })
       ),
+      error: domainErrors,
+    }),
+    HttpApiEndpoint.post("import", "/imports", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        url: Schema.String,
+        filename: Schema.optional(Schema.String),
+        altText: Schema.optional(Schema.String),
+        idempotencyKey: Schema.optional(Schema.String),
+      }),
+      success: MediaView,
       error: domainErrors,
     }),
     HttpApiEndpoint.post("complete", "/complete", {

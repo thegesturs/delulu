@@ -127,6 +127,11 @@ export class PostService extends Context.Service<
       workspaceId: WorkspaceId,
       id: string
     ) => Effect.Effect<void, NotFoundError>;
+    readonly publishNow: (input: {
+      readonly workspaceId: WorkspaceId;
+      readonly postId: string;
+      readonly actor: PostActor;
+    }) => Effect.Effect<PostOutput, ConflictError | NotFoundError>;
     readonly retryTarget: (input: {
       readonly workspaceId: WorkspaceId;
       readonly postId: string;
@@ -442,7 +447,7 @@ export class PostService extends Context.Service<
               return postId;
             })
           )
-          .pipe(Effect.orDie);
+          .pipe(Effect.catchTag("SqlError", Effect.die));
         return yield* get(input.workspaceId, persistedPostId);
       });
 
@@ -640,6 +645,67 @@ export class PostService extends Context.Service<
           ) as PostOutput["targets"][number];
         }
       );
+      const publishNow = Effect.fn("PostService.publishNow")(function* (input: {
+        workspaceId: WorkspaceId;
+        postId: string;
+        actor: PostActor;
+      }) {
+        if (!rolePermissions[input.actor.role].publishDirect) {
+          return yield* new ConflictError({
+            message: "Role cannot publish directly",
+            resource: "post",
+          });
+        }
+        yield* sql
+          .withTransaction(
+            Effect.gen(function* () {
+              const posts = yield* sql<{
+                status: string;
+              }>`SELECT status FROM posts
+                WHERE id = ${input.postId} AND workspace_id = ${input.workspaceId}
+                  AND deleted_at IS NULL FOR UPDATE`;
+              if (!posts[0]) {
+                return yield* new NotFoundError({
+                  message: "Post not found",
+                  resource: "post",
+                });
+              }
+              if (
+                posts[0].status === "publishing" ||
+                posts[0].status === "published"
+              ) {
+                return;
+              }
+              const targets = yield* sql<{
+                id: string;
+              }>`SELECT id FROM post_targets
+                WHERE post_id = ${input.postId} FOR UPDATE`;
+              if (targets.length === 0) {
+                return yield* new NotFoundError({
+                  message: "Publish targets not found",
+                  resource: "post",
+                });
+              }
+              yield* sql`UPDATE posts SET status = 'publishing'
+                WHERE id = ${input.postId}`;
+              yield* sql`UPDATE post_targets SET scheduled_at = NULL,
+                status = 'pending', error = NULL WHERE post_id = ${input.postId}`;
+              for (const target of targets) {
+                yield* jobs.enqueue({
+                  workspaceId: input.workspaceId,
+                  payload: {
+                    _tag: "PublishTarget",
+                    targetId: target.id as typeof PostTargetId.Type,
+                  },
+                  runAt: new Date(),
+                  idempotencyKey: `publish-target:${target.id}`,
+                });
+              }
+            })
+          )
+          .pipe(Effect.orDie);
+        return yield* get(input.workspaceId, input.postId);
+      });
       return PostService.of({
         list,
         get,
@@ -648,6 +714,7 @@ export class PostService extends Context.Service<
         remove,
         retryTarget,
         updateTarget,
+        publishNow,
       });
     })
   );

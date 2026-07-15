@@ -132,7 +132,7 @@ export const BillingGroup = HttpApiGroup.make("billing")
       params: WorkspacePath,
       payload: Schema.Struct({
         plan: Schema.Literals(["ECHO", "VIBE"]),
-        billingInterval: Schema.Literals(["MONTHLY", "YEARLY"]),
+        interval: Schema.Literals(["MONTHLY", "YEARLY"]),
         currency: Schema.Literals(["USD", "INR"]),
         returnPath: Schema.optional(Schema.String),
       }),

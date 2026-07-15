@@ -17,10 +17,12 @@ import {
   shutdownTelemetry,
   trackCommand,
 } from "./telemetry.js";
+import { uploadLocalMedia } from "./upload.js";
 
 interface GlobalOptions {
   apiUrl?: string;
   json?: boolean;
+  workspace?: string;
 }
 
 const program = new Command();
@@ -28,6 +30,7 @@ program
   .name("delulu")
   .description("Delulu Social CLI")
   .option("--api-url <url>", "Delulu API URL")
+  .option("--workspace <id>", "Workspace ID for this command")
   .option("--json", "Print JSON output");
 
 // Record which command ran, for a single metadata-only analytics event per
@@ -47,12 +50,9 @@ program.hook("preAction", (_thisCommand, actionCommand) => {
 
 program
   .command("login")
-  .option("--client-id <id>", "Clerk OAuth application client id")
-  .option("--issuer <url>", "Clerk OAuth issuer URL")
-  .option(
-    "--publishable-key <key>",
-    "Clerk publishable key used to derive issuer"
-  )
+  .option("--client-id <id>", "OAuth client id")
+  .option("--issuer <url>", "Application OAuth issuer URL")
+  .option("--loopback", "Use browser callback PKCE instead of device login")
   .action(async (options) => {
     await login(options);
   });
@@ -68,6 +68,29 @@ program.command("whoami").action(async () => {
   printResult(result, options.json);
 });
 
+const workspaces = program
+  .command("workspaces")
+  .description("Select a workspace");
+workspaces.command("list").action(async () => {
+  const options = program.opts<GlobalOptions>();
+  printResult(
+    await runEffect(getContractClient(options).me.workspaces()),
+    options.json
+  );
+});
+
+const setup = program.command("setup").description("Agent-led setup status");
+setup.command("status").action(async () => {
+  const options = program.opts<GlobalOptions>();
+  const workspaceId = await getWorkspaceId(options);
+  printResult(
+    await runEffect(
+      getContractClient(options).me.setup({ params: { workspaceId } })
+    ),
+    options.json
+  );
+});
+
 const accounts = program.command("accounts").description("Manage accounts");
 accounts.command("list").action(async () => {
   const options = program.opts<GlobalOptions>();
@@ -80,21 +103,93 @@ accounts.command("list").action(async () => {
   );
   printResult(result, options.json);
 });
-
 accounts
   .command("connect <platform>")
-  .description("Generate a connection URL for a platform")
-  .option("--insights", "Request insights permissions")
+  .option("--insights", "Request provider insights permissions", true)
   .action(async (platform, cmd) => {
     const options = program.opts<GlobalOptions>();
     const workspaceId = await getWorkspaceId(options);
     const result = await runEffect(
       getContractClient(options).connections.mint({
         params: { workspaceId, platform },
-        payload: cmd.insights ? { includeInsights: true } : {},
+        payload: { includeInsights: Boolean(cmd.insights) },
       })
     );
     printResult(result, options.json);
+  });
+
+const billing = program.command("billing").description("Manage billing setup");
+billing
+  .command("checkout")
+  .requiredOption("--plan <plan>", "ECHO or VIBE")
+  .requiredOption("--interval <interval>", "MONTHLY or YEARLY")
+  .option("--currency <currency>", "USD or INR", "USD")
+  .action(async (cmd) => {
+    const options = program.opts<GlobalOptions>();
+    const workspaceId = await getWorkspaceId(options);
+    const plan = String(cmd.plan).toUpperCase();
+    const interval = String(cmd.interval).toUpperCase();
+    const currency = String(cmd.currency).toUpperCase();
+    if (!(plan === "ECHO" || plan === "VIBE")) {
+      throw new Error("--plan must be ECHO or VIBE");
+    }
+    if (!(interval === "MONTHLY" || interval === "YEARLY")) {
+      throw new Error("--interval must be MONTHLY or YEARLY");
+    }
+    if (!(currency === "USD" || currency === "INR")) {
+      throw new Error("--currency must be USD or INR");
+    }
+    printResult(
+      await runEffect(
+        getContractClient(options).billing.checkout({
+          params: { workspaceId },
+          payload: { plan, interval, currency },
+        })
+      ),
+      options.json
+    );
+  });
+
+const media = program.command("media").description("Upload and import media");
+media
+  .command("import <url>")
+  .option("--filename <name>")
+  .option("--alt <text>")
+  .option("--idempotency-key <key>")
+  .action(async (url, cmd) => {
+    const options = program.opts<GlobalOptions>();
+    const workspaceId = await getWorkspaceId(options);
+    printResult(
+      await runEffect(
+        getContractClient(options).media.import({
+          params: { workspaceId },
+          payload: {
+            url,
+            filename: cmd.filename,
+            altText: cmd.alt,
+            idempotencyKey: cmd.idempotencyKey,
+          },
+        })
+      ),
+      options.json
+    );
+  });
+
+media
+  .command("upload <path>")
+  .option("--alt <text>")
+  .action(async (path, cmd) => {
+    const options = program.opts<GlobalOptions>();
+    const workspaceId = await getWorkspaceId(options);
+    printResult(
+      await uploadLocalMedia({
+        client: getContractClient(options),
+        workspaceId,
+        path,
+        altText: cmd.alt,
+      }),
+      options.json
+    );
   });
 
 const stats = program.command("stats").description("View stats");
@@ -161,6 +256,7 @@ posts
   .option("--account <id...>", "Account IDs")
   .option("--media <id...>", "Completed media IDs")
   .option("--status <status>", "Post status", "SAVED")
+  .option("--intent <intent>", "draft, schedule, or publish_now")
   .option("--scheduled-at <timestamp>", "Unix timestamp for scheduling")
   .option("--privacy <status>", "Privacy status")
   .action(async (cmd) => {
@@ -175,9 +271,17 @@ posts
       scheduledAt: cmd.scheduledAt ? Number(cmd.scheduledAt) : undefined,
       privacy: cmd.privacy,
     });
-    const result = await runEffect(
+    const created = await runEffect(
       client.posts.create({ params: { workspaceId }, payload })
     );
+    const intent =
+      cmd.intent ?? (cmd.status === "SCHEDULED" ? "schedule" : "draft");
+    const result =
+      intent === "publish_now" && created.status !== "pending_review"
+        ? await runEffect(
+            client.posts.publishNow({ params: { workspaceId, id: created.id } })
+          )
+        : created;
     printResult(result, options.json);
   });
 
@@ -321,6 +425,19 @@ posts.command("delete <id>").action(async (id) => {
     getContractClient(options).posts.remove({ params: { workspaceId, id } })
   );
   printResult(result, options.json);
+});
+
+posts.command("publish <id>").action(async (id) => {
+  const options = program.opts<GlobalOptions>();
+  const workspaceId = await getWorkspaceId(options);
+  printResult(
+    await runEffect(
+      getContractClient(options).posts.publishNow({
+        params: { workspaceId, id },
+      })
+    ),
+    options.json
+  );
 });
 
 const commandSchedule = (

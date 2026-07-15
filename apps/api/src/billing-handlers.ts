@@ -107,6 +107,14 @@ export const BillingHandlers = HttpApiBuilder.group(
       .handle("checkout", ({ params, payload }) =>
         Effect.gen(function* () {
           const { auth } = yield* payerAccess(params.workspaceId);
+          if (
+            auth.scopes !== "full" &&
+            !auth.scopes.includes("billing:write")
+          ) {
+            return yield* new ForbiddenError({
+              message: "The credential lacks billing delegation",
+            });
+          }
           const users = yield* sql<{
             email: string | null;
             name: string | null;
@@ -136,7 +144,9 @@ export const BillingHandlers = HttpApiBuilder.group(
               email: users[0].email,
               name: users[0].name ?? "Customer",
               billingOwnerUserId: auth.userId,
-              ...payload,
+              plan: payload.plan,
+              billingInterval: payload.interval,
+              currency: payload.currency,
               returnPath,
             }),
           };

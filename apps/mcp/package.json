@@ -11,7 +11,9 @@
     "./api-client": "./dist/api-client.js",
     "./tools/accounts": "./dist/tools/accounts.js",
     "./tools/posts": "./dist/tools/posts.js",
-    "./tools/stats": "./dist/tools/stats.js"
+    "./tools/stats": "./dist/tools/stats.js",
+    "./tools/setup": "./dist/tools/setup.js",
+    "./tools/media": "./dist/tools/media.js"
   },
   "scripts": {
     "build": "tsc",

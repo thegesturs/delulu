@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 import { intro, outro } from "@clack/prompts";
 import {
-  deriveIssuerFromPublishableKey,
+  DEFAULT_API_URL,
   OAUTH_SCOPES,
   REDIRECT_URI,
   writeCredentials,
@@ -15,14 +15,17 @@ const TRAILING_SLASH = /\/$/;
 interface OAuthMetadata {
   authorization_endpoint: string;
   token_endpoint: string;
+  device_authorization_endpoint?: string;
   userinfo_endpoint?: string;
 }
 
 interface LoginOptions {
   clientId?: string;
   issuer?: string;
-  publishableKey?: string;
+  loopback?: boolean;
 }
+
+const DEVICE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 
 function openBrowser(url: string) {
   const command =
@@ -79,16 +82,11 @@ async function fetchMetadata(issuer: string) {
   return (await response.json()) as OAuthMetadata;
 }
 
-export async function login(options: LoginOptions) {
-  const clientId = options.clientId || process.env.DELULU_OAUTH_CLIENT_ID;
+const resolveLoginConfig = (options: LoginOptions) => {
+  const clientId =
+    options.clientId || process.env.DELULU_OAUTH_CLIENT_ID || "delulu-cli";
   const issuer =
-    options.issuer ||
-    process.env.DELULU_OAUTH_ISSUER ||
-    (options.publishableKey || process.env.DELULU_CLERK_PUBLISHABLE_KEY
-      ? deriveIssuerFromPublishableKey(
-          (options.publishableKey || process.env.DELULU_CLERK_PUBLISHABLE_KEY)!
-        )
-      : undefined);
+    options.issuer || process.env.DELULU_OAUTH_ISSUER || DEFAULT_API_URL;
 
   if (!clientId) {
     throw new Error(
@@ -100,6 +98,122 @@ export async function login(options: LoginOptions) {
       "Missing OAuth issuer. Pass --issuer or set DELULU_OAUTH_ISSUER."
     );
   }
+
+  return { clientId, issuer };
+};
+
+const storeTokens = async (
+  tokenData: {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+  },
+  input: {
+    issuer: string;
+    clientId: string;
+    metadata: OAuthMetadata;
+  }
+) => {
+  await writeCredentials({
+    accessToken: tokenData.access_token,
+    refreshToken: tokenData.refresh_token,
+    expiresAt: tokenData.expires_in
+      ? Date.now() + tokenData.expires_in * 1000
+      : undefined,
+    issuer: input.issuer,
+    clientId: input.clientId,
+    tokenEndpoint: input.metadata.token_endpoint,
+    authorizationEndpoint: input.metadata.authorization_endpoint,
+    userinfoEndpoint: input.metadata.userinfo_endpoint,
+  });
+};
+
+const sleep = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
+async function loginWithDevice(options: LoginOptions) {
+  const { clientId, issuer } = resolveLoginConfig(options);
+  intro("Delulu CLI login");
+  const metadata = await fetchMetadata(issuer);
+  if (!metadata.device_authorization_endpoint) {
+    throw new Error(
+      "This server does not advertise device authorization. Retry with --loopback."
+    );
+  }
+  const response = await fetch(metadata.device_authorization_endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      scope: OAUTH_SCOPES,
+      resource: process.env.DELULU_API_URL || issuer,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Could not start device login: ${response.status}`);
+  }
+  const device = (await response.json()) as {
+    device_code: string;
+    user_code: string;
+    verification_uri: string;
+    verification_uri_complete?: string;
+    expires_in: number;
+    interval: number;
+  };
+  const verificationUrl =
+    device.verification_uri_complete || device.verification_uri;
+  console.log(`Open ${verificationUrl}`);
+  console.log(`Verification code: ${device.user_code}`);
+  openBrowser(verificationUrl);
+
+  const deadline = Date.now() + device.expires_in * 1000;
+  let interval = Math.max(1, device.interval) * 1000;
+  while (Date.now() < deadline) {
+    await sleep(interval);
+    const tokenResponse = await fetch(metadata.token_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: DEVICE_GRANT_TYPE,
+        device_code: device.device_code,
+        client_id: clientId,
+      }),
+    });
+    const tokenData = (await tokenResponse.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+      error?: string;
+      error_description?: string;
+    };
+    if (tokenResponse.ok && tokenData.access_token) {
+      await storeTokens(
+        {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_in: tokenData.expires_in,
+        },
+        { issuer, clientId, metadata }
+      );
+      outro("Logged in.");
+      return;
+    }
+    if (tokenData.error === "authorization_pending") {
+      continue;
+    }
+    if (tokenData.error === "slow_down") {
+      interval += 5000;
+      continue;
+    }
+    throw new Error(
+      tokenData.error_description || tokenData.error || "Device login failed"
+    );
+  }
+  throw new Error("Device login expired before authorization completed");
+}
+
+async function loginWithLoopback(options: LoginOptions) {
+  const { clientId, issuer } = resolveLoginConfig(options);
 
   intro("Delulu CLI login");
   const metadata = await fetchMetadata(issuer);
@@ -145,18 +259,13 @@ export async function login(options: LoginOptions) {
     expires_in?: number;
   };
 
-  await writeCredentials({
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    expiresAt: tokenData.expires_in
-      ? Date.now() + tokenData.expires_in * 1000
-      : undefined,
-    issuer,
-    clientId,
-    tokenEndpoint: metadata.token_endpoint,
-    authorizationEndpoint: metadata.authorization_endpoint,
-    userinfoEndpoint: metadata.userinfo_endpoint,
-  });
+  await storeTokens(tokenData, { issuer, clientId, metadata });
 
   outro("Logged in.");
+}
+
+export async function login(options: LoginOptions) {
+  return options.loopback
+    ? loginWithLoopback(options)
+    : loginWithDevice(options);
 }

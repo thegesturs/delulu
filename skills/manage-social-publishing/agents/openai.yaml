@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Social Publishing"
+  short_description: "Set up and manage social publishing."
+  default_prompt: "Set up my social publishing account, connect the requested channels, and help prepare or publish posts."

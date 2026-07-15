@@ -1,4 +1,4 @@
-import { TokenCipher } from "@delulu/core";
+import { TokenCipher, type UserId, type WorkspaceId } from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { getPlanFromProductId } from "@delulu/payments";
@@ -10,6 +10,7 @@ import {
   ProviderAudienceService,
   ProviderDmError,
   ProviderDmService,
+  SetupService,
 } from "@delulu/services";
 import { Effect, Layer, Predicate, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -275,6 +276,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
   PaymentWebhookSink,
   Effect.gen(function* () {
     const billing = yield* BillingWebhookApplication;
+    const setup = yield* SetupService;
     const messaging = yield* MessagingService;
     const sql = yield* SqlClient.SqlClient;
 
@@ -304,8 +306,19 @@ export const PaymentWebhookSinkLive = Layer.effect(
           }
         }
 
+        const email = customer ? stringField(customer, "email") : undefined;
+        if (email) {
+          const users = yield* sql<{ id: string }>`
+            SELECT id FROM users WHERE lower(email) = lower(${email}) LIMIT 1`.pipe(
+            Effect.mapError(billingLookupFailed)
+          );
+          if (users[0]) {
+            return users[0].id;
+          }
+        }
+
         return yield* invalidBillingPayload(
-          "Payment webhook requires billing-owner metadata or a known provider customer"
+          "Payment webhook could not be matched to a billing owner"
         );
       }
     );
@@ -433,6 +446,17 @@ export const PaymentWebhookSinkLive = Layer.effect(
                 message: error.message,
                 retryable: error.retryable,
               })
+          )
+        );
+        const workspaces = yield* sql<{ id: string }>`
+          SELECT id FROM workspaces
+          WHERE billing_owner_user_id = ${event.billingOwnerUserId}`.pipe(
+          Effect.mapError(billingLookupFailed)
+        );
+        yield* Effect.forEach(workspaces, (workspace) =>
+          setup.status(
+            workspace.id as WorkspaceId,
+            event.billingOwnerUserId as UserId
           )
         );
         if ("stale" in application && application.stale) {

@@ -41,6 +41,7 @@ import {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SetupService,
   SignedIngress,
   TranscriptionCheckoutConfig,
   TranscriptionCheckoutService,
@@ -199,6 +200,7 @@ export const makeBaseLayer = (
   const TranscriptionCheckout = TranscriptionCheckoutService.layer.pipe(
     Layer.provide(TranscriptionCheckoutConfigLayer)
   );
+  const Setup = SetupService.layer.pipe(Layer.provide(ClerkAdmin));
   const QuotaReservations = PooledQuotaReservations.layer;
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
@@ -229,7 +231,7 @@ export const makeBaseLayer = (
     Layer.provide([IdentityService.layer, Telemetry])
   );
   const PaymentSink = PaymentWebhookSinkLive.pipe(
-    Layer.provide([BillingWebhooks, Messaging])
+    Layer.provide([BillingWebhooks, Messaging, Setup])
   );
   const WebhookSecretConfig = Layer.succeed(
     WebhookSecrets,
@@ -263,12 +265,15 @@ export const makeBaseLayer = (
           session300: env.RL_SESSION_300,
         })
       : RateLimiterService.inMemoryLayer());
+  const OAuthFlow = OAuthFlowService.layer.pipe(
+    Layer.provide(MembershipService.layer)
+  );
 
   return Layer.mergeAll(
     IdentityService.layer,
     MembershipService.layer,
     ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
+    OAuthFlow,
     QuotaGuard.layer,
     RateLimiter,
     Telemetry,
@@ -300,6 +305,7 @@ export const makeBaseLayer = (
     BillingReconcile,
     Transcriptions,
     TranscriptionCheckout,
+    Setup,
     QuotaReservations,
     WebhookVerification,
     WebhookIngress

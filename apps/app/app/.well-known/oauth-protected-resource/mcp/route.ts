@@ -1,10 +1,12 @@
 import {
   metadataCorsOptionsRequestHandler,
-  protectedResourceHandlerClerk,
-} from "@clerk/mcp-tools/next";
+  protectedResourceHandler,
+} from "mcp-handler";
 
-const handler = protectedResourceHandlerClerk({
-  scopes_supported: ["openid", "profile", "email", "user:org:read"],
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.delulu.social";
+const handler = protectedResourceHandler({
+  authServerUrls: [apiUrl],
+  resourceUrl: apiUrl,
 });
 const corsHandler = metadataCorsOptionsRequestHandler();
 

@@ -85,7 +85,12 @@ export class WorkspaceAccessService extends Context.Service<
             member.value.role,
             input.scope
           );
-          if (input.scope.endsWith(":write")) {
+          // Connecting an account is part of setup and must remain available
+          // before checkout. Product mutations still require paid access.
+          if (
+            input.scope.endsWith(":write") &&
+            input.scope !== "accounts:write"
+          ) {
             const subscriptions = yield* sql<{ active: boolean }>`SELECT EXISTS(
               SELECT 1 FROM subscriptions s
               WHERE s.billing_owner_user_id = ${workspace.value.billingOwnerUserId}

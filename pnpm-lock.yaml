@@ -93,6 +93,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@delulu/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@delulu/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

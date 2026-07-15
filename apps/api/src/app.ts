@@ -31,6 +31,7 @@ import type {
   R2Service,
   RateLimiterService,
   ReviewService,
+  SetupService,
   SignedIngress,
   TranscriptionCheckoutService,
   TranscriptionService,
@@ -93,6 +94,7 @@ export type AppServices =
   | BillingReconciliation
   | TranscriptionService
   | TranscriptionCheckoutService
+  | SetupService
   | SignedIngress
   | WebhookIngressService
   | ClerkAdminService;

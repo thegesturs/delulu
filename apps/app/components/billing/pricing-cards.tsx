@@ -307,7 +307,7 @@ export function PricingCards(props: PricingCardsProps) {
                         : null;
                       const result = await checkout.mutateAsync({
                         plan: plan.id,
-                        billingInterval: isAnnual ? "YEARLY" : "MONTHLY",
+                        interval: isAnnual ? "YEARLY" : "MONTHLY",
                         currency,
                         returnPath: configuredReturn
                           ? `${configuredReturn.pathname}${configuredReturn.search}`

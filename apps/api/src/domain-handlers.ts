@@ -158,6 +158,21 @@ export const PostsHandlers = HttpApiBuilder.group(
           return yield* posts.get(access.workspaceId, params.id);
         })
       )
+      .handle("publishNow", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "posts:write",
+          });
+          return yield* posts.publishNow({
+            workspaceId: access.workspaceId,
+            postId: params.id,
+            actor: { memberId: access.memberId, role: access.role },
+          });
+        })
+      )
       .handle("update", ({ params, payload }) =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;
@@ -398,6 +413,21 @@ export const MediaHandlers = HttpApiBuilder.group(
             workspaceId: access.workspaceId,
             billingOwnerUserId: access.billingOwnerUserId,
             files: payload,
+          });
+        })
+      )
+      .handle("import", ({ params, payload }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "media:write",
+          });
+          return yield* media.importFromUrl({
+            workspaceId: access.workspaceId,
+            billingOwnerUserId: access.billingOwnerUserId,
+            ...payload,
           });
         })
       )
