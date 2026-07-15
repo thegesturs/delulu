@@ -508,7 +508,8 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
             access.workspaceId,
             params.platform,
             auth,
-            payload.includeInsights
+            payload.includeInsights,
+            payload.client
           );
         })
       )

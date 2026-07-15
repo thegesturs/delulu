@@ -210,7 +210,7 @@ export class DeluluApiClient {
     return runEffect(
       this.client.connections.mint({
         params: { workspaceId, platform },
-        payload: { includeInsights: options.includeInsights },
+        payload: { includeInsights: options.includeInsights, client: "mcp" },
       })
     );
   }

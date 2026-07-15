@@ -112,7 +112,7 @@ accounts
     const result = await runEffect(
       getContractClient(options).connections.mint({
         params: { workspaceId, platform },
-        payload: { includeInsights: Boolean(cmd.insights) },
+        payload: { includeInsights: Boolean(cmd.insights), client: "cli" },
       })
     );
     printResult(result, options.json);

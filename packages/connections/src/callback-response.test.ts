@@ -1,8 +1,71 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { callbackRedirect } from "./callback-response";
+import {
+  callbackRedirect,
+  withConnectionClient,
+  withConnectionSuccess,
+} from "./callback-response";
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe("withConnectionClient", () => {
+  it("preserves CLI context on a callback error for retries", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+    const response = withConnectionClient(
+      callbackRedirect("/socials?error=user_denied&provider=twitter"),
+      "cli"
+    );
+
+    expect(response.headers.get("Location")).toBe(
+      "https://app.example.com/socials?error=user_denied&provider=twitter&client=cli"
+    );
+  });
+});
+
+describe("withConnectionSuccess", () => {
+  it("adds signed callback context to a successful redirect", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+
+    const response = withConnectionSuccess(callbackRedirect("/socials"), {
+      provider: "TWITTER",
+      username: "swarajb",
+      client: "cli",
+    });
+    const location = new URL(response.headers.get("Location") ?? "");
+
+    expect(Object.fromEntries(location.searchParams)).toEqual({
+      success: "true",
+      provider: "twitter",
+      client: "cli",
+    });
+    expect(new URLSearchParams(location.hash.slice(1)).get("username")).toBe(
+      "swarajb"
+    );
+  });
+
+  it("does not decorate errors or transfer notifications", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+    const error = callbackRedirect("/socials?error=server_error");
+    const transfer = callbackRedirect(
+      "/socials?notification=account_transferred"
+    );
+
+    expect(
+      withConnectionSuccess(error, {
+        provider: "twitter",
+        username: "swarajb",
+        client: "cli",
+      }).headers.get("Location")
+    ).toBe("https://app.example.com/socials?error=server_error");
+    expect(
+      withConnectionSuccess(transfer, {
+        provider: "twitter",
+        username: "swarajb",
+        client: "cli",
+      }).headers.get("Location")
+    ).toBe("https://app.example.com/socials?notification=account_transferred");
+  });
 });
 
 describe("callbackRedirect", () => {
