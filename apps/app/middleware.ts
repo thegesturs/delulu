@@ -13,6 +13,7 @@ const publicRoutes = createRouteMatcher([
   "/extension-auth-success(.*)",
   "/maintenance(.*)",
   "/mcp(.*)",
+  "/auth.md",
   "/.well-known(.*)",
 ]);
 
