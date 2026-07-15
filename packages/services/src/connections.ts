@@ -1,7 +1,10 @@
 import {
+  type ConnectionClient,
   type ConnectionUpsertInput,
   connectFacebookPage,
   getConnection,
+  withConnectionClient,
+  withConnectionSuccess,
 } from "@delulu/connections";
 import {
   ConflictError,
@@ -33,6 +36,7 @@ export interface VerifiedConnectionState {
   readonly principal: string;
   readonly nonce: string;
   readonly issuedAt: number;
+  readonly client?: ConnectionClient;
 }
 
 const base64Url = (bytes: Uint8Array): string => {
@@ -77,7 +81,8 @@ export class ConnectionStateService extends Context.Service<
   {
     readonly mint: (
       workspaceId: string,
-      auth: AuthContext
+      auth: AuthContext,
+      client?: ConnectionClient
     ) => Effect.Effect<string, ConflictError>;
     readonly verify: (
       state: string
@@ -88,7 +93,11 @@ export class ConnectionStateService extends Context.Service<
     ConnectionStateService,
     Effect.gen(function* () {
       const config = yield* ConnectionStateConfig;
-      const mint = (workspaceId: string, auth: AuthContext) =>
+      const mint = (
+        workspaceId: string,
+        auth: AuthContext,
+        client?: ConnectionClient
+      ) =>
         Effect.tryPromise({
           try: async () => {
             if (!config.secret) {
@@ -98,7 +107,10 @@ export class ConnectionStateService extends Context.Service<
               ? `k:${auth.apiKeyId}`
               : `u:${auth.userId}`;
             const nonce = base64Url(crypto.getRandomValues(new Uint8Array(16)));
-            const value = `${workspaceId}.${principal}.${nonce}.${Math.floor(Date.now() / 1000)}`;
+            const issuedAt = Math.floor(Date.now() / 1000);
+            const value = client
+              ? `${workspaceId}.${principal}.${nonce}.${issuedAt}.${client}`
+              : `${workspaceId}.${principal}.${nonce}.${issuedAt}`;
             return `${value}.${await sign(config.secret, value)}`;
           },
           catch: () =>
@@ -111,12 +123,23 @@ export class ConnectionStateService extends Context.Service<
         Effect.tryPromise({
           try: async () => {
             const parts = state.split(".");
-            if (parts.length !== 5) {
+            if (!(parts.length === 5 || parts.length === 6)) {
               throw new Error("bad state");
             }
-            const [workspaceId, principal, nonce, issued, signature] =
-              parts as [string, string, string, string, string];
-            const value = `${workspaceId}.${principal}.${nonce}.${issued}`;
+            const [workspaceId, principal, nonce, issued] = parts as [
+              string,
+              string,
+              string,
+              string,
+            ];
+            const client = parts.length === 6 ? parts[4] : undefined;
+            const signature = parts.at(-1) ?? "";
+            if (client && !(client === "cli" || client === "mcp")) {
+              throw new Error("bad client");
+            }
+            const value = client
+              ? `${workspaceId}.${principal}.${nonce}.${issued}.${client}`
+              : `${workspaceId}.${principal}.${nonce}.${issued}`;
             const expected = await sign(config.secret, value);
             const issuedAt = Number(issued);
             if (
@@ -125,7 +148,13 @@ export class ConnectionStateService extends Context.Service<
             ) {
               throw new Error("expired or invalid state");
             }
-            return { workspaceId, principal, nonce, issuedAt };
+            return {
+              workspaceId,
+              principal,
+              nonce,
+              issuedAt,
+              client: client as ConnectionClient | undefined,
+            };
           },
           catch: () =>
             new ConflictError({
@@ -193,7 +222,8 @@ export class ConnectionsService extends Context.Service<
       workspaceId: WorkspaceId,
       platform: string,
       auth: AuthContext,
-      includeInsights?: boolean
+      includeInsights?: boolean,
+      client?: ConnectionClient
     ) => Effect.Effect<
       { url: string; expiresIn: number },
       ConflictError | NotFoundError
@@ -283,7 +313,8 @@ export class ConnectionsService extends Context.Service<
         workspaceId: WorkspaceId,
         platform: string,
         auth: AuthContext,
-        includeInsights?: boolean
+        includeInsights?: boolean,
+        client?: ConnectionClient
       ) {
         let connection: ReturnType<typeof getConnection>;
         try {
@@ -296,7 +327,7 @@ export class ConnectionsService extends Context.Service<
             resource: "platform",
           });
         }
-        const state = yield* states.mint(workspaceId, auth);
+        const state = yield* states.mint(workspaceId, auth, client);
         return {
           url: connection.auth.getConnectUrl({ state, includeInsights }),
           expiresIn: 600,
@@ -391,19 +422,42 @@ export class ConnectionsService extends Context.Service<
             });
           }
           return yield* Effect.tryPromise({
-            try: () =>
-              connection.auth.handleCallback({
+            try: async () => {
+              let connected:
+                | { readonly provider: string; readonly username: string }
+                | undefined;
+              const response = await connection.auth.handleCallback({
                 code: input.code,
                 error: input.error,
                 errorReason: input.errorReason,
                 state: input.state,
                 userId: verified.principal,
                 temporaryStore,
-                upsert: (value) =>
-                  Effect.runPromise(
+                upsert: async (value) => {
+                  const status = await Effect.runPromise(
                     upsertFromOAuth(verified.workspaceId as WorkspaceId, value)
-                  ),
-              }),
+                  );
+                  if (status !== "transfer_required") {
+                    connected = {
+                      provider: value.socialType,
+                      username:
+                        value.username ?? value.fullName ?? value.profileId,
+                    };
+                  }
+                  return status;
+                },
+              });
+              const clientResponse = withConnectionClient(
+                response,
+                verified.client
+              );
+              return connected
+                ? withConnectionSuccess(clientResponse, {
+                    ...connected,
+                    client: verified.client,
+                  })
+                : clientResponse;
+            },
             catch: () =>
               new ConflictError({
                 message: "Connection callback failed",

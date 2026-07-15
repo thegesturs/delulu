@@ -365,6 +365,7 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
       params: { ...WorkspacePath, platform: Schema.String },
       payload: Schema.Struct({
         includeInsights: Schema.optional(Schema.Boolean),
+        client: Schema.optional(Schema.Literals(["cli", "mcp"])),
       }),
       success: Schema.Struct({ url: Schema.String, expiresIn: Schema.Number }),
       error: domainErrors,
