@@ -139,6 +139,10 @@ export const ALL_SORTED_PRODUCT_IDS = [
   SORTED_PROD_PRODUCT_ID,
 ] as const;
 
+export function isSortedProductId(productId: string): boolean {
+  return (ALL_SORTED_PRODUCT_IDS as readonly string[]).includes(productId);
+}
+
 /**
  * Get the Sorted product ID for the current environment
  */

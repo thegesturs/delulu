@@ -53,7 +53,7 @@ export const TABLE_SPECS: readonly TableSpec[] = [
   {
     convex: "subscriptions",
     disposition: "transform",
-    note: "→ subscriptions (selected plan row)",
+    note: "→ subscriptions (one base row) + subscription_addons (all add-ons)",
   },
   {
     convex: "transactions",

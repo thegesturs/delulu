@@ -8,7 +8,7 @@ import {
   type BillingOwnerTransfer,
   canInitiateBillingTransfer,
 } from "@delulu/core/domain/billing";
-import { getPlanLimits } from "@delulu/payments/plans";
+import { getPlanLimits, PAID_PLAN_TYPES } from "@delulu/payments/plans";
 import { Context, DateTime, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 
@@ -120,7 +120,7 @@ export class BillingOwnerTransfers extends Context.Service<
                   AND m.user_id = ${input.toUserId}
                   AND s.provider_subscription_id IS NOT NULL
                   AND s.status IN ('active', 'trialing')
-                  AND upper(s.plan) <> 'FREE'
+                  AND upper(s.plan) IN ${sql.in(PAID_PLAN_TYPES)}
                 LIMIT 1`;
                 if (!target[0]) {
                   return yield* new ConflictError({
@@ -240,7 +240,7 @@ export class BillingOwnerTransfers extends Context.Service<
                   AND m.user_id = ${input.actorUserId}
                   AND s.provider_subscription_id IS NOT NULL
                   AND s.status IN ('active', 'trialing')
-                  AND upper(s.plan) <> 'FREE'
+                  AND upper(s.plan) IN ${sql.in(PAID_PLAN_TYPES)}
                 LIMIT 1`;
                 if (!eligible[0]) {
                   return yield* new ConflictError({

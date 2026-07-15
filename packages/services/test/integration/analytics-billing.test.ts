@@ -136,7 +136,7 @@ describe("M4 analytics and billing services", () => {
         status: "active",
         currentPeriodStart: "2026-07-01T00:00:00.000Z",
         currentPeriodEnd: "2026-08-01T00:00:00.000Z",
-        addons: { sorted: true },
+        addons: {},
       };
       const first = yield* webhook.apply(event);
       const second = yield* webhook.apply(event);
@@ -174,7 +174,7 @@ describe("M4 analytics and billing services", () => {
     expect(result.first.applied).toBe(true);
     expect(result.second.applied).toBe(false);
     expect(result.subscription.plan).toBe("ECHO");
-    expect(result.subscription.addons).toEqual({ sorted: true });
+    expect(result.subscription.addons).toEqual({});
     expect(result.usage.usage.monthlyPosts).toBe(0);
     expect(result.usage.usage.dmsSent).toBe(0);
     expect(result.transactions.data[0]?.amountMinor).toBe(499);

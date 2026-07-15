@@ -1,4 +1,5 @@
 import type { UserId, WorkspaceId } from "@delulu/core";
+import { isPaidPlan, PAID_PLAN_TYPES } from "@delulu/payments/plans";
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { ClerkAdminService } from "./clerk-admin";
@@ -62,7 +63,7 @@ export class SetupService extends Context.Service<
           status: "inactive",
         };
         const paid =
-          subscription.plan.toUpperCase() !== "FREE" &&
+          isPaidPlan(subscription.plan) &&
           subscription.status.toUpperCase() === "ACTIVE";
         const connectedPlatforms = connections.map((row) => row.platform);
         const onboardingComplete = connectedPlatforms.length > 0 && paid;
@@ -75,7 +76,8 @@ export class SetupService extends Context.Service<
               WHERE c.workspace_id = w.id)
             AND EXISTS (SELECT 1 FROM subscriptions s
               WHERE s.billing_owner_user_id = w.billing_owner_user_id
-                AND upper(s.plan) <> 'FREE' AND upper(s.status) = 'ACTIVE')
+                AND upper(s.plan) IN ${sql.in(PAID_PLAN_TYPES)}
+                AND upper(s.status) = 'ACTIVE')
         ) AS complete`.pipe(Effect.orDie);
         const userOnboardingComplete = aggregate[0]?.complete ?? false;
         if (

@@ -104,7 +104,13 @@ export class TranscriptionService extends Context.Service<
           const rows = yield* sql<Record<string, unknown>>`
             SELECT u.id AS user_id, w.id AS workspace_id,
               s.transcriptions_used, s.transcriptions_period_start,
-              s.addons, s.provider_customer_id
+              s.provider_customer_id,
+              EXISTS (
+                SELECT 1 FROM subscription_addons a
+                WHERE a.base_subscription_id = s.id
+                  AND a.addon_key = 'sorted'
+                  AND a.status IN ('active', 'trialing', 'on_trial')
+              ) AS is_sorted_active
             FROM users u
             JOIN workspaces w ON w.billing_owner_user_id = u.id AND w.is_personal = true
               AND w.deleted_at IS NULL
@@ -129,14 +135,7 @@ export class TranscriptionService extends Context.Service<
         const periodEnd =
           (transcriptionStart?.getTime() ?? now) + SORTED_LIMITS.PERIOD_MS;
         const expired = periodEnd <= now;
-        const addons = (row.addons ?? {}) as Record<string, unknown>;
-        const sorted = addons.sorted;
-        const isSortedActive =
-          sorted === true ||
-          (typeof sorted === "object" &&
-            sorted !== null &&
-            "status" in sorted &&
-            (sorted as { readonly status?: unknown }).status === "active");
+        const isSortedActive = Boolean(row.isSortedActive);
         return {
           used: expired ? 0 : Number(row.transcriptionsUsed ?? 0),
           limit: SORTED_LIMITS.FREE_TRANSCRIPTION_LIMIT,
@@ -252,8 +251,14 @@ export class TranscriptionService extends Context.Service<
             Effect.gen(function* () {
               const contexts = yield* sql<Record<string, unknown>>`
               SELECT u.id AS user_id, w.id AS workspace_id,
-                s.transcriptions_used, s.transcriptions_period_start, s.addons,
-                s.provider_customer_id
+                s.transcriptions_used, s.transcriptions_period_start,
+                s.provider_customer_id,
+                EXISTS (
+                  SELECT 1 FROM subscription_addons a
+                  WHERE a.base_subscription_id = s.id
+                    AND a.addon_key = 'sorted'
+                    AND a.status IN ('active', 'trialing', 'on_trial')
+                ) AS is_sorted_active
               FROM users u
               JOIN workspaces w ON w.billing_owner_user_id = u.id
                 AND w.is_personal = true AND w.deleted_at IS NULL
@@ -305,7 +310,13 @@ export class TranscriptionService extends Context.Service<
                   THEN now() ELSE transcriptions_period_start END
               WHERE billing_owner_user_id = ${String(context.userId)}
               RETURNING transcriptions_used, transcriptions_period_start,
-                addons, provider_customer_id`;
+                provider_customer_id,
+                EXISTS (
+                  SELECT 1 FROM subscription_addons a
+                  WHERE a.base_subscription_id = subscriptions.id
+                    AND a.addon_key = 'sorted'
+                    AND a.status IN ('active', 'trialing', 'on_trial')
+                ) AS is_sorted_active`;
               return {
                 record: toRecord(inserted[0]),
                 usage: usageFrom(updated[0] as Record<string, unknown>),
