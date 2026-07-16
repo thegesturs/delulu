@@ -2,6 +2,7 @@ export interface NewsCountry {
   slug: string;
   name: string;
   code: string;
+  emoji: string;
   locale: string;
   context: string;
 }
@@ -19,7 +20,19 @@ const country = (
   code: string,
   context: string,
   locale = "en"
-): NewsCountry => ({ slug, name, code, locale, context });
+): NewsCountry => ({
+  slug,
+  name,
+  code,
+  emoji: String.fromCodePoint(
+    ...code
+      .toUpperCase()
+      .split("")
+      .map((character) => 127_397 + character.charCodeAt(0))
+  ),
+  locale,
+  context,
+});
 
 export const NEWS_COUNTRIES: readonly NewsCountry[] = [
   country(

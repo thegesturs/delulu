@@ -107,6 +107,9 @@ export default async function NewsPage({ params }: PageProps) {
   }
   const result = await getRequestNews(route);
   const title = newsTitle(route);
+  const displayTitle = route.country
+    ? `${route.country.emoji} ${title}`
+    : title;
   const description = newsDescription(route);
   const url = getWebUrl(newsRoutePath(route));
   const faq = newsFaq(route);
@@ -163,19 +166,19 @@ export default async function NewsPage({ params }: PageProps) {
           News Explorer
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">{title}</span>
+        <span className="text-foreground">{displayTitle}</span>
       </nav>
 
       <div className="mx-auto mb-8 max-w-2xl text-center">
         <h1 className="font-bold text-3xl tracking-tight sm:text-4xl">
-          <Balancer>{title}</Balancer>
+          <Balancer>{displayTitle}</Balancer>
         </h1>
         <p className="mt-4 text-lg text-muted-foreground leading-8">
           <Balancer>{description}</Balancer>
         </p>
       </div>
 
-      <NewsExplorer initial={result} route={route} />
+      <NewsExplorer initial={result} />
 
       {result.items.length > 0 ? (
         <>
@@ -252,6 +255,7 @@ export default async function NewsPage({ params }: PageProps) {
                   href={newsRoutePath(related)}
                   key={newsRoutePath(related)}
                 >
+                  {related.country ? `${related.country.emoji} ` : ""}
                   {newsTitle(related)}
                 </Link>
               ))}

@@ -1,15 +1,5 @@
-"use client";
-
 import { Button } from "@delulu/design-system/components/ui/button";
-import { ArrowUpRight, Clock, PenLine, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import {
-  NEWS_CATEGORIES,
-  NEWS_COUNTRIES,
-  type NewsRoute,
-  newsRoutePath,
-} from "./config";
+import { ArrowUpRight, Clock, PenLine } from "lucide-react";
 import type { NewsItem } from "./provider";
 import type { NewsResult } from "./service";
 
@@ -29,181 +19,78 @@ const createPostUrl = (item: NewsItem) => {
   return url.toString();
 };
 
-export function NewsExplorer({
-  initial,
-  route,
-}: {
-  initial: NewsResult;
-  route: NewsRoute;
-}) {
-  const [result, setResult] = useState(initial);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [query, setQuery] = useState("");
-  const items = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
-    return needle
-      ? result.items.filter((item) =>
-          `${item.headline} ${item.source}`.toLocaleLowerCase().includes(needle)
-        )
-      : result.items;
-  }, [query, result.items]);
+const articleDescription = (item: NewsItem) =>
+  item.excerpt ??
+  `Reporting from ${item.source}. Open the original story for full context and the latest updates.`;
 
-  const refresh = async () => {
-    setIsRefreshing(true);
-    try {
-      const parameters = new URLSearchParams();
-      if (route.country) {
-        parameters.set("country", route.country.slug);
-      }
-      if (route.category) {
-        parameters.set("category", route.category.slug);
-      }
-      const response = await fetch(`/tools/news-explorer/api?${parameters}`);
-      if (!response.ok) {
-        throw new Error(`Refresh returned ${response.status}`);
-      }
-      setResult(await response.json());
-    } catch {
-      setResult((current) => ({
-        ...current,
-        state: current.items.length > 0 ? "stale" : "error",
-        message:
-          "The refresh did not complete. Keeping the latest cached headlines on screen.",
-      }));
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
+export function NewsExplorer({ initial }: { initial: NewsResult }) {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="border-b bg-muted/30 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <label className="flex-1 text-sm">
-            <span className="mb-1.5 block font-medium">
-              Search cached headlines
-            </span>
-            <input
-              className="h-10 w-full rounded-md border bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search headline or publisher"
-              type="search"
-              value={query}
-            />
-          </label>
-          <Button
-            disabled={isRefreshing}
-            onClick={refresh}
-            type="button"
-            variant="outline"
-          >
-            <RefreshCw
-              className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            Check for updates
-          </Button>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-sm">
-          <Link
-            className="rounded-full border bg-background px-3 py-1 hover:border-primary"
-            href={newsRoutePath({})}
-          >
-            All news
-          </Link>
-          {NEWS_CATEGORIES.map((category) => (
-            <Link
-              className="rounded-full border bg-background px-3 py-1 hover:border-primary"
-              href={newsRoutePath({ ...route, category })}
-              key={category.slug}
-            >
-              {category.name}
-            </Link>
-          ))}
-        </div>
-        <details className="mt-3 text-sm">
-          <summary className="cursor-pointer text-muted-foreground">
-            Choose a country
-          </summary>
-          <div className="mt-2 flex max-h-40 flex-wrap gap-2 overflow-y-auto pb-1">
-            {NEWS_COUNTRIES.map((country) => (
-              <Link
-                className="rounded-full border bg-background px-3 py-1 hover:border-primary"
-                href={newsRoutePath({ ...route, country })}
-                key={country.slug}
-              >
-                {country.name}
-              </Link>
-            ))}
-          </div>
-        </details>
+    <section aria-label="Latest headlines">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-zinc-950/10 border-x-[1.5px] border-t-[1.5px] border-dotted px-4 py-3 text-muted-foreground text-xs tabular-nums sm:px-5 dark:border-white/10">
+        <span>{initial.items.length} headlines</span>
+        <span className="flex items-center gap-1.5">
+          <Clock aria-hidden="true" className="size-3.5" />
+          Updated {new Date(initial.fetchedAt).toLocaleString()}
+        </span>
       </div>
 
-      <div
-        aria-live="polite"
-        className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 text-muted-foreground text-xs sm:px-5"
-      >
-        <span>
-          {items.length} of {result.items.length} cached headlines
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock className="size-3.5" /> Updated{" "}
-          {new Date(result.fetchedAt).toLocaleString()}
-        </span>
-      </div>
-      {result.message ? (
-        <p className="border-b bg-amber-50 px-4 py-3 text-amber-900 text-sm dark:bg-amber-950/30 dark:text-amber-200">
-          {result.message}
+      {initial.message ? (
+        <p className="border-zinc-950/10 border-x-[1.5px] border-t-[1.5px] border-dotted bg-amber-50 px-4 py-3 text-amber-900 text-sm sm:px-5 dark:border-white/10 dark:bg-amber-950/30 dark:text-amber-200">
+          {initial.message}
         </p>
       ) : null}
 
-      {items.length > 0 ? (
-        <ol className="divide-y">
-          {items.map((item) => (
-            <li className="p-4 sm:p-5" key={item.id}>
-              <article className="grid gap-4 sm:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="mb-2 flex flex-wrap items-center gap-x-2 text-muted-foreground text-xs">
-                    {item.sourceUrl ? (
-                      <a
-                        className="font-medium text-foreground hover:underline"
-                        href={item.sourceUrl}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        {item.source}
-                      </a>
-                    ) : (
-                      <span className="font-medium text-foreground">
-                        {item.source}
-                      </span>
-                    )}
-                    <span aria-hidden="true">·</span>
-                    <time dateTime={item.publishedAt}>
-                      {relativeTime(item.publishedAt)}
-                    </time>
-                  </div>
-                  <h2 className="font-semibold text-lg leading-7">
-                    {item.headline}
-                  </h2>
-                  {item.excerpt ? (
-                    <p className="mt-2 line-clamp-2 text-muted-foreground text-sm leading-6">
-                      {item.excerpt}
-                    </p>
-                  ) : null}
+      {initial.items.length > 0 ? (
+        <ol className="grid grid-cols-1 border-zinc-950/10 border-t-[1.5px] border-l-[1.5px] border-dotted sm:grid-cols-2 lg:grid-cols-3 dark:border-white/10">
+          {initial.items.map((item) => (
+            <li
+              className="min-w-0 border-zinc-950/10 border-r-[1.5px] border-b-[1.5px] border-dotted dark:border-white/10"
+              key={item.id}
+            >
+              <article className="flex h-full min-h-72 flex-col p-5">
+                <div className="mb-3 flex flex-wrap items-center gap-x-2 text-muted-foreground text-xs">
+                  {item.sourceUrl ? (
+                    <a
+                      className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                      href={item.sourceUrl}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      {item.source}
+                    </a>
+                  ) : (
+                    <span className="font-medium text-foreground">
+                      {item.source}
+                    </span>
+                  )}
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={item.publishedAt}>
+                    {relativeTime(item.publishedAt)}
+                  </time>
                 </div>
-                <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch">
-                  <Button asChild size="sm" variant="outline">
+
+                <h2 className="line-clamp-3 text-balance font-semibold text-lg leading-7">
+                  {item.headline}
+                </h2>
+                <p className="mt-3 line-clamp-3 text-muted-foreground text-sm leading-6">
+                  {articleDescription(item)}
+                </p>
+
+                <div className="mt-auto grid gap-2 pt-6">
+                  <Button asChild className="min-h-11" variant="outline">
                     <a
                       href={item.url}
                       rel="noopener noreferrer"
                       target="_blank"
                     >
-                      Open source <ArrowUpRight className="size-4" />
+                      Open source
+                      <ArrowUpRight aria-hidden="true" className="size-4" />
                     </a>
                   </Button>
-                  <Button asChild size="sm">
+                  <Button asChild className="min-h-11">
                     <a href={createPostUrl(item)} rel="noopener noreferrer">
-                      Create this post in Delulu <PenLine className="size-4" />
+                      Create in Delulu
+                      <PenLine aria-hidden="true" className="size-4" />
                     </a>
                   </Button>
                 </div>
@@ -212,10 +99,8 @@ export function NewsExplorer({
           ))}
         </ol>
       ) : (
-        <p className="p-8 text-center text-muted-foreground">
-          {query
-            ? "No cached headlines match that search."
-            : "No headlines are available right now. Please try again shortly."}
+        <p className="border-[1.5px] border-zinc-950/10 border-dotted p-10 text-center text-muted-foreground text-sm dark:border-white/10">
+          No headlines are available right now. Please try again shortly.
         </p>
       )}
     </section>

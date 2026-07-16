@@ -176,7 +176,8 @@ export default function NewsExplorerPage() {
               href={newsRoutePath({ country })}
               key={country.slug}
             >
-              {country.name} news
+              <span aria-hidden="true">{country.emoji}</span> {country.name}{" "}
+              news
             </Link>
           ))}
         </div>
@@ -194,7 +195,8 @@ export default function NewsExplorerPage() {
           {NEWS_COUNTRIES.map((country) => (
             <details className="rounded-lg border px-4 py-3" key={country.slug}>
               <summary className="cursor-pointer font-medium">
-                {country.name} topic explorers
+                <span aria-hidden="true">{country.emoji}</span> {country.name}{" "}
+                topics
               </summary>
               <div className="mt-3 flex flex-wrap gap-2">
                 {NEWS_CATEGORIES.map((category) => (
@@ -203,6 +205,7 @@ export default function NewsExplorerPage() {
                     href={newsRoutePath({ country, category })}
                     key={category.slug}
                   >
+                    <span aria-hidden="true">{country.emoji}</span>{" "}
                     {country.name} {category.name}
                   </Link>
                 ))}
