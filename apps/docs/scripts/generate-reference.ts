@@ -28,6 +28,14 @@ const slugify = (value: string) =>
 const escapeFrontmatter = (value: string) =>
   JSON.stringify(value.replace(/\s+/g, " ").trim());
 
+const escapeMdxText = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\{/g, "&#123;")
+    .replace(/\}/g, "&#125;");
+
 const asRecord = (value: unknown): JsonRecord =>
   value && typeof value === "object" ? (value as JsonRecord) : {};
 
@@ -114,7 +122,7 @@ const renderOperation = (entry: OperationEntry) => {
     typeof entry.operation.description === "string"
       ? `\n\n${entry.operation.description}`
       : "";
-  return `## ${operationTitle(entry)}\n\n\`${entry.method.toUpperCase()} ${entry.path}\`${description}\n\n### Parameters\n\n${renderParameters(entry.operation)}\n\n${renderRequestBody(entry.operation)}\n\n### Responses\n\n${renderResponses(entry.operation)}`;
+  return `## ${operationTitle(entry)}\n\n<div className="api-operation"><span className="api-method" data-method="${entry.method}">${entry.method.toUpperCase()}</span><code>${escapeMdxText(entry.path)}</code></div>${description}\n\n### Parameters\n\n${renderParameters(entry.operation)}\n\n${renderRequestBody(entry.operation)}\n\n### Responses\n\n${renderResponses(entry.operation)}`;
 };
 
 const grouped = new Map<string, OperationEntry[]>();

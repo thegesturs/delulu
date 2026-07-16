@@ -1,5 +1,7 @@
 {
   "title": "How-to guides",
+  "description": "Complete common publishing and workspace tasks.",
+  "root": true,
   "pages": [
     "accounts",
     "workspaces",

@@ -1,27 +1,518 @@
-@import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
+@import "@delulu/design-system/styles/globals.css";
+@import "fumadocs-ui/css/shadcn.css";
 @import "fumadocs-ui/css/preset.css";
 
-@theme {
-  --color-fd-primary: oklch(0.5216 0.2318 273.3197);
+@theme inline {
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-primary: var(--primary);
+  --color-fd-primary-foreground: var(--primary-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--sidebar-accent);
+  --color-fd-accent-foreground: var(--sidebar-accent-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-ring: var(--ring);
 }
 
 :root {
-  --fd-layout-width: 1500px;
+  --fd-layout-width: 1560px;
+  --docs-grid-line: oklch(0.5216 0.2318 273.3197 / 0.035);
+  --docs-glow: oklch(0.5216 0.2318 273.3197 / 0.1);
+  --docs-shell-border: oklch(0.2527 0.0207 284.8269 / 0.11);
+  --docs-card-shadow:
+    0 1px 2px oklch(0.2527 0.0207 284.8269 / 0.04),
+    0 10px 28px -18px oklch(0.2527 0.0207 284.8269 / 0.22),
+    0 0 0 1px oklch(0.2527 0.0207 284.8269 / 0.08);
+  --border-hairline: 1px;
+}
+
+.dark {
+  --docs-grid-line: oklch(0.7 0.1 277 / 0.045);
+  --docs-glow: oklch(0.55 0.1775 277.3714 / 0.16);
+  --docs-shell-border: oklch(1 0 0 / 0.1);
+  --docs-card-shadow:
+    0 1px 2px oklch(0 0 0 / 0.35), 0 16px 36px -22px oklch(0 0 0 / 0.72),
+    0 0 0 1px oklch(1 0 0 / 0.07);
+}
+
+@media only screen and (min-resolution: 192dpi) {
+  :root {
+    --border-hairline: 0.5px;
+  }
+}
+
+html {
+  background: color-mix(in oklab, var(--background), var(--muted) 26%);
+  scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100vh;
-  letter-spacing: 0.01em;
+  min-height: 100dvh;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizelegibility;
 }
 
-.prose table {
-  display: table;
-  width: 100%;
+a,
+button {
+  touch-action: manipulation;
+}
+
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+#nd-docs-layout {
+  isolation: isolate;
+  background: var(--background);
+}
+
+#nd-page {
+  position: relative;
+  padding-bottom: 6rem;
+}
+
+#nd-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -5vw;
+  background-image:
+    radial-gradient(circle at 50% 0%, var(--docs-glow), transparent 34rem),
+    linear-gradient(var(--docs-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--docs-grid-line) 1px, transparent 1px);
+  background-position: center top;
+  background-size:
+    auto,
+    56px 56px,
+    56px 56px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black 0, transparent 42rem);
+  pointer-events: none;
+}
+
+#nd-sidebar {
+  background: color-mix(in oklab, var(--card) 96%, var(--muted));
+  box-shadow: inset -1px 0 color-mix(in oklab, var(--border), transparent 35%);
+}
+
+#nd-sidebar [data-active="true"] {
+  color: var(--foreground);
+  box-shadow:
+    inset 3px 0 var(--primary),
+    inset 0 0 0 1px color-mix(in oklab, var(--primary), transparent 82%);
+}
+
+#nd-toc {
+  padding-inline-end: 1.25rem;
+}
+
+#toc-title {
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.docs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.docs-brand-mark {
+  width: 1.35rem;
+  height: 1.55rem;
+  color: var(--primary);
+}
+
+.docs-brand-name {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.docs-brand-badge {
+  border-radius: 999px;
+  padding: 0.18rem 0.46rem;
+  background: color-mix(in oklab, var(--primary), transparent 90%);
+  color: var(--primary);
+  font-size: 0.67rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.docs-external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  border-radius: 0.55rem;
+  padding-inline: 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  font-weight: 520;
+  text-decoration: none;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.docs-external-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.docs-section-icon {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--primary), transparent 91%);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  box-shadow: inset 0 0 0 var(--border-hairline)
+    color-mix(in oklab, var(--primary), transparent 80%);
+}
+
+.docs-page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.docs-page-kicker {
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.docs-page-heading h1 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(2rem, 4vw, 2.65rem);
+  font-weight: 680;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.prose {
+  color: color-mix(in oklab, var(--foreground), transparent 10%);
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+
+.prose :where(h2, h3, h4) {
+  color: var(--foreground);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.prose :where(h2) {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: var(--border-hairline) solid
+    color-mix(in oklab, var(--border), transparent 30%);
+}
+
+.prose :where(a) {
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in oklab, var(--primary), transparent 55%);
 }
 
 .prose :where(code):not(:where(pre *)) {
-  border: 1px solid color-mix(in oklab, var(--color-fd-border), transparent 25%);
-  border-radius: 0.35rem;
-  padding: 0.12rem 0.32rem;
+  border: var(--border-hairline) solid
+    color-mix(in oklab, var(--primary), transparent 78%);
+  border-radius: 0.38rem;
+  padding: 0.12rem 0.34rem;
+  background: color-mix(in oklab, var(--primary), transparent 94%);
+  color: color-mix(in oklab, var(--primary), var(--foreground) 20%);
+  font-size: 0.88em;
+}
+
+.prose :where(pre) {
+  overflow: auto;
+  border: 0;
+  border-radius: 0.8rem;
+  box-shadow: var(--docs-card-shadow);
+}
+
+.prose :where(table) {
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-collapse: separate;
+  border-radius: 0.75rem;
+  border-spacing: 0;
+  background: color-mix(in oklab, var(--card) 97%, var(--muted));
+  box-shadow: var(--docs-card-shadow);
+}
+
+.prose :where(th) {
+  border-bottom: var(--border-hairline) solid var(--border);
+  background: color-mix(in oklab, var(--muted), transparent 22%);
+  color: var(--foreground);
+  font-size: 0.73rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prose :where(td) {
+  border-bottom: var(--border-hairline) solid
+    color-mix(in oklab, var(--border), transparent 30%);
+}
+
+.prose :where(tr:last-child td) {
+  border-bottom: 0;
+}
+
+.docs-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1.5rem 2.75rem;
+}
+
+.docs-path-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  min-height: 10.5rem;
+  border-radius: 0.85rem;
+  padding: 1.1rem;
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--card), white 2%),
+    color-mix(in oklab, var(--card), var(--muted) 24%)
+  );
+  box-shadow: var(--docs-card-shadow);
+}
+
+.docs-path-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.docs-path-card p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.docs-path-card a {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin-top: 0.85rem;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 620;
+  text-decoration: none;
+}
+
+.docs-path-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: color-mix(in oklab, var(--primary), transparent 90%);
+  font-size: 0.95rem;
+  box-shadow: inset 0 0 0 var(--border-hairline)
+    color-mix(in oklab, var(--primary), transparent 77%);
+  user-select: none;
+}
+
+.api-operation {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-block: 0.9rem 1.25rem;
+  border: var(--border-hairline) solid var(--border);
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.65rem 0.45rem 0.48rem;
+  background: color-mix(in oklab, var(--card) 96%, var(--muted));
+  box-shadow: var(--docs-card-shadow);
+}
+
+.api-operation code {
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-method {
+  flex: none;
+  border-radius: 0.38rem;
+  padding: 0.22rem 0.42rem;
+  background: color-mix(in oklab, var(--primary), transparent 88%);
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.api-method[data-method="get"] {
+  background: color-mix(in oklab, oklch(0.62 0.17 153), transparent 88%);
+  color: oklch(0.5 0.16 153);
+}
+
+.api-method[data-method="delete"] {
+  background: color-mix(in oklab, oklch(0.61 0.22 25), transparent 88%);
+  color: oklch(0.55 0.21 25);
+}
+
+.api-method[data-method="put"],
+.api-method[data-method="patch"] {
+  background: color-mix(in oklab, oklch(0.7 0.17 70), transparent 86%);
+  color: oklch(0.55 0.15 70);
+}
+
+.api-explorer-page {
+  min-height: 100dvh;
+  background: var(--background);
+}
+
+.api-explorer-header {
+  position: sticky;
+  z-index: 50;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.75rem;
+  border-bottom: var(--border-hairline) solid var(--border);
+  padding-inline: clamp(1rem, 3vw, 2rem);
+  background: color-mix(in oklab, var(--background), transparent 7%);
+  box-shadow: 0 12px 30px -25px oklch(0 0 0 / 0.45);
+  backdrop-filter: blur(16px);
+}
+
+.api-explorer-brand,
+.api-explorer-links,
+.api-explorer-links a {
+  display: flex;
+  align-items: center;
+}
+
+.api-explorer-brand {
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  color: var(--foreground);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  text-decoration: none;
+}
+
+.api-explorer-badge {
+  border-radius: 999px;
+  padding: 0.2rem 0.48rem;
+  background: color-mix(in oklab, var(--primary), transparent 90%);
+  color: var(--primary);
+  font-size: 0.67rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.api-explorer-links {
+  gap: 0.25rem;
+}
+
+.api-explorer-links a {
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  border-radius: 0.55rem;
+  padding-inline: 0.7rem;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  font-weight: 540;
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .docs-external-link:hover {
+    background: var(--accent);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 var(--border-hairline) var(--border);
+  }
+
+  .docs-path-card a:hover {
+    text-decoration: underline;
+  }
+
+  .api-explorer-links a:hover {
+    background: var(--accent);
+    color: var(--foreground);
+  }
+}
+
+@media (min-width: 768px) {
+  #nd-docs-layout {
+    min-height: calc(100dvh - 1rem);
+    margin: 0.5rem;
+    overflow: clip;
+    border-radius: 0.9rem;
+    box-shadow:
+      0 24px 60px -32px oklch(0.2527 0.0207 284.8269 / 0.35),
+      0 0 0 1px var(--docs-shell-border);
+    --fd-docs-height: calc(100dvh - 1rem);
+  }
+}
+
+@media (max-width: 767px) {
+  .docs-path-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-path-card {
+    min-height: auto;
+  }
+
+  .docs-page-heading h1 {
+    font-size: 2rem;
+  }
+
+  .api-explorer-badge,
+  .api-explorer-links a:first-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

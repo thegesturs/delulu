@@ -1,4 +1,6 @@
 {
   "title": "CLI reference",
+  "description": "Commands, selectors, output contracts, and configuration.",
+  "root": true,
   "pages": ["overview", "commands", "selectors", "output-and-errors", "configuration"]
 }

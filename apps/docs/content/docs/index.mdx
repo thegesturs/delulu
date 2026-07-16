@@ -7,19 +7,48 @@ Delulu gives people and agents one permission-aware publishing system across con
 
 ## Choose your path
 
-| I want to… | Start here |
-| --- | --- |
-| Publish my first post from a terminal | [CLI quickstart](/getting-started/cli-quickstart/) |
-| Let an agent finish setup and publish | [Agent setup tutorial](/getting-started/agent-setup/) |
-| Integrate a service over HTTP | [API quickstart](/getting-started/api-quickstart/) |
-| See every CLI command and flag | [CLI command reference](/cli/commands/) |
-| Explore request and response schemas | [REST API reference](/api-reference/) |
+<div className="docs-path-grid">
+  <article className="docs-path-card">
+    <span className="docs-path-icon" aria-hidden="true">⌘</span>
+    <div>
+      <h3>Command line</h3>
+      <p>Sign in, connect accounts, upload media, and publish from one deterministic interface.</p>
+      <a href="/getting-started/cli-quickstart/">Start with the CLI <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+  <article className="docs-path-card">
+    <span className="docs-path-icon" aria-hidden="true">✨</span>
+    <div>
+      <h3>Agents & MCP</h3>
+      <p>Let a hosted or local agent guide setup and operate Delulu with structured tools.</p>
+      <a href="/getting-started/agent-setup/">Set up an agent <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+  <article className="docs-path-card">
+    <span className="docs-path-icon" aria-hidden="true">⚡</span>
+    <div>
+      <h3>REST API</h3>
+      <p>Build direct integrations against typed contracts, delegated OAuth, and workspace roles.</p>
+      <a href="/getting-started/api-quickstart/">Call the API <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+  <article className="docs-path-card">
+    <span className="docs-path-icon" aria-hidden="true">📖</span>
+    <div>
+      <h3>Reference</h3>
+      <p>Jump straight to every CLI flag, MCP tool input, or generated API request and response.</p>
+      <a href="/cli/commands/">Browse references <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+</div>
 
 ## One system, three surfaces
 
-- **CLI** for local media, deterministic scripts, and agent-friendly TOON output.
-- **MCP** for hosted agents that import public media URLs and call structured tools.
-- **REST API** for direct integrations using the same workspace, role, scope, quota, and review rules.
+| Surface | Best for | Start here |
+| --- | --- | --- |
+| **CLI** | Local media, scripts, and agent-friendly TOON output | [CLI overview](/cli/overview/) |
+| **MCP** | Hosted agents using structured tools and public media imports | [MCP overview](/mcp/overview/) |
+| **REST API** | Direct integrations with typed request and response contracts | [API reference](/api-reference/) |
 
 Every surface returns the actual post state. A command that returns `pending_review`, `publishing`, or `failed` does not claim the post is published.
 

@@ -356,6 +356,9 @@ importers:
       '@delulu/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@delulu/design-system':
+        specifier: workspace:*
+        version: link:../../packages/design-system
       '@orama/orama':
         specifier: 3.1.18
         version: 3.1.18

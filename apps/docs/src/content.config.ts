@@ -21,6 +21,7 @@ const meta = defineCollection({
     description: z.string().optional(),
     pages: z.array(z.string()).optional(),
     icon: z.string().optional(),
+    root: z.boolean().optional(),
   }),
 });
 

@@ -19,6 +19,7 @@
     "@astrojs/mdx": "7.0.3",
     "@astrojs/react": "6.0.1",
     "@delulu/contracts": "workspace:*",
+    "@delulu/design-system": "workspace:*",
     "@orama/orama": "3.1.18",
     "@scalar/api-reference-react": "0.9.56",
     "@tailwindcss/vite": "4.3.2",

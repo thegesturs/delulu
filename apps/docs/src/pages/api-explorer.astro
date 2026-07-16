@@ -12,13 +12,28 @@ import "@/styles/global.css";
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>API Explorer · Delulu Docs</title>
   </head>
-  <body>
-    <a
-      class="fixed right-4 bottom-4 z-50 rounded-full bg-fd-primary px-4 py-2 text-sm font-medium text-fd-primary-foreground shadow-lg"
-      href="/api-reference/"
-    >
-      Back to guides
-    </a>
+  <body class="api-explorer-page">
+    <header class="api-explorer-header">
+      <a class="api-explorer-brand" href="/api-reference/">
+        <img alt="" height="28" src="/favicon.svg" width="24" />
+        <span>Delulu</span>
+        <span class="api-explorer-badge">API explorer</span>
+      </a>
+      <nav aria-label="API explorer links" class="api-explorer-links">
+        <a href="/api-reference/">
+          <span>Documentation</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+        <a
+          href="https://solulu.delulu.social"
+          rel="noreferrer"
+          target="_blank"
+        >
+          <span>Dashboard</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </nav>
+    </header>
     <ApiExplorer client:only="react" />
   </body>
 </html>

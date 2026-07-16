@@ -1,4 +1,6 @@
 {
   "title": "Development",
+  "description": "Run the platform and maintain its documentation.",
+  "root": true,
   "pages": ["local-setup", "docs-site"]
 }

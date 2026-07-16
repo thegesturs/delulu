@@ -1,4 +1,6 @@
 {
   "title": "Getting started",
+  "description": "First success with the CLI, an agent, or the REST API.",
+  "root": true,
   "pages": ["cli-quickstart", "agent-setup", "api-quickstart"]
 }
