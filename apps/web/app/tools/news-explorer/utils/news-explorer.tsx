@@ -25,8 +25,8 @@ const articleDescription = (item: NewsItem) =>
 
 export function NewsExplorer({ initial }: { initial: NewsResult }) {
   return (
-    <section aria-label="Latest headlines">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-zinc-950/10 border-x-[1.5px] border-t-[1.5px] border-dotted px-4 py-3 text-muted-foreground text-xs tabular-nums sm:px-5 dark:border-white/10">
+    <section aria-label="Latest headlines" className="-mx-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-zinc-950/10 border-y-[1.5px] border-dotted px-4 py-3 text-muted-foreground text-xs tabular-nums sm:px-5 dark:border-white/10">
         <span>{initial.items.length} headlines</span>
         <span className="flex items-center gap-1.5">
           <Clock aria-hidden="true" className="size-3.5" />
@@ -35,19 +35,19 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
       </div>
 
       {initial.message ? (
-        <p className="border-zinc-950/10 border-x-[1.5px] border-t-[1.5px] border-dotted bg-amber-50 px-4 py-3 text-amber-900 text-sm sm:px-5 dark:border-white/10 dark:bg-amber-950/30 dark:text-amber-200">
+        <p className="border-zinc-950/10 border-b-[1.5px] border-dotted bg-amber-50 px-4 py-3 text-amber-900 text-sm sm:px-5 dark:border-white/10 dark:bg-amber-950/30 dark:text-amber-200">
           {initial.message}
         </p>
       ) : null}
 
       {initial.items.length > 0 ? (
-        <ol className="grid grid-cols-1 border-zinc-950/10 border-t-[1.5px] border-l-[1.5px] border-dotted sm:grid-cols-2 lg:grid-cols-3 dark:border-white/10">
+        <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {initial.items.map((item) => (
             <li
-              className="min-w-0 border-zinc-950/10 border-r-[1.5px] border-b-[1.5px] border-dotted dark:border-white/10"
+              className="min-w-0 border-zinc-950/10 border-r-[1.5px] border-b-[1.5px] border-dotted p-4 dark:border-white/10"
               key={item.id}
             >
-              <article className="flex h-full min-h-72 flex-col p-5">
+              <article className="flex h-full min-h-72 flex-col rounded-xl border bg-card p-5 shadow-sm">
                 <div className="mb-3 flex flex-wrap items-center gap-x-2 text-muted-foreground text-xs">
                   {item.sourceUrl ? (
                     <a
@@ -99,7 +99,7 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
           ))}
         </ol>
       ) : (
-        <p className="border-[1.5px] border-zinc-950/10 border-dotted p-10 text-center text-muted-foreground text-sm dark:border-white/10">
+        <p className="border-zinc-950/10 border-b-[1.5px] border-dotted p-10 text-center text-muted-foreground text-sm dark:border-white/10">
           No headlines are available right now. Please try again shortly.
         </p>
       )}
