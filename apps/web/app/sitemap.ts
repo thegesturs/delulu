@@ -1,6 +1,7 @@
 import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
+import { features } from "@/app/features/features";
 import {
   indexableNewsRoutes,
   newsRoutePath,
@@ -50,6 +51,18 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: getWebUrl("/features"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...features.map((feature) => ({
+      url: getWebUrl(`/features/${feature.slug}`),
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     ...toolFamilies.map((family) => ({
       url: getWebUrl(`/tools/${family.slug}`),
       lastModified: new Date(),

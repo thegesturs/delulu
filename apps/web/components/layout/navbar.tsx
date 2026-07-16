@@ -6,7 +6,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@delulu/design-system/components/ui/accordion";
-import { Button } from "@delulu/design-system/components/ui/button";
+import {
+  Button,
+  buttonVariants,
+} from "@delulu/design-system/components/ui/button";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -22,7 +25,6 @@ import {
   Bot,
   CalendarDays,
   ChartNoAxesCombined,
-  CheckCircle2,
   Code2,
   GraduationCap,
   LayoutGrid,
@@ -38,7 +40,6 @@ import {
   Upload,
   UsersRound,
   Video,
-  Workflow,
   X,
 } from "lucide-react";
 import {
@@ -87,11 +88,18 @@ const featureMenu: MenuSection = {
   cta: "Explore every feature",
   items: [
     {
-      name: "Multi-channel publishing",
+      name: "Multi-platform publishing",
       description:
         "Create once, tailor each version, and publish across your social accounts.",
-      href: "/features/multi-channel-publishing",
+      href: "/features/multi-platform-publishing",
       icon: Share2,
+    },
+    {
+      name: "Social media scheduling",
+      description:
+        "Prepare posts now, choose a future time, and track every result.",
+      href: "/features/social-media-scheduling",
+      icon: CalendarDays,
     },
     {
       name: "Content calendar",
@@ -101,17 +109,17 @@ const featureMenu: MenuSection = {
       icon: CalendarDays,
     },
     {
-      name: "Bulk scheduling",
-      description: "Prepare and schedule a campaign from a structured upload.",
-      href: "/features/bulk-scheduling",
+      name: "Bulk video scheduling",
+      description: "Turn a prepared batch of videos into a scheduled queue.",
+      href: "/features/bulk-video-scheduling",
       icon: Upload,
     },
     {
-      name: "DM automations",
+      name: "Instagram DM automation",
       description:
         "Turn Instagram comments into relevant, trackable conversations.",
-      href: "/features/dm-automations",
-      icon: Workflow,
+      href: "/features/instagram-dm-automation",
+      icon: FaInstagram,
     },
     {
       name: "Social analytics",
@@ -121,23 +129,17 @@ const featureMenu: MenuSection = {
       icon: ChartNoAxesCombined,
     },
     {
-      name: "Team workspaces",
+      name: "Team workspaces & approvals",
       description:
-        "Organize brands, teammates, permissions, and review-ready posts.",
-      href: "/features/team-workspaces",
+        "Manage roles, collaborate on drafts, and review posts before release.",
+      href: "/features/team-approvals",
       icon: UsersRound,
     },
     {
-      name: "Post approvals",
-      description: "Share a focused review link before a post goes live.",
-      href: "/features/post-approvals",
-      icon: CheckCircle2,
-    },
-    {
-      name: "Agent publishing API",
+      name: "Social media publishing API",
       description:
-        "Let agents and internal workflows create and manage social content.",
-      href: "/features/agent-publishing-api",
+        "Build internal workflows on typed publishing and delivery operations.",
+      href: "/features/social-media-api",
       icon: Bot,
     },
   ],
@@ -350,7 +352,7 @@ const DesktopNav = () => (
       </NavigationMenu>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button asChild className="h-fit py-2">
+        <Button asChild>
           <Link href="https://solulu.delulu.social/sign-in">
             Get Freaking Started
           </Link>
@@ -384,7 +386,10 @@ function MegaMenu({ section }: { section: MenuSection }) {
         </div>
         <NavigationMenuLink asChild>
           <Link
-            className="mt-0.5 w-fit shrink-0 flex-row items-center gap-1.5 px-2 py-1.5 font-medium text-foreground text-xs"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "mt-0.5 w-fit shrink-0 gap-1.5"
+            )}
             href={section.href}
           >
             {section.cta}
