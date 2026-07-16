@@ -32,7 +32,7 @@ export interface Tool {
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   video: "Video",
-  text: "Text & Captions",
+  text: "Caption & Text",
   image: "Image",
   seo: "SEO",
 };
@@ -69,7 +69,7 @@ export const tools: Tool[] = [
           : "hash",
     keywords: tool.keywords,
     status: "live" as const,
-    family: { slug: "text-tools", title: "Text tools" },
+    family: { slug: "text-tools", title: "Caption & Text" },
   })),
 ];
 

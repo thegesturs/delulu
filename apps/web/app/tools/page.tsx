@@ -15,18 +15,22 @@ const featuredTools = [
 ].filter((tool) => tool !== undefined);
 
 export const metadata: Metadata = createMetadata({
-  title: "Free Social Media & Video Tools",
+  title: "Free Social Media Tools for Captions, Text & Video",
   description:
-    "Free, no-signup tools for creators — count and format social text, shape platform-ready captions, and trim video privately in your browser.",
+    "Count a caption, format social text, or trim a video now. Free creator tools with no signup and private browser processing where practical.",
+  image: getWebUrl(
+    "/api/og?title=Free%20Social%20Media%20Tools&description=Count%20captions%2C%20format%20text%2C%20and%20trim%20video"
+  ),
   alternates: {
     canonical: getWebUrl("/tools"),
   },
+  openGraph: { url: getWebUrl("/tools") },
 });
 
 const itemListSchema: WithContext<ItemList> = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  name: "Free Tools by Delulu Social",
+  name: "Free social media tools for creators",
   itemListElement: featuredTools.map((tool, index) => ({
     "@type": "ListItem",
     position: index + 1,
@@ -43,40 +47,39 @@ export default function ToolsPage() {
 
       <div className="mx-auto mb-14 max-w-2xl text-center">
         <h1 className="font-bold text-4xl text-foreground tracking-tight sm:text-5xl">
-          <Balancer>Free tools for creators</Balancer>
+          <Balancer>Create better social content, faster</Balancer>
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
           <Balancer>
-            No signup, no watermarks, and private browser-based processing where
-            practical. Count, format, and prepare social content with focused
-            tools that do one job well.
+            Choose what you need to finish: check a caption, format text, or
+            trim a video. Start immediately—no signup required.
           </Balancer>
         </p>
       </div>
 
       <section className="mb-14">
         <h2 className="mb-5 font-bold text-2xl tracking-tight">
-          Browse by family
+          What are you working on?
         </h2>
         <Link
           className="group block rounded-xl border bg-card p-6 transition-colors hover:border-primary/60"
           href="/tools/text-tools"
         >
-          <p className="font-semibold text-xl">Social media text tools</p>
+          <p className="font-semibold text-xl">Caption &amp; Text</p>
           <p className="mt-2 max-w-2xl text-muted-foreground leading-7">
             Count platform-specific captions, bios, titles, and descriptions;
             measure words and hashtags; or generate copy-ready line breaks, bold
             text, and italic text.
           </p>
           <span className="mt-4 inline-block font-medium text-primary text-sm group-hover:underline">
-            Explore all 13 text tools →
+            Choose a caption or text task →
           </span>
         </Link>
       </section>
 
       <section>
         <h2 className="mb-5 font-bold text-2xl tracking-tight">
-          Popular tools
+          Start with a popular task
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {featuredTools.map((tool) => (

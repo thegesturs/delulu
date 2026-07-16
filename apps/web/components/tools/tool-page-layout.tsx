@@ -95,8 +95,7 @@ export function ToolPageLayout({
     ],
   };
 
-  // Related tools = same category, live, excluding this one. Powers internal
-  // linking + the "More free tools" block the SEO playbook recommends.
+  // Related entries stay within the current category when one is present.
   const related = tools.filter(
     (t) =>
       t.slug !== tool.slug &&
@@ -202,7 +201,9 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          More free tools
+          {tool.family
+            ? `More ${tool.family.title} options`
+            : "Related creator tools"}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">
@@ -222,11 +223,11 @@ export function ToolPageLayout({
           </ul>
         ) : (
           <p className="text-muted-foreground">
-            We're adding more free creator tools.{" "}
+            More creator tasks are coming.{" "}
             <Link className="text-primary hover:underline" href="/tools">
-              Browse the tools hub
-            </Link>{" "}
-            to see what's new.
+              See what you can use now
+            </Link>
+            .
           </p>
         )}
         <Link
@@ -234,8 +235,8 @@ export function ToolPageLayout({
           href={tool.family ? `/tools/${tool.family.slug}` : "/tools"}
         >
           {tool.family
-            ? `Explore all ${tool.family.title.toLowerCase()}`
-            : "Explore all free tools"}{" "}
+            ? `See all ${tool.family.title} options`
+            : "Find another creator task"}{" "}
           <ArrowRight className="size-4" />
         </Link>
       </section>

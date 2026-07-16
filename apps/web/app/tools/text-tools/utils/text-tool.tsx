@@ -9,6 +9,7 @@ import { ArrowUpRight, Clipboard, RotateCcw, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   analyzeText,
+  getTextToolUiCopy,
   type TextToolDefinition,
   transformText,
 } from "./text-tools";
@@ -20,7 +21,7 @@ const copyText = async (text: string) => {
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
-      return;
+      return true;
     } catch {
       // Fall through to the selection-based browser fallback.
     }
@@ -31,13 +32,22 @@ const copyText = async (text: string) => {
   textarea.style.opacity = "0";
   document.body.appendChild(textarea);
   textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
 };
 
 export function TextTool({ tool }: { tool: TextToolDefinition }) {
+  const ui = getTextToolUiCopy(tool.slug);
   const [text, setText] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{
+    message: string;
+    error: boolean;
+  } | null>(null);
   const result = useMemo(
     () => transformText(text, tool.mode),
     [text, tool.mode]
@@ -55,17 +65,43 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
     if (!result) {
       return;
     }
-    await copyText(result);
-    setNotice("Copied to clipboard");
+    const copied = await copyText(result);
+    setNotice(
+      copied
+        ? { message: "Copied to clipboard.", error: false }
+        : {
+            message:
+              "Couldn’t copy automatically. Select the text and copy it manually.",
+            error: true,
+          }
+    );
   };
 
   const handleComposer = async () => {
     if (!result) {
       return;
     }
-    window.open(`${APP_URL}/post`, "_blank", "noopener,noreferrer");
-    await copyText(result);
-    setNotice("Copied — paste it into your new Delulu post");
+    const composerWindow = window.open(`${APP_URL}/post`, "_blank");
+    if (composerWindow) {
+      composerWindow.opener = null;
+    }
+    const copied = await copyText(result);
+    if (!composerWindow) {
+      window.location.assign(`${APP_URL}/post`);
+      return;
+    }
+    setNotice(
+      copied
+        ? {
+            message: "Copied. Your new Delulu post is open in another tab.",
+            error: false,
+          }
+        : {
+            message:
+              "Your new Delulu post is open. Select and copy the text manually before pasting it.",
+            error: true,
+          }
+    );
   };
 
   return (
@@ -74,18 +110,21 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
         <div className="p-4 sm:p-6">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <label className="font-semibold text-sm" htmlFor="text-tool-input">
-              {outputVisible ? "Your text" : "Write or paste text"}
+              {ui.inputLabel}
             </label>
             <Button
               onClick={() => {
                 setText(tool.example);
-                setNotice("Example loaded");
+                setNotice({
+                  message: "Example loaded. Replace it with your own words.",
+                  error: false,
+                });
               }}
               size="sm"
               type="button"
               variant="ghost"
             >
-              <Sparkles /> Use example
+              <Sparkles /> {ui.exampleAction}
             </Button>
           </div>
           <Textarea
@@ -94,7 +133,7 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
             id="text-tool-input"
             onChange={(event) => {
               setText(event.target.value);
-              setNotice("");
+              setNotice(null);
             }}
             placeholder={tool.placeholder}
             spellCheck
@@ -107,31 +146,39 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
                 className="mb-3 block font-semibold text-sm"
                 htmlFor="text-tool-output"
               >
-                Copy-ready result
+                {ui.outputLabel ?? "Copy-ready text"}
               </label>
               <Textarea
                 className="min-h-40 resize-y bg-muted/30 text-base leading-7"
                 id="text-tool-output"
+                placeholder={`Your ${(
+                  ui.outputLabel ?? "copy-ready text"
+                ).toLowerCase()} will appear here as you type.`}
                 readOnly
                 value={result}
               />
+              <span aria-live="polite" className="sr-only">
+                {result
+                  ? `${ui.outputLabel ?? "Copy-ready text"} updated.`
+                  : ""}
+              </span>
             </div>
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Button disabled={!result} onClick={handleCopy} type="button">
-              <Clipboard /> {outputVisible ? "Copy result" : "Copy text"}
+              <Clipboard /> {ui.copyAction}
             </Button>
             <Button
               disabled={!text}
               onClick={() => {
                 setText("");
-                setNotice("Text reset");
+                setNotice({ message: "Draft cleared.", error: false });
               }}
               type="button"
               variant="outline"
             >
-              <RotateCcw /> Reset
+              <RotateCcw /> Clear
             </Button>
             {tool.composerHandoff ? (
               <Button
@@ -140,20 +187,23 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
                 type="button"
                 variant="secondary"
               >
-                Create post in Delulu <ArrowUpRight />
+                Create this post in Delulu <ArrowUpRight />
               </Button>
             ) : null}
           </div>
           <p
             aria-live="polite"
-            className="mt-3 min-h-5 text-muted-foreground text-sm"
+            className={cn(
+              "mt-3 min-h-5 text-muted-foreground text-sm",
+              notice?.error && "text-destructive"
+            )}
           >
-            {notice}
+            {notice?.message}
           </p>
         </div>
 
         <aside className="border-border border-t bg-muted/20 p-4 sm:p-6 lg:border-t-0 lg:border-l">
-          <h2 className="font-semibold text-sm">Live text stats</h2>
+          <h2 className="font-semibold text-sm">Your counts</h2>
           <dl className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-1">
             {[
               ["Characters", analysis.characters],
@@ -218,12 +268,12 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
               className="mt-5 text-muted-foreground text-xs"
               id="text-tool-status"
             >
-              No fixed character limit is applied to this tool.
+              No platform character limit is applied here.
             </p>
           )}
 
           <p className="mt-5 text-muted-foreground text-xs leading-5">
-            Private by design: your text stays in this browser tab.
+            Your text stays in this browser tab.
           </p>
         </aside>
       </div>

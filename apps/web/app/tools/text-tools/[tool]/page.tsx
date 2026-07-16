@@ -8,6 +8,7 @@ import { TextTool } from "../utils/text-tool";
 import {
   getTextTool,
   getTextToolMetadata,
+  getTextToolUiCopy,
   textToolSlugs,
 } from "../utils/text-tools";
 
@@ -38,6 +39,7 @@ export const generateMetadata = async ({
         encodeURIComponent(textTool.description)
     ),
     alternates: { canonical: getWebUrl(metadata.canonicalPath) },
+    openGraph: { url: getWebUrl(metadata.canonicalPath) },
   });
 };
 
@@ -48,16 +50,17 @@ export default async function TextToolPage({ params }: TextToolPageProps) {
   if (!(textTool && registryTool)) {
     notFound();
   }
+  const ui = getTextToolUiCopy(slug);
 
   const isCounter = textTool.mode === "count";
   const howToSteps = isCounter
     ? [
         {
-          name: "Add your draft",
+          name: `Write your ${ui.inputLabel.toLowerCase()}`,
           text:
-            "Paste your text or start writing in the " +
-            textTool.title.toLowerCase() +
-            ". The draft stays in your browser.",
+            "Paste or write your " +
+            ui.inputLabel.toLowerCase() +
+            ". Nothing is uploaded while you work.",
         },
         {
           name: "Review the live counts",
@@ -68,31 +71,30 @@ export default async function TextToolPage({ params }: TextToolPageProps) {
             : "Watch characters, words, hashtags, mentions, and lines update as you edit.",
         },
         {
-          name: "Copy the finished text",
+          name: ui.copyAction,
           text: textTool.composerHandoff
-            ? "Copy the draft, or use Create post in Delulu to copy it and open a new post ready for pasting."
-            : "Copy the finished text and paste it into the destination editor.",
+            ? `Use ${ui.copyAction}, or choose Create this post in Delulu to copy it and open a new post.`
+            : `Use ${ui.copyAction}, then paste it into the destination field.`,
         },
       ]
     : [
         {
-          name: "Enter plain text",
-          text:
-            "Type or paste text into the " + textTool.title.toLowerCase() + ".",
+          name: `Add your ${ui.inputLabel.toLowerCase()}`,
+          text: `Type or paste your ${ui.inputLabel.toLowerCase()} above.`,
         },
         {
-          name: "Check the generated result",
-          text: "The copy-ready result updates instantly while all processing stays on your device.",
+          name: `Review ${ui.outputLabel?.toLowerCase() ?? "the result"}`,
+          text: "The copy-ready text updates as you type. Nothing is uploaded.",
         },
         {
-          name: "Copy and preview",
-          text: "Copy the result, paste it into the destination editor, and preview it before publishing.",
+          name: ui.copyAction,
+          text: `Choose ${ui.copyAction}, paste it into the destination editor, and preview it before publishing.`,
         },
       ];
 
   const sections = [
     {
-      heading: "A practical " + textTool.title.toLowerCase() + " example",
+      heading: ui.exampleHeading,
       body: (
         <div>
           <p>
@@ -106,7 +108,9 @@ export default async function TextToolPage({ params }: TextToolPageProps) {
       ),
     },
     {
-      heading: "Tips for using this " + (isCounter ? "counter" : "generator"),
+      heading: textTool.composerHandoff
+        ? "Before you publish"
+        : "Before you paste the result",
       body: (
         <ul>
           {textTool.tips.map((tip) => (
@@ -116,17 +120,21 @@ export default async function TextToolPage({ params }: TextToolPageProps) {
       ),
     },
     {
-      heading: "Private, browser-based text processing",
+      heading: "Your draft stays private",
       body: (
         <p>
-          Your draft is analyzed and transformed in this browser tab. It is not
-          uploaded or saved by the tool. Characters are counted as Unicode code
-          points, so an emoji counts as one character here; a destination
-          platform may still apply its own final validation.{" "}
+          Your draft stays in this tab while you count or format it. It is not
+          uploaded or saved. A typical emoji counts as one character here;
+          combined emoji may be counted differently by the app where you
+          publish.{" "}
           {textTool.limitSource ? (
             <>
-              The working limit is based on the current{" "}
-              <a href={textTool.limitSource}>platform documentation</a>.
+              The working limit follows the{" "}
+              <a href={textTool.limitSource}>
+                current{" "}
+                {textTool.limitLabel?.toLowerCase() ?? "character limit"}
+              </a>
+              .
             </>
           ) : null}
         </p>
@@ -137,7 +145,7 @@ export default async function TextToolPage({ params }: TextToolPageProps) {
   return (
     <ToolPageLayout
       faq={textTool.faq}
-      howToHeading={"How to use the " + textTool.title}
+      howToHeading={ui.howToHeading}
       howToSteps={howToSteps}
       sections={sections}
       seo={<p>{textTool.intro}</p>}

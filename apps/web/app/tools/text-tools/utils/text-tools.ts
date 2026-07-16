@@ -32,6 +32,15 @@ export interface TextToolDefinition {
   composerHandoff: boolean;
 }
 
+export interface TextToolUiCopy {
+  inputLabel: string;
+  exampleAction: string;
+  copyAction: string;
+  outputLabel?: string;
+  howToHeading: string;
+  exampleHeading: string;
+}
+
 const LINE_BREAK_PATTERN = /\r\n|\r|\n/;
 
 const COUNT_SPECIFIC_FAQ: Record<string, TextToolFaq> = {
@@ -82,7 +91,7 @@ const COUNT_SPECIFIC_FAQ: Record<string, TextToolFaq> = {
   text: {
     question: "How does the word counter treat hyphenated words?",
     answer:
-      "A connected term such as “browser-based” counts as one word. Standalone punctuation and emoji do not add to the word total.",
+      "A connected term such as “well-planned” counts as one word. Standalone punctuation and emoji do not add to the word total.",
   },
   "hashtag set": {
     question: "Does punctuation after a hashtag stop it from being counted?",
@@ -95,7 +104,7 @@ const countFaq = (
   name: string,
   subject: string,
   limit?: number,
-  detail = "The counter treats each Unicode code point, including an emoji, as one character. Some platforms may apply their own validation when publishing."
+  detail = "A typical emoji counts as one character here. The app where you publish may count combined emoji differently."
 ): TextToolFaq[] => [
   COUNT_SPECIFIC_FAQ[subject] ?? {
     question: `How should I use the ${name}?`,
@@ -110,7 +119,7 @@ const countFaq = (
       ? `What is the ${subject} character limit?`
       : `Does the ${name} enforce a character limit?`,
     answer: limit
-      ? `This tool uses a ${limit.toLocaleString("en-US")}-character working limit and shows exactly how many characters remain.`
+      ? `The counter uses a ${limit.toLocaleString("en-US")}-character working limit and shows exactly how many characters remain.`
       : "No. This general counter measures the text without imposing a platform-specific maximum.",
   },
   {
@@ -121,12 +130,12 @@ const countFaq = (
   {
     question: `Does the ${name} upload or save my text?`,
     answer:
-      "No. Counting happens entirely in your browser. The text is not sent to Delulu or stored by this tool.",
+      "No. Counting happens entirely in your browser. The text is not sent to Delulu or stored anywhere.",
   },
   {
     question: `How are hashtags and mentions found in my ${subject}?`,
     answer:
-      "The tool counts space-separated words beginning with # as hashtags and words beginning with @ as mentions, including letters, numbers, and underscores.",
+      "The counter reads space-separated words beginning with # as hashtags and words beginning with @ as mentions, including letters, numbers, and underscores.",
   },
   {
     question: `Can I use the ${name} on a phone?`,
@@ -147,12 +156,12 @@ const transformFaq = (
 ): TextToolFaq[] => [
   {
     question: `How does the ${name} work?`,
-    answer: `It transforms text locally in your browser ${effect}. Nothing is uploaded or saved.`,
+    answer: `It changes the text ${effect}. Nothing is uploaded or saved.`,
   },
   {
     question: `Can I copy the result from the ${name}?`,
     answer:
-      "Yes. Use Copy result, then paste the transformed text into your social post, bio, message, or document.",
+      "Yes. Copy the finished text, then paste it into your social post, bio, message, or document.",
   },
   {
     question: `Where does text from the ${name} work?`,
@@ -161,22 +170,22 @@ const transformFaq = (
   {
     question: `Does the ${name} change hashtags or punctuation?`,
     answer:
-      "Punctuation and spacing stay in place. Letter styling tools transform supported letters and numbers; the line-break tool only fills blank lines.",
+      "Punctuation and spacing stay in place. Bold and italic formatting changes supported letters and numbers; line-break formatting only fills blank lines.",
   },
   {
     question: `Is the ${name} free and private?`,
     answer:
-      "Yes. It is free, requires no account, has no visible usage limit, and processes every transformation on your device.",
+      "Yes. It is free, requires no account, has no visible usage limit, and does not send your text anywhere.",
   },
   {
     question: "Will transformed text affect my character limit?",
     answer:
-      "It can. Styled Unicode characters may be counted differently by a destination app, so check the live character total before publishing.",
+      "It can. Styled characters may be counted differently by the destination app, so check the live character total before publishing.",
   },
   {
     question: `Can screen readers read the ${name} result?`,
     answer:
-      "Plain text is usually the most accessible choice. Use styled Unicode sparingly, and never rely on styling alone to communicate meaning.",
+      "Plain text is usually the most accessible choice. Use styled text sparingly, and never rely on styling alone to communicate meaning.",
   },
 ];
 
@@ -186,7 +195,7 @@ export const textTools: TextToolDefinition[] = [
     title: "Instagram Caption Character Counter",
     description:
       "Count Instagram caption characters, words, hashtags, and mentions live against the 2,200-character limit.",
-    metadataTitle: "Instagram Caption Character Counter – Free & Live",
+    metadataTitle: "Instagram Caption Character Counter – 2,200 Limit",
     metaDescription:
       "Check an Instagram caption against the 2,200-character limit with live word, hashtag, mention, and remaining counts. Free and private.",
     keywords: [
@@ -247,7 +256,7 @@ export const textTools: TextToolDefinition[] = [
     title: "LinkedIn Post Character Counter",
     description:
       "Measure LinkedIn post characters, words, hashtags, and mentions against the 3,000-character limit.",
-    metadataTitle: "LinkedIn Post Character Counter – Free 3,000 Limit",
+    metadataTitle: "LinkedIn Post Character Counter – 3,000 Limit",
     metaDescription:
       "Count a LinkedIn post live against 3,000 characters, including words, hashtags, mentions, and remaining space. No signup required.",
     keywords: [
@@ -341,7 +350,7 @@ export const textTools: TextToolDefinition[] = [
     title: "Facebook Post Character Counter",
     description:
       "Measure a Facebook post against the 63,206-character publishing limit with live writing stats.",
-    metadataTitle: "Facebook Post Character Counter – Free Live Count",
+    metadataTitle: "Facebook Post Character Counter – 63,206 Limit",
     metaDescription:
       "Count Facebook post characters, words, hashtags, mentions, and remaining space against the 63,206-character publishing limit.",
     keywords: [
@@ -399,9 +408,9 @@ export const textTools: TextToolDefinition[] = [
     title: "Social Media Character Counter",
     description:
       "Count characters, words, hashtags, mentions, and lines for any social post without a fixed limit.",
-    metadataTitle: "Social Media Character Counter – Free Multi-Platform Tool",
+    metadataTitle: "Social Media Character Counter – Characters & Words",
     metaDescription:
-      "Count social media characters, words, hashtags, mentions, and lines instantly. Private browser-based tool with no signup or fixed limit.",
+      "Count characters, words, hashtags, mentions, and lines in any social post. Instant results, no signup, and no fixed platform limit.",
     keywords: [
       "social media character counter",
       "social post length checker",
@@ -425,7 +434,7 @@ export const textTools: TextToolDefinition[] = [
     slug: "word-counter",
     title: "Free Word Counter",
     description:
-      "Count words, characters, hashtags, mentions, and lines instantly in a private browser tool.",
+      "See word, character, hashtag, mention, and line totals instantly while your draft stays private.",
     metadataTitle: "Free Word Counter – Words, Characters & Lines",
     metaDescription:
       "Count words, characters, lines, hashtags, and mentions instantly. Free private word counter that works entirely in your browser.",
@@ -437,7 +446,7 @@ export const textTools: TextToolDefinition[] = [
     mode: "count",
     placeholder: "Paste any text to count its words…",
     intro:
-      "This straightforward word counter gives writers a quick view of length without uploading the draft. It measures words alongside Unicode characters, lines, hashtags, and mentions, so it works equally well for an article outline, campaign note, email, caption, or short script.",
+      "This straightforward word counter gives writers a quick view of length without uploading the draft. It measures words alongside characters, lines, hashtags, and mentions, so it works equally well for an article outline, campaign note, email, caption, or short script.",
     example:
       "Clear writing usually comes from one useful idea, a concrete example, and the confidence to remove everything else.",
     tips: [
@@ -479,10 +488,11 @@ export const textTools: TextToolDefinition[] = [
     slug: "line-break-generator",
     title: "Social Media Line Break Generator",
     description:
-      "Preserve intentional blank lines in social captions with copy-safe invisible spacer characters.",
-    metadataTitle: "Social Media Line Break Generator – Format Captions Free",
+      "Keep intentional blank lines when you copy and paste a social caption.",
+    metadataTitle:
+      "Social Media Line Break Generator – Preserve Caption Spacing",
     metaDescription:
-      "Create copy-safe social media line breaks by filling blank lines with invisible spacers. Free, private, and processed in your browser.",
+      "Keep blank lines when you copy and paste a social caption. Format the spacing instantly with no signup and nothing uploaded.",
     keywords: [
       "social media line break generator",
       "instagram line breaks",
@@ -491,7 +501,7 @@ export const textTools: TextToolDefinition[] = [
     mode: "line-break",
     placeholder: "Write your caption with blank lines between sections…",
     intro:
-      "Blank lines make longer captions easier to scan, but some editors collapse empty paragraphs after paste or publish. This generator places a copy-safe blank character only on otherwise empty lines, preserving your paragraph rhythm while leaving normal text untouched.",
+      "Blank lines make longer captions easier to scan, but some editors collapse empty paragraphs after paste or publish. This generator keeps spacing on otherwise empty lines while leaving your words untouched.",
     example:
       "A clear opening line.\n\nOne supporting detail.\n\nA simple next step.",
     tips: [
@@ -502,7 +512,7 @@ export const textTools: TextToolDefinition[] = [
     faq: transformFaq(
       "line break generator",
       "by placing a blank spacer on empty lines",
-      "The result works in most social caption and bio editors that preserve Unicode text. Always preview before publishing because editors can normalize whitespace differently."
+      "The result works in most social caption and bio editors. Always preview before publishing because some apps handle blank space differently."
     ),
     composerHandoff: true,
   },
@@ -510,19 +520,19 @@ export const textTools: TextToolDefinition[] = [
     slug: "bold-text-generator",
     title: "Bold Text Generator",
     description:
-      "Turn letters and numbers into copyable Unicode bold text for short social highlights.",
-    metadataTitle: "Bold Text Generator – Copy & Paste Unicode Bold",
+      "Turn letters and numbers into copyable bold text for short social highlights.",
+    metadataTitle: "Bold Text Generator – Copy & Paste Bold Text",
     metaDescription:
-      "Generate copyable Unicode bold text for social posts and bios. Instant, free, private, and no signup required.",
+      "Create copyable bold text for social posts and bios. See the result instantly, with no signup and nothing uploaded.",
     keywords: [
       "bold text generator",
-      "unicode bold text",
+      "bold text copy paste",
       "bold font copy paste",
     ],
     mode: "bold",
     placeholder: "Type the words you want to emphasize…",
     intro:
-      "Many social editors do not offer a bold button, so this generator maps standard letters and numbers to their mathematical Unicode bold equivalents. Use it for a short heading or key phrase, then copy the result while keeping the rest of your post in accessible plain text.",
+      "Many social editors do not offer a bold button. Use this generator for a short heading or key phrase, then copy the result while keeping the rest of your post in accessible plain text.",
     example: "New this week: practical content systems",
     tips: [
       "Style one short phrase rather than a full caption.",
@@ -531,8 +541,8 @@ export const textTools: TextToolDefinition[] = [
     ],
     faq: transformFaq(
       "bold text generator",
-      "by mapping supported letters and numbers to Unicode bold characters",
-      "Unicode bold text works in many bios, captions, messages, and documents, but appearance depends on the destination font and device."
+      "by changing supported letters and numbers into copyable bold text",
+      "Copyable bold text works in many bios, captions, messages, and documents, but its appearance depends on the app and device."
     ),
     composerHandoff: true,
   },
@@ -540,19 +550,19 @@ export const textTools: TextToolDefinition[] = [
     slug: "italic-text-generator",
     title: "Italic Text Generator",
     description:
-      "Create copyable Unicode italic letters for restrained emphasis in captions, bios, and messages.",
-    metadataTitle: "Italic Text Generator – Copy & Paste Unicode Italics",
+      "Create copyable italic text for restrained emphasis in captions, bios, and messages.",
+    metadataTitle: "Italic Text Generator – Copy & Paste Italic Text",
     metaDescription:
-      "Convert plain letters to copyable Unicode italic text for social posts and bios. Free, instant, and processed privately.",
+      "Create copyable italic text for social posts and bios. See the result instantly, with no signup and nothing uploaded.",
     keywords: [
       "italic text generator",
-      "unicode italic text",
+      "italic text copy paste",
       "italic font copy paste",
     ],
     mode: "italic",
     placeholder: "Type a short phrase to italicize…",
     intro:
-      "When a social editor has no italic formatting control, Unicode italic letters can provide light emphasis that survives copy and paste. This browser-only generator converts supported Latin letters while leaving punctuation, spaces, emoji, and unsupported characters unchanged.",
+      "When a social editor has no italic button, copyable italic letters can add light emphasis that survives copy and paste. Punctuation, spaces, and emoji stay unchanged.",
     example: "A small note worth remembering",
     tips: [
       "Reserve italics for short asides or emphasis.",
@@ -561,17 +571,122 @@ export const textTools: TextToolDefinition[] = [
     ],
     faq: transformFaq(
       "italic text generator",
-      "by mapping supported Latin letters to Unicode italic characters",
-      "Unicode italic text displays in many modern social apps and browsers. Unsupported fonts may show a fallback glyph, so preview the final post."
+      "by changing supported letters into copyable italic text",
+      "Copyable italic text displays in many modern social apps and browsers. Some fonts may display it differently, so preview the final post."
     ),
     composerHandoff: true,
   },
 ];
 
+const TEXT_TOOL_UI_COPY: Record<string, TextToolUiCopy> = {
+  "instagram-caption-character-counter": {
+    inputLabel: "Instagram caption",
+    exampleAction: "Load caption example",
+    copyAction: "Copy caption",
+    howToHeading: "Check an Instagram caption before posting",
+    exampleHeading: "Instagram caption example",
+  },
+  "instagram-bio-character-counter": {
+    inputLabel: "Instagram bio",
+    exampleAction: "Load bio example",
+    copyAction: "Copy bio",
+    howToHeading: "Fit your Instagram bio into 150 characters",
+    exampleHeading: "Instagram bio example",
+  },
+  "linkedin-post-character-counter": {
+    inputLabel: "LinkedIn post",
+    exampleAction: "Load LinkedIn example",
+    copyAction: "Copy post",
+    howToHeading: "Check a LinkedIn post before publishing",
+    exampleHeading: "LinkedIn post example",
+  },
+  "youtube-title-character-counter": {
+    inputLabel: "YouTube title",
+    exampleAction: "Load title example",
+    copyAction: "Copy title",
+    howToHeading: "Keep your YouTube title within 100 characters",
+    exampleHeading: "YouTube title example",
+  },
+  "youtube-description-character-counter": {
+    inputLabel: "YouTube description",
+    exampleAction: "Load description example",
+    copyAction: "Copy description",
+    howToHeading: "Check a YouTube description before uploading",
+    exampleHeading: "YouTube description example",
+  },
+  "facebook-post-character-counter": {
+    inputLabel: "Facebook post",
+    exampleAction: "Load Facebook example",
+    copyAction: "Copy post",
+    howToHeading: "Check a Facebook post before publishing",
+    exampleHeading: "Facebook post example",
+  },
+  "tiktok-caption-character-counter": {
+    inputLabel: "TikTok caption",
+    exampleAction: "Load TikTok example",
+    copyAction: "Copy caption",
+    howToHeading: "Check a TikTok caption before posting",
+    exampleHeading: "TikTok caption example",
+  },
+  "social-media-character-counter": {
+    inputLabel: "Caption or social post",
+    exampleAction: "Load social post example",
+    copyAction: "Copy text",
+    howToHeading: "Check the length of any social post",
+    exampleHeading: "Social post example",
+  },
+  "word-counter": {
+    inputLabel: "Text to count",
+    exampleAction: "Load writing example",
+    copyAction: "Copy text",
+    howToHeading: "Count words and characters as you write",
+    exampleHeading: "Example text to count",
+  },
+  "hashtag-counter": {
+    inputLabel: "Caption with hashtags",
+    exampleAction: "Load hashtag example",
+    copyAction: "Copy caption",
+    howToHeading: "Count hashtags before you post",
+    exampleHeading: "Caption with hashtags",
+  },
+  "line-break-generator": {
+    inputLabel: "Caption with paragraph breaks",
+    exampleAction: "Load spacing example",
+    copyAction: "Copy formatted caption",
+    outputLabel: "Caption with preserved spacing",
+    howToHeading: "Keep blank lines when you paste a caption",
+    exampleHeading: "Caption spacing example",
+  },
+  "bold-text-generator": {
+    inputLabel: "Text to make bold",
+    exampleAction: "Load bold text example",
+    copyAction: "Copy bold text",
+    outputLabel: "Bold text",
+    howToHeading: "Create copyable bold text",
+    exampleHeading: "Bold text example",
+  },
+  "italic-text-generator": {
+    inputLabel: "Text to italicize",
+    exampleAction: "Load italic text example",
+    copyAction: "Copy italic text",
+    outputLabel: "Italic text",
+    howToHeading: "Create copyable italic text",
+    exampleHeading: "Italic text example",
+  },
+};
+
 export const textToolSlugs = textTools.map((tool) => tool.slug);
 
 export const getTextTool = (slug: string): TextToolDefinition | undefined =>
   textTools.find((tool) => tool.slug === slug);
+
+export const getTextToolUiCopy = (slug: string): TextToolUiCopy => {
+  const copy = TEXT_TOOL_UI_COPY[slug];
+  if (!copy) {
+    throw new Error(`Missing task copy for text tool: ${slug}`);
+  }
+  return copy;
+};
 
 export const getTextToolMetadata = (slug: string) => {
   const tool = getTextTool(slug);

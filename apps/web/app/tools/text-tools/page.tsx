@@ -14,26 +14,27 @@ import { ToolFaq } from "@/components/tools/tool-faq";
 import { getTool, getToolHref } from "@/lib/tools";
 import { textTools } from "./utils/text-tools";
 
-const FAMILY_PATH = "/tools/text-tools";
+const CATEGORY_PATH = "/tools/text-tools";
 const familyTools = textTools.flatMap((definition) => {
   const tool = getTool(definition.slug);
   return tool ? [tool] : [];
 });
 
 export const metadata: Metadata = createMetadata({
-  title: "Free Social Media Text Tools & Character Counters",
+  title: "Caption & Text for Social Media – Counters & Formatters",
   description:
-    "Free private text tools for Instagram, LinkedIn, YouTube, Facebook, TikTok, and more. Count characters, words, and hashtags or format copy-ready text.",
+    "Check caption limits for Instagram, LinkedIn, YouTube, Facebook, and TikTok. Count words and hashtags or format copy-ready social text.",
   keywords: [
-    "social media text tools",
-    "character counters",
-    "caption tools",
+    "caption character counter",
+    "social post character counter",
+    "caption formatter",
     "word and hashtag counter",
   ],
   image: getWebUrl(
-    "/api/og?title=Free%20Social%20Media%20Text%20Tools&description=Character%20counters%2C%20formatters%2C%20and%20caption%20utilities"
+    "/api/og?title=Caption%20%26%20Text&description=Check%20caption%20limits%2C%20count%20words%2C%20and%20format%20social%20text"
   ),
-  alternates: { canonical: getWebUrl(FAMILY_PATH) },
+  alternates: { canonical: getWebUrl(CATEGORY_PATH) },
+  openGraph: { url: getWebUrl(CATEGORY_PATH) },
 });
 
 const breadcrumbSchema: WithContext<BreadcrumbList> = {
@@ -49,8 +50,8 @@ const breadcrumbSchema: WithContext<BreadcrumbList> = {
     {
       "@type": "ListItem",
       position: 2,
-      name: "Text tools",
-      item: getWebUrl(FAMILY_PATH),
+      name: "Caption & Text",
+      item: getWebUrl(CATEGORY_PATH),
     },
   ],
 };
@@ -58,7 +59,7 @@ const breadcrumbSchema: WithContext<BreadcrumbList> = {
 const itemListSchema: WithContext<ItemList> = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  name: "Free social media text tools",
+  name: "Caption and text counters and formatters",
   itemListElement: familyTools.map((tool, index) => ({
     "@type": "ListItem",
     position: index + 1,
@@ -70,39 +71,39 @@ const itemListSchema: WithContext<ItemList> = {
 
 const faq = [
   {
-    question: "Are these social media text tools free?",
+    question: "Can I use these counters and formatters for free?",
     answer:
-      "Yes. Every tool in this family is free to use without creating an account, and there is no visible usage limit.",
+      "Yes. Every counter and formatter on this page works without an account or a visible usage limit.",
   },
   {
-    question: "Does Delulu save text pasted into these tools?",
+    question: "Does Delulu save what I paste here?",
     answer:
-      "No. Counting and formatting run in your browser tab, so drafts are not uploaded or stored by these tools.",
+      "No. Counting and formatting happen in your browser tab, so your draft is not uploaded or stored.",
   },
   {
-    question: "Which platform-specific character counters are included?",
+    question: "Which social fields can I check?",
     answer:
-      "The family includes focused counters for Instagram captions and bios, LinkedIn posts, YouTube titles and descriptions, Facebook posts, and TikTok captions.",
+      "You can check Instagram captions and bios, LinkedIn posts, YouTube titles and descriptions, Facebook posts, and TikTok captions.",
   },
   {
     question: "How are emoji counted?",
     answer:
-      "The counters measure Unicode code points, so a typical emoji counts as one character. A destination platform can still apply its own final validation to complex combined emoji.",
+      "A typical emoji counts as one character here. Emoji made from several combined symbols may be counted differently by the app where you publish.",
   },
   {
     question: "Can I count hashtags and mentions separately?",
     answer:
-      "Yes. Every counter shows live hashtag and mention totals alongside characters, words, and lines, and the dedicated hashtag counter provides a focused editing route.",
+      "Yes. Every counter shows live hashtag and mention totals alongside characters, words, and lines. Open the hashtag counter when tags are your main concern.",
   },
   {
     question: "Do bold and italic generators use real rich-text formatting?",
     answer:
-      "They use copyable Unicode letter variants because many social editors do not support rich text. Use styled text sparingly and preview it before publishing.",
+      "They create copyable styled characters because many social editors do not support rich text. Use them sparingly and preview the result before publishing.",
   },
   {
     question: "Can a finished result be moved into Delulu?",
     answer:
-      "For post-ready tools, Create post in Delulu copies the result and opens a new post. Paste once in the composer to continue editing or scheduling.",
+      "For post-ready text, Create this post in Delulu copies the result and opens a new post. Paste once to continue editing or scheduling.",
   },
 ];
 
@@ -120,18 +121,17 @@ export default function TextToolsFamilyPage() {
           Tools
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Text tools</span>
+        <span className="text-foreground">Caption &amp; Text</span>
       </nav>
 
       <div className="mx-auto mb-12 max-w-3xl text-center">
         <h1 className="font-bold text-4xl tracking-tight sm:text-5xl">
-          <Balancer>Free social media text tools</Balancer>
+          <Balancer>Write captions and social text that fit</Balancer>
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
-          Count platform-specific text before publishing, compare general
-          writing stats, or generate copy-ready formatting. Every tool works
-          anonymously in your browser and puts the working interface before the
-          guidance.
+          Check a platform limit before you post, count words or hashtags, or
+          create copy-ready line breaks and styled text. Your draft stays in
+          your browser.
         </p>
       </div>
 
@@ -140,7 +140,7 @@ export default function TextToolsFamilyPage() {
           className="mb-5 font-bold text-2xl tracking-tight"
           id="all-text-tools"
         >
-          All text tools
+          What do you need to prepare?
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {familyTools.map((tool) => (
@@ -150,20 +150,19 @@ export default function TextToolsFamilyPage() {
       </section>
 
       <section className="prose prose-neutral dark:prose-invert mx-auto mt-16 max-w-3xl">
-        <h2>Choose the counter that matches the publishing field</h2>
+        <h2>Start with the field you are writing</h2>
         <p>
           Platform limits are not interchangeable: a short profile bio, a video
           title, and a long post each need a different working budget. Start
-          with the route that matches the field you are preparing. Use the
+          with the counter that matches the field you are preparing. Use the
           general character or word counter when no platform has been chosen
-          yet, and use the formatting utilities only after the wording is clear.
+          yet, and add line breaks or styling only after the wording is clear.
         </p>
-        <h2>Built for private drafting and practical handoff</h2>
+        <h2>Keep the draft private, then move it where it belongs</h2>
         <p>
-          All analysis and transformations happen locally. Post-ready results
-          can be copied and moved into the Delulu composer, while bio and
-          video-metadata tools stay focused on accurate drafting for their
-          destination fields.
+          Your draft stays in this tab while you count or format it. Post-ready
+          text can move into a Delulu post, while bios, titles, and video
+          descriptions stay ready to paste into their destination fields.
         </p>
       </section>
 
