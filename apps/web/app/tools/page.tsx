@@ -15,7 +15,7 @@ import { ToolCard, ToolIcon } from "@/components/tools/tool-card";
 import { getTool, toolFamilies } from "@/lib/tools";
 
 const popularTools = [
-  getTool("latest-news"),
+  getTool("latest-news-content-ideas"),
   getTool("instagram-caption-character-counter"),
   getTool("word-counter"),
   getTool("youtube-video-trimmer"),

@@ -17,18 +17,24 @@ import {
   NEWS_FAMILY_PATH,
   newsRoutePath,
 } from "./utils/config";
-import { newsTitle } from "./utils/content";
+import { newsShortTitle } from "./utils/content";
 
-const TITLE = "Free News Explorer";
+const TITLE = "News Content Ideas for Social Media";
 const DESCRIPTION =
-  "Browse current headlines by country or topic, open the original reporting, and turn a story into an attributed social post. Free, with no signup.";
+  "Find timely news content ideas by country or topic, open the original reporting, and create an attributed social media draft. Free, with no signup.";
 
 export const metadata: Metadata = createMetadata({
   title: TITLE,
   description: DESCRIPTION,
+  keywords: [
+    "news content ideas for social media",
+    "latest news content ideas",
+    "news stories to share on social media",
+    "current events content ideas",
+  ],
   alternates: { canonical: getWebUrl(NEWS_FAMILY_PATH) },
   image: getWebUrl(
-    `/api/og?title=${encodeURIComponent(TITLE)}&description=${encodeURIComponent("Country and topic headline explorers with original publisher links")}`
+    `/api/og?title=${encodeURIComponent(TITLE)}&description=${encodeURIComponent("Current headlines for social media content with original publisher links")}`
   ),
   openGraph: {
     url: getWebUrl(NEWS_FAMILY_PATH),
@@ -40,9 +46,9 @@ export const metadata: Metadata = createMetadata({
 
 const faq = [
   {
-    question: "What news can I browse here?",
+    question: "Where can I find news content ideas for social media?",
     answer:
-      "Start with the latest headlines, choose one of 52 country editions, browse seven major topics, or combine a country and topic for a more focused feed.",
+      "Start with the latest headlines, choose one of 52 country editions, browse seven major topics, or combine a country and topic to find timely stories that fit your audience.",
   },
   {
     question: "Can I browse headlines without signing up?",
@@ -96,7 +102,7 @@ export default function NewsExplorerPage() {
       itemListElement: allNewsRoutes().map((route, index) => ({
         "@type": "ListItem",
         position: index + 1,
-        name: newsTitle(route),
+        name: newsShortTitle(route),
         url: getWebUrl(newsRoutePath(route)),
       })),
     },
@@ -111,7 +117,12 @@ export default function NewsExplorerPage() {
         name: "Tools",
         item: getWebUrl("/tools"),
       },
-      { "@type": "ListItem", position: 2, name: "News Explorer", item: url },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "News Content Ideas",
+        item: url,
+      },
     ],
   };
 
@@ -127,7 +138,7 @@ export default function NewsExplorerPage() {
           Tools
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">News Explorer</span>
+        <span className="text-foreground">News Content Ideas</span>
       </nav>
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="font-bold text-4xl tracking-tight sm:text-5xl">
@@ -216,12 +227,12 @@ export default function NewsExplorerPage() {
       </section>
 
       <section className="prose prose-neutral dark:prose-invert mx-auto mt-16 max-w-2xl">
-        <h2>Headline research with publisher context intact</h2>
+        <h2>Find timely social media content without losing the source</h2>
         <p>
-          News Explorer is built for quick discovery, not article replacement.
-          Publisher names, timestamps, and source links stay visible so a
-          headline can lead back to its reporting. Saved headline feeds keep the
-          page fast without requesting the source again for every visit.
+          Use the headline explorer to spot stories your audience may care
+          about—not to replace the reporting behind them. Publisher names,
+          timestamps, and source links stay visible so every content idea can
+          lead back to its original context.
         </p>
         <p>
           Country editions help localize the feed, while topic editions narrow

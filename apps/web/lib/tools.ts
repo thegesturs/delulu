@@ -56,10 +56,10 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
 
 const newsExplorerFamily: ToolFamily = {
   slug: "news-explorer",
-  title: "Latest News",
+  title: "News Content Ideas",
   description:
-    "Browse current headlines by country or topic, open the original reporting, and turn a story into an attributed social post.",
-  relatedHeading: "More news to explore",
+    "Find timely news-based content ideas by country or topic, read the original reporting, and create an attributed social media draft.",
+  relatedHeading: "More news content ideas",
   icon: "newspaper",
   cta: "Browse headlines",
 };
@@ -114,20 +114,20 @@ const holidayCalendarTools: Tool[] = holidayCalendarRegistry.map((page) => ({
 
 export const tools: Tool[] = [
   {
-    slug: "latest-news",
-    href: "/tools/news-explorer/latest-news",
-    title: "Latest News",
+    slug: "latest-news-content-ideas",
+    href: "/tools/news-explorer/latest-news-content-ideas",
+    title: "Latest News Content Ideas for Social Media",
     description:
-      "Explore fresh headlines by country and topic, open the original reporting, and turn a story into a social post — free, with no signup.",
+      "Find timely news-based content ideas, open the original reporting, and create an attributed social media draft — free, with no signup.",
     category: "research",
     icon: "newspaper",
     cta: "Browse latest headlines",
     keywords: [
-      "news explorer",
-      "latest news by country",
-      "world news headlines",
-      "news by category",
-      "free news feed",
+      "news content ideas for social media",
+      "latest news content ideas",
+      "news stories to share on social media",
+      "current events content ideas",
+      "news-based social media posts",
     ],
     status: "live",
     family: newsExplorerFamily,

@@ -25,6 +25,7 @@ import {
   newsDescription,
   newsFaq,
   newsIntro,
+  newsShortTitle,
   newsTitle,
 } from "../utils/content";
 import { NewsExplorer } from "../utils/news-explorer";
@@ -49,10 +50,7 @@ export async function generateMetadata({
   if (!route) {
     return {};
   }
-  const title =
-    route.country || route.category
-      ? `${newsTitle(route)} – Latest Headlines`
-      : "Latest News – Browse Current Headlines";
+  const title = newsTitle(route);
   const description = newsDescription(route);
   const canonical = getWebUrl(newsRoutePath(route));
   const result = await getRequestNews(route);
@@ -61,13 +59,14 @@ export async function generateMetadata({
     title,
     description,
     keywords: [
-      `${newsTitle(route).toLowerCase()} headlines`,
+      newsTitle(route).toLowerCase(),
       route.country
-        ? `${route.country.name.toLowerCase()} latest news`
-        : "latest news",
+        ? `${route.country.name.toLowerCase()} news content ideas`
+        : "news content ideas for social media",
       route.category
-        ? `${route.category.name.toLowerCase()} news`
-        : "world headlines",
+        ? `${route.category.name.toLowerCase()} content ideas for social media`
+        : "news stories to share on social media",
+      `${newsShortTitle(route).toLowerCase()} headlines`,
     ],
     image: getWebUrl(
       `/api/og?title=${encodeURIComponent(newsTitle(route))}&description=${encodeURIComponent("Fresh headlines with clear publisher attribution")}`
@@ -107,6 +106,7 @@ export default async function NewsPage({ params }: PageProps) {
   }
   const result = await getRequestNews(route);
   const title = newsTitle(route);
+  const shortTitle = newsShortTitle(route);
   const displayTitle = route.country
     ? `${route.country.emoji} ${title}`
     : title;
@@ -163,7 +163,7 @@ export default async function NewsPage({ params }: PageProps) {
         </Link>
         <span className="mx-2">/</span>
         <Link className="hover:text-foreground" href={NEWS_FAMILY_PATH}>
-          News Explorer
+          News Content Ideas
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{displayTitle}</span>
@@ -183,7 +183,9 @@ export default async function NewsPage({ params }: PageProps) {
       {result.items.length > 0 ? (
         <>
           <section className="prose prose-neutral dark:prose-invert mx-auto mt-16 max-w-2xl">
-            <h2>Explore {title.toLowerCase()} without losing the source</h2>
+            <h2>
+              Explore {shortTitle.toLowerCase()} without losing the source
+            </h2>
             {intro.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
@@ -191,7 +193,7 @@ export default async function NewsPage({ params }: PageProps) {
 
           <section className="mx-auto mt-16 max-w-2xl">
             <h2 className="mb-5 font-bold text-2xl tracking-tight">
-              How to use this news explorer
+              How to find news-based social media content ideas
             </h2>
             <ol className="space-y-4">
               {[
@@ -246,7 +248,7 @@ export default async function NewsPage({ params }: PageProps) {
 
           <section className="mx-auto mt-16 max-w-2xl">
             <h2 className="mb-4 font-bold text-2xl tracking-tight">
-              Related news views
+              More news content ideas
             </h2>
             <div className="flex flex-wrap gap-2">
               {relatedRoutes(route).map((related) => (
@@ -256,7 +258,7 @@ export default async function NewsPage({ params }: PageProps) {
                   key={newsRoutePath(related)}
                 >
                   {related.country ? `${related.country.emoji} ` : ""}
-                  {newsTitle(related)}
+                  {newsShortTitle(related)}
                 </Link>
               ))}
             </div>

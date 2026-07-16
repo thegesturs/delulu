@@ -1,5 +1,5 @@
 import { getCloudflareCtx } from "@delulu/cloudflare-types";
-import { type NewsRoute, newsToolSlug } from "./config";
+import { type NewsRoute, newsCacheKey } from "./config";
 import { type NewsItem, type NewsProvider, rssNewsProvider } from "./provider";
 
 export const NEWS_FRESH_MS = 15 * 60 * 1000;
@@ -36,7 +36,7 @@ export interface NewsCache {
 }
 
 const cacheKey = (route: NewsRoute): string =>
-  `${CACHE_PREFIX}${newsToolSlug(route)}`;
+  `${CACHE_PREFIX}${newsCacheKey(route)}`;
 
 async function readCache(
   kv: NewsDependencies["kv"],

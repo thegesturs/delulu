@@ -298,7 +298,7 @@ export interface NewsRoute {
 
 export const NEWS_FAMILY_PATH = "/tools/news-explorer";
 
-export function newsToolSlug(route: NewsRoute): string {
+export function newsCacheKey(route: NewsRoute): string {
   if (route.country && route.category) {
     return `${route.country.slug}-${route.category.slug}-news`;
   }
@@ -309,6 +309,19 @@ export function newsToolSlug(route: NewsRoute): string {
     return `${route.category.slug}-news`;
   }
   return "latest-news";
+}
+
+export function newsToolSlug(route: NewsRoute): string {
+  if (route.country && route.category) {
+    return `${route.country.slug}-${route.category.slug}-news-content-ideas`;
+  }
+  if (route.country) {
+    return `${route.country.slug}-news-content-ideas`;
+  }
+  if (route.category) {
+    return `${route.category.slug}-news-content-ideas`;
+  }
+  return "latest-news-content-ideas";
 }
 
 export function allNewsRoutes(): NewsRoute[] {

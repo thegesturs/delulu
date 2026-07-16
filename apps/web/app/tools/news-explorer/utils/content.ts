@@ -3,6 +3,19 @@ import type { NewsRoute } from "./config";
 
 export function newsTitle(route: NewsRoute): string {
   if (route.country && route.category) {
+    return `${route.country.name} ${route.category.name} News Content Ideas for Social Media`;
+  }
+  if (route.country) {
+    return `${route.country.name} News Content Ideas for Social Media`;
+  }
+  if (route.category) {
+    return `Latest ${route.category.name} News Content Ideas for Social Media`;
+  }
+  return "Latest News Content Ideas for Social Media";
+}
+
+export function newsShortTitle(route: NewsRoute): string {
+  if (route.country && route.category) {
     return `${route.country.name} ${route.category.name} News`;
   }
   if (route.country) {
@@ -11,7 +24,7 @@ export function newsTitle(route: NewsRoute): string {
   if (route.category) {
     return `Latest ${route.category.name} News`;
   }
-  return "News Explorer";
+  return "Latest News";
 }
 
 export function newsDescription(route: NewsRoute): string {
@@ -22,36 +35,36 @@ export function newsDescription(route: NewsRoute): string {
   const location = route.country
     ? ` affecting ${route.country.name}`
     : " from publishers around the world";
-  return `Explore current headlines about ${focus}${location}. Open original reporting and create a social post from any story — free, with no signup.`;
+  return `Find current headlines about ${focus}${location} for timely social media content ideas. Open the original reporting and create an attributed draft — free, with no signup.`;
 }
 
 export function newsIntro(route: NewsRoute): string[] {
   if (route.country && route.category) {
     return [
-      `Track ${route.category.name.toLowerCase()} reporting connected to ${route.country.name}, with headlines spanning ${route.category.context}. The explorer groups recent coverage in one scan-friendly list while keeping the original publisher one click away.`,
-      "Use this page to spot a developing story, compare how publishers frame it, and move a useful headline into your content workflow. The feed shows only headline-level details and short source-provided summaries; the full reporting stays with its publisher.",
+      `Track ${route.category.name.toLowerCase()} reporting connected to ${route.country.name}, with headlines spanning ${route.category.context}. Use the focused feed to find timely news-based content ideas while keeping the original publisher one click away.`,
+      "Compare how publishers frame a developing story, read the complete source, and add a useful perspective for your audience. The feed shows only headline-level details and short source-provided summaries; the full reporting stays with its publisher.",
     ];
   }
   if (route.country) {
     return [
-      `Follow current reporting from and about ${route.country.name}, including ${route.country.context}. Headlines are collected into a single, frequently refreshed view so you can scan what is moving without opening dozens of home pages.`,
-      `Each result identifies its publisher and links to the original story. Use the topic links to narrow ${route.country.name} coverage to business, technology, entertainment, sports, science, health, or world news.`,
+      `Follow current reporting from and about ${route.country.name}, including ${route.country.context}. The focused feed helps social media managers and creators spot timely stories without opening dozens of publisher home pages.`,
+      `Each result identifies its publisher and links to the original story. Read the source before posting, then use the topic links to narrow ${route.country.name} coverage to business, technology, entertainment, sports, science, health, or world news.`,
     ];
   }
   if (route.category) {
     return [
-      `Scan the latest ${route.category.name.toLowerCase()} headlines covering ${route.category.context}. The explorer brings current reporting into one clean list while preserving clear publisher attribution and direct source links.`,
-      "Choose a country to focus the feed, or open a story at its publisher for the complete report. When a headline sparks an idea, send a short attributed draft directly to the Delulu composer.",
+      `Scan the latest ${route.category.name.toLowerCase()} headlines covering ${route.category.context}. The explorer helps you find news-based social media content ideas while preserving clear publisher attribution and direct source links.`,
+      "Choose a country to focus the feed, or open a story at its publisher for the complete report. When a headline fits your audience, send a short attributed draft to the Delulu composer and add your own perspective.",
     ];
   }
   return [
-    "News Explorer is a free way to scan current headlines across countries and topics without an account. Browse the full cached feed, open the original reporting, or use a headline as the starting point for a social post.",
+    "Find timely news content ideas for social media across countries and topics without an account. Browse the full cached feed, open the original reporting, or use a relevant headline as the starting point for content tailored to your audience.",
     "We show publisher attribution, publication time, links, and only short feed-provided summaries when available. Full article text stays on the publisher's site, where context, corrections, and access terms remain authoritative.",
   ];
 }
 
 export function newsFaq(route: NewsRoute): FaqItem[] {
-  const title = newsTitle(route);
+  const title = newsShortTitle(route);
   const subject = route.category ? route.category.name.toLowerCase() : "news";
   const place = route.country?.name ?? "the selected country";
   const contextualQuestion =
