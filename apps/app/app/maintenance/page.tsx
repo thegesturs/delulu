@@ -49,7 +49,7 @@ const MaintenancePage = () => (
       <p className="mt-8 text-muted-foreground text-sm">
         Need help?{" "}
         <a
-          className="inline-flex min-h-11 items-center font-medium text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+          className="inline-flex items-center font-medium text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
           href="mailto:support@delulu.social"
         >
           support@delulu.social

@@ -77,7 +77,7 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
                 </p>
 
                 <div className="mt-auto grid gap-2 pt-6">
-                  <Button asChild className="min-h-11" variant="outline">
+                  <Button asChild className="" variant="outline">
                     <a
                       href={item.url}
                       rel="noopener noreferrer"
@@ -87,7 +87,7 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
                       <ArrowUpRight aria-hidden="true" className="size-4" />
                     </a>
                   </Button>
-                  <Button asChild className="min-h-11">
+                  <Button asChild className="">
                     <a href={createPostUrl(item)} rel="noopener noreferrer">
                       Create in Delulu
                       <PenLine aria-hidden="true" className="size-4" />
