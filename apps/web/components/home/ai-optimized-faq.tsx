@@ -1,4 +1,5 @@
 import { createFAQPageSchema, JsonLd } from "@delulu/seo/json-ld";
+import { getWebUrl } from "@delulu/seo/url";
 
 interface FAQItem {
   question: string;
@@ -60,8 +61,7 @@ export function AIOptimizedFAQ({
   questions,
   className = "",
 }: AIOptimizedFAQProps) {
-  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
-  const pageUrl = `${baseUrl}#faq`;
+  const pageUrl = getWebUrl("/#faq");
 
   return (
     <section className={`space-y-6 ${className}`}>

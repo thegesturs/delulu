@@ -9,13 +9,13 @@ import {
   JsonLd,
 } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebOrigin } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AffonsoCrossDomain } from "@/components/affonso-cross-domain";
 import { CaptureAttribution } from "@/components/analytics/capture-attribution";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
-import { env } from "@/env";
 
 interface RootLayoutProperties {
   readonly children: ReactNode;
@@ -27,12 +27,12 @@ export const metadata: Metadata = createMetadata({
     "Social media management platform for creating and publishing content across multiple social networks",
   image: "/images/logo.png",
   alternates: {
-    canonical: `${env.NEXT_PUBLIC_WEB_URL || "https://delulu.social"}`,
+    canonical: getWebOrigin(),
   },
 });
 
 const RootLayout = ({ children }: RootLayoutProperties) => {
-  const baseUrl = env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
+  const baseUrl = getWebOrigin();
 
   return (
     <html

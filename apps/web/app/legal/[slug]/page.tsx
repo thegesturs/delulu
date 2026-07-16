@@ -1,5 +1,6 @@
 import { createArticleSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import { allLegals } from "content-collections";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -10,7 +11,6 @@ import { MdastToJsx } from "safe-mdx";
 import { BlogLayout } from "@/components/blog/blog-layout";
 import CTA from "@/components/home/cta";
 import { components } from "@/components/home/mdx-components";
-import { env } from "@/env";
 
 const parser = remark()
   .use(remarkMdx)
@@ -20,8 +20,6 @@ const parser = remark()
       file.data.ast = tree;
     };
   });
-
-const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 
 export const generateMetadata = async ({
   params,
@@ -33,7 +31,7 @@ export const generateMetadata = async ({
     return notFound();
   }
 
-  const canonicalUrl = new URL(`/legal/${slug}`, url).href;
+  const canonicalUrl = getWebUrl(`/legal/${slug}`);
 
   return createMetadata({
     title: legal.title,
@@ -68,7 +66,7 @@ export default async function Page({ params }: PageProps) {
     type: "legal" as const,
   };
 
-  const pageUrl = new URL(`/legal/${slug}`, url).href;
+  const pageUrl = getWebUrl(`/legal/${slug}`);
   const currentDate = new Date().toISOString();
 
   const articleSchema = createArticleSchema({

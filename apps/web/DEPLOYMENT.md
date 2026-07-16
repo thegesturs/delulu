@@ -16,7 +16,7 @@ RESEND_FROM=mail@delulu.social
 #### Build Variables (Already set, but verify these values)
 ```
 NEXT_PUBLIC_APP_URL=https://solulu.delulu.social
-NEXT_PUBLIC_WEB_URL=https://delulu.social
+NEXT_PUBLIC_WEB_URL=https://www.delulu.social
 NEXT_PUBLIC_DOCS_URL=https://docs.delulu.social
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 NEXT_PUBLIC_POSTHOG_KEY=phc_A5NWdEHAyUyzoUUSKnemshpamt3MCdbh9ztSxH0RvQV
@@ -33,8 +33,8 @@ RESEND_TOKEN=<your-resend-token>
 ### 2. Remove Trailing Slashes
 
 The URLs should NOT have trailing slashes:
-- ❌ `https://delulu.social/`
-- ✅ `https://delulu.social`
+- ❌ `https://www.delulu.social/`
+- ✅ `https://www.delulu.social`
 
 Update your Cloudflare environment variables to remove trailing slashes from:
 - `NEXT_PUBLIC_APP_URL`
@@ -51,7 +51,7 @@ Make sure your `wrangler.toml` or deployment configuration includes:
 
 ```toml
 [env.production.vars]
-NEXT_PUBLIC_WEB_URL = "https://delulu.social"
+NEXT_PUBLIC_WEB_URL = "https://www.delulu.social"
 NEXT_PUBLIC_APP_URL = "https://solulu.delulu.social"
 NEXT_PUBLIC_DOCS_URL = "https://docs.delulu.social"
 RESEND_FROM = "mail@delulu.social"

@@ -20,6 +20,7 @@
     "production": {
       "vars": {
         "NEXT_PUBLIC_APP_URL": "https://solulu.delulu.social",
+        "NEXT_PUBLIC_WEB_URL": "https://www.delulu.social",
         "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/sign-in",
         "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/sign-up",
         "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/",

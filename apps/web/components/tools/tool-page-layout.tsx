@@ -6,6 +6,7 @@ import {
   type SoftwareApplication,
   type WithContext,
 } from "@delulu/seo/json-ld";
+import { getWebUrl } from "@delulu/seo/url";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -13,8 +14,6 @@ import Balancer from "react-wrap-balancer";
 import { type Tool, tools } from "@/lib/tools";
 import type { FaqItem } from "./tool-faq";
 import { ToolFaq } from "./tool-faq";
-
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
 
 /** An extra H2 content block rendered below the tool (e.g. "Why use…"). */
 export interface ToolSection {
@@ -45,7 +44,7 @@ export function ToolPageLayout({
   sections = [],
   faq,
 }: ToolPageLayoutProps) {
-  const url = `${WEB_URL}/tools/${tool.slug}`;
+  const url = getWebUrl(`/tools/${tool.slug}`);
 
   const softwareSchema: WithContext<SoftwareApplication> = {
     "@context": "https://schema.org",
@@ -71,7 +70,7 @@ export function ToolPageLayout({
         "@type": "ListItem",
         position: 1,
         name: "Tools",
-        item: `${WEB_URL}/tools`,
+        item: getWebUrl("/tools"),
       },
       {
         "@type": "ListItem",
