@@ -4,9 +4,12 @@ import { getWebUrl } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import Balancer from "react-wrap-balancer";
 import { ToolCard } from "@/components/tools/tool-card";
-import { featuredTools } from "@/lib/tools";
+import { toolFamilies, tools } from "@/lib/tools";
 
-const featured = featuredTools();
+const featured = [
+  ...toolFamilies,
+  ...tools.filter((tool) => tool.slug === "youtube-video-trimmer"),
+];
 
 export const metadata: Metadata = createMetadata({
   title: "Free Social Media Planning & Video Tools",
@@ -69,7 +72,7 @@ export default function ToolsPage() {
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {featured.map((tool) => (
-            <ToolCard key={tool.slug} tool={tool} />
+            <ToolCard item={tool} key={tool.slug} />
           ))}
         </div>
       </section>

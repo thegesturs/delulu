@@ -149,7 +149,7 @@ export default function FeedPlannersPage() {
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {familyTools.map((tool) => (
-            <ToolCard key={tool.slug} tool={tool} />
+            <ToolCard item={tool} key={tool.slug} />
           ))}
         </div>
       </section>

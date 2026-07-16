@@ -16,26 +16,24 @@ import { feedPlannerPages } from "@/app/tools/feed-planners/utils/feed-planner-p
 
 export type ToolCategory = "video" | "text" | "image" | "seo" | "planning";
 
-export interface Tool {
+export interface ToolCardItem {
   slug: string;
   href: string;
   title: string;
-  /** One-line description used on cards and in meta descriptions. */
   description: string;
   cta: string;
   category: ToolCategory;
   socialPlatforms?: SupportedSocialPlatform[];
-  keywords?: string[];
   status?: "live" | "coming-soon";
+}
+
+export interface Tool extends ToolCardItem {
+  /** One-line description used on cards and in meta descriptions. */
+  keywords?: string[];
   family?: { title: string; href: string };
 }
 
-export interface ToolFamily {
-  slug: string;
-  href: string;
-  title: string;
-  description: string;
-}
+export type ToolFamily = ToolCardItem;
 
 export const toolFamilies: ToolFamily[] = [
   {
@@ -44,6 +42,9 @@ export const toolFamilies: ToolFamily[] = [
     title: "Feed Planning",
     description:
       "Arrange photos and videos in a profile grid or scrolling feed before you publish.",
+    cta: "Choose a feed planner",
+    category: "planning",
+    socialPlatforms: ["INSTAGRAM", "FACEBOOK", "LINKEDIN"],
   },
 ];
 
@@ -105,8 +106,3 @@ export const getTool = (slug: string): Tool | undefined =>
 
 export const liveTools = (): Tool[] =>
   tools.filter((tool) => tool.status !== "coming-soon");
-
-export const featuredTools = (): Tool[] =>
-  tools.filter((tool) =>
-    ["youtube-video-trimmer", "instagram-feed-planner"].includes(tool.slug)
-  );
