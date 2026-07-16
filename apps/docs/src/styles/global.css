@@ -24,17 +24,8 @@
 :root {
   --fd-layout-width: 1460px;
   --docs-line: var(--dotted-line);
-  --docs-surface-shadow:
-    0 1px 2px oklch(0.2527 0.0207 284.8269 / 0.035),
-    0 7px 22px -18px oklch(0.2527 0.0207 284.8269 / 0.22),
-    0 0 0 1px color-mix(in oklab, var(--border), transparent 25%);
+  --docs-surface-shadow: var(--shadow-card);
   --border-hairline: 1px;
-}
-
-.dark {
-  --docs-surface-shadow:
-    0 1px 2px oklch(0 0 0 / 0.28), 0 10px 24px -20px oklch(0 0 0 / 0.8),
-    0 0 0 1px color-mix(in oklab, var(--border), transparent 15%);
 }
 
 @media only screen and (min-resolution: 192dpi) {
@@ -122,9 +113,52 @@ button {
   height: 1rem;
 }
 
+:is(#nd-sidebar, #nd-sidebar-mobile) {
+  background: var(--sidebar);
+}
+
 #nd-sidebar {
-  background: color-mix(in oklab, var(--background) 96%, var(--muted));
   box-shadow: inset -1px 0 color-mix(in oklab, var(--border), transparent 30%);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active] {
+  min-height: 2.25rem;
+  overflow: hidden;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem !important;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] {
+  background-color: var(--card);
+  background-image: linear-gradient(
+    to bottom,
+    var(--card),
+    color-mix(in oklab, var(--card), black 3%)
+  );
+  color: var(--foreground);
+  box-shadow: var(--shadow-button);
+  font-weight: 500;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active] > svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) p[style*="padding-inline-start"] {
+  margin-top: 1.2rem;
+  margin-bottom: 0.35rem;
+  padding-inline: 0.75rem !important;
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 620;
 }
 
 #nd-sidebar [data-radix-scroll-area-viewport] > div {
@@ -311,39 +345,44 @@ button {
 .docs-path-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-  margin-block: 1.25rem 2.4rem;
+  gap: 0.75rem;
+  margin-block: 1rem 2rem;
 }
 
 .docs-path-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.8rem;
-  min-height: 8.5rem;
-  border-radius: 0.72rem;
-  padding: 1rem;
-  background: color-mix(in oklab, var(--card) 98%, var(--muted));
+  align-items: start;
+  gap: 0.75rem;
+  min-height: 0;
+  border-radius: 0.75rem;
+  padding: 0.875rem;
+  background: var(--card);
   box-shadow: var(--docs-surface-shadow);
 }
 
+.docs-path-card > div {
+  min-width: 0;
+}
+
 .docs-path-card h3 {
-  margin: 0 0 0.25rem;
-  font-size: 0.94rem;
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
   letter-spacing: -0.02em;
 }
 
 .docs-path-card p {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 0.79rem;
-  line-height: 1.5;
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .docs-path-card a {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  margin-top: 0.7rem;
+  margin-top: 0.5rem;
   color: var(--primary);
   font-size: 0.78rem;
   font-weight: 610;
@@ -352,8 +391,9 @@ button {
 
 .docs-path-icon {
   display: grid;
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-self: start;
   place-items: center;
   border-radius: 0.5rem;
   background: color-mix(in oklab, var(--primary), transparent 93%);

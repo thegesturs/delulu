@@ -91,9 +91,26 @@ const iconKindForUrl = (url: string): SidebarIconKind => {
   return "document";
 };
 
+const sidebarNames: Record<string, string> = {
+  "/": "Overview",
+  "/api-reference/generated": "Endpoint overview",
+  "/concepts/agent-authorization": "Agent authorization",
+  "/concepts/roles-and-scopes": "Roles & scopes",
+  "/getting-started/agent-setup": "Set up an AI agent",
+  "/getting-started/cli-quickstart": "Publish with the CLI",
+  "/guides/accounts": "Connect social accounts",
+  "/guides/automation": "CLI automation",
+  "/guides/billing": "Billing & onboarding",
+  "/guides/media": "Prepare media",
+  "/guides/publishing": "Draft, schedule & publish",
+  "/guides/reviews": "Work with reviews",
+  "/guides/workspaces": "Select a workspace",
+};
+
 const decorateItem = (item: Item): Item => ({
   ...item,
   icon: <SidebarIcon kind={iconKindForUrl(item.url)} />,
+  name: sidebarNames[item.url] ?? item.name,
 });
 
 const sectionNodes = (folder: Folder): Node[] => {
