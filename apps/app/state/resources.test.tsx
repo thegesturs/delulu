@@ -1,7 +1,13 @@
 import { mutationEffect, resourceEffect } from "@delulu/client";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   AppStateProvider,
   type MutationAtomResult,
@@ -9,6 +15,8 @@ import {
   useMutationAtom,
   useResourceAtom,
 } from "./resources";
+
+afterEach(cleanup);
 
 describe("Effect Atom resources", () => {
   it("suspends an initial read and renders its value", async () => {

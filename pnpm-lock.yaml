@@ -669,13 +669,13 @@ importers:
         version: 1.3.2(react@19.2.7)
       '@react-three/drei':
         specifier: ^10.7.3
-        version: 10.7.3(@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/react@19.1.1)(@types/three@0.177.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.177.0)
+        version: 10.7.3(@react-three/fiber@9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/react@19.2.17)(@types/three@0.177.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.177.0)
       '@react-three/fiber':
         specifier: ^9.1.4
-        version: 9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
+        version: 9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
       '@react-three/postprocessing':
         specifier: ^3.0.4
-        version: 3.0.4(@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/three@0.177.0)(react@19.2.7)(three@0.177.0)
+        version: 3.0.4(@react-three/fiber@9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/three@0.177.0)(react@19.2.7)(three@0.177.0)
       '@sentry/nextjs':
         specifier: ^9.12.0
         version: 9.33.0(@opentelemetry/context-async-hooks@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.57.2(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))(next@15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(webpack@5.99.9(esbuild@0.25.5))
@@ -699,7 +699,7 @@ importers:
         version: 2.2.3
       fumadocs-core:
         specifier: ^15.2.6
-        version: 15.5.5(@types/react@19.1.1)(next@15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.5.5(@types/react@19.2.17)(next@15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       fuzzy-search:
         specifier: ^3.2.1
         version: 3.2.1
@@ -795,11 +795,11 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       '@types/react':
-        specifier: 19.1.1
-        version: 19.1.1
+        specifier: catalog:react19
+        version: 19.2.17
       '@types/react-dom':
-        specifier: 19.1.2
-        version: 19.1.2(@types/react@19.1.1)
+        specifier: catalog:react19
+        version: 19.2.3(@types/react@19.2.17)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
@@ -9661,11 +9661,6 @@ packages:
   '@types/proper-lockfile@4.1.4':
     resolution: {integrity: sha512-uo2ABllncSqg9F1D4nugVl9v93RmjxF6LJzQLMLDdPaXCUIDPeOJ21Gbqi43xNKzBi/WQ0Q0dICqufzQbMjipQ==}
 
-  '@types/react-dom@19.1.2':
-    resolution: {integrity: sha512-XGJkWF41Qq305SKWEILa1O8vzhb3aOo3ogBlSmiqNko/WmRb6QIaweuZCXjKygVDXpzXb5wyxKTSOsmkuqj+Qw==}
-    peerDependencies:
-      '@types/react': ^19.0.0
-
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
@@ -9675,9 +9670,6 @@ packages:
     resolution: {integrity: sha512-HHM3nxyUZ3zAylX8ZEyrDNd2XZOnQ0D5XfunJF5FLQnZbHHYq4UWvW1QfelQNXv1ICNkwYhfxjwfnqivYB6bFg==}
     peerDependencies:
       '@types/react': '*'
-
-  '@types/react@19.1.1':
-    resolution: {integrity: sha512-ePapxDL7qrgqSF67s0h9m412d9DbXyC1n59O2st+9rjuuamWsZuD2w55rqY12CbzsZ7uVXb5Nw0gEp9Z8MMutQ==}
 
   '@types/react@19.2.17':
     resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
@@ -25612,16 +25604,6 @@ snapshots:
 
   '@react-native/normalize-colors@0.84.0': {}
 
-  '@react-native/virtualized-lists@0.84.0(@types/react@19.1.1)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)':
-    dependencies:
-      invariant: 2.2.4
-      nullthrows: 1.1.1
-      react: 19.2.7
-      react-native: 0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10)
-    optionalDependencies:
-      '@types/react': 19.1.1
-    optional: true
-
   '@react-native/virtualized-lists@0.84.0(@types/react@19.2.17)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)':
     dependencies:
       invariant: 2.2.4
@@ -25631,12 +25613,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
 
-  '@react-three/drei@10.7.3(@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/react@19.1.1)(@types/three@0.177.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.177.0)':
+  '@react-three/drei@10.7.3(@react-three/fiber@9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/react@19.2.17)(@types/three@0.177.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(three@0.177.0)':
     dependencies:
       '@babel/runtime': 7.27.6
       '@mediapipe/tasks-vision': 0.10.17
       '@monogrid/gainmap-js': 3.1.0(three@0.177.0)
-      '@react-three/fiber': 9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
+      '@react-three/fiber': 9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
       '@use-gesture/react': 10.3.1(react@19.2.7)
       camera-controls: 3.1.0(three@0.177.0)
       cross-env: 7.0.3
@@ -25653,10 +25635,10 @@ snapshots:
       three-mesh-bvh: 0.8.3(three@0.177.0)
       three-stdlib: 2.36.0(three@0.177.0)
       troika-three-text: 0.52.4(three@0.177.0)
-      tunnel-rat: 0.1.2(@types/react@19.1.1)(react@19.2.7)
+      tunnel-rat: 0.1.2(@types/react@19.2.17)(react@19.2.7)
       use-sync-external-store: 1.5.0(react@19.2.7)
       utility-types: 3.11.0
-      zustand: 5.0.6(@types/react@19.1.1)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7))
+      zustand: 5.0.6(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7))
     optionalDependencies:
       react-dom: 19.2.7(react@19.2.7)
     transitivePeerDependencies:
@@ -25664,14 +25646,14 @@ snapshots:
       - '@types/three'
       - immer
 
-  '@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)':
+  '@react-three/fiber@9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)':
     dependencies:
       '@babel/runtime': 7.27.6
-      '@types/react-reconciler': 0.28.9(@types/react@19.1.1)
+      '@types/react-reconciler': 0.28.9(@types/react@19.2.17)
       '@types/webxr': 0.5.22
       base64-js: 1.5.1
       buffer: 6.0.3
-      its-fine: 2.0.0(@types/react@19.1.1)(react@19.2.7)
+      its-fine: 2.0.0(@types/react@19.2.17)(react@19.2.7)
       react: 19.2.7
       react-reconciler: 0.31.0(react@19.2.7)
       react-use-measure: 2.1.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -25679,17 +25661,17 @@ snapshots:
       suspend-react: 0.1.3(react@19.2.7)
       three: 0.177.0
       use-sync-external-store: 1.5.0(react@19.2.7)
-      zustand: 5.0.6(@types/react@19.1.1)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7))
+      zustand: 5.0.6(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7))
     optionalDependencies:
       react-dom: 19.2.7(react@19.2.7)
-      react-native: 0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10)
+      react-native: 0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10)
     transitivePeerDependencies:
       - '@types/react'
       - immer
 
-  '@react-three/postprocessing@3.0.4(@react-three/fiber@9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/three@0.177.0)(react@19.2.7)(three@0.177.0)':
+  '@react-three/postprocessing@3.0.4(@react-three/fiber@9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0))(@types/three@0.177.0)(react@19.2.7)(three@0.177.0)':
     dependencies:
-      '@react-three/fiber': 9.1.4(@types/react@19.1.1)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
+      '@react-three/fiber': 9.1.4(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(three@0.177.0)
       maath: 0.6.0(@types/three@0.177.0)(three@0.177.0)
       n8ao: 1.10.1(postprocessing@6.37.7(three@0.177.0))(three@0.177.0)
       postprocessing: 6.37.7(three@0.177.0)
@@ -28540,7 +28522,7 @@ snapshots:
 
   '@types/hoist-non-react-statics@3.3.6':
     dependencies:
-      '@types/react': 19.1.1
+      '@types/react': 19.2.17
       hoist-non-react-statics: 3.3.2
 
   '@types/html-minifier-terser@6.1.0': {}
@@ -28641,21 +28623,13 @@ snapshots:
     dependencies:
       '@types/retry': 0.12.5
 
-  '@types/react-dom@19.1.2(@types/react@19.1.1)':
-    dependencies:
-      '@types/react': 19.1.1
-
   '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
       '@types/react': 19.2.17
 
-  '@types/react-reconciler@0.28.9(@types/react@19.1.1)':
+  '@types/react-reconciler@0.28.9(@types/react@19.2.17)':
     dependencies:
-      '@types/react': 19.1.1
-
-  '@types/react@19.1.1':
-    dependencies:
-      csstype: 3.1.3
+      '@types/react': 19.2.17
 
   '@types/react@19.2.17':
     dependencies:
@@ -31946,7 +31920,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  fumadocs-core@15.5.5(@types/react@19.1.1)(next@15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  fumadocs-core@15.5.5(@types/react@19.2.17)(next@15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@formatjs/intl-localematcher': 0.6.1
       '@orama/orama': 3.1.18
@@ -31957,7 +31931,7 @@ snapshots:
       hast-util-to-jsx-runtime: 2.3.6
       image-size: 2.0.2
       negotiator: 1.0.0
-      react-remove-scroll: 2.7.1(@types/react@19.1.1)(react@19.2.7)
+      react-remove-scroll: 2.7.1(@types/react@19.2.17)(react@19.2.7)
       remark: 15.0.1
       remark-gfm: 4.0.1
       remark-rehype: 11.1.2
@@ -31965,7 +31939,7 @@ snapshots:
       shiki: 3.7.0
       unist-util-visit: 5.0.0
     optionalDependencies:
-      '@types/react': 19.1.1
+      '@types/react': 19.2.17
       next: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
@@ -33175,9 +33149,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  its-fine@2.0.0(@types/react@19.1.1)(react@19.2.7):
+  its-fine@2.0.0(@types/react@19.2.17)(react@19.2.7):
     dependencies:
-      '@types/react-reconciler': 0.28.9(@types/react@19.1.1)
+      '@types/react-reconciler': 0.28.9(@types/react@19.2.17)
       react: 19.2.7
     transitivePeerDependencies:
       - '@types/react'
@@ -36052,7 +36026,7 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 2.11.2
       '@formatjs/intl': 3.1.6(typescript@5.8.3)
       '@types/hoist-non-react-statics': 3.3.6
-      '@types/react': 19.1.1
+      '@types/react': 19.2.17
       hoist-non-react-statics: 3.3.2
       intl-messageformat: 10.7.16
       react: 19.2.7
@@ -36099,55 +36073,6 @@ snapshots:
       overlap-area: 1.1.0
       react-css-styled: 1.1.9
       react-selecto: 1.26.3
-
-  react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10):
-    dependencies:
-      '@jest/create-cache-key-function': 29.7.0
-      '@react-native/assets-registry': 0.84.0
-      '@react-native/codegen': 0.84.0(@babel/core@7.29.7)
-      '@react-native/community-cli-plugin': 0.84.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      '@react-native/gradle-plugin': 0.84.0
-      '@react-native/js-polyfills': 0.84.0
-      '@react-native/normalize-colors': 0.84.0
-      '@react-native/virtualized-lists': 0.84.0(@types/react@19.1.1)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.1.1)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)
-      abort-controller: 3.0.0
-      anser: 1.4.10
-      ansi-regex: 5.0.1
-      babel-jest: 29.7.0(@babel/core@7.29.7)
-      babel-plugin-syntax-hermes-parser: 0.32.0
-      base64-js: 1.5.1
-      commander: 12.1.0
-      flow-enums-runtime: 0.0.6
-      hermes-compiler: 250829098.0.7
-      invariant: 2.2.4
-      jest-environment-node: 29.7.0
-      memoize-one: 5.2.1
-      metro-runtime: 0.83.3
-      metro-source-map: 0.83.3
-      nullthrows: 1.1.1
-      pretty-format: 29.7.0
-      promise: 8.3.0
-      react: 19.2.7
-      react-devtools-core: 6.1.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      react-refresh: 0.14.2
-      regenerator-runtime: 0.13.11
-      scheduler: 0.27.0
-      semver: 7.8.5
-      stacktrace-parser: 0.1.11
-      tinyglobby: 0.2.17
-      whatwg-fetch: 3.6.20
-      ws: 7.5.10(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-      yargs: 17.7.2
-    optionalDependencies:
-      '@types/react': 19.1.1
-    transitivePeerDependencies:
-      - '@babel/core'
-      - '@react-native-community/cli'
-      - '@react-native/metro-config'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    optional: true
 
   react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10):
     dependencies:
@@ -36212,14 +36137,6 @@ snapshots:
 
   react-refresh@0.18.0: {}
 
-  react-remove-scroll-bar@2.3.8(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      react-style-singleton: 2.2.3(@types/react@19.1.1)(react@19.2.7)
-      tslib: 2.8.1
-    optionalDependencies:
-      '@types/react': 19.1.1
-
   react-remove-scroll-bar@2.3.8(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       react: 19.2.7
@@ -36227,17 +36144,6 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.2.17
-
-  react-remove-scroll@2.7.1(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      react-remove-scroll-bar: 2.3.8(@types/react@19.1.1)(react@19.2.7)
-      react-style-singleton: 2.2.3(@types/react@19.1.1)(react@19.2.7)
-      tslib: 2.8.1
-      use-callback-ref: 1.3.3(@types/react@19.1.1)(react@19.2.7)
-      use-sidecar: 1.1.3(@types/react@19.1.1)(react@19.2.7)
-    optionalDependencies:
-      '@types/react': 19.1.1
 
   react-remove-scroll@2.7.1(@types/react@19.2.17)(react@19.2.7):
     dependencies:
@@ -36277,14 +36183,6 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       react-transition-group: 4.4.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-
-  react-style-singleton@2.2.3(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      get-nonce: 1.0.1
-      react: 19.2.7
-      tslib: 2.8.1
-    optionalDependencies:
-      '@types/react': 19.1.1
 
   react-style-singleton@2.2.3(@types/react@19.2.17)(react@19.2.7):
     dependencies:
@@ -38221,9 +38119,9 @@ snapshots:
 
   tty-browserify@0.0.1: {}
 
-  tunnel-rat@0.1.2(@types/react@19.1.1)(react@19.2.7):
+  tunnel-rat@0.1.2(@types/react@19.2.17)(react@19.2.7):
     dependencies:
-      zustand: 4.5.7(@types/react@19.1.1)(react@19.2.7)
+      zustand: 4.5.7(@types/react@19.2.17)(react@19.2.7)
     transitivePeerDependencies:
       - '@types/react'
       - immer
@@ -38615,13 +38513,6 @@ snapshots:
 
   urlpattern-polyfill@10.1.0: {}
 
-  use-callback-ref@1.3.3(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      tslib: 2.8.1
-    optionalDependencies:
-      '@types/react': 19.1.1
-
   use-callback-ref@1.3.3(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       react: 19.2.7
@@ -38633,14 +38524,6 @@ snapshots:
     dependencies:
       dequal: 2.0.3
       react: 19.2.7
-
-  use-sidecar@1.1.3(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      detect-node-es: 1.1.0
-      react: 19.2.7
-      tslib: 2.8.1
-    optionalDependencies:
-      '@types/react': 19.1.1
 
   use-sidecar@1.1.3(@types/react@19.2.17)(react@19.2.7):
     dependencies:
@@ -39842,13 +39725,6 @@ snapshots:
 
   zod@4.3.6: {}
 
-  zustand@4.5.7(@types/react@19.1.1)(react@19.2.7):
-    dependencies:
-      use-sync-external-store: 1.6.0(react@19.2.7)
-    optionalDependencies:
-      '@types/react': 19.1.1
-      react: 19.2.7
-
   zustand@4.5.7(@types/react@19.2.17)(react@19.2.7):
     dependencies:
       use-sync-external-store: 1.6.0(react@19.2.7)
@@ -39862,9 +39738,9 @@ snapshots:
       react: 19.2.7
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  zustand@5.0.6(@types/react@19.1.1)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7)):
+  zustand@5.0.6(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.5.0(react@19.2.7)):
     optionalDependencies:
-      '@types/react': 19.1.1
+      '@types/react': 19.2.17
       react: 19.2.7
       use-sync-external-store: 1.5.0(react@19.2.7)
 
