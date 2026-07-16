@@ -3,22 +3,19 @@ import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
 import {
   indexableNewsRoutes,
-  NEWS_FAMILY_PATH,
   newsRoutePath,
 } from "@/app/tools/news-explorer/utils/config";
 import { hasUsableCachedNews } from "@/app/tools/news-explorer/utils/service";
 import { fetchArticlePreviews } from "@/lib/articles";
-import { tools } from "@/lib/tools";
+import { getToolHref, liveTools, toolFamilies } from "@/lib/tools";
 
-// Static list of known pages to avoid filesystem access in edge runtime
 const pages = ["blogs", "pricing", "contact", "affiliates"];
 const blogs = allBlogs.map((blog) => blog.slug);
 const legals = allLegals.map((legal) => legal.slug);
 
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
-  // Fetch Outrank article slugs from KV (preview index)
   const outrankPreviews = await fetchArticlePreviews();
-  const outrankSlugs = outrankPreviews.map((a) => a.slug);
+  const outrankSlugs = outrankPreviews.map((article) => article.slug);
   const completeNewsRoutes = (
     await Promise.all(
       indexableNewsRoutes().map(async (route) => ({
@@ -53,20 +50,20 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    ...tools
-      .filter((tool) => tool.slug !== "news-explorer")
-      .map((tool) => ({
-        url: getWebUrl(`/tools/${tool.slug}`),
-        lastModified: new Date(),
-        changeFrequency: "monthly" as const,
-        priority: 0.7,
-      })),
-    {
-      url: getWebUrl(NEWS_FAMILY_PATH),
+    ...toolFamilies.map((family) => ({
+      url: getWebUrl(`/tools/${family.slug}`),
       lastModified: new Date(),
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    },
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    })),
+    ...liveTools()
+      .filter((tool) => tool.family?.slug !== "news-explorer")
+      .map((tool) => ({
+        url: getWebUrl(getToolHref(tool)),
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      })),
     ...completeNewsRoutes.map(({ route }) => ({
       url: getWebUrl(newsRoutePath(route)),
       lastModified: new Date(),
