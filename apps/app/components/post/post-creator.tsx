@@ -20,6 +20,7 @@ import type { EditorMediaDetail } from "@/lib/editor-media";
 import { getSingleProviderInDefault } from "@/lib/platform-rules";
 import { useResourceAtom } from "@/state/resources";
 import {
+  postEditorCommands,
   useAlternativeContent,
   useSelectedSocialProviders,
   useStore,
@@ -44,8 +45,6 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const loadPost = useStore((state) => state.loadPost);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
-  const setPost = useStore((state) => state.setPost);
-  const resetPost = useStore((state) => state.reset);
   const appliedDraftRef = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
@@ -144,13 +143,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     }
 
     appliedDraftRef.current = draft;
-    resetPost();
-    setPost((currentPost) => ({
-      ...currentPost,
-      content: currentPost.content.map((item, index) =>
-        index === 0 ? { ...item, text: draft } : item
-      ),
-    }));
+    postEditorCommands.applyDraftHandoff(draft);
     if (fragmentText) {
       window.history.replaceState(
         null,
@@ -158,7 +151,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         `${window.location.pathname}${window.location.search}`
       );
     }
-  }, [postId, resetPost, searchParams, setPost]);
+  }, [postId, searchParams]);
 
   // Handle scheduledAt query parameter from calendar after any text handoff
   // has cleared a previous draft.
