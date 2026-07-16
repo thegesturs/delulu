@@ -1,5 +1,6 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { ArrowUpRight, Clock, PenLine } from "lucide-react";
+import { createComposerHandoffUrl } from "@/lib/composer-handoff";
 import type { NewsItem } from "./provider";
 import type { NewsResult } from "./service";
 
@@ -13,10 +14,7 @@ const createPostUrl = (item: NewsItem) => {
   const content = `${item.headline}\n\nSource: ${item.source}\n${item.url}`;
   const base =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://solulu.delulu.social";
-  const url = new URL("/post", base);
-  url.searchParams.set("content", content);
-  url.searchParams.set("source", "news-explorer");
-  return url.toString();
+  return createComposerHandoffUrl(new URL("/post", base).toString(), content);
 };
 
 const articleDescription = (item: NewsItem) =>

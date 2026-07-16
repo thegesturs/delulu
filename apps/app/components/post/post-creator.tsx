@@ -44,9 +44,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const setTime = useStore((state) => state.setTime);
   const setPost = useStore((state) => state.setPost);
   const resetPost = useStore((state) => state.reset);
-  const appliedPrefill = useRef(false);
-  const handoffAppliedRef = useRef(false);
-  const importedToolDraft = useRef<string | null>(null);
+  const appliedDraftRef = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -117,23 +115,23 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     mediaResults.isError,
   ]);
 
-  // Accept a small, explicit text handoff from first-party planning tools.
+  // Start a clean, editable post from a public tool handoff.
   useEffect(() => {
-    if (postId || handoffAppliedRef.current) {
+    if (postId) {
       return;
     }
 
-    const text = searchParams.get("text")?.trim().slice(0, 5000);
-    if (!text) {
+    const draft = searchParams.get("draft")?.trim().slice(0, 5000);
+    if (!draft || appliedDraftRef.current === draft) {
       return;
     }
 
-    handoffAppliedRef.current = true;
+    appliedDraftRef.current = draft;
     resetPost();
     setPost((currentPost) => ({
       ...currentPost,
       content: currentPost.content.map((item, index) =>
-        index === 0 ? { ...item, text } : item
+        index === 0 ? { ...item, text: draft } : item
       ),
     }));
   }, [postId, resetPost, searchParams, setPost]);
@@ -153,52 +151,6 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       }
     }
   }, [postId, searchParams, setDateAlongWithTime, setTime]);
-
-  // Free public tools can hand an attributed draft to the composer. Apply it
-  // once for a new post only, and keep the final text fully editable.
-  useEffect(() => {
-    if (postId || appliedPrefill.current) {
-      return;
-    }
-    const content = searchParams.get("content")?.trim().slice(0, 5000);
-    if (!content) {
-      return;
-    }
-    appliedPrefill.current = true;
-    setPost((currentPost) => ({
-      ...currentPost,
-      content: currentPost.content.map((segment, index) =>
-        index === 0
-          ? {
-              ...segment,
-              text: segment.text.trim()
-                ? `${segment.text.trim()}\n\n${content}`
-                : content,
-            }
-          : segment
-      ),
-    }));
-  }, [postId, searchParams, setPost]);
-
-  // Public tools can hand off a text-only draft without uploading local media.
-  useEffect(() => {
-    if (postId) {
-      return;
-    }
-
-    const draft = searchParams.get("draft")?.trim().slice(0, 4000);
-    if (!draft || importedToolDraft.current === draft) {
-      return;
-    }
-
-    importedToolDraft.current = draft;
-    setPost((currentPost) => ({
-      ...currentPost,
-      content: currentPost.content.map((contentItem, index) =>
-        index === 0 ? { ...contentItem, text: draft } : contentItem
-      ),
-    }));
-  }, [postId, searchParams, setPost]);
 
   // Clear stale automation configs for new posts
   useEffect(() => {

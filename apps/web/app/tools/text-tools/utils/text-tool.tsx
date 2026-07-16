@@ -8,6 +8,7 @@ import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
 import { ArrowUpRight, Clipboard, RotateCcw, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
+import { createComposerHandoffUrl } from "@/lib/composer-handoff";
 import {
   analyzeText,
   getTextToolUiCopy,
@@ -78,31 +79,23 @@ export function TextTool({ tool }: { tool: TextToolDefinition }) {
     );
   };
 
-  const handleComposer = async () => {
+  const handleComposer = () => {
     if (!result) {
       return;
     }
-    const composerWindow = window.open(`${APP_URL}/post`, "_blank");
+    const composerUrl = createComposerHandoffUrl(`${APP_URL}/post`, result);
+    const composerWindow = window.open(composerUrl, "_blank");
     if (composerWindow) {
       composerWindow.opener = null;
     }
-    const copied = await copyText(result);
     if (!composerWindow) {
-      window.location.assign(`${APP_URL}/post`);
+      window.location.assign(composerUrl);
       return;
     }
-    setNotice(
-      copied
-        ? {
-            message: "Copied. Your new Delulu post is open in another tab.",
-            error: false,
-          }
-        : {
-            message:
-              "Your new Delulu post is open. Select and copy the text manually before pasting it.",
-            error: true,
-          }
-    );
+    setNotice({
+      message: "Your draft is open in a new Delulu post.",
+      error: false,
+    });
   };
 
   return (

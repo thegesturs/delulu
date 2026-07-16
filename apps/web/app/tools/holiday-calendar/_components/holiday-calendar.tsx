@@ -8,6 +8,7 @@ import { Label } from "@delulu/design-system/components/ui/label";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { CalendarDays, Check, Copy, MoveUpRight, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createComposerHandoffUrl } from "@/lib/composer-handoff";
 import {
   buildCalendarPostText,
   type CalendarCategory,
@@ -169,9 +170,7 @@ export function HolidayCalendar({
   };
 
   const composerHref = (text: string) => {
-    const url = new URL("/post", appUrl);
-    url.searchParams.set("text", text);
-    return url.toString();
+    return createComposerHandoffUrl(new URL("/post", appUrl).toString(), text);
   };
 
   return (

@@ -1,3 +1,5 @@
+import { createComposerHandoffUrl } from "@/lib/composer-handoff";
+
 export type PlannerItemKind = "image" | "video";
 
 export interface PlannerItem {
@@ -74,7 +76,8 @@ export const buildComposerUrl = (
   items: readonly PlannerItem[],
   selectedIds: ReadonlySet<string>
 ): string => {
-  const url = new URL(composerUrl);
-  url.searchParams.set("draft", buildComposerDraft(items, selectedIds));
-  return url.href;
+  return createComposerHandoffUrl(
+    composerUrl,
+    buildComposerDraft(items, selectedIds)
+  );
 };
