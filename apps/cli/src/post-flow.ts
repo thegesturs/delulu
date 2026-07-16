@@ -58,8 +58,9 @@ export const splitValues = (values: readonly string[] = []) =>
     .map((value) => value.trim())
     .filter(Boolean);
 
-const accountLabel = (account: PostAccount) =>
-  `${account.platform.toLowerCase()}${account.username ? `@${account.username}` : `:${account.id}`}`;
+export const canonicalAccountSelector = (
+  account: Pick<PostAccount, "id" | "platform">
+) => `${account.platform.toLowerCase()}:${account.id}`;
 
 export const resolveAccounts = (
   accounts: readonly PostAccount[],
@@ -69,7 +70,7 @@ export const resolveAccounts = (
   if (values.length === 0) {
     throw new CliError({
       code: "ACCOUNT_REQUIRED",
-      message: `Choose an account with --to. Available: ${accounts.map(accountLabel).join(", ") || "none"}`,
+      message: `Choose an account with --to. Available: ${accounts.map(canonicalAccountSelector).join(", ") || "none"}`,
       exitCode: 2,
       next: ["delulu accounts"],
     });
@@ -77,11 +78,18 @@ export const resolveAccounts = (
 
   const selected = values.map((selector) => {
     const normalized = selector.toLowerCase();
+    const separator = selector.indexOf(":");
+    const selectorPlatform =
+      separator > 0 ? selector.slice(0, separator).toLowerCase() : undefined;
+    const selectorConnectionId =
+      separator > 0 ? selector.slice(separator + 1) : undefined;
     const matches = accounts.filter((account) => {
       const platform = account.platform.toLowerCase();
       const username = account.username?.toLowerCase();
       return (
         account.id === selector ||
+        (selectorPlatform === platform &&
+          selectorConnectionId === account.id) ||
         platform === normalized ||
         username === normalized ||
         (username !== undefined && `${platform}@${username}` === normalized)
@@ -90,7 +98,7 @@ export const resolveAccounts = (
     if (matches.length === 0) {
       throw new CliError({
         code: "ACCOUNT_NOT_FOUND",
-        message: `Account ${selector} was not found. Available: ${accounts.map(accountLabel).join(", ") || "none"}`,
+        message: `Account ${selector} was not found. Available: ${accounts.map(canonicalAccountSelector).join(", ") || "none"}`,
         exitCode: 2,
         next: ["delulu accounts"],
       });
@@ -98,7 +106,7 @@ export const resolveAccounts = (
     if (matches.length > 1) {
       throw new CliError({
         code: "ACCOUNT_AMBIGUOUS",
-        message: `Account ${selector} is ambiguous. Use one of: ${matches.map(accountLabel).join(", ")}`,
+        message: `Account ${selector} is ambiguous. Use one of: ${matches.map(canonicalAccountSelector).join(", ")}`,
         exitCode: 2,
         next: ["delulu accounts"],
       });

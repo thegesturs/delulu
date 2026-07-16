@@ -14,6 +14,7 @@ import { login, openBrowser } from "./oauth.js";
 import { completeOperation, prepareOperation } from "./operation-journal.js";
 import { formatError, resolveOutputMode } from "./output.js";
 import {
+  canonicalAccountSelector,
   type PostAccount,
   type PostFlowResult,
   resolveAccounts,
@@ -401,16 +402,17 @@ program
         );
         if (connected) {
           await completeOperation(operation.operationId, connected.id);
+          const selector = canonicalAccountSelector(connected);
           return {
             status: "ok",
             message: `${connected.platform} connected`,
             data: {
-              selector: `${connected.platform.toLowerCase()}${connected.username ? `@${connected.username}` : `:${connected.id}`}`,
+              selector,
               name: connected.displayName ?? connected.username ?? connected.id,
             },
             next: [
               "delulu",
-              `delulu post "Your caption" --to ${connected.id} --draft`,
+              `delulu post "Your caption" --to ${selector} --draft`,
             ],
           };
         }
@@ -619,7 +621,7 @@ program
   .option("--file <path>", "Read content from a UTF-8 file")
   .requiredOption(
     "-t, --to <account>",
-    "Account id, platform, username, or platform@username",
+    "Canonical platform:connection-id, account id, platform, username, or platform@username",
     collect,
     []
   )

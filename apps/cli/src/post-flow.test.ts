@@ -92,7 +92,38 @@ describe("submitPost", () => {
         },
         adapter
       )
-    ).rejects.toThrow("linkedin@one, linkedin@two");
+    ).rejects.toThrow("linkedin:connection_one, linkedin:connection_two");
+  });
+
+  it("resolves multiple canonical selectors when provider names collide", async () => {
+    const create = vi.fn(async () => post("draft"));
+    const accounts = [
+      {
+        id: "connection_Aa",
+        platform: "LINKEDIN",
+        username: null,
+        displayName: "Same Name",
+      },
+      {
+        id: "connection_aa",
+        platform: "LINKEDIN",
+        username: null,
+        displayName: "Same Name",
+      },
+    ];
+    await submitPost(
+      {
+        caption: "Publish to both",
+        accountSelectors: ["linkedin:connection_Aa", "linkedin:connection_aa"],
+        intent: "draft",
+      },
+      adapterFor({ listAccounts: async () => accounts, create })
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accounts,
+      })
+    );
   });
 
   it("requires an explicit target even when only one account exists", async () => {

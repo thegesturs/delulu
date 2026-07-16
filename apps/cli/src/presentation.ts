@@ -1,4 +1,5 @@
 import { type CliResult, truncateText } from "./output.js";
+import { canonicalAccountSelector } from "./post-flow.js";
 
 interface PostLike {
   readonly id: string;
@@ -181,6 +182,7 @@ export const presentAccounts = (
   const data = page.data.map((account) =>
     full
       ? {
+          selector: canonicalAccountSelector(account),
           id: account.id,
           platform: account.platform,
           profile: account.profileId,
@@ -189,7 +191,7 @@ export const presentAccounts = (
           expires: account.expiresAt,
         }
       : {
-          selector: `${String(account.platform).toLowerCase()}${account.username ? `@${account.username}` : `:${account.id}`}`,
+          selector: canonicalAccountSelector(account),
           platform: account.platform,
           name: account.displayName ?? account.username ?? account.id,
           expires: account.expiresAt,

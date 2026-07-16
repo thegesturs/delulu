@@ -20,9 +20,12 @@ Run `delulu` after authorization. Its workspace overview returns the current
 workspace, setup state, connection and subscription summary, publishing counts,
 and the highest-priority next command in one response. Use `delulu workspace`
 to list memberships and `delulu workspace use <selector>` to reauthorize for a
-different workspace. Connect accounts with `delulu connect <platform>` and
-start checkout with `delulu subscribe`. Setup completes only after a connection
-exists and the payment webhook confirms an active paid subscription.
+different workspace. Connect the first account with `delulu connect <platform>`
+and another account on the same platform with `delulu connect <platform>
+--new`. `delulu accounts` returns canonical `platform:connection-id` selectors
+that remain unique when provider names collide. Start checkout with `delulu
+subscribe`. Setup completes only after a connection exists and the payment
+webhook confirms an active paid subscription.
 
 ## Content
 

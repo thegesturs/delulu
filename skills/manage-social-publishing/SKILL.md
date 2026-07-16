@@ -37,17 +37,20 @@ access or refresh tokens.
   intent, and waits for the resulting target state:
 
   ```sh
-  delulu post "Caption" --to linkedin --media video.mp4 --now
-  delulu post "Caption" --to linkedin,twitter --at "2026-07-18T10:00:00Z"
-  delulu post "Caption" --to linkedin --draft
+  delulu post "Caption" --to linkedin:connection_123 --media video.mp4 --now
+  delulu post "Caption" --to linkedin:connection_123,x:connection_456 --at "2026-07-18T10:00:00Z"
+  delulu post "Caption" --to linkedin:connection_123 --draft
   ```
 
   The CLI journals a stable key automatically. Re-running the identical command
   within 24 hours returns the original result; use `--new` only when the user
   explicitly wants a duplicate.
 
-- Select accounts by ID, platform, username, or `platform@username`. When a
-  selector matches several accounts, ask the user to choose the specific one.
+- Prefer the canonical `platform:connection-id` selector returned by
+  `delulu accounts`; it remains unique even when provider names collide. Raw
+  IDs, platform names, usernames, and `platform@username` are friendly aliases.
+  When an alias matches several accounts, ask the user to choose one of the
+  canonical selectors returned in the error.
 - For hosted MCP, call `create_post` once with explicit `draft`, `schedule`, or
   `publish_now` intent. Import remote media first with `import_media`.
 - Provide absolute schedule times and confirm the user's timezone when it is not

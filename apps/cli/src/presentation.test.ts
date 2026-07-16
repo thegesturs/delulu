@@ -1,5 +1,11 @@
+import { decode } from "@toon-format/toon";
 import { describe, expect, it } from "vitest";
-import { presentOverview, presentPosts } from "./presentation.js";
+import { formatResult } from "./output.js";
+import {
+  presentAccounts,
+  presentOverview,
+  presentPosts,
+} from "./presentation.js";
 
 describe("CLI projections", () => {
   it("keeps default post rows to four fields and reports zero explicitly", () => {
@@ -48,5 +54,45 @@ describe("CLI projections", () => {
       reviews: { pending: 1 },
     });
     expect(result.next).toEqual(["delulu accounts"]);
+  });
+
+  it("projects stable unique selectors when account names collide", () => {
+    const result = presentAccounts({
+      data: [
+        {
+          id: "connection_one",
+          platform: "LINKEDIN",
+          username: "same-name",
+          displayName: "Same Name",
+        },
+        {
+          id: "connection_two",
+          platform: "LINKEDIN",
+          username: "same-name",
+          displayName: "Same Name",
+        },
+      ],
+      total: 2,
+    });
+    expect(result.data).toEqual([
+      {
+        selector: "linkedin:connection_one",
+        platform: "LINKEDIN",
+        name: "Same Name",
+        expires: undefined,
+      },
+      {
+        selector: "linkedin:connection_two",
+        platform: "LINKEDIN",
+        name: "Same Name",
+        expires: undefined,
+      },
+    ]);
+    expect(decode(formatResult(result, "toon"))).toMatchObject({
+      data: [
+        { selector: "linkedin:connection_one" },
+        { selector: "linkedin:connection_two" },
+      ],
+    });
   });
 });
