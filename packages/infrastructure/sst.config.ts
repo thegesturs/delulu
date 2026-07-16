@@ -127,8 +127,9 @@ export default $config({
       // dir (<infra>/.sst/platform), so climb two levels back to the infra root.
       context: "../../youtube-trimmer",
       dockerfile: "../../youtube-trimmer/Dockerfile",
-      // Lambda runs x86_64 (see architectures below); build must match.
-      platform: "linux/amd64",
+      // arm64/Graviton: cheaper at runtime and builds natively on Apple Silicon
+      // (no slow QEMU emulation). Must match `architectures` below.
+      platform: "linux/arm64",
     });
 
     const trimmerRole = new aws.iam.Role("YoutubeTrimmerRole", {
@@ -152,7 +153,7 @@ export default $config({
       packageType: "Image",
       imageUri: trimmerImage.imageUri,
       role: trimmerRole.arn,
-      architectures: ["x86_64"],
+      architectures: ["arm64"],
       memorySize: 2048,
       timeout: 120,
       // Hard cap on parallel invocations: bounds cost and avoids hammering
