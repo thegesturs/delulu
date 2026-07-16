@@ -32,6 +32,8 @@ interface ToolPageLayoutProps {
   /** Additional H2 content blocks (why use, formats, privacy, use cases…). */
   sections?: ToolSection[];
   faq: FaqItem[];
+  relatedSlugs?: string[];
+  relatedHeading?: string;
 }
 
 export function ToolPageLayout({
@@ -42,6 +44,8 @@ export function ToolPageLayout({
   howToSteps,
   sections = [],
   faq,
+  relatedSlugs,
+  relatedHeading,
 }: ToolPageLayoutProps) {
   const url = getWebUrl(getToolHref(tool));
 
@@ -73,7 +77,7 @@ export function ToolPageLayout({
       {
         "@type": "ListItem",
         position: 1,
-        name: "Tools",
+        name: "Free creator tools",
         item: getWebUrl("/tools"),
       },
       {
@@ -99,10 +103,11 @@ export function ToolPageLayout({
 
   // Related entries stay within the current category when one is present.
   const related = tools.filter(
-    (t) =>
-      t.slug !== tool.slug &&
-      t.status !== "coming-soon" &&
-      (!tool.family || t.family?.slug === tool.family.slug)
+    (candidate) =>
+      candidate.slug !== tool.slug &&
+      candidate.status !== "coming-soon" &&
+      (!tool.family || candidate.family?.slug === tool.family.slug) &&
+      (!relatedSlugs || relatedSlugs.includes(candidate.slug))
   );
 
   return (
@@ -123,7 +128,7 @@ export function ToolPageLayout({
         className="mb-6 text-muted-foreground text-sm"
       >
         <Link className="hover:text-foreground" href="/tools">
-          Tools
+          Free creator tools
         </Link>
         <span className="mx-2">/</span>
         {tool.family ? (
@@ -203,7 +208,9 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          {tool.family?.relatedHeading ?? "Related creator tools"}
+          {relatedHeading ??
+            tool.family?.relatedHeading ??
+            "Related creator tools"}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">

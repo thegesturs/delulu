@@ -34,24 +34,44 @@ const SOCIAL_ICONS: Record<string, SupportedSocialPlatform> = {
   youtube: "YOUTUBE",
 };
 
-export function ToolIcon({ name }: { name: string }) {
+interface ToolIconProps {
+  name: string;
+  socialPlatforms?: SupportedSocialPlatform[];
+}
+
+export function ToolIcon({ name, socialPlatforms }: ToolIconProps) {
+  const socialPlatform = SOCIAL_ICONS[name];
+  const platforms = socialPlatforms ?? (socialPlatform ? [socialPlatform] : []);
+
+  if (platforms.length > 0) {
+    return (
+      <span className="flex items-center justify-center gap-1">
+        {platforms.map((platform) => (
+          <SocialIcon
+            key={platform}
+            size={platforms.length === 1 ? "md" : "sm"}
+            type={platform}
+          />
+        ))}
+      </span>
+    );
+  }
+
   const Icon = ICONS[name] ?? Wrench;
   return <Icon aria-hidden className="size-5 text-primary" />;
 }
 
 export function ToolCard({ tool }: { tool: Tool }) {
-  const socialIcon = SOCIAL_ICONS[tool.icon];
   const comingSoon = tool.status === "coming-soon";
 
   const inner = (
-    <Card className="group h-full transition-colors hover:border-primary/60">
+    <Card className="group h-full border border-border transition-colors hover:border-primary/60">
       <CardHeader className="flex flex-row items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-muted">
-          {socialIcon ? (
-            <SocialIcon size="md" type={socialIcon} />
-          ) : (
-            <ToolIcon name={tool.icon} />
-          )}
+        <span
+          aria-hidden
+          className="flex h-10 min-w-10 items-center justify-center rounded-lg bg-muted px-2"
+        >
+          <ToolIcon name={tool.icon} socialPlatforms={tool.socialPlatforms} />
         </span>
         <span className="text-muted-foreground text-xs uppercase tracking-wide">
           {CATEGORY_LABELS[tool.category]}
@@ -74,6 +94,11 @@ export function ToolCard({ tool }: { tool: Tool }) {
         <p className="mt-2 text-muted-foreground text-sm leading-6">
           {tool.description}
         </p>
+        {tool.cta && !comingSoon ? (
+          <span className="mt-5 inline-flex min-h-11 items-center gap-1.5 font-medium text-primary text-sm">
+            {tool.cta} <ArrowRight aria-hidden className="size-4" />
+          </span>
+        ) : null}
       </CardContent>
     </Card>
   );

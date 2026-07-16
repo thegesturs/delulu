@@ -22,19 +22,29 @@ const popularTools = [
   getTool("social-media-awareness-days-calendar"),
 ].filter((tool) => tool !== undefined);
 
+const title = "Free Social Media Tools for Planning, Captions & Video";
+const description =
+  "Plan a visual feed, check captions, format social text, find reliable content dates, or trim a video. Free creator tools with no signup required.";
+
 export const metadata: Metadata = createMetadata({
-  title: "Free Social Media Tools for Captions, Calendars & Video",
-  description:
-    "Check captions, format social text, find reliable content dates, or trim a video. Free creator tools with no signup required.",
+  title,
+  description,
   image: getWebUrl(
-    "/api/og?title=Free%20Social%20Media%20Tools&description=Plan%20dates%2C%20check%20captions%2C%20format%20text%2C%20and%20trim%20video"
+    "/api/og?title=Free%20Social%20Media%20Tools&description=Plan%20feeds%2C%20check%20captions%2C%20find%20dates%2C%20and%20trim%20video"
   ),
   alternates: {
     canonical: getWebUrl("/tools"),
   },
   openGraph: {
+    title: `${title} | Delulu Social`,
+    description,
     type: "website",
     url: getWebUrl("/tools"),
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
   },
 });
 
@@ -62,8 +72,8 @@ export default function ToolsPage() {
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
           <Balancer>
-            Choose what you need to finish: check a caption, format text, find a
-            timely date, or trim a video. Start immediately—no signup required.
+            Preview a feed, check a caption, find a timely date, or trim a
+            video. Start immediately—no signup required.
           </Balancer>
         </p>
       </div>
@@ -79,10 +89,16 @@ export default function ToolsPage() {
               href={`/tools/${family.slug}`}
               key={family.slug}
             >
-              <Card className="group h-full transition-colors hover:border-primary/60">
+              <Card className="group h-full border border-border transition-colors hover:border-primary/60">
                 <CardHeader>
-                  <span className="mb-3 flex size-10 items-center justify-center rounded-lg bg-muted">
-                    <ToolIcon name={family.icon} />
+                  <span
+                    aria-hidden
+                    className="mb-3 flex h-10 w-fit min-w-10 items-center justify-center rounded-lg bg-muted px-2"
+                  >
+                    <ToolIcon
+                      name={family.icon}
+                      socialPlatforms={family.socialPlatforms}
+                    />
                   </span>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     {family.title}
@@ -96,6 +112,11 @@ export default function ToolsPage() {
                   <p className="text-muted-foreground text-sm leading-6">
                     {family.description}
                   </p>
+                  {family.cta ? (
+                    <span className="mt-5 inline-flex min-h-11 items-center gap-1.5 font-medium text-primary text-sm">
+                      {family.cta} <ArrowRight aria-hidden className="size-4" />
+                    </span>
+                  ) : null}
                 </CardContent>
               </Card>
             </Link>

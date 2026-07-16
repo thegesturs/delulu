@@ -5,10 +5,18 @@
  * by the tool-card component.
  */
 
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
+import { feedPlannerPages } from "@/app/tools/feed-planners/utils/feed-planner-pages";
 import { holidayCalendarRegistry } from "@/app/tools/holiday-calendar/_utils/registry";
 import { textTools } from "@/app/tools/text-tools/utils/text-tools";
 
-export type ToolCategory = "video" | "text" | "image" | "seo" | "calendar";
+export type ToolCategory =
+  | "video"
+  | "text"
+  | "image"
+  | "seo"
+  | "calendar"
+  | "planning";
 
 export interface ToolFamily {
   slug: string;
@@ -16,6 +24,8 @@ export interface ToolFamily {
   description: string;
   relatedHeading: string;
   icon: string;
+  cta?: string;
+  socialPlatforms?: SupportedSocialPlatform[];
 }
 
 export interface Tool {
@@ -26,6 +36,8 @@ export interface Tool {
   description: string;
   category: ToolCategory;
   icon: string;
+  cta?: string;
+  socialPlatforms?: SupportedSocialPlatform[];
   keywords?: string[];
   status?: "live" | "coming-soon";
   family?: ToolFamily;
@@ -37,6 +49,18 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   image: "Image",
   seo: "SEO",
   calendar: "Calendar",
+  planning: "Feed Planning",
+};
+
+const feedPlannersFamily: ToolFamily = {
+  slug: "feed-planners",
+  title: "Feed Planning",
+  description:
+    "Arrange photos and videos in a profile grid or scrolling feed before you publish.",
+  relatedHeading: "More ways to preview your feed",
+  icon: "instagram",
+  cta: "Choose a feed planner",
+  socialPlatforms: ["INSTAGRAM", "FACEBOOK", "LINKEDIN"],
 };
 
 const textToolsFamily: ToolFamily = {
@@ -58,6 +82,7 @@ const holidayCalendarFamily: ToolFamily = {
 };
 
 export const toolFamilies: ToolFamily[] = [
+  feedPlannersFamily,
   textToolsFamily,
   holidayCalendarFamily,
 ];
@@ -81,7 +106,8 @@ export const tools: Tool[] = [
     description:
       "Trim any YouTube video or uploaded clip right in your browser — no watermark, no signup, no upload to a server.",
     category: "video",
-    icon: "scissors",
+    icon: "youtube",
+    socialPlatforms: ["YOUTUBE"],
     keywords: [
       "youtube video trimmer",
       "trim youtube video online",
@@ -92,6 +118,27 @@ export const tools: Tool[] = [
     ],
     status: "live",
   },
+  ...feedPlannerPages.map(
+    (page): Tool => ({
+      slug: page.slug,
+      href: `/tools/feed-planners/${page.slug}`,
+      title: page.title,
+      description: page.description,
+      cta:
+        page.variant === "grid"
+          ? "Plan an Instagram grid"
+          : "Preview a scrolling feed",
+      category: "planning",
+      icon: "instagram",
+      socialPlatforms:
+        page.variant === "grid"
+          ? ["INSTAGRAM"]
+          : ["INSTAGRAM", "FACEBOOK", "LINKEDIN"],
+      keywords: page.keywords,
+      status: "live",
+      family: feedPlannersFamily,
+    })
+  ),
   ...textTools.map((tool) => ({
     slug: tool.slug,
     href: `/tools/text-tools/${tool.slug}`,

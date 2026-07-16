@@ -6,13 +6,7 @@ import { Card } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Switch } from "@delulu/design-system/components/ui/switch";
-import {
-  CalendarDays,
-  Copy,
-  Lightbulb,
-  MoveUpRight,
-  Share2,
-} from "lucide-react";
+import { CalendarDays, Check, Copy, MoveUpRight, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   buildCalendarPostText,
@@ -83,6 +77,7 @@ export function HolidayCalendar({
   const [fromDate, setFromDate] = useState("");
   const [upcomingOnly, setUpcomingOnly] = useState(false);
   const [message, setMessage] = useState("");
+  const [copiedAngleId, setCopiedAngleId] = useState<string | null>(null);
 
   useEffect(() => {
     const nextMidnight = new Date(today);
@@ -94,6 +89,15 @@ export function HolidayCalendar({
 
     return () => window.clearTimeout(timeout);
   }, [today]);
+
+  useEffect(() => {
+    if (!copiedAngleId) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setCopiedAngleId(null), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [copiedAngleId]);
 
   const occurrences = useMemo(() => getCalendarOccurrences(year), [year]);
   const visibleEvents = useMemo(
@@ -134,8 +138,17 @@ export function HolidayCalendar({
         textarea.remove();
       }
       setMessage(successMessage);
+      return true;
     } catch {
       setMessage("Copy failed. Select the text and copy it manually.");
+      return false;
+    }
+  };
+
+  const copyPostAngle = async (eventId: string, prompt: string) => {
+    const copied = await copyText(prompt, "Post angle copied");
+    if (copied) {
+      setCopiedAngleId(eventId);
     }
   };
 
@@ -305,68 +318,89 @@ export function HolidayCalendar({
           />
           {visibleEvents.map((event) => {
             const text = buildCalendarPostText(event);
+            const angleCopied = copiedAngleId === event.id;
             return (
               <article
                 className="min-w-0 border-zinc-950/10 border-b-[1.5px] border-dotted p-4 dark:border-white/10"
                 key={event.id}
               >
-                <Card className="flex h-full flex-col gap-0 p-5 shadow-sm">
+                <Card className="flex h-full flex-col gap-0 border border-border p-5 shadow-none">
                   <header>
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      <Badge variant="secondary">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-primary text-sm tabular-nums">
+                          {formatDate(event.date)}
+                        </p>
+                        <h3 className="mt-1 text-balance font-semibold text-lg tracking-tight">
+                          {event.name}
+                        </h3>
+                      </div>
+                      <Badge
+                        className="shrink-0 rounded-full"
+                        variant="secondary"
+                      >
                         {categoryLabels[event.category]}
                       </Badge>
-                      <Badge variant="outline">
-                        {event.countries
-                          .map((value) => countryLabels[value])
-                          .join(", ")}
-                      </Badge>
-                      <Badge variant="outline">
-                        {event.dateKind === "fixed"
-                          ? "Fixed date"
-                          : "Calculated yearly"}
-                      </Badge>
                     </div>
-                    <h3 className="font-semibold text-lg leading-tight">
-                      {event.name}
-                    </h3>
-                    <p className="font-medium text-primary text-sm">
-                      {formatDate(event.date)}
-                    </p>
-                    <p className="mt-2 text-muted-foreground text-sm leading-6">
+                    <p className="mt-3 text-muted-foreground text-sm leading-6">
                       {event.description}
                     </p>
+                    <p className="mt-3 text-muted-foreground text-xs">
+                      {event.countries
+                        .map((value) => countryLabels[value])
+                        .join(", ")}
+                      <span aria-hidden="true" className="mx-1.5">
+                        ·
+                      </span>
+                      {event.dateKind === "fixed"
+                        ? "Fixed date"
+                        : "Calculated yearly"}
+                    </p>
                   </header>
-                  <p className="mt-3 flex items-start gap-2 text-sm leading-6">
-                    <Lightbulb
-                      aria-hidden="true"
-                      className="mt-1 size-4 shrink-0 text-muted-foreground"
-                    />
-                    <span>
-                      <span className="font-medium">Post angle:</span>{" "}
-                      {event.contentPrompt}
-                    </span>
-                  </p>
-                  <footer className="mt-auto flex flex-nowrap items-center gap-1 pt-4">
+                  <div className="mt-4 flex items-start gap-3 rounded-lg border border-border/70 bg-muted/30 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
+                        Post angle
+                      </p>
+                      <p className="mt-1 text-sm leading-6">
+                        {event.contentPrompt}
+                      </p>
+                    </div>
                     <Button
-                      aria-label={`Copy post idea for ${event.name}`}
+                      aria-label={
+                        angleCopied
+                          ? `Post angle copied for ${event.name}`
+                          : `Copy post angle for ${event.name}`
+                      }
+                      className="shrink-0"
                       onClick={() =>
-                        copyText(text, `${event.name} post idea copied`)
+                        copyPostAngle(event.id, event.contentPrompt)
                       }
                       size="icon"
+                      title={angleCopied ? "Copied" : "Copy post angle"}
                       type="button"
                       variant="ghost"
                     >
-                      <Copy aria-hidden="true" className="size-4" />
+                      {angleCopied ? (
+                        <Check
+                          aria-hidden="true"
+                          className="size-4 text-emerald-600"
+                        />
+                      ) : (
+                        <Copy aria-hidden="true" className="size-4" />
+                      )}
                     </Button>
+                  </div>
+                  <footer className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
                     <Button
                       aria-label={`Share ${event.name}`}
+                      className="px-2"
                       onClick={() => shareEvent(event.name, text)}
-                      size="icon"
                       type="button"
                       variant="ghost"
                     >
                       <Share2 aria-hidden="true" className="size-4" />
+                      Share
                     </Button>
                     <Button asChild>
                       <a

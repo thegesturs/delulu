@@ -46,6 +46,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const setPost = useStore((state) => state.setPost);
   const resetPost = useStore((state) => state.reset);
   const handoffAppliedRef = useRef(false);
+  const importedToolDraft = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -152,6 +153,26 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       }
     }
   }, [postId, searchParams, setDateAlongWithTime, setTime]);
+
+  // Public tools can hand off a text-only draft without uploading local media.
+  useEffect(() => {
+    if (postId) {
+      return;
+    }
+
+    const draft = searchParams.get("draft")?.trim().slice(0, 4000);
+    if (!draft || importedToolDraft.current === draft) {
+      return;
+    }
+
+    importedToolDraft.current = draft;
+    setPost((currentPost) => ({
+      ...currentPost,
+      content: currentPost.content.map((contentItem, index) =>
+        index === 0 ? { ...contentItem, text: draft } : contentItem
+      ),
+    }));
+  }, [postId, searchParams, setPost]);
 
   // Clear stale automation configs for new posts
   useEffect(() => {
