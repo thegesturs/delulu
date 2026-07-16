@@ -9,9 +9,8 @@ import { Switch } from "@delulu/design-system/components/ui/switch";
 import {
   CalendarDays,
   Copy,
-  ExternalLink,
   Lightbulb,
-  Search,
+  MoveUpRight,
   Share2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -182,21 +181,17 @@ export function HolidayCalendar({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2 sm:col-span-2 lg:col-span-1">
             <Label htmlFor="calendar-search">Search occasions</Label>
-            <div className="relative">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-11 pl-9 text-base sm:h-9 sm:text-sm"
-                id="calendar-search"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Environment, youth, gratitude…"
-                value={query}
-              />
-            </div>
+            <Input
+              id="calendar-search"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Environment, youth, gratitude…"
+              value={query}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="calendar-year">Year</Label>
             <select
-              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               id="calendar-year"
               onChange={(event) => setYear(Number(event.target.value))}
               value={year}
@@ -214,7 +209,7 @@ export function HolidayCalendar({
           <div className="space-y-2">
             <Label htmlFor="calendar-month">Month</Label>
             <select
-              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               id="calendar-month"
               onChange={(event) =>
                 setMonth(
@@ -236,7 +231,7 @@ export function HolidayCalendar({
           <div className="space-y-2">
             <Label htmlFor="calendar-country">Country or region</Label>
             <select
-              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               id="calendar-country"
               onChange={(event) =>
                 setCountry(event.target.value as CalendarCountry | "all")
@@ -252,7 +247,7 @@ export function HolidayCalendar({
           <div className="space-y-2">
             <Label htmlFor="calendar-category">Category</Label>
             <select
-              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               id="calendar-category"
               onChange={(event) =>
                 setCategory(event.target.value as CalendarCategory | "all")
@@ -270,7 +265,6 @@ export function HolidayCalendar({
           <div className="space-y-2">
             <Label htmlFor="calendar-from-date">From date</Label>
             <Input
-              className="h-11 text-base sm:h-9 sm:text-sm"
               disabled={upcomingOnly}
               id="calendar-from-date"
               onChange={(event) => setFromDate(event.target.value)}
@@ -304,12 +298,16 @@ export function HolidayCalendar({
       </Card>
 
       {visibleEvents.length > 0 ? (
-        <div className="-mx-4 mt-4 grid border-zinc-950/10 md:grid-cols-2 dark:border-white/10">
+        <div className="relative -mx-4 mt-4 grid border-zinc-950/10 md:grid-cols-2 dark:border-white/10">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-10 hidden border-zinc-950/10 border-l-[1.5px] border-dotted md:block dark:border-white/10"
+          />
           {visibleEvents.map((event) => {
             const text = buildCalendarPostText(event);
             return (
               <article
-                className="min-w-0 border-zinc-950/10 border-b-[1.5px] border-dotted p-4 md:odd:border-r-[1.5px] md:odd:border-dotted dark:border-white/10"
+                className="min-w-0 border-zinc-950/10 border-b-[1.5px] border-dotted p-4 dark:border-white/10"
                 key={event.id}
               >
                 <Card className="flex h-full flex-col gap-0 p-5 shadow-sm">
@@ -352,36 +350,32 @@ export function HolidayCalendar({
                   <footer className="mt-auto flex flex-nowrap items-center gap-1 pt-4">
                     <Button
                       aria-label={`Copy post idea for ${event.name}`}
-                      className="size-11 p-0 sm:h-9 sm:w-auto sm:px-2.5"
                       onClick={() =>
                         copyText(text, `${event.name} post idea copied`)
                       }
-                      size="sm"
+                      size="icon"
                       type="button"
                       variant="ghost"
                     >
                       <Copy aria-hidden="true" className="size-4" />
-                      <span className="hidden sm:inline">Copy</span>
                     </Button>
                     <Button
                       aria-label={`Share ${event.name}`}
-                      className="size-11 p-0 sm:h-9 sm:w-auto sm:px-2.5"
                       onClick={() => shareEvent(event.name, text)}
-                      size="sm"
+                      size="icon"
                       type="button"
                       variant="ghost"
                     >
                       <Share2 aria-hidden="true" className="size-4" />
-                      <span className="hidden sm:inline">Share</span>
                     </Button>
-                    <Button asChild className="h-11 px-3 sm:h-9" size="sm">
+                    <Button asChild>
                       <a
                         aria-label={`Create a post for ${event.name} in Delulu`}
                         href={composerHref(text)}
                         rel="noreferrer"
                       >
                         Create post
-                        <ExternalLink aria-hidden="true" className="size-4" />
+                        <MoveUpRight aria-hidden="true" className="size-4" />
                       </a>
                     </Button>
                   </footer>
