@@ -164,143 +164,147 @@ export function HolidayCalendar({
 
   return (
     <section aria-labelledby="calendar-tool-heading" className="py-2">
-      <div className="mb-6 flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <CalendarDays className="size-5" />
-        </span>
-        <div>
-          <h2 className="font-semibold text-xl" id="calendar-tool-heading">
-            Find a date for your next post
-          </h2>
-          <p className="mt-1 text-muted-foreground text-sm">
-            Free, anonymous, and processed entirely in your browser.
-          </p>
+      <Card className="gap-0 p-4 shadow-sm sm:p-6">
+        <div className="mb-6 flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <CalendarDays className="size-5" />
+          </span>
+          <div>
+            <h2 className="font-semibold text-xl" id="calendar-tool-heading">
+              Find a date for your next post
+            </h2>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Free, anonymous, and processed entirely in your browser.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-          <Label htmlFor="calendar-search">Search occasions</Label>
-          <div className="relative">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+            <Label htmlFor="calendar-search">Search occasions</Label>
+            <div className="relative">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="h-11 pl-9 text-base sm:h-9 sm:text-sm"
+                id="calendar-search"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Environment, youth, gratitude…"
+                value={query}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="calendar-year">Year</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              id="calendar-year"
+              onChange={(event) => setYear(Number(event.target.value))}
+              value={year}
+            >
+              {Array.from(
+                { length: 5 },
+                (_, index) => today.getFullYear() - 1 + index
+              ).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="calendar-month">Month</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              id="calendar-month"
+              onChange={(event) =>
+                setMonth(
+                  event.target.value === "all"
+                    ? "all"
+                    : Number(event.target.value)
+                )
+              }
+              value={month}
+            >
+              <option value="all">All months</option>
+              {monthOptions.map((name, index) => (
+                <option key={name} value={index + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="calendar-country">Country or region</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              id="calendar-country"
+              onChange={(event) =>
+                setCountry(event.target.value as CalendarCountry | "all")
+              }
+              value={country}
+            >
+              <option value="all">All available</option>
+              <option value="global">Global only</option>
+              <option value="US">United States</option>
+              <option value="IN">India</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="calendar-category">Category</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base sm:h-9 sm:text-sm"
+              id="calendar-category"
+              onChange={(event) =>
+                setCategory(event.target.value as CalendarCategory | "all")
+              }
+              value={category}
+            >
+              <option value="all">All categories</option>
+              {Object.entries(categoryLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="calendar-from-date">From date</Label>
             <Input
-              className="pl-9"
-              id="calendar-search"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Environment, youth, gratitude…"
-              value={query}
+              className="h-11 text-base sm:h-9 sm:text-sm"
+              disabled={upcomingOnly}
+              id="calendar-from-date"
+              onChange={(event) => setFromDate(event.target.value)}
+              type="date"
+              value={fromDate}
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="calendar-year">Year</Label>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            id="calendar-year"
-            onChange={(event) => setYear(Number(event.target.value))}
-            value={year}
-          >
-            {Array.from(
-              { length: 5 },
-              (_, index) => today.getFullYear() - 1 + index
-            ).map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="calendar-month">Month</Label>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            id="calendar-month"
-            onChange={(event) =>
-              setMonth(
-                event.target.value === "all"
-                  ? "all"
-                  : Number(event.target.value)
-              )
-            }
-            value={month}
-          >
-            <option value="all">All months</option>
-            {monthOptions.map((name, index) => (
-              <option key={name} value={index + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="calendar-country">Country or region</Label>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            id="calendar-country"
-            onChange={(event) =>
-              setCountry(event.target.value as CalendarCountry | "all")
-            }
-            value={country}
-          >
-            <option value="all">All available</option>
-            <option value="global">Global only</option>
-            <option value="US">United States</option>
-            <option value="IN">India</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="calendar-category">Category</Label>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            id="calendar-category"
-            onChange={(event) =>
-              setCategory(event.target.value as CalendarCategory | "all")
-            }
-            value={category}
-          >
-            <option value="all">All categories</option>
-            {Object.entries(categoryLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="calendar-from-date">From date</Label>
-          <Input
-            disabled={upcomingOnly}
-            id="calendar-from-date"
-            onChange={(event) => setFromDate(event.target.value)}
-            type="date"
-            value={fromDate}
-          />
-        </div>
-      </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-zinc-950/10 border-t-[1.5px] border-dotted pt-5 dark:border-white/10">
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={upcomingOnly}
-            id="calendar-upcoming"
-            onCheckedChange={setUpcomingOnly}
-          />
-          <Label htmlFor="calendar-upcoming">Upcoming only</Label>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-zinc-950/10 border-t-[1.5px] border-dotted pt-5 dark:border-white/10">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={upcomingOnly}
+              id="calendar-upcoming"
+              onCheckedChange={setUpcomingOnly}
+            />
+            <Label htmlFor="calendar-upcoming">Upcoming only</Label>
+          </div>
+          <p className="text-muted-foreground text-sm tabular-nums">
+            {visibleEvents.length}{" "}
+            {visibleEvents.length === 1 ? "date" : "dates"}
+          </p>
         </div>
-        <p className="text-muted-foreground text-sm">
-          {visibleEvents.length} {visibleEvents.length === 1 ? "date" : "dates"}
-        </p>
-      </div>
 
-      <output
-        aria-live="polite"
-        className="mt-2 block min-h-5 text-primary text-sm"
-      >
-        {message}
-      </output>
+        <output
+          aria-live="polite"
+          className="mt-2 block min-h-5 text-primary text-sm"
+        >
+          {message}
+        </output>
+      </Card>
 
       {visibleEvents.length > 0 ? (
-        <div className="-mx-4 mt-2 grid border-zinc-950/10 border-t-[1.5px] border-dotted md:grid-cols-2 dark:border-white/10">
+        <div className="-mx-4 mt-4 grid border-zinc-950/10 md:grid-cols-2 dark:border-white/10">
           {visibleEvents.map((event) => {
             const text = buildCalendarPostText(event);
             return (
@@ -348,7 +352,7 @@ export function HolidayCalendar({
                   <footer className="mt-auto flex flex-nowrap items-center gap-1 pt-4">
                     <Button
                       aria-label={`Copy post idea for ${event.name}`}
-                      className="h-11 px-2.5 sm:h-9"
+                      className="size-11 p-0 sm:h-9 sm:w-auto sm:px-2.5"
                       onClick={() =>
                         copyText(text, `${event.name} post idea copied`)
                       }
@@ -356,17 +360,19 @@ export function HolidayCalendar({
                       type="button"
                       variant="ghost"
                     >
-                      <Copy aria-hidden="true" className="size-4" /> Copy
+                      <Copy aria-hidden="true" className="size-4" />
+                      <span className="hidden sm:inline">Copy</span>
                     </Button>
                     <Button
                       aria-label={`Share ${event.name}`}
-                      className="h-11 px-2.5 sm:h-9"
+                      className="size-11 p-0 sm:h-9 sm:w-auto sm:px-2.5"
                       onClick={() => shareEvent(event.name, text)}
                       size="sm"
                       type="button"
                       variant="ghost"
                     >
-                      <Share2 aria-hidden="true" className="size-4" /> Share
+                      <Share2 aria-hidden="true" className="size-4" />
+                      <span className="hidden sm:inline">Share</span>
                     </Button>
                     <Button asChild className="h-11 px-3 sm:h-9" size="sm">
                       <a
