@@ -22,6 +22,9 @@
     "test": {
       "dependsOn": ["^test"]
     },
+    "delulu-cli#test": {
+      "dependsOn": ["^test", "@delulu/client#build"]
+    },
     "analyze": {
       "dependsOn": ["^analyze"]
     },
