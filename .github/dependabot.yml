@@ -1,16 +1,19 @@
 version: 2
-updates:
 
-  # Maintain dependencies for GitHub Actions
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: "monthly"
+
+updates:
   - package-ecosystem: "github-actions"
     directory: "/"
-    open-pull-requests-limit: 10
-    schedule:
-      interval: "monthly"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "dependencies"
 
-  # Maintain dependencies for npm
   - package-ecosystem: "npm"
     directory: "/"
-    open-pull-requests-limit: 10
-    schedule:
-      interval: "monthly"
+    patterns:
+      - "*"
+    multi-ecosystem-group: "dependencies"

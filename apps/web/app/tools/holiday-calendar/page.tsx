@@ -11,11 +11,11 @@ import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import { ToolCard } from "@/components/tools/tool-card";
 import { ToolFaq } from "@/components/tools/tool-faq";
-import { getToolFamily, getToolPath, tools } from "@/lib/tools";
+import { getToolFamily, getToolHref, tools } from "@/lib/tools";
 
 const family = getToolFamily("holiday-calendar")!;
 const familyTools = tools.filter(
-  (tool) => tool.family === family.slug && tool.status !== "coming-soon"
+  (tool) => tool.family?.slug === family.slug && tool.status !== "coming-soon"
 );
 
 const description =
@@ -70,7 +70,7 @@ const itemListSchema: WithContext<ItemList> = {
     position: index + 1,
     name: tool.title,
     description: tool.description,
-    url: getWebUrl(getToolPath(tool)),
+    url: getWebUrl(getToolHref(tool)),
   })),
 };
 

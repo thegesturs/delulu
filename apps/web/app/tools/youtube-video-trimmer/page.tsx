@@ -20,6 +20,7 @@ export const metadata: Metadata = createMetadata({
   alternates: {
     canonical: getWebUrl("/tools/youtube-video-trimmer"),
   },
+  openGraph: { url: getWebUrl("/tools/youtube-video-trimmer") },
 });
 
 const howToSteps = [

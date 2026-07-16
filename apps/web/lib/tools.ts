@@ -1,17 +1,12 @@
-import { holidayCalendarRegistry } from "@/app/tools/holiday-calendar/_utils/registry";
-
 /**
  * Registry of free marketing tools.
  *
- * Single source of truth consumed by:
- *  - the `/tools` hub index (`app/tools/page.tsx`)
- *  - the sitemap (`app/sitemap.ts`)
- *  - per-tool metadata / page copy
- *
- * Keep this file server-safe (no "use client", no React imports) so it can be
- * imported by `sitemap.ts`, which runs in the Cloudflare Worker. Icons are
- * referenced by string key and resolved in the client `tool-card` component.
+ * Keep this module server-safe. Icons are stored as string keys and resolved
+ * by the tool-card component.
  */
+
+import { holidayCalendarRegistry } from "@/app/tools/holiday-calendar/_utils/registry";
+import { textTools } from "@/app/tools/text-tools/utils/text-tools";
 
 export type ToolCategory = "video" | "text" | "image" | "seo" | "calendar";
 
@@ -25,52 +20,58 @@ export interface ToolFamily {
 
 export interface Tool {
   slug: string;
+  /** Canonical route. Defaults to /tools/{slug} for legacy tools. */
+  href?: string;
   title: string;
-  /** One-line description used on cards and in meta descriptions. */
   description: string;
   category: ToolCategory;
-  /** Icon key mapped to a component in `components/tools/tool-card.tsx`. */
   icon: string;
   keywords?: string[];
   status?: "live" | "coming-soon";
-  family?: string;
-  featured?: boolean;
+  family?: ToolFamily;
 }
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   video: "Video",
-  text: "Text & Captions",
+  text: "Caption & Text",
   image: "Image",
   seo: "SEO",
   calendar: "Calendar",
 };
 
-export const toolFamilies: ToolFamily[] = [
-  {
-    slug: "holiday-calendar",
-    title: "Social Calendar",
-    description:
-      "Find reliable dates for timely posts, from global awareness days to U.S., India, and seasonal calendars.",
-    relatedHeading: "More social calendars",
-    icon: "calendar",
-  },
-];
+const textToolsFamily: ToolFamily = {
+  slug: "text-tools",
+  title: "Caption & Text",
+  description:
+    "Check caption length, count words, and format social text before you publish.",
+  relatedHeading: "More caption and text tools",
+  icon: "type",
+};
 
-const featuredCalendarSlugs = new Set([
-  "social-media-holiday-calendar",
-  "social-media-awareness-days-calendar",
-]);
+const holidayCalendarFamily: ToolFamily = {
+  slug: "holiday-calendar",
+  title: "Social Calendar",
+  description:
+    "Find reliable dates for timely posts, from global awareness days to U.S., India, and seasonal calendars.",
+  relatedHeading: "More social calendars",
+  icon: "calendar",
+};
+
+export const toolFamilies: ToolFamily[] = [
+  textToolsFamily,
+  holidayCalendarFamily,
+];
 
 const holidayCalendarTools: Tool[] = holidayCalendarRegistry.map((page) => ({
   slug: page.slug,
+  href: `/tools/holiday-calendar/${page.slug}`,
   title: page.title,
   description: page.description,
   category: "calendar",
   icon: "calendar",
   keywords: [...page.keywords],
   status: "live",
-  family: "holiday-calendar",
-  featured: featuredCalendarSlugs.has(page.slug),
+  family: holidayCalendarFamily,
 }));
 
 export const tools: Tool[] = [
@@ -90,13 +91,23 @@ export const tools: Tool[] = [
       "clip youtube video",
     ],
     status: "live",
-    featured: true,
   },
+  ...textTools.map((tool) => ({
+    slug: tool.slug,
+    href: `/tools/text-tools/${tool.slug}`,
+    title: tool.title,
+    description: tool.description,
+    category: "text" as const,
+    icon: tool.cardIcon,
+    keywords: tool.keywords,
+    status: "live" as const,
+    family: textToolsFamily,
+  })),
   ...holidayCalendarTools,
 ];
 
-export const getToolPath = (tool: Tool): string =>
-  tool.family ? `/tools/${tool.family}/${tool.slug}` : `/tools/${tool.slug}`;
+export const getToolHref = (tool: Tool): string =>
+  tool.href ?? `/tools/${tool.slug}`;
 
 export const getTool = (slug: string): Tool | undefined =>
   tools.find((tool) => tool.slug === slug);
@@ -106,6 +117,3 @@ export const getToolFamily = (slug: string): ToolFamily | undefined =>
 
 export const liveTools = (): Tool[] =>
   tools.filter((tool) => tool.status !== "coming-soon");
-
-export const featuredTools = (): Tool[] =>
-  liveTools().filter((tool) => tool.featured);

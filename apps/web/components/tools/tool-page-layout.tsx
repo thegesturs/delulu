@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Balancer from "react-wrap-balancer";
-import { getToolFamily, getToolPath, type Tool, tools } from "@/lib/tools";
+import { getToolHref, type Tool, tools } from "@/lib/tools";
 import type { FaqItem } from "./tool-faq";
 import { ToolFaq } from "./tool-faq";
 
@@ -43,8 +43,7 @@ export function ToolPageLayout({
   sections = [],
   faq,
 }: ToolPageLayoutProps) {
-  const url = getWebUrl(getToolPath(tool));
-  const family = tool.family ? getToolFamily(tool.family) : undefined;
+  const url = getWebUrl(getToolHref(tool));
 
   const softwareSchema: WithContext<WebApplication> = {
     "@context": "https://schema.org",
@@ -55,7 +54,9 @@ export function ToolPageLayout({
     applicationCategory:
       tool.category === "calendar"
         ? "BusinessApplication"
-        : "MultimediaApplication",
+        : tool.category === "text"
+          ? "UtilitiesApplication"
+          : "MultimediaApplication",
     operatingSystem: "Web Browser",
     offers: {
       "@type": "Offer",
@@ -75,32 +76,33 @@ export function ToolPageLayout({
         name: "Tools",
         item: getWebUrl("/tools"),
       },
-      ...(family
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: tool.family?.title ?? tool.title,
+        item: tool.family
+          ? getWebUrl(`/tools/${tool.family.slug}`)
+          : getWebUrl(getToolHref(tool)),
+      },
+      ...(tool.family
         ? [
             {
               "@type": "ListItem" as const,
-              position: 2,
-              name: family.title,
-              item: getWebUrl(`/tools/${family.slug}`),
+              position: 3,
+              name: tool.title,
+              item: url,
             },
           ]
         : []),
-      {
-        "@type": "ListItem",
-        position: family ? 3 : 2,
-        name: tool.title,
-        item: url,
-      },
     ],
   };
 
-  // Related tools = same category, live, excluding this one. Powers internal
-  // linking + the "More free tools" block the SEO playbook recommends.
+  // Related entries stay within the current category when one is present.
   const related = tools.filter(
-    (candidate) =>
-      candidate.slug !== tool.slug &&
-      candidate.status !== "coming-soon" &&
-      (tool.family ? candidate.family === tool.family : true)
+    (t) =>
+      t.slug !== tool.slug &&
+      t.status !== "coming-soon" &&
+      (!tool.family || t.family?.slug === tool.family.slug)
   );
 
   return (
@@ -115,7 +117,6 @@ export function ToolPageLayout({
           steps: howToSteps,
         })}
       />
-
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
@@ -125,13 +126,13 @@ export function ToolPageLayout({
           Tools
         </Link>
         <span className="mx-2">/</span>
-        {family ? (
+        {tool.family ? (
           <>
             <Link
               className="hover:text-foreground"
-              href={`/tools/${family.slug}`}
+              href={`/tools/${tool.family.slug}`}
             >
-              {family.title}
+              {tool.family.title}
             </Link>
             <span className="mx-2">/</span>
           </>
@@ -202,7 +203,7 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          {family ? family.relatedHeading : "More free tools"}
+          {tool.family?.relatedHeading ?? "Related creator tools"}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">
@@ -210,7 +211,7 @@ export function ToolPageLayout({
               <li key={t.slug}>
                 <Link
                   className="text-primary hover:underline"
-                  href={getToolPath(t)}
+                  href={getToolHref(t)}
                 >
                   {t.title}
                 </Link>{" "}
@@ -222,18 +223,21 @@ export function ToolPageLayout({
           </ul>
         ) : (
           <p className="text-muted-foreground">
-            We're adding more free creator tools.{" "}
+            More creator tasks are coming.{" "}
             <Link className="text-primary hover:underline" href="/tools">
-              Browse the tools hub
-            </Link>{" "}
-            to see what's new.
+              See what you can use now
+            </Link>
+            .
           </p>
         )}
         <Link
           className="mt-6 inline-flex items-center gap-1.5 font-medium text-primary text-sm hover:underline"
-          href="/tools"
+          href={tool.family ? `/tools/${tool.family.slug}` : "/tools"}
         >
-          Browse all creator tools <ArrowRight className="size-4" />
+          {tool.family
+            ? `See all ${tool.family.title} options`
+            : "Find another creator task"}{" "}
+          <ArrowRight aria-hidden className="size-4" />
         </Link>
       </section>
     </main>
