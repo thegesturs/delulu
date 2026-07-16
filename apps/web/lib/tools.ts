@@ -11,7 +11,7 @@
  * referenced by string key and resolved in the client `tool-card` component.
  */
 
-export type ToolCategory = "video" | "text" | "image" | "seo";
+export type ToolCategory = "video" | "text" | "image" | "seo" | "research";
 
 export interface Tool {
   slug: string;
@@ -30,9 +30,26 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   text: "Text & Captions",
   image: "Image",
   seo: "SEO",
+  research: "News & Research",
 };
 
 export const tools: Tool[] = [
+  {
+    slug: "news-explorer",
+    title: "News Explorer",
+    description:
+      "Explore fresh headlines by country and topic, open the original reporting, and turn a story into a social post — free, with no signup.",
+    category: "research",
+    icon: "newspaper",
+    keywords: [
+      "news explorer",
+      "latest news by country",
+      "world news headlines",
+      "news by category",
+      "free news feed",
+    ],
+    status: "live",
+  },
   {
     slug: "youtube-video-trimmer",
     title: "YouTube Video Trimmer",

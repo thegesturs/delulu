@@ -1,6 +1,12 @@
 import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
+import {
+  indexableNewsRoutes,
+  NEWS_FAMILY_PATH,
+  newsRoutePath,
+} from "@/app/tools/news-explorer/utils/config";
+import { hasUsableCachedNews } from "@/app/tools/news-explorer/utils/service";
 import { fetchArticlePreviews } from "@/lib/articles";
 import { tools } from "@/lib/tools";
 
@@ -13,6 +19,14 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
   // Fetch Outrank article slugs from KV (preview index)
   const outrankPreviews = await fetchArticlePreviews();
   const outrankSlugs = outrankPreviews.map((a) => a.slug);
+  const completeNewsRoutes = (
+    await Promise.all(
+      indexableNewsRoutes().map(async (route) => ({
+        route,
+        complete: await hasUsableCachedNews(route),
+      }))
+    )
+  ).filter(({ complete }) => complete);
 
   return [
     {
@@ -39,11 +53,25 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    ...tools.map((tool) => ({
-      url: getWebUrl(`/tools/${tool.slug}`),
+    ...tools
+      .filter((tool) => tool.slug !== "news-explorer")
+      .map((tool) => ({
+        url: getWebUrl(`/tools/${tool.slug}`),
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
+    {
+      url: getWebUrl(NEWS_FAMILY_PATH),
       lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    },
+    ...completeNewsRoutes.map(({ route }) => ({
+      url: getWebUrl(newsRoutePath(route)),
+      lastModified: new Date(),
+      changeFrequency: "hourly" as const,
+      priority: route.country || route.category ? 0.65 : 0.75,
     })),
     ...pages
       .filter((page) => !["pricing", "contact"].includes(page))

@@ -12,7 +12,7 @@ import { SocialTypes } from "@delulu/validators/post";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import type { EditorMediaDetail } from "@/lib/editor-media";
@@ -40,9 +40,10 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>("global");
   const loadPost = useStore((state) => state.loadPost);
-  const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
+  const setPost = useStore((state) => state.setPost);
+  const appliedPrefill = useRef(false);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -130,6 +131,32 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       }
     }
   }, [postId, searchParams, setDateAlongWithTime, setTime]);
+
+  // Free public tools can hand an attributed draft to the composer. Apply it
+  // once for a new post only, and keep the final text fully editable.
+  useEffect(() => {
+    if (postId || appliedPrefill.current) {
+      return;
+    }
+    const content = searchParams.get("content")?.trim().slice(0, 5000);
+    if (!content) {
+      return;
+    }
+    appliedPrefill.current = true;
+    setPost((currentPost) => ({
+      ...currentPost,
+      content: currentPost.content.map((segment, index) =>
+        index === 0
+          ? {
+              ...segment,
+              text: segment.text.trim()
+                ? `${segment.text.trim()}\n\n${content}`
+                : content,
+            }
+          : segment
+      ),
+    }));
+  }, [postId, searchParams, setPost]);
 
   // Clear stale automation configs for new posts
   useEffect(() => {

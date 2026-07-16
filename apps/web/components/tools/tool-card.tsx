@@ -3,13 +3,20 @@ import {
   CardContent,
   CardHeader,
 } from "@delulu/design-system/components/ui/card";
-import { ArrowRight, type LucideIcon, Scissors, Wrench } from "lucide-react";
+import {
+  ArrowRight,
+  type LucideIcon,
+  Newspaper,
+  Scissors,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
 import { CATEGORY_LABELS, type Tool } from "@/lib/tools";
 
 // String keys in the tools registry map to icons here so the registry stays
 // server-safe and free of React imports.
 const ICONS: Record<string, LucideIcon> = {
+  newspaper: Newspaper,
   scissors: Scissors,
 };
 
