@@ -1,13 +1,63 @@
 import { navigate } from "astro:transitions/client";
 import type { AstroProviderProps } from "fumadocs-core/framework/astro";
 import type { Root } from "fumadocs-core/page-tree";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
-import { DocsPage, type DocsPageProps } from "fumadocs-ui/layouts/docs/page";
+import { DocsLayout } from "fumadocs-ui/layouts/notebook";
+import {
+  DocsPage,
+  type DocsPageProps,
+} from "fumadocs-ui/layouts/notebook/page";
+import type { LinkItemType } from "fumadocs-ui/layouts/shared";
 import { RootProvider } from "fumadocs-ui/provider/astro";
 import type { ReactNode } from "react";
 import { organizeDocsTree } from "@/lib/docs-tree";
-import { DocsMobileSections, DocsShell } from "./docs-shell";
+import {
+  ApiIcon,
+  CliIcon,
+  DocumentationIcon,
+  ExternalIcon,
+} from "./docs-navigation";
 import DocsSearch from "./search";
+
+const productLinks: LinkItemType[] = [
+  {
+    type: "custom",
+    children: (
+      <a
+        className="docs-external-link"
+        href="/api-explorer/"
+        rel="noopener"
+        target="_blank"
+      >
+        <span>API explorer</span>
+        <ExternalIcon />
+      </a>
+    ),
+  },
+  {
+    type: "custom",
+    children: (
+      <a
+        className="docs-external-link"
+        href="https://solulu.delulu.social"
+        rel="noreferrer noopener"
+        target="_blank"
+      >
+        <span>Dashboard</span>
+        <ExternalIcon />
+      </a>
+    ),
+  },
+];
+
+const iconForRoot = (id?: string): ReactNode => {
+  if (id === "docs-root-cli-agents") {
+    return <CliIcon />;
+  }
+  if (id === "docs-root-api") {
+    return <ApiIcon />;
+  }
+  return <DocumentationIcon />;
+};
 
 export function Docs({
   tree,
@@ -31,8 +81,9 @@ export function Docs({
       search={{ SearchDialog: DocsSearch }}
     >
       <DocsLayout
-        githubUrl="https://github.com/thegesturs/delulu"
+        links={productLinks}
         nav={{
+          mode: "top",
           title: (
             <span className="docs-brand">
               <img
@@ -48,12 +99,19 @@ export function Docs({
           ),
         }}
         sidebar={{
-          banner: <DocsMobileSections />,
+          collapsible: false,
           defaultOpenLevel: 1,
           prefetch: false,
         }}
-        slots={{ container: DocsShell }}
-        tabs={false}
+        tabMode="navbar"
+        tabs={{
+          transform(option, node) {
+            return {
+              ...option,
+              icon: iconForRoot(node.$id),
+            };
+          },
+        }}
         tree={organizedTree}
       >
         <DocsPage {...page}>{children}</DocsPage>

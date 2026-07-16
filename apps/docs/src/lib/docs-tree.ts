@@ -53,7 +53,7 @@ const createRoot = ({
   index,
   name,
 }: {
-  children: Folder[];
+  children: Node[];
   description: string;
   id: string;
   index: Item;
@@ -95,7 +95,7 @@ export const organizeDocsTree = (tree: Root): Root => {
         name: "Documentation",
         description: "Setup, workflows, and product concepts.",
         index: home,
-        children: [gettingStarted, guides, concepts],
+        children: [home, gettingStarted, guides, concepts],
       }),
       createRoot({
         id: "docs-root-cli-agents",

@@ -23,8 +23,6 @@
 
 :root {
   --fd-layout-width: 1460px;
-  --docs-topbar-height: 3.5rem;
-  --docs-dot: color-mix(in oklab, var(--foreground), transparent 93%);
   --docs-line: var(--dotted-line);
   --docs-surface-shadow:
     0 1px 2px oklch(0.2527 0.0207 284.8269 / 0.035),
@@ -34,7 +32,6 @@
 }
 
 .dark {
-  --docs-dot: color-mix(in oklab, var(--foreground), transparent 95%);
   --docs-surface-shadow:
     0 1px 2px oklch(0 0 0 / 0.28), 0 10px 24px -20px oklch(0 0 0 / 0.8),
     0 0 0 1px color-mix(in oklab, var(--border), transparent 15%);
@@ -69,106 +66,22 @@ button {
   scroll-margin-top: 5rem;
 }
 
-.docs-shell {
-  display: grid;
+#nd-notebook-layout {
   min-height: 100dvh;
   overflow-x: clip;
-  isolation: isolate;
   background: var(--background);
-  --fd-docs-height: 100dvh;
-  --fd-header-height: 0px;
-  --fd-toc-popover-height: 0px;
-  --fd-sidebar-width: 268px;
-  --fd-toc-width: 240px;
 }
 
-.docs-shell[data-column-changed="true"] {
-  transition: grid-template-columns 200ms ease-out;
-}
-
-.docs-topbar {
-  position: sticky;
-  z-index: 20;
-  top: 0;
-  grid-area: topbar;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  border-bottom: 1.5px dotted var(--docs-line);
-  padding-inline: clamp(1rem, 3vw, 2rem);
+#nd-subnav {
   background: color-mix(in oklab, var(--background), transparent 4%);
   backdrop-filter: blur(16px);
 }
 
-.docs-topbar-tabs,
-.docs-topbar-actions,
-.docs-topbar-tab,
-.docs-topbar-actions a {
-  display: flex;
+.docs-external-link {
+  display: inline-flex;
   align-items: center;
-}
-
-.docs-mobile-sections {
-  display: none;
-}
-
-.docs-topbar-tabs {
-  align-self: stretch;
-  gap: 1.6rem;
-}
-
-.docs-topbar-tab {
-  position: relative;
-  align-self: stretch;
-  gap: 0.45rem;
-  color: var(--muted-foreground);
-  font-size: 0.82rem;
-  font-weight: 560;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 150ms ease;
-}
-
-.docs-topbar-tab::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--primary);
-  content: "";
-  opacity: 0;
-}
-
-.docs-topbar-tab[data-active="true"] {
-  color: var(--foreground);
-}
-
-.docs-topbar-tab[data-active="true"]::after {
-  opacity: 1;
-}
-
-.docs-topbar-icon {
-  display: grid;
-  width: 1rem;
-  height: 1rem;
-  place-items: center;
-}
-
-.docs-topbar-icon svg,
-.docs-topbar-actions svg {
-  width: 100%;
-  height: 100%;
-}
-
-.docs-topbar-actions {
-  gap: 0.15rem;
-}
-
-.docs-topbar-actions a {
   gap: 0.4rem;
-  min-height: 2.5rem;
+  min-height: 2rem;
   border-radius: 0.5rem;
   padding-inline: 0.65rem;
   color: var(--muted-foreground);
@@ -180,9 +93,28 @@ button {
     color 150ms ease;
 }
 
-.docs-topbar-actions svg {
+.docs-external-link svg {
   width: 0.82rem;
   height: 0.82rem;
+}
+
+[data-header-body],
+[data-header-tabs] {
+  border-bottom: 1.5px dotted var(--docs-line);
+}
+
+[data-header-tabs] {
+  gap: 1.75rem;
+}
+
+[data-header-tabs] > a {
+  gap: 0.45rem;
+  font-size: 0.8rem;
+}
+
+[data-header-tabs] > a > svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 #nd-sidebar {
@@ -190,14 +122,14 @@ button {
   box-shadow: inset -1px 0 color-mix(in oklab, var(--border), transparent 30%);
 }
 
-.docs-shell a[data-active="true"][style*="padding-inline-start"] {
+#nd-sidebar a[data-active="true"][style*="padding-inline-start"] {
   background: transparent;
   border-radius: 0;
   color: var(--primary);
   box-shadow: inset 2px 0 var(--primary);
 }
 
-.docs-shell a[data-active="true"][style*="padding-inline-start"]::before {
+#nd-sidebar a[data-active="true"][style*="padding-inline-start"]::before {
   display: none;
 }
 
@@ -206,25 +138,7 @@ button {
 }
 
 #nd-page {
-  position: relative;
   padding-bottom: 5rem;
-}
-
-#nd-page::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0 -4vw auto;
-  height: 20rem;
-  background-image: radial-gradient(
-    circle,
-    var(--docs-dot) 0.7px,
-    transparent 0.8px
-  );
-  background-position: center top;
-  background-size: 16px 16px;
-  content: "";
-  mask-image: linear-gradient(to bottom, black, transparent 88%);
-  pointer-events: none;
 }
 
 #nd-toc {
@@ -305,10 +219,14 @@ button {
 }
 
 .prose {
-  max-width: 72ch;
+  max-width: none;
   color: color-mix(in oklab, var(--foreground), transparent 9%);
   font-size: 0.94rem;
   line-height: 1.72;
+}
+
+.prose > :where(p, ul, ol, blockquote) {
+  max-width: 72ch;
 }
 
 .prose :where(h2, h3, h4) {
@@ -561,13 +479,12 @@ button {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .docs-topbar-tab:hover,
-  .docs-topbar-actions a:hover,
+  .docs-external-link:hover,
   .api-explorer-links a:hover {
     color: var(--foreground);
   }
 
-  .docs-topbar-actions a:hover,
+  .docs-external-link:hover,
   .api-explorer-links a:hover {
     background: var(--accent);
   }
@@ -577,66 +494,7 @@ button {
   }
 }
 
-@media (max-width: 900px) {
-  .docs-topbar-tabs {
-    gap: 1rem;
-  }
-
-  .docs-topbar-actions a span {
-    display: none;
-  }
-
-  .docs-topbar-actions a {
-    justify-content: center;
-    width: 2.5rem;
-    padding: 0;
-  }
-}
-
-@media (max-width: 1279px) {
-  .docs-shell {
-    --fd-toc-width: 0px;
-  }
-}
-
 @media (max-width: 767px) {
-  .docs-shell {
-    --docs-topbar-height: 0px;
-    --fd-sidebar-width: 0px;
-    --fd-toc-width: 0px;
-  }
-
-  .docs-topbar {
-    display: none;
-  }
-
-  .docs-mobile-sections {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.2rem;
-    border-top: 1.5px dotted var(--docs-line);
-    padding-top: 0.7rem;
-  }
-
-  .docs-mobile-sections a {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    min-height: 2.6rem;
-    border-radius: 0.5rem;
-    padding-inline: 0.65rem;
-    color: var(--muted-foreground);
-    font-size: 0.8rem;
-    font-weight: 560;
-    text-decoration: none;
-  }
-
-  .docs-mobile-sections a[data-active="true"] {
-    background: color-mix(in oklab, var(--primary), transparent 92%);
-    color: var(--foreground);
-    box-shadow: inset 2px 0 var(--primary);
-  }
-
   .docs-path-grid {
     grid-template-columns: 1fr;
   }
