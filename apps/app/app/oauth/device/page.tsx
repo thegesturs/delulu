@@ -52,6 +52,7 @@ function DeviceApprovalForm() {
   }>();
   const [workspaces, setWorkspaces] = useState<Membership[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const workspaceHint = params.get("workspace_id");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -86,7 +87,9 @@ function DeviceApprovalForm() {
           setDetails(transaction);
           setWorkspaces(list);
           setWorkspaceId(
-            list.find((workspace) => workspace.isPersonal)?.workspaceId ??
+            list.find((workspace) => workspace.workspaceId === workspaceHint)
+              ?.workspaceId ??
+              list.find((workspace) => workspace.isPersonal)?.workspaceId ??
               list[0]?.workspaceId ??
               ""
           );
@@ -96,7 +99,7 @@ function DeviceApprovalForm() {
     return () => {
       active = false;
     };
-  }, [getToken, userCode]);
+  }, [getToken, userCode, workspaceHint]);
 
   const activeWorkspace = workspaces?.find(
     (workspace) => workspace.workspaceId === workspaceId
@@ -209,8 +212,8 @@ function DeviceApprovalForm() {
         />
         {details?.resource ? (
           <p className="text-muted-foreground text-xs">
-            Access applies to {details.resource}. You’ll select a workspace in
-            the CLI after authorization.
+            Access applies to {details.resource} and will be bound to the
+            workspace selected below.
           </p>
         ) : null}
       </div>

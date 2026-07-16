@@ -135,6 +135,7 @@ export const BillingGroup = HttpApiGroup.make("billing")
         interval: Schema.Literals(["MONTHLY", "YEARLY"]),
         currency: Schema.Literals(["USD", "INR"]),
         returnPath: Schema.optional(Schema.String),
+        idempotencyKey: Schema.optional(Schema.String),
       }),
       success: Schema.Struct({ url: Schema.String }),
       error: billingErrors,

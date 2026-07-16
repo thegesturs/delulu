@@ -14,31 +14,48 @@ access or refresh tokens.
 1. Call an MCP tool. If the host requests authorization, follow its OAuth flow.
 2. For CLI use, run `delulu login`. Surface the verification URL and code, then
    wait for the user to sign up or sign in and approve access.
-3. Run `delulu workspaces list` or `list_workspaces`.
-4. If exactly one workspace exists, use it. If several exist, ask the user to
-   choose and pass its ID explicitly on every operation.
+3. Run `delulu workspace` or `list_workspaces`.
+4. If the user chooses another workspace, run `delulu workspace use <selector>`
+   and wait for explicit authorization. Never override a workspace-bound token.
 
 ## Complete setup
 
-1. Read `setup status` or call `get_setup_status`.
+1. Run `delulu` or call `get_setup_status`.
 2. Ask which supported social platforms to connect. For each choice, call
-   `accounts connect` or `connect_account`, surface the returned URL, and poll
-   setup status until the connection appears or expires.
+   `delulu connect <platform>` or `connect_account`. Surface the returned URL
+   and wait for the callback result.
 3. Ask for plan, monthly/yearly interval, and USD/INR currency. Call
-   `billing checkout` or `create_checkout` and surface the hosted checkout URL.
-4. Poll setup status. Do not claim onboarding is complete until it returns
+   `delulu subscribe` or `create_checkout` and surface the checkout URL.
+4. Re-run `delulu`. Do not claim onboarding is complete until it returns
    `onboardingComplete: true` after both a social connection and confirmed
    payment.
 
 ## Prepare and publish content
 
-- Upload local image/video files with `media upload`. For hosted MCP or remote
-  media, call `import_media` with a public HTTPS URL. Public Google Drive share
-  links are supported; private files are not.
-- Use explicit intent: `draft`, `schedule`, or `publish_now`.
+- Prefer the CLI's single-command flow. It resolves account selectors, uploads
+  local media or imports public HTTPS URLs, creates the post with an atomic
+  intent, and waits for the resulting target state:
+
+  ```sh
+  delulu post "Caption" --to linkedin --media video.mp4 --now
+  delulu post "Caption" --to linkedin,twitter --at "2026-07-18T10:00:00Z"
+  delulu post "Caption" --to linkedin --draft
+  ```
+
+  The CLI journals a stable key automatically. Re-running the identical command
+  within 24 hours returns the original result; use `--new` only when the user
+  explicitly wants a duplicate.
+
+- Select accounts by ID, platform, username, or `platform@username`. When a
+  selector matches several accounts, ask the user to choose the specific one.
+- For hosted MCP, call `create_post` once with explicit `draft`, `schedule`, or
+  `publish_now` intent. Import remote media first with `import_media`.
 - Provide absolute schedule times and confirm the user's timezone when it is not
   already clear.
 - Respect returned role behavior. Editors may receive `pending_review`; never
   bypass or misrepresent that state.
-- After scheduling or publishing, inspect the returned post and target states.
-  Report partial failures and use retry only for failed targets.
+- The CLI waits on the original post target by default. If a publish response is
+  still `publishing`, poll that post without updating, rescheduling, or creating
+  another one. Report partial failures and retry only failed targets.
+- Piped CLI responses use TOON. Treat `status`, exit code, and returned target
+  states as authoritative. Use `--full` only when truncated content is needed.

@@ -16,6 +16,12 @@ export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
       effect: () => client.me.workspaces(),
       runner,
     }),
+  overview: (workspaceId: string) =>
+    effectQuery({
+      queryKey: ["me", "overview", workspaceId] as const,
+      effect: () => client.me.overview({ params: { workspaceId } }),
+      runner,
+    }),
   setup: (workspaceId: string) =>
     effectQuery({
       queryKey: ["me", "setup", workspaceId] as const,

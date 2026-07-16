@@ -96,7 +96,12 @@ export class DeluluApiClient {
     );
   }
 
-  async createPost(data: McpPostInput & { workspaceId?: string }) {
+  async createPost(
+    data: McpPostInput & {
+      workspaceId?: string;
+      intent?: "draft" | "schedule" | "publish_now";
+    }
+  ) {
     const workspaceId = await this.resolveWorkspaceId(data.workspaceId);
     const connections = await this.selectedConnections(
       workspaceId,
@@ -113,6 +118,7 @@ export class DeluluApiClient {
           ? new Date(data.scheduledAt * 1000).toISOString()
           : null,
       privacy: data.privacyStatus,
+      intent: data.intent,
     });
     return runEffect(
       this.client.posts.create({ params: { workspaceId }, payload })
