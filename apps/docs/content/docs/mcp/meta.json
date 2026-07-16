@@ -1,6 +1,5 @@
 {
   "title": "Agents & MCP",
   "description": "Hosted and local agent integrations with structured tools.",
-  "root": true,
   "pages": ["overview", "tools"]
 }

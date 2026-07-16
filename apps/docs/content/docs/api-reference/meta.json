@@ -1,6 +1,5 @@
 {
   "title": "REST API",
   "description": "OAuth, errors, OpenAPI schemas, and every endpoint group.",
-  "root": true,
   "pages": ["index", "authentication", "errors", "generated"]
 }
