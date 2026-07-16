@@ -121,7 +121,15 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       return;
     }
 
-    const draft = searchParams.get("draft")?.trim().slice(0, 5000);
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const fragmentText =
+      fragment.get("source") === "social-preview-tool"
+        ? fragment.get("text")?.trim().slice(0, 5000)
+        : undefined;
+    const draft =
+      fragmentText ??
+      searchParams.get("draft")?.trim().slice(0, 5000) ??
+      searchParams.get("text")?.trim().slice(0, 5000);
     if (!draft || appliedDraftRef.current === draft) {
       return;
     }
@@ -134,6 +142,13 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
         index === 0 ? { ...item, text: draft } : item
       ),
     }));
+    if (fragmentText) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.search}`
+      );
+    }
   }, [postId, resetPost, searchParams, setPost]);
 
   // Handle scheduledAt query parameter from calendar after any text handoff

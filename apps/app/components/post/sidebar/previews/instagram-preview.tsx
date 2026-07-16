@@ -1,5 +1,6 @@
 "use client";
 
+import { VisualPostPreviewCard } from "@delulu/design-system/components/social-preview/platform-post-card";
 import {
   Carousel,
   type CarouselApi,
@@ -214,76 +215,35 @@ export function InstagramPreview({ postData }: InstagramPreviewProps = {}) {
 
       {/* Post */}
       <div className="overflow-y-auto" style={{ height: "calc(100% - 90px)" }}>
-        {/* Post Header */}
-        <div className="flex items-center gap-3 px-3 py-2">
-          {provider?.profileImage ? (
-            <Image
-              alt="Profile"
-              className="rounded-full"
-              height={32}
-              src={provider.profileImage}
-              width={32}
-            />
-          ) : (
-            <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-700" />
-          )}
-          <span className="font-semibold text-sm dark:text-white">
-            {provider?.username || "username"}
-          </span>
-        </div>
-
-        {/* Media */}
-        {allMedia.length > 1 ? (
-          <InstagramCarousel items={allMedia} />
-        ) : (
-          <div className="relative aspect-square w-full bg-neutral-100 dark:bg-neutral-800">
-            {hasImage && mediaUrl ? (
-              <Image
-                alt="Preview"
-                className="object-cover"
-                fill
-                src={mediaUrl}
-              />
+        <VisualPostPreviewCard
+          avatarUrl={provider?.profileImage}
+          className="rounded-none border-0 shadow-none"
+          comments={42}
+          dateLabel="2 hours ago"
+          likes={4821}
+          media={
+            allMedia.length > 1 ? (
+              <InstagramCarousel items={allMedia} />
             ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <div className="text-center text-neutral-400">
-                  <div className="mb-2 text-4xl">📷</div>
-                  <p className="text-sm">No media</p>
-                </div>
+              <div className="relative aspect-square w-full bg-neutral-100 dark:bg-neutral-800">
+                {hasImage && mediaUrl ? (
+                  <Image
+                    alt="Preview"
+                    className="object-cover"
+                    fill
+                    src={mediaUrl}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-neutral-400">
+                    <p className="text-sm">No media</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Action Row */}
-        <div className="flex items-center justify-between px-3 py-2">
-          <div className="flex items-center gap-4">
-            <Icon className="dark:text-white" icon={FavouriteIcon} size={24} />
-            <Icon className="dark:text-white" icon={Comment01Icon} size={24} />
-            <Icon className="dark:text-white" icon={Sent02Icon} size={24} />
-          </div>
-          <Icon className="dark:text-white" icon={BookmarkIcon} size={24} />
-        </div>
-
-        {/* Likes */}
-        <div className="px-3">
-          <p className="font-semibold text-sm dark:text-white">
-            {formatNumber(4821)} likes
-          </p>
-        </div>
-
-        {/* Caption */}
-        <div className="px-3 pt-1 pb-2">
-          <p className="text-sm dark:text-neutral-200">
-            <span className="font-semibold dark:text-white">
-              {provider?.username || "username"}
-            </span>{" "}
-            {content.text || "Add your caption here..."}
-          </p>
-          <p className="mt-1 text-neutral-400 text-xs dark:text-neutral-500">
-            2 hours ago
-          </p>
-        </div>
+            )
+          }
+          text={content.text || "Add your caption here..."}
+          username={provider?.username ?? undefined}
+        />
       </div>
 
       {/* Bottom Nav */}
