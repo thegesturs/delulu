@@ -61,12 +61,7 @@ export const tools: Tool[] = [
     title: tool.title,
     description: tool.description,
     category: "text" as const,
-    icon:
-      tool.mode === "bold" || tool.mode === "italic"
-        ? "type"
-        : tool.mode === "line-break"
-          ? "pilcrow"
-          : "hash",
+    icon: tool.cardIcon,
     keywords: tool.keywords,
     status: "live" as const,
     family: { slug: "text-tools", title: "Caption & Text" },

@@ -1,6 +1,7 @@
 import { type ItemList, JsonLd, type WithContext } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { getWebUrl } from "@delulu/seo/url";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Balancer from "react-wrap-balancer";
@@ -57,30 +58,19 @@ export default function ToolsPage() {
         </p>
       </div>
 
-      <section className="mb-14">
-        <h2 className="mb-5 font-bold text-2xl tracking-tight">
-          What are you working on?
-        </h2>
-        <Link
-          className="group block rounded-xl border bg-card p-6 transition-colors hover:border-primary/60"
-          href="/tools/text-tools"
-        >
-          <p className="font-semibold text-xl">Caption &amp; Text</p>
-          <p className="mt-2 max-w-2xl text-muted-foreground leading-7">
-            Count platform-specific captions, bios, titles, and descriptions;
-            measure words and hashtags; or generate copy-ready line breaks, bold
-            text, and italic text.
-          </p>
-          <span className="mt-4 inline-block font-medium text-primary text-sm group-hover:underline">
-            Choose a caption or text task →
-          </span>
-        </Link>
-      </section>
-
       <section>
-        <h2 className="mb-5 font-bold text-2xl tracking-tight">
-          Start with a popular task
-        </h2>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="font-bold text-2xl tracking-tight">
+            Start with a popular task
+          </h2>
+          <Link
+            className="inline-flex min-h-11 items-center gap-1.5 self-start font-medium text-primary text-sm hover:underline sm:self-auto"
+            href="/tools/text-tools"
+          >
+            See all Caption &amp; Text options
+            <ArrowRight aria-hidden className="size-4" />
+          </Link>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {featuredTools.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />

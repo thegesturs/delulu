@@ -3,6 +3,8 @@ import {
   CardContent,
   CardHeader,
 } from "@delulu/design-system/components/ui/card";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import {
   ArrowRight,
   Hash,
@@ -24,15 +26,28 @@ const ICONS: Record<string, LucideIcon> = {
   type: Type,
 };
 
+const SOCIAL_ICONS: Record<string, SupportedSocialPlatform> = {
+  facebook: "FACEBOOK",
+  instagram: "INSTAGRAM",
+  linkedin: "LINKEDIN",
+  tiktok: "TIKTOK",
+  youtube: "YOUTUBE",
+};
+
 export function ToolCard({ tool }: { tool: Tool }) {
   const Icon = ICONS[tool.icon] ?? Wrench;
+  const socialIcon = SOCIAL_ICONS[tool.icon];
   const comingSoon = tool.status === "coming-soon";
 
   const inner = (
     <Card className="group h-full transition-colors hover:border-primary/60">
       <CardHeader className="flex flex-row items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="size-5" />
+        <span className="flex size-10 items-center justify-center rounded-lg bg-muted">
+          {socialIcon ? (
+            <SocialIcon size="md" type={socialIcon} />
+          ) : (
+            <Icon aria-hidden className="size-5 text-primary" />
+          )}
         </span>
         <span className="text-muted-foreground text-xs uppercase tracking-wide">
           {CATEGORY_LABELS[tool.category]}

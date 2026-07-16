@@ -1,5 +1,15 @@
 export type TextToolMode = "count" | "line-break" | "bold" | "italic";
 
+export type TextToolCardIcon =
+  | "facebook"
+  | "hash"
+  | "instagram"
+  | "linkedin"
+  | "pilcrow"
+  | "tiktok"
+  | "type"
+  | "youtube";
+
 export interface TextAnalysis {
   characters: number;
   words: number;
@@ -20,6 +30,7 @@ export interface TextToolDefinition {
   metadataTitle: string;
   metaDescription: string;
   keywords: string[];
+  cardIcon: TextToolCardIcon;
   mode: TextToolMode;
   limit?: number;
   limitLabel?: string;
@@ -203,6 +214,7 @@ export const textTools: TextToolDefinition[] = [
       "instagram caption limit",
       "instagram word counter",
     ],
+    cardIcon: "instagram",
     mode: "count",
     limit: 2200,
     limitLabel: "Instagram caption limit",
@@ -234,6 +246,7 @@ export const textTools: TextToolDefinition[] = [
       "instagram bio limit",
       "instagram bio word counter",
     ],
+    cardIcon: "instagram",
     mode: "count",
     limit: 150,
     limitLabel: "Instagram bio limit",
@@ -264,6 +277,7 @@ export const textTools: TextToolDefinition[] = [
       "linkedin post limit",
       "linkedin word counter",
     ],
+    cardIcon: "linkedin",
     mode: "count",
     limit: 3000,
     limitLabel: "LinkedIn post limit",
@@ -295,6 +309,7 @@ export const textTools: TextToolDefinition[] = [
       "youtube title limit",
       "youtube title length checker",
     ],
+    cardIcon: "youtube",
     mode: "count",
     limit: 100,
     limitLabel: "YouTube title limit",
@@ -324,6 +339,7 @@ export const textTools: TextToolDefinition[] = [
       "youtube description limit",
       "youtube description word counter",
     ],
+    cardIcon: "youtube",
     mode: "count",
     limit: 5000,
     limitLabel: "YouTube description limit",
@@ -358,6 +374,7 @@ export const textTools: TextToolDefinition[] = [
       "facebook post character limit",
       "facebook word counter",
     ],
+    cardIcon: "facebook",
     mode: "count",
     limit: 63_206,
     limitLabel: "Facebook post limit",
@@ -387,6 +404,7 @@ export const textTools: TextToolDefinition[] = [
       "tiktok caption limit",
       "tiktok hashtag counter",
     ],
+    cardIcon: "tiktok",
     mode: "count",
     limit: 2200,
     limitLabel: "TikTok caption limit",
@@ -416,6 +434,7 @@ export const textTools: TextToolDefinition[] = [
       "social post length checker",
       "caption character count",
     ],
+    cardIcon: "type",
     mode: "count",
     placeholder: "Paste a caption or social post from any platform…",
     intro:
@@ -443,6 +462,7 @@ export const textTools: TextToolDefinition[] = [
       "online word count",
       "character and word counter",
     ],
+    cardIcon: "type",
     mode: "count",
     placeholder: "Paste any text to count its words…",
     intro:
@@ -470,6 +490,7 @@ export const textTools: TextToolDefinition[] = [
       "count hashtags",
       "instagram hashtag counter",
     ],
+    cardIcon: "hash",
     mode: "count",
     placeholder: "Paste a caption with hashtags…",
     intro:
@@ -498,6 +519,7 @@ export const textTools: TextToolDefinition[] = [
       "instagram line breaks",
       "caption spacing tool",
     ],
+    cardIcon: "pilcrow",
     mode: "line-break",
     placeholder: "Write your caption with blank lines between sections…",
     intro:
@@ -529,6 +551,7 @@ export const textTools: TextToolDefinition[] = [
       "bold text copy paste",
       "bold font copy paste",
     ],
+    cardIcon: "type",
     mode: "bold",
     placeholder: "Type the words you want to emphasize…",
     intro:
@@ -559,6 +582,7 @@ export const textTools: TextToolDefinition[] = [
       "italic text copy paste",
       "italic font copy paste",
     ],
+    cardIcon: "type",
     mode: "italic",
     placeholder: "Type a short phrase to italicize…",
     intro:
