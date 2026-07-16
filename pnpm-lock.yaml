@@ -23,7 +23,7 @@ catalogs:
       version: 5.5.0
     typescript:
       specifier: ^5.7.2
-      version: 5.9.3
+      version: 5.8.3
     zod:
       specifier: ^3.24.2
       version: 3.25.76
@@ -126,7 +126,7 @@ importers:
         version: link:../../packages/typescript-config
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -346,7 +346,7 @@ importers:
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.15.34)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -373,7 +373,7 @@ importers:
         version: 3.1.18
       '@scalar/api-reference-react':
         specifier: 0.9.56
-        version: 0.9.56(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(react@19.2.7)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)
+        version: 0.9.56(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(react@19.2.7)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)
       '@tailwindcss/vite':
         specifier: 4.3.2
         version: 4.3.2(vite@8.1.5(@types/node@22.14.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0))
@@ -404,7 +404,7 @@ importers:
     devDependencies:
       '@astrojs/check':
         specifier: 0.9.9
-        version: 0.9.9(prettier@3.9.5)(typescript@5.9.3)
+        version: 0.9.9(prettier@3.9.5)(typescript@5.8.3)
       '@delulu/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -422,7 +422,7 @@ importers:
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       wrangler:
         specifier: ^4.110.0
         version: 4.110.0(@cloudflare/workers-types@5.20260713.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
@@ -453,7 +453,7 @@ importers:
         version: 19.2.17
       next:
         specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -475,13 +475,13 @@ importers:
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
 
   apps/sorted:
     dependencies:
       '@clerk/chrome-extension':
         specifier: 2.9.2
-        version: 2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
+        version: 2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
       react:
         specifier: catalog:react19
         version: 19.2.7
@@ -509,7 +509,7 @@ importers:
         version: 0.34.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       wxt:
         specifier: ^0.20.6
         version: 0.20.13(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.44.1)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -947,7 +947,7 @@ importers:
         version: 0.25.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -1046,7 +1046,7 @@ importers:
         version: 22.14.1
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^2.1.6
         version: 2.1.9(@types/node@22.14.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)
@@ -1065,7 +1065,7 @@ importers:
         version: link:../typescript-config
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
 
   packages/core:
     dependencies:
@@ -1084,7 +1084,7 @@ importers:
         version: 22.14.1
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -1115,7 +1115,7 @@ importers:
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -1414,7 +1414,7 @@ importers:
         version: 3.17.10
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
     devDependencies:
       '@types/aws-lambda':
         specifier: ^8.10.147
@@ -1443,7 +1443,7 @@ importers:
         version: link:../typescript-config
       next:
         specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/notifications:
     dependencies:
@@ -1586,7 +1586,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       next:
         specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/services:
     dependencies:
@@ -1620,7 +1620,7 @@ importers:
         version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.13.3)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -1782,7 +1782,7 @@ importers:
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 5.8.3
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
@@ -18903,12 +18903,12 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.24.6(zod@3.25.76)
 
-  '@ai-sdk/vue@3.0.33(vue@3.5.40(typescript@5.9.3))(zod@4.3.6)':
+  '@ai-sdk/vue@3.0.33(vue@3.5.40(typescript@5.8.3))(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider-utils': 4.0.5(zod@4.3.6)
       ai: 6.0.33(zod@4.3.6)
-      swrv: 1.2.0(vue@3.5.40(typescript@5.9.3))
-      vue: 3.5.40(typescript@5.9.3)
+      swrv: 1.2.0(vue@3.5.40(typescript@5.8.3))
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - zod
 
@@ -19022,12 +19022,12 @@ snapshots:
       '@ast-grep/napi-win32-ia32-msvc': 0.35.0
       '@ast-grep/napi-win32-x64-msvc': 0.35.0
 
-  '@astrojs/check@0.9.9(prettier@3.9.5)(typescript@5.9.3)':
+  '@astrojs/check@0.9.9(prettier@3.9.5)(typescript@5.8.3)':
     dependencies:
-      '@astrojs/language-server': 2.16.12(prettier@3.9.5)(typescript@5.9.3)
+      '@astrojs/language-server': 2.16.12(prettier@3.9.5)(typescript@5.8.3)
       chokidar: 4.0.3
       kleur: 4.1.5
-      typescript: 5.9.3
+      typescript: 5.8.3
       yargs: 17.7.2
     transitivePeerDependencies:
       - prettier
@@ -19100,12 +19100,12 @@ snapshots:
       smol-toml: 1.7.0
       unified: 11.0.5
 
-  '@astrojs/language-server@2.16.12(prettier@3.9.5)(typescript@5.9.3)':
+  '@astrojs/language-server@2.16.12(prettier@3.9.5)(typescript@5.8.3)':
     dependencies:
       '@astrojs/compiler': 2.13.1
       '@astrojs/yaml2ts': 0.2.4
       '@jridgewell/sourcemap-codec': 1.5.5
-      '@volar/kit': 2.4.28(typescript@5.9.3)
+      '@volar/kit': 2.4.28(typescript@5.8.3)
       '@volar/language-core': 2.4.28
       '@volar/language-server': 2.4.28
       '@volar/language-service': 2.4.28
@@ -21497,15 +21497,15 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@base-org/account@2.0.1(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@base-org/account@2.0.1(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
       '@noble/hashes': 1.4.0
       clsx: 1.2.1
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
-      ox: 0.6.9(typescript@5.9.3)(zod@4.3.6)
+      ox: 0.6.9(typescript@5.8.3)(zod@4.3.6)
       preact: 10.24.2
-      viem: 2.46.1(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
+      viem: 2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6)
       zustand: 5.0.3(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
     transitivePeerDependencies:
       - '@types/react'
@@ -21666,9 +21666,9 @@ snapshots:
       - react
       - react-dom
 
-  '@clerk/chrome-extension@2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@clerk/chrome-extension@2.9.2(patch_hash=4a3bf45f2331ec7fbb6e1a5f7896db7bee27a671fa0fd4264f4deac8d5446617)(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@clerk/clerk-js': 5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@clerk/clerk-js': 5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
       '@clerk/clerk-react': 5.60.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@clerk/shared': 3.45.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
@@ -21688,9 +21688,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@clerk/clerk-js@5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
+  '@clerk/clerk-js@5.123.0(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bs58@5.0.0)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.2.7(react@19.2.7))(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)':
     dependencies:
-      '@base-org/account': 2.0.1(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
+      '@base-org/account': 2.0.1(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(typescript@5.8.3)(use-sync-external-store@1.6.0(react@19.2.7))(utf-8-validate@5.0.10)(zod@4.3.6)
       '@clerk/localizations': 3.35.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@clerk/shared': 3.45.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@coinbase/wallet-sdk': 4.3.0
@@ -21699,9 +21699,9 @@ snapshots:
       '@floating-ui/react': 0.27.12(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@floating-ui/react-dom': 2.1.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@formkit/auto-animate': 0.8.4
-      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))
-      '@solana/wallet-adapter-react': 0.15.39(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
-      '@solana/wallet-standard': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@solana/wallet-adapter-react': 0.15.39(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
+      '@solana/wallet-standard': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
       '@stripe/stripe-js': 5.6.0
       '@swc/helpers': 0.5.18
       '@tanstack/query-core': 5.87.4
@@ -22814,20 +22814,20 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@floating-ui/vue@1.1.11(vue@3.5.40(typescript@5.9.3))':
+  '@floating-ui/vue@1.1.11(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@floating-ui/utils': 0.2.12
-      vue-demi: 0.14.10(vue@3.5.40(typescript@5.9.3))
+      vue-demi: 0.14.10(vue@3.5.40(typescript@5.8.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
 
-  '@floating-ui/vue@1.1.9(vue@3.5.40(typescript@5.9.3))':
+  '@floating-ui/vue@1.1.9(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@floating-ui/utils': 0.2.10
-      vue-demi: 0.14.10(vue@3.5.40(typescript@5.9.3))
+      vue-demi: 0.14.10(vue@3.5.40(typescript@5.8.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
@@ -22885,10 +22885,10 @@ snapshots:
     dependencies:
       tailwindcss: 4.3.2
 
-  '@headlessui/vue@1.7.23(vue@3.5.40(typescript@5.9.3))':
+  '@headlessui/vue@1.7.23(vue@3.5.40(typescript@5.8.3))':
     dependencies:
-      '@tanstack/vue-virtual': 3.13.32(vue@3.5.40(typescript@5.9.3))
-      vue: 3.5.40(typescript@5.9.3)
+      '@tanstack/vue-virtual': 3.13.32(vue@3.5.40(typescript@5.8.3))
+      vue: 3.5.40(typescript@5.8.3)
 
   '@hono/node-server@1.19.10(hono@4.12.5)':
     dependencies:
@@ -25930,27 +25930,27 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.44.1':
     optional: true
 
-  '@scalar/agent-chat@0.12.20(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)':
+  '@scalar/agent-chat@0.12.20(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)':
     dependencies:
-      '@ai-sdk/vue': 3.0.33(vue@3.5.40(typescript@5.9.3))(zod@4.3.6)
-      '@scalar/api-client': 3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)
-      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@ai-sdk/vue': 3.0.33(vue@3.5.40(typescript@5.8.3))(zod@4.3.6)
+      '@scalar/api-client': 3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)
+      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
       '@scalar/json-magic': 0.12.18
       '@scalar/openapi-types': 0.9.2
       '@scalar/schemas': 0.7.3
       '@scalar/themes': 0.16.3
       '@scalar/types': 0.16.3
-      '@scalar/use-toasts': 0.10.3(typescript@5.9.3)
+      '@scalar/use-toasts': 0.10.3(typescript@5.8.3)
       '@scalar/validation': 0.6.1
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
       ai: 6.0.33(zod@4.3.6)
       js-base64: 3.7.8
       neverpanic: 0.0.8
       truncate-json: 3.0.1
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - async-validator
@@ -25968,36 +25968,36 @@ snapshots:
       - universal-cookie
       - zod
 
-  '@scalar/api-client@3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)':
+  '@scalar/api-client@3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)':
     dependencies:
       '@headlessui/tailwindcss': 0.2.2(tailwindcss@4.3.2)
-      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.9.3))
-      '@scalar/blocks': 0.1.6(tailwindcss@4.3.2)(typescript@5.9.3)
-      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.8.3))
+      '@scalar/blocks': 0.1.6(tailwindcss@4.3.2)(typescript@5.8.3)
+      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
-      '@scalar/oas-utils': 0.19.6(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
+      '@scalar/oas-utils': 0.19.6(typescript@5.8.3)
       '@scalar/openapi-types': 0.9.2
-      '@scalar/sidebar': 0.9.31(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@scalar/sidebar': 0.9.31(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/snippetz': 0.9.22
       '@scalar/themes': 0.16.3
       '@scalar/typebox': 0.1.3
       '@scalar/types': 0.16.3
-      '@scalar/use-codemirror': 0.14.13(typescript@5.9.3)
-      '@scalar/use-hooks': 0.4.8(typescript@5.9.3)
-      '@scalar/use-toasts': 0.10.3(typescript@5.9.3)
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      '@vueuse/integrations': 13.9.0(axios@1.11.0)(focus-trap@7.8.0)(fuse.js@7.1.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(vue@3.5.40(typescript@5.9.3))
+      '@scalar/use-codemirror': 0.14.13(typescript@5.8.3)
+      '@scalar/use-hooks': 0.4.8(typescript@5.8.3)
+      '@scalar/use-toasts': 0.10.3(typescript@5.8.3)
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      '@vueuse/integrations': 13.9.0(axios@1.11.0)(focus-trap@7.8.0)(fuse.js@7.1.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(vue@3.5.40(typescript@5.8.3))
       focus-trap: 7.8.0
       fuse.js: 7.1.0
       js-base64: 3.7.8
       jsonc-parser: 3.3.1
       nanoid: 5.1.6
       pretty-ms: 9.3.0
-      radix-vue: 1.9.17(vue@3.5.40(typescript@5.9.3))
+      radix-vue: 1.9.17(vue@3.5.40(typescript@5.8.3))
       set-cookie-parser: 3.1.0
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
       yaml: 2.9.0
       zod: 4.3.6
     transitivePeerDependencies:
@@ -26016,9 +26016,9 @@ snapshots:
       - typescript
       - universal-cookie
 
-  '@scalar/api-reference-react@0.9.56(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(react@19.2.7)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)':
+  '@scalar/api-reference-react@0.9.56(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(react@19.2.7)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)':
     dependencies:
-      '@scalar/api-reference': 1.62.7(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)
+      '@scalar/api-reference': 1.62.7(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)
       '@scalar/types': 0.16.3
       react: 19.2.7
     transitivePeerDependencies:
@@ -26038,32 +26038,32 @@ snapshots:
       - universal-cookie
       - zod
 
-  '@scalar/api-reference@1.62.7(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)':
+  '@scalar/api-reference@1.62.7(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)':
     dependencies:
-      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.9.3))
-      '@scalar/agent-chat': 0.12.20(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)(zod@4.3.6)
-      '@scalar/api-client': 3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.9.3)
-      '@scalar/blocks': 0.1.6(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.8.3))
+      '@scalar/agent-chat': 0.12.20(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)(zod@4.3.6)
+      '@scalar/api-client': 3.13.5(axios@1.11.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(tailwindcss@4.3.2)(typescript@5.8.3)
+      '@scalar/blocks': 0.1.6(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/code-highlight': 0.4.2
-      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
-      '@scalar/oas-utils': 0.19.6(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
+      '@scalar/oas-utils': 0.19.6(typescript@5.8.3)
       '@scalar/schemas': 0.7.3
-      '@scalar/sidebar': 0.9.31(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@scalar/sidebar': 0.9.31(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/snippetz': 0.9.22
       '@scalar/themes': 0.16.3
       '@scalar/types': 0.16.3
-      '@scalar/use-hooks': 0.4.8(typescript@5.9.3)
-      '@scalar/use-toasts': 0.10.3(typescript@5.9.3)
+      '@scalar/use-hooks': 0.4.8(typescript@5.8.3)
+      '@scalar/use-toasts': 0.10.3(typescript@5.8.3)
       '@scalar/validation': 0.6.1
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
-      '@unhead/vue': 2.1.15(vue@3.5.40(typescript@5.9.3))
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
+      '@unhead/vue': 2.1.15(vue@3.5.40(typescript@5.8.3))
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
       fuse.js: 7.1.0
       microdiff: 1.5.0
       nanoid: 5.1.6
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
       yaml: 2.9.0
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -26086,18 +26086,18 @@ snapshots:
     dependencies:
       '@scalar/helpers': 0.9.1
 
-  '@scalar/blocks@0.1.6(tailwindcss@4.3.2)(typescript@5.9.3)':
+  '@scalar/blocks@0.1.6(tailwindcss@4.3.2)(typescript@5.8.3)':
     dependencies:
-      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
       '@scalar/snippetz': 0.9.22
       '@scalar/themes': 0.16.3
       '@scalar/types': 0.16.3
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
       '@types/har-format': 1.2.16
       js-base64: 3.7.8
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - supports-color
@@ -26124,21 +26124,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@scalar/components@0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)':
+  '@scalar/components@0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)':
     dependencies:
       '@floating-ui/utils': 0.2.10
-      '@floating-ui/vue': 1.1.9(vue@3.5.40(typescript@5.9.3))
+      '@floating-ui/vue': 1.1.9(vue@3.5.40(typescript@5.8.3))
       '@headlessui/tailwindcss': 0.2.2(tailwindcss@4.3.2)
-      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.9.3))
+      '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.8.3))
       '@scalar/code-highlight': 0.4.2
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
       '@scalar/themes': 0.16.3
-      '@scalar/use-hooks': 0.4.8(typescript@5.9.3)
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      cva: 1.0.0-beta.4(typescript@5.9.3)
-      radix-vue: 1.9.17(vue@3.5.40(typescript@5.9.3))
-      vue: 3.5.40(typescript@5.9.3)
+      '@scalar/use-hooks': 0.4.8(typescript@5.8.3)
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      cva: 1.0.0-beta.4(typescript@5.8.3)
+      radix-vue: 1.9.17(vue@3.5.40(typescript@5.8.3))
+      vue: 3.5.40(typescript@5.8.3)
       vue-component-type-helpers: 3.3.7
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -26148,12 +26148,12 @@ snapshots:
 
   '@scalar/helpers@0.9.1': {}
 
-  '@scalar/icons@0.7.4(typescript@5.9.3)':
+  '@scalar/icons@0.7.4(typescript@5.8.3)':
     dependencies:
       '@phosphor-icons/core': 2.1.1
       '@types/node': 24.13.3
       chalk: 5.6.2
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - typescript
 
@@ -26163,14 +26163,14 @@ snapshots:
       pathe: 2.0.3
       yaml: 2.9.0
 
-  '@scalar/oas-utils@0.19.6(typescript@5.9.3)':
+  '@scalar/oas-utils@0.19.6(typescript@5.8.3)':
     dependencies:
       '@scalar/helpers': 0.9.1
       '@scalar/themes': 0.16.3
       '@scalar/types': 0.16.3
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
       flatted: 3.4.2
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
       yaml: 2.9.0
     transitivePeerDependencies:
       - typescript
@@ -26186,15 +26186,15 @@ snapshots:
       '@scalar/helpers': 0.9.1
       '@scalar/validation': 0.6.1
 
-  '@scalar/sidebar@0.9.31(tailwindcss@4.3.2)(typescript@5.9.3)':
+  '@scalar/sidebar@0.9.31(tailwindcss@4.3.2)(typescript@5.8.3)':
     dependencies:
-      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.9.3)
+      '@scalar/components': 0.27.7(tailwindcss@4.3.2)(typescript@5.8.3)
       '@scalar/helpers': 0.9.1
-      '@scalar/icons': 0.7.4(typescript@5.9.3)
+      '@scalar/icons': 0.7.4(typescript@5.8.3)
       '@scalar/themes': 0.16.3
-      '@scalar/use-hooks': 0.4.8(typescript@5.9.3)
-      '@scalar/workspace-store': 0.55.5(typescript@5.9.3)
-      vue: 3.5.40(typescript@5.9.3)
+      '@scalar/use-hooks': 0.4.8(typescript@5.8.3)
+      '@scalar/workspace-store': 0.55.5(typescript@5.8.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - supports-color
@@ -26221,7 +26221,7 @@ snapshots:
       type-fest: 5.8.0
       zod: 4.3.6
 
-  '@scalar/use-codemirror@0.14.13(typescript@5.9.3)':
+  '@scalar/use-codemirror@0.14.13(typescript@5.8.3)':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/commands': 6.10.4
@@ -26237,31 +26237,31 @@ snapshots:
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@replit/codemirror-css-color-picker': 6.3.0(@codemirror/language@6.12.4)(@codemirror/state@6.7.1)(@codemirror/view@6.43.6)
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - typescript
 
-  '@scalar/use-hooks@0.4.8(typescript@5.9.3)':
+  '@scalar/use-hooks@0.4.8(typescript@5.8.3)':
     dependencies:
-      '@scalar/use-toasts': 0.10.3(typescript@5.9.3)
+      '@scalar/use-toasts': 0.10.3(typescript@5.8.3)
       '@scalar/validation': 0.6.1
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      cva: 1.0.0-beta.4(typescript@5.9.3)
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      cva: 1.0.0-beta.4(typescript@5.8.3)
       tailwind-merge: 3.5.0
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - typescript
 
-  '@scalar/use-toasts@0.10.3(typescript@5.9.3)':
+  '@scalar/use-toasts@0.10.3(typescript@5.8.3)':
     dependencies:
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
       vue-sonner: 1.3.2
     transitivePeerDependencies:
       - typescript
 
   '@scalar/validation@0.6.1': {}
 
-  '@scalar/workspace-store@0.55.5(typescript@5.9.3)':
+  '@scalar/workspace-store@0.55.5(typescript@5.8.3)':
     dependencies:
       '@scalar/asyncapi-upgrader': 0.1.3
       '@scalar/helpers': 0.9.1
@@ -26274,7 +26274,7 @@ snapshots:
       '@scalar/validation': 0.6.1
       js-base64: 3.7.8
       type-fest: 5.8.0
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
       yaml: 2.9.0
     transitivePeerDependencies:
       - typescript
@@ -27298,10 +27298,10 @@ snapshots:
 
   '@socket.io/component-emitter@3.1.2': {}
 
-  '@solana-mobile/mobile-wallet-adapter-protocol-web3js@2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)':
+  '@solana-mobile/mobile-wallet-adapter-protocol-web3js@2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)':
     dependencies:
-      '@solana-mobile/mobile-wallet-adapter-protocol': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
-      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana-mobile/mobile-wallet-adapter-protocol': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
+      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
       bs58: 5.0.0
       js-base64: 3.7.8
     transitivePeerDependencies:
@@ -27311,10 +27311,10 @@ snapshots:
       - react-native
       - typescript
 
-  '@solana-mobile/mobile-wallet-adapter-protocol@2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)':
+  '@solana-mobile/mobile-wallet-adapter-protocol@2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)':
     dependencies:
-      '@solana/codecs-strings': 4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      '@solana/wallet-standard': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
+      '@solana/codecs-strings': 4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)
+      '@solana/wallet-standard': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
       '@solana/wallet-standard-util': 1.1.2
       '@wallet-standard/core': 1.1.1
       js-base64: 3.7.8
@@ -27327,13 +27327,13 @@ snapshots:
       - react
       - typescript
 
-  '@solana-mobile/wallet-adapter-mobile@2.2.5(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)':
+  '@solana-mobile/wallet-adapter-mobile@2.2.5(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)':
     dependencies:
-      '@solana-mobile/mobile-wallet-adapter-protocol-web3js': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
-      '@solana-mobile/wallet-standard-mobile': 0.4.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
-      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@solana-mobile/mobile-wallet-adapter-protocol-web3js': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
+      '@solana-mobile/wallet-standard-mobile': 0.4.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@solana/wallet-standard-features': 1.3.0
-      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
       js-base64: 3.7.8
     optionalDependencies:
       '@react-native-async-storage/async-storage': 1.24.0(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))
@@ -27343,9 +27343,9 @@ snapshots:
       - react-native
       - typescript
 
-  '@solana-mobile/wallet-standard-mobile@0.4.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)':
+  '@solana-mobile/wallet-standard-mobile@0.4.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)':
     dependencies:
-      '@solana-mobile/mobile-wallet-adapter-protocol': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
+      '@solana-mobile/mobile-wallet-adapter-protocol': 2.2.5(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
       '@solana/wallet-standard-chains': 1.1.1
       '@solana/wallet-standard-features': 1.3.0
       '@wallet-standard/base': 1.1.0
@@ -27365,62 +27365,62 @@ snapshots:
     dependencies:
       buffer: 6.0.3
 
-  '@solana/codecs-core@2.3.0(typescript@5.9.3)':
+  '@solana/codecs-core@2.3.0(typescript@5.8.3)':
     dependencies:
-      '@solana/errors': 2.3.0(typescript@5.9.3)
-      typescript: 5.9.3
+      '@solana/errors': 2.3.0(typescript@5.8.3)
+      typescript: 5.8.3
 
-  '@solana/codecs-core@4.0.0(typescript@5.9.3)':
+  '@solana/codecs-core@4.0.0(typescript@5.8.3)':
     dependencies:
-      '@solana/errors': 4.0.0(typescript@5.9.3)
-      typescript: 5.9.3
+      '@solana/errors': 4.0.0(typescript@5.8.3)
+      typescript: 5.8.3
 
-  '@solana/codecs-numbers@2.3.0(typescript@5.9.3)':
+  '@solana/codecs-numbers@2.3.0(typescript@5.8.3)':
     dependencies:
-      '@solana/codecs-core': 2.3.0(typescript@5.9.3)
-      '@solana/errors': 2.3.0(typescript@5.9.3)
-      typescript: 5.9.3
+      '@solana/codecs-core': 2.3.0(typescript@5.8.3)
+      '@solana/errors': 2.3.0(typescript@5.8.3)
+      typescript: 5.8.3
 
-  '@solana/codecs-numbers@4.0.0(typescript@5.9.3)':
+  '@solana/codecs-numbers@4.0.0(typescript@5.8.3)':
     dependencies:
-      '@solana/codecs-core': 4.0.0(typescript@5.9.3)
-      '@solana/errors': 4.0.0(typescript@5.9.3)
-      typescript: 5.9.3
+      '@solana/codecs-core': 4.0.0(typescript@5.8.3)
+      '@solana/errors': 4.0.0(typescript@5.8.3)
+      typescript: 5.8.3
 
-  '@solana/codecs-strings@4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)':
+  '@solana/codecs-strings@4.0.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)':
     dependencies:
-      '@solana/codecs-core': 4.0.0(typescript@5.9.3)
-      '@solana/codecs-numbers': 4.0.0(typescript@5.9.3)
-      '@solana/errors': 4.0.0(typescript@5.9.3)
+      '@solana/codecs-core': 4.0.0(typescript@5.8.3)
+      '@solana/codecs-numbers': 4.0.0(typescript@5.8.3)
+      '@solana/errors': 4.0.0(typescript@5.8.3)
       fastestsmallesttextencoderdecoder: 1.0.22
-      typescript: 5.9.3
+      typescript: 5.8.3
 
-  '@solana/errors@2.3.0(typescript@5.9.3)':
+  '@solana/errors@2.3.0(typescript@5.8.3)':
     dependencies:
       chalk: 5.6.2
       commander: 14.0.3
-      typescript: 5.9.3
+      typescript: 5.8.3
 
-  '@solana/errors@4.0.0(typescript@5.9.3)':
+  '@solana/errors@4.0.0(typescript@5.8.3)':
     dependencies:
       chalk: 5.6.2
       commander: 14.0.1
-      typescript: 5.9.3
+      typescript: 5.8.3
 
-  '@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))':
+  '@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@solana/wallet-standard-features': 1.3.0
-      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
       '@wallet-standard/base': 1.1.0
       '@wallet-standard/features': 1.1.0
       eventemitter3: 5.0.1
 
-  '@solana/wallet-adapter-react@0.15.39(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)':
+  '@solana/wallet-adapter-react@0.15.39(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)':
     dependencies:
-      '@solana-mobile/wallet-adapter-mobile': 2.2.5(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.9.3)
-      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))
-      '@solana/wallet-standard-wallet-adapter-react': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
-      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana-mobile/wallet-adapter-mobile': 2.2.5(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(react-native@0.84.0(@babel/core@7.29.7)(@types/react@19.2.17)(bufferutil@4.0.9)(react@19.2.7)(utf-8-validate@5.0.10))(react@19.2.7)(typescript@5.8.3)
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@solana/wallet-standard-wallet-adapter-react': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
+      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
       react: 19.2.7
     transitivePeerDependencies:
       - bs58
@@ -27449,23 +27449,23 @@ snapshots:
       '@solana/wallet-standard-chains': 1.1.1
       '@solana/wallet-standard-features': 1.3.0
 
-  '@solana/wallet-standard-wallet-adapter-base@1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)':
+  '@solana/wallet-standard-wallet-adapter-base@1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)':
     dependencies:
-      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@solana/wallet-standard-chains': 1.1.1
       '@solana/wallet-standard-features': 1.3.0
       '@solana/wallet-standard-util': 1.1.2
-      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@solana/web3.js': 1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
       '@wallet-standard/app': 1.1.0
       '@wallet-standard/base': 1.1.0
       '@wallet-standard/features': 1.1.0
       '@wallet-standard/wallet': 1.1.0
       bs58: 5.0.0
 
-  '@solana/wallet-standard-wallet-adapter-react@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
+  '@solana/wallet-standard-wallet-adapter-react@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
     dependencies:
-      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))
-      '@solana/wallet-standard-wallet-adapter-base': 1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)
+      '@solana/wallet-adapter-base': 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@solana/wallet-standard-wallet-adapter-base': 1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)
       '@wallet-standard/app': 1.1.0
       '@wallet-standard/base': 1.1.0
       react: 19.2.7
@@ -27473,33 +27473,33 @@ snapshots:
       - '@solana/web3.js'
       - bs58
 
-  '@solana/wallet-standard-wallet-adapter@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
+  '@solana/wallet-standard-wallet-adapter@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
     dependencies:
-      '@solana/wallet-standard-wallet-adapter-base': 1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)
-      '@solana/wallet-standard-wallet-adapter-react': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
+      '@solana/wallet-standard-wallet-adapter-base': 1.1.4(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)
+      '@solana/wallet-standard-wallet-adapter-react': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
     transitivePeerDependencies:
       - '@solana/wallet-adapter-base'
       - '@solana/web3.js'
       - bs58
       - react
 
-  '@solana/wallet-standard@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
+  '@solana/wallet-standard@1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)':
     dependencies:
       '@solana/wallet-standard-core': 1.1.2
-      '@solana/wallet-standard-wallet-adapter': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
+      '@solana/wallet-standard-wallet-adapter': 1.1.4(@solana/wallet-adapter-base@0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)))(@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(bs58@5.0.0)(react@19.2.7)
     transitivePeerDependencies:
       - '@solana/wallet-adapter-base'
       - '@solana/web3.js'
       - bs58
       - react
 
-  '@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+  '@solana/web3.js@1.98.4(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)':
     dependencies:
       '@babel/runtime': 7.28.2
       '@noble/curves': 1.9.4
       '@noble/hashes': 1.8.0
       '@solana/buffer-layout': 4.0.1
-      '@solana/codecs-numbers': 2.3.0(typescript@5.9.3)
+      '@solana/codecs-numbers': 2.3.0(typescript@5.8.3)
       agentkeepalive: 4.6.0
       bn.js: 5.2.2
       borsh: 0.7.0
@@ -28124,10 +28124,10 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.4': {}
 
-  '@tanstack/vue-virtual@3.13.32(vue@3.5.40(typescript@5.9.3))':
+  '@tanstack/vue-virtual@3.13.32(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       '@tanstack/virtual-core': 3.17.4
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
 
   '@telegraph/appearance@0.0.11(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
@@ -28727,11 +28727,11 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@unhead/vue@2.1.15(vue@3.5.40(typescript@5.9.3))':
+  '@unhead/vue@2.1.15(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       hookable: 6.1.1
       unhead: 2.1.15
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
 
   '@use-gesture/core@10.3.1': {}
 
@@ -28924,12 +28924,12 @@ snapshots:
       loupe: 3.1.4
       tinyrainbow: 2.0.0
 
-  '@volar/kit@2.4.28(typescript@5.9.3)':
+  '@volar/kit@2.4.28(typescript@5.8.3)':
     dependencies:
       '@volar/language-service': 2.4.28
       '@volar/typescript': 2.4.28
       typesafe-path: 0.2.2
-      typescript: 5.9.3
+      typescript: 5.8.3
       vscode-languageserver-textdocument: 1.0.12
       vscode-uri: 3.1.0
 
@@ -29028,28 +29028,28 @@ snapshots:
 
   '@vue/shared@3.5.40': {}
 
-  '@vueuse/core@10.11.1(vue@3.5.40(typescript@5.9.3))':
+  '@vueuse/core@10.11.1(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       '@types/web-bluetooth': 0.0.20
       '@vueuse/metadata': 10.11.1
-      '@vueuse/shared': 10.11.1(vue@3.5.40(typescript@5.9.3))
-      vue-demi: 0.14.10(vue@3.5.40(typescript@5.9.3))
+      '@vueuse/shared': 10.11.1(vue@3.5.40(typescript@5.8.3))
+      vue-demi: 0.14.10(vue@3.5.40(typescript@5.8.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
 
-  '@vueuse/core@13.9.0(vue@3.5.40(typescript@5.9.3))':
+  '@vueuse/core@13.9.0(vue@3.5.40(typescript@5.8.3))':
     dependencies:
       '@types/web-bluetooth': 0.0.21
       '@vueuse/metadata': 13.9.0
-      '@vueuse/shared': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      vue: 3.5.40(typescript@5.9.3)
+      '@vueuse/shared': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      vue: 3.5.40(typescript@5.8.3)
 
-  '@vueuse/integrations@13.9.0(axios@1.11.0)(focus-trap@7.8.0)(fuse.js@7.1.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(vue@3.5.40(typescript@5.9.3))':
+  '@vueuse/integrations@13.9.0(axios@1.11.0)(focus-trap@7.8.0)(fuse.js@7.1.0)(idb-keyval@6.2.1)(jwt-decode@4.0.0)(qrcode@1.5.4)(vue@3.5.40(typescript@5.8.3))':
     dependencies:
-      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      '@vueuse/shared': 13.9.0(vue@3.5.40(typescript@5.9.3))
-      vue: 3.5.40(typescript@5.9.3)
+      '@vueuse/core': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      '@vueuse/shared': 13.9.0(vue@3.5.40(typescript@5.8.3))
+      vue: 3.5.40(typescript@5.8.3)
     optionalDependencies:
       axios: 1.11.0
       focus-trap: 7.8.0
@@ -29062,16 +29062,16 @@ snapshots:
 
   '@vueuse/metadata@13.9.0': {}
 
-  '@vueuse/shared@10.11.1(vue@3.5.40(typescript@5.9.3))':
+  '@vueuse/shared@10.11.1(vue@3.5.40(typescript@5.8.3))':
     dependencies:
-      vue-demi: 0.14.10(vue@3.5.40(typescript@5.9.3))
+      vue-demi: 0.14.10(vue@3.5.40(typescript@5.8.3))
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
 
-  '@vueuse/shared@13.9.0(vue@3.5.40(typescript@5.9.3))':
+  '@vueuse/shared@13.9.0(vue@3.5.40(typescript@5.8.3))':
     dependencies:
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
 
   '@wallet-standard/app@1.1.0':
     dependencies:
@@ -29244,9 +29244,9 @@ snapshots:
 
   '@zxcvbn-ts/language-common@3.0.4': {}
 
-  abitype@1.2.3(typescript@5.9.3)(zod@4.3.6):
+  abitype@1.2.3(typescript@5.8.3)(zod@4.3.6):
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
       zod: 4.3.6
 
   abort-controller@3.0.0:
@@ -30602,11 +30602,11 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  cva@1.0.0-beta.4(typescript@5.9.3):
+  cva@1.0.0-beta.4(typescript@5.8.3):
     dependencies:
       clsx: 2.1.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
 
   d3-array@3.2.4:
     dependencies:
@@ -34805,7 +34805,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(react@19.2.7)
+      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.2.4
       '@next/swc-darwin-x64': 15.2.4
@@ -34883,7 +34883,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(react@19.2.7)
+      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.3.3
       '@next/swc-darwin-x64': 15.3.3
@@ -35217,7 +35217,7 @@ snapshots:
       object-keys: 1.1.1
       safe-push-apply: 1.0.0
 
-  ox@0.12.1(typescript@5.9.3)(zod@4.3.6):
+  ox@0.12.1(typescript@5.8.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -35225,24 +35225,24 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
     transitivePeerDependencies:
       - zod
 
-  ox@0.6.9(typescript@5.9.3)(zod@4.3.6):
+  ox@0.6.9(typescript@5.8.3)(zod@4.3.6):
     dependencies:
       '@adraffy/ens-normalize': 1.10.1
       '@noble/curves': 1.9.4
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       eventemitter3: 5.0.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
     transitivePeerDependencies:
       - zod
 
@@ -35913,20 +35913,20 @@ snapshots:
 
   quick-format-unescaped@4.0.4: {}
 
-  radix-vue@1.9.17(vue@3.5.40(typescript@5.9.3)):
+  radix-vue@1.9.17(vue@3.5.40(typescript@5.8.3)):
     dependencies:
       '@floating-ui/dom': 1.7.2
-      '@floating-ui/vue': 1.1.11(vue@3.5.40(typescript@5.9.3))
+      '@floating-ui/vue': 1.1.11(vue@3.5.40(typescript@5.8.3))
       '@internationalized/date': 3.12.2
       '@internationalized/number': 3.6.7
-      '@tanstack/vue-virtual': 3.13.32(vue@3.5.40(typescript@5.9.3))
-      '@vueuse/core': 10.11.1(vue@3.5.40(typescript@5.9.3))
-      '@vueuse/shared': 10.11.1(vue@3.5.40(typescript@5.9.3))
+      '@tanstack/vue-virtual': 3.13.32(vue@3.5.40(typescript@5.8.3))
+      '@vueuse/core': 10.11.1(vue@3.5.40(typescript@5.8.3))
+      '@vueuse/shared': 10.11.1(vue@3.5.40(typescript@5.8.3))
       aria-hidden: 1.2.6
       defu: 6.1.4
       fast-deep-equal: 3.1.3
       nanoid: 5.1.6
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
     transitivePeerDependencies:
       - '@vue/composition-api'
 
@@ -37764,11 +37764,6 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.29.7
 
-  styled-jsx@5.1.6(react@19.2.7):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.2.7
-
   styled-jsx@5.1.7(@babel/core@7.27.7)(react@19.2.7):
     dependencies:
       client-only: 0.0.1
@@ -37871,9 +37866,9 @@ snapshots:
       react: 19.2.7
       use-sync-external-store: 1.6.0(react@19.2.7)
 
-  swrv@1.2.0(vue@3.5.40(typescript@5.9.3)):
+  swrv@1.2.0(vue@3.5.40(typescript@5.8.3)):
     dependencies:
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
 
   symbol-tree@3.2.4: {}
 
@@ -38753,18 +38748,18 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  viem@2.46.1(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6):
+  viem@2.46.1(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@4.3.6):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.8.3)(zod@4.3.6)
       isows: 1.0.7(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-      ox: 0.12.1(typescript@5.9.3)(zod@4.3.6)
+      ox: 0.12.1(typescript@5.8.3)(zod@4.3.6)
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 5.8.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -39226,11 +39221,21 @@ snapshots:
 
   vue-component-type-helpers@3.3.7: {}
 
-  vue-demi@0.14.10(vue@3.5.40(typescript@5.9.3)):
+  vue-demi@0.14.10(vue@3.5.40(typescript@5.8.3)):
     dependencies:
-      vue: 3.5.40(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.8.3)
 
   vue-sonner@1.3.2: {}
+
+  vue@3.5.40(typescript@5.8.3):
+    dependencies:
+      '@vue/compiler-dom': 3.5.40
+      '@vue/compiler-sfc': 3.5.40
+      '@vue/runtime-dom': 3.5.40
+      '@vue/server-renderer': 3.5.40
+      '@vue/shared': 3.5.40
+    optionalDependencies:
+      typescript: 5.8.3
 
   vue@3.5.40(typescript@5.9.3):
     dependencies:
@@ -39241,6 +39246,7 @@ snapshots:
       '@vue/shared': 3.5.40
     optionalDependencies:
       typescript: 5.9.3
+    optional: true
 
   w3c-keyname@2.2.8: {}
 
