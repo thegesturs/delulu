@@ -350,8 +350,10 @@ const DesktopNav = () => (
       </NavigationMenu>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button asChild className="h-10 px-4">
-          <Link href="https://solulu.delulu.social/sign-in">Get started</Link>
+        <Button asChild className="h-fit py-2">
+          <Link href="https://solulu.delulu.social/sign-in">
+            Get Freaking Started
+          </Link>
         </Button>
         <ThemeToggle className="size-10" />
       </div>
@@ -371,11 +373,24 @@ function MegaMenu({ section }: { section: MenuSection }) {
         dense && "w-[min(56rem,calc(100vw-3rem))]"
       )}
     >
-      <div className="px-3 pt-2 pb-3">
-        <p className="font-semibold text-foreground text-sm">{section.label}</p>
-        <p className="mt-1 max-w-2xl text-muted-foreground text-sm leading-5">
-          {section.description}
-        </p>
+      <div className="flex items-start justify-between gap-4 px-3 pt-2 pb-3">
+        <div>
+          <p className="font-semibold text-foreground text-sm">
+            {section.label}
+          </p>
+          <p className="mt-1 max-w-2xl text-muted-foreground text-sm leading-5">
+            {section.description}
+          </p>
+        </div>
+        <NavigationMenuLink asChild>
+          <Link
+            className="mt-0.5 w-fit shrink-0 flex-row items-center gap-1.5 px-2 py-1.5 font-medium text-foreground text-xs"
+            href={section.href}
+          >
+            {section.cta}
+            <ArrowRight aria-hidden="true" className="size-3.5" />
+          </Link>
+        </NavigationMenuLink>
       </div>
 
       <div
@@ -406,18 +421,6 @@ function MegaMenu({ section }: { section: MenuSection }) {
             </Link>
           </NavigationMenuLink>
         ))}
-      </div>
-
-      <div className="mt-2 border-border/70 border-t px-3 pt-3 pb-1">
-        <NavigationMenuLink asChild>
-          <Link
-            className="w-fit flex-row items-center gap-2 p-1 font-medium text-foreground"
-            href={section.href}
-          >
-            {section.cta}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </NavigationMenuLink>
       </div>
     </div>
   );
@@ -535,7 +538,7 @@ const MobileNav = ({ visible }: { visible: boolean }) => {
                   href="https://solulu.delulu.social/sign-in"
                   onClick={() => setOpen(false)}
                 >
-                  Get started
+                  Get Freaking Started
                 </Link>
               </Button>
             </motion.div>

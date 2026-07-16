@@ -36,3 +36,37 @@
   content: attr(title);
   @apply inline-block text-muted-foreground text-right mb-6 text-sm;
 }
+
+@keyframes not-found-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+.not-found-float {
+  animation: not-found-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.not-found-float[data-float="two"] {
+  animation-delay: -1.7s;
+}
+
+.not-found-float[data-float="three"] {
+  animation-delay: -3.4s;
+}
+
+.not-found-float[data-float="four"] {
+  animation-delay: -4.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found-float {
+    animation: none;
+    will-change: auto;
+  }
+}
