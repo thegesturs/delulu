@@ -192,8 +192,10 @@ const setState = (
   const patch = typeof update === "function" ? update(current) : update;
   const next = { ...current, ...patch };
   const { isMediaUploading, ...draft } = next;
-  appRegistry.set(postStateAtom, draft);
-  appRegistry.set(mediaUploadingAtom, isMediaUploading);
+  Atom.batch(() => {
+    appRegistry.set(postStateAtom, draft);
+    appRegistry.set(mediaUploadingAtom, isMediaUploading);
+  });
   persistState(next);
 };
 
@@ -300,6 +302,23 @@ const actions: PostActions = {
     }));
   },
   reset: () => setState(initialState),
+};
+
+export interface PostEditorCommands {
+  readonly applyDraftHandoff: (draft: string) => void;
+}
+
+export const postEditorCommands: PostEditorCommands = {
+  applyDraftHandoff: (draft) =>
+    setState({
+      ...initialState,
+      post: {
+        ...initialState.post,
+        content: initialState.post.content.map((item, index) =>
+          index === 0 ? { ...item, text: draft } : item
+        ),
+      },
+    }),
 };
 
 type StoreValue = PostState & PostActions;

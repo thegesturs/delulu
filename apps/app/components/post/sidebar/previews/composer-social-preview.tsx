@@ -59,7 +59,7 @@ export function ComposerSocialPreview({
     <PhoneFrame darkMode={platform === "TIKTOK" ? true : undefined}>
       <div className="h-full overflow-y-auto bg-neutral-100 p-2 dark:bg-neutral-950">
         <SocialPostPreview
-          avatarUrl={provider?.profileImage}
+          avatarUrl={provider?.profileImage ?? undefined}
           className="rounded-xl shadow-none"
           comments={42}
           dateLabel="2h"
@@ -70,7 +70,7 @@ export function ComposerSocialPreview({
           platform={platform}
           shares={156}
           text={content.text || "Your post will appear here."}
-          username={provider?.username}
+          username={provider?.username ?? undefined}
         />
       </div>
     </PhoneFrame>
