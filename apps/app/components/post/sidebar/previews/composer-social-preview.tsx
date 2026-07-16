@@ -29,7 +29,7 @@ export function ComposerSocialPreview({
       <div
         className={
           platform === "TIKTOK"
-            ? "relative h-full min-h-[32rem] w-full"
+            ? "relative size-full"
             : platform === "YOUTUBE"
               ? "relative aspect-video w-full"
               : "relative aspect-square w-full"

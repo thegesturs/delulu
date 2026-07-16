@@ -19,7 +19,7 @@ const popularTools = [
   getTool("instagram-caption-character-counter"),
   getTool("word-counter"),
   getTool("youtube-video-trimmer"),
-  getTool("social-previews/instagram-post-preview"),
+  getTool("social-previews/all-social-media-post-preview"),
   getTool("social-media-holiday-calendar"),
   getTool("social-media-awareness-days-calendar"),
 ].filter((tool) => tool !== undefined);

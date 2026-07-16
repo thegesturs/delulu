@@ -1,6 +1,6 @@
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 
-export type SocialPreviewKind = "post" | "profile";
+export type SocialPreviewKind = "post" | "profile" | "all";
 
 export interface SocialPreviewExample {
   label: string;
@@ -14,6 +14,7 @@ export interface SocialPreviewToolContent {
   slug: string;
   kind: SocialPreviewKind;
   platform: SupportedSocialPlatform;
+  platforms?: SupportedSocialPlatform[];
   title: string;
   metaTitle: string;
   description: string;
@@ -147,6 +148,117 @@ function createPostPreviewTool(
 }
 
 export const socialPreviewTools: SocialPreviewToolContent[] = [
+  {
+    slug: "all-social-media-post-preview",
+    kind: "all",
+    platform: "INSTAGRAM",
+    platforms: [
+      "INSTAGRAM",
+      "LINKEDIN",
+      "FACEBOOK",
+      "TWITTER",
+      "THREADS",
+      "TIKTOK",
+      "YOUTUBE",
+    ],
+    title: "All Social Media Post Previews",
+    metaTitle: "All Social Media Post Previews – Compare Every Channel",
+    description:
+      "Edit one draft and compare how it reads on Instagram, LinkedIn, Facebook, X, Threads, TikTok, and YouTube on one screen.",
+    metaDescription:
+      "Compare one social post across Instagram, LinkedIn, Facebook, X, Threads, TikTok, and YouTube. Live, private, responsive, and free.",
+    keywords: [
+      "social media post preview",
+      "multi platform post preview",
+      "compare social media posts",
+      "all social media preview",
+    ],
+    intro: [
+      "A post that scans well in one feed can feel cramped, vague, or visually unbalanced in another. This comparison view keeps one draft on the left and renders every supported channel together, so differences are obvious before you publish.",
+      "Use the shared identity and media as a planning baseline, then look for channel-specific problems: a weak professional opening, an unreadable vertical overlay, an awkward thumbnail title, or text that needs a shorter conversational version. Everything stays in this browser tab.",
+    ],
+    howToHeading: "How to compare one post across every social channel",
+    howToSteps: [
+      {
+        name: "Add the shared draft",
+        text: "Enter the identity, post copy, professional headline, and media you want to compare.",
+      },
+      {
+        name: "Scan every preview",
+        text: "Review the seven cards together, paying attention to text hierarchy, media crop, overlays, and action placement.",
+      },
+      {
+        name: "Continue in the composer",
+        text: "Move the shared draft into Delulu, then tailor copy or media for individual connected channels before publishing.",
+      },
+    ],
+    sections: [
+      {
+        heading: "What changes between social feeds",
+        paragraphs: [
+          "Instagram centers the visual and caption relationship, LinkedIn adds professional identity, Facebook gives more weight to sharing context, and X and Threads compress the conversation into a tighter text card.",
+          "TikTok places copy over vertical media, while YouTube treats the first line as a video title beside channel information. The comparison helps you spot those differences without opening seven tabs.",
+        ],
+      },
+      {
+        heading: "One baseline, then channel-specific edits",
+        paragraphs: [
+          "The shared draft is a starting point, not a recommendation to publish identical copy everywhere. After comparing the cards, use the composer to adjust hooks, lengths, media, and calls to action for each audience.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: "Which social post previews appear on this page?",
+        answer:
+          "The page shows Instagram, LinkedIn, Facebook, X, Threads, TikTok, and YouTube post previews together.",
+      },
+      {
+        question: "Does one edit update every preview?",
+        answer:
+          "Yes. Identity, text, media, date, and representative counts update all seven cards from the same local draft.",
+      },
+      {
+        question: "Should I publish identical copy on every channel?",
+        answer:
+          "Usually not. Use this page to find where the shared idea needs a different hook, length, media treatment, or call to action.",
+      },
+      {
+        question: "Can I compare an image and a video?",
+        answer:
+          "You can select one image or video at a time. Each preview places that media into its channel-specific frame or overlay.",
+      },
+      {
+        question: "Why does the YouTube preview use the first line as a title?",
+        answer:
+          "A video post needs a distinct title. The comparison treats the first line as that title and the remaining text as supporting description copy.",
+      },
+      {
+        question: "Are uploaded files sent to a server?",
+        answer:
+          "No. Selected files use temporary browser URLs and remain local to the page.",
+      },
+      {
+        question: "Are the engagement counts predictions?",
+        answer:
+          "No. They are representative layout inputs for comparing labels and card balance, not forecasts or analytics.",
+      },
+      {
+        question: "Can I move the shared draft into Delulu?",
+        answer:
+          "Yes. Create this post in Delulu opens the composer with the current text, where you can make channel-specific versions.",
+      },
+    ],
+    examples: [
+      {
+        label: "Cross-channel launch",
+        displayName: "Maya Chen",
+        username: "mayamakes",
+        headline: "Independent designer · Building calmer creative tools",
+        text: "A small launch with a practical goal: make weekly planning feel lighter.\n\nHere is what changed, who it helps, and where to try it. Which part should I unpack next?",
+      },
+    ],
+  },
   {
     slug: "instagram-post-preview",
     kind: "post",

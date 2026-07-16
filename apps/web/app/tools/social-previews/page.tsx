@@ -151,14 +151,29 @@ export default function SocialPreviewsPage() {
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {socialPreviewTools.map((tool) => (
             <Link
-              className="block h-full"
+              className={`block h-full ${tool.kind === "all" ? "md:col-span-3" : ""}`}
               href={`${canonicalPath}/${tool.slug}`}
               key={tool.slug}
             >
               <Card className="group h-full transition-colors hover:border-primary/60">
                 <CardHeader>
-                  <span className="mb-2 flex size-10 items-center justify-center rounded-lg bg-muted">
-                    <SocialIcon size="md" type={tool.platform} />
+                  <span
+                    className={`mb-2 flex h-10 items-center justify-center rounded-lg bg-muted ${tool.kind === "all" ? "w-20" : "w-10"}`}
+                  >
+                    {tool.kind === "all" ? (
+                      <span className="flex -space-x-1.5">
+                        {tool.platforms?.slice(0, 3).map((platform) => (
+                          <span
+                            className="flex size-6 items-center justify-center rounded-full border bg-background"
+                            key={platform}
+                          >
+                            <SocialIcon size="xs" type={platform} />
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <SocialIcon size="md" type={tool.platform} />
+                    )}
                   </span>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     {tool.title}

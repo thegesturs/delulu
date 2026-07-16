@@ -6,10 +6,15 @@ import {
 import { cn } from "@delulu/design-system/lib/utils";
 import {
   Bookmark,
+  CirclePlus,
   Heart,
+  Home,
+  Inbox,
   MessageCircle,
   MoreHorizontal,
+  Music2,
   Repeat2,
+  Search,
   Send,
   Share2,
   ThumbsUp,
@@ -267,33 +272,86 @@ function ThreadsPost(props: SocialPostPreviewProps) {
 
 function ShortVideoPost(props: SocialPostPreviewProps) {
   return (
-    <div className="relative min-h-[32rem] overflow-hidden bg-black text-white">
+    <div className="relative aspect-[9/16] min-h-[34rem] overflow-hidden bg-black text-white">
       <div className="absolute inset-0">{props.media}</div>
       {!props.media && (
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black" />
       )}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-5 pt-28">
-        <div className="flex items-end gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">@{props.username || "username"}</p>
-            <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6">
-              {props.text || "Your short-form caption will appear here."}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-center gap-4 text-xs">
-            <span className="flex flex-col items-center gap-1">
-              <Heart aria-hidden className="size-7" /> {compact(props.likes)}
-            </span>
-            <span className="flex flex-col items-center gap-1">
-              <MessageCircle aria-hidden className="size-7" />
-              {compact(props.comments)}
-            </span>
-            <span className="flex flex-col items-center gap-1">
-              <Share2 aria-hidden className="size-7" />
-              {compact(props.shares ?? 0)}
-            </span>
-          </div>
+      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/55 to-transparent px-4 pt-5 pb-12">
+        <span className="size-6" />
+        <div className="flex items-center gap-5 text-sm">
+          <span className="text-white/65">Following</span>
+          <span className="relative font-semibold">
+            For You
+            <span className="absolute -bottom-2 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-full bg-white" />
+          </span>
         </div>
+        <Search aria-hidden className="size-5" />
+      </div>
+
+      <div className="absolute right-3 bottom-28 z-10 flex flex-col items-center gap-4 text-xs drop-shadow-md">
+        <span className="relative mb-1">
+          {props.avatarUrl ? (
+            <img
+              alt={`${props.displayName || props.username || "Creator"} avatar`}
+              className="size-11 rounded-full border-2 border-white object-cover"
+              src={props.avatarUrl}
+            />
+          ) : (
+            <span className="flex size-11 items-center justify-center rounded-full border-2 border-white bg-zinc-700">
+              <UserRound aria-hidden className="size-5" />
+            </span>
+          )}
+          <CirclePlus
+            aria-hidden
+            className="absolute -bottom-2 left-1/2 size-5 -translate-x-1/2 fill-rose-500 text-white"
+          />
+        </span>
+        <span className="flex flex-col items-center gap-1 font-medium">
+          <Heart aria-hidden className="size-8 fill-white" />
+          {compact(props.likes)}
+        </span>
+        <span className="flex flex-col items-center gap-1 font-medium">
+          <MessageCircle aria-hidden className="size-8 fill-white" />
+          {compact(props.comments)}
+        </span>
+        <span className="flex flex-col items-center gap-1 font-medium">
+          <Bookmark aria-hidden className="size-8 fill-white" />
+          {compact(Math.round(props.likes / 4))}
+        </span>
+        <span className="flex flex-col items-center gap-1 font-medium">
+          <Share2 aria-hidden className="size-8 fill-white" />
+          {compact(props.shares ?? 0)}
+        </span>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-14 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-4 pt-28 pr-16 pb-4">
+        <p className="font-semibold">@{props.username || "username"}</p>
+        <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-5">
+          {props.text || "Your short-form caption will appear here."}
+        </p>
+        <p className="mt-3 flex items-center gap-2 text-xs">
+          <Music2 aria-hidden className="size-4" /> Original sound ·
+          {props.displayName || props.username || "Creator"}
+        </p>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 z-20 grid h-14 grid-cols-5 items-center bg-black px-3 text-[10px]">
+        <span className="flex flex-col items-center gap-1">
+          <Home aria-hidden className="size-5 fill-white" /> Home
+        </span>
+        <span className="flex flex-col items-center gap-1 text-white/70">
+          <Search aria-hidden className="size-5" /> Discover
+        </span>
+        <span className="mx-auto flex h-7 w-11 items-center justify-center rounded-lg bg-white text-black shadow-[-3px_0_0_#25f4ee,3px_0_0_#fe2c55]">
+          +
+        </span>
+        <span className="flex flex-col items-center gap-1 text-white/70">
+          <Inbox aria-hidden className="size-5" /> Inbox
+        </span>
+        <span className="flex flex-col items-center gap-1 text-white/70">
+          <UserRound aria-hidden className="size-5" /> Profile
+        </span>
       </div>
     </div>
   );
@@ -372,12 +430,14 @@ export function SocialPostPreview(props: SocialPostPreviewProps) {
         props.className
       )}
     >
-      <div className="flex items-center gap-2 border-b px-4 py-2.5 text-muted-foreground text-xs">
-        <SocialIcon size="sm" type={props.platform} />
-        <span className="font-medium">
-          {socialDisplayNames[props.platform]}
-        </span>
-      </div>
+      {props.platform !== "TIKTOK" && (
+        <div className="flex items-center gap-2 border-b px-4 py-2.5 text-muted-foreground text-xs">
+          <SocialIcon size="sm" type={props.platform} />
+          <span className="font-medium">
+            {socialDisplayNames[props.platform]}
+          </span>
+        </div>
+      )}
       {content}
     </article>
   );

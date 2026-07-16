@@ -202,7 +202,7 @@ export const tools: Tool[] = [
     title: tool.title,
     description: tool.description,
     category: "preview" as const,
-    icon: tool.platform.toLowerCase(),
+    icon: tool.kind === "all" ? "social" : tool.platform.toLowerCase(),
     keywords: tool.keywords,
     status: "live" as const,
     family: socialPreviewsFamily,

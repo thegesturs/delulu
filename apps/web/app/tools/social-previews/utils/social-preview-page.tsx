@@ -30,6 +30,7 @@ export function SocialPreviewPage({ slug }: { slug: string }) {
         example={content.examples[0]}
         kind={content.kind}
         platform={content.platform}
+        platforms={content.platforms}
       />
     </ToolPageLayout>
   );

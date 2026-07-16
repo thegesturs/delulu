@@ -44,14 +44,23 @@ interface ToolIconProps {
 }
 
 export function ToolIcon({ name, socialPlatforms }: ToolIconProps) {
+  if (name === "social") {
+    return (
+      <span className="flex -space-x-1">
+        {(["INSTAGRAM", "LINKEDIN", "TIKTOK"] as const).map((platform) => (
+          <span
+            className="flex size-5 items-center justify-center rounded-full border bg-background"
+            key={platform}
+          >
+            <SocialIcon size="xs" type={platform} />
+          </span>
+        ))}
+      </span>
+    );
+  }
+
   const socialPlatform = SOCIAL_ICONS[name];
-  const platforms =
-    socialPlatforms ??
-    (name === "social"
-      ? (["INSTAGRAM", "LINKEDIN", "TIKTOK"] as const)
-      : socialPlatform
-        ? [socialPlatform]
-        : []);
+  const platforms = socialPlatforms ?? (socialPlatform ? [socialPlatform] : []);
 
   if (platforms.length > 0) {
     return (

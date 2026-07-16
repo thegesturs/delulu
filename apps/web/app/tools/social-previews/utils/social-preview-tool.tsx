@@ -121,7 +121,7 @@ function PreviewMedia({
       <div
         className={
           platform === "TIKTOK"
-            ? "flex h-full min-h-[32rem] items-center justify-center bg-gradient-to-br from-zinc-800 to-black text-white/60"
+            ? "flex size-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black text-white/60"
             : platform === "YOUTUBE"
               ? "flex aspect-video items-center justify-center bg-muted text-muted-foreground"
               : "flex aspect-square items-center justify-center bg-muted text-muted-foreground"
@@ -138,7 +138,7 @@ function PreviewMedia({
         autoPlay
         className={
           platform === "TIKTOK"
-            ? "h-full min-h-[32rem] w-full object-cover"
+            ? "size-full object-cover"
             : platform === "YOUTUBE"
               ? "aspect-video w-full object-cover"
               : "aspect-square w-full object-cover"
@@ -155,7 +155,7 @@ function PreviewMedia({
     <div
       className={
         platform === "TIKTOK"
-          ? "relative h-full min-h-[32rem] w-full"
+          ? "relative size-full"
           : platform === "YOUTUBE"
             ? "relative aspect-video w-full"
             : "relative aspect-square w-full"
@@ -173,10 +173,12 @@ function PreviewMedia({
 export function SocialPreviewTool({
   kind,
   platform,
+  platforms,
   example,
 }: {
   kind: SocialPreviewKind;
   platform: SupportedSocialPlatform;
+  platforms?: SupportedSocialPlatform[];
   example: SocialPreviewExample;
 }) {
   const [state, setState] = useState<PreviewState>(() =>
@@ -185,7 +187,10 @@ export function SocialPreviewTool({
   const [fileInputKey, setFileInputKey] = useState(0);
   const objectUrls = useRef(new Set<string>());
   const isProfile = kind === "profile";
-  const platformName = socialDisplayNames[platform];
+  const isAll = kind === "all";
+  const previewPlatforms = platforms ?? [platform];
+  const includesLinkedIn = previewPlatforms.includes("LINKEDIN");
+  const platformName = isAll ? "All channels" : socialDisplayNames[platform];
 
   useEffect(
     () => () => {
@@ -239,11 +244,11 @@ export function SocialPreviewTool({
   };
 
   const composerUrl = useMemo(() => buildComposerUrl(state.text), [state.text]);
-  const media = (
+  const renderMedia = (previewPlatform: SupportedSocialPlatform) => (
     <PreviewMedia
       alt={state.altText}
       mediaType={state.mediaType}
-      platform={platform}
+      platform={previewPlatform}
       url={state.mediaUrls[0]}
     />
   );
@@ -251,7 +256,7 @@ export function SocialPreviewTool({
   return (
     <section
       aria-label="Live social preview editor"
-      className="relative left-1/2 grid w-[min(92vw,80rem)] -translate-x-1/2 overflow-hidden rounded-2xl border bg-background shadow-sm lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
+      className={`relative left-1/2 grid -translate-x-1/2 overflow-hidden rounded-2xl border bg-background shadow-sm lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] ${isAll ? "w-[min(96vw,96rem)]" : "w-[min(92vw,80rem)]"}`}
     >
       <form
         className="min-w-0 space-y-6 p-5 sm:p-6 lg:border-r"
@@ -260,13 +265,32 @@ export function SocialPreviewTool({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <SocialIcon size="md" type={platform} />
+              {isAll ? (
+                <span className="flex -space-x-1.5">
+                  {previewPlatforms.slice(0, 4).map((previewPlatform) => (
+                    <span
+                      className="flex size-7 items-center justify-center rounded-full border bg-background"
+                      key={previewPlatform}
+                    >
+                      <SocialIcon size="sm" type={previewPlatform} />
+                    </span>
+                  ))}
+                </span>
+              ) : (
+                <SocialIcon size="md" type={platform} />
+              )}
               <h2 className="truncate font-semibold text-lg">
-                {isProfile ? "Edit profile" : "Edit post"}
+                {isProfile
+                  ? "Edit profile"
+                  : isAll
+                    ? "Edit once, compare everywhere"
+                    : "Edit post"}
               </h2>
             </div>
             <p className="mt-1 text-muted-foreground text-sm">
-              Changes appear in the preview instantly.
+              {isAll
+                ? "One draft updates every preview instantly."
+                : "Changes appear in the preview instantly."}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
@@ -297,7 +321,9 @@ export function SocialPreviewTool({
           <legend className="mb-3 font-medium text-sm">Identity</legend>
           <div className="space-y-1.5">
             <Label htmlFor={`${platform}-display-name`}>
-              {platform === "YOUTUBE" ? "Channel name" : "Display name"}
+              {platform === "YOUTUBE" && !isAll
+                ? "Channel name"
+                : "Display name"}
             </Label>
             <Input
               className="min-h-11"
@@ -314,7 +340,7 @@ export function SocialPreviewTool({
             <Label htmlFor={`${platform}-username`}>
               {platform === "FACEBOOK"
                 ? "Page username"
-                : platform === "YOUTUBE"
+                : platform === "YOUTUBE" && !isAll
                   ? "Channel handle"
                   : "Username"}
             </Label>
@@ -329,7 +355,7 @@ export function SocialPreviewTool({
               value={state.username}
             />
           </div>
-          {platform === "LINKEDIN" && (
+          {includesLinkedIn && (
             <div className="space-y-1.5">
               <Label htmlFor="linkedin-headline">Professional headline</Label>
               <Input
@@ -361,7 +387,7 @@ export function SocialPreviewTool({
               <Label htmlFor={`${platform}-text`}>
                 {isProfile
                   ? "Profile bio"
-                  : platform === "YOUTUBE"
+                  : platform === "YOUTUBE" && !isAll
                     ? "Video title and description"
                     : "Post text"}
               </Label>
@@ -459,7 +485,13 @@ export function SocialPreviewTool({
                 <>
                   <NumberField
                     id={`${platform}-likes`}
-                    label={platform === "LINKEDIN" ? "Reactions" : "Likes"}
+                    label={
+                      isAll
+                        ? "Likes / reactions"
+                        : platform === "LINKEDIN"
+                          ? "Reactions"
+                          : "Likes"
+                    }
                     onChange={(value) => update("likes", value)}
                     value={state.likes}
                   />
@@ -471,7 +503,13 @@ export function SocialPreviewTool({
                   />
                   <NumberField
                     id={`${platform}-shares`}
-                    label={platform === "TWITTER" ? "Reposts" : "Shares"}
+                    label={
+                      isAll
+                        ? "Shares / reposts"
+                        : platform === "TWITTER"
+                          ? "Reposts"
+                          : "Shares"
+                    }
                     onChange={(value) => update("shares", value)}
                     value={state.shares}
                   />
@@ -494,7 +532,7 @@ export function SocialPreviewTool({
         aria-label={`${platformName} live preview`}
         className="min-w-0 border-t bg-muted/30 p-4 sm:p-8 lg:border-t-0"
       >
-        <div className="lg:sticky lg:top-24">
+        <div className={isAll ? undefined : "lg:sticky lg:top-24"}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <p className="font-medium text-sm">{platformName} preview</p>
             <span className="rounded-full border bg-background px-2.5 py-1 text-muted-foreground text-xs">
@@ -513,6 +551,25 @@ export function SocialPreviewTool({
               posts={state.posts}
               username={state.username}
             />
+          ) : isAll ? (
+            <div className="grid items-start gap-6 xl:grid-cols-2">
+              {previewPlatforms.map((previewPlatform) => (
+                <SocialPostPreview
+                  avatarUrl={state.avatarUrl}
+                  comments={state.comments}
+                  dateLabel={formatPreviewDate(state.date)}
+                  displayName={state.displayName}
+                  headline={state.headline}
+                  key={previewPlatform}
+                  likes={state.likes}
+                  media={renderMedia(previewPlatform)}
+                  platform={previewPlatform}
+                  shares={state.shares}
+                  text={state.text}
+                  username={state.username}
+                />
+              ))}
+            </div>
           ) : (
             <SocialPostPreview
               avatarUrl={state.avatarUrl}
@@ -521,7 +578,7 @@ export function SocialPreviewTool({
               displayName={state.displayName}
               headline={state.headline}
               likes={state.likes}
-              media={media}
+              media={renderMedia(platform)}
               platform={platform}
               shares={state.shares}
               text={state.text}
