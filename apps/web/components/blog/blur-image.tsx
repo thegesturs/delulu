@@ -1,10 +1,10 @@
 "use client";
 import { cn } from "@delulu/design-system/lib/utils";
+import type { ImageProps } from "next/image";
 import Image from "next/image";
-import type React from "react";
 import { useState } from "react";
 
-export const BlurImage = (props: React.ComponentProps<typeof Image>) => {
+export const BlurImage = (props: ImageProps) => {
   const [isLoading, setLoading] = useState(true);
 
   const { src, width, height, alt, layout, ...rest } = props;
