@@ -15,6 +15,7 @@ import { ToolCard, ToolIcon } from "@/components/tools/tool-card";
 import { getTool, toolFamilies } from "@/lib/tools";
 
 const popularTools = [
+  getTool("latest-news-content-ideas"),
   getTool("instagram-caption-character-counter"),
   getTool("word-counter"),
   getTool("youtube-video-trimmer"),
@@ -22,15 +23,15 @@ const popularTools = [
   getTool("social-media-awareness-days-calendar"),
 ].filter((tool) => tool !== undefined);
 
-const title = "Free Social Media Tools for Planning, Captions & Video";
+const title = "Free Social Media Tools for News, Planning, Captions & Video";
 const description =
-  "Plan a visual feed, check captions, format social text, find reliable content dates, or trim a video. Free creator tools with no signup required.";
+  "Browse current headlines, plan a visual feed, check captions, find reliable content dates, or trim a video. Free creator tools with no signup required.";
 
 export const metadata: Metadata = createMetadata({
   title,
   description,
   image: getWebUrl(
-    "/api/og?title=Free%20Social%20Media%20Tools&description=Plan%20feeds%2C%20check%20captions%2C%20find%20dates%2C%20and%20trim%20video"
+    "/api/og?title=Free%20Social%20Media%20Tools&description=Browse%20headlines%2C%20plan%20feeds%2C%20check%20captions%2C%20find%20dates%2C%20and%20trim%20video"
   ),
   alternates: {
     canonical: getWebUrl("/tools"),
@@ -68,12 +69,12 @@ export default function ToolsPage() {
 
       <div className="mx-auto mb-14 max-w-2xl text-center">
         <h1 className="font-bold text-4xl text-foreground tracking-tight sm:text-5xl">
-          <Balancer>Create better social content, faster</Balancer>
+          <Balancer>What do you want to make today?</Balancer>
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
           <Balancer>
-            Preview a feed, check a caption, find a timely date, or trim a
-            video. Start immediately—no signup required.
+            Browse current headlines, preview a feed, check a caption, find a
+            timely date, or trim a video. Start immediately—no signup required.
           </Balancer>
         </p>
       </div>

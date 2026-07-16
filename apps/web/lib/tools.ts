@@ -15,6 +15,7 @@ export type ToolCategory =
   | "text"
   | "image"
   | "seo"
+  | "research"
   | "calendar"
   | "planning";
 
@@ -48,8 +49,19 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   text: "Caption & Text",
   image: "Image",
   seo: "SEO",
+  research: "News & Research",
   calendar: "Calendar",
   planning: "Feed Planning",
+};
+
+const newsExplorerFamily: ToolFamily = {
+  slug: "news-explorer",
+  title: "News Content Ideas",
+  description:
+    "Find timely news-based content ideas by country or topic, read the original reporting, and create an attributed social media draft.",
+  relatedHeading: "More news content ideas",
+  icon: "newspaper",
+  cta: "Browse headlines",
 };
 
 const feedPlannersFamily: ToolFamily = {
@@ -82,6 +94,7 @@ const holidayCalendarFamily: ToolFamily = {
 };
 
 export const toolFamilies: ToolFamily[] = [
+  newsExplorerFamily,
   feedPlannersFamily,
   textToolsFamily,
   holidayCalendarFamily,
@@ -100,6 +113,25 @@ const holidayCalendarTools: Tool[] = holidayCalendarRegistry.map((page) => ({
 }));
 
 export const tools: Tool[] = [
+  {
+    slug: "latest-news-content-ideas",
+    href: "/tools/news-explorer/latest-news-content-ideas",
+    title: "Latest News Content Ideas for Social Media",
+    description:
+      "Find timely news-based content ideas, open the original reporting, and create an attributed social media draft — free, with no signup.",
+    category: "research",
+    icon: "newspaper",
+    cta: "Browse latest headlines",
+    keywords: [
+      "news content ideas for social media",
+      "latest news content ideas",
+      "news stories to share on social media",
+      "current events content ideas",
+      "news-based social media posts",
+    ],
+    status: "live",
+    family: newsExplorerFamily,
+  },
   {
     slug: "youtube-video-trimmer",
     title: "YouTube Video Trimmer",

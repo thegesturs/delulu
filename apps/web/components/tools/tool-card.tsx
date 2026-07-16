@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Hash,
   type LucideIcon,
+  Newspaper,
   Pilcrow,
   Scissors,
   Type,
@@ -21,6 +22,7 @@ import { CATEGORY_LABELS, getToolHref, type Tool } from "@/lib/tools";
 const ICONS: Record<string, LucideIcon> = {
   calendar: CalendarDays,
   hash: Hash,
+  newspaper: Newspaper,
   pilcrow: Pilcrow,
   scissors: Scissors,
   type: Type,
