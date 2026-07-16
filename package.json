@@ -15,6 +15,7 @@
     "dev:web": "turbo dev --filter=web",
     "dev:api": "turbo dev --filter=@delulu/http-api",
     "dev:docs": "turbo dev --filter=@delulu/docs",
+    "deploy:docs": "pnpm --filter=@delulu/docs run deploy",
     "dev:app+api": "turbo dev --filter=app --filter=@delulu/http-api",
     "dev:web+api": "turbo dev --filter=web --filter=@delulu/http-api",
     "dev:mcp+api": "turbo dev --filter=@delulu/mcp --filter=@delulu/http-api",

@@ -10,6 +10,8 @@
     "dev": "pnpm generate && astro dev --port 3004",
     "generate": "tsx scripts/generate-reference.ts",
     "build": "pnpm generate && astro build",
+    "deploy": "pnpm build && wrangler deploy",
+    "deploy:dry-run": "pnpm build && wrangler deploy --dry-run",
     "preview": "astro preview --port 3004",
     "typecheck": "pnpm generate && astro check",
     "test": "pnpm typecheck && pnpm build && node scripts/check-links.mjs"
@@ -39,6 +41,7 @@
     "@types/react": "catalog:react19",
     "@types/react-dom": "catalog:react19",
     "tsx": "^4.20.3",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "wrangler": "^4.110.0"
   }
 }
