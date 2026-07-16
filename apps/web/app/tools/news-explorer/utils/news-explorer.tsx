@@ -41,10 +41,10 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
       ) : null}
 
       {initial.items.length > 0 ? (
-        <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <ol className="grid grid-cols-1 border-zinc-950/15 border-y-[1.5px] border-dotted sm:grid-cols-2 lg:grid-cols-3 dark:border-white/15">
           {initial.items.map((item) => (
             <li
-              className="min-w-0 border-zinc-950/10 border-r-[1.5px] border-b-[1.5px] border-dotted p-4 dark:border-white/10"
+              className="min-w-0 border-zinc-950/15 border-b-[1.5px] border-dotted p-4 sm:border-r-[1.5px] dark:border-white/15 sm:[&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r-[1.5px] lg:[&:nth-child(3n)]:border-r-0"
               key={item.id}
             >
               <article className="flex h-full min-h-72 flex-col rounded-xl border bg-card p-5 shadow-sm">
