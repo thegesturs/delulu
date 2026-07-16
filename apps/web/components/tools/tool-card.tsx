@@ -33,6 +33,8 @@ const SOCIAL_ICONS: Record<string, SupportedSocialPlatform> = {
   instagram: "INSTAGRAM",
   linkedin: "LINKEDIN",
   tiktok: "TIKTOK",
+  threads: "THREADS",
+  twitter: "TWITTER",
   youtube: "YOUTUBE",
 };
 
@@ -42,6 +44,21 @@ interface ToolIconProps {
 }
 
 export function ToolIcon({ name, socialPlatforms }: ToolIconProps) {
+  if (name === "social") {
+    return (
+      <span className="flex -space-x-1">
+        {(["INSTAGRAM", "LINKEDIN", "TIKTOK"] as const).map((platform) => (
+          <span
+            className="flex size-5 items-center justify-center rounded-full border bg-background"
+            key={platform}
+          >
+            <SocialIcon size="xs" type={platform} />
+          </span>
+        ))}
+      </span>
+    );
+  }
+
   const socialPlatform = SOCIAL_ICONS[name];
   const platforms = socialPlatforms ?? (socialPlatform ? [socialPlatform] : []);
 

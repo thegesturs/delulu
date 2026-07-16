@@ -80,24 +80,22 @@ export function ToolPageLayout({
         name: "Free creator tools",
         item: getWebUrl("/tools"),
       },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: tool.family?.title ?? tool.title,
-        item: tool.family
-          ? getWebUrl(`/tools/${tool.family.slug}`)
-          : getWebUrl(getToolHref(tool)),
-      },
       ...(tool.family
         ? [
             {
               "@type": "ListItem" as const,
-              position: 3,
-              name: tool.title,
-              item: url,
+              position: 2,
+              name: tool.family.title,
+              item: getWebUrl(`/tools/${tool.family.slug}`),
             },
           ]
         : []),
+      {
+        "@type": "ListItem",
+        position: tool.family ? 3 : 2,
+        name: tool.title,
+        item: url,
+      },
     ],
   };
 

@@ -19,13 +19,14 @@ const popularTools = [
   getTool("instagram-caption-character-counter"),
   getTool("word-counter"),
   getTool("youtube-video-trimmer"),
+  getTool("social-previews/all-social-media-post-preview"),
   getTool("social-media-holiday-calendar"),
   getTool("social-media-awareness-days-calendar"),
 ].filter((tool) => tool !== undefined);
 
-const title = "Free Social Media Tools for News, Planning, Captions & Video";
+const title = "Free Social Media Tools for News, Planning & Post Previews";
 const description =
-  "Browse current headlines, plan a visual feed, check captions, find reliable content dates, or trim a video. Free creator tools with no signup required.";
+  "Browse current headlines, plan a visual feed, preview social posts, check captions, find reliable content dates, or trim a video. Free creator tools with no signup required.";
 
 export const metadata: Metadata = createMetadata({
   title,
@@ -73,8 +74,9 @@ export default function ToolsPage() {
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
           <Balancer>
-            Browse current headlines, preview a feed, check a caption, find a
-            timely date, or trim a video. Start immediately—no signup required.
+            Browse current headlines, preview a feed or post, check a caption,
+            find a timely date, or trim a video. Start immediately—no signup
+            required.
           </Balancer>
         </p>
       </div>

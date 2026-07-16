@@ -8,6 +8,7 @@
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import { feedPlannerPages } from "@/app/tools/feed-planners/utils/feed-planner-pages";
 import { holidayCalendarRegistry } from "@/app/tools/holiday-calendar/_utils/registry";
+import { socialPreviewTools } from "@/app/tools/social-previews/utils/social-preview-tools";
 import { textTools } from "@/app/tools/text-tools/utils/text-tools";
 
 export type ToolCategory =
@@ -17,7 +18,8 @@ export type ToolCategory =
   | "seo"
   | "research"
   | "calendar"
-  | "planning";
+  | "planning"
+  | "preview";
 
 export interface ToolFamily {
   slug: string;
@@ -52,6 +54,7 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   research: "News & Research",
   calendar: "Calendar",
   planning: "Feed Planning",
+  preview: "Post Preview",
 };
 
 const newsExplorerFamily: ToolFamily = {
@@ -93,11 +96,21 @@ const holidayCalendarFamily: ToolFamily = {
   icon: "calendar",
 };
 
+const socialPreviewsFamily: ToolFamily = {
+  slug: "social-previews",
+  title: "Post Previews",
+  description:
+    "See how posts and profiles will read across each social channel before you publish.",
+  relatedHeading: "More post previews",
+  icon: "instagram",
+};
+
 export const toolFamilies: ToolFamily[] = [
   newsExplorerFamily,
   feedPlannersFamily,
   textToolsFamily,
   holidayCalendarFamily,
+  socialPreviewsFamily,
 ];
 
 const holidayCalendarTools: Tool[] = holidayCalendarRegistry.map((page) => ({
@@ -183,6 +196,17 @@ export const tools: Tool[] = [
     family: textToolsFamily,
   })),
   ...holidayCalendarTools,
+  ...socialPreviewTools.map((tool) => ({
+    slug: `social-previews/${tool.slug}`,
+    href: `/tools/social-previews/${tool.slug}`,
+    title: tool.title,
+    description: tool.description,
+    category: "preview" as const,
+    icon: tool.kind === "all" ? "social" : tool.platform.toLowerCase(),
+    keywords: tool.keywords,
+    status: "live" as const,
+    family: socialPreviewsFamily,
+  })),
 ];
 
 export const getToolHref = (tool: Tool): string =>
