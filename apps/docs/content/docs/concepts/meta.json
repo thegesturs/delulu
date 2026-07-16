@@ -1,0 +1,4 @@
+{
+  "title": "Concepts",
+  "pages": ["agent-authorization", "roles-and-scopes", "publishing-lifecycle", "onboarding-state"]
+}

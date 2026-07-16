@@ -1,0 +1,49 @@
+---
+title: How to work with reviews
+description: Submit, inspect, approve, reject, comment on, and withdraw post reviews.
+---
+
+## List the queue
+
+```bash
+delulu reviews --limit 20
+```
+
+## Submit a post
+
+```bash
+delulu review post_abc123 --submit
+```
+
+Editors can create posts but cannot publish directly. Their posts use the existing review workflow.
+
+## Approve or reject
+
+```bash
+delulu review post_abc123 --approve
+delulu review post_abc123 --reject "Update the product name"
+```
+
+Owners and admins can approve. Only one action flag is accepted per command.
+
+## Comment or withdraw
+
+```bash
+delulu review post_abc123 --comment "Looks good after the final crop"
+delulu review post_abc123 --withdraw
+```
+
+## Verification
+
+```bash
+delulu show post_abc123
+delulu reviews
+```
+
+Confirm both the post state and whether it remains in the pending queue.
+
+## Troubleshooting
+
+- A viewer cannot create or review posts.
+- A credential also needs `reviews:read` or `reviews:write`; role permission alone is not enough for delegated access.
+- Approval revalidates live membership and post content, so stale review decisions can be rejected.

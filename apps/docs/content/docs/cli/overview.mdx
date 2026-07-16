@@ -1,0 +1,43 @@
+---
+title: CLI overview
+description: The agent-first command surface, runtime guarantees, and safe defaults in delulu-cli 0.2.
+---
+
+`delulu` is organized around publishing journeys rather than raw backend resources. Running it with no arguments shows live workspace state instead of generic help.
+
+```bash
+delulu
+```
+
+## Design guarantees
+
+- No interactive prompts. Browser ceremonies are emitted as URLs and codes.
+- Draft is the safe default. Immediate publishing requires `--now`.
+- Mutations use a local operation journal and stable idempotency keys.
+- Pretty output is selected for terminals; piped output defaults to TOON.
+- Final results use stdout. Progress and errors use stderr.
+- Unknown flags fail loudly.
+- Lists report explicit counts, including `0 results`.
+- Results include at most three context-aware next commands.
+
+## Installation
+
+```bash
+npm install --global delulu-cli
+delulu --version
+```
+
+The CLI requires Node.js 20 or newer.
+
+## Public command families
+
+| Journey | Commands |
+| --- | --- |
+| Authorization | `login`, `logout`, `workspace` |
+| Setup | `accounts`, `connect`, `disconnect`, `subscribe`, `usage` |
+| Content | `upload`, `post`, `posts`, `show`, `edit`, `publish`, `retry`, `delete` |
+| Reviews | `reviews`, `review` |
+| Agent integration | `integrate install`, `integrate status`, `integrate remove` |
+| Discovery | `help` |
+
+Removed resource-shaped commands return an exact replacement suggestion. See the [complete command reference](/cli/commands/).

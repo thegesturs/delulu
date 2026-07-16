@@ -1,0 +1,24 @@
+---
+import { ApiExplorer } from "@/components/api-explorer";
+import "@/styles/global.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Interactive Delulu REST API reference" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>API Explorer · Delulu Docs</title>
+  </head>
+  <body>
+    <a
+      class="fixed right-4 bottom-4 z-50 rounded-full bg-fd-primary px-4 py-2 text-sm font-medium text-fd-primary-foreground shadow-lg"
+      href="/api-reference/"
+    >
+      Back to guides
+    </a>
+    <ApiExplorer client:only="react" />
+  </body>
+</html>

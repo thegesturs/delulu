@@ -1,0 +1,34 @@
+---
+title: Delulu
+description: Publish, schedule, review, and automate social content from the CLI, an AI agent, or the REST API.
+---
+
+Delulu gives people and agents one permission-aware publishing system across connected social accounts. Start with the CLI for the shortest path from sign-in to a confirmed post, use MCP for hosted agents, or integrate directly with the REST API.
+
+## Choose your path
+
+| I want to… | Start here |
+| --- | --- |
+| Publish my first post from a terminal | [CLI quickstart](/getting-started/cli-quickstart/) |
+| Let an agent finish setup and publish | [Agent setup tutorial](/getting-started/agent-setup/) |
+| Integrate a service over HTTP | [API quickstart](/getting-started/api-quickstart/) |
+| See every CLI command and flag | [CLI command reference](/cli/commands/) |
+| Explore request and response schemas | [REST API reference](/api-reference/) |
+
+## One system, three surfaces
+
+- **CLI** for local media, deterministic scripts, and agent-friendly TOON output.
+- **MCP** for hosted agents that import public media URLs and call structured tools.
+- **REST API** for direct integrations using the same workspace, role, scope, quota, and review rules.
+
+Every surface returns the actual post state. A command that returns `pending_review`, `publishing`, or `failed` does not claim the post is published.
+
+## Core workflow
+
+```text
+authorize → select workspace → connect account → confirm payment
+         → upload/import media → draft, schedule, or publish
+         → inspect the authoritative result
+```
+
+Social-provider consent and checkout remain browser ceremonies. The CLI or agent starts each ceremony, returns the exact URL, and resumes after the callback or webhook succeeds.

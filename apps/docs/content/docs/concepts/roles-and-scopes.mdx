@@ -1,0 +1,39 @@
+---
+title: Roles and scopes
+description: How live workspace roles and delegated scopes combine to authorize every operation.
+---
+
+Delulu evaluates delegated access as:
+
+```text
+effective scopes = live role ceiling ∩ credential scopes
+```
+
+An approval cannot elevate a member above their role. A later role downgrade takes effect immediately.
+
+## Capability matrix
+
+| Capability | Owner | Admin | Editor | Viewer |
+| --- | :---: | :---: | :---: | :---: |
+| Create posts | yes | yes | yes | no |
+| Publish directly | yes | yes | no | no |
+| Approve reviews | yes | yes | no | no |
+| Manage connections | yes | yes | yes | no |
+| Manage API keys | yes | yes | no | no |
+| Manage members | yes | yes | no | no |
+| Manage billing | yes | no | no | no |
+
+Editors create and submit posts through review. Owners and admins can publish directly when the credential also holds the necessary write scopes. Viewers are read-only.
+
+## Scope ceilings
+
+- **Viewer:** `posts:read`, `accounts:read`, `stats:read`, `reviews:read`, `members:read`.
+- **Editor:** viewer scopes plus `posts:write`, `accounts:write`, `media:write`, `reviews:write`.
+- **Admin:** editor scopes plus `members:write`, `apikeys:write`.
+- **Owner:** admin scopes plus `billing:write`.
+
+API keys also carry a frozen role assigned at creation, but live membership still constrains access and the key is bound to one workspace.
+
+## Payer eligibility
+
+Billing is narrower than ordinary owner access. Personal workspace owners and the current organization payer can perform payer actions. Product IDs are never accepted from agent-facing clients; the server maps typed plan, interval, and currency values.

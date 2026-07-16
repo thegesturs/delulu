@@ -1,0 +1,58 @@
+---
+title: Set up Delulu with an AI agent
+description: Give an agent the Delulu skill, authorize once, and let it guide setup through publication.
+---
+
+You will install the small agent integration, approve delegated access, and let an agent work through workspace selection, account connection, billing, media, and publishing.
+
+For a browser-capable hosted agent, configure the [hosted MCP server](/mcp/overview/) instead. It follows the same setup journey with authorization code and PKCE. Agents can also discover the workflow from `https://solulu.delulu.social/auth.md`.
+
+## Step 1: Install agent awareness
+
+Install the CLI, then add the packaged skill to detected user-level agent locations:
+
+```bash
+npm install --global delulu-cli
+delulu integrate install
+delulu integrate status
+```
+
+The integration contains instructions only. It never copies or stores credentials.
+
+## Step 2: Ask the agent to start setup
+
+Use a direct request such as:
+
+```text
+Set up Delulu for me, connect my LinkedIn account, and tell me what remains before I can publish.
+```
+
+The agent runs `delulu login`. Open the verification URL, sign up or sign in, select a workspace and scopes, and approve. Tokens stay in the CLI credential file with owner-only permissions and never enter the conversation.
+
+## Step 3: Complete browser ceremonies
+
+The agent may give you separate URLs for:
+
+1. Social-provider consent.
+2. Hosted subscription checkout.
+
+These are separate because each provider must receive your explicit consent. The agent polls Delulu after each callback or payment webhook and reports the next action from backend state.
+
+Then ask it to publish:
+
+```text
+Upload ./demo.mp4 and publish it to my LinkedIn account with the caption “A better way to understand plans.”
+```
+
+The agent should use one atomic `delulu post … --media … --now` command and report the returned state.
+
+## What you built
+
+Your agent can operate the same CLI you can inspect yourself. It can prepare media, create drafts, schedule, publish, retry failed targets, and navigate reviews without receiving raw credentials.
+
+## Troubleshooting
+
+- Run `delulu integrate status` if the agent does not discover the skill.
+- Run `delulu --toon` yourself to inspect the exact machine-readable result.
+- Use `delulu accounts` when two accounts share a display name; agents should pass canonical selectors.
+- Use `delulu integrate remove` to remove the skill files without logging out.

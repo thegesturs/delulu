@@ -1,0 +1,42 @@
+---
+title: How to select a workspace
+description: Inspect eligible workspaces and rebind delegated credentials with explicit approval.
+---
+
+## List memberships
+
+```bash
+delulu workspace
+```
+
+The result includes each workspace selector, name, live role, and whether it is current. Delulu defaults only to the personal workspace for a newly created user. It does not silently choose the first organization.
+
+## Switch workspace
+
+```bash
+delulu workspace use acme-team
+```
+
+The selector can be the workspace ID, slug, or an unambiguous name. Switching starts device authorization with a workspace hint, preserves the previously granted scope subset, and replaces local credentials only after approval succeeds.
+
+## Override for one command
+
+```bash
+delulu --workspace workspace_abc posts
+```
+
+The credential must still be bound and authorized for that workspace. The flag does not bypass membership checks.
+
+## Verification
+
+```bash
+delulu
+```
+
+Confirm the workspace and role in the overview.
+
+## Troubleshooting
+
+- If a name matches several memberships, use the workspace ID.
+- If your membership was removed, reauthorization fails instead of preserving stale access.
+- Role changes apply immediately because every operation checks the live membership.

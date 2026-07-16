@@ -1,0 +1,49 @@
+---
+title: CLI configuration
+description: Environment variables, local files, token refresh, and credential safety.
+---
+
+## Environment variables
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `DELULU_API_URL` | API base URL. | `https://api.delulu.social` |
+| `DELULU_OAUTH_ISSUER` | OAuth issuer used by login. | API URL |
+| `DELULU_OAUTH_CLIENT_ID` | Public OAuth client ID. | `delulu-cli` |
+| `DELULU_WORKSPACE_ID` | Workspace fallback for commands. | Token `wid` claim |
+| `DELULU_OUTPUT` | `pretty`, `toon`, or `json`. | TTY detection |
+| `DELULU_SKILLS_DIR` | Custom agent-skill installation root. | Detected user agent folders |
+| `NO_COLOR` | Disable terminal color when set. | unset |
+
+Equivalent command flags override environment values where both exist.
+
+## Local files
+
+| Path | Contents |
+| --- | --- |
+| `~/.config/delulu/credentials.json` | Access token, optional refresh token, expiry, issuer, client ID, and discovered endpoints. |
+| `~/.config/delulu/operations.json` | Up to 100 operation fingerprints, keys, resource IDs, and timestamps. |
+
+Both files are created with owner-only mode `0600`. The operation journal never stores credentials, captions, or media contents.
+
+## Token refresh
+
+The CLI refreshes access tokens when they have less than 60 seconds remaining. Refresh rotation replaces the stored token. A failed refresh is classified as authentication failure and directs the caller to `delulu login`.
+
+## Default delegated scopes
+
+The CLI requests:
+
+```text
+posts:read posts:write accounts:read accounts:write stats:read media:write billing:write
+```
+
+The approval screen can narrow this set. A workspace role still caps what the resulting credential can do.
+
+## Remove credentials
+
+```bash
+delulu logout --yes
+```
+
+This attempts refresh-token revocation and removes the local credential file. Removing the agent integration does not log out.

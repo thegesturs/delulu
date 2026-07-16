@@ -1,0 +1,114 @@
+---
+title: Authentication
+description: Bearer credential types, OAuth discovery, device authorization, PKCE, refresh, revocation, and scopes.
+---
+
+## Bearer credentials
+
+One `Authorization: Bearer` scheme accepts three credential types:
+
+| Credential | Detection | Authorization behavior |
+| --- | --- | --- |
+| API key | `dsk_…` prefix | Workspace-bound, frozen role, narrowed scopes. |
+| Delulu OAuth token | App authorization-server issuer | Workspace binding and granted scopes from signed claims. |
+| First-party session | Other supported session JWT | Live user identity with the role's full scope ceiling. |
+
+Every request still resolves the live workspace membership. A removed member or changed role takes effect without waiting for token expiry.
+
+## Discovery
+
+```text
+GET /.well-known/oauth-authorization-server
+GET /.well-known/oauth-protected-resource
+GET /.well-known/jwks.json
+```
+
+Clients should discover endpoints and supported scopes from metadata.
+
+## Device authorization
+
+Start:
+
+```http
+POST /oauth/device/authorize
+Content-Type: application/x-www-form-urlencoded
+
+client_id=delulu-cli&
+scope=posts%3Aread%20accounts%3Aread&
+resource=https%3A%2F%2Fapi.delulu.social&
+workspace_id=optional-workspace-hint
+```
+
+The response includes `device_code`, `user_code`, `verification_uri`, optional `verification_uri_complete`, `expires_in`, and `interval`. Codes expire after 10 minutes, are single-use, and polling can return `authorization_pending`, `slow_down`, `access_denied`, or `expired_token`.
+
+Poll:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code&
+device_code=...&
+client_id=delulu-cli
+```
+
+The browser approval page requires a signed-in human, displays the client, workspace-neutral requested scopes and capabilities, allows workspace/scope selection, and requires explicit approval.
+
+## Authorization code with PKCE
+
+Browser-capable clients use:
+
+```text
+GET /oauth/authorize
+POST /oauth/authorize/finalize
+POST /oauth/token
+```
+
+Required authorization parameters are `response_type=code`, `client_id`, `redirect_uri`, `code_challenge`, and `code_challenge_method=S256`. The finalize call is protected by the signed-in browser session. The code exchange also supplies `code_verifier`.
+
+## Refresh and revocation
+
+Refresh:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&refresh_token=...&client_id=...
+```
+
+Refresh tokens rotate. Reuse detection invalidates the affected token family.
+
+Revoke:
+
+```http
+POST /oauth/revoke
+Content-Type: application/x-www-form-urlencoded
+
+token=...
+```
+
+Revocation always returns HTTP 200 as required by RFC 7009.
+
+## Introspection
+
+`POST /oauth/introspect` accepts `token` in a form body or bearer header and returns `active: false` for invalid tokens. Hosted MCP uses this endpoint before constructing its API client.
+
+## Scopes
+
+| Scope | Capability |
+| --- | --- |
+| `posts:read` | Read posts and target state. |
+| `posts:write` | Create, edit, schedule, publish, retry, and delete posts. |
+| `accounts:read` | Read connected accounts. |
+| `accounts:write` | Connect, transfer, and disconnect accounts. |
+| `stats:read` | Read operational analytics and usage. |
+| `billing:write` | Manage checkout and billing-owner actions. |
+| `media:write` | Upload, import, complete, and delete media. |
+| `reviews:read` | Read review queues and activity. |
+| `reviews:write` | Submit and resolve reviews within role limits. |
+| `members:read` | Read workspace members. |
+| `members:write` | Invite, update, and remove members. |
+| `apikeys:write` | Create and revoke API keys. |
+
+Effective access is the intersection of granted scopes and the live role ceiling. See [roles and permissions](/concepts/roles-and-scopes/).

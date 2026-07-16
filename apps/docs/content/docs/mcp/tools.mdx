@@ -1,0 +1,152 @@
+---
+title: MCP tools
+description: Complete input reference for every Delulu MCP tool.
+---
+
+The server currently registers 14 tools. Results are returned as JSON text content containing the API response.
+
+## Setup and billing
+
+### `list_workspaces`
+
+List eligible workspaces and live roles.
+
+```json
+{}
+```
+
+### `get_setup_status`
+
+Return connected platforms, subscription state, optional steps, outstanding action, and `onboardingComplete`.
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `workspaceId` | string | no |
+
+### `create_checkout`
+
+Create hosted checkout for an eligible payer.
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `workspaceId` | string | no |
+| `plan` | `ECHO` or `VIBE` | yes |
+| `interval` | `MONTHLY` or `YEARLY` | yes |
+| `currency` | `USD` or `INR` | yes |
+
+## Accounts
+
+### `list_accounts`
+
+List connected accounts. Optional field: `workspaceId`.
+
+### `get_account`
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | connection ID | yes |
+| `workspaceId` | string | no |
+
+### `connect_account`
+
+Start provider consent and return its authorization URL.
+
+| Field | Type | Required | Default |
+| --- | --- | --- | --- |
+| `platform` | string | yes | — |
+| `workspaceId` | string | no | resolved workspace |
+| `includeInsights` | boolean | no | `true` |
+
+The caller must surface the URL and inspect account/setup status after the callback.
+
+## Media
+
+### `import_media`
+
+Import a public HTTPS URL or public Google Drive share URL.
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `url` | valid URL | yes |
+| `workspaceId` | string | no |
+| `filename` | string | no |
+| `altText` | string | no |
+| `idempotencyKey` | string | no |
+
+The returned media ID must be ready before it is referenced by a post.
+
+## Posts
+
+### `list_posts`
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `status` | `SAVED`, `PUBLISHED`, `SCHEDULED`, `DELETED`, `FAILED`, or `PROCESSING` | no |
+| `limit` | number, maximum 100 | no |
+| `cursor` | numeric offset encoded as a string | no |
+| `workspaceId` | string | no |
+
+### `get_post`
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | post ID | yes |
+| `workspaceId` | string | no |
+
+### `create_post`
+
+Create once with explicit intent.
+
+| Field | Type | Required | Default |
+| --- | --- | --- | --- |
+| `content` | content segment array | yes | — |
+| `socialProviderIds` | connection ID array | no | `[]` |
+| `status` | `SAVED` or `SCHEDULED` | no | `SAVED` |
+| `scheduledAt` | Unix seconds | schedule only | — |
+| `privacyStatus` | `PUBLIC`, `PRIVATE`, or `UNLISTED` | no | provider default |
+| `workspaceId` | string | no | resolved workspace |
+| `intent` | `draft`, `schedule`, or `publish_now` | no | `draft` |
+
+Each content item has `order`, `name`, `text`, optional `tags`, and `media`, where every media item contains a completed workspace media `id`.
+
+`intent` controls delivery. The legacy `status` is normalized from intent for compatibility; do not call `publish_post_now` after `create_post` when intent is already `publish_now`.
+
+### `update_post`
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | post ID | yes |
+| `content` | content segment array | no |
+| `status` | `SAVED` or `SCHEDULED` | no |
+| `scheduledAt` | Unix seconds | no |
+| `workspaceId` | string | no |
+
+### `delete_post`
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | post ID | yes |
+| `workspaceId` | string | no |
+
+### `publish_post_now`
+
+Publish an existing prepared post. Live roles and review rules apply.
+
+| Field | Type | Required |
+| --- | --- | --- |
+| `id` | post ID | yes |
+| `workspaceId` | string | no |
+
+## Usage
+
+### `get_usage`
+
+Return pooled workspace usage. Optional field: `workspaceId`.
+
+### `get_subscription`
+
+Return plan, billing interval, status, and period details. Optional field: `workspaceId`.
+
+## Result handling
+
+Always inspect returned post and target states. A successful tool invocation can legitimately return a draft, schedule, pending review, or in-progress publication. Only a `published` post with successful target states confirms delivery.

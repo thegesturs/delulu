@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+@theme {
+  --color-fd-primary: oklch(0.5216 0.2318 273.3197);
+}
+
+:root {
+  --fd-layout-width: 1500px;
+}
+
+body {
+  min-height: 100vh;
+  letter-spacing: 0.01em;
+}
+
+.prose table {
+  display: table;
+  width: 100%;
+}
+
+.prose :where(code):not(:where(pre *)) {
+  border: 1px solid color-mix(in oklab, var(--color-fd-border), transparent 25%);
+  border-radius: 0.35rem;
+  padding: 0.12rem 0.32rem;
+}

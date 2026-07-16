@@ -17,6 +17,7 @@ with an approval workflow, and drive it all through an AI agent API (MCP).
 - **Org workspaces** with roles and a post approval workflow
 - **Real-time collaboration** on drafts
 - **AI agent API** via an MCP server
+- **Agent-first CLI** with device authorization, atomic publishing, and TOON output
 - **Analytics** and post insights
 - **Billing** with subscription plans (multi-currency)
 
@@ -44,7 +45,8 @@ apps/
   web/         Marketing site (Next.js)
   api/         Public API (Cloudflare Worker)
   mcp/         MCP server — the AI agent API
-  docs/        Documentation site (Mintlify)
+  docs/        Documentation site (Astro + Fumadocs)
+  cli/         Agent-first command line interface
   email/       Email template workshop (React Email)
   sorted/      Browser extension (WXT)
   storybook/   Component workshop
@@ -63,7 +65,7 @@ packages/
 
 ### Prerequisites
 
-- **Node.js** 18+ (20+ recommended)
+- **Node.js** 22.12+
 - **pnpm** 10 (`corepack enable` picks up the pinned version)
 
 ### Install
@@ -94,6 +96,19 @@ pnpm dev          # run everything via Turborepo
 pnpm dev:app      # just the dashboard (http://localhost:3000)
 pnpm dev:web      # just the marketing site
 pnpm dev:api      # just the Postgres-backed API worker
+pnpm dev:docs     # documentation site (http://localhost:3004)
+```
+
+## Documentation
+
+The full product, CLI, MCP, OAuth, REST API, and architecture documentation
+lives in [`apps/docs`](./apps/docs). The docs build generates its OpenAPI 3.1
+reference directly from `@delulu/contracts`, so endpoint schemas stay aligned
+with the production worker.
+
+```bash
+pnpm dev:docs
+pnpm --filter @delulu/docs build
 ```
 
 ## Common scripts

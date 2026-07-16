@@ -1,0 +1,4 @@
+{
+  "title": "Getting started",
+  "pages": ["cli-quickstart", "agent-setup", "api-quickstart"]
+}

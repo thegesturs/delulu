@@ -1,0 +1,273 @@
+---
+title: CLI commands
+description: Complete delulu-cli 0.2 command and flag reference.
+---
+
+## Global syntax
+
+```text
+delulu [global options] [command] [command options]
+```
+
+| Option | Effect |
+| --- | --- |
+| `--api-url <url>` | Override the API base URL. |
+| `--workspace <id>` | Select a workspace for this invocation. Authorization still applies. |
+| `--toon` | Force TOON output. |
+| `--json` | Force JSON output. |
+| `--pretty` | Force compact human output. |
+| `--full` | Disable truncation and expose documented extended fields. |
+| `--version` | Print the CLI version. |
+
+Only one of `--toon`, `--json`, or `--pretty` can be selected.
+
+## `delulu`
+
+Show the workspace command center: role, onboarding, accounts, subscription, usage, publishing counts, pending reviews, failures, and the deterministic next action.
+
+```bash
+delulu
+```
+
+## `delulu login`
+
+Authorize with device login.
+
+```bash
+delulu login [--client-id <id>] [--issuer <url>] [--loopback]
+```
+
+| Option | Effect |
+| --- | --- |
+| `--client-id <id>` | Override the OAuth public client ID. Default: `delulu-cli`. |
+| `--issuer <url>` | Override the authorization issuer. |
+| `--loopback` | Use authorization code with PKCE and `127.0.0.1:32123` instead of device login. |
+
+## `delulu logout`
+
+Revoke the refresh token when possible and delete local credentials.
+
+```bash
+delulu logout --yes
+```
+
+`--yes` is required.
+
+## `delulu workspace`
+
+List eligible workspaces and the current binding.
+
+```bash
+delulu workspace
+delulu workspace use <selector>
+```
+
+`workspace use` accepts a workspace ID, slug, or unambiguous name and starts a new approval ceremony.
+
+## `delulu accounts`
+
+List up to 100 connected social accounts.
+
+```bash
+delulu accounts [--full]
+```
+
+Default rows include `selector`, `platform`, `name`, and `expires`.
+
+## `delulu connect`
+
+Start social-provider authorization and wait for the callback.
+
+```bash
+delulu connect <platform> [--no-wait] [--timeout <seconds>] [--new]
+```
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `--no-wait` | false | Return after creating the provider URL. |
+| `--timeout <seconds>` | `600` | Maximum callback wait. |
+| `--new` | false | Intentionally connect another account on the same platform. |
+
+## `delulu disconnect`
+
+Remove one resolved connection.
+
+```bash
+delulu disconnect <account> --yes [--new]
+```
+
+Use a canonical selector when names can collide. `--yes` is required. `--new` forces a distinct operation instead of replaying an earlier removal.
+
+## `delulu subscribe`
+
+Create hosted checkout for an eligible payer.
+
+```bash
+delulu subscribe \
+  --plan <ECHO|VIBE> \
+  --interval <MONTHLY|YEARLY> \
+  [--currency <USD|INR>] \
+  [--idempotency-key <key>] \
+  [--new]
+```
+
+Currency defaults to `USD`.
+
+## `delulu usage`
+
+Show subscription and pooled workspace usage.
+
+```bash
+delulu usage [--full]
+```
+
+## `delulu upload`
+
+Prepare reusable media from a local path or public HTTPS URL.
+
+```bash
+delulu upload <source> \
+  [--alt <text>] \
+  [--idempotency-key <key>] \
+  [--new]
+```
+
+An existing media ID is not uploaded again when passed to `post` or `edit`.
+
+## `delulu post`
+
+Prepare media and create a post in one atomic flow.
+
+```bash
+delulu post [caption] \
+  --to <account> [--to <account> ...] \
+  [--file <path>] \
+  [--media <source> ...] \
+  [--alt <text>] \
+  [--draft | --now | --at <timestamp>] \
+  [--privacy <status>] \
+  [--idempotency-key <key>] \
+  [--new] [--no-wait] [--timeout <seconds>]
+```
+
+Content accepts exactly one source: positional caption, `--file`, or stdin. At least one target is required. Intent defaults to draft. Publish wait defaults to 360 seconds.
+
+## `delulu posts`
+
+List recent posts with offset pagination.
+
+```bash
+delulu posts [--status <status>] [--limit <1-100>] [--offset <number>]
+```
+
+Defaults: limit `10`, offset `0`. Default rows include `id`, `state`, `when`, and `caption`; captions are truncated at 160 characters unless `--full` is set.
+
+## `delulu show`
+
+Inspect one post and every target result.
+
+```bash
+delulu show <post-id> [--full]
+```
+
+## `delulu edit`
+
+Change a draft or scheduled post without publishing it.
+
+```bash
+delulu edit <post-id> [caption] \
+  [--file <path>] \
+  [--to <account> ...] \
+  [--media <source> ...] \
+  [--alt <text>] \
+  [--privacy <status>] \
+  [--at <timestamp> | --draft] \
+  [--new]
+```
+
+Supplied targets or media replace the existing values. Complex multi-segment posts must be edited in the web editor.
+
+## `delulu publish`
+
+Publish an existing draft.
+
+```bash
+delulu publish <post-id> --now [--new] [--no-wait] [--timeout <seconds>]
+```
+
+`--now` is required. Wait defaults to 360 seconds.
+
+## `delulu retry`
+
+Retry failed targets only.
+
+```bash
+delulu retry <post-id> [--target <target-id>] [--new]
+```
+
+Without `--target`, every failed target is queued. Successful targets are not repeated.
+
+## `delulu delete`
+
+Delete a post.
+
+```bash
+delulu delete <post-id> --yes [--new]
+```
+
+`--yes` is required.
+
+## `delulu reviews`
+
+List the current review queue.
+
+```bash
+delulu reviews [--limit <1-100>] [--offset <number>]
+```
+
+Defaults: limit `10`, offset `0`.
+
+## `delulu review`
+
+Perform exactly one review action.
+
+```bash
+delulu review <post-id> \
+  [--approve | --reject <reason> | --comment <text> | --submit | --withdraw] \
+  [--new]
+```
+
+## `delulu integrate`
+
+Manage opt-in agent awareness.
+
+```bash
+delulu integrate install
+delulu integrate status
+delulu integrate remove
+```
+
+The packaged skill contains no credentials. Set `DELULU_SKILLS_DIR` to override the installation root.
+
+## `delulu help`
+
+Return concise structured help, examples, result fields, and exit codes.
+
+```bash
+delulu help
+delulu help post
+```
+
+## Removed commands
+
+| Removed | Replacement |
+| --- | --- |
+| `whoami` | `delulu` |
+| `workspaces` | `delulu workspace` |
+| `setup` | `delulu` |
+| `billing` | `delulu usage` or `delulu subscribe` |
+| `media` | `delulu upload` |
+| `stats` | `delulu usage` |
+| `posts create` | `delulu post` |
+| `posts schedule` | `delulu post --at <timestamp>` |
+| `posts update` | `delulu edit <post-id>` |

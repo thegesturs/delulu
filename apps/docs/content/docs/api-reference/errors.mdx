@@ -1,0 +1,49 @@
+---
+title: API errors
+description: Error envelope, HTTP statuses, retry behavior, validation details, and quota responses.
+---
+
+Typed endpoints return one envelope:
+
+```json
+{
+  "error": {
+    "code": "ValidationError",
+    "message": "The request is invalid",
+    "details": {
+      "issues": [
+        { "path": "targets[0].connectionId", "message": "Connection not found" }
+      ]
+    }
+  }
+}
+```
+
+## Status reference
+
+| Status | Code | Meaning | Retry guidance |
+| ---: | --- | --- | --- |
+| `401` | `UnauthorizedError` | Missing, invalid, expired, or revoked credential. | Refresh or reauthorize. |
+| `402` | `QuotaExceededError` | Plan limit is exhausted. | Use `upgradeUrl` or wait for reset. |
+| `403` | `ForbiddenError` | Role, scope, payer, membership, or workspace binding denies access. | Correct authorization; do not blind-retry. |
+| `404` | `NotFoundError` | The named resource is unavailable in this workspace. | Verify ID and workspace. |
+| `409` | `ConflictError` | State conflict or duplicate/in-progress idempotent operation. | Inspect the original resource. |
+| `422` | `ValidationError` | Domain or payload validation failed. | Correct `details.issues`. |
+| `429` | `RateLimitedError` | Per-credential request rate exceeded. | Wait `details.retryAfter` seconds. |
+
+`QuotaExceededError.details` includes `resource`, `limit`, `current`, and `upgradeUrl`. `NotFoundError` and `ConflictError` include `resource`.
+
+Provider-backed analytics can also return HTTP 503. Treat it as retryable only when the operation is read-only or protected by the same idempotency key.
+
+## OAuth errors
+
+OAuth endpoints use the protocol envelope instead:
+
+```json
+{
+  "error": "authorization_pending",
+  "error_description": "The user has not approved this request"
+}
+```
+
+Respect the HTTP status and the device polling interval. `slow_down` increases the interval by at least five seconds.
