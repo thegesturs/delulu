@@ -1,17 +1,29 @@
 "use client";
 
+import { SocialPostPreview } from "@delulu/design-system/components/social-preview/social-post-preview";
+import { InstagramProfilePreview } from "@delulu/design-system/components/social-preview/social-profile-preview";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
-import { CalendarDays, RotateCcw, Share2 } from "lucide-react";
+import {
+  type SupportedSocialPlatform,
+  socialDisplayNames,
+} from "@delulu/design-system/lib/social-config";
+import {
+  CalendarDays,
+  ChevronDown,
+  ImagePlus,
+  RotateCcw,
+  Share2,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { InstagramPostPreviewCard } from "../instagram-post-preview/preview-card";
-import { InstagramProfilePreviewCard } from "../instagram-profile-preview/preview-card";
-import { LinkedInPostPreviewCard } from "../linkedin-post-preview/preview-card";
 import {
   createExampleState,
   EMPTY_STATE,
+  formatPreviewDate,
   type PreviewState,
 } from "./preview-state";
 import {
@@ -32,9 +44,12 @@ function NumberField({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="min-w-0 space-y-1.5">
+      <Label className="text-xs" htmlFor={id}>
+        {label}
+      </Label>
       <Input
+        className="min-h-11"
         id={id}
         min={0}
         onChange={(event) => onChange(Number(event.currentTarget.value))}
@@ -45,11 +60,123 @@ function NumberField({
   );
 }
 
+function UploadControl({
+  id,
+  label,
+  multiple,
+  accept = "image/*",
+  status,
+  onFiles,
+}: {
+  id: string;
+  label: string;
+  multiple?: boolean;
+  accept?: string;
+  status?: string;
+  onFiles: (files: File[]) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <label
+        className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border bg-background px-3 font-medium text-sm transition-colors hover:bg-muted"
+        htmlFor={id}
+      >
+        <ImagePlus aria-hidden className="size-4" />
+        {multiple ? "Choose images" : "Choose image"}
+      </label>
+      <Input
+        accept={accept}
+        className="sr-only"
+        id={id}
+        key={id}
+        multiple={multiple}
+        onChange={(event) =>
+          onFiles(Array.from(event.currentTarget.files ?? []))
+        }
+        type="file"
+      />
+      {status && (
+        <output className="block text-muted-foreground text-xs">
+          {status}
+        </output>
+      )}
+    </div>
+  );
+}
+
+function PreviewMedia({
+  alt,
+  platform,
+  mediaType,
+  url,
+}: {
+  alt: string;
+  platform: SupportedSocialPlatform;
+  mediaType: "image" | "video";
+  url?: string;
+}) {
+  if (!url) {
+    return (
+      <div
+        className={
+          platform === "TIKTOK"
+            ? "flex h-full min-h-[32rem] items-center justify-center bg-gradient-to-br from-zinc-800 to-black text-white/60"
+            : platform === "YOUTUBE"
+              ? "flex aspect-video items-center justify-center bg-muted text-muted-foreground"
+              : "flex aspect-square items-center justify-center bg-muted text-muted-foreground"
+        }
+      >
+        <ImagePlus aria-hidden className="size-8" />
+      </div>
+    );
+  }
+
+  if (mediaType === "video") {
+    return (
+      <video
+        autoPlay
+        className={
+          platform === "TIKTOK"
+            ? "h-full min-h-[32rem] w-full object-cover"
+            : platform === "YOUTUBE"
+              ? "aspect-video w-full object-cover"
+              : "aspect-square w-full object-cover"
+        }
+        loop
+        muted
+        playsInline
+        src={url}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={
+        platform === "TIKTOK"
+          ? "relative h-full min-h-[32rem] w-full"
+          : platform === "YOUTUBE"
+            ? "relative aspect-video w-full"
+            : "relative aspect-square w-full"
+      }
+    >
+      <img
+        alt={alt || "Post media preview"}
+        className="absolute inset-0 size-full object-cover"
+        src={url}
+      />
+    </div>
+  );
+}
+
 export function SocialPreviewTool({
   kind,
+  platform,
   example,
 }: {
   kind: SocialPreviewKind;
+  platform: SupportedSocialPlatform;
   example: SocialPreviewExample;
 }) {
   const [state, setState] = useState<PreviewState>(() =>
@@ -57,7 +184,8 @@ export function SocialPreviewTool({
   );
   const [fileInputKey, setFileInputKey] = useState(0);
   const objectUrls = useRef(new Set<string>());
-  const isProfile = kind === "instagram-profile";
+  const isProfile = kind === "profile";
+  const platformName = socialDisplayNames[platform];
 
   useEffect(
     () => () => {
@@ -91,59 +219,89 @@ export function SocialPreviewTool({
         objectUrls.current.delete(url);
       }
     }
+
     const nextUrls = files
       .slice(0, key === "mediaUrls" && isProfile ? 9 : 1)
       .map((file) => URL.createObjectURL(file));
     for (const url of nextUrls) {
       objectUrls.current.add(url);
     }
+
     if (key === "avatarUrl") {
       update("avatarUrl", nextUrls[0] ?? "");
     } else {
+      update(
+        "mediaType",
+        files[0]?.type.startsWith("video/") ? "video" : "image"
+      );
       update("mediaUrls", nextUrls);
     }
   };
 
   const composerUrl = useMemo(() => buildComposerUrl(state.text), [state.text]);
+  const media = (
+    <PreviewMedia
+      alt={state.altText}
+      mediaType={state.mediaType}
+      platform={platform}
+      url={state.mediaUrls[0]}
+    />
+  );
 
   return (
     <section
       aria-label="Live social preview editor"
-      className="grid gap-6 rounded-2xl border bg-card p-4 shadow-sm lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:p-6"
+      className="relative left-1/2 grid w-[min(92vw,80rem)] -translate-x-1/2 overflow-hidden rounded-2xl border bg-background shadow-sm lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
     >
-      <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold text-xl">Customize your preview</h2>
+      <form
+        className="min-w-0 space-y-6 p-5 sm:p-6 lg:border-r"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <SocialIcon size="md" type={platform} />
+              <h2 className="truncate font-semibold text-lg">
+                {isProfile ? "Edit profile" : "Edit post"}
+              </h2>
+            </div>
             <p className="mt-1 text-muted-foreground text-sm">
-              Updates live. Files stay in your browser.
+              Changes appear in the preview instantly.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <Button
+              aria-label="Load example"
+              className="min-h-10 px-3"
               onClick={() => replaceState(createExampleState(example))}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              Example
-            </Button>
-            <Button
-              onClick={() => replaceState(EMPTY_STATE)}
               size="sm"
               type="button"
               variant="ghost"
             >
-              <RotateCcw aria-hidden /> Reset
+              Example
+            </Button>
+            <Button
+              aria-label="Reset preview"
+              className="min-h-10 px-2.5"
+              onClick={() => replaceState(EMPTY_STATE)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <RotateCcw aria-hidden className="size-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor={`${kind}-display-name`}>Display name</Label>
+        <fieldset className="space-y-4">
+          <legend className="mb-3 font-medium text-sm">Identity</legend>
+          <div className="space-y-1.5">
+            <Label htmlFor={`${platform}-display-name`}>
+              {platform === "YOUTUBE" ? "Channel name" : "Display name"}
+            </Label>
             <Input
-              id={`${kind}-display-name`}
+              className="min-h-11"
+              id={`${platform}-display-name`}
               maxLength={80}
               onChange={(event) =>
                 update("displayName", event.currentTarget.value)
@@ -152,10 +310,17 @@ export function SocialPreviewTool({
               value={state.displayName}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${kind}-username`}>Username</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor={`${platform}-username`}>
+              {platform === "FACEBOOK"
+                ? "Page username"
+                : platform === "YOUTUBE"
+                  ? "Channel handle"
+                  : "Username"}
+            </Label>
             <Input
-              id={`${kind}-username`}
+              className="min-h-11"
+              id={`${platform}-username`}
               maxLength={40}
               onChange={(event) =>
                 update("username", event.currentTarget.value)
@@ -164,161 +329,160 @@ export function SocialPreviewTool({
               value={state.username}
             />
           </div>
-        </div>
-
-        {kind === "linkedin-post" && (
-          <div className="space-y-2">
-            <Label htmlFor={`${kind}-headline`}>Professional headline</Label>
-            <Input
-              id={`${kind}-headline`}
-              maxLength={160}
-              onChange={(event) =>
-                update("headline", event.currentTarget.value)
-              }
-              placeholder="Product lead · Building calmer workflows"
-              value={state.headline}
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor={`${kind}-text`}>
-              {isProfile ? "Profile bio" : "Post text"}
-            </Label>
-            <span className="text-muted-foreground text-xs">
-              {state.text.length} characters
-            </span>
-          </div>
-          <Textarea
-            className="min-h-32 resize-y"
-            id={`${kind}-text`}
-            maxLength={3000}
-            onChange={(event) => update("text", event.currentTarget.value)}
-            placeholder={
-              isProfile ? "Describe this profile..." : "Write your post..."
-            }
-            value={state.text}
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor={`${kind}-avatar`}>Avatar image</Label>
-            <Input
-              accept="image/*"
-              id={`${kind}-avatar`}
-              key={`${fileInputKey}-avatar`}
-              onChange={(event) =>
-                replaceLocalUrls(
-                  "avatarUrl",
-                  Array.from(event.currentTarget.files ?? []).slice(0, 1)
-                )
-              }
-              type="file"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${kind}-media`}>
-              {isProfile ? "Grid images (up to 9)" : "Post image"}
-            </Label>
-            <Input
-              accept="image/*"
-              id={`${kind}-media`}
-              key={`${fileInputKey}-media`}
-              multiple={isProfile}
-              onChange={(event) =>
-                replaceLocalUrls(
-                  "mediaUrls",
-                  Array.from(event.currentTarget.files ?? [])
-                )
-              }
-              type="file"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor={`${kind}-alt-text`}>
-            {isProfile ? "Grid image description" : "Image alt text"}
-          </Label>
-          <Input
-            id={`${kind}-alt-text`}
-            maxLength={300}
-            onChange={(event) => update("altText", event.currentTarget.value)}
-            placeholder={
-              isProfile
-                ? "Describe the common subject or visual theme"
-                : "Describe the useful visual details"
-            }
-            value={state.altText}
-          />
-          {isProfile && (
-            <p className="text-muted-foreground text-xs leading-5">
-              Used as an accessible description for each selected grid image.
-            </p>
-          )}
-        </div>
-
-        {isProfile ? (
-          <div className="grid grid-cols-3 gap-3">
-            <NumberField
-              id={`${kind}-posts`}
-              label="Posts"
-              onChange={(value) => update("posts", value)}
-              value={state.posts}
-            />
-            <NumberField
-              id={`${kind}-followers`}
-              label="Followers"
-              onChange={(value) => update("followers", value)}
-              value={state.followers}
-            />
-            <NumberField
-              id={`${kind}-following`}
-              label="Following"
-              onChange={(value) => update("following", value)}
-              value={state.following}
-            />
-          </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor={`${kind}-date`}>
-                <CalendarDays aria-hidden className="size-4" /> Post date
-              </Label>
+          {platform === "LINKEDIN" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="linkedin-headline">Professional headline</Label>
               <Input
-                id={`${kind}-date`}
-                onChange={(event) => update("date", event.currentTarget.value)}
-                type="date"
-                value={state.date}
+                className="min-h-11"
+                id="linkedin-headline"
+                maxLength={160}
+                onChange={(event) =>
+                  update("headline", event.currentTarget.value)
+                }
+                placeholder="Product lead · Building calmer workflows"
+                value={state.headline}
               />
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <NumberField
-                id={`${kind}-likes`}
-                label={kind === "linkedin-post" ? "Reactions" : "Likes"}
-                onChange={(value) => update("likes", value)}
-                value={state.likes}
-              />
-              <NumberField
-                id={`${kind}-comments`}
-                label="Comments"
-                onChange={(value) => update("comments", value)}
-                value={state.comments}
-              />
-              <NumberField
-                id={`${kind}-shares`}
-                label="Shares"
-                onChange={(value) => update("shares", value)}
-                value={state.shares}
-              />
+          )}
+          <UploadControl
+            id={`${platform}-avatar-${fileInputKey}`}
+            label="Profile image"
+            onFiles={(files) => replaceLocalUrls("avatarUrl", files)}
+            status={state.avatarUrl ? "Profile image selected" : undefined}
+          />
+        </fieldset>
+
+        <fieldset className="space-y-4">
+          <legend className="mb-3 font-medium text-sm">
+            {isProfile ? "Bio and grid" : "Content"}
+          </legend>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor={`${platform}-text`}>
+                {isProfile
+                  ? "Profile bio"
+                  : platform === "YOUTUBE"
+                    ? "Video title and description"
+                    : "Post text"}
+              </Label>
+              <span className="text-muted-foreground text-xs">
+                {state.text.length}
+              </span>
             </div>
-          </>
-        )}
+            <Textarea
+              className="min-h-36 resize-y"
+              id={`${platform}-text`}
+              maxLength={3000}
+              onChange={(event) => update("text", event.currentTarget.value)}
+              placeholder={
+                isProfile ? "Describe this profile…" : "Write your post…"
+              }
+              value={state.text}
+            />
+          </div>
+          <UploadControl
+            accept={isProfile ? "image/*" : "image/*,video/*"}
+            id={`${platform}-media-${fileInputKey}`}
+            label={isProfile ? "Grid images" : "Post media"}
+            multiple={isProfile}
+            onFiles={(files) => replaceLocalUrls("mediaUrls", files)}
+            status={
+              state.mediaUrls.length > 0
+                ? `${state.mediaUrls.length} ${state.mediaUrls.length === 1 ? "file" : "files"} selected`
+                : undefined
+            }
+          />
+          <div className="space-y-1.5">
+            <Label htmlFor={`${platform}-alt-text`}>Image description</Label>
+            <Input
+              className="min-h-11"
+              id={`${platform}-alt-text`}
+              maxLength={300}
+              onChange={(event) => update("altText", event.currentTarget.value)}
+              placeholder="Describe the useful visual details"
+              value={state.altText}
+            />
+          </div>
+        </fieldset>
+
+        <details className="group rounded-xl border bg-muted/20">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 font-medium text-sm">
+            {isProfile ? (
+              <UserRound aria-hidden className="size-4" />
+            ) : (
+              <CalendarDays aria-hidden className="size-4" />
+            )}
+            {isProfile ? "Profile counts" : "Post details"}
+            <ChevronDown
+              aria-hidden
+              className="ml-auto size-4 transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <div className="space-y-4 border-t p-4">
+            {!isProfile && (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${platform}-date`}>Post date</Label>
+                <Input
+                  className="min-h-11"
+                  id={`${platform}-date`}
+                  onChange={(event) =>
+                    update("date", event.currentTarget.value)
+                  }
+                  type="date"
+                  value={state.date}
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-3">
+              {isProfile ? (
+                <>
+                  <NumberField
+                    id={`${platform}-posts`}
+                    label="Posts"
+                    onChange={(value) => update("posts", value)}
+                    value={state.posts}
+                  />
+                  <NumberField
+                    id={`${platform}-followers`}
+                    label="Followers"
+                    onChange={(value) => update("followers", value)}
+                    value={state.followers}
+                  />
+                  <NumberField
+                    id={`${platform}-following`}
+                    label="Following"
+                    onChange={(value) => update("following", value)}
+                    value={state.following}
+                  />
+                </>
+              ) : (
+                <>
+                  <NumberField
+                    id={`${platform}-likes`}
+                    label={platform === "LINKEDIN" ? "Reactions" : "Likes"}
+                    onChange={(value) => update("likes", value)}
+                    value={state.likes}
+                  />
+                  <NumberField
+                    id={`${platform}-comments`}
+                    label="Comments"
+                    onChange={(value) => update("comments", value)}
+                    value={state.comments}
+                  />
+                  <NumberField
+                    id={`${platform}-shares`}
+                    label={platform === "TWITTER" ? "Reposts" : "Shares"}
+                    onChange={(value) => update("shares", value)}
+                    value={state.shares}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+        </details>
 
         {!isProfile && (
-          <Button asChild className="w-full" size="lg">
+          <Button asChild className="min-h-11 w-full" size="lg">
             <a href={composerUrl} rel="noopener noreferrer">
               Create this post in Delulu <Share2 aria-hidden />
             </a>
@@ -326,15 +490,46 @@ export function SocialPreviewTool({
         )}
       </form>
 
-      <div className="flex min-w-0 items-start justify-center rounded-xl bg-muted/50 p-3 sm:p-6 lg:sticky lg:top-24">
-        {kind === "instagram-post" && (
-          <InstagramPostPreviewCard state={state} />
-        )}
-        {kind === "linkedin-post" && <LinkedInPostPreviewCard state={state} />}
-        {kind === "instagram-profile" && (
-          <InstagramProfilePreviewCard state={state} />
-        )}
-      </div>
+      <aside
+        aria-label={`${platformName} live preview`}
+        className="min-w-0 border-t bg-muted/30 p-4 sm:p-8 lg:border-t-0"
+      >
+        <div className="lg:sticky lg:top-24">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="font-medium text-sm">{platformName} preview</p>
+            <span className="rounded-full border bg-background px-2.5 py-1 text-muted-foreground text-xs">
+              Private
+            </span>
+          </div>
+          {isProfile ? (
+            <InstagramProfilePreview
+              avatarUrl={state.avatarUrl}
+              bio={state.text}
+              displayName={state.displayName}
+              followers={state.followers}
+              following={state.following}
+              mediaAltText={state.altText}
+              mediaUrls={state.mediaUrls}
+              posts={state.posts}
+              username={state.username}
+            />
+          ) : (
+            <SocialPostPreview
+              avatarUrl={state.avatarUrl}
+              comments={state.comments}
+              dateLabel={formatPreviewDate(state.date)}
+              displayName={state.displayName}
+              headline={state.headline}
+              likes={state.likes}
+              media={media}
+              platform={platform}
+              shares={state.shares}
+              text={state.text}
+              username={state.username}
+            />
+          )}
+        </div>
+      </aside>
     </section>
   );
 }

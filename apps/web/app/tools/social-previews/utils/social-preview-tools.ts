@@ -1,7 +1,6 @@
-export type SocialPreviewKind =
-  | "instagram-post"
-  | "linkedin-post"
-  | "instagram-profile";
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
+
+export type SocialPreviewKind = "post" | "profile";
 
 export interface SocialPreviewExample {
   label: string;
@@ -14,6 +13,7 @@ export interface SocialPreviewExample {
 export interface SocialPreviewToolContent {
   slug: string;
   kind: SocialPreviewKind;
+  platform: SupportedSocialPlatform;
   title: string;
   metaTitle: string;
   description: string;
@@ -27,10 +27,130 @@ export interface SocialPreviewToolContent {
   examples: SocialPreviewExample[];
 }
 
+interface PostPreviewDefinition {
+  slug: string;
+  platform: SupportedSocialPlatform;
+  platformName: string;
+  title: string;
+  description: string;
+  identity: string;
+  mediaGuidance: string;
+  writingGuidance: string;
+  example: SocialPreviewExample;
+}
+
+function createPostPreviewTool(
+  definition: PostPreviewDefinition
+): SocialPreviewToolContent {
+  const {
+    slug,
+    platform,
+    platformName,
+    title,
+    description,
+    identity,
+    mediaGuidance,
+    writingGuidance,
+    example,
+  } = definition;
+  return {
+    slug,
+    kind: "post",
+    platform,
+    title,
+    metaTitle: `${title} – Free Live Post Mockup`,
+    description,
+    metaDescription: `${description} Edit the text, identity, media, date, and counts live in a private browser preview.`,
+    keywords: [
+      `${platformName.toLowerCase()} post preview`,
+      `${platformName.toLowerCase()} post mockup`,
+      `preview ${platformName.toLowerCase()} post`,
+      `${platformName.toLowerCase()} content preview`,
+    ],
+    intro: [
+      `Review the complete ${platformName} post before it reaches a live feed. The preview combines your copy, ${identity}, media, date, and representative engagement so spacing and hierarchy are visible while you edit.`,
+      `${writingGuidance} Changes stay in this browser tab, and the finished text can move directly into the Delulu composer without uploading the preview media.`,
+    ],
+    howToHeading: `How to preview a ${platformName} post`,
+    howToSteps: [
+      {
+        name: "Add the post and identity",
+        text: `Enter the copy and the ${identity} that readers should see around it.`,
+      },
+      {
+        name: "Choose the media",
+        text: mediaGuidance,
+      },
+      {
+        name: "Review and continue",
+        text: `Check the native ${platformName} reading pattern, then create the post in Delulu when the draft is ready.`,
+      },
+    ],
+    sections: [
+      {
+        heading: `What to check in your ${platformName} preview`,
+        paragraphs: [
+          writingGuidance,
+          `${mediaGuidance} Engagement values are editable layout context, not a prediction of performance.`,
+        ],
+      },
+      {
+        heading: "Private draft review",
+        paragraphs: [
+          "Text remains in local page state and selected files use temporary browser URLs. The tool does not connect to a social account or publish anything.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: `Is this ${platformName} post preview free?`,
+        answer:
+          "Yes. It is free to use without signing in, and there is no visible preview limit.",
+      },
+      {
+        question: `Does the preview connect to my ${platformName} account?`,
+        answer:
+          "No. It works with details you enter locally and never requests access to a social account.",
+      },
+      {
+        question: `Can I add media to the ${platformName} mockup?`,
+        answer: mediaGuidance,
+      },
+      {
+        question: `Will ${platformName} line breaks remain visible?`,
+        answer:
+          "Yes. The preview preserves line breaks so you can inspect paragraph rhythm, truncation risk, and scanning length.",
+      },
+      {
+        question: `Is this an exact copy of the ${platformName} interface?`,
+        answer:
+          "It follows the platform's recognizable content hierarchy while keeping the card accessible, responsive, and useful for planning.",
+      },
+      {
+        question: "Are the engagement counts real?",
+        answer:
+          "No. They are editable visual placeholders for checking balance and label wrapping, not analytics or forecasts.",
+      },
+      {
+        question: "Is my uploaded image stored?",
+        answer:
+          "No. The selected file is shown through a temporary browser URL and is not uploaded by this preview.",
+      },
+      {
+        question: `How do I publish the ${platformName} draft?`,
+        answer:
+          "Choose Create this post in Delulu. The current text opens in the composer, where you can select a connected account and schedule or publish it.",
+      },
+    ],
+    examples: [example],
+  };
+}
+
 export const socialPreviewTools: SocialPreviewToolContent[] = [
   {
     slug: "instagram-post-preview",
-    kind: "instagram-post",
+    kind: "post",
+    platform: "INSTAGRAM",
     title: "Instagram Post Preview",
     metaTitle: "Instagram Post Preview – Free Feed Mockup Tool",
     description:
@@ -131,7 +251,8 @@ export const socialPreviewTools: SocialPreviewToolContent[] = [
   },
   {
     slug: "linkedin-post-preview",
-    kind: "linkedin-post",
+    kind: "post",
+    platform: "LINKEDIN",
     title: "LinkedIn Post Preview",
     metaTitle: "LinkedIn Post Preview – Free Professional Post Mockup",
     description:
@@ -231,9 +352,110 @@ export const socialPreviewTools: SocialPreviewToolContent[] = [
       },
     ],
   },
+  createPostPreviewTool({
+    slug: "facebook-post-preview",
+    platform: "FACEBOOK",
+    platformName: "Facebook",
+    title: "Facebook Post Preview",
+    description:
+      "Preview a Facebook page post with its copy, page identity, image, visibility, reactions, comments, and shares.",
+    identity: "page name and profile image",
+    mediaGuidance:
+      "Choose an image that still communicates when it spans the feed card; the preview keeps it contained without uploading it.",
+    writingGuidance:
+      "Lead with the useful point, then make the next action clear. Facebook posts often need enough context to make sense when shared beyond the original page.",
+    example: {
+      label: "Community update",
+      displayName: "Harbor Street Market",
+      username: "harborstreetmarket",
+      headline: "Local market",
+      text: "Saturday's market map is ready. Save this post before you arrive, and send it to the friend who always finds the best stall first.\n\nDoors open at 9:00 AM.",
+    },
+  }),
+  createPostPreviewTool({
+    slug: "x-post-preview",
+    platform: "TWITTER",
+    platformName: "X",
+    title: "X Post Preview",
+    description:
+      "Preview an X post with its display name, handle, text, media, replies, reposts, and likes before publishing.",
+    identity: "display name and handle",
+    mediaGuidance:
+      "Add one image to check the rounded media card and confirm that the post still reads clearly with or without the visual.",
+    writingGuidance:
+      "Keep the first sentence self-contained and remove setup that delays the point. Check long handles, compact action counts, and deliberate line breaks.",
+    example: {
+      label: "Product note",
+      displayName: "Avery Studio",
+      username: "averystudio",
+      headline: "Design and product",
+      text: "The smallest useful launch note:\n\nWhat changed. Why it matters. Where to try it.\n\nEverything else can live in the link.",
+    },
+  }),
+  createPostPreviewTool({
+    slug: "threads-post-preview",
+    platform: "THREADS",
+    platformName: "Threads",
+    title: "Threads Post Preview",
+    description:
+      "Preview a Threads post with conversational copy, profile identity, media, replies, reposts, and likes.",
+    identity: "profile name and username",
+    mediaGuidance:
+      "Use an optional image to see whether it supports the conversation or interrupts a post that works better as text.",
+    writingGuidance:
+      "Write like a person starting a useful conversation. A direct observation and a specific question usually scan better than a formal announcement.",
+    example: {
+      label: "Conversation starter",
+      displayName: "Nia Brooks",
+      username: "niamakes",
+      headline: "Creative operations",
+      text: "A planning habit that actually stuck: write tomorrow's first task before closing the laptop.\n\nWhat tiny ritual makes your next workday easier?",
+    },
+  }),
+  createPostPreviewTool({
+    slug: "tiktok-post-preview",
+    platform: "TIKTOK",
+    platformName: "TikTok",
+    title: "TikTok Post Preview",
+    description:
+      "Preview a TikTok post with vertical media, caption overlay, username, likes, comments, and shares.",
+    identity: "creator username",
+    mediaGuidance:
+      "Choose a portrait image or video cover and keep important subjects away from the caption and action overlays on the lower and right edges.",
+    writingGuidance:
+      "Make the caption complement the visual instead of narrating it. Check that the opening phrase remains readable over a busy frame.",
+    example: {
+      label: "Quick tutorial",
+      displayName: "Sam Rivera",
+      username: "samcreates",
+      headline: "Short-form educator",
+      text: "The 20-second desk reset that makes tomorrow morning easier. Save this before your next shutdown routine.",
+    },
+  }),
+  createPostPreviewTool({
+    slug: "youtube-post-preview",
+    platform: "YOUTUBE",
+    platformName: "YouTube",
+    title: "YouTube Post Preview",
+    description:
+      "Preview a YouTube video post with its title, thumbnail, channel identity, views, likes, and primary actions.",
+    identity: "channel name and avatar",
+    mediaGuidance:
+      "Choose a landscape thumbnail and check that its subject, contrast, and text remain clear inside a 16:9 player frame.",
+    writingGuidance:
+      "Put the video title on the first line. Make it specific enough to set an expectation without repeating every word already shown in the thumbnail.",
+    example: {
+      label: "Tutorial video",
+      displayName: "Field Notes Studio",
+      username: "fieldnotesstudio",
+      headline: "Practical creative systems",
+      text: "Build a weekly content system in 20 minutes\n\nA practical walkthrough for planning, drafting, and reviewing one week at a time.",
+    },
+  }),
   {
     slug: "instagram-profile-preview",
-    kind: "instagram-profile",
+    kind: "profile",
+    platform: "INSTAGRAM",
     title: "Instagram Profile Preview",
     metaTitle: "Instagram Profile Preview – Free Bio & Grid Mockup",
     description:

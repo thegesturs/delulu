@@ -15,6 +15,7 @@ export interface PreviewState {
   following: number;
   avatarUrl: string;
   mediaUrls: string[];
+  mediaType: "image" | "video";
 }
 
 export const EMPTY_STATE: PreviewState = {
@@ -32,6 +33,7 @@ export const EMPTY_STATE: PreviewState = {
   following: 0,
   avatarUrl: "",
   mediaUrls: [],
+  mediaType: "image",
 };
 
 export function createExampleState(

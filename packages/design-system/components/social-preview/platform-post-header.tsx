@@ -1,3 +1,4 @@
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import { cn } from "@delulu/design-system/lib/utils";
 import { UserRound } from "lucide-react";
 
@@ -7,7 +8,7 @@ interface PlatformPostHeaderProps {
   username?: string;
   detail?: string;
   meta?: string;
-  variant: "visual" | "professional";
+  platform?: SupportedSocialPlatform;
   className?: string;
 }
 
@@ -17,13 +18,14 @@ export function PlatformPostHeader({
   username,
   detail,
   meta,
-  variant,
+  platform,
   className,
 }: PlatformPostHeaderProps) {
-  const name =
-    variant === "professional"
-      ? displayName || "Your name"
-      : username || "your_username";
+  const professional = platform === "LINKEDIN";
+  const usernameFirst = platform === "INSTAGRAM" || platform === "THREADS";
+  const name = usernameFirst
+    ? username || "your_username"
+    : displayName || username || "Your profile";
 
   return (
     <header className={cn("flex items-start gap-3 p-4", className)}>
@@ -32,7 +34,7 @@ export function PlatformPostHeader({
           alt={`${displayName || username || "Profile"} avatar`}
           className={cn(
             "shrink-0 rounded-full object-cover",
-            variant === "professional" ? "size-12" : "size-11"
+            professional ? "size-12" : "size-11"
           )}
           src={avatarUrl}
         />
@@ -40,7 +42,7 @@ export function PlatformPostHeader({
         <span
           className={cn(
             "flex shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground",
-            variant === "professional" ? "size-12" : "size-11"
+            professional ? "size-12" : "size-11"
           )}
         >
           <UserRound aria-hidden className="size-5" />
@@ -48,12 +50,10 @@ export function PlatformPostHeader({
       )}
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{name}</p>
-        {variant === "visual" && displayName && (
-          <p className="truncate text-muted-foreground text-xs">
-            {displayName}
-          </p>
+        {!(professional || usernameFirst) && username && (
+          <p className="truncate text-muted-foreground text-xs">@{username}</p>
         )}
-        {variant === "professional" && detail && (
+        {professional && detail && (
           <p className="truncate text-muted-foreground text-sm">{detail}</p>
         )}
         {meta && (

@@ -26,7 +26,11 @@ export function SocialPreviewPage({ slug }: { slug: string }) {
       seo={content.intro.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
       tool={tool}
     >
-      <SocialPreviewTool example={content.examples[0]} kind={content.kind} />
+      <SocialPreviewTool
+        example={content.examples[0]}
+        kind={content.kind}
+        platform={content.platform}
+      />
     </ToolPageLayout>
   );
 }

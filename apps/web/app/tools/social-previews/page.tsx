@@ -1,4 +1,11 @@
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@delulu/design-system/components/ui/card";
+import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
+import {
   type BreadcrumbList,
   type ItemList,
   JsonLd,
@@ -6,7 +13,7 @@ import {
 } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { getWebUrl } from "@delulu/seo/url";
-import { ArrowRight, Eye, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import { ToolFaq } from "@/components/tools/tool-faq";
@@ -76,7 +83,7 @@ const faq = [
   {
     question: "Which preview should I start with?",
     answer:
-      "Use the Instagram post preview for a visual feed card, the LinkedIn post preview for a professional update, or the Instagram profile preview for bio and grid planning.",
+      "Choose the channel where the post will publish. Use the profile preview only when you need to review an Instagram bio, public counts, and a nine-tile grid together.",
   },
   {
     question: "Are these exact copies of social platform interfaces?",
@@ -94,9 +101,9 @@ const faq = [
       "Post previews include a composer handoff. The text moves privately in the URL fragment, and signed-in users can finish account and scheduling choices in Delulu.",
   },
   {
-    question: "Why are there only a few preview layouts?",
+    question: "Which social channels can I preview?",
     answer:
-      "Each layout supports a genuinely different planning job: a visual post, a professional update, or a profile and grid. Repeated lookalike pages would not help you make a better post.",
+      "You can preview posts for Instagram, LinkedIn, Facebook, X, Threads, TikTok, and YouTube, plus an Instagram profile and nine-tile grid.",
   },
 ];
 
@@ -115,8 +122,17 @@ export default function SocialPreviewsPage() {
       </nav>
 
       <div className="mx-auto mt-8 max-w-3xl text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Eye aria-hidden className="size-6" />
+        <div className="mx-auto flex w-fit items-center -space-x-1 rounded-xl border bg-background px-3 py-2 shadow-sm">
+          {(["INSTAGRAM", "LINKEDIN", "FACEBOOK", "TIKTOK"] as const).map(
+            (platform) => (
+              <span
+                className="flex size-8 items-center justify-center rounded-full border bg-background"
+                key={platform}
+              >
+                <SocialIcon size="md" type={platform} />
+              </span>
+            )
+          )}
         </div>
         <h1 className="mt-5 font-bold text-4xl tracking-tight sm:text-5xl">
           <Balancer>See your post before you publish</Balancer>
@@ -135,20 +151,29 @@ export default function SocialPreviewsPage() {
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {socialPreviewTools.map((tool) => (
             <Link
-              className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/60"
+              className="block h-full"
               href={`${canonicalPath}/${tool.slug}`}
               key={tool.slug}
             >
-              <h3 className="flex items-center gap-2 font-semibold text-lg">
-                {tool.title}
-                <ArrowRight
-                  aria-hidden
-                  className="size-4 transition-transform group-hover:translate-x-0.5"
-                />
-              </h3>
-              <p className="mt-2 text-muted-foreground text-sm leading-6">
-                {tool.description}
-              </p>
+              <Card className="group h-full transition-colors hover:border-primary/60">
+                <CardHeader>
+                  <span className="mb-2 flex size-10 items-center justify-center rounded-lg bg-muted">
+                    <SocialIcon size="md" type={tool.platform} />
+                  </span>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    {tool.title}
+                    <ArrowRight
+                      aria-hidden
+                      className="size-4 opacity-0 transition-opacity group-hover:opacity-100"
+                    />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm leading-6">
+                    {tool.description}
+                  </p>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>
