@@ -156,9 +156,13 @@ export default $config({
       architectures: ["arm64"],
       memorySize: 2048,
       timeout: 120,
-      // Hard cap on parallel invocations: bounds cost and avoids hammering
-      // YouTube from our IP (which would get us rate-limited faster).
-      reservedConcurrentExecutions: 5,
+      // NOTE: no reservedConcurrentExecutions — this AWS account's total Lambda
+      // concurrency limit is at the floor (~10), and reserving any capacity would
+      // push the shared unreserved pool below AWS's minimum of 10 (deploy 400s).
+      // Concurrency/cost is instead bounded upstream: the per-IP KV rate limit
+      // (8 trims / 10 min) at the apps/web edge, the shared-secret gate on the
+      // Function URL, and the MAX_CLIP_SECONDS output cap. If we later raise the
+      // account concurrency quota, re-add reservedConcurrentExecutions here.
       environment: {
         variables: {
           TRIM_SECRET: YOUTUBE_TRIMMER_AUTH.value,
