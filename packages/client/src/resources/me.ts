@@ -1,52 +1,45 @@
 import type { ApiClient } from "../client.js";
-import { effectMutation, effectQuery } from "../query.js";
+import { mutationEffect, resourceEffect } from "../resource.js";
 import type { EndpointPayload } from "./shared.js";
-import { defineResourceOptions } from "./shared.js";
+import { defineResourceEffects } from "./shared.js";
 
-export const createMeOptions = defineResourceOptions(({ client, runner }) => ({
+export const createMeEffects = defineResourceEffects(({ client }) => ({
   current: () =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "current"] as const,
       effect: () => client.me.current(),
-      runner,
     }),
   workspaces: () =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "workspaces"] as const,
       effect: () => client.me.workspaces(),
-      runner,
     }),
   overview: (workspaceId: string) =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "overview", workspaceId] as const,
       effect: () => client.me.overview({ params: { workspaceId } }),
-      runner,
     }),
   setup: (workspaceId: string) =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "setup", workspaceId] as const,
       effect: () => client.me.setup({ params: { workspaceId } }),
-      runner,
     }),
   updateSetup: (workspaceId: string) =>
-    effectMutation({
+    mutationEffect({
       mutationKey: ["me", "setup", workspaceId] as const,
       effect: (payload: EndpointPayload<ApiClient["me"]["updateSetup"]>) =>
         client.me.updateSetup({ params: { workspaceId }, payload }),
-      runner,
     }),
   emailPreferences: () =>
-    effectQuery({
+    resourceEffect({
       queryKey: ["me", "email-preferences"] as const,
       effect: () => client.me.emailPreferences(),
-      runner,
     }),
   updateEmailPreferences: () =>
-    effectMutation({
+    mutationEffect({
       mutationKey: ["me", "email-preferences"] as const,
       effect: (
         payload: EndpointPayload<ApiClient["me"]["updateEmailPreferences"]>
       ) => client.me.updateEmailPreferences({ payload }),
-      runner,
     }),
 }));

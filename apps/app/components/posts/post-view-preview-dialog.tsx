@@ -14,12 +14,12 @@ import { socialBackgroundColors } from "@delulu/design-system/lib/social-config"
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { LinkSquare02Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { normalizePlatform, platformLabel } from "@/lib/social-platform";
+import { useResourceAtom } from "@/state/resources";
 import type {
   ConnectionView,
   PostView,
@@ -44,7 +44,7 @@ const targetStatusVariant = {
 function MediaPreview({ mediaId }: { mediaId: string }) {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const media = useQuery({
+  const media = useResourceAtom({
     ...resources.media.get(workspaceId ?? "", mediaId),
     enabled: Boolean(workspaceId),
   });

@@ -1,10 +1,10 @@
 "use client";
 
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
-import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useMediaUrl } from "@/hooks/use-media-url";
+import { useResourceAtom } from "@/state/resources";
 import { usePost, useSelectedSocialProviders } from "@/store/post";
 
 export function formatNumber(num: number) {
@@ -47,7 +47,7 @@ export function usePreviewData(
   const selectedProviders = useSelectedSocialProviders();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const connections = useQuery({
+  const connections = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });

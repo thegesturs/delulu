@@ -26,7 +26,6 @@ import {
   type PublicPlanType,
 } from "@delulu/payments";
 import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";
@@ -34,6 +33,7 @@ import { useApiClient } from "@/components/providers/api-client";
 import { useCurrency } from "@/hooks/use-currency";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useMutationAtom } from "@/state/resources";
 
 interface PricingCardsProps {
   productIds?: Record<PublicPlanType, { monthly: string; yearly: string }>;
@@ -45,10 +45,10 @@ export function PricingCards(props: PricingCardsProps) {
   const currency = useCurrency();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const checkout = useMutation(
+  const checkout = useMutationAtom(
     resources.billing.checkout(workspace.workspaceId ?? "")
   );
-  const portal = useMutation(
+  const portal = useMutationAtom(
     resources.billing.portal(workspace.workspaceId ?? "")
   );
   const currencySymbol = CURRENCY_SYMBOLS[currency];

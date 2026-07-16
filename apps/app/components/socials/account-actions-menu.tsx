@@ -24,12 +24,12 @@ import {
   MoreVerticalIcon,
   RefreshIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { normalizePlatform } from "@/lib/social-platform";
+import { useMutationAtom } from "@/state/resources";
 import type { ConnectionView } from "@/types/workspace-views";
 
 export function AccountActionsMenu({
@@ -45,7 +45,7 @@ export function AccountActionsMenu({
   const { resources } = useApiClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const platform = normalizePlatform(account.platform);
-  const reconnect = useMutation(
+  const reconnect = useMutationAtom(
     resources.connections.mint(workspaceId ?? "", platform ?? account.platform)
   );
 

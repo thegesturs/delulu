@@ -19,7 +19,6 @@ import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useShallow } from "zustand/shallow";
 import { useMediaStorage } from "@/hooks/use-media-storage";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import {
@@ -230,13 +229,11 @@ export function MediaUploader({
   socialId,
   orderId,
 }: MediaUploaderProps) {
-  const { post, setPost, setIsMediaUploading } = useStore(
-    useShallow((state) => ({
-      post: state.post,
-      setPost: state.setPost,
-      setIsMediaUploading: state.setIsMediaUploading,
-    }))
-  );
+  const { post, setPost, setIsMediaUploading } = useStore((state) => ({
+    post: state.post,
+    setPost: state.setPost,
+    setIsMediaUploading: state.setIsMediaUploading,
+  }));
 
   const { uploadAndSaveMedia } = useMediaStorage();
   const analytics = useAnalytics();

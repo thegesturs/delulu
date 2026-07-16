@@ -6,11 +6,11 @@ import { invalidateWorkspaceResource } from "@delulu/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import type { Post, PostLayout } from "./types";
 
 interface PostCardProps {
@@ -21,10 +21,10 @@ interface PostCardProps {
 export function PostCard({ post, layout = "grid" }: PostCardProps) {
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const analytics = useAnalytics();
-  const remove = useMutation(resources.posts.remove(workspaceId ?? ""));
-  const retry = useMutation(
+  const remove = useMutationAtom(resources.posts.remove(workspaceId ?? ""));
+  const retry = useMutationAtom(
     resources.posts.retryTarget(workspaceId ?? "", post.id)
   );
   const text =
@@ -37,7 +37,7 @@ export function PostCard({ post, layout = "grid" }: PostCardProps) {
 
   const refresh = async () => {
     if (workspaceId) {
-      await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
+      await invalidateWorkspaceResource(registry, workspaceId, "posts");
     }
   };
   const handleDelete = async () => {

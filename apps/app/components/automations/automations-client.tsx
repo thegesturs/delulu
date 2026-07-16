@@ -9,13 +9,17 @@ import type { AutomationScope } from "@delulu/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Add01Icon, Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import { AutomationFilters } from "./automation-filters";
 import { AutomationList } from "./automation-list";
 import {
@@ -51,10 +55,10 @@ function RequestError({ error, retry }: { error: unknown; retry: () => void }) {
   );
 }
 
-function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
+function AutomationsResourceRegistry({ scope }: { scope: AutomationScope }) {
   const router = useRouter();
   const analytics = useAnalytics();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const { resources } = useApiClient();
   const { canManageSocials } = usePermissions();
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,26 +68,28 @@ function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const pendingIds = useRef(new Set<string>());
 
-  const listOptions = useMemo(
+  const listResource = useMemo(
     () => resources.automations.list(scope),
     [resources, scope]
   );
-  const automationsQuery = useQuery({
-    ...listOptions,
-    queryKey: listOptions.queryKey!,
+  const automationsQuery = useResourceAtom({
+    ...listResource,
+    queryKey: listResource.queryKey!,
   });
   const automations = useMemo(
     () => (automationsQuery.data?.data ?? []).map(automationFromResource),
     [automationsQuery.data]
   );
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutationAtom({
     ...resources.automations.remove(scope),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: listOptions.queryKey! });
-      const previous = queryClient.getQueryData(listOptions.queryKey!);
-      queryClient.setQueryData(
-        listOptions.queryKey!,
+      await registry.beginOptimisticUpdate({
+        queryKey: listResource.queryKey!,
+      });
+      const previous = registry.getResource(listResource.queryKey!);
+      registry.setResource(
+        listResource.queryKey!,
         (page: typeof automationsQuery.data) =>
           page
             ? {
@@ -97,27 +103,24 @@ function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
     },
     onError: (_error, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(listOptions.queryKey!, context.previous);
+        registry.setResource(listResource.queryKey!, context.previous);
       }
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: listOptions.queryKey! }),
+      registry.invalidateResources({ queryKey: listResource.queryKey! }),
   });
 
-  const toggleMutation = useMutation({
-    mutationKey: listOptions.queryKey!,
-    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const mutation = resources.automations.update(scope, id).mutationFn;
-      if (!mutation) {
-        throw new Error("Automation update is unavailable");
-      }
-      return mutation({ enabled });
-    },
+  const toggleMutation = useMutationAtom({
+    mutationKey: listResource.queryKey!,
+    effect: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      resources.automations.update(scope, id).effect({ enabled }),
     onMutate: async ({ id, enabled }) => {
-      await queryClient.cancelQueries({ queryKey: listOptions.queryKey! });
-      const previous = queryClient.getQueryData(listOptions.queryKey!);
-      queryClient.setQueryData(
-        listOptions.queryKey!,
+      await registry.beginOptimisticUpdate({
+        queryKey: listResource.queryKey!,
+      });
+      const previous = registry.getResource(listResource.queryKey!);
+      registry.setResource(
+        listResource.queryKey!,
         (page: typeof automationsQuery.data) =>
           page
             ? {
@@ -132,13 +135,13 @@ function AutomationsResourceClient({ scope }: { scope: AutomationScope }) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(listOptions.queryKey!, context.previous);
+        registry.setResource(listResource.queryKey!, context.previous);
       }
     },
     onSettled: (_data, _error, variables) =>
       Promise.all([
-        queryClient.invalidateQueries({ queryKey: listOptions.queryKey! }),
-        queryClient.invalidateQueries({
+        registry.invalidateResources({ queryKey: listResource.queryKey! }),
+        registry.invalidateResources({
           queryKey: resources.automations.get(scope, variables.id).queryKey,
         }),
       ]),
@@ -341,5 +344,5 @@ export default function AutomationsClient() {
       />
     );
   }
-  return <AutomationsResourceClient scope={workspace.scope} />;
+  return <AutomationsResourceRegistry scope={workspace.scope} />;
 }

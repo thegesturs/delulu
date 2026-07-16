@@ -1,5 +1,5 @@
 import { Api, Authentication } from "@delulu/contracts";
-import { Effect } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClientRequest } from "effect/unstable/http";
 import { HttpApiClient, HttpApiMiddleware } from "effect/unstable/httpapi";
 import { runEffect } from "./effect.js";
@@ -10,6 +10,14 @@ export interface ApiClientConfig {
 }
 
 export type ApiClient = HttpApiClient.ForApi<typeof Api>;
+
+export class ApiClientService extends Context.Service<
+  ApiClientService,
+  ApiClient
+>()("@delulu/client/ApiClientService") {
+  static readonly layer = (client: ApiClient) =>
+    Layer.succeed(ApiClientService, client);
+}
 
 export interface ResolveWorkspaceIdOptions {
   readonly client: ApiClient;

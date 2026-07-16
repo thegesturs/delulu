@@ -1,7 +1,7 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
+import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import { useActiveWorkspace } from "./use-active-workspace";
 
 interface MediaUploadResult {
@@ -13,15 +13,17 @@ interface MediaUploadResult {
 export function useMediaStorage() {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
-  const requestUpload = useMutation(resources.media.uploads(workspaceId ?? ""));
-  const completeUpload = useMutation({
+  const registry = useResourceRegistry();
+  const requestUpload = useMutationAtom(
+    resources.media.uploads(workspaceId ?? "")
+  );
+  const completeUpload = useMutationAtom({
     ...resources.media.complete(workspaceId ?? ""),
     onSuccess: async () => {
       if (!workspaceId) {
         return;
       }
-      await queryClient.invalidateQueries({
+      await registry.invalidateResources({
         queryKey: resources.media.list(workspaceId).queryKey,
       });
     },

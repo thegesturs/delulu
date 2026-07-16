@@ -3,13 +3,17 @@ import {
   makeSimplePostWrite,
   type SimplePostConnection,
 } from "@delulu/client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import {
   useDateTime,
   usePost,
@@ -24,19 +28,19 @@ export function usePostActions() {
   const providerSettings = useStore((state) => state.providerSettings);
   const { id: postId } = useParams<{ id: string | undefined }>();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const connections = useQuery({
+  const connections = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });
-  const usage = useQuery({
+  const usage = useResourceAtom({
     ...resources.billing.usage(workspaceId ?? ""),
     enabled: Boolean(workspaceId),
   });
-  const createPost = useMutation(resources.posts.create(workspaceId ?? ""));
-  const updatePost = useMutation(
+  const createPost = useMutationAtom(resources.posts.create(workspaceId ?? ""));
+  const updatePost = useMutationAtom(
     resources.posts.update(workspaceId ?? "", postId ?? "")
   );
   const [isProcessing, setIsProcessing] = useState(false);
@@ -99,7 +103,7 @@ export function usePostActions() {
     const result = postId
       ? await updatePost.mutateAsync(payload)
       : await createPost.mutateAsync(payload);
-    await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
+    await invalidateWorkspaceResource(registry, workspaceId, "posts");
     return result;
   };
 

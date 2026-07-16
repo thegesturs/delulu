@@ -8,25 +8,25 @@ import {
   ArrowLeft02Icon,
   Calendar01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ReviewActions } from "@/components/posts/review-actions";
 import { ReviewActivity } from "@/components/posts/review-activity";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useResourceAtom } from "@/state/resources";
 
 export function ReviewClient({ postId }: { postId: string }) {
   const { canApprove } = usePermissions();
   const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const post = useQuery({
+  const post = useResourceAtom({
     ...resources.posts.get(workspaceId ?? "", postId),
     enabled: Boolean(workspaceId),
     staleTime: 30_000,
     retry: 2,
   });
-  const review = useQuery({
+  const review = useResourceAtom({
     ...resources.reviews.forPost(workspaceId ?? "", postId),
     enabled: Boolean(workspaceId),
     staleTime: 15_000,
@@ -41,7 +41,7 @@ export function ReviewClient({ postId }: { postId: string }) {
       </div>
     );
   }
-  if (post.isError || !workspaceId) {
+  if (post.isError || !workspaceId || !post.data) {
     return (
       <div className="mx-auto max-w-4xl p-6">
         <div className="rounded-lg border border-destructive/40 p-5 text-destructive">
@@ -60,6 +60,7 @@ export function ReviewClient({ postId }: { postId: string }) {
     );
   }
 
+  const postData = post.data;
   const pendingReview = review.data?.status === "pending";
   return (
     <div className="mx-auto max-w-4xl p-4 pb-20 sm:p-6">
@@ -92,7 +93,7 @@ export function ReviewClient({ postId }: { postId: string }) {
       )}
       <Card>
         <CardContent className="space-y-5 p-5">
-          {post.data.groups.map((group) => (
+          {postData.groups.map((group) => (
             <section className="space-y-3" key={group.id}>
               {group.segments.map((segment, index) => (
                 <div
@@ -113,7 +114,7 @@ export function ReviewClient({ postId }: { postId: string }) {
             </section>
           ))}
           <div className="flex flex-wrap gap-2">
-            {post.data.targets.map((target) => (
+            {postData.targets.map((target) => (
               <Badge key={target.id} variant="outline">
                 {target.settings.platform}
                 {target.scheduledAt && (

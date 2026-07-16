@@ -27,7 +27,6 @@ import {
   Loading03Icon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";
@@ -35,6 +34,11 @@ import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 const SCOPE_OPTIONS = [
   {
@@ -69,21 +73,21 @@ type ScopeValue = (typeof SCOPE_OPTIONS)[number]["value"];
 export function ApiKeysClient() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = workspace.workspaceId ?? "";
-  const listOptions = resources.admin.apiKeys(workspaceId, {
+  const listResource = resources.admin.apiKeys(workspaceId, {
     limit: 100,
     offset: 0,
   });
-  const apiKeysQuery = useQuery({
-    ...listOptions,
-    queryKey: listOptions.queryKey!,
+  const apiKeysQuery = useResourceAtom({
+    ...listResource,
+    queryKey: listResource.queryKey!,
     enabled: !!workspace.workspaceId,
   });
-  const createApiKeyMutation = useMutation(
+  const createApiKeyMutation = useMutationAtom(
     resources.admin.createApiKey(workspaceId)
   );
-  const revokeApiKeyMutation = useMutation(
+  const revokeApiKeyMutation = useMutationAtom(
     resources.admin.revokeApiKey(workspaceId)
   );
   const apiKeys = apiKeysQuery.data?.data;
@@ -121,7 +125,9 @@ export function ApiKeysClient() {
         scopes: selectedScopes,
       });
       setNewKeyRaw(result.token);
-      await queryClient.invalidateQueries({ queryKey: listOptions.queryKey! });
+      await registry.invalidateResources({
+        queryKey: listResource.queryKey!,
+      });
       toast.success("API key created");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to create API key");
@@ -133,7 +139,9 @@ export function ApiKeysClient() {
   const handleRevoke = async (keyId: string) => {
     try {
       await revokeApiKeyMutation.mutateAsync(keyId);
-      await queryClient.invalidateQueries({ queryKey: listOptions.queryKey! });
+      await registry.invalidateResources({
+        queryKey: listResource.queryKey!,
+      });
       toast.success("API key revoked");
       setShowRevoke(null);
     } catch {

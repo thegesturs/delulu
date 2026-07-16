@@ -10,18 +10,18 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Progress } from "@delulu/design-system/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useResourceAtom } from "@/state/resources";
 
 export function SortedAddonCard() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const subscription = useSubscription();
   const options = resources.billing.usage(workspace.workspaceId ?? "");
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,

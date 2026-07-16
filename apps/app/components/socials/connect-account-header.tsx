@@ -17,12 +17,12 @@ import {
 } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Loading03Icon, Plus } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
 import { useUsageLimit } from "@/hooks/use-usage-limits";
+import { useMutationAtom, useResourceAtom } from "@/state/resources";
 
 const ALL_SOCIAL_PLATFORMS: SupportedSocialPlatform[] = [
   "TWITTER",
@@ -48,7 +48,7 @@ function ConnectPlatformButton({
 }) {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const connect = useMutation(
+  const connect = useMutationAtom(
     resources.connections.mint(workspaceId ?? "", platform)
   );
 
@@ -138,7 +138,7 @@ function ConnectPlatformButton({
 export function ConnectAccountDialog() {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const accounts = useQuery({
+  const accounts = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });

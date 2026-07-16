@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useAtomValue } from "@effect/atom-react";
+import { Atom } from "effect/unstable/reactivity";
 import {
   createContext,
   type ReactNode,
@@ -9,6 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { appRegistry, useResourceAtom } from "@/state/resources";
 import { useApiClient } from "./api-client";
 
 const STORAGE_KEY = "delulu.workspaceId";
@@ -30,6 +32,9 @@ interface WorkspaceContextValue {
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+const selectedWorkspaceAtom = Atom.make<string | null>(null).pipe(
+  Atom.keepAlive
+);
 
 export function WorkspaceProvider({
   children,
@@ -37,25 +42,32 @@ export function WorkspaceProvider({
   readonly children: ReactNode;
 }) {
   const { resources } = useApiClient();
-  const memberships = useQuery(resources.me.workspaces());
-  const [selected, setSelected] = useState<string | null>(() =>
-    typeof window === "undefined" ? null : localStorage.getItem(STORAGE_KEY)
-  );
+  const memberships = useResourceAtom(resources.me.workspaces());
+  const selected = useAtomValue(selectedWorkspaceAtom);
+  const [selectionHydrated, setSelectionHydrated] = useState(false);
   const workspaces = memberships.data?.data ?? [];
 
   useEffect(() => {
-    if (workspaces.length === 0) {
+    const persisted = localStorage.getItem(STORAGE_KEY);
+    if (persisted) {
+      appRegistry.set(selectedWorkspaceAtom, persisted);
+    }
+    setSelectionHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!selectionHydrated || workspaces.length === 0) {
       return;
     }
     if (selected && workspaces.some((item) => item.workspaceId === selected)) {
       return;
     }
     const fallback = workspaces[0]?.workspaceId ?? null;
-    setSelected(fallback);
+    appRegistry.set(selectedWorkspaceAtom, fallback);
     if (fallback) {
       localStorage.setItem(STORAGE_KEY, fallback);
     }
-  }, [selected, workspaces]);
+  }, [selected, selectionHydrated, workspaces]);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
@@ -70,7 +82,7 @@ export function WorkspaceProvider({
           return;
         }
         localStorage.setItem(STORAGE_KEY, workspaceId);
-        setSelected(workspaceId);
+        appRegistry.set(selectedWorkspaceAtom, workspaceId);
       },
     }),
     [

@@ -76,8 +76,8 @@
   "devDependencies": {
     "@delulu/typescript-config": "workspace:*",
     "@types/node": "22.14.1",
-    "@types/react": "19.1.1",
-    "@types/react-dom": "19.1.2",
+    "@types/react": "catalog:react19",
+    "@types/react-dom": "catalog:react19",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.8.3"
   }

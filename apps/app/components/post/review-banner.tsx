@@ -3,11 +3,11 @@
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { cn } from "@delulu/design-system/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { ReviewActions } from "@/components/posts/review-actions";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useResourceAtom } from "@/state/resources";
 
 interface ReviewBannerProps {
   postId: string;
@@ -23,7 +23,7 @@ export function ReviewBanner({
   const { canApprove } = usePermissions();
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const review = useQuery({
+  const review = useResourceAtom({
     ...resources.reviews.forPost(workspaceId ?? "", postId),
     enabled: Boolean(organizationId && workspaceId),
     staleTime: 15_000,

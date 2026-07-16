@@ -7,10 +7,11 @@ packages:
 
 catalog:
   '@effect/sql-pg': 4.0.0-beta.97
+  '@effect/atom-react': 4.0.0-beta.97
+  '@effect/platform-browser': 4.0.0-beta.97
   '@trpc/client': 11.1.0
   '@trpc/react-query': 11.1.0
   '@trpc/server': 11.1.0
-  '@tanstack/react-query': 5.69.0
   '@trpc/tanstack-react-query': 11.1.0
   tailwindcss: ^4.1.18
   typescript: ^5.7.2
@@ -20,10 +21,10 @@ catalog:
 
 catalogs:
   react19:
-    react: 19.2.3
-    react-dom: 19.2.3
-    '@types/react': 19.1.0
-    '@types/react-dom': 19.1.0
+    react: 19.2.7
+    react-dom: 19.2.7
+    '@types/react': 19.2.17
+    '@types/react-dom': 19.2.3
 
 ignoredBuiltDependencies:
   - '@biomejs/biome'

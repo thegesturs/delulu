@@ -1,16 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import { useResourceAtom } from "@/state/resources";
 import { DashboardContent } from "./dashboard-content";
 
 export function DashboardClient() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const options = resources.analytics.operational(workspace.workspaceId ?? "");
-  const stats = useQuery({
+  const stats = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,

@@ -39,12 +39,12 @@ import {
   Sent02Icon,
   ViewIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import type { PostView } from "@/types/workspace-views";
 
 interface PostActionsMenuProps {
@@ -63,17 +63,17 @@ export function PostActionsMenu({
   const router = useRouter();
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const analytics = useAnalytics();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
 
-  const remove = useMutation(resources.posts.remove(workspaceId ?? ""));
-  const retry = useMutation(
+  const remove = useMutationAtom(resources.posts.remove(workspaceId ?? ""));
+  const retry = useMutationAtom(
     resources.posts.retryTarget(workspaceId ?? "", post.id)
   );
-  const update = useMutation(
+  const update = useMutationAtom(
     resources.posts.update(workspaceId ?? "", post.id)
   );
 
@@ -89,7 +89,7 @@ export function PostActionsMenu({
 
   const refresh = async () => {
     if (workspaceId) {
-      await invalidateWorkspaceResource(queryClient, workspaceId, "posts");
+      await invalidateWorkspaceResource(registry, workspaceId, "posts");
     }
   };
 

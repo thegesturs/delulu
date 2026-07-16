@@ -4,17 +4,17 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Alert01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import { useResourceAtom } from "@/state/resources";
 
 export function PlatformHealthAlert() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const workspaceId = workspace.workspaceId ?? "";
   const options = resources.connections.list(workspaceId, { limit: 100 });
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,

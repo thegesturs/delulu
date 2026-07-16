@@ -7,13 +7,13 @@ import {
   ArrowRight01Icon,
   Loading03Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useResourceAtom } from "@/state/resources";
 import { AutomationSetupStep } from "./automation-setup-step";
 import { ConnectAccountsStep } from "./connect-accounts-step";
 import { OnboardingProgress } from "./onboarding-progress";
@@ -34,7 +34,7 @@ export function OnboardingStepper() {
   const { isPaid, isLifetime, isLoading: subLoading } = useSubscription();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const accounts = useQuery({
+  const accounts = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });

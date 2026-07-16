@@ -2,16 +2,16 @@
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import { useResourceAtom } from "@/state/resources";
 import { ReviewActions } from "./review-actions";
 
 export function ReviewQueue() {
   const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const reviews = useQuery({
+  const reviews = useResourceAtom({
     ...resources.reviews.queue(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
     staleTime: 15_000,
@@ -45,7 +45,7 @@ export function ReviewQueue() {
       </div>
     );
   }
-  if (reviews.data.data.length === 0) {
+  if (!reviews.data || reviews.data.data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16">
         <p className="font-medium text-sm">All caught up</p>

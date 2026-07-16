@@ -1,22 +1,17 @@
 import type { ApiClient } from "../client.js";
-import type { EffectRunner } from "../effect.js";
-import { effectRunner } from "../effect.js";
 
-export interface ResourceOptionsContext {
+export interface ResourceEffectsContext {
   readonly client: ApiClient;
-  readonly runner?: EffectRunner;
 }
 
-export interface ResourceOptionsRuntime {
+export interface ResourceEffectsRuntime {
   readonly client: ApiClient;
-  readonly runner: EffectRunner;
 }
 
-/** Extension seam used by each resource module, including future M3/M4 groups. */
-export const defineResourceOptions =
-  <T>(factory: (runtime: ResourceOptionsRuntime) => T) =>
-  ({ client, runner = effectRunner }: ResourceOptionsContext): T =>
-    factory({ client, runner });
+export const defineResourceEffects =
+  <T>(factory: (runtime: ResourceEffectsRuntime) => T) =>
+  ({ client }: ResourceEffectsContext): T =>
+    factory({ client });
 
 export type EndpointRequest<Method> = Method extends (
   request: infer Request

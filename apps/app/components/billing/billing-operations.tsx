@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";
@@ -20,11 +19,16 @@ import {
 } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 export function BillingOperations() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = workspace.workspaceId ?? "";
   const [targetUserId, setTargetUserId] = useState("");
   const transactionOptions = resources.billing.transactions(workspaceId, {
@@ -32,31 +36,31 @@ export function BillingOperations() {
     offset: 0,
   });
   const transferOptions = resources.billing.transfers(workspaceId);
-  const transactions = useQuery({
+  const transactions = useResourceAtom({
     ...transactionOptions,
     queryKey: transactionOptions.queryKey!,
     enabled: !!workspace.workspaceId,
   });
-  const transfers = useQuery({
+  const transfers = useResourceAtom({
     ...transferOptions,
     queryKey: transferOptions.queryKey!,
     enabled: !!workspace.workspaceId,
   });
-  const requestTransfer = useMutation(
+  const requestTransfer = useMutationAtom(
     resources.billing.requestTransfer(workspaceId)
   );
-  const acceptTransfer = useMutation(
+  const acceptTransfer = useMutationAtom(
     resources.billing.acceptTransfer(workspaceId)
   );
-  const cancelTransfer = useMutation(
+  const cancelTransfer = useMutationAtom(
     resources.billing.cancelTransfer(workspaceId)
   );
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({
+    await registry.invalidateResources({
       queryKey: transferOptions.queryKey!,
     });
-    await queryClient.invalidateQueries({
+    await registry.invalidateResources({
       queryKey: resources.billing.subscription(workspaceId).queryKey!,
     });
   };

@@ -8,16 +8,20 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Switch } from "@delulu/design-system/components/ui/switch";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 export function EmailPreferences() {
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const options = resources.me.emailPreferences();
-  const query = useQuery({ ...options, queryKey: options.queryKey! });
-  const update = useMutation(resources.me.updateEmailPreferences());
+  const query = useResourceAtom(options);
+  const update = useMutationAtom(resources.me.updateEmailPreferences());
 
   const setPreference = async (
     patch: Partial<{
@@ -30,7 +34,7 @@ export function EmailPreferences() {
     }
     try {
       await update.mutateAsync({ ...query.data, ...patch });
-      await queryClient.invalidateQueries({ queryKey: options.queryKey! });
+      await registry.invalidateResources({ queryKey: options.queryKey! });
       toast.success("Email preferences updated");
     } catch (error) {
       toast.error(

@@ -5,9 +5,9 @@
  */
 
 import { getPlan, type PlanType, resolvePlanType } from "@delulu/payments";
-import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { useResourceAtom } from "@/state/resources";
 
 export type Feature = "postScheduling" | "prioritySupport";
 
@@ -22,7 +22,7 @@ export interface UseFeatureAccessReturn {
 export function useFeatureAccess(feature: Feature): UseFeatureAccessReturn {
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const subscription = useQuery({
+  const subscription = useResourceAtom({
     ...resources.billing.subscription(workspaceId ?? ""),
     enabled: Boolean(workspaceId),
   });

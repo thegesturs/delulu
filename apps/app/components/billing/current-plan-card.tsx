@@ -24,7 +24,6 @@ import {
   Link01Icon,
   SparklesIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -32,6 +31,7 @@ import { useApiClient } from "@/components/providers/api-client";
 import { useCurrency } from "@/hooks/use-currency";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useMutationAtom } from "@/state/resources";
 import { CancellationFlow } from "./cancellation-flow";
 
 export function CurrentPlanCard() {
@@ -39,7 +39,7 @@ export function CurrentPlanCard() {
   const subscription = useSubscription();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const portal = useMutation(
+  const portal = useMutationAtom(
     resources.billing.portal(workspace.workspaceId ?? "")
   );
   const currency = useCurrency();

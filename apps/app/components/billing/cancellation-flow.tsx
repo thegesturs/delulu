@@ -21,12 +21,16 @@ import {
   RadioGroupItem,
 } from "@delulu/design-system/components/ui/radio-group";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 const reasons = [
   ["too_expensive", "Too expensive"],
@@ -61,23 +65,22 @@ export function CancellationFlow() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const workspaceId = workspace.workspaceId ?? "";
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const options = resources.billing.cancellation(workspaceId);
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
-    queryKey: options.queryKey!,
     enabled: Boolean(workspace.workspaceId),
-    refetchInterval: (state) =>
-      state.state.data?.status === "open" ? 5000 : false,
   });
-  const start = useMutation(resources.billing.startCancellation(workspaceId));
-  const acceptOffer = useMutation(
+  const start = useMutationAtom(
+    resources.billing.startCancellation(workspaceId)
+  );
+  const acceptOffer = useMutationAtom(
     resources.billing.acceptCancellationOffer(workspaceId)
   );
-  const schedule = useMutation(
+  const schedule = useMutationAtom(
     resources.billing.scheduleCancellation(workspaceId)
   );
-  const reactivate = useMutation(
+  const reactivate = useMutationAtom(
     resources.billing.reactivateCancellation(workspaceId)
   );
   const [open, setOpen] = useState(false);
@@ -130,6 +133,16 @@ export function CancellationFlow() {
     }
   }, [cancellation?.status, open]);
 
+  useEffect(() => {
+    if (!workspace.workspaceId || cancellation?.status !== "open") {
+      return;
+    }
+    const interval = window.setInterval(() => {
+      query.refetch().catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [cancellation?.status, query.refetch, workspace.workspaceId]);
+
   const calendarUrl = useMemo(() => {
     if (!calendarReference) {
       return null;
@@ -142,8 +155,8 @@ export function CancellationFlow() {
 
   const invalidate = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: options.queryKey! }),
-      queryClient.invalidateQueries({
+      registry.invalidateResources({ queryKey: options.queryKey! }),
+      registry.invalidateResources({
         queryKey: resources.billing.subscription(workspaceId).queryKey!,
       }),
     ]);
@@ -243,7 +256,7 @@ export function CancellationFlow() {
     }
     try {
       const accepted = await acceptOffer.mutateAsync(cancellation.id);
-      queryClient.setQueryData(options.queryKey!, accepted);
+      registry.setResource(options.queryKey!, accepted);
       setDialogOpen(false);
       toast.success("Your next plan charge is covered");
       await invalidate().catch(() => undefined);
