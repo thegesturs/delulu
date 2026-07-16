@@ -57,6 +57,9 @@ export const PostTargetInput = Schema.Struct({
 export const PostWrite = Schema.Struct({
   groups: Schema.Array(PostGroupInput),
   targets: Schema.Array(PostTargetInput),
+  intent: Schema.optional(
+    Schema.Literals(["draft", "schedule", "publish_now"])
+  ),
   source: Schema.optional(Schema.Literals(["app", "api", "automation"])),
   externalSubmissionId: Schema.optional(Schema.String),
   submitForReview: Schema.optional(Schema.Boolean),
@@ -114,6 +117,11 @@ export const PostsGroup = HttpApiGroup.make("posts")
     HttpApiEndpoint.post("create", "/", {
       params: WorkspacePath,
       payload: PostWrite,
+      success: PostView,
+      error: domainErrors,
+    }),
+    HttpApiEndpoint.post("publishNow", "/:id/publish", {
+      params: ResourcePath,
       success: PostView,
       error: domainErrors,
     }),
@@ -308,6 +316,17 @@ export const MediaGroups = HttpApiGroup.make("media")
       ),
       error: domainErrors,
     }),
+    HttpApiEndpoint.post("import", "/imports", {
+      params: WorkspacePath,
+      payload: Schema.Struct({
+        url: Schema.String,
+        filename: Schema.optional(Schema.String),
+        altText: Schema.optional(Schema.String),
+        idempotencyKey: Schema.optional(Schema.String),
+      }),
+      success: MediaView,
+      error: domainErrors,
+    }),
     HttpApiEndpoint.post("complete", "/complete", {
       params: WorkspacePath,
       payload: Schema.Array(Schema.Struct({ mediaId: Schema.String })),
@@ -349,6 +368,7 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
       params: { ...WorkspacePath, platform: Schema.String },
       payload: Schema.Struct({
         includeInsights: Schema.optional(Schema.Boolean),
+        client: Schema.optional(Schema.Literals(["cli", "mcp"])),
       }),
       success: Schema.Struct({ url: Schema.String, expiresIn: Schema.Number }),
       error: domainErrors,

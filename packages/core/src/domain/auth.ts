@@ -14,6 +14,7 @@ export const SCOPES = [
   "accounts:read",
   "accounts:write",
   "stats:read",
+  "billing:write",
   "media:write",
   "reviews:read",
   "reviews:write",
@@ -81,6 +82,7 @@ export const roleScopeCeiling: Record<WorkspaceRole, readonly Scope[]> = {
     "reviews:write",
     "members:write",
     "apikeys:write",
+    "billing:write",
   ],
 };
 

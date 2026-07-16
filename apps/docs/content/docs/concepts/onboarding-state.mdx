@@ -1,0 +1,31 @@
+---
+title: Onboarding state
+description: Why completion is derived from connections and payment instead of trusting client-side checklists.
+---
+
+## Required truth
+
+Onboarding completes when both conditions are true:
+
+1. At least one supported social connection exists.
+2. Subscription state is confirmed paid.
+
+The order does not matter. Social callbacks and payment webhooks both run reconciliation, so retries and payment-first or connection-first journeys converge on the same result.
+
+## Optional steps
+
+Welcome, survey, and automation setup can be marked `completed` or `skipped`. They help the product guide users but do not block publishing readiness.
+
+## Compatibility mirror
+
+The backend owns derived truth and mirrors completion into identity-provider public metadata so existing middleware and browser routing continue to work. Clients should read the authenticated setup-status or workspace-overview response instead of inferring state from metadata or URL query parameters.
+
+## Outstanding actions
+
+The setup response returns one highest-priority action:
+
+- `connect_account`
+- `complete_payment`
+- no outstanding action when onboarding is complete
+
+The CLI overview adds operational next actions such as expiring connections, failed publications, pending reviews, active publications, upcoming schedules, and first-post creation.

@@ -20,9 +20,9 @@ export interface BillingInput {
 }
 
 /**
- * One subscriptions row per user (billing owner): the plan named by
+ * One base subscriptions row per user (billing owner): the plan named by
  * `subscriptionId`, else the latest active non-addon, else a synthesized FREE
- * row (#8). Usage counters carry over; addons fold into the `addons` jsonb;
+ * row (#8). Usage counters carry over; add-ons remain first-class child rows;
  * unselected historical rows are dropped (transactions keep the history).
  */
 export const transformBilling = (
@@ -48,7 +48,8 @@ export const transformBilling = (
 
     let selected: LegacySubscription | undefined;
     if (user.subscriptionId !== undefined) {
-      selected = subById.get(user.subscriptionId);
+      const referenced = subById.get(user.subscriptionId);
+      selected = referenced && !isAddon(referenced) ? referenced : undefined;
     }
     if (selected === undefined) {
       selected = subs
@@ -67,17 +68,9 @@ export const transformBilling = (
     }
 
     const usage = user.usage ?? {};
-    const addonsJson: Record<string, unknown> = {};
-    for (const addon of addons) {
-      addonsJson[addon.addonType ?? addon._id] = {
-        status: addon.status.toLowerCase(),
-        providerSubscriptionId: addon.dodoSubscriptionId ?? null,
-        legacyConvexId: addon._id,
-      };
-    }
-
+    const baseSubscriptionId = makeId(SubscriptionId);
     ctx.load.subscriptions.push({
-      id: makeId(SubscriptionId),
+      id: baseSubscriptionId,
       legacyConvexId: selected?._id ?? null,
       billingOwnerUserId,
       providerCustomerId:
@@ -100,7 +93,6 @@ export const transformBilling = (
       socialAccounts: usage.socialAccounts ?? 0,
       apiRequestsPerMonth: 0,
       apiRequestsPeriodStart: null,
-      addons: JSON.stringify(addonsJson),
       seatQuantity: null,
       unitPriceMinor: null,
       createdAt: epochToDateOr(
@@ -109,6 +101,23 @@ export const transformBilling = (
       ),
       updatedAt: epochToDateOr(user.updatedAt, user._creationTime),
     });
+
+    for (const addon of addons) {
+      ctx.load.subscriptionAddons.push({
+        id: makeId(SubscriptionId),
+        legacyConvexId: addon._id,
+        baseSubscriptionId,
+        addonKey: addon.addonType ?? addon._id,
+        providerSubscriptionId: addon.dodoSubscriptionId ?? null,
+        status: addon.status.toLowerCase(),
+        currentPeriodStart: epochToDate(addon.currentPeriodStart),
+        currentPeriodEnd: epochToDate(addon.currentPeriodEnd),
+        cancelAtPeriodEnd: addon.cancelAtPeriodEnd ?? false,
+        providerUpdatedAt: epochToDate(addon.updatedAt),
+        createdAt: epochToDateOr(addon._creationTime, user._creationTime),
+        updatedAt: epochToDateOr(addon.updatedAt, addon._creationTime),
+      });
+    }
   }
 
   // Transactions: straight copy, dedupe on provider payment id.

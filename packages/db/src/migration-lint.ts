@@ -5,6 +5,15 @@ import { fileURLToPath } from "node:url";
 
 const migrationNamePattern = /^\d{4}_[a-z0-9_]+\.sql$/;
 const downMigrationPattern = /\bdown\s+migration\b|--\s*down\b|^\s*down\s*:/im;
+const deploymentUnsafePatterns = [
+  /\bdrop\s+(?:table|column|type|view|materialized\s+view|index|schema)\b/i,
+  /\btruncate\b/i,
+  /\bdelete\s+from\b/i,
+  /\brename\s+(?:column|table)\b/i,
+  /\balter\s+table[\s\S]*?\b(?:drop\s+constraint|rename\s+to)\b/i,
+  /\balter\s+column[\s\S]*?\b(?:type|set\s+not\s+null|drop\s+default)\b/i,
+];
+const reviewedContractPattern = /--\s*deployment-safe-contract:\s*\S+/i;
 
 export interface MigrationLintInput {
   readonly files: ReadonlyArray<{
@@ -39,6 +48,20 @@ export const validateMigrations = ({
   for (const changed of changedTrackedFiles) {
     if (changed.status !== "A") {
       errors.push(`${changed.name}: merged migrations are immutable`);
+    }
+    if (changed.status === "A") {
+      const file = files.find((candidate) =>
+        changed.name.endsWith(`/${candidate.name}`)
+      );
+      if (
+        file &&
+        deploymentUnsafePatterns.some((pattern) => pattern.test(file.sql)) &&
+        !reviewedContractPattern.test(file.sql)
+      ) {
+        errors.push(
+          `${changed.name}: destructive migrations require an expand/contract release and a deployment-safe-contract reason`
+        );
+      }
     }
   }
   return errors;

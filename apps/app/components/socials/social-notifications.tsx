@@ -5,12 +5,22 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@delulu/design-system/components/ui/dialog";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { CheckmarkCircle01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 import { SocialError } from "../error/social-error";
+import { socialSuccessCopy } from "./social-success";
 
 const ERROR_MESSAGES = {
   auth_required: {
@@ -77,6 +87,8 @@ const NOTIFICATIONS = {
 function SocialNotificationsContent() {
   const searchParams = useSearchParams();
   const [visible, setVisible] = useState(true);
+  const [callbackUsername, setCallbackUsername] = useState<string | null>(null);
+  const [callbackReady, setCallbackReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const analytics = useAnalytics();
   const { workspaceId } = useWorkspace();
@@ -85,19 +97,28 @@ function SocialNotificationsContent() {
   const trackedRef = useRef(false);
   const invalidatedRef = useRef(false);
 
-  // Reset visibility when search params change
-  useEffect(() => {
-    setVisible(true);
-  }, []);
-
   const success = searchParams.get("success");
   const error = searchParams.get("error");
   const notification = searchParams.get("notification");
-  const provider = searchParams.get("provider") as
-    | "TWITTER"
-    | "LINKEDIN"
-    | "YOUTUBE"
-    | null;
+  const provider = searchParams.get("provider");
+  const client = searchParams.get("client");
+  const callbackClient =
+    client === "cli" || client === "mcp" ? client : undefined;
+
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const connectedUsername = fragment.get("username");
+    setCallbackUsername(connectedUsername);
+    if (connectedUsername) {
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${window.location.search}`
+      );
+    }
+    setCallbackReady(true);
+    setVisible(true);
+  }, [success, provider, client]);
 
   // Track social account connection/failure via PostHog
   useEffect(() => {
@@ -143,14 +164,15 @@ function SocialNotificationsContent() {
     return null;
   }
 
-  const handleRetry = async (
-    socialProvider?: "TWITTER" | "LINKEDIN" | "YOUTUBE"
-  ) => {
+  const handleRetry = async (socialProvider?: string) => {
     setRetryCount((prev) => prev + 1);
     // Use the provider from URL params or the one passed from the retry button
     const providerToUse = socialProvider || provider;
     if (providerToUse && workspaceId) {
-      const result = await connect.mutateAsync({ includeInsights: true });
+      const result = await connect.mutateAsync({
+        includeInsights: true,
+        client: callbackClient,
+      });
       window.location.href = result.url;
     }
   };
@@ -195,6 +217,36 @@ function SocialNotificationsContent() {
           variant="warning"
         />
       </div>
+    );
+  }
+
+  if (success === "true" && provider && callbackReady) {
+    const copy = socialSuccessCopy({
+      provider,
+      username: callbackUsername,
+      client,
+    });
+    return (
+      <Dialog onOpenChange={setVisible} open={visible}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-emerald-500/10">
+              <Icon
+                className="text-emerald-500"
+                icon={CheckmarkCircle01Icon}
+                size={28}
+              />
+            </div>
+            <DialogTitle>{copy.title}</DialogTitle>
+            <DialogDescription>{copy.message}</DialogDescription>
+          </DialogHeader>
+          {copy.detail ? (
+            <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-center text-foreground text-sm">
+              {copy.detail}
+            </p>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     );
   }
 

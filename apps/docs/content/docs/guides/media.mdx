@@ -1,0 +1,43 @@
+---
+title: How to prepare media
+description: Upload local files, import public URLs, and reuse prepared media IDs.
+---
+
+## Upload a local file
+
+```bash
+delulu upload ./launch.mp4 --alt "Product walkthrough"
+```
+
+The CLI requests a presigned upload, streams the file, completes the media record, and returns a reusable media ID.
+
+## Import a public URL
+
+```bash
+delulu upload https://cdn.example.com/launch.mp4
+```
+
+Public Google Drive share links are normalized by the server. Private Drive files are not supported. URL imports reject private-network destinations, excessive redirects, invalid content types, oversized files, timeouts, and exhausted workspace quota.
+
+## Attach media while creating a post
+
+Pass a local path, public HTTPS URL, or existing media ID:
+
+```bash
+delulu post "Watch this" \
+  --to linkedin:connection_abc123 \
+  --media ./launch.mp4 \
+  --draft
+```
+
+Repeat `--media` for multiple items. The post command prepares all media and creates the post atomically with one operation journal entry.
+
+## Verification
+
+The result must report the media as `ready` before it is attached. Use `delulu show <post-id>` to inspect target state after publishing.
+
+## Troubleshooting
+
+- Hosted MCP cannot read arbitrary local paths; use `import_media` with a public URL.
+- Keep the original operation key after a network interruption. The CLI reuses identical operations for 24 hours.
+- Use `--new` only when you intentionally want a separate media resource.

@@ -100,9 +100,9 @@ export function PostActionsMenu({
       segments: group.segments.map((segment) => ({
         text: segment.text,
         media: segment.media.map((ref) => ({ ...ref })),
-        ...(segment.delayMinutes !== undefined
-          ? { delayMinutes: segment.delayMinutes }
-          : {}),
+        ...(segment.delayMinutes === undefined
+          ? {}
+          : { delayMinutes: segment.delayMinutes }),
       })),
     })),
     targets: post.targets.map((target) => ({

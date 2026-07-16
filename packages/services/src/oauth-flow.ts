@@ -10,15 +10,22 @@ import {
   OAuthGrantId,
   OAuthRefreshToken,
   OAuthRefreshTokenId,
-  type Scope,
+  roleScopeCeiling,
+  Scope,
 } from "@delulu/core";
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AsTokenService, REFRESH_TOKEN_TTL_SECONDS } from "./as-token";
 import { randomTokenBase64Url, sha256Hex } from "./crypto";
+import { MembershipService } from "./membership";
 import { verifyPkceS256 } from "./pkce";
 
 const AUTHORIZATION_CODE_TTL_SECONDS = 60;
+const DEVICE_CODE_TTL_SECONDS = 600;
+const DEVICE_POLL_INTERVAL_SECONDS = 5;
+const DEVICE_GRANT_TYPE =
+  "urn:ietf:params:oauth:grant-type:device_code" as const;
+const DEVICE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 /**
  * OAuth 2.1 error (RFC 6749 §5.2). Carries the standard `error` code and the
@@ -39,6 +46,10 @@ const invalidGrant = (description: string) =>
   new OAuthError({ error: "invalid_grant", description, status: 400 });
 const invalidClient = (description: string) =>
   new OAuthError({ error: "invalid_client", description, status: 401 });
+const deviceError = (error: string, description: string) =>
+  new OAuthError({ error, description, status: 400 });
+
+export { DEVICE_GRANT_TYPE };
 
 export interface OAuthTokenResponse {
   readonly access_token: string;
@@ -71,6 +82,53 @@ export interface RefreshInput {
   readonly refreshToken: string;
   readonly clientId: string;
 }
+
+export interface StartDeviceAuthorizationInput {
+  readonly clientId: string;
+  readonly scopes: readonly Scope[];
+  readonly resource: string | null;
+  readonly verificationUri: string;
+  readonly workspaceHint?: string;
+}
+
+export interface ExchangeDeviceCodeInput {
+  readonly deviceCode: string;
+  readonly clientId: string;
+}
+
+export interface DeviceAuthorizationResponse {
+  readonly device_code: string;
+  readonly user_code: string;
+  readonly verification_uri: string;
+  readonly verification_uri_complete: string;
+  readonly expires_in: number;
+  readonly interval: number;
+}
+
+interface DeviceAuthorizationRow {
+  readonly id: string;
+  readonly clientId: string;
+  readonly userId: string | null;
+  readonly workspaceId: string | null;
+  readonly scopes: readonly Scope[];
+  readonly resource: string | null;
+  readonly status: "pending" | "approved" | "denied" | "consumed";
+  readonly intervalSeconds: number;
+  readonly lastPolledAt: DateTime.Utc | null;
+  readonly expiresAt: DateTime.Utc;
+}
+
+const deviceUserCode = (): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const value = Array.from(
+    bytes,
+    (byte) => DEVICE_ALPHABET[byte % DEVICE_ALPHABET.length]
+  ).join("");
+  return `${value.slice(0, 4)}-${value.slice(4)}`;
+};
+
+const normalizeUserCode = (value: string): string =>
+  value.trim().toUpperCase().replaceAll("-", "");
 
 /** Loopback redirect URIs match port-agnostically (RFC 8252 §7.3). */
 const redirectUriMatches = (
@@ -124,6 +182,31 @@ export class OAuthFlowService extends Context.Service<
     readonly refresh: (
       input: RefreshInput
     ) => Effect.Effect<OAuthTokenResponse, OAuthError>;
+    readonly startDeviceAuthorization: (
+      input: StartDeviceAuthorizationInput
+    ) => Effect.Effect<DeviceAuthorizationResponse, OAuthError>;
+    readonly approveDeviceAuthorization: (input: {
+      readonly userCode: string;
+      readonly userId: string;
+      readonly workspaceId: string;
+      readonly scopes: readonly Scope[];
+    }) => Effect.Effect<void, OAuthError>;
+    readonly inspectDeviceAuthorization: (userCode: string) => Effect.Effect<
+      {
+        readonly clientId: string;
+        readonly clientName: string;
+        readonly scopes: readonly string[];
+        readonly resource: string | null;
+        readonly expiresAt: string;
+      },
+      OAuthError
+    >;
+    readonly denyDeviceAuthorization: (
+      userCode: string
+    ) => Effect.Effect<void, OAuthError>;
+    readonly exchangeDeviceCode: (
+      input: ExchangeDeviceCodeInput
+    ) => Effect.Effect<OAuthTokenResponse, OAuthError>;
     readonly revoke: (token: string) => Effect.Effect<void>;
   }
 >()("@delulu/services/OAuthFlowService") {
@@ -132,6 +215,7 @@ export class OAuthFlowService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const tokens = yield* AsTokenService;
+      const membership = yield* MembershipService;
       const codeRepo = yield* makeOAuthAuthorizationCodeRepository();
       const grantRepo = yield* makeOAuthGrantRepository();
       const refreshRepo = yield* makeOAuthRefreshTokenRepository();
@@ -165,6 +249,32 @@ export class OAuthFlowService extends Context.Service<
         Result: OAuthRefreshToken,
         execute: (tokenHash) =>
           sql`SELECT * FROM oauth_refresh_tokens WHERE token_hash = ${tokenHash}`,
+      });
+
+      const findDeviceByHash = SqlSchema.findOneOption({
+        Request: Schema.String,
+        Result: Schema.Struct({
+          id: Schema.String,
+          clientId: Schema.String,
+          userId: Schema.NullOr(Schema.String),
+          workspaceId: Schema.NullOr(Schema.String),
+          scopes: Schema.Array(Scope),
+          resource: Schema.NullOr(Schema.String),
+          status: Schema.Literals([
+            "pending",
+            "approved",
+            "denied",
+            "consumed",
+          ]),
+          intervalSeconds: Schema.Number,
+          lastPolledAt: Schema.NullOr(Schema.DateTimeUtcFromDate),
+          expiresAt: Schema.DateTimeUtcFromDate,
+        }),
+        execute: (deviceCodeHash) =>
+          sql`SELECT id, client_id, user_id, workspace_id, scopes, resource, status,
+            interval_seconds, last_polled_at, expires_at
+            FROM oauth_device_authorizations
+            WHERE device_code_hash = ${deviceCodeHash}`,
       });
 
       const ensureGrant = (
@@ -413,6 +523,232 @@ export class OAuthFlowService extends Context.Service<
           });
         });
 
+      const startDeviceAuthorization = Effect.fn(
+        "OAuthFlowService.startDeviceAuthorization"
+      )(function* (input: StartDeviceAuthorizationInput) {
+        const client = yield* findClient(input.clientId).pipe(Effect.orDie);
+        if (Option.isNone(client)) {
+          return yield* invalidClient("Unknown client");
+        }
+        const deviceCode = randomTokenBase64Url(32);
+        const userCode = deviceUserCode();
+        const [deviceCodeHash, userCodeHash] = yield* Effect.all([
+          Effect.promise(() => sha256Hex(deviceCode)),
+          Effect.promise(() => sha256Hex(normalizeUserCode(userCode))),
+        ]);
+        const id = `oauth_device_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+        const expiresAt = new Date(Date.now() + DEVICE_CODE_TTL_SECONDS * 1000);
+        yield* sql`INSERT INTO oauth_device_authorizations
+          (id, device_code_hash, user_code_hash, client_id, scopes, resource,
+           interval_seconds, expires_at)
+          VALUES (${id}, ${deviceCodeHash}, ${userCodeHash}, ${input.clientId},
+            ${input.scopes}, ${input.resource}, ${DEVICE_POLL_INTERVAL_SECONDS},
+            ${expiresAt})`.pipe(Effect.orDie);
+        const complete = new URL(input.verificationUri);
+        complete.searchParams.set("user_code", userCode);
+        if (input.workspaceHint) {
+          complete.searchParams.set("workspace_id", input.workspaceHint);
+        }
+        return {
+          device_code: deviceCode,
+          user_code: userCode,
+          verification_uri: input.verificationUri,
+          verification_uri_complete: complete.toString(),
+          expires_in: DEVICE_CODE_TTL_SECONDS,
+          interval: DEVICE_POLL_INTERVAL_SECONDS,
+        };
+      });
+
+      const inspectDeviceAuthorization = Effect.fn(
+        "OAuthFlowService.inspectDeviceAuthorization"
+      )(function* (userCode: string) {
+        const codeHash = yield* Effect.promise(() =>
+          sha256Hex(normalizeUserCode(userCode))
+        );
+        const rows = yield* sql<{
+          clientId: string;
+          clientName: string;
+          scopes: string[];
+          resource: string | null;
+          expiresAt: Date;
+        }>`SELECT d.client_id, c.name AS client_name, d.scopes, d.resource,
+            d.expires_at FROM oauth_device_authorizations d
+          JOIN oauth_clients c ON c.client_id = d.client_id
+          WHERE d.user_code_hash = ${codeHash} AND d.status = 'pending'
+            AND d.expires_at > now()`.pipe(Effect.orDie);
+        if (!rows[0]) {
+          return yield* invalidGrant("Device code is invalid or expired");
+        }
+        return {
+          ...rows[0],
+          expiresAt: rows[0].expiresAt.toISOString(),
+        };
+      });
+
+      const approveDeviceAuthorization = Effect.fn(
+        "OAuthFlowService.approveDeviceAuthorization"
+      )(function* (input: {
+        userCode: string;
+        userId: string;
+        workspaceId: string;
+        scopes: readonly Scope[];
+      }) {
+        if (input.scopes.length === 0) {
+          return yield* invalidRequest("Select at least one scope");
+        }
+        const codeHash = yield* Effect.promise(() =>
+          sha256Hex(normalizeUserCode(input.userCode))
+        );
+        const pending = yield* inspectDeviceAuthorization(input.userCode);
+        const requestedScopes = new Set(pending.scopes);
+        if (input.scopes.some((scope) => !requestedScopes.has(scope))) {
+          return yield* invalidRequest(
+            "Approved scopes must be a subset of the requested scopes"
+          );
+        }
+        const currentMembership = yield* membership.resolve({
+          workspaceId: input.workspaceId,
+          userId: input.userId,
+        });
+        if (Option.isNone(currentMembership)) {
+          return yield* invalidRequest(
+            "Select a workspace where you are currently a member"
+          );
+        }
+        const roleCeiling = new Set(
+          roleScopeCeiling[currentMembership.value.role]
+        );
+        if (input.scopes.some((scope) => !roleCeiling.has(scope))) {
+          return yield* invalidRequest(
+            "One or more selected scopes exceed your current workspace role"
+          );
+        }
+        const rows = yield* sql<{
+          id: string;
+        }>`UPDATE oauth_device_authorizations
+          SET status = 'approved', user_id = ${input.userId},
+            workspace_id = ${input.workspaceId}, scopes = ${input.scopes}
+          WHERE user_code_hash = ${codeHash} AND status = 'pending'
+            AND expires_at > now()
+          RETURNING id`.pipe(Effect.orDie);
+        if (rows.length === 0) {
+          return yield* invalidGrant("Device code is invalid or expired");
+        }
+      });
+
+      const denyDeviceAuthorization = Effect.fn(
+        "OAuthFlowService.denyDeviceAuthorization"
+      )(function* (userCode: string) {
+        const codeHash = yield* Effect.promise(() =>
+          sha256Hex(normalizeUserCode(userCode))
+        );
+        const rows = yield* sql<{
+          id: string;
+        }>`UPDATE oauth_device_authorizations
+          SET status = 'denied'
+          WHERE user_code_hash = ${codeHash} AND status = 'pending'
+            AND expires_at > now()
+          RETURNING id`.pipe(Effect.orDie);
+        if (rows.length === 0) {
+          return yield* invalidGrant("Device code is invalid or expired");
+        }
+      });
+
+      const exchangeDeviceCode = Effect.fn(
+        "OAuthFlowService.exchangeDeviceCode"
+      )(function* (input: ExchangeDeviceCodeInput) {
+        const deviceCodeHash = yield* Effect.promise(() =>
+          sha256Hex(input.deviceCode)
+        );
+        const maybeDevice = yield* findDeviceByHash(deviceCodeHash).pipe(
+          Effect.orDie
+        );
+        if (Option.isNone(maybeDevice)) {
+          return yield* deviceError("expired_token", "Device code is unknown");
+        }
+        const device = maybeDevice.value as DeviceAuthorizationRow;
+        if (
+          device.clientId !== input.clientId ||
+          DateTime.toEpochMillis(device.expiresAt) <= Date.now() ||
+          device.status === "consumed"
+        ) {
+          return yield* deviceError(
+            "expired_token",
+            "Device code is invalid or expired"
+          );
+        }
+        if (device.status === "denied") {
+          return yield* deviceError(
+            "access_denied",
+            "The user denied this authorization request"
+          );
+        }
+        if (device.status === "pending") {
+          if (
+            device.lastPolledAt &&
+            Date.now() - DateTime.toEpochMillis(device.lastPolledAt) <
+              device.intervalSeconds * 1000
+          ) {
+            yield* sql`UPDATE oauth_device_authorizations
+              SET last_polled_at = now(), interval_seconds = interval_seconds + 5
+              WHERE id = ${device.id}`.pipe(Effect.orDie);
+            return yield* deviceError(
+              "slow_down",
+              "Polling faster than the advertised interval"
+            );
+          }
+          yield* sql`UPDATE oauth_device_authorizations SET last_polled_at = now()
+            WHERE id = ${device.id}`.pipe(Effect.orDie);
+          return yield* deviceError(
+            "authorization_pending",
+            "The user has not completed authorization"
+          );
+        }
+        if (!device.userId) {
+          return yield* invalidGrant("Approved device has no user");
+        }
+        const approvedUserId = device.userId;
+        const refreshToken = yield* sql
+          .withTransaction(
+            Effect.gen(function* () {
+              const consumed = yield* sql<{ id: string }>`
+                UPDATE oauth_device_authorizations
+                SET status = 'consumed', consumed_at = now()
+                WHERE id = ${device.id} AND status = 'approved'
+                RETURNING id`;
+              if (consumed.length === 0) {
+                return yield* deviceError(
+                  "expired_token",
+                  "Device code was consumed"
+                );
+              }
+              const grantId = yield* ensureGrant(
+                approvedUserId,
+                device.clientId,
+                device.scopes
+              );
+              return yield* mintRefreshToken({
+                grantId,
+                userId: approvedUserId,
+                clientId: device.clientId,
+                scopes: device.scopes,
+                resource: device.resource,
+                workspaceId: device.workspaceId,
+                familyId: randomTokenBase64Url(16),
+                rotatedFrom: null,
+              });
+            })
+          )
+          .pipe(Effect.catchTag("SqlError", Effect.die));
+        return yield* issueTokenResponse({
+          userId: approvedUserId,
+          scopes: device.scopes,
+          resource: device.resource ?? "",
+          workspaceId: device.workspaceId,
+          refreshToken,
+        });
+      });
+
       const revoke = (token: string) =>
         Effect.gen(function* () {
           const tokenHash = yield* Effect.promise(() => sha256Hex(token));
@@ -423,6 +759,11 @@ export class OAuthFlowService extends Context.Service<
         issueCode,
         exchangeCode,
         refresh,
+        startDeviceAuthorization,
+        approveDeviceAuthorization,
+        inspectDeviceAuthorization,
+        denyDeviceAuthorization,
+        exchangeDeviceCode,
         revoke,
       });
     })

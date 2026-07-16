@@ -1,4 +1,5 @@
-import { createApiClient, resolveWorkspaceId } from "@delulu/client";
+import { createApiClient, runEffect } from "@delulu/client";
+import { CliError } from "./cli-error.js";
 import {
   DEFAULT_API_URL,
   readCredentials,
@@ -8,6 +9,7 @@ import {
 interface RequestOptions {
   apiUrl?: string;
   json?: boolean;
+  workspace?: string;
 }
 
 export function getContractClient(options: RequestOptions = {}) {
@@ -22,7 +24,7 @@ export function getContractClient(options: RequestOptions = {}) {
  * claim. A bound token only works against this workspace, so it is the correct
  * default when the user has not overridden it.
  */
-async function boundWorkspaceId() {
+export async function boundWorkspaceId() {
   const credentials = await readCredentials();
   const payload = credentials?.accessToken.split(".")[1];
   if (!payload) {
@@ -39,10 +41,36 @@ async function boundWorkspaceId() {
 }
 
 export async function getWorkspaceId(options: RequestOptions = {}) {
-  return resolveWorkspaceId({
-    client: getContractClient(options),
-    workspaceId: process.env.DELULU_WORKSPACE_ID ?? (await boundWorkspaceId()),
-  });
+  const selected =
+    options.workspace ||
+    process.env.DELULU_WORKSPACE_ID ||
+    (await boundWorkspaceId());
+  if (selected) {
+    return selected;
+  }
+  const memberships = await runEffect(
+    getContractClient(options).me.workspaces()
+  );
+  if (memberships.data.length > 1) {
+    throw new CliError({
+      code: "WORKSPACE_SELECTION_REQUIRED",
+      message:
+        "More than one eligible workspace is available; choose one explicitly",
+      exitCode: 4,
+      details: { eligible: memberships.data.length },
+      next: ["delulu workspace", "delulu workspace use <selector>"],
+    });
+  }
+  const only = memberships.data[0]?.workspaceId;
+  if (!only) {
+    throw new CliError({
+      code: "WORKSPACE_NOT_AVAILABLE",
+      message: "No eligible workspace is available for this account",
+      exitCode: 4,
+      next: ["delulu login"],
+    });
+  }
+  return only;
 }
 
 async function refreshCredentials(
@@ -96,12 +124,4 @@ export async function getAccessToken() {
     throw new Error("Not logged in. Run `delulu login` first.");
   }
   return (await refreshCredentials(credentials)).accessToken;
-}
-
-export function printResult(value: unknown, json = false) {
-  if (json) {
-    console.log(JSON.stringify(value, null, 2));
-    return;
-  }
-  console.log(JSON.stringify(value, null, 2));
 }

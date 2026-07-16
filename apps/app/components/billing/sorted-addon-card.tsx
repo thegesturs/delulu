@@ -52,7 +52,15 @@ export function SortedAddonCard() {
     );
   }
 
-  const isSubscribed = subscription.subscription?.addons.sorted === true;
+  const sortedAddon = subscription.subscription?.addons.sorted;
+  const isSubscribed =
+    sortedAddon === true ||
+    (typeof sortedAddon === "object" &&
+      sortedAddon !== null &&
+      "status" in sortedAddon &&
+      ["active", "trialing", "on_trial"].includes(
+        String((sortedAddon as { status?: unknown }).status)
+      ));
   const used = query.data?.usage.transcriptionsUsed ?? 0;
   const limit = isSubscribed ? 1000 : 10;
 

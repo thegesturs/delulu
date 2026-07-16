@@ -1,3 +1,4 @@
+import { normalizePostgresUrl } from "@delulu/core";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { PgClient, PgMigrator } from "@effect/sql-pg";
 import {
@@ -20,7 +21,7 @@ const DatabaseUrl = Config.redacted("DATABASE_URL").pipe(
 const PgLive = Layer.unwrap(
   Effect.map(DatabaseUrl, (url) =>
     PgClient.layer({
-      url,
+      url: Redacted.make(normalizePostgresUrl(Redacted.value(url))),
       transformQueryNames: EffectString.camelToSnake,
       transformResultNames: EffectString.snakeToCamel,
       transformJson: true,

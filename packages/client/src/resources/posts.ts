@@ -20,6 +20,12 @@ export const createPostEffects = defineResourceEffects(({ client }) => ({
       queryKey: workspaceKeys.detail(workspaceId, "posts", id),
       effect: () => client.posts.get({ params: { workspaceId, id } }),
     }),
+  publishNow: (workspaceId: string) =>
+    mutationEffect({
+      mutationKey: workspaceKeys.resource(workspaceId, "posts"),
+      effect: (id: string) =>
+        client.posts.publishNow({ params: { workspaceId, id } }),
+    }),
   targets: (workspaceId: string, id: string) =>
     resourceEffect({
       queryKey: workspaceKeys.detail(workspaceId, "post-targets", id),
@@ -40,7 +46,6 @@ export const createPostEffects = defineResourceEffects(({ client }) => ({
   update: (workspaceId: string, id: string) =>
     mutationEffect({
       mutationKey: workspaceKeys.detail(workspaceId, "posts", id),
-      invalidates: [workspaceKeys.resource(workspaceId, "posts")],
       effect: (payload: EndpointPayload<ApiClient["posts"]["update"]>) =>
         client.posts.update({ params: { workspaceId, id }, payload }),
     }),

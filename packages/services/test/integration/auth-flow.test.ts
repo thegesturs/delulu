@@ -73,11 +73,13 @@ beforeAll(async () => {
     })
   );
   const AsToken = AsTokenService.layer.pipe(Layer.provide(Config));
+  const Membership = MembershipService.layer;
+  const OAuthFlow = OAuthFlowService.layer.pipe(Layer.provide(Membership));
   AppLayer = Layer.mergeAll(
     IdentityService.layer,
-    MembershipService.layer,
+    Membership,
     ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
+    OAuthFlow,
     AsToken
   ).pipe(Layer.provide(AsToken), Layer.provideMerge(Pg));
 });

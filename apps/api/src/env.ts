@@ -51,6 +51,20 @@ export interface Env {
   readonly DODO_WEBHOOK_SECRET?: string;
   readonly DODO_PAYMENTS_API_KEY?: string;
   readonly DODO_PAYMENTS_ENVIRONMENT?: "test_mode" | "live_mode";
+  readonly CLOUDFLARE_EMAIL_FROM?: string;
+  readonly LOOPS_API_KEY?: string;
+  readonly CAL_WEBHOOK_SECRET?: string;
+  readonly CAL_RETENTION_EVENT_SLUG?: string;
+  readonly EMAIL?: {
+    send(input: {
+      readonly from: string;
+      readonly to: string;
+      readonly subject: string;
+      readonly html: string;
+      readonly text: string;
+      readonly headers?: Readonly<Record<string, string>>;
+    }): Promise<void>;
+  };
   readonly POSTHOG_KEY?: string;
   readonly POSTHOG_HOST?: string;
   readonly ENVIRONMENT?: string;

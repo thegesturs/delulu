@@ -29,6 +29,7 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
         .optional()
         .describe("Number of posts to return (max 100)"),
       cursor: z.string().optional().describe("Pagination cursor"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
     },
     async (params, extra) => {
       const result = await resolveClient(client, extra).listPosts(params);
@@ -43,9 +44,15 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
   server.tool(
     "get_post",
     "Get a single post by ID",
-    { id: z.string().describe("Post ID") },
+    {
+      id: z.string().describe("Post ID"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
+    },
     async (params, extra) => {
-      const result = await resolveClient(client, extra).getPost(params.id);
+      const result = await resolveClient(client, extra).getPost(
+        params.id,
+        params.workspaceId
+      );
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },
@@ -91,12 +98,22 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
         .enum(["PUBLIC", "PRIVATE", "UNLISTED"])
         .optional()
         .describe("Privacy setting"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
+      intent: z
+        .enum(["draft", "schedule", "publish_now"])
+        .default("draft")
+        .describe("Explicit post delivery intent"),
     },
     async (params, extra) => {
-      const result = await resolveClient(client, extra).createPost(params);
+      const resolved = resolveClient(client, extra);
+      const created = await resolved.createPost({
+        ...params,
+        status: params.intent === "schedule" ? "SCHEDULED" : "SAVED",
+        intent: params.intent,
+      });
       return {
         content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+          { type: "text" as const, text: JSON.stringify(created, null, 2) },
         ],
       };
     }
@@ -133,6 +150,7 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
         .number()
         .optional()
         .describe("Updated schedule time (Unix timestamp)"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
     },
     async (params, extra) => {
       const { id, ...data } = params;
@@ -148,9 +166,35 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
   server.tool(
     "delete_post",
     "Delete a post (soft delete)",
-    { id: z.string().describe("Post ID") },
+    {
+      id: z.string().describe("Post ID"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
+    },
     async (params, extra) => {
-      const result = await resolveClient(client, extra).deletePost(params.id);
+      const result = await resolveClient(client, extra).deletePost(
+        params.id,
+        params.workspaceId
+      );
+      return {
+        content: [
+          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+        ],
+      };
+    }
+  );
+
+  server.tool(
+    "publish_post_now",
+    "Publish a prepared post immediately; live workspace roles and reviews apply",
+    {
+      id: z.string().describe("Post ID"),
+      workspaceId: z.string().optional().describe("Workspace ID"),
+    },
+    async (params, extra) => {
+      const result = await resolveClient(client, extra).publishPostNow(
+        params.id,
+        params.workspaceId
+      );
       return {
         content: [
           { type: "text" as const, text: JSON.stringify(result, null, 2) },

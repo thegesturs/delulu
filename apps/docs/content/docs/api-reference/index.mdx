@@ -1,0 +1,48 @@
+---
+title: REST API reference
+description: Typed HTTP operations generated from the server contract, plus OAuth and error semantics.
+---
+
+Base URL:
+
+```text
+https://api.delulu.social
+```
+
+The build generates the endpoint group pages and [OpenAPI 3.1 document](/openapi.json) directly from `@delulu/contracts`. The [interactive API explorer](/api-explorer/) renders the same document.
+
+## API groups
+
+| Group | Purpose |
+| --- | --- |
+| Health | Liveness and database readiness. |
+| Me | Identity, memberships, overview, onboarding, and email preferences. |
+| Posts | Draft, schedule, publish, inspect, edit, delete, target, and retry operations. |
+| Reviews | Queue, submission, decisions, comments, activity, and bulk actions. |
+| Media | List, presigned upload, import, completion, and deletion. |
+| Connections | List, disconnect, provider authorization, and workspace transfer. |
+| Workspace administration | Workspace, member, invitation, and API-key management. |
+| Analytics | Operational counts and live connection insights. |
+| Automations | Instagram automation definitions, runs, and inbox. |
+| Billing | Subscription, usage, transactions, checkout, payer transfer, and cancellation. |
+| Transcriptions | Transcription history, usage, and checkout. |
+
+## Headers
+
+Authenticated routes require:
+
+```http
+Authorization: Bearer <credential>
+Accept: application/json
+Content-Type: application/json
+```
+
+Use the `content-type` header only when a request has a JSON body. OAuth form endpoints use `application/x-www-form-urlencoded`.
+
+## Pagination
+
+Most list endpoints use `limit` and `offset`. Responses include `data`, `total`, `limit`, and `offset`. Limits are validated by each endpoint; clients should treat `total` as authoritative.
+
+## Source of truth
+
+OAuth routes use protocol-specific form and redirect semantics and live outside the typed REST contract. They are documented separately under [authentication](/api-reference/authentication/).

@@ -6,9 +6,9 @@ Delulu Social streamlines social media management by allowing creators, business
 
 ## Platform Overview
 
-- [Home](https://delulu.social): Platform introduction and key features
-- [Pricing](https://delulu.social/pricing): Subscription tiers from Free to Pro with detailed feature breakdowns
-- [Contact](https://delulu.social/contact): Get in touch with the Delulu team
+- [Home](https://www.delulu.social): Platform introduction and key features
+- [Pricing](https://www.delulu.social/pricing): Subscription tiers from Free to Pro with detailed feature breakdowns
+- [Contact](https://www.delulu.social/contact): Get in touch with the Delulu team
 
 ## Key Features
 
@@ -40,8 +40,8 @@ Delulu Social streamlines social media management by allowing creators, business
 
 ## Content
 
-- [Blog](https://delulu.social/blogs): Articles on social media management, content strategy, and platform updates
-- [Use Cases](https://delulu.social): Examples of how creators, agencies, and businesses use Delulu Social
+- [Blog](https://www.delulu.social/blogs): Articles on social media management, content strategy, and platform updates
+- [Use Cases](https://www.delulu.social): Examples of how creators, agencies, and businesses use Delulu Social
 
 ## Technology Stack
 
@@ -67,9 +67,9 @@ Delulu Social streamlines social media management by allowing creators, business
 
 ## Legal
 
-- [Privacy Policy](https://delulu.social/legal/privacy-policy): How we collect, use, and protect user data
-- [Terms of Service](https://delulu.social/legal/terms-of-service): User agreement and platform usage terms
-- [Cookie Policy](https://delulu.social/legal/cookie-policy): Information about cookies and tracking
+- [Privacy Policy](https://www.delulu.social/legal/privacy-policy): How we collect, use, and protect user data
+- [Terms of Service](https://www.delulu.social/legal/terms-of-service): User agreement and platform usage terms
+- [Cookie Policy](https://www.delulu.social/legal/cookie-policy): Information about cookies and tracking
 
 ## Optional
 

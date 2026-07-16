@@ -12,6 +12,7 @@ import { CurrentAuth } from "@delulu/core";
 import {
   AdminService,
   ConnectionsService,
+  LifecycleService,
   MediaService,
   PostService,
   ProductAnalytics,
@@ -54,6 +55,7 @@ export const PostsHandlers = HttpApiBuilder.group(
   Effect.fnUntraced(function* (handlers) {
     const posts = yield* PostService;
     const workspaces = yield* WorkspaceAccessService;
+    const lifecycle = yield* LifecycleService;
     const analytics = yield* ProductAnalytics;
     return handlers
       .handle("list", ({ params, query }) =>
@@ -84,6 +86,14 @@ export const PostsHandlers = HttpApiBuilder.group(
             actor: { memberId: access.memberId, role: access.role },
             value: payload,
           });
+          if (post.status === "scheduled") {
+            yield* lifecycle.record({
+              billingOwnerUserId: access.billingOwnerUserId,
+              event: "post_scheduled",
+              properties: { post_id: post.id },
+              idempotencyKey: `post-scheduled:${post.id}`,
+            });
+          }
           yield* analytics.capture(
             workspaceEvent({
               auth,
@@ -146,6 +156,21 @@ export const PostsHandlers = HttpApiBuilder.group(
             scope: "posts:read",
           });
           return yield* posts.get(access.workspaceId, params.id);
+        })
+      )
+      .handle("publishNow", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "posts:write",
+          });
+          return yield* posts.publishNow({
+            workspaceId: access.workspaceId,
+            postId: params.id,
+            actor: { memberId: access.memberId, role: access.role },
+          });
         })
       )
       .handle("update", ({ params, payload }) =>
@@ -391,6 +416,21 @@ export const MediaHandlers = HttpApiBuilder.group(
           });
         })
       )
+      .handle("import", ({ params, payload }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "media:write",
+          });
+          return yield* media.importFromUrl({
+            workspaceId: access.workspaceId,
+            billingOwnerUserId: access.billingOwnerUserId,
+            ...payload,
+          });
+        })
+      )
       .handle("complete", ({ params, payload }) =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;
@@ -468,7 +508,8 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
             access.workspaceId,
             params.platform,
             auth,
-            payload.includeInsights
+            payload.includeInsights,
+            payload.client
           );
         })
       )

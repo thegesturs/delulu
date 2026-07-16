@@ -1,7 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DeluluApiClient } from "./api-client.js";
 import { registerAccountTools } from "./tools/accounts.js";
+import { registerMediaTools } from "./tools/media.js";
 import { registerPostTools } from "./tools/posts.js";
+import { registerSetupTools } from "./tools/setup.js";
 import { registerStatsTools } from "./tools/stats.js";
 
 export function createServer(apiUrl: string, apiKey: string) {
@@ -23,4 +25,6 @@ export function registerDeluluTools(
   registerPostTools(server, client);
   registerAccountTools(server, client);
   registerStatsTools(server, client);
+  registerSetupTools(server, client);
+  registerMediaTools(server, client);
 }

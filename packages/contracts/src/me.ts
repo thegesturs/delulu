@@ -1,10 +1,13 @@
 import { WorkspaceRole } from "@delulu/core";
+import { OperationalCounts } from "@delulu/core/domain/analytics";
+import { PooledUsage } from "@delulu/core/domain/billing";
 import { Schema } from "effect";
 import {
   HttpApiEndpoint,
   HttpApiGroup,
   OpenApi,
 } from "effect/unstable/httpapi";
+import { ForbiddenErrorResponse, NotFoundErrorResponse } from "./errors";
 import { Authentication } from "./middleware";
 
 /** The authenticated user, plus their personal workspace (identity tier). */
@@ -42,11 +45,94 @@ export const MeWorkspacesResponse = Schema.Struct({
   offset: Schema.Number,
 }).annotate({ identifier: "MeWorkspacesResponse" });
 
+export const EmailPreferencesResponse = Schema.Struct({
+  productLifecycleEnabled: Schema.Boolean,
+  marketingEnabled: Schema.Boolean,
+});
+
+export const WorkspaceOverviewResponse = Schema.Struct({
+  generatedAt: Schema.String,
+  workspace: Schema.Struct({
+    id: Schema.String,
+    name: Schema.String,
+    role: WorkspaceRole,
+    isPersonal: Schema.Boolean,
+  }),
+  setup: Schema.Struct({
+    connectedPlatforms: Schema.Array(Schema.String),
+    outstandingAction: Schema.NullOr(
+      Schema.Literals(["connect_account", "complete_payment"])
+    ),
+    onboardingComplete: Schema.Boolean,
+  }),
+  accounts: Schema.Struct({
+    total: Schema.Number,
+    expiringSoon: Schema.Number,
+  }),
+  subscription: Schema.Struct({
+    plan: Schema.String,
+    status: Schema.String,
+    paid: Schema.Boolean,
+  }),
+  usage: PooledUsage,
+  publishing: OperationalCounts,
+  reviews: Schema.Struct({ pending: Schema.Number }),
+}).annotate({ identifier: "WorkspaceOverviewResponse" });
+
 export const MeGroup = HttpApiGroup.make("me")
   .add(
     HttpApiEndpoint.get("current", "/", {
       success: MeResponse,
     }).annotate(OpenApi.Summary, "Get the authenticated user")
+  )
+  .add(
+    HttpApiEndpoint.get("overview", "/overview/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      success: WorkspaceOverviewResponse,
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    }).annotate(OpenApi.Summary, "Get the workspace command-center overview")
+  )
+  .add(
+    HttpApiEndpoint.get("setup", "/setup/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      success: Schema.Struct({
+        workspaceId: Schema.String,
+        connectedPlatforms: Schema.Array(Schema.String),
+        subscription: Schema.Struct({
+          plan: Schema.String,
+          status: Schema.String,
+          paid: Schema.Boolean,
+        }),
+        optionalSteps: Schema.Record(Schema.String, Schema.String),
+        outstandingAction: Schema.NullOr(
+          Schema.Literals(["connect_account", "complete_payment"])
+        ),
+        onboardingComplete: Schema.Boolean,
+      }),
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    })
+  )
+  .add(
+    HttpApiEndpoint.patch("updateSetup", "/setup/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      payload: Schema.Struct({
+        optionalSteps: Schema.Record(
+          Schema.String,
+          Schema.Literals(["completed", "skipped"])
+        ),
+      }),
+      success: Schema.Struct({ updated: Schema.Boolean }),
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    })
+  )
+  .add(
+    HttpApiEndpoint.get("emailPreferences", "/email-preferences", {
+      success: EmailPreferencesResponse,
+    }),
+    HttpApiEndpoint.put("updateEmailPreferences", "/email-preferences", {
+      payload: EmailPreferencesResponse,
+      success: EmailPreferencesResponse,
+    })
   )
   .add(
     HttpApiEndpoint.get("workspaces", "/workspaces", {

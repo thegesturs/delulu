@@ -1,0 +1,61 @@
+---
+title: Call the REST API
+description: Discover OAuth, obtain a delegated token, select a workspace, and call the typed API.
+---
+
+The REST API is served from `https://api.delulu.social`. It accepts app-issued OAuth access tokens, workspace-bound API keys, and first-party app sessions.
+
+## Before you begin
+
+OAuth clients must be registered by the Delulu deployment operator. There is no public dynamic client-registration endpoint. Ask the operator for a public client ID and its allowed redirect URIs, then export it:
+
+```bash
+export DELULU_OAUTH_CLIENT_ID=your-registered-client-id
+```
+
+The packaged CLI and hosted MCP server already use their registered clients. Do not reuse either client ID in a separate application; redirect URIs and capabilities are validated against the registration.
+
+## Step 1: Discover authorization
+
+```bash
+curl https://api.delulu.social/.well-known/oauth-authorization-server
+```
+
+Use the advertised endpoints instead of hard-coding OAuth paths. Browser-capable clients use authorization code with PKCE S256. Terminal clients use the device grant.
+
+## Step 2: Get a delegated token
+
+Start device authorization:
+
+```bash
+curl -X POST https://api.delulu.social/oauth/device/authorize \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  --data-urlencode "client_id=$DELULU_OAUTH_CLIENT_ID" \
+  --data-urlencode 'scope=posts:read accounts:read' \
+  --data-urlencode 'resource=https://api.delulu.social'
+```
+
+Show the returned verification URL and code to the user. Poll `/oauth/token` no faster than the returned interval using grant type `urn:ietf:params:oauth:grant-type:device_code`.
+
+## Step 3: Call the API
+
+```bash
+curl https://api.delulu.social/v1/me/workspaces \
+  -H "authorization: Bearer $DELULU_ACCESS_TOKEN"
+```
+
+Choose a workspace explicitly, then list its connected accounts:
+
+```bash
+curl "https://api.delulu.social/v1/workspaces/$WORKSPACE_ID/connections?limit=100" \
+  -H "authorization: Bearer $DELULU_ACCESS_TOKEN"
+```
+
+See [authentication](/api-reference/authentication/), [errors](/api-reference/errors/), and the [generated endpoint groups](/api-reference/generated/) for exact request and response schemas.
+
+## Troubleshooting
+
+- **401**: refresh or reauthorize the credential.
+- **403**: the live workspace role, granted scopes, or workspace binding does not allow the operation.
+- **409**: reuse the original operation result or provide a deliberate new idempotency key.
+- **429 or 503**: follow retry guidance and preserve the same idempotency key.

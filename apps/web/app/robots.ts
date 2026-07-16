@@ -1,9 +1,7 @@
+import { getWebOrigin, getWebUrl } from "@delulu/seo/url";
 import type { MetadataRoute } from "next";
-import { env } from "@/env";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
-
   return {
     rules: [
       // General crawlers - allow all
@@ -115,7 +113,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/admin/", "/_next/", "/private/"],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    sitemap: getWebUrl("/sitemap.xml"),
+    host: getWebOrigin(),
   };
 }

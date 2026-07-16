@@ -26,6 +26,12 @@ export const createMediaEffects = defineResourceEffects(({ client }) => ({
       effect: (payload: EndpointPayload<ApiClient["media"]["uploads"]>) =>
         client.media.uploads({ params: { workspaceId }, payload }),
     }),
+  import: (workspaceId: string) =>
+    mutationEffect({
+      mutationKey: workspaceKeys.resource(workspaceId, "media"),
+      effect: (payload: EndpointPayload<ApiClient["media"]["import"]>) =>
+        client.media.import({ params: { workspaceId }, payload }),
+    }),
   complete: (workspaceId: string) =>
     mutationEffect({
       mutationKey: workspaceKeys.resource(workspaceId, "media"),

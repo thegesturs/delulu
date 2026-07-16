@@ -54,6 +54,8 @@ export const MetaWebhookPayload = Schema.Struct({
 export const DodoWebhookPayload = Schema.Struct({
   type: Schema.String,
   data: JsonObject,
+  created_at: Schema.optional(Schema.String),
+  timestamp: Schema.optional(Schema.Union([Schema.String, Schema.Number])),
 });
 
 export const WebhookAccepted = Schema.Struct({

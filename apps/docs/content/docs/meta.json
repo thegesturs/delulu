@@ -1,0 +1,13 @@
+{
+  "title": "Delulu",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides",
+    "cli",
+    "mcp",
+    "api-reference",
+    "concepts",
+    "development"
+  ]
+}

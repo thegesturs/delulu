@@ -1,6 +1,9 @@
 import {
+  CalendarWebhookConfig,
+  CancellationService,
   SignedIngress,
   type StandardHeaders,
+  verifyCalendarWebhook,
   WebhookIngressService,
 } from "@delulu/services";
 import { Effect, Predicate } from "effect";
@@ -57,6 +60,8 @@ export const WebhookRoutes = HttpRouter.use(
   Effect.fnUntraced(function* (router) {
     const signed = yield* SignedIngress;
     const ingress = yield* WebhookIngressService;
+    const calendar = yield* CalendarWebhookConfig;
+    const cancellations = yield* CancellationService;
 
     yield* router.add(
       "GET",
@@ -77,6 +82,91 @@ export const WebhookRoutes = HttpRouter.use(
               )
             )
           );
+      })
+    );
+    yield* router.add(
+      "POST",
+      "/webhooks/cal",
+      Effect.fn("WebhookRoutes.receiveCalendar")(function* (request) {
+        const rawBody = yield* request.text;
+        const signature = header(request, "x-cal-signature-256") ?? "";
+        const valid = yield* Effect.promise(() =>
+          verifyCalendarWebhook(rawBody, signature, calendar.secret)
+        );
+        if (!valid) {
+          return HttpServerResponse.jsonUnsafe(
+            {
+              error: {
+                code: "InvalidSignature",
+                message: "Invalid calendar signature",
+              },
+            },
+            { status: 401 }
+          );
+        }
+        const body = yield* Effect.try({
+          try: () => JSON.parse(rawBody) as Record<string, unknown>,
+          catch: () => new Error("Invalid calendar payload"),
+        }).pipe(
+          Effect.catch(() =>
+            Effect.succeed(null as Record<string, unknown> | null)
+          )
+        );
+        if (!(body && Predicate.isString(body.triggerEvent))) {
+          return HttpServerResponse.jsonUnsafe(
+            { accepted: false },
+            { status: 400 }
+          );
+        }
+        const supported = [
+          "BOOKING_CREATED",
+          "BOOKING_RESCHEDULED",
+          "BOOKING_CANCELLED",
+        ] as const;
+        if (
+          !supported.includes(body.triggerEvent as (typeof supported)[number])
+        ) {
+          return HttpServerResponse.jsonUnsafe({
+            accepted: true,
+            ignored: true,
+          });
+        }
+        const payload = Predicate.isObject(body.payload) ? body.payload : {};
+        if (payload.type !== calendar.eventSlug) {
+          return HttpServerResponse.jsonUnsafe({
+            accepted: true,
+            ignored: true,
+          });
+        }
+        const metadata = Predicate.isObject(payload.metadata)
+          ? payload.metadata
+          : {};
+        const attendees = Array.isArray(payload.attendees)
+          ? payload.attendees
+          : [];
+        const attendee = Predicate.isObject(attendees[0]) ? attendees[0] : {};
+        const reference = metadata.cancellationReference;
+        const bookingUid = payload.bookingUid ?? payload.uid;
+        if (
+          !(Predicate.isString(reference) && Predicate.isString(bookingUid))
+        ) {
+          return HttpServerResponse.jsonUnsafe(
+            { accepted: false },
+            { status: 400 }
+          );
+        }
+        const matched = yield* cancellations.handleCalendar({
+          event: body.triggerEvent as (typeof supported)[number],
+          reference,
+          bookingUid,
+          bookingAt: Predicate.isString(payload.startTime)
+            ? payload.startTime
+            : undefined,
+          attendeeEmail: Predicate.isString(attendee.email)
+            ? attendee.email
+            : undefined,
+        });
+        return HttpServerResponse.jsonUnsafe({ accepted: true, matched });
       })
     );
     yield* router.add(

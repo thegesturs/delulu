@@ -182,9 +182,23 @@ export interface SubscriptionRow {
   readonly socialAccounts: number;
   readonly apiRequestsPerMonth: number;
   readonly apiRequestsPeriodStart: Date | null;
-  readonly addons: Json;
   readonly seatQuantity: number | null;
   readonly unitPriceMinor: number | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface SubscriptionAddonRow {
+  readonly id: string;
+  readonly legacyConvexId: string | null;
+  readonly baseSubscriptionId: string;
+  readonly addonKey: string;
+  readonly providerSubscriptionId: string | null;
+  readonly status: string;
+  readonly currentPeriodStart: Date | null;
+  readonly currentPeriodEnd: Date | null;
+  readonly cancelAtPeriodEnd: boolean;
+  readonly providerUpdatedAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -279,6 +293,7 @@ export interface LoadSet {
   postReviews: PostReviewRow[];
   reviewActivity: ReviewActivityRow[];
   subscriptions: SubscriptionRow[];
+  subscriptionAddons: SubscriptionAddonRow[];
   transactions: TransactionRow[];
   automations: AutomationRow[];
   automationRuns: AutomationRunRow[];
@@ -298,6 +313,7 @@ export const emptyLoadSet = (): LoadSet => ({
   postReviews: [],
   reviewActivity: [],
   subscriptions: [],
+  subscriptionAddons: [],
   transactions: [],
   automations: [],
   automationRuns: [],

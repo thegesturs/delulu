@@ -1,0 +1,78 @@
+---
+title: Output and errors
+description: Pretty, TOON, and JSON envelopes; stdout/stderr behavior; truncation; and exit codes.
+---
+
+## Automatic format selection
+
+| Context | Default |
+| --- | --- |
+| Interactive terminal | Compact styled output |
+| Pipe or agent | TOON |
+| `--toon` | TOON |
+| `--json` | JSON |
+| `--pretty` | Human output |
+
+`DELULU_OUTPUT=toon|json|pretty` sets a default. An explicit flag wins.
+
+## Machine envelope
+
+Successful TOON and JSON results use:
+
+```text
+schema: delulu.cli/v1
+status: ok
+message: 2 accounts
+summary:
+  total: 2
+data[2]{selector,platform,name,expires}:
+  linkedin:connection_first,linkedin,Alex,
+  linkedin:connection_second,linkedin,Alex,
+next[1]:
+  delulu post "Your caption" --to linkedin:connection_first --draft
+```
+
+The stable top-level fields are `schema`, `status`, `message`, `summary`, `data`, and `next`.
+
+## Streams
+
+- stdout: one final successful result.
+- stderr: authorization challenges and errors. Commands may add stable progress events without changing their final stdout envelope.
+
+Machine-mode progress events are also TOON. This lets an agent capture a URL without mixing it into the final result.
+
+## Projection and truncation
+
+Default list rows contain at most four high-value fields. Captions truncate after 160 characters and error messages after 240, followed by a size hint. `--full` restores content and extended documented fields but never exposes raw provider payloads.
+
+## Error envelope
+
+```json
+{
+  "schema": "delulu.cli/v1",
+  "status": "error",
+  "error": {
+    "code": "ACCESS_DENIED",
+    "message": "The selected workspace is not available",
+    "retryable": false
+  },
+  "next": ["delulu workspace", "delulu login"]
+}
+```
+
+## Exit codes
+
+| Code | Meaning |
+| ---: | --- |
+| `0` | Completed, including drafts, schedules, reviews, and empty lists. |
+| `1` | Unexpected internal failure. |
+| `2` | Invalid syntax, unknown flag, or missing confirmation. |
+| `3` | Missing, expired, or revoked authentication. |
+| `4` | Permission, scope, membership, or workspace-binding failure. |
+| `5` | Domain validation, not found, or quota failure. |
+| `6` | Conflict or rejected idempotent replay. |
+| `7` | Retryable network, rate-limit, or provider failure. |
+| `8` | Partial target failure. |
+| `9` | Accepted operation did not reach a terminal state before timeout. |
+
+Only retry when `retryable` is true or domain guidance says to inspect/retry a failed target. Preserve the same idempotency key for network retries.

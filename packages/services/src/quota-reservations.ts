@@ -119,7 +119,7 @@ export class PooledQuotaReservations extends Context.Service<
                   };
                 }
                 const subscriptions = yield* sql<Record<string, unknown>>`
-                SELECT plan, social_accounts, monthly_posts, media_storage_bytes,
+                SELECT plan, status, social_accounts, monthly_posts, media_storage_bytes,
                   api_requests_per_month, dms_sent, dms_sent_period_start,
                   transcriptions_used
                 FROM subscriptions WHERE billing_owner_user_id = ${input.billingOwnerUserId}
@@ -129,6 +129,16 @@ export class PooledQuotaReservations extends Context.Service<
                   return yield* new BillingStateError({
                     message: "Billing owner has no subscription",
                     reason: "subscription_missing",
+                    retryable: false,
+                  });
+                }
+                if (
+                  subscription.status !== "active" &&
+                  subscription.status !== "trialing"
+                ) {
+                  return yield* new BillingStateError({
+                    message: "Billing owner subscription is not active",
+                    reason: "subscription_inactive",
                     retryable: false,
                   });
                 }
