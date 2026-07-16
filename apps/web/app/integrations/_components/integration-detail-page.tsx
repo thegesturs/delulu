@@ -102,7 +102,7 @@ export function IntegrationDetailPage({
               {integration.description}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button asChild className="min-h-11 w-full sm:w-auto" size="lg">
+              <Button asChild className="w-full sm:w-auto" size="lg">
                 <Link href={getConnectedAccountsUrl()}>
                   Check connection availability
                   <ExternalLink className="size-4" />
@@ -110,7 +110,7 @@ export function IntegrationDetailPage({
               </Button>
               <Button
                 asChild
-                className="min-h-11 w-full sm:w-auto"
+                className="w-full sm:w-auto"
                 size="lg"
                 variant="outline"
               >
@@ -303,11 +303,11 @@ export function IntegrationDetailPage({
               key={feature.slug}
             >
               <h3 className="flex items-center justify-between gap-3 font-semibold">
-                <span className="min-w-0 break-words">{feature.name}</span>
+                <span className="min-w-0 break-words">{feature.title}</span>
                 <ArrowRight className="size-4 shrink-0 transition-transform group-hover:translate-x-1" />
               </h3>
               <p className="mt-2 text-muted-foreground text-sm leading-6">
-                {feature.description}
+                {feature.summary}
               </p>
             </Link>
           ))}
@@ -342,7 +342,7 @@ export function IntegrationDetailPage({
           </p>
           <Button
             asChild
-            className="mt-7 min-h-11 w-full bg-background text-foreground hover:bg-background/90 sm:w-auto"
+            className="mt-7 w-full bg-background text-foreground hover:bg-background/90 sm:w-auto"
             size="lg"
           >
             <Link href={getConnectedAccountsUrl()}>

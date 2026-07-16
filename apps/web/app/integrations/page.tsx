@@ -2,11 +2,11 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { JsonLd } from "@delulu/seo/json-ld";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { features } from "@/app/features/features";
 import { IntegrationBreadcrumbs } from "./_components/integration-breadcrumbs";
 import { IntegrationCard } from "./_components/integration-card";
 import {
   availabilityLabels,
-  featureLinks,
   integrationPages,
   integrationWorkflows,
   workflowDescriptions,
@@ -70,7 +70,7 @@ export default function IntegrationsPage() {
             every implemented publishing destination.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Button asChild className="min-h-11 w-full sm:w-auto" size="lg">
+            <Button asChild className="w-full sm:w-auto" size="lg">
               <Link href="#all-integrations">
                 Compare all integrations
                 <ArrowRight className="size-4" />
@@ -78,7 +78,7 @@ export default function IntegrationsPage() {
             </Button>
             <Button
               asChild
-              className="min-h-11 w-full sm:w-auto"
+              className="w-full sm:w-auto"
               size="lg"
               variant="outline"
             >
@@ -121,7 +121,7 @@ export default function IntegrationsPage() {
                 <div className="mt-5 flex flex-wrap gap-2">
                   {integrations.map((integration) => (
                     <Link
-                      className="inline-flex min-h-11 items-center rounded-full border bg-background px-4 font-medium text-sm hover:bg-muted"
+                      className="inline-flex items-center rounded-full border bg-background px-4 py-2 font-medium text-sm hover:bg-muted"
                       href={`/integrations/${integration.slug}`}
                       key={integration.slug}
                     >
@@ -185,18 +185,18 @@ export default function IntegrationsPage() {
           </p>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featureLinks.map((feature) => (
+          {features.map((feature) => (
             <Link
               className="group min-w-0 rounded-2xl border p-5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               href={`/features/${feature.slug}`}
               key={feature.slug}
             >
               <h3 className="flex items-center justify-between gap-3 font-semibold">
-                <span className="min-w-0 break-words">{feature.name}</span>
+                <span className="min-w-0 break-words">{feature.title}</span>
                 <ArrowRight className="size-4 shrink-0 transition-transform group-hover:translate-x-1" />
               </h3>
               <p className="mt-2 text-muted-foreground text-sm leading-6">
-                {feature.description}
+                {feature.summary}
               </p>
             </Link>
           ))}
@@ -246,7 +246,7 @@ export default function IntegrationsPage() {
           </p>
           <Button
             asChild
-            className="mt-7 min-h-11 w-full bg-background text-foreground hover:bg-background/90 sm:w-auto"
+            className="mt-7 w-full bg-background text-foreground hover:bg-background/90 sm:w-auto"
             size="lg"
           >
             <Link href={connectedAccountsUrl}>

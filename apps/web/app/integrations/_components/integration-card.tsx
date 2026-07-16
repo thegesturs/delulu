@@ -51,7 +51,7 @@ export function IntegrationCard({
           </span>
         ))}
       </div>
-      <span className="mt-6 inline-flex min-h-11 items-center gap-2 font-medium text-sm">
+      <span className="mt-6 inline-flex items-center gap-2 font-medium text-sm">
         Explore {integration.name}
         <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
       </span>

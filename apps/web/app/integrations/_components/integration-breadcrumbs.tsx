@@ -7,7 +7,7 @@ export function IntegrationBreadcrumbs({ current }: { current?: string }) {
       <ol className="flex min-w-0 flex-wrap items-center gap-1.5">
         <li>
           <Link
-            className="inline-flex min-h-11 items-center hover:text-foreground"
+            className="inline-flex items-center py-2 hover:text-foreground"
             href="/"
           >
             Home
@@ -19,7 +19,7 @@ export function IntegrationBreadcrumbs({ current }: { current?: string }) {
         <li>
           {current ? (
             <Link
-              className="inline-flex min-h-11 items-center hover:text-foreground"
+              className="inline-flex items-center py-2 hover:text-foreground"
               href="/integrations"
             >
               Integrations

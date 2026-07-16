@@ -1,4 +1,5 @@
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
+import { type FeatureSlug, features } from "@/app/features/features";
 
 export type IntegrationWorkflow =
   | "Short-form video"
@@ -1158,99 +1159,49 @@ export const integrationWorkflows = Object.keys(
   workflowDescriptions
 ) as IntegrationWorkflow[];
 
-export const featureLinks = [
-  {
-    slug: "multi-channel-publishing",
-    name: "Multi-channel publishing",
-    description:
-      "Prepare one campaign and keep a distinct version for each connected destination.",
-  },
-  {
-    slug: "content-calendar",
-    name: "Content calendar",
-    description:
-      "See scheduled work across platforms and move campaigns before dates collide.",
-  },
-  {
-    slug: "bulk-scheduling",
-    name: "Bulk scheduling",
-    description:
-      "Turn a prepared content batch into scheduled posts without rebuilding every draft.",
-  },
-  {
-    slug: "dm-automations",
-    name: "DM automations",
-    description:
-      "Build deliberate Instagram comment-to-message flows with clear steps and triggers.",
-  },
-  {
-    slug: "social-analytics",
-    name: "Social analytics",
-    description:
-      "Review supported performance signals and keep reporting close to the content plan.",
-  },
-  {
-    slug: "team-workspaces",
-    name: "Team workspaces",
-    description:
-      "Keep connections, calendars, and publishing access scoped to the right team.",
-  },
-  {
-    slug: "post-approvals",
-    name: "Post approvals",
-    description:
-      "Send drafts through a clear review step before they reach the publishing queue.",
-  },
-  {
-    slug: "agent-publishing-api",
-    name: "Agent publishing API",
-    description:
-      "Create and manage publishing workflows through Delulu's API and agent interfaces.",
-  },
-] as const;
-
-export type FeatureSlug = (typeof featureLinks)[number]["slug"];
-
 const relatedFeatureSlugs: Record<IntegrationSlug, readonly FeatureSlug[]> = {
   instagram: [
-    "multi-channel-publishing",
+    "multi-platform-publishing",
     "content-calendar",
-    "dm-automations",
+    "instagram-dm-automation",
     "social-analytics",
   ],
-  facebook: ["multi-channel-publishing", "content-calendar", "post-approvals"],
-  linkedin: [
-    "multi-channel-publishing",
+  facebook: ["multi-platform-publishing", "content-calendar", "team-approvals"],
+  linkedin: ["multi-platform-publishing", "content-calendar", "team-approvals"],
+  tiktok: [
+    "multi-platform-publishing",
     "content-calendar",
-    "post-approvals",
-    "team-workspaces",
+    "bulk-video-scheduling",
   ],
-  tiktok: ["multi-channel-publishing", "content-calendar", "bulk-scheduling"],
-  youtube: ["multi-channel-publishing", "content-calendar", "post-approvals"],
-  threads: ["multi-channel-publishing", "content-calendar", "bulk-scheduling"],
-  twitter: [
-    "multi-channel-publishing",
+  youtube: ["multi-platform-publishing", "content-calendar", "team-approvals"],
+  threads: [
+    "multi-platform-publishing",
     "content-calendar",
-    "agent-publishing-api",
+    "platform-specific-content",
+  ],
+  twitter: [
+    "multi-platform-publishing",
+    "content-calendar",
+    "social-media-api",
   ],
   pinterest: [
-    "multi-channel-publishing",
+    "multi-platform-publishing",
     "content-calendar",
-    "bulk-scheduling",
+    "platform-specific-content",
   ],
   bluesky: [
-    "multi-channel-publishing",
+    "multi-platform-publishing",
     "content-calendar",
-    "agent-publishing-api",
+    "social-media-api",
   ],
   farcaster: [
-    "multi-channel-publishing",
+    "multi-platform-publishing",
     "content-calendar",
-    "agent-publishing-api",
+    "social-media-api",
   ],
 };
 
 export const getRelatedFeatures = (slug: IntegrationSlug) => {
   const selected = new Set(relatedFeatureSlugs[slug]);
-  return featureLinks.filter((feature) => selected.has(feature.slug));
+  return features.filter((feature) => selected.has(feature.slug));
 };
