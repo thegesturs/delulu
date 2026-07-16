@@ -11,10 +11,12 @@ import Link from "next/link";
 import Balancer from "react-wrap-balancer";
 import { ToolCard } from "@/components/tools/tool-card";
 import { ToolFaq } from "@/components/tools/tool-faq";
-import { tools } from "@/lib/tools";
+import { getToolHref, tools } from "@/lib/tools";
 
 const FAMILY_PATH = "/tools/feed-planners";
-const familyTools = tools.filter((tool) => tool.family?.href === FAMILY_PATH);
+const familyTools = tools.filter(
+  (tool) => tool.family?.slug === "feed-planners"
+);
 
 export const metadata: Metadata = createMetadata({
   title: "Free Feed Planner – Preview Your Social Posts",
@@ -50,7 +52,7 @@ const itemListSchema: WithContext<ItemList> = {
     position: index + 1,
     name: tool.title,
     description: tool.description,
-    url: getWebUrl(tool.href),
+    url: getWebUrl(getToolHref(tool)),
   })),
 };
 
@@ -149,7 +151,7 @@ export default function FeedPlannersPage() {
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {familyTools.map((tool) => (
-            <ToolCard item={tool} key={tool.slug} />
+            <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>
       </section>

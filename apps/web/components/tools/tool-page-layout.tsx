@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Balancer from "react-wrap-balancer";
-import { type Tool, tools } from "@/lib/tools";
+import { getToolHref, type Tool, tools } from "@/lib/tools";
 import type { FaqItem } from "./tool-faq";
 import { ToolFaq } from "./tool-faq";
 
@@ -45,9 +45,9 @@ export function ToolPageLayout({
   sections = [],
   faq,
   relatedSlugs,
-  relatedHeading = "Try another creator task",
+  relatedHeading,
 }: ToolPageLayoutProps) {
-  const url = getWebUrl(tool.href);
+  const url = getWebUrl(getToolHref(tool));
 
   const softwareSchema: WithContext<WebApplication> = {
     "@context": "https://schema.org",
@@ -55,7 +55,12 @@ export function ToolPageLayout({
     name: tool.title,
     description: tool.description,
     url,
-    applicationCategory: "MultimediaApplication",
+    applicationCategory:
+      tool.category === "calendar"
+        ? "BusinessApplication"
+        : tool.category === "text"
+          ? "UtilitiesApplication"
+          : "MultimediaApplication",
     operatingSystem: "Web Browser",
     offers: {
       "@type": "Offer",
@@ -79,7 +84,9 @@ export function ToolPageLayout({
         "@type": "ListItem",
         position: 2,
         name: tool.family?.title ?? tool.title,
-        item: tool.family ? getWebUrl(tool.family.href) : url,
+        item: tool.family
+          ? getWebUrl(`/tools/${tool.family.slug}`)
+          : getWebUrl(getToolHref(tool)),
       },
       ...(tool.family
         ? [
@@ -94,12 +101,12 @@ export function ToolPageLayout({
     ],
   };
 
-  // Related tools = same category, live, excluding this one. Powers internal
-  // linking + the "More free tools" block the SEO playbook recommends.
+  // Related entries stay within the current category when one is present.
   const related = tools.filter(
     (candidate) =>
       candidate.slug !== tool.slug &&
       candidate.status !== "coming-soon" &&
+      (!tool.family || candidate.family?.slug === tool.family.slug) &&
       (!relatedSlugs || relatedSlugs.includes(candidate.slug))
   );
 
@@ -124,14 +131,17 @@ export function ToolPageLayout({
           Free creator tools
         </Link>
         <span className="mx-2">/</span>
-        {tool.family && (
+        {tool.family ? (
           <>
-            <Link className="hover:text-foreground" href={tool.family.href}>
+            <Link
+              className="hover:text-foreground"
+              href={`/tools/${tool.family.slug}`}
+            >
               {tool.family.title}
             </Link>
             <span className="mx-2">/</span>
           </>
-        )}
+        ) : null}
         <span className="text-foreground">{tool.title}</span>
       </nav>
 
@@ -198,13 +208,18 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          {relatedHeading}
+          {relatedHeading ??
+            tool.family?.relatedHeading ??
+            "Related creator tools"}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">
             {related.map((t) => (
               <li key={t.slug}>
-                <Link className="text-primary hover:underline" href={t.href}>
+                <Link
+                  className="text-primary hover:underline"
+                  href={getToolHref(t)}
+                >
                   {t.title}
                 </Link>{" "}
                 <span className="text-muted-foreground text-sm">
@@ -215,18 +230,21 @@ export function ToolPageLayout({
           </ul>
         ) : (
           <p className="text-muted-foreground">
-            More ways to prepare a post are on the way.{" "}
+            More creator tasks are coming.{" "}
             <Link className="text-primary hover:underline" href="/tools">
-              Choose another task
-            </Link>{" "}
-            to see what's new.
+              See what you can use now
+            </Link>
+            .
           </p>
         )}
         <Link
           className="mt-6 inline-flex items-center gap-1.5 font-medium text-primary text-sm hover:underline"
-          href="/tools"
+          href={tool.family ? `/tools/${tool.family.slug}` : "/tools"}
         >
-          See every creator task <ArrowRight className="size-4" />
+          {tool.family
+            ? `See all ${tool.family.title} options`
+            : "Find another creator task"}{" "}
+          <ArrowRight aria-hidden className="size-4" />
         </Link>
       </section>
     </main>
