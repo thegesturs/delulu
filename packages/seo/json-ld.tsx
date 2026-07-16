@@ -11,6 +11,8 @@ import type {
   WithContext,
 } from "schema-dts";
 
+export type { WebApplication } from "schema-dts";
+
 interface JsonLdProps {
   code: WithContext<Thing>;
 }

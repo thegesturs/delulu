@@ -11,10 +11,14 @@
  * referenced by string key and resolved in the client `tool-card` component.
  */
 
+import { textTools } from "@/app/tools/text-tools/utils/text-tools";
+
 export type ToolCategory = "video" | "text" | "image" | "seo";
 
 export interface Tool {
   slug: string;
+  /** Canonical route. Defaults to /tools/{slug} for legacy tools. */
+  href?: string;
   title: string;
   /** One-line description used on cards and in meta descriptions. */
   description: string;
@@ -23,6 +27,7 @@ export interface Tool {
   icon: string;
   keywords?: string[];
   status?: "live" | "coming-soon";
+  family?: { slug: string; title: string };
 }
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -50,7 +55,26 @@ export const tools: Tool[] = [
     ],
     status: "live",
   },
+  ...textTools.map((tool) => ({
+    slug: tool.slug,
+    href: `/tools/text-tools/${tool.slug}`,
+    title: tool.title,
+    description: tool.description,
+    category: "text" as const,
+    icon:
+      tool.mode === "bold" || tool.mode === "italic"
+        ? "type"
+        : tool.mode === "line-break"
+          ? "pilcrow"
+          : "hash",
+    keywords: tool.keywords,
+    status: "live" as const,
+    family: { slug: "text-tools", title: "Text tools" },
+  })),
 ];
+
+export const getToolHref = (tool: Tool): string =>
+  tool.href ?? `/tools/${tool.slug}`;
 
 export const getTool = (slug: string): Tool | undefined =>
   tools.find((tool) => tool.slug === slug);
