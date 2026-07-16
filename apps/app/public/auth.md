@@ -16,15 +16,29 @@ Use the authorization server advertised by the API protected-resource metadata.
 
 ## Setup
 
-After authorization, list workspaces. Use the personal workspace automatically
-only when it is the sole workspace; otherwise ask the user to choose. Read setup
-status, connect one or more social accounts using the returned provider URLs,
-then create a checkout link. Setup completes after a connection exists and the
-payment webhook confirms an active paid subscription.
+Run `delulu` after authorization. Its workspace overview returns the current
+workspace, setup state, connection and subscription summary, publishing counts,
+and the highest-priority next command in one response. Use `delulu workspace`
+to list memberships and `delulu workspace use <selector>` to reauthorize for a
+different workspace. Connect the first account with `delulu connect <platform>`
+and another account on the same platform with `delulu connect <platform>
+--new`. `delulu accounts` returns canonical `platform:connection-id` selectors
+that remain unique when provider names collide. Start checkout with `delulu
+subscribe`. Setup completes only after a connection exists and the payment
+webhook confirms an active paid subscription.
 
 ## Content
 
-Upload local files through the CLI or import a public HTTPS URL. Public Google
-Drive share links are supported. Create posts with an explicit `draft`,
-`schedule`, or `publish_now` intent. Always report the returned post and target
-states; organization roles and review requirements remain authoritative.
+Use `delulu post "Caption" --to <account> --media <path-or-url> --now` for the
+complete publish-now flow. Omit the intent or use `--draft` to create a draft;
+use `--at` with an absolute ISO 8601 timestamp to schedule. Content can also
+come from `--file` or stdin. The command generates a stable local operation key,
+uploads or imports media, atomically creates the post, and waits on the original
+target. Hosted MCP clients call `create_post` once with the same explicit
+intent. Always report returned states; workspace roles and reviews remain
+authoritative.
+
+CLI output is compact for terminals and TOON when piped. Use `--json` for JSON,
+or `--full` to disable content truncation. Treat nonzero exit codes and
+structured `status: error` results as failures; never infer success from a URL
+or a nonterminal publishing state.

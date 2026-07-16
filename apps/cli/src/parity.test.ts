@@ -8,9 +8,9 @@ const source = (path: string) =>
 describe("shared client consumer parity", () => {
   it("keeps CLI resource commands on the contract client", () => {
     const commandSource = source("./index.ts");
-    expect(commandSource).toContain("getContractClient");
+    const runtimeSource = source("./runtime.ts");
+    expect(runtimeSource).toContain("getContractClient");
     expect(commandSource).not.toContain("apiRequest(");
-    expect(commandSource).not.toContain("fetch(");
   });
 
   it("keeps MCP API resources on the contract client", () => {

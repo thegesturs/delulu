@@ -57,6 +57,9 @@ export const PostTargetInput = Schema.Struct({
 export const PostWrite = Schema.Struct({
   groups: Schema.Array(PostGroupInput),
   targets: Schema.Array(PostTargetInput),
+  intent: Schema.optional(
+    Schema.Literals(["draft", "schedule", "publish_now"])
+  ),
   source: Schema.optional(Schema.Literals(["app", "api", "automation"])),
   externalSubmissionId: Schema.optional(Schema.String),
   submitForReview: Schema.optional(Schema.Boolean),

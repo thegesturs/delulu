@@ -88,6 +88,7 @@ export interface StartDeviceAuthorizationInput {
   readonly scopes: readonly Scope[];
   readonly resource: string | null;
   readonly verificationUri: string;
+  readonly workspaceHint?: string;
 }
 
 export interface ExchangeDeviceCodeInput {
@@ -545,6 +546,9 @@ export class OAuthFlowService extends Context.Service<
             ${expiresAt})`.pipe(Effect.orDie);
         const complete = new URL(input.verificationUri);
         complete.searchParams.set("user_code", userCode);
+        if (input.workspaceHint) {
+          complete.searchParams.set("workspace_id", input.workspaceHint);
+        }
         return {
           device_code: deviceCode,
           user_code: userCode,

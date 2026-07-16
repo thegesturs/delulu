@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { URL } from "node:url";
-import { intro, outro } from "@clack/prompts";
 import {
   DEFAULT_API_URL,
   OAUTH_SCOPES,
@@ -19,15 +18,23 @@ interface OAuthMetadata {
   userinfo_endpoint?: string;
 }
 
-interface LoginOptions {
+export interface LoginOptions {
   clientId?: string;
   issuer?: string;
   loopback?: boolean;
+  workspaceHint?: string;
+  scopes?: string;
+  onChallenge?: (challenge: {
+    readonly event: "authorization_required";
+    readonly url: string;
+    readonly code?: string;
+    readonly expiresIn?: number;
+  }) => void;
 }
 
 const DEVICE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 
-function openBrowser(url: string) {
+export function openBrowser(url: string) {
   const command =
     process.platform === "darwin"
       ? "open"
@@ -107,6 +114,7 @@ const storeTokens = async (
     access_token: string;
     refresh_token?: string;
     expires_in?: number;
+    scope?: string;
   },
   input: {
     issuer: string;
@@ -125,6 +133,7 @@ const storeTokens = async (
     tokenEndpoint: input.metadata.token_endpoint,
     authorizationEndpoint: input.metadata.authorization_endpoint,
     userinfoEndpoint: input.metadata.userinfo_endpoint,
+    scope: tokenData.scope,
   });
 };
 
@@ -133,7 +142,6 @@ const sleep = (milliseconds: number) =>
 
 async function loginWithDevice(options: LoginOptions) {
   const { clientId, issuer } = resolveLoginConfig(options);
-  intro("Delulu CLI login");
   const metadata = await fetchMetadata(issuer);
   if (!metadata.device_authorization_endpoint) {
     throw new Error(
@@ -145,8 +153,9 @@ async function loginWithDevice(options: LoginOptions) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
-      scope: OAUTH_SCOPES,
+      scope: options.scopes ?? OAUTH_SCOPES,
       resource: process.env.DELULU_API_URL || issuer,
+      ...(options.workspaceHint ? { workspace_id: options.workspaceHint } : {}),
     }),
   });
   if (!response.ok) {
@@ -162,8 +171,12 @@ async function loginWithDevice(options: LoginOptions) {
   };
   const verificationUrl =
     device.verification_uri_complete || device.verification_uri;
-  console.log(`Open ${verificationUrl}`);
-  console.log(`Verification code: ${device.user_code}`);
+  options.onChallenge?.({
+    event: "authorization_required",
+    url: verificationUrl,
+    code: device.user_code,
+    expiresIn: device.expires_in,
+  });
   openBrowser(verificationUrl);
 
   const deadline = Date.now() + device.expires_in * 1000;
@@ -183,6 +196,7 @@ async function loginWithDevice(options: LoginOptions) {
       access_token?: string;
       refresh_token?: string;
       expires_in?: number;
+      scope?: string;
       error?: string;
       error_description?: string;
     };
@@ -192,11 +206,11 @@ async function loginWithDevice(options: LoginOptions) {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
           expires_in: tokenData.expires_in,
+          scope: tokenData.scope ?? options.scopes ?? OAUTH_SCOPES,
         },
         { issuer, clientId, metadata }
       );
-      outro("Logged in.");
-      return;
+      return { loggedIn: true as const };
     }
     if (tokenData.error === "authorization_pending") {
       continue;
@@ -215,7 +229,6 @@ async function loginWithDevice(options: LoginOptions) {
 async function loginWithLoopback(options: LoginOptions) {
   const { clientId, issuer } = resolveLoginConfig(options);
 
-  intro("Delulu CLI login");
   const metadata = await fetchMetadata(issuer);
   const verifier = createCodeVerifier();
   const challenge = createCodeChallenge(verifier);
@@ -225,16 +238,17 @@ async function loginWithLoopback(options: LoginOptions) {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("redirect_uri", REDIRECT_URI);
-  authorizeUrl.searchParams.set("scope", OAUTH_SCOPES);
+  authorizeUrl.searchParams.set("scope", options.scopes ?? OAUTH_SCOPES);
   authorizeUrl.searchParams.set("state", state);
   authorizeUrl.searchParams.set("code_challenge", challenge);
   authorizeUrl.searchParams.set("code_challenge_method", "S256");
 
   const callbackPromise = waitForCallback(state);
   openBrowser(authorizeUrl.toString());
-  console.log(
-    `Open this URL if your browser did not open:\n${authorizeUrl.toString()}`
-  );
+  options.onChallenge?.({
+    event: "authorization_required",
+    url: authorizeUrl.toString(),
+  });
 
   const code = await callbackPromise;
   const tokenResponse = await fetch(metadata.token_endpoint, {
@@ -257,11 +271,14 @@ async function loginWithLoopback(options: LoginOptions) {
     access_token: string;
     refresh_token?: string;
     expires_in?: number;
+    scope?: string;
   };
 
-  await storeTokens(tokenData, { issuer, clientId, metadata });
-
-  outro("Logged in.");
+  await storeTokens(
+    { ...tokenData, scope: tokenData.scope ?? options.scopes ?? OAUTH_SCOPES },
+    { issuer, clientId, metadata }
+  );
+  return { loggedIn: true as const };
 }
 
 export async function login(options: LoginOptions) {

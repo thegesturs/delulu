@@ -1,4 +1,6 @@
 import { WorkspaceRole } from "@delulu/core";
+import { OperationalCounts } from "@delulu/core/domain/analytics";
+import { PooledUsage } from "@delulu/core/domain/billing";
 import { Schema } from "effect";
 import {
   HttpApiEndpoint,
@@ -48,11 +50,47 @@ export const EmailPreferencesResponse = Schema.Struct({
   marketingEnabled: Schema.Boolean,
 });
 
+export const WorkspaceOverviewResponse = Schema.Struct({
+  generatedAt: Schema.String,
+  workspace: Schema.Struct({
+    id: Schema.String,
+    name: Schema.String,
+    role: WorkspaceRole,
+    isPersonal: Schema.Boolean,
+  }),
+  setup: Schema.Struct({
+    connectedPlatforms: Schema.Array(Schema.String),
+    outstandingAction: Schema.NullOr(
+      Schema.Literals(["connect_account", "complete_payment"])
+    ),
+    onboardingComplete: Schema.Boolean,
+  }),
+  accounts: Schema.Struct({
+    total: Schema.Number,
+    expiringSoon: Schema.Number,
+  }),
+  subscription: Schema.Struct({
+    plan: Schema.String,
+    status: Schema.String,
+    paid: Schema.Boolean,
+  }),
+  usage: PooledUsage,
+  publishing: OperationalCounts,
+  reviews: Schema.Struct({ pending: Schema.Number }),
+}).annotate({ identifier: "WorkspaceOverviewResponse" });
+
 export const MeGroup = HttpApiGroup.make("me")
   .add(
     HttpApiEndpoint.get("current", "/", {
       success: MeResponse,
     }).annotate(OpenApi.Summary, "Get the authenticated user")
+  )
+  .add(
+    HttpApiEndpoint.get("overview", "/overview/:workspaceId", {
+      params: { workspaceId: Schema.String },
+      success: WorkspaceOverviewResponse,
+      error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    }).annotate(OpenApi.Summary, "Get the workspace command-center overview")
   )
   .add(
     HttpApiEndpoint.get("setup", "/setup/:workspaceId", {

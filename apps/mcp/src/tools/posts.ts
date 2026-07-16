@@ -109,14 +109,11 @@ export function registerPostTools(server: McpServer, client: ClientSource) {
       const created = await resolved.createPost({
         ...params,
         status: params.intent === "schedule" ? "SCHEDULED" : "SAVED",
+        intent: params.intent,
       });
-      const result =
-        params.intent === "publish_now" && created.status !== "pending_review"
-          ? await resolved.publishPostNow(created.id, params.workspaceId)
-          : created;
       return {
         content: [
-          { type: "text" as const, text: JSON.stringify(result, null, 2) },
+          { type: "text" as const, text: JSON.stringify(created, null, 2) },
         ],
       };
     }

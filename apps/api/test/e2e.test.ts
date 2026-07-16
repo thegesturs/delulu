@@ -327,6 +327,28 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.data[0].isPersonal).toBe(true);
   });
 
+  it("GET /v1/me/overview returns the command-center aggregates", async () => {
+    const res = await get(
+      `/v1/me/overview/${personalWorkspaceId}`,
+      "dev-token"
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      workspace: {
+        id: personalWorkspaceId,
+        name: "Personal",
+        role: "owner",
+      },
+      setup: {
+        onboardingComplete: false,
+        outstandingAction: "connect_account",
+      },
+      accounts: { total: 0, expiringSoon: 0 },
+      publishing: { totalPosts: 0, drafts: 0, failed: 0 },
+      reviews: { pending: 0 },
+    });
+  });
+
   it("serves the M2 workspace admin, API-key, media, and connection-mint contracts", async () => {
     const memberships = await get("/v1/me/workspaces", "dev-token");
     const membershipBody = (await memberships.json()) as {
@@ -532,6 +554,7 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       client_id: "delulu-cli",
       scope: "posts:read accounts:read",
       resource: ISSUER,
+      workspace_id: workspaceId,
     });
     expect(start.status).toBe(200);
     const device = (await start.json()) as {
@@ -546,6 +569,9 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(device.verification_uri_complete).toContain(
       encodeURIComponent(device.user_code)
     );
+    expect(
+      new URL(device.verification_uri_complete).searchParams.get("workspace_id")
+    ).toBe(workspaceId);
 
     const pending = await postForm("/oauth/token", {
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",

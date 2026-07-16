@@ -76,4 +76,16 @@ describe("makeSimplePostWrite", () => {
       },
     ]);
   });
+
+  it("preserves publish-now intent in the atomic create payload", () => {
+    const post = makeSimplePostWrite({
+      caption: "Publish exactly once",
+      connections: [{ id: "connection_aaaaaaaaaaaa", platform: "LINKEDIN" }],
+      intent: "publish_now",
+      idempotencyKey: "agent-run-123",
+    });
+
+    expect(post.intent).toBe("publish_now");
+    expect(post.externalSubmissionId).toBe("agent-run-123");
+  });
 });

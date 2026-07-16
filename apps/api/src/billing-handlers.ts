@@ -148,6 +148,7 @@ export const BillingHandlers = HttpApiBuilder.group(
               billingInterval: payload.interval,
               currency: payload.currency,
               returnPath,
+              idempotencyKey: payload.idempotencyKey,
             }),
           };
         })

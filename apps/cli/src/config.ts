@@ -16,6 +16,7 @@ export interface Credentials {
   tokenEndpoint: string;
   authorizationEndpoint: string;
   userinfoEndpoint?: string;
+  scope?: string;
 }
 
 export function credentialsPath() {

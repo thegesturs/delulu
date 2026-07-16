@@ -110,6 +110,7 @@ export const OAuthRoutes = HttpRouter.use((router) =>
             scopes: parseScopes(body.scope),
             resource: body.resource ?? config.apiResource,
             verificationUri: `${config.appBaseUrl}/oauth/device`,
+            workspaceHint: body.workspace_id || undefined,
           })
           .pipe(Effect.result);
         return result._tag === "Failure"

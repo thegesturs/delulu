@@ -1,6 +1,8 @@
 import { Api } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
+  AnalyticsService,
+  BillingService,
   IdentityService,
   MembershipService,
   MessagingService,
@@ -34,10 +36,13 @@ export const MeHandlers = HttpApiBuilder.group(
   "me",
   Effect.fnUntraced(function* (handlers) {
     const identity = yield* IdentityService;
+    const analytics = yield* AnalyticsService;
+    const billing = yield* BillingService;
     const membership = yield* MembershipService;
     const messaging = yield* MessagingService;
     const setup = yield* SetupService;
     const workspaces = yield* WorkspaceAccessService;
+    const sql = yield* SqlClient.SqlClient;
 
     return handlers
       .handle("current", () =>
@@ -71,6 +76,67 @@ export const MeHandlers = HttpApiBuilder.group(
             total: rows.length,
             limit: rows.length,
             offset: 0,
+          };
+        })
+      )
+      .handle("overview", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "stats:read",
+          });
+          const membershipRows = yield* membership.listForUser(auth.userId);
+          const workspace = membershipRows.find(
+            (item) => item.workspaceId === access.workspaceId
+          );
+          const [setupStatus, operational, usage, attention] =
+            yield* Effect.all([
+              setup.status(access.workspaceId, auth.userId),
+              analytics.operational(access.workspaceId),
+              billing.usage(access.billingOwnerUserId),
+              sql<{
+                accountCount: string;
+                expiringSoon: string;
+                pendingReviews: string;
+              }>`SELECT
+                (SELECT count(*)::text FROM connections
+                  WHERE workspace_id = ${access.workspaceId}) AS account_count,
+                (SELECT count(*)::text FROM connections
+                  WHERE workspace_id = ${access.workspaceId}
+                    AND expires_at IS NOT NULL
+                    AND expires_at < now() + interval '7 days') AS expiring_soon,
+                (SELECT count(*)::text FROM post_reviews r
+                  JOIN posts p ON p.id = r.post_id
+                  WHERE p.workspace_id = ${access.workspaceId}
+                    AND r.status = 'pending') AS pending_reviews`.pipe(
+                Effect.orDie
+              ),
+            ]);
+          const now = yield* DateTime.now;
+          const row = attention[0];
+          return {
+            generatedAt: DateTime.formatIso(now),
+            workspace: {
+              id: access.workspaceId,
+              name: workspace?.name ?? access.workspaceId,
+              role: access.role,
+              isPersonal: access.isPersonal,
+            },
+            setup: {
+              connectedPlatforms: setupStatus.connectedPlatforms,
+              outstandingAction: setupStatus.outstandingAction,
+              onboardingComplete: setupStatus.onboardingComplete,
+            },
+            accounts: {
+              total: Number(row?.accountCount ?? 0),
+              expiringSoon: Number(row?.expiringSoon ?? 0),
+            },
+            subscription: setupStatus.subscription,
+            usage: usage.usage,
+            publishing: operational.counts,
+            reviews: { pending: Number(row?.pendingReviews ?? 0) },
           };
         })
       )

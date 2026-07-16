@@ -50,6 +50,7 @@ export class BillingProviderService extends Context.Service<
       readonly billingInterval: string | null;
       readonly currency: string | null;
       readonly returnPath?: string;
+      readonly idempotencyKey?: string;
     }) => Effect.Effect<string, ConflictError>;
   }
 >()("@delulu/services/BillingProviderService") {
@@ -126,21 +127,26 @@ export class BillingProviderService extends Context.Service<
                   ? products[input.plan].yearly
                   : products[input.plan].monthly;
               return (
-                await client.checkoutSessions.create({
-                  product_cart: [{ product_id: productId, quantity: 1 }],
-                  customer: input.customerId
-                    ? { customer_id: input.customerId }
-                    : {
-                        email: input.email ?? "",
-                        name: input.name ?? "Customer",
-                      },
-                  metadata: {
-                    billing_owner_user_id: input.billingOwnerUserId,
-                    recovery: "true",
+                await client.checkoutSessions.create(
+                  {
+                    product_cart: [{ product_id: productId, quantity: 1 }],
+                    customer: input.customerId
+                      ? { customer_id: input.customerId }
+                      : {
+                          email: input.email ?? "",
+                          name: input.name ?? "Customer",
+                        },
+                    metadata: {
+                      billing_owner_user_id: input.billingOwnerUserId,
+                      recovery: "true",
+                    },
+                    return_url: `${config.appBaseUrl}${input.returnPath ?? "/billing?status=active"}`,
+                    show_saved_payment_methods: true,
                   },
-                  return_url: `${config.appBaseUrl}${input.returnPath ?? "/billing?status=active"}`,
-                  show_saved_payment_methods: true,
-                })
+                  input.idempotencyKey
+                    ? { headers: { "idempotency-key": input.idempotencyKey } }
+                    : undefined
+                )
               ).checkout_url;
             },
             catch: () => providerError("Unable to start recovery checkout"),

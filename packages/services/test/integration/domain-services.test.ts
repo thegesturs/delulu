@@ -159,6 +159,102 @@ describe("M2 PostService and JobService", () => {
     expect(result.first.targets).toHaveLength(1);
   });
 
+  it("atomically creates publish-now posts without replacing their target", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const memberships = yield* MembershipService;
+      const posts = yield* PostService;
+      const sql = yield* SqlClient.SqlClient;
+      const connectionRepo = yield* makeConnectionRepository();
+      const resolved = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace?.id;
+      if (!workspaceId) {
+        return yield* Effect.die("missing personal workspace");
+      }
+      const member = Option.getOrThrow(
+        yield* memberships.resolve({ workspaceId, userId: resolved.user.id })
+      );
+      const connection = yield* connectionRepo.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId,
+          platform: "LINKEDIN",
+          profileId: crypto.randomUUID(),
+          username: "atomic-publisher",
+          displayName: "Atomic Publisher",
+          accessToken: "opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const groupId = makeId(PostGroupId);
+      const actor = { memberId: member.memberId, role: member.role };
+      const value = {
+        groups: [
+          {
+            id: groupId,
+            isDefault: true,
+            segments: [{ text: "Publish exactly once", media: [] }],
+          },
+        ],
+        targets: [
+          {
+            connectionId: connection.id,
+            groupId,
+            settings: {
+              platform: "LINKEDIN" as const,
+              values: { visibility: "PUBLIC" as const },
+            },
+            scheduledAt: null,
+          },
+        ],
+        intent: "publish_now" as const,
+        source: "api" as const,
+        externalSubmissionId: `publish-once-${crypto.randomUUID()}`,
+      };
+      const created = yield* posts.create({
+        workspaceId,
+        actor,
+        value,
+      });
+      const duplicateCreate = yield* posts.create({
+        workspaceId,
+        actor,
+        value,
+      });
+      const repeated = yield* posts.publishNow({
+        workspaceId,
+        postId: created.id,
+        actor,
+      });
+      const counts = yield* sql<{
+        targets: string;
+        jobs: string;
+      }>`SELECT
+          (SELECT count(*)::text FROM post_targets WHERE post_id = ${created.id}) AS targets,
+          (SELECT count(*)::text FROM jobs
+            WHERE idempotency_key = ${`publish-target:${created.targets[0]?.id}`}) AS jobs`;
+      return { created, duplicateCreate, repeated, counts: counts[0] };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.created.status).toBe("publishing");
+    expect(result.duplicateCreate.id).toBe(result.created.id);
+    expect(result.duplicateCreate.targets[0]?.id).toBe(
+      result.created.targets[0]?.id
+    );
+    expect(result.repeated.status).toBe("publishing");
+    expect(result.repeated.targets[0]?.id).toBe(result.created.targets[0]?.id);
+    expect(result.counts).toEqual({ targets: "1", jobs: "1" });
+  });
+
   it("leases a due job once so concurrent dispatchers cannot double-claim it", async () => {
     const program = Effect.gen(function* () {
       const identity = yield* IdentityService;

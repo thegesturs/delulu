@@ -357,11 +357,17 @@ export class PostService extends Context.Service<
           });
         }
         const isEditorReview = input.actor.role === "editor";
+        const publishImmediately =
+          input.postId === undefined &&
+          input.value.intent === "publish_now" &&
+          !isEditorReview;
         const status = isEditorReview
           ? "pending_review"
-          : input.value.targets.some((target) => target.scheduledAt !== null)
-            ? "scheduled"
-            : "draft";
+          : publishImmediately
+            ? "publishing"
+            : input.value.targets.some((target) => target.scheduledAt !== null)
+              ? "scheduled"
+              : "draft";
         const postId = input.postId ?? makeId(PostId);
         const persistedPostId = yield* sql
           .withTransaction(
@@ -414,11 +420,16 @@ export class PostService extends Context.Service<
                 VALUES (${targetId}, ${postId}, ${target.connectionId}, ${target.groupId},
                   ${JSON.stringify(target.settings)}::jsonb,
                   ${target.scheduledAt ? new Date(target.scheduledAt) : null}, 'pending')`;
-                if (!isEditorReview && target.scheduledAt) {
+                if (
+                  !isEditorReview &&
+                  (target.scheduledAt || publishImmediately)
+                ) {
                   yield* jobs.enqueue({
                     workspaceId: input.workspaceId,
                     payload: { _tag: "PublishTarget", targetId },
-                    runAt: new Date(target.scheduledAt),
+                    runAt: publishImmediately
+                      ? new Date()
+                      : new Date(target.scheduledAt as string),
                     idempotencyKey: `publish-target:${targetId}`,
                   });
                 }
@@ -656,11 +667,11 @@ export class PostService extends Context.Service<
             resource: "post",
           });
         }
-        yield* sql
+        const authoritativeStatus = yield* sql
           .withTransaction(
             Effect.gen(function* () {
               const posts = yield* sql<{
-                status: string;
+                status: PostOutput["status"];
               }>`SELECT status FROM posts
                 WHERE id = ${input.postId} AND workspace_id = ${input.workspaceId}
                   AND deleted_at IS NULL FOR UPDATE`;
@@ -674,7 +685,7 @@ export class PostService extends Context.Service<
                 posts[0].status === "publishing" ||
                 posts[0].status === "published"
               ) {
-                return;
+                return posts[0].status;
               }
               const targets = yield* sql<{
                 id: string;
@@ -701,10 +712,14 @@ export class PostService extends Context.Service<
                   idempotencyKey: `publish-target:${target.id}`,
                 });
               }
+              return "publishing" as const;
             })
           )
           .pipe(Effect.orDie);
-        return yield* get(input.workspaceId, input.postId);
+        const post = yield* get(input.workspaceId, input.postId);
+        return post.status === "draft"
+          ? { ...post, status: authoritativeStatus }
+          : post;
       });
       return PostService.of({
         list,
