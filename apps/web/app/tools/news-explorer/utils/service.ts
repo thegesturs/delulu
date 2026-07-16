@@ -115,7 +115,6 @@ export async function getCachedNews(
     return {
       ...cached,
       state: "stale",
-      message: "Showing recent cached headlines while we refresh the feed.",
     };
   }
   try {
