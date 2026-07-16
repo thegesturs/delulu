@@ -12,7 +12,7 @@ import { SocialTypes } from "@delulu/validators/post";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import type { EditorMediaDetail } from "@/lib/editor-media";
@@ -43,6 +43,9 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
+  const setPost = useStore((state) => state.setPost);
+  const resetPost = useStore((state) => state.reset);
+  const handoffAppliedRef = useRef(false);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -113,18 +116,37 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     mediaResults.isError,
   ]);
 
-  // Handle scheduledAt query parameter from calendar
+  // Accept a small, explicit text handoff from first-party planning tools.
   useEffect(() => {
-    // Only handle scheduledAt if not in edit mode
+    if (postId || handoffAppliedRef.current) {
+      return;
+    }
+
+    const text = searchParams.get("text")?.trim().slice(0, 5000);
+    if (!text) {
+      return;
+    }
+
+    handoffAppliedRef.current = true;
+    resetPost();
+    setPost((currentPost) => ({
+      ...currentPost,
+      content: currentPost.content.map((item, index) =>
+        index === 0 ? { ...item, text } : item
+      ),
+    }));
+  }, [postId, resetPost, searchParams, setPost]);
+
+  // Handle scheduledAt query parameter from calendar after any text handoff
+  // has cleared a previous draft.
+  useEffect(() => {
     if (!postId) {
       const scheduledAtParam = searchParams.get("scheduledAt");
       if (scheduledAtParam) {
         const scheduledTime = Number.parseInt(scheduledAtParam, 10);
         if (!Number.isNaN(scheduledTime)) {
           const scheduledDate = new Date(scheduledTime);
-          // Set the date in the store
           setDateAlongWithTime(scheduledDate);
-          // Set the time in HH:mm format
           setTime(format(scheduledDate, "HH:mm"));
         }
       }

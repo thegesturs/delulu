@@ -1,3 +1,5 @@
+import { holidayCalendarRegistry } from "@/app/tools/holiday-calendar/_utils/registry";
+
 /**
  * Registry of free marketing tools.
  *
@@ -11,7 +13,15 @@
  * referenced by string key and resolved in the client `tool-card` component.
  */
 
-export type ToolCategory = "video" | "text" | "image" | "seo";
+export type ToolCategory = "video" | "text" | "image" | "seo" | "calendar";
+
+export interface ToolFamily {
+  slug: string;
+  title: string;
+  description: string;
+  relatedHeading: string;
+  icon: string;
+}
 
 export interface Tool {
   slug: string;
@@ -23,6 +33,8 @@ export interface Tool {
   icon: string;
   keywords?: string[];
   status?: "live" | "coming-soon";
+  family?: string;
+  featured?: boolean;
 }
 
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
@@ -30,7 +42,36 @@ export const CATEGORY_LABELS: Record<ToolCategory, string> = {
   text: "Text & Captions",
   image: "Image",
   seo: "SEO",
+  calendar: "Calendar",
 };
+
+export const toolFamilies: ToolFamily[] = [
+  {
+    slug: "holiday-calendar",
+    title: "Social Calendar",
+    description:
+      "Find reliable dates for timely posts, from global awareness days to U.S., India, and seasonal calendars.",
+    relatedHeading: "More social calendars",
+    icon: "calendar",
+  },
+];
+
+const featuredCalendarSlugs = new Set([
+  "social-media-holiday-calendar",
+  "social-media-awareness-days-calendar",
+]);
+
+const holidayCalendarTools: Tool[] = holidayCalendarRegistry.map((page) => ({
+  slug: page.slug,
+  title: page.title,
+  description: page.description,
+  category: "calendar",
+  icon: "calendar",
+  keywords: [...page.keywords],
+  status: "live",
+  family: "holiday-calendar",
+  featured: featuredCalendarSlugs.has(page.slug),
+}));
 
 export const tools: Tool[] = [
   {
@@ -49,11 +90,22 @@ export const tools: Tool[] = [
       "clip youtube video",
     ],
     status: "live",
+    featured: true,
   },
+  ...holidayCalendarTools,
 ];
+
+export const getToolPath = (tool: Tool): string =>
+  tool.family ? `/tools/${tool.family}/${tool.slug}` : `/tools/${tool.slug}`;
 
 export const getTool = (slug: string): Tool | undefined =>
   tools.find((tool) => tool.slug === slug);
 
+export const getToolFamily = (slug: string): ToolFamily | undefined =>
+  toolFamilies.find((family) => family.slug === slug);
+
 export const liveTools = (): Tool[] =>
   tools.filter((tool) => tool.status !== "coming-soon");
+
+export const featuredTools = (): Tool[] =>
+  liveTools().filter((tool) => tool.featured);

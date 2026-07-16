@@ -3,25 +3,36 @@ import {
   CardContent,
   CardHeader,
 } from "@delulu/design-system/components/ui/card";
-import { ArrowRight, type LucideIcon, Scissors, Wrench } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  type LucideIcon,
+  Scissors,
+  Wrench,
+} from "lucide-react";
 import Link from "next/link";
-import { CATEGORY_LABELS, type Tool } from "@/lib/tools";
+import { CATEGORY_LABELS, getToolPath, type Tool } from "@/lib/tools";
 
 // String keys in the tools registry map to icons here so the registry stays
 // server-safe and free of React imports.
 const ICONS: Record<string, LucideIcon> = {
   scissors: Scissors,
+  calendar: CalendarDays,
 };
 
+export function ToolIcon({ name }: { name: string }) {
+  const Icon = ICONS[name] ?? Wrench;
+  return <Icon className="size-5" />;
+}
+
 export function ToolCard({ tool }: { tool: Tool }) {
-  const Icon = ICONS[tool.icon] ?? Wrench;
   const comingSoon = tool.status === "coming-soon";
 
   const inner = (
     <Card className="group h-full transition-colors hover:border-primary/60">
       <CardHeader className="flex flex-row items-center gap-3">
         <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="size-5" />
+          <ToolIcon name={tool.icon} />
         </span>
         <span className="text-muted-foreground text-xs uppercase tracking-wide">
           {CATEGORY_LABELS[tool.category]}
@@ -50,7 +61,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   }
 
   return (
-    <Link className="block" href={`/tools/${tool.slug}`}>
+    <Link className="block" href={getToolPath(tool)}>
       {inner}
     </Link>
   );
