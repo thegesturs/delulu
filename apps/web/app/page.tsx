@@ -1,4 +1,5 @@
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebOrigin } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -15,14 +16,12 @@ import { MascotStruggle } from "@/components/home/mascot-struggle";
 import Pricing from "@/components/home/pricing";
 
 export const generateMetadata = (): Metadata => {
-  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
-
   return createMetadata({
     title: "Delulu Social \u2014 Post Everywhere + Auto-DM from $4.99/mo",
     description:
       "Schedule across 8 platforms and auto-DM Instagram commenters. Built for creators who grow. Plans from $4.99/mo with a 14-day guarantee.",
     alternates: {
-      canonical: baseUrl,
+      canonical: getWebOrigin(),
     },
     openGraph: {
       title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",

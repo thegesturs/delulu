@@ -1,18 +1,17 @@
 import { type ItemList, JsonLd, type WithContext } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import Balancer from "react-wrap-balancer";
 import { ToolCard } from "@/components/tools/tool-card";
 import { tools } from "@/lib/tools";
-
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
 
 export const metadata: Metadata = createMetadata({
   title: "Free Social Media & Video Tools",
   description:
     "A growing collection of free, no-signup tools for creators — trim YouTube videos in your browser, and more. Fast, private, and built by Delulu Social.",
   alternates: {
-    canonical: `${WEB_URL}/tools`,
+    canonical: getWebUrl("/tools"),
   },
 });
 
@@ -25,7 +24,7 @@ const itemListSchema: WithContext<ItemList> = {
     position: index + 1,
     name: tool.title,
     description: tool.description,
-    url: `${WEB_URL}/tools/${tool.slug}`,
+    url: getWebUrl(`/tools/${tool.slug}`),
   })),
 };
 

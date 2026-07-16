@@ -1,5 +1,6 @@
 import { createBlogPostingSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs } from "content-collections";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -10,7 +11,6 @@ import { MdastToJsx } from "safe-mdx";
 import { BlogLayout } from "@/components/blog/blog-layout";
 import CTA from "@/components/home/cta";
 import { components } from "@/components/home/mdx-components";
-import { env } from "@/env";
 import {
   fetchArticle,
   fetchArticleMeta,
@@ -25,8 +25,6 @@ const parser = remark()
       file.data.ast = tree;
     };
   });
-
-const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
 
 // ISR: pre-render at build, revalidate hourly.
 export const revalidate = 3600;
@@ -46,12 +44,12 @@ export const generateMetadata = async ({
   // Check Content Collections first
   const blog = allBlogs.find((blog) => blog.slug === slug);
   if (blog) {
-    const canonicalUrl = new URL(`/blog/${slug}`, url).href;
+    const canonicalUrl = getWebUrl(`/blog/${slug}`);
     return createMetadata({
       title: blog.title,
       description: blog.description,
       image: blog.image,
-      metadataBase: url,
+      metadataBase: new URL(getWebUrl()),
       keywords: blog.keywords,
       authors: [{ name: blog.author, url: canonicalUrl }],
       openGraph: {
@@ -85,12 +83,12 @@ export const generateMetadata = async ({
     return notFound();
   }
 
-  const canonicalUrl = new URL(`/blog/${slug}`, url).href;
+  const canonicalUrl = getWebUrl(`/blog/${slug}`);
   return createMetadata({
     title: article.title,
     description: article.metaDescription,
     image: article.imageUrl,
-    metadataBase: url,
+    metadataBase: new URL(getWebUrl()),
     keywords: article.tags,
     openGraph: {
       type: "article",
@@ -135,7 +133,7 @@ export default async function Page({ params }: PageProps) {
   const blog = allBlogs.find((b) => b.slug === slug);
   if (blog) {
     const blogWithType = { ...blog, type: "blog" as const };
-    const pageUrl = new URL(`/blog/${slug}`, url).href;
+    const pageUrl = getWebUrl(`/blog/${slug}`);
 
     const blogPostSchema = createBlogPostingSchema({
       title: blog.title,
@@ -170,7 +168,7 @@ export default async function Page({ params }: PageProps) {
     return notFound();
   }
 
-  const pageUrl = new URL(`/blog/${slug}`, url).href;
+  const pageUrl = getWebUrl(`/blog/${slug}`);
   const publishedDate = new Date(article.publishedAt).toISOString();
 
   const blogPostSchema = createBlogPostingSchema({

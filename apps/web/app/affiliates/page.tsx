@@ -1,5 +1,6 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -8,7 +9,7 @@ export const metadata: Metadata = createMetadata({
   description:
     "Earn recurring commissions by referring customers to Delulu Social. Join our affiliate program and start earning today.",
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social"}/affiliates`,
+    canonical: getWebUrl("/affiliates"),
   },
 });
 
