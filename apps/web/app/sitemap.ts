@@ -1,6 +1,7 @@
 import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
+import { integrationPages } from "@/app/integrations/_lib/integration-pages";
 import {
   indexableNewsRoutes,
   newsRoutePath,
@@ -50,6 +51,18 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: getWebUrl("/integrations"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    ...integrationPages.map((integration) => ({
+      url: getWebUrl(`/integrations/${integration.slug}`),
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
     ...toolFamilies.map((family) => ({
       url: getWebUrl(`/tools/${family.slug}`),
       lastModified: new Date(),
