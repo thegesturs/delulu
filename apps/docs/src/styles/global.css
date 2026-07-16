@@ -1,0 +1,565 @@
+@import "@delulu/design-system/styles/globals.css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+
+@theme inline {
+  --color-fd-background: var(--background);
+  --color-fd-foreground: var(--foreground);
+  --color-fd-card: var(--card);
+  --color-fd-card-foreground: var(--card-foreground);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
+  --color-fd-primary: var(--primary);
+  --color-fd-primary-foreground: var(--primary-foreground);
+  --color-fd-secondary: var(--secondary);
+  --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-accent: var(--sidebar-accent);
+  --color-fd-accent-foreground: var(--sidebar-accent-foreground);
+  --color-fd-border: var(--border);
+  --color-fd-ring: var(--ring);
+}
+
+:root {
+  --fd-layout-width: 1460px;
+  --docs-line: var(--dotted-line);
+  --docs-surface-shadow: var(--shadow-card);
+  --border-hairline: 1px;
+}
+
+@media only screen and (min-resolution: 192dpi) {
+  :root {
+    --border-hairline: 0.5px;
+  }
+}
+
+html {
+  background: var(--background);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100dvh;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizelegibility;
+}
+
+a,
+button {
+  touch-action: manipulation;
+}
+
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+#nd-notebook-layout {
+  grid-template:
+    "header header header"
+    "toc-popover toc-popover toc-popover"
+    "sidebar main toc" 1fr / var(--fd-sidebar-col) minmax(0, 1fr)
+    var(--fd-toc-width) !important;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--background);
+}
+
+#nd-subnav {
+  background: color-mix(in oklab, var(--background), transparent 4%);
+  backdrop-filter: blur(16px);
+}
+
+.docs-external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  border-radius: 0.5rem;
+  padding-inline: 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 540;
+  text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.docs-external-link svg {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+[data-header-body],
+[data-header-tabs] {
+  border-bottom: 1.5px dotted var(--docs-line);
+}
+
+[data-header-tabs] {
+  gap: 1.75rem;
+}
+
+[data-header-tabs] > a {
+  gap: 0.45rem;
+  font-size: 0.8rem;
+}
+
+[data-header-tabs] > a > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) {
+  background: var(--sidebar);
+}
+
+#nd-sidebar {
+  box-shadow: inset -1px 0 color-mix(in oklab, var(--border), transparent 30%);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active] {
+  min-height: 2.25rem;
+  overflow: hidden;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem !important;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active="true"] {
+  background-color: var(--card);
+  background-image: linear-gradient(
+    to bottom,
+    var(--card),
+    color-mix(in oklab, var(--card), black 3%)
+  );
+  color: var(--foreground);
+  box-shadow: var(--shadow-button);
+  font-weight: 500;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) a[data-active] > svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) p[style*="padding-inline-start"] {
+  margin-top: 1.2rem;
+  margin-bottom: 0.35rem;
+  padding-inline: 0.75rem !important;
+  color: var(--foreground);
+  font-size: 0.72rem;
+  font-weight: 620;
+}
+
+#nd-sidebar [data-radix-scroll-area-viewport] > div {
+  padding-bottom: 1rem;
+}
+
+#nd-page {
+  padding-bottom: 5rem;
+}
+
+.docs-page-content {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+#nd-page[data-full="true"] .docs-page-content {
+  max-width: 1285px;
+}
+
+#nd-toc {
+  padding-inline-end: 1.25rem;
+}
+
+#toc-title {
+  margin-bottom: 0.7rem;
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.docs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  min-height: 2.75rem;
+}
+
+.docs-brand-mark {
+  width: 1.2rem;
+  height: 1.4rem;
+}
+
+.docs-brand-name {
+  color: var(--foreground);
+  font-size: 0.94rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.docs-brand-badge {
+  border-radius: 999px;
+  padding: 0.17rem 0.4rem;
+  background: color-mix(in oklab, var(--primary), transparent 91%);
+  color: var(--primary);
+  font-size: 0.61rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.docs-page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  margin-top: 0.2rem;
+}
+
+.docs-page-kicker {
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.docs-page-heading h1 {
+  max-width: 18ch;
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(1.9rem, 3vw, 2.3rem);
+  font-weight: 680;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.docs-page-heading + p {
+  max-width: 62ch;
+  margin-top: 0.7rem;
+  margin-bottom: 2.2rem;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.prose {
+  max-width: none;
+  color: color-mix(in oklab, var(--foreground), transparent 9%);
+  font-size: 0.94rem;
+  line-height: 1.72;
+}
+
+.prose > :where(p, ul, ol, blockquote) {
+  max-width: 72ch;
+}
+
+.prose :where(h2, h3, h4) {
+  color: var(--foreground);
+  font-weight: 630;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+
+.prose :where(h2) {
+  margin-top: 3rem;
+  border-top: 1.5px dotted var(--docs-line);
+  padding-top: 1.45rem;
+  font-size: 1.42rem;
+}
+
+.prose :where(h3) {
+  margin-top: 2rem;
+  font-size: 1.05rem;
+}
+
+.prose :where(h2, h3, h4) a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.prose :where(a) {
+  color: color-mix(in oklab, var(--primary), var(--foreground) 8%);
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in oklab, var(--primary), transparent 55%);
+}
+
+.prose :where(code):not(:where(pre *)) {
+  border: var(--border-hairline) solid
+    color-mix(in oklab, var(--primary), transparent 80%);
+  border-radius: 0.34rem;
+  padding: 0.08rem 0.3rem;
+  background: color-mix(in oklab, var(--primary), transparent 95%);
+  color: color-mix(in oklab, var(--primary), var(--foreground) 18%);
+  font-size: 0.87em;
+}
+
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+  content: none;
+}
+
+.prose :where(table) {
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-collapse: separate;
+  border-radius: 0.68rem;
+  border-spacing: 0;
+  background: color-mix(in oklab, var(--card) 98%, var(--muted));
+  box-shadow: var(--docs-surface-shadow);
+}
+
+.prose :where(th) {
+  border-bottom: 1.5px dotted var(--docs-line);
+  background: color-mix(in oklab, var(--muted), transparent 32%);
+  color: var(--foreground);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.prose :where(td) {
+  border-bottom: var(--border-hairline) solid
+    color-mix(in oklab, var(--border), transparent 35%);
+}
+
+.prose :where(tr:last-child td) {
+  border-bottom: 0;
+}
+
+.docs-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 1rem 2rem;
+}
+
+.docs-path-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  min-height: 0;
+  border-radius: 0.75rem;
+  padding: 0.875rem;
+  background: var(--card);
+  box-shadow: var(--docs-surface-shadow);
+}
+
+.docs-path-card > div {
+  min-width: 0;
+}
+
+.docs-path-card h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
+  letter-spacing: -0.02em;
+}
+
+.docs-path-card p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.docs-path-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 610;
+  text-decoration: none;
+}
+
+.docs-path-icon {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-self: start;
+  place-items: center;
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--primary), transparent 93%);
+  color: var(--primary);
+  box-shadow: inset 0 0 0 var(--border-hairline)
+    color-mix(in oklab, var(--primary), transparent 78%);
+}
+
+.docs-path-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.api-operation {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-block: 0.8rem 1.1rem;
+  border-radius: 0.58rem;
+  padding: 0.38rem 0.58rem 0.38rem 0.4rem;
+  background: color-mix(in oklab, var(--card) 98%, var(--muted));
+  box-shadow: var(--docs-surface-shadow);
+}
+
+.api-operation code {
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-method {
+  flex: none;
+  border-radius: 0.32rem;
+  padding: 0.18rem 0.36rem;
+  background: color-mix(in oklab, var(--primary), transparent 90%);
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 720;
+  letter-spacing: 0.055em;
+  line-height: 1.4;
+}
+
+.api-method[data-method="get"] {
+  background: color-mix(in oklab, oklch(0.62 0.17 153), transparent 90%);
+  color: oklch(0.5 0.16 153);
+}
+
+.api-method[data-method="delete"] {
+  background: color-mix(in oklab, oklch(0.61 0.22 25), transparent 90%);
+  color: oklch(0.55 0.21 25);
+}
+
+.api-method[data-method="put"],
+.api-method[data-method="patch"] {
+  background: color-mix(in oklab, oklch(0.7 0.17 70), transparent 88%);
+  color: oklch(0.55 0.15 70);
+}
+
+.api-explorer-page {
+  min-height: 100dvh;
+  background: var(--background);
+}
+
+.api-explorer-header {
+  position: sticky;
+  z-index: 50;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.5rem;
+  border-bottom: 1.5px dotted var(--docs-line);
+  padding-inline: clamp(1rem, 3vw, 2rem);
+  background: color-mix(in oklab, var(--background), transparent 5%);
+  backdrop-filter: blur(16px);
+}
+
+.api-explorer-brand,
+.api-explorer-links,
+.api-explorer-links a {
+  display: flex;
+  align-items: center;
+}
+
+.api-explorer-brand {
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  text-decoration: none;
+}
+
+.api-explorer-badge {
+  border-radius: 999px;
+  padding: 0.18rem 0.42rem;
+  background: color-mix(in oklab, var(--primary), transparent 91%);
+  color: var(--primary);
+  font-size: 0.61rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.api-explorer-links {
+  gap: 0.15rem;
+}
+
+.api-explorer-links a {
+  gap: 0.35rem;
+  min-height: 2.5rem;
+  border-radius: 0.5rem;
+  padding-inline: 0.65rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 540;
+  text-decoration: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .docs-external-link:hover,
+  .api-explorer-links a:hover {
+    color: var(--foreground);
+  }
+
+  .docs-external-link:hover,
+  .api-explorer-links a:hover {
+    background: var(--accent);
+  }
+
+  .docs-path-card a:hover {
+    text-decoration: underline;
+  }
+}
+
+@media (max-width: 767px) {
+  .docs-path-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-path-card {
+    min-height: auto;
+  }
+
+  .docs-page-heading h1 {
+    font-size: 1.9rem;
+  }
+
+  .api-explorer-badge,
+  .api-explorer-links a:first-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

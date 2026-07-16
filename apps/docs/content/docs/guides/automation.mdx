@@ -1,0 +1,47 @@
+---
+title: How to use the CLI in automation
+description: Select deterministic output, preserve operation identity, and handle failures by exit code.
+---
+
+## Force machine output
+
+Piped output defaults to TOON. Force a format when the environment is uncertain:
+
+```bash
+delulu posts --toon
+delulu posts --json
+```
+
+Every machine result starts with `schema: delulu.cli/v1` and contains a success or error state. `--full` disables text truncation and returns the documented extended model, never raw provider payloads.
+
+## Keep stdout clean
+
+The final result goes to stdout. Progress, authorization challenges, and errors go to stderr. Capture them independently:
+
+```bash
+delulu post "Caption" --to linkedin:connection_abc --draft \
+  >result.toon 2>progress.toon
+```
+
+## Preserve mutation identity
+
+The CLI writes a permission-restricted local journal before network activity. It stores fingerprints, generated keys, resource IDs, and timestamps, but never captions, media content, or credentials. Identical mutations within 24 hours reuse the original result.
+
+Supply your own stable key when coordinating across processes:
+
+```bash
+delulu post "Caption" \
+  --to linkedin:connection_abc \
+  --idempotency-key release-2026-08-01 \
+  --now
+```
+
+## Handle exit codes
+
+See the complete [exit-code table](/cli/output-and-errors/). Treat `8` as partial target failure and `9` as accepted but timed out. Neither should trigger creation of a replacement post.
+
+## Troubleshooting
+
+- Unknown flags fail with exit code `2`; the CLI never silently ignores them.
+- Destructive commands require `--yes`; there are no interactive confirmation prompts.
+- Use `--new` only when a duplicate is the intended business action.

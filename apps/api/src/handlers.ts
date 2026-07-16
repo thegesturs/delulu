@@ -95,7 +95,22 @@ export const MeHandlers = HttpApiBuilder.group(
             yield* Effect.all([
               setup.status(access.workspaceId, auth.userId),
               analytics.operational(access.workspaceId),
-              billing.usage(access.billingOwnerUserId),
+              billing.usage(access.billingOwnerUserId).pipe(
+                Effect.catchTag("NotFoundError", () =>
+                  Effect.succeed({
+                    billingOwnerUserId: access.billingOwnerUserId,
+                    usage: {
+                      socialAccounts: 0,
+                      monthlyPosts: 0,
+                      mediaStorageBytes: 0,
+                      apiRequestsPerMonth: 0,
+                      dmsSent: 0,
+                      dmsSkipped: 0,
+                      transcriptionsUsed: 0,
+                    },
+                  })
+                )
+              ),
               sql<{
                 accountCount: string;
                 expiringSoon: string;

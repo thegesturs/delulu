@@ -1,0 +1,79 @@
+---
+title: Publish your first post with the CLI
+description: Install the CLI, sign in, connect an account, and create a confirmed post.
+---
+
+You will install `delulu`, authorize it without copying tokens, connect a social account, and publish one post.
+
+## What you need
+
+- Node.js 20 or newer.
+- A browser for identity, social consent, and checkout.
+- Permission to publish in the selected workspace.
+
+## Step 1: Install and verify
+
+```bash
+npm install --global delulu-cli
+delulu --version
+```
+
+The version command should print `0.2.0` or newer.
+
+## Step 2: Sign in
+
+```bash
+delulu login
+```
+
+The CLI opens one verification page and prints the same URL and short code to stderr. Sign up or sign in, choose the workspace and scopes, then approve. The terminal resumes automatically.
+
+Run the live overview:
+
+```bash
+delulu
+```
+
+It reports your current workspace, setup state, subscription, publishing counts, and the highest-priority next command.
+
+## Step 3: Connect and publish
+
+Connect a supported account. Replace `linkedin` with the platform you use.
+
+```bash
+delulu connect linkedin
+delulu accounts
+```
+
+Copy the canonical selector returned by `delulu accounts`, such as `linkedin:connection_abc123`.
+
+If the overview asks for payment, create checkout and finish it in the browser:
+
+```bash
+delulu subscribe --plan VIBE --interval MONTHLY --currency USD
+```
+
+Publish:
+
+```bash
+delulu post "Hello from Delulu" \
+  --to linkedin:connection_abc123 \
+  --now
+```
+
+The command waits for a terminal result by default. Keep the returned post ID if the command times out, then inspect the same post:
+
+```bash
+delulu show post_abc123
+```
+
+## What you built
+
+You authorized a workspace-bound client, connected a social account, and sent one atomic publish request. Next, [add media](/guides/media/) or [schedule a post](/guides/publishing/).
+
+## Troubleshooting
+
+- **`AUTH_REQUIRED`**: run `delulu login` again.
+- **Workspace is wrong**: run `delulu workspace`, then `delulu workspace use <selector>`.
+- **Account selector is ambiguous**: use the canonical `platform:connection-id` value from `delulu accounts`.
+- **Publish timed out**: run `delulu show <post-id>`; do not repeat the publish with `--new` unless you intend to create a duplicate.

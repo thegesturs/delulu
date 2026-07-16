@@ -1,0 +1,5 @@
+{
+  "title": "REST API",
+  "description": "OAuth, errors, OpenAPI schemas, and every endpoint group.",
+  "pages": ["index", "authentication", "errors", "generated"]
+}

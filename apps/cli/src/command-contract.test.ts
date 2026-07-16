@@ -3,8 +3,7 @@ import { resolve } from "node:path";
 import { decode } from "@toon-format/toon";
 import { describe, expect, it } from "vitest";
 
-const entrypoint = resolve(import.meta.dirname, "index.ts");
-const tsx = resolve(import.meta.dirname, "../node_modules/tsx/dist/cli.mjs");
+const entrypoint = resolve(import.meta.dirname, "../dist/index.js");
 const commands = [
   "login",
   "logout",
@@ -28,7 +27,7 @@ const commands = [
 ] as const;
 
 const invokeHelp = (mode: "--toon" | "--json" | "--pretty", command: string) =>
-  spawnSync(process.execPath, [tsx, entrypoint, mode, "help", command], {
+  spawnSync(process.execPath, [entrypoint, mode, "help", command], {
     encoding: "utf8",
     env: {
       ...process.env,

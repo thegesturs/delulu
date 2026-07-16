@@ -1,0 +1,41 @@
+---
+title: How to complete billing and onboarding
+description: Create hosted checkout, verify payment, and understand the derived setup state.
+---
+
+## Inspect current state
+
+```bash
+delulu
+delulu usage
+```
+
+Onboarding is complete only when at least one supported social connection exists and the backend confirms a paid subscription. Welcome, survey, and automation setup are optional checklist items.
+
+## Create checkout
+
+```bash
+delulu subscribe \
+  --plan VIBE \
+  --interval MONTHLY \
+  --currency USD
+```
+
+Valid plans are `ECHO` and `VIBE`. Valid intervals are `MONTHLY` and `YEARLY`. Valid currencies are `USD` and `INR`. Product IDs are resolved on the server and cannot be supplied by the client.
+
+Open the returned hosted URL and finish payment. Creating the URL alone does not complete onboarding.
+
+## Verify payment
+
+```bash
+delulu
+delulu usage
+```
+
+The payment webhook updates subscription state and reconciles onboarding. Connection-first and payment-first ordering both work.
+
+## Troubleshooting
+
+- Only the personal owner or current organization payer can create checkout.
+- Missing billing email or provider errors return structured failures with corrective commands.
+- Repeating an identical checkout reuses its operation key. Use `--new` only to intentionally start a distinct checkout.
