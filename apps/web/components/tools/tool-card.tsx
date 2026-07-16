@@ -65,7 +65,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   const comingSoon = tool.status === "coming-soon";
 
   const inner = (
-    <Card className="group h-full transition-colors hover:border-primary/60">
+    <Card className="group h-full border border-border transition-colors hover:border-primary/60">
       <CardHeader className="flex flex-row items-center gap-3">
         <span
           aria-hidden

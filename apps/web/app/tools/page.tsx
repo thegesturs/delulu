@@ -89,7 +89,7 @@ export default function ToolsPage() {
               href={`/tools/${family.slug}`}
               key={family.slug}
             >
-              <Card className="group h-full transition-colors hover:border-primary/60">
+              <Card className="group h-full border border-border transition-colors hover:border-primary/60">
                 <CardHeader>
                   <span
                     aria-hidden
