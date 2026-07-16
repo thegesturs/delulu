@@ -311,12 +311,19 @@ export function HolidayCalendar({
       </Card>
 
       {visibleEvents.length > 0 ? (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="relative -mx-4 mt-4 grid border-zinc-950/10 md:grid-cols-2 dark:border-white/10">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-10 hidden border-zinc-950/10 border-l-[1.5px] border-dotted md:block dark:border-white/10"
+          />
           {visibleEvents.map((event) => {
             const text = buildCalendarPostText(event);
             const angleCopied = copiedAngleId === event.id;
             return (
-              <article className="min-w-0" key={event.id}>
+              <article
+                className="min-w-0 border-zinc-950/10 border-b-[1.5px] border-dotted p-4 dark:border-white/10"
+                key={event.id}
+              >
                 <Card className="flex h-full flex-col gap-0 border border-border p-5 shadow-none">
                   <header>
                     <div className="flex items-start justify-between gap-3">
