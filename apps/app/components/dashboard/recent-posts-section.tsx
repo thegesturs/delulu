@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Plus } from "@hugeicons-pro/core-solid-rounded";
+import { Plus } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { PostsView } from "@/components/posts/posts-view";
 import type { Post } from "@/types/backend";

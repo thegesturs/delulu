@@ -10,7 +10,7 @@ import {
   Comment01Icon,
   Loading03Icon,
   MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";

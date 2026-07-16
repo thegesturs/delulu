@@ -23,7 +23,7 @@ import {
   Delete02Icon,
   MoreVerticalIcon,
   RefreshIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";

@@ -3,7 +3,7 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CloudUploadIcon } from "@hugeicons-pro/core-solid-rounded";
+import { CloudUploadIcon } from "@hugeicons/core-free-icons";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import type { BulkVideo } from "./bulk-upload-reducer";

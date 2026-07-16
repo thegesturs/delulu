@@ -24,7 +24,7 @@ import {
   SparklesIcon,
   Tick01Icon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";

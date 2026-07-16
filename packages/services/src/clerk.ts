@@ -25,14 +25,14 @@ export class ClerkTokenVerifier extends Context.Service<
     ClerkTokenVerifier,
     Effect.gen(function* () {
       const config = yield* AuthConfig;
-      // Import the verification key once per layer build (per worker env).
-      const key = yield* Effect.tryPromise({
-        try: () => importRsaPublicKeyFromPem(config.clerkJwtKey),
-        catch: () =>
-          new UnauthorizedError({
-            message: "Clerk verification key is misconfigured",
-          }),
-      }).pipe(Effect.orDie);
+      // Import lazily so public liveness and instance-capability routes can
+      // start independently of an external auth provider. The promise remains
+      // cached for authenticated requests within this layer.
+      let keyPromise: Promise<CryptoKey> | undefined;
+      const verificationKey = () => {
+        keyPromise ??= importRsaPublicKeyFromPem(config.clerkJwtKey);
+        return keyPromise;
+      };
 
       const verify = (token: string) =>
         Effect.gen(function* () {
@@ -43,10 +43,11 @@ export class ClerkTokenVerifier extends Context.Service<
             );
           }
           const valid = yield* Effect.tryPromise({
-            try: () => verifyRs256Jwt(parsed, key),
+            try: async () => verifyRs256Jwt(parsed, await verificationKey()),
             catch: () =>
               new UnauthorizedError({
-                message: "Session token verification failed",
+                message:
+                  "Session token verification failed or is misconfigured",
               }),
           });
           const now = Math.floor(Date.now() / 1000);

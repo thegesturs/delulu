@@ -14,6 +14,8 @@ Closes #<issue_number>
 - [ ] I have updated the documentation, if necessary.
 - [ ] I have added tests that prove my fix is effective or my feature works.
 - [ ] New and existing tests pass locally with my changes.
+- [ ] Hosted and self-hosted behavior remain explicit and documented.
+- [ ] I have not committed credentials, private data, or restricted assets.
 
 ## Screenshots (if applicable)
 

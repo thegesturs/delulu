@@ -7,7 +7,7 @@ import {
   Alert01Icon,
   PencilEdit02Icon,
   RefreshIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

@@ -11,6 +11,13 @@ const text = (value: unknown) => ({
 
 export function registerSetupTools(server: McpServer, client: ClientSource) {
   server.tool(
+    "get_instance",
+    "Inspect deployment, billing, registration, and version capabilities",
+    {},
+    async (_params, extra) =>
+      text(await resolveClient(client, extra).getInstanceCapabilities())
+  );
+  server.tool(
     "list_workspaces",
     "List available workspaces and live roles",
     {},
@@ -19,7 +26,7 @@ export function registerSetupTools(server: McpServer, client: ClientSource) {
   );
   server.tool(
     "get_setup_status",
-    "Get connection, payment, and onboarding status",
+    "Get instance, connection, billing, and onboarding status",
     { workspaceId: z.string().optional().describe("Workspace ID") },
     async (params, extra) =>
       text(

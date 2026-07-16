@@ -19,7 +19,7 @@ import {
   Calendar01Icon,
   File02Icon,
   Link01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import React from "react";
 import { useMediaUrl } from "@/hooks/use-media-url";

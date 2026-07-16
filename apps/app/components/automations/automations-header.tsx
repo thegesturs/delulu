@@ -8,10 +8,7 @@ import {
   TooltipTrigger,
 } from "@delulu/design-system/components/ui/tooltip";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Add01Icon,
-  InformationCircleIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 
 interface AutomationsHeaderProps {
   onCreateClick: () => void;

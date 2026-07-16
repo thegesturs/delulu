@@ -6,7 +6,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import {
   ArrowRight01Icon,
   TaskDone01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { toast } from "sonner";
 import { OperationsError } from "@/components/operations/query-state";

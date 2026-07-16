@@ -7,7 +7,7 @@ import {
   Comment01Icon,
   MailSend01Icon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useMemo } from "react";

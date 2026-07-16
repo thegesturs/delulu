@@ -2,6 +2,7 @@
   "name": "@delulu/payments",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --emitDeclarationOnly"

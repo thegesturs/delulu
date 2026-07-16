@@ -10,7 +10,7 @@ import {
 } from "@delulu/design-system/components/ui/sheet";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Delete02Icon } from "@hugeicons/core-free-icons";
 import { ConditionPanel } from "./panels/condition-panel";
 import { SendDmPanel } from "./panels/send-dm-panel";
 import { TriggerPanel } from "./panels/trigger-panel";

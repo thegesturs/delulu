@@ -8,7 +8,7 @@ import { useAnalytics } from "@delulu/analytics/posthog/client";
 import type { AutomationScope } from "@delulu/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Add01Icon, Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";

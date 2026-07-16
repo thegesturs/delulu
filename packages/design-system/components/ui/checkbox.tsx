@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { Icon } from "../../providers/icon"
-import { Tick } from "@hugeicons-pro/core-solid-rounded"
+import { Tick } from "@hugeicons/core-free-icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

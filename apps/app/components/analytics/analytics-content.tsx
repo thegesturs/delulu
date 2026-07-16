@@ -18,7 +18,7 @@ import {
   Analytics01Icon,
   ArrowDataTransferHorizontalIcon,
   Loading03Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { OperationsError } from "@/components/operations/query-state";
 import { AnalyticsStatCards } from "./analytics-stat-cards";

@@ -2,6 +2,7 @@ import type { AutomationId } from "@delulu/core/kernel/ids";
 import { getPlanLimits } from "@delulu/payments/plans";
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { EntitlementPolicy } from "./entitlements";
 
 export class ProviderDmError extends Schema.TaggedErrorClass<ProviderDmError>()(
   "ProviderDmError",
@@ -67,6 +68,7 @@ export class DmDispatchService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const provider = yield* ProviderDmService;
+      const entitlements = yield* EntitlementPolicy;
       const persistenceError = (message = "Unable to reserve DM delivery") =>
         new DmDispatchError({ message, retryable: true });
 
@@ -104,10 +106,19 @@ export class DmDispatchService extends Context.Service<
                 return { _tag: "Duplicate" } as const;
               }
 
-              const rows = yield* sql<{
-                billingOwnerUserId: string;
-                plan: string;
-              }>`SELECT w.billing_owner_user_id, s.plan
+              const community = yield* entitlements.isCommunity;
+              const rows = community
+                ? yield* sql<{
+                    billingOwnerUserId: string;
+                    plan: string | null;
+                  }>`SELECT w.billing_owner_user_id, NULL::text AS plan
+                  FROM automations a
+                  JOIN workspaces w ON w.id = a.workspace_id
+                  WHERE a.id = ${input.automationId}`
+                : yield* sql<{
+                    billingOwnerUserId: string;
+                    plan: string;
+                  }>`SELECT w.billing_owner_user_id, s.plan
                   FROM automations a
                   JOIN workspaces w ON w.id = a.workspace_id
                   JOIN subscriptions s ON s.billing_owner_user_id = w.billing_owner_user_id
@@ -118,6 +129,13 @@ export class DmDispatchService extends Context.Service<
                 return yield* persistenceError(
                   "Automation quota owner is missing"
                 );
+              }
+
+              if (community) {
+                return {
+                  _tag: "Reserved",
+                  billingOwnerUserId: quota.billingOwnerUserId,
+                } as const;
               }
 
               yield* sql`UPDATE subscriptions

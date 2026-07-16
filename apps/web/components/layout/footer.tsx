@@ -1,22 +1,19 @@
 import { Card } from "@delulu/design-system/components/ui/card";
 import Link from "next/link";
-import { FaLinkedin, FaTwitter } from "react-icons/fa";
+import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
 import { Logo } from "../logo";
 
 export function Footer() {
   const pages = [
-    { title: "Home", href: "/" },
-    { title: "Create & Plan", href: "/tools" },
-    { title: "Affiliates", href: "/affiliates" },
-    // { title: 'Blogs', href: '/blogs' },
-    // { title: 'Pricing', href: '/pricing' },
-    // { title: 'Blog', href: '/blogs' },
-    // { title: 'Contact', href: '/contact' },
+    { title: "Agents", href: "/#agents" },
+    { title: "Product", href: "/#product" },
+    { title: "Open Source", href: "/#open-source" },
+    { title: "Pricing", href: "/#pricing" },
+    { title: "Documentation", href: "https://docs.delulu.social" },
   ];
 
   const socials = [
-    // { title: 'Facebook', href: 'https://www.facebook.com/delulu.social' },
-    // { title: 'Instagram', href: 'https://www.instagram.com/delulu.social' },
+    { title: "GitHub", href: "https://github.com/thegesturs/delulu" },
     { title: "Twitter", href: "https://x.com/delulusocial" },
     {
       title: "LinkedIn",
@@ -37,8 +34,8 @@ export function Footer() {
           <div className="flex flex-col items-start">
             <Logo />
             <h2 className="mt-8 max-w-md font-medium text-2xl">
-              Record your video. Edit captions for each platform. Hit
-              ‘Schedule.’ We handle the rest.”
+              Open-source social scheduling infrastructure for agents, with
+              humans in control.
             </h2>
           </div>
 
@@ -60,7 +57,7 @@ export function Footer() {
             </div>
 
             <div className="space-y-6">
-              <h3 className="font-semibold">Socials</h3>
+              <h3 className="font-semibold">Community</h3>
               <ul className="space-y-3">
                 {socials.map((item, idx) => (
                   <li key={idx}>
@@ -97,35 +94,26 @@ export function Footer() {
           <p className="text-muted-foreground text-sm">© Delulu Social</p>
           <div className="mt-4 flex gap-4 md:mt-0">
             <Link
+              aria-label="Delulu source on GitHub"
+              className="text-muted-foreground hover:text-foreground"
+              href="https://github.com/thegesturs/delulu"
+            >
+              <FaGithub size={20} />
+            </Link>
+            <Link
+              aria-label="Delulu on X"
               className="text-muted-foreground hover:text-foreground"
               href="https://x.com/delulusocial"
             >
               <FaTwitter size={20} />
             </Link>
             <Link
+              aria-label="Delulu on LinkedIn"
               className="text-muted-foreground hover:text-foreground"
               href="https://www.linkedin.com/company/delulu-social"
             >
               <FaLinkedin size={20} />
             </Link>
-            {/* <Link
-              href="https://www.facebook.com/delulu.social"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <FaGithub size={20} />
-            </Link> */}
-            {/* <Link
-              href="#"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <FaFacebook size={20} />
-            </Link> */}
-            {/* <Link
-              href="https://www.instagram.com/delulu.social"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <FaInstagram size={20} />
-            </Link> */}
           </div>
         </div>
       </Card>

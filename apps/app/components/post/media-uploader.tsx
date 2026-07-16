@@ -14,7 +14,7 @@ import {
   FolderLibraryIcon,
   Image01Icon,
   VideoIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";

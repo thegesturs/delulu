@@ -23,7 +23,7 @@ import {
   CreditCardIcon,
   Link01Icon,
   SparklesIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";

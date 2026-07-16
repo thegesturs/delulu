@@ -18,7 +18,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import {
   AlertCircleIcon,
   Loading03Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";

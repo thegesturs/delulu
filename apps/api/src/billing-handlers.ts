@@ -5,6 +5,7 @@ import {
   BillingProviderService,
   BillingService,
   CancellationService,
+  EntitlementPolicy,
   WorkspaceAccessService,
 } from "@delulu/services";
 import { Effect, Layer } from "effect";
@@ -30,6 +31,7 @@ export const BillingHandlers = HttpApiBuilder.group(
     const billingProvider = yield* BillingProviderService;
     const workspaces = yield* WorkspaceAccessService;
     const sql = yield* SqlClient.SqlClient;
+    const entitlements = yield* EntitlementPolicy;
 
     const access = Effect.fn("BillingHandlers.access")(function* (
       workspaceId: string
@@ -72,6 +74,22 @@ export const BillingHandlers = HttpApiBuilder.group(
       .handle("subscription", ({ params }) =>
         Effect.gen(function* () {
           const { auth, workspace } = yield* billingAccess(params.workspaceId);
+          if (yield* entitlements.isCommunity) {
+            return {
+              id: `community:${workspace.billingOwnerUserId}`,
+              billingOwnerUserId: workspace.billingOwnerUserId,
+              plan: "COMMUNITY",
+              status: "active",
+              currentPeriodStart: null,
+              currentPeriodEnd: null,
+              addons: {},
+              billingInterval: null,
+              currency: null,
+              recurringAmountMinor: null,
+              cancelAtPeriodEnd: false,
+              canManageBilling: false,
+            };
+          }
           const result = yield* billing.subscription(
             workspace.billingOwnerUserId
           );
@@ -98,6 +116,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("portal", ({ params }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return {
             url: yield* cancellations.portal(workspace.billingOwnerUserId),
@@ -106,6 +125,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("checkout", ({ params, payload }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { auth } = yield* payerAccess(params.workspaceId);
           if (
             auth.scopes !== "full" &&
@@ -202,6 +222,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("startCancellation", ({ params, payload }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return yield* cancellations.start({
             billingOwnerUserId: workspace.billingOwnerUserId,
@@ -212,6 +233,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("acceptCancellationOffer", ({ params }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return yield* cancellations.acceptOffer({
             billingOwnerUserId: workspace.billingOwnerUserId,
@@ -221,6 +243,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("scheduleCancellation", ({ params, payload }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return yield* cancellations.schedule({
             billingOwnerUserId: workspace.billingOwnerUserId,
@@ -231,6 +254,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("reactivateCancellation", ({ params }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return yield* cancellations.reactivate({
             billingOwnerUserId: workspace.billingOwnerUserId,
@@ -240,6 +264,7 @@ export const BillingHandlers = HttpApiBuilder.group(
       )
       .handle("abandonCancellation", ({ params }) =>
         Effect.gen(function* () {
+          yield* entitlements.requireBillingEnabled;
           const { workspace } = yield* payerAccess(params.workspaceId);
           return yield* cancellations.abandon({
             billingOwnerUserId: workspace.billingOwnerUserId,

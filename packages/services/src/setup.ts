@@ -3,6 +3,7 @@ import { isPaidPlan, PAID_PLAN_TYPES } from "@delulu/payments/plans";
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { ClerkAdminService } from "./clerk-admin";
+import { EntitlementPolicy } from "./entitlements";
 
 export type OptionalSetupStepState = "completed" | "skipped";
 
@@ -37,6 +38,7 @@ export class SetupService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const clerk = yield* ClerkAdminService;
+      const entitlements = yield* EntitlementPolicy;
 
       const status = Effect.fn("SetupService.status")(function* (
         workspaceId: WorkspaceId,
@@ -58,17 +60,25 @@ export class SetupService extends Context.Service<
               , onboarding_metadata_synced_at
             FROM users WHERE id = ${userId}`,
         ]).pipe(Effect.orDie);
-        const subscription = subscriptions[0] ?? {
-          plan: "free",
-          status: "inactive",
-        };
+        const community = yield* entitlements.isCommunity;
+        const subscription = community
+          ? {
+              plan: "COMMUNITY",
+              status: "active",
+            }
+          : (subscriptions[0] ?? {
+              plan: "free",
+              status: "inactive",
+            });
         const paid =
           isPaidPlan(subscription.plan) &&
           subscription.status.toUpperCase() === "ACTIVE";
         const connectedPlatforms = connections.map((row) => row.platform);
         const onboardingComplete = connectedPlatforms.length > 0 && paid;
         const user = users[0];
-        const aggregate = yield* sql<{ complete: boolean }>`SELECT EXISTS(
+        const aggregate = community
+          ? [{ complete: connectedPlatforms.length > 0 }]
+          : yield* sql<{ complete: boolean }>`SELECT EXISTS(
           SELECT 1 FROM workspace_members wm
           JOIN workspaces w ON w.id = wm.workspace_id
           WHERE wm.user_id = ${userId} AND w.deleted_at IS NULL

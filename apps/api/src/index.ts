@@ -24,7 +24,9 @@ import {
   ClerkTokenVerifier,
   ConnectionStateService,
   ConnectionsService,
+  DeploymentConfig,
   DmDispatchService,
+  EntitlementPolicy,
   IdentityService,
   JobService,
   LifecycleService,
@@ -102,6 +104,18 @@ export const makeBaseLayer = (
     transformJson: false,
   });
   const Config = authConfigLayer(env);
+  const Deployment = DeploymentConfig.layer({
+    mode:
+      env.DELULU_DEPLOYMENT_MODE === "self_hosted" ? "self_hosted" : "hosted",
+    publishTransport:
+      env.DELULU_PUBLISH_TRANSPORT === "postgres" ? "postgres" : "sqs",
+    registrationEnabled: env.DELULU_REGISTRATION_ENABLED !== "false",
+    version: env.DELULU_VERSION ?? "development",
+    communityApiRatePerMinute: Number(
+      env.DELULU_COMMUNITY_API_RATE_PER_MINUTE ?? 120
+    ),
+  });
+  const Entitlements = EntitlementPolicy.layer.pipe(Layer.provide(Deployment));
   // Server-side product analytics. Disabled (fully inert) when POSTHOG_KEY is
   // unset. Flushes buffered events on layer dispose, which upstream runs inside
   // ctx.waitUntil for both the fetch and scheduled handlers. Defined early so it
@@ -127,12 +141,16 @@ export const makeBaseLayer = (
   );
   const R2 = R2Service.layer.pipe(Layer.provide(R2Config));
   const Access = WorkspaceAccessService.layer.pipe(
-    Layer.provide([MembershipService.layer, Authorization])
+    Layer.provide([MembershipService.layer, Authorization, Entitlements])
   );
   const Posts = PostService.layer.pipe(Layer.provide(Jobs));
   const Reviews = ReviewService.layer.pipe(Layer.provide(Jobs));
   const Media = MediaService.layer.pipe(
-    Layer.provide([Jobs, R2, QuotaGuard.layer])
+    Layer.provide([
+      Jobs,
+      R2,
+      QuotaGuard.layer.pipe(Layer.provide(Entitlements)),
+    ])
   );
   const AutomationKvBinding = env.AUTOMATION_KV
     ? Layer.succeed(
@@ -200,7 +218,9 @@ export const makeBaseLayer = (
   const TranscriptionCheckout = TranscriptionCheckoutService.layer.pipe(
     Layer.provide(TranscriptionCheckoutConfigLayer)
   );
-  const Setup = SetupService.layer.pipe(Layer.provide(ClerkAdmin));
+  const Setup = SetupService.layer.pipe(
+    Layer.provide([ClerkAdmin, Entitlements])
+  );
   const QuotaReservations = PooledQuotaReservations.layer;
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
@@ -274,9 +294,11 @@ export const makeBaseLayer = (
     MembershipService.layer,
     ApiKeyVerifier.layer,
     OAuthFlow,
-    QuotaGuard.layer,
+    QuotaGuard.layer.pipe(Layer.provide(Entitlements)),
     RateLimiter,
     Telemetry,
+    Deployment,
+    Entitlements,
     AsToken,
     Clerk,
     Config,
@@ -312,6 +334,7 @@ export const makeBaseLayer = (
   ).pipe(
     Layer.provide(AsToken),
     Layer.provide(Config),
+    Layer.provide(Entitlements),
     Layer.provideMerge(Pg),
     // Postgres connection-build failures become defects (500), not a typed
     // requirement leak into the handler.

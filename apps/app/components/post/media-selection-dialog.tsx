@@ -15,7 +15,7 @@ import {
   Image01Icon,
   Search01Icon,
   VideoIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";

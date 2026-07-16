@@ -23,7 +23,7 @@ import type { SocialType } from "@delulu/validators/post";
 import {
   Settings01Icon,
   UserGroupIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";

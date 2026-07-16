@@ -10,7 +10,7 @@ import {
   DocumentAttachmentIcon,
   FireIcon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 
 interface OperationalStats {
   readonly counts: {

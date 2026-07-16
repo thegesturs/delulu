@@ -8,7 +8,7 @@ import {
   Add,
   ArrowRight01Icon,
   MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DashboardChart } from "@/components/dashboard/dashboard-chart";

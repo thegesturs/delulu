@@ -23,7 +23,7 @@ import {
   type TiktokPrivacyLevels,
   tikTokPrivacyLevels,
 } from "@delulu/validators/post";
-import { InformationCircleIcon } from "@hugeicons-pro/core-solid-rounded";
+import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

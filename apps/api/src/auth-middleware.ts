@@ -6,13 +6,13 @@ import {
   type UserId,
   type WorkspaceId,
 } from "@delulu/core";
-import { getPlanLimits } from "@delulu/payments/plans";
 import {
   ApiKeyVerifier,
   AsTokenService,
   AuthConfig,
   ClerkTokenVerifier,
   classifyBearer,
+  EntitlementPolicy,
   IdentityService,
   RateLimiterService,
   type RateTier,
@@ -35,6 +35,7 @@ export const AuthenticationLive = Layer.effect(
     const identity = yield* IdentityService;
     const limiter = yield* RateLimiterService;
     const config = yield* AuthConfig;
+    const entitlements = yield* EntitlementPolicy;
 
     // Resolve the plan's per-minute API rate for an API key's workspace.
     const planForWorkspace = SqlSchema.findOneOption({
@@ -50,12 +51,11 @@ export const AuthenticationLive = Layer.effect(
       planForWorkspace(workspaceId).pipe(
         Effect.map((row) => ({
           kind: "api" as const,
-          perMinute: getPlanLimits(Option.getOrNull(row)?.plan)
-            .apiRatePerMinute,
+          perMinute: entitlements.apiRatePerMinute(Option.getOrNull(row)?.plan),
         })),
         Effect.orElseSucceed(() => ({
           kind: "api" as const,
-          perMinute: getPlanLimits(null).apiRatePerMinute,
+          perMinute: entitlements.apiRatePerMinute(null),
         }))
       );
 

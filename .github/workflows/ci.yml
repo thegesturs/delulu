@@ -31,8 +31,6 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        env:
-          HUGEICONS_TOKEN: ${{ secrets.HUGEICONS_TOKEN }}
         run: pnpm install --frozen-lockfile
 
       # Keyed by commit so parallel jobs always restore *this* install, not a

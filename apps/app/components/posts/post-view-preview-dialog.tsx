@@ -13,7 +13,7 @@ import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import { socialBackgroundColors } from "@delulu/design-system/lib/social-config";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { LinkSquare02Icon } from "@hugeicons-pro/core-solid-rounded";
+import { LinkSquare02Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";

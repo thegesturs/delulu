@@ -6,6 +6,7 @@ import {
   OpenApi,
 } from "effect/unstable/httpapi";
 import {
+  BillingDisabledResponse,
   ConflictErrorResponse,
   ForbiddenErrorResponse,
   NotFoundErrorResponse,
@@ -20,6 +21,7 @@ const billingErrors = [
   NotFoundErrorResponse,
   ConflictErrorResponse,
   ValidationErrorResponse,
+  BillingDisabledResponse,
 ];
 
 export const SubscriptionResponse = Schema.Struct({

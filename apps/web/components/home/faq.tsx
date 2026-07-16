@@ -24,40 +24,42 @@ function getFaqs(currency: CurrencyCode) {
 
   return [
     {
-      question: "Do I need to connect all my accounts?",
+      question: "What can an agent actually do with Delulu?",
       answer:
-        "No. Instagram is required for auto-DM automations, but you can connect TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads whenever you want.",
+        "An authorized agent can inspect workspaces and accounts, prepare media, create drafts, schedule or publish posts, inspect delivery states, work with reviews, and read usage or analytics. Every action is still constrained by its scopes and your workspace role rules.",
     },
     {
-      question: "Is my data safe?",
+      question: "How do I connect my agent?",
       answer:
-        "Yes. We use official platform APIs with OAuth — we never store your passwords. You can revoke access anytime.",
+        "Use the hosted MCP server for browser-capable agents, or install the Delulu CLI and packaged agent skill for local agents. Direct integrations can use the typed REST API. All three surfaces share the same authorization and publishing rules.",
     },
     {
-      question: "Wait, this really replaces ManyChat?",
-      answer: `For Instagram DM automation? Yes. Someone comments a keyword → we send them a DM with your link and reply to their comment. ManyChat's pro plan runs $67/mo. Echo (${echoPrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month.`,
-    },
-    {
-      question: "Is there a free plan?",
-      answer: `No — Delulu is a paid product built for creators who are serious about growth. Plans start at Echo (${echoPrice}). Every plan includes a 14-day money-back guarantee.`,
-    },
-    {
-      question: "How many posts can I schedule?",
-      answer: `Echo (${echoPrice}): ${echo.limits.socialAccounts} social accounts, ${echo.limits.monthlyPosts} posts/month, ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month\n\nVibe (${vibePrice}): Unlimited social accounts, unlimited posts, ${formatDmLimit(DM_PLAN_LIMITS.VIBE)} auto-DMs/month\n\nWe count by unique content, not platforms. One post to 5 platforms = 1 post.`,
-    },
-    {
-      question: "What content types do you support?",
+      question: "Can an agent publish without my approval?",
       answer:
-        "Videos, images, carousels, text posts, and GIFs. Platform formatting happens automatically.",
+        "Only if you grant that access and the workspace allows it. You can restrict scopes, require post review, revoke credentials, or keep the agent draft-only. Delulu checks live permissions again when the operation runs.",
     },
     {
-      question: "Can I cancel anytime?",
-      answer: "Yes. No contracts. Cancel in one click from billing, anytime.",
-    },
-    {
-      question: "What if something breaks?",
+      question: "Which social networks are supported?",
       answer:
-        "Email swaraj@gesturs.com — we typically respond within 6–12 hours.",
+        "Delulu supports Instagram, Facebook, X, LinkedIn, TikTok, Pinterest, Threads, YouTube, Bluesky, and Farcaster. Available post types and settings still follow each network's official API capabilities.",
+    },
+    {
+      question: "Is self-hosting free?",
+      answer:
+        "Yes. The Community self-hosted edition is available under AGPL-3.0 with core product features unlocked. You pay for your own infrastructure and external services. The first release requires your own Clerk and Cloudflare R2 projects; generic OIDC and S3-compatible storage are planned.",
+    },
+    {
+      question: "Does the agent see my passwords or tokens?",
+      answer:
+        "No social passwords are shared with the agent. Social accounts connect through official OAuth flows, provider tokens are encrypted, and delegated agent credentials stay in the MCP client or the CLI's owner-only credential file.",
+    },
+    {
+      question: "Does Delulu still support social automations?",
+      answer: `Yes. Scheduling is the core agent workflow, and programmable automations remain available, including comment-triggered replies and Instagram DMs. Echo (${echoPrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs each month; Vibe (${vibePrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.VIBE)}.`,
+    },
+    {
+      question: "What is included in hosted plans?",
+      answer: `Hosted plans operate the infrastructure for you. Echo (${echoPrice}) includes ${echo.limits.socialAccounts} accounts and ${echo.limits.monthlyPosts} posts per month. Vibe (${vibePrice}) includes unlimited accounts and posts plus team features. You can cancel from billing at any time.`,
     },
   ];
 }
@@ -72,11 +74,11 @@ export function FAQ() {
       <div className="mx-auto max-w-4xl px-4">
         <div className="mb-12 text-center">
           <h2 className="mb-4 font-semibold text-4xl">
-            Let's be real. You have{" "}
-            <span className="text-primary">questions</span>.
+            Questions before you hand an agent the calendar?
           </h2>
           <p className="mx-auto max-w-3xl text-muted-foreground">
-            Here are the answers before you stress about them:
+            The short version: permissions stay explicit, outcomes stay
+            inspectable, and self-hosting is a real option.
           </p>
         </div>
 

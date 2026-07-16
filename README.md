@@ -1,134 +1,153 @@
-# Delulu Social
+# Delulu
 
-Delulu is a social media management platform: schedule and publish across
-Instagram, Facebook, X/Twitter, LinkedIn, TikTok, Pinterest, Threads, YouTube,
-Bluesky and Farcaster, automate Instagram DMs, collaborate in org workspaces
-with an approval workflow, and drive it all through an AI agent API (MCP).
+Open-source social scheduling infrastructure for AI agents.
 
-> **License:** Delulu is source-available under the
-> [Functional Source License (FSL-1.1-ALv2)](./LICENSE). You may read, self-host,
-> and modify it for any purpose **except** offering a competing hosted service.
-> Each release converts to Apache-2.0 two years after it is published.
+Delulu gives people and agents one permission-aware system for preparing media,
+drafting, scheduling, publishing, reviewing, and inspecting social content across
+Instagram, Facebook, X, LinkedIn, TikTok, Pinterest, Threads, YouTube, Bluesky,
+and Farcaster.
 
-## Features
+[Documentation](https://docs.delulu.social) ·
+[Agent setup](https://docs.delulu.social/getting-started/agent-setup/) ·
+[Hosted app](https://solulu.delulu.social) ·
+[Self-hosting](./docs/self-hosting.md)
 
-- **Multi-platform scheduling & publishing** across 10+ networks
-- **Instagram auto-DM** automation
-- **Org workspaces** with roles and a post approval workflow
-- **Real-time collaboration** on drafts
-- **AI agent API** via an MCP server
-- **Agent-first CLI** with device authorization, atomic publishing, and TOON output
-- **Analytics** and post insights
-- **Billing** with subscription plans (multi-currency)
+## Why Delulu
 
-## Tech stack
+- **Agent-native interfaces:** hosted MCP, a deterministic CLI with a packaged
+  agent skill, and a typed REST API.
+- **Human control:** delegated OAuth scopes, live workspace roles, optional post
+  reviews, and revocable credentials.
+- **Reliable publishing:** explicit draft/schedule/publish intent, durable
+  operation identity, target-level results, retries, and partial-failure states.
+- **Complete workflow:** media preparation, multi-network publishing, analytics,
+  collaboration, and programmable automations.
+- **Open source:** AGPL-3.0 licensed, with a supported Docker Compose deployment.
 
-- **Monorepo** — [Turborepo](https://turbo.build) + [pnpm workspaces](https://pnpm.io)
-- **Web** — [Next.js](https://nextjs.org) (App Router), React, a Radix + Tailwind design system
-- **Auth** — [Clerk](https://clerk.com)
-- **Data / realtime backend** — [Convex](https://convex.dev)
-- **Edge & compute** — [Cloudflare Workers](https://workers.cloudflare.com) (Wrangler), R2 storage, KV
-- **Payments** — [Dodo Payments](https://dodopayments.com)
-- **Email** — [Resend](https://resend.com) + React Email
-- **Collaboration** — [Liveblocks](https://liveblocks.io)
-- **Notifications** — [Knock](https://knock.app)
-- **Analytics** — [PostHog](https://posthog.com)
-- **App security** — [Arcjet](https://arcjet.com)
-- **Observability** — [Better Stack](https://betterstack.com)
-- **Tooling** — [Biome](https://biomejs.dev) / Ultracite, Lefthook, tsup, Vitest
+## Give an agent access
+
+For a local agent, install the CLI and its packaged skill:
+
+```bash
+npm install --global delulu-cli
+delulu integrate install
+delulu login
+```
+
+For a browser-capable MCP client, connect:
+
+```text
+https://solulu.delulu.social/mcp
+```
+
+The human completes sign-in and approves a workspace plus scopes. The agent
+never needs a social password or a pasted bearer token.
+
+See the [agent setup guide](https://docs.delulu.social/getting-started/agent-setup/)
+for the complete flow.
+
+## Self-host
+
+The Community deployment unlocks core scheduling, publishing, agent interfaces,
+workspaces, reviews, and automations. You pay only for your infrastructure and
+external providers.
+
+```bash
+cp .env.selfhost.example .env
+# Fill the required Clerk, R2, agent-signing, encryption, URL, and provider values.
+docker compose up -d
+```
+
+The first self-hosted release requires operator-owned Clerk and Cloudflare R2
+projects. Generic OIDC and S3-compatible storage are planned portability work;
+the application services keep those dependencies behind replaceable boundaries.
+
+Read [docs/self-hosting.md](./docs/self-hosting.md) before exposing an instance
+to the internet. It covers required credentials, callbacks, migrations,
+health checks, backups, upgrades, and limitations.
+
+## Architecture
+
+```text
+human consent ─┐
+               ├─ authenticated app ─┐
+agent ─ MCP ───┤                     │
+agent ─ CLI ───┼─ typed API ─ PostgreSQL ─ publisher ─ social networks
+code  ─ REST ──┘          │
+                          └─ object storage
+```
+
+The Docker deployment runs PostgreSQL, a migration job, the authenticated app,
+the API, and a PostgreSQL-backed publisher. The hosted deployment can keep its
+edge runtime and queue transport without changing domain behavior.
 
 ## Repository layout
 
-```
+```text
 apps/
-  app/         Authenticated dashboard (Next.js)
-  web/         Marketing site (Next.js)
-  api/         Public API (Cloudflare Worker)
-  mcp/         MCP server — the AI agent API
-  docs/        Documentation site (Astro + Fumadocs)
+  app/         Authenticated Next.js product
+  web/         Public marketing site
+  api/         Typed API: edge and Node entrypoints
+  docs/        Product, CLI, MCP, and API documentation
   cli/         Agent-first command line interface
-  email/       Email template workshop (React Email)
-  sorted/      Browser extension (WXT)
-  storybook/   Component workshop
+  mcp/         MCP server and tool definitions
 packages/
-  database/    Convex schema & functions
-  api/         tRPC routers and social-provider integrations
-  auth/        Clerk wrappers
-  design-system/  Shared UI components
-  payments/    Plans & Dodo Payments product IDs
-  worker/      Social publishing Cloudflare Worker
-  ...          ai, analytics, email, notifications, collaboration,
-               security, storage, webhooks, validators, seo, observability
+  contracts/   Public request, response, and error schemas
+  core/        Domain types and policies
+  services/    Effect services and use cases
+  db/          PostgreSQL migrations and tooling
+  worker/      Social publishing runtime
+  connections/ Social-provider integrations
 ```
 
-## Getting started
+## Local development
 
 ### Prerequisites
 
-- **Node.js** 22.12+
-- **pnpm** 10 (`corepack enable` picks up the pinned version)
-
-### Install
+- Node.js 22.12 or newer
+- pnpm 10.8.0 through Corepack
+- Docker
 
 ```bash
+corepack enable
 pnpm install
+pnpm pg:up
+pnpm pg:migrate
+pnpm dev:app+api
 ```
 
-### Configure environment
-
-Each app reads its own environment. Copy the examples and fill in credentials
-for the third-party services above:
+Focused surfaces:
 
 ```bash
-cp apps/app/.env.example apps/app/.env
-cp apps/web/.env.example apps/web/.env
-```
-
-At minimum you'll need Clerk and a Postgres database URL to boot the app; the
-remaining keys enable individual integrations (payments, social providers,
-email, analytics, etc.). Admin-only features read a comma-separated allowlist
-from `ADMIN_EMAILS` / `NEXT_PUBLIC_ADMIN_EMAILS`.
-
-### Develop
-
-```bash
-pnpm dev          # run everything via Turborepo
-pnpm dev:app      # just the dashboard (http://localhost:3000)
-pnpm dev:web      # just the marketing site
-pnpm dev:api      # just the Postgres-backed API worker
-pnpm dev:docs     # documentation site (http://localhost:3004)
-```
-
-## Documentation
-
-The full product, CLI, MCP, OAuth, REST API, and architecture documentation
-lives in [`apps/docs`](./apps/docs). The docs build generates its OpenAPI 3.1
-reference directly from `@delulu/contracts`, so endpoint schemas stay aligned
-with the production worker.
-
-```bash
+pnpm dev:web
 pnpm dev:docs
-pnpm --filter @delulu/docs build
+pnpm cli -- --help
+pnpm mcp
 ```
 
-## Common scripts
+## Verification
 
-| Command            | Description                     |
-| ------------------ | ------------------------------- |
-| `pnpm build`       | Build all apps and packages     |
-| `pnpm typecheck`   | Type-check the whole monorepo   |
-| `pnpm test`        | Run the test suites             |
-| `pnpm check`       | Lint / format check (Ultracite) |
-| `pnpm fix`         | Auto-fix lint & formatting      |
-| `pnpm pg:migrate`  | Apply local Postgres migrations |
+```bash
+pnpm check
+pnpm typecheck
+pnpm test
+pnpm pg:migration-lint
+```
 
-## Contributing
+Database integration suites require a migrated PostgreSQL instance. Container
+and self-host smoke checks run in CI.
 
-Issues and pull requests are welcome. Please read the
-[Code of Conduct](./.github/CODE_OF_CONDUCT.md) and note that all contributions
-are accepted under the terms of the [LICENSE](./LICENSE).
+## Contributing and security
+
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md),
+[SECURITY.md](./SECURITY.md), [SUPPORT.md](./SUPPORT.md), and the
+[Code of Conduct](./.github/CODE_OF_CONDUCT.md) first.
+
+Please report vulnerabilities privately through GitHub Security Advisories,
+not a public issue.
 
 ## License
 
-[FSL-1.1-ALv2](./LICENSE) © Delulu Social — converts to Apache-2.0 two years
-after each release.
+Delulu is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
+If you modify it and provide the modified software over a network, the AGPL
+requires you to offer the corresponding source to those users.

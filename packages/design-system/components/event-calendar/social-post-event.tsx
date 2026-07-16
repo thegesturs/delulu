@@ -6,7 +6,7 @@ import {
   socialIcons,
 } from "@delulu/design-system/lib/social-config";
 import { cn } from "@delulu/design-system/lib/utils";
-import { ClockIcon } from "@hugeicons-pro/core-solid-rounded";
+import { ClockIcon } from "@hugeicons/core-free-icons";
 import { format } from "date-fns";
 import type React from "react";
 import { Icon } from "../../providers/icon";

@@ -16,7 +16,7 @@ import {
   Key01Icon,
   Pencil as PencilIcon,
   Settings as SettingsIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import type { ComponentType } from "react";
 import { Icon } from "../providers/icon";
 

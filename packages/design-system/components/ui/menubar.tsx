@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as MenubarPrimitive from "@radix-ui/react-menubar"
 import { Icon } from "../../providers/icon"
-import { Tick, ChevronRight, Circle } from "@hugeicons-pro/core-solid-rounded"
+import { Tick, ChevronRight, Circle } from "@hugeicons/core-free-icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { Icon } from "../../providers/icon"
-import { ChevronRight, MoreHorizontal } from "@hugeicons-pro/core-solid-rounded"
+import { ChevronRight, MoreHorizontal } from "@hugeicons/core-free-icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

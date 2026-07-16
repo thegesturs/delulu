@@ -7,10 +7,10 @@
  * - VIBE: Premium unlimited tier (unlimited socials/posts/storage, 10 team members) - $9.99/mo
  */
 
-export type PlanType = "FREE" | "VIBE" | "ECHO";
+export type PlanType = "FREE" | "VIBE" | "ECHO" | "COMMUNITY";
 
 /** Paid tiers shown on marketing and billing surfaces */
-export type PublicPlanType = Exclude<PlanType, "FREE">;
+export type PublicPlanType = "ECHO" | "VIBE";
 export const PAID_PLAN_TYPES = [
   "ECHO",
   "VIBE",
@@ -163,6 +163,31 @@ export const PLANS: Record<PlanType, Plan> = {
     },
     popular: true, // Highlight as most popular
   },
+  COMMUNITY: {
+    id: "COMMUNITY",
+    name: "Community",
+    description: "Unlocked core features for self-hosted instances",
+    price: {
+      USD: { monthly: 0, yearly: 0 },
+      INR: { monthly: 0, yearly: 0 },
+    },
+    limits: {
+      socialAccounts: -1,
+      monthlyPosts: -1,
+      mediaStorage: -1,
+      mediaStorageBytes: -1,
+      teamMembers: -1,
+      organizations: -1,
+      apiRatePerMinute: 120,
+      apiRequestsPerMonth: -1,
+      dmsPerMonth: -1,
+      mediaRetentionDays: null,
+    },
+    features: {
+      postScheduling: true,
+      prioritySupport: false,
+    },
+  },
 };
 
 /** Compatibility lookup for surfaces that display or enforce DM quotas. */
@@ -170,6 +195,7 @@ export const DM_PLAN_LIMITS: Readonly<Record<PlanType, number>> = {
   FREE: PLANS.FREE.limits.dmsPerMonth,
   ECHO: PLANS.ECHO.limits.dmsPerMonth,
   VIBE: PLANS.VIBE.limits.dmsPerMonth,
+  COMMUNITY: PLANS.COMMUNITY.limits.dmsPerMonth,
 };
 
 /**
@@ -194,6 +220,8 @@ export function resolvePlanType(plan: string | null | undefined): PlanType {
       return "VIBE";
     case "ECHO":
       return "ECHO";
+    case "COMMUNITY":
+      return "COMMUNITY";
     default:
       return "FREE";
   }

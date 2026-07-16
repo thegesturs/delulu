@@ -12,6 +12,7 @@ import {
   type Plan,
   type PublicPlanType,
 } from "@delulu/payments";
+import { Github } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useCurrency } from "@/hooks/use-currency";
@@ -193,11 +194,12 @@ export default function Pricing() {
     <div className="mx-auto max-w-7xl px-4 py-24" id="pricing">
       <div className="mb-16 text-center">
         <h2 className="mb-4 font-bold text-4xl">
-          <span className="text-primary">Simple</span> Pricing for Everyone
+          Hosted when you want it.{" "}
+          <span className="text-primary">Open source</span> when you don&apos;t.
         </h2>
         <p className="mx-auto max-w-2xl text-muted-foreground">
-          Choose the perfect plan for your needs. Start growing your social
-          media presence today.
+          Use our managed service or run the Community edition on your own
+          infrastructure.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <span
@@ -243,6 +245,27 @@ export default function Pricing() {
             yearlyPrice={plan.price[currency].yearly}
           />
         ))}
+      </div>
+      <div className="mx-auto mt-4 max-w-4xl rounded-[28px] border bg-card p-6 md:flex md:items-center md:justify-between md:gap-8">
+        <div>
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-2xl">Community self-hosted</h3>
+            <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary text-xs">
+              AGPL-3.0
+            </span>
+          </div>
+          <p className="mt-2 text-muted-foreground">
+            Core scheduling, publishing, agent interfaces, workspaces, reviews,
+            and automations unlocked. You cover infrastructure and external
+            provider costs.
+          </p>
+        </div>
+        <Button asChild className="mt-5 shrink-0 md:mt-0" variant="outline">
+          <Link href="https://github.com/thegesturs/delulu">
+            <Github aria-hidden="true" className="mr-2 size-4" />
+            Self-host free
+          </Link>
+        </Button>
       </div>
     </div>
   );

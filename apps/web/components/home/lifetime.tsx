@@ -18,7 +18,7 @@ import {
   SparklesIcon,
   Tick02Icon,
   UserMultipleIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { AnimatePresence, motion, useInView } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";

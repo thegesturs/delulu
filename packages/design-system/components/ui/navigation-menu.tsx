@@ -2,7 +2,7 @@ import * as React from "react"
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu"
 import { cva } from "class-variance-authority"
 import { Icon } from "../../providers/icon"
-import { ChevronDown } from "@hugeicons-pro/core-solid-rounded"
+import { ChevronDown } from "@hugeicons/core-free-icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

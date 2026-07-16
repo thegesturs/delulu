@@ -2,10 +2,7 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Input } from "@delulu/design-system/components/ui/input";
 import { Icon } from "@delulu/design-system/providers/icon";
 
-import {
-  ArrowRight01Icon,
-  Search01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { ArrowRight01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 
 export const Search = () => (
   <form action="/search" className="flex items-center gap-2 px-4">

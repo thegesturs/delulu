@@ -34,7 +34,7 @@ export const createOrganizationSchema = (
   url,
   logo: `${url}/images/logo.png`,
   description:
-    "Social media management platform for creating and publishing content across multiple social networks",
+    "Open-source social scheduling infrastructure for AI agents, available hosted or self-hosted.",
   sameAs: [
     "https://twitter.com/delulusocial",
     "https://linkedin.com/company/delulu-social",
@@ -53,16 +53,7 @@ export const createWebSiteSchema = (url: string): WithContext<WebSite> => ({
   name: "Delulu Social",
   url,
   description:
-    "Manage all your social media platforms in one place. Create, schedule, and publish content across Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, and more.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${url}/search?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-    // biome-ignore lint/suspicious/noExplicitAny: JSON-LD schema requires flexible typing
-  } as any,
+    "Permissioned scheduling, publishing, review, media, and automation tools for AI agents across 10+ social networks.",
 });
 
 // Software Application schema
@@ -73,7 +64,7 @@ export const createSoftwareApplicationSchema = (
   "@type": "SoftwareApplication",
   name: "Delulu Social",
   description:
-    "Social media management platform for creating and publishing content across multiple social networks including Instagram, Facebook, Twitter, LinkedIn, TikTok, Pinterest, Threads, and Farcaster.",
+    "Open-source social scheduling infrastructure for AI agents using MCP, a local CLI, or a typed REST API.",
   url,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web Browser",
@@ -81,15 +72,14 @@ export const createSoftwareApplicationSchema = (
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-    priceValidUntil: "2025-12-31",
   },
   featureList: [
-    "Multi-platform social media posting",
-    "Content creation and editing",
-    "Social media scheduling",
-    "Analytics and insights",
-    "Team collaboration",
-    "Content calendar management",
+    "Permissioned agent access",
+    "MCP, CLI, and REST API interfaces",
+    "Multi-network scheduling and publishing",
+    "Human reviews and workspace roles",
+    "Media, analytics, and programmable automation",
+    "Docker Compose self-hosting",
   ],
   screenshot: `${url}/images/app-light.png`,
 });

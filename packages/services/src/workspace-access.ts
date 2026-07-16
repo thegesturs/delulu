@@ -9,6 +9,7 @@ import type {
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AuthorizationService } from "./authorization";
+import { EntitlementPolicy } from "./entitlements";
 import { MembershipService } from "./membership";
 
 export interface WorkspaceAccess {
@@ -44,6 +45,7 @@ export class WorkspaceAccessService extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       const membership = yield* MembershipService;
       const authorization = yield* AuthorizationService;
+      const entitlements = yield* EntitlementPolicy;
       const findWorkspace = SqlSchema.findOneOption({
         Request: Schema.String,
         Result: WorkspaceRow,
@@ -89,7 +91,8 @@ export class WorkspaceAccessService extends Context.Service<
           // before checkout. Product mutations still require paid access.
           if (
             input.scope.endsWith(":write") &&
-            input.scope !== "accounts:write"
+            input.scope !== "accounts:write" &&
+            !(yield* entitlements.isCommunity)
           ) {
             const subscriptions = yield* sql<{ active: boolean }>`SELECT EXISTS(
               SELECT 1 FROM subscriptions s

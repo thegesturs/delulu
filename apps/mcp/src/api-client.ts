@@ -55,11 +55,17 @@ export class DeluluApiClient {
     return runEffect(this.client.me.workspaces());
   }
 
+  async getInstanceCapabilities() {
+    return runEffect(this.client.instance.capabilities());
+  }
+
   async getSetupStatus(workspaceId?: string) {
     const resolved = await this.resolveWorkspaceId(workspaceId);
-    return runEffect(
-      this.client.me.setup({ params: { workspaceId: resolved } })
-    );
+    const [instance, setup] = await Promise.all([
+      this.getInstanceCapabilities(),
+      runEffect(this.client.me.setup({ params: { workspaceId: resolved } })),
+    ]);
+    return { instance, setup };
   }
 
   // Posts

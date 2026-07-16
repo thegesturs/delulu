@@ -2,11 +2,13 @@ import { PgClient } from "@effect/sql-pg";
 import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { describe, expect, it } from "vitest";
+import { DeploymentConfig } from "../../src/deployment";
 import {
   DmDispatchService,
   ProviderDmError,
   ProviderDmService,
 } from "../../src/dm-dispatch";
+import { EntitlementPolicy } from "../../src/entitlements";
 import { IdentityService } from "../../src/identity";
 import { provisionPaidSubscription } from "./paid-subscription";
 
@@ -24,7 +26,21 @@ const layerFor = (send: ProviderDmService["Type"]["send"]) => {
     ProviderDmService,
     ProviderDmService.of({ send })
   );
-  const Dispatch = DmDispatchService.layer.pipe(Layer.provide(Provider));
+  const Entitlements = EntitlementPolicy.layer.pipe(
+    Layer.provide(
+      DeploymentConfig.layer({
+        mode: "hosted",
+        publishTransport: "sqs",
+        registrationEnabled: true,
+        version: "test",
+        communityApiRatePerMinute: 120,
+      })
+    )
+  );
+  const Dispatch = DmDispatchService.layer.pipe(
+    Layer.provide(Provider),
+    Layer.provide(Entitlements)
+  );
   return Layer.mergeAll(IdentityService.layer, Dispatch).pipe(
     Layer.provideMerge(Pg)
   );

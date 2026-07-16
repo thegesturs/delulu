@@ -6,7 +6,7 @@ import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { type SocialType, SocialTypes } from "@delulu/validators/post";
-import { Add01Icon, Remove01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, Remove01Icon } from "@hugeicons/core-free-icons";
 import { useCallback, useMemo, useRef } from "react";
 import {
   getDefaultCharacterLimit,

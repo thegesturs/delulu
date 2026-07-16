@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@delulu/design-system/components/ui/dialog";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CheckmarkCircle01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";

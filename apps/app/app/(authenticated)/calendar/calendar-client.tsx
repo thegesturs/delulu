@@ -9,7 +9,7 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CalendarPlus } from "@hugeicons-pro/core-solid-rounded";
+import { CalendarPlus } from "@hugeicons/core-free-icons";
 import { Effect } from "effect";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";

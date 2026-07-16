@@ -2,7 +2,7 @@
 
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Alert02Icon, Loading03Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Alert02Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 
 export const taggedMessage = (error: Error): string => {
   const tagged = error as Error & { readonly _tag?: string };

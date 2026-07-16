@@ -26,7 +26,7 @@ import {
   InformationCircleIcon,
   MailSend01Icon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useCallback } from "react";
 import { SendDmPanel } from "@/components/automations/flow-builder/panels/send-dm-panel";
 import {

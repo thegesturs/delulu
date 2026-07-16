@@ -6,7 +6,7 @@ import Pricing from "@/components/home/pricing";
 export const metadata: Metadata = createMetadata({
   title: "Pricing",
   description:
-    "Simple, transparent pricing for social media management. Choose the perfect plan for your needs - from free to unlimited. No hidden fees, cancel anytime.",
+    "Hosted plans for agent-driven social scheduling, plus a free Community self-hosted option under AGPL-3.0.",
   alternates: {
     canonical: getWebUrl("/pricing"),
   },

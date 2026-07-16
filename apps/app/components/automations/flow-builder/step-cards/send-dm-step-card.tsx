@@ -3,10 +3,7 @@
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Cancel01Icon,
-  MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Cancel01Icon, MailSend01Icon } from "@hugeicons/core-free-icons";
 import type { SendDmStep } from "../utils/flow-types";
 
 interface SendDmStepCardProps {

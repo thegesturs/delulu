@@ -15,7 +15,7 @@ import {
 } from "@delulu/design-system/components/ui/tooltip";
 import { Icon } from "@delulu/design-system/providers/icon";
 import type { SocialType } from "@delulu/validators/post";
-import { ArrowDown01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { getPlatformsInDefault } from "@/lib/platform-rules";
 import { useSelectedSocialProviders, useStore } from "@/store/post";
 import { SocialIcon } from "./sidebar/social-icon";

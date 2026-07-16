@@ -12,7 +12,7 @@ import {
   UserMultipleIcon,
   ViewIcon,
   WifiConnected01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 
 interface Totals {
   impressions: number;

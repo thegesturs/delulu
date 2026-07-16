@@ -14,7 +14,7 @@ import {
   Delete01Icon,
   Image01Icon,
   PencilEdit01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useCallback, useState } from "react";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { MediaUploader } from "./media-uploader";

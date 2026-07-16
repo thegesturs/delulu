@@ -5,7 +5,7 @@
  * Supports different IDs for test_mode and production environments.
  */
 
-import type { CurrencyCode, PlanType } from "./plans";
+import type { CurrencyCode, PublicPlanType } from "./plans";
 
 export interface ProductIdConfig {
   monthly: string;
@@ -15,10 +15,7 @@ export interface ProductIdConfig {
 /**
  * Test Mode Product IDs (for development/staging)
  */
-export const TEST_PRODUCT_IDS: Record<
-  Exclude<PlanType, "FREE">,
-  ProductIdConfig
-> = {
+export const TEST_PRODUCT_IDS: Record<PublicPlanType, ProductIdConfig> = {
   VIBE: {
     monthly: "pdt_mPTd8gsQS8YUISdStWURf", // $9.99/month (test)
     yearly: "pdt_naiOlQemBRKGOVNKR8qmA", // $99/year (test)
@@ -32,10 +29,7 @@ export const TEST_PRODUCT_IDS: Record<
 /**
  * Production Product IDs
  */
-export const PROD_PRODUCT_IDS: Record<
-  Exclude<PlanType, "FREE">,
-  ProductIdConfig
-> = {
+export const PROD_PRODUCT_IDS: Record<PublicPlanType, ProductIdConfig> = {
   VIBE: {
     monthly: "pdt_tbJH22RAmI1RSPWl9ZtZd", // $9.90/month (prod)
     yearly: "pdt_4iLNFL4WpmxdCAXIXVEkm", // $99.0/year (prod)
@@ -49,10 +43,7 @@ export const PROD_PRODUCT_IDS: Record<
 /**
  * Test Mode Product IDs for INR (India)
  */
-export const TEST_PRODUCT_IDS_INR: Record<
-  Exclude<PlanType, "FREE">,
-  ProductIdConfig
-> = {
+export const TEST_PRODUCT_IDS_INR: Record<PublicPlanType, ProductIdConfig> = {
   VIBE: {
     monthly: "pdt_0NY399wZtyH8PLqVDYxu2", // ₹899/month (test)
     yearly: "pdt_0NY392AyfbiQoB7XCXrIj", // ₹8,899/year (test)
@@ -66,10 +57,7 @@ export const TEST_PRODUCT_IDS_INR: Record<
 /**
  * Production Product IDs for INR (India)
  */
-export const PROD_PRODUCT_IDS_INR: Record<
-  Exclude<PlanType, "FREE">,
-  ProductIdConfig
-> = {
+export const PROD_PRODUCT_IDS_INR: Record<PublicPlanType, ProductIdConfig> = {
   VIBE: {
     monthly: "pdt_0NY399wZtyH8PLqVDYxu2", // ₹899/month (prod)
     yearly: "pdt_0NY392AyfbiQoB7XCXrIj", // ₹8,899/year (prod)
@@ -157,7 +145,7 @@ export function getSortedProductId(): string {
  */
 export function getProductIds(
   currency: CurrencyCode = "USD"
-): Record<Exclude<PlanType, "FREE">, ProductIdConfig> {
+): Record<PublicPlanType, ProductIdConfig> {
   const env = process.env.NEXT_PUBLIC_DODO_PAYMENTS_ENVIRONMENT ?? "test_mode";
   if (currency === "INR") {
     return env === "live_mode" ? PROD_PRODUCT_IDS_INR : TEST_PRODUCT_IDS_INR;
@@ -169,7 +157,7 @@ export function getProductIds(
  * Get product ID for a specific plan and billing period
  */
 export function getProductId(
-  planType: Exclude<PlanType, "FREE">,
+  planType: PublicPlanType,
   billingPeriod: "MONTHLY" | "YEARLY"
 ): string {
   const productIds = getProductIds();
@@ -183,7 +171,7 @@ export function getProductId(
  * Supports test, production, and INR IDs
  */
 export function getPlanFromProductId(productId: string): {
-  planType: Exclude<PlanType, "FREE">;
+  planType: PublicPlanType;
   billingPeriod: "MONTHLY" | "YEARLY";
 } | null {
   const allMaps = [
@@ -197,13 +185,13 @@ export function getPlanFromProductId(productId: string): {
     for (const [plan, ids] of Object.entries(map)) {
       if (ids.monthly === productId) {
         return {
-          planType: plan as Exclude<PlanType, "FREE">,
+          planType: plan as PublicPlanType,
           billingPeriod: "MONTHLY",
         };
       }
       if (ids.yearly === productId) {
         return {
-          planType: plan as Exclude<PlanType, "FREE">,
+          planType: plan as PublicPlanType,
           billingPeriod: "YEARLY",
         };
       }

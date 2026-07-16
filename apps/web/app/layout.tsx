@@ -22,9 +22,9 @@ interface RootLayoutProperties {
 }
 
 export const metadata: Metadata = createMetadata({
-  title: "Delulu Social",
+  title: "Delulu — Social Scheduling for AI Agents",
   description:
-    "Social media management platform for creating and publishing content across multiple social networks",
+    "Open-source social scheduling infrastructure for agents, available through MCP, the CLI, and a typed API. Run hosted or self-hosted.",
   image: "/images/logo.png",
   alternates: {
     canonical: getWebOrigin(),

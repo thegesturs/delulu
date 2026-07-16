@@ -14,7 +14,7 @@ import {
   Loading03Icon,
   Upload01Icon,
   VideoIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

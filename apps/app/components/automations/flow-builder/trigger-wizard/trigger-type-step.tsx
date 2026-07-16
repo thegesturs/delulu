@@ -7,7 +7,7 @@ import {
   AtIcon,
   Comment01Icon,
   UserStoryIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import type { AutomationTriggerType } from "../utils/flow-types";
 
 interface TriggerOption {

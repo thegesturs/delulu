@@ -1,7 +1,7 @@
 {
   "name": "delulu-social",
   "version": "4.2.16",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-only",
   "bin": {
     "delulu-social": "dist/index.js"
   },

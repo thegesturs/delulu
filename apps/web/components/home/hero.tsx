@@ -1,173 +1,97 @@
 "use client";
+
 import { useAnalytics } from "@delulu/analytics/posthog/client";
-import { useTheme } from "@delulu/design-system";
 import { Button } from "@delulu/design-system/components/ui/button";
-import type { CurrencyCode } from "@delulu/payments";
-import { motion } from "motion/react";
-import Image from "next/image";
+import { ArrowRight, Github } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import type React from "react";
-import { useRef } from "react";
 import Balancer from "react-wrap-balancer";
-import { useCurrency } from "@/hooks/use-currency";
-import { DesktopMockup } from "./desktop-mockup";
+import { AgentWorkflowGraphic } from "./agent-workflow-graphic";
 import { GradientBars } from "./gradient-bars";
 
-function getHeroVariants(currency: CurrencyCode) {
-  const price = currency === "INR" ? "\u20B9899" : "$9.99";
-  const priceMo = currency === "INR" ? "\u20B9899/mo" : "$9.99/mo";
-  return {
-    outcome: {
-      headline: "Every comment on your post can become a follower.",
-      subtitle: `Delulu auto-replies and DMs anyone who comments a keyword \u2014 turning casual scrollers into real followers. Plus it posts across 8 platforms. One tool. ${priceMo}.`,
-      cta1: "Get started from $4.99/mo",
-      cta2: "See how it works",
-    },
-    pain: {
-      headline: "You post every day. Your audience isn\u2019t growing.",
-      subtitle:
-        "Comments pile up. Followers never come back. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
-      cta1: "Fix my DMs",
-      cta2: "See how it works",
-    },
-    identity: {
-      headline: "Built for creators who grow, not just post.",
-      subtitle: `Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + growth. One tool. ${price}.`,
-      cta1: "Get started from $4.99/mo",
-      cta2: "See how it works",
-    },
-    curiosity: {
-      headline: "What if every Instagram comment became a follower?",
-      subtitle: `Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and turns a stranger into a fan. Oh, and it also schedules your posts across 8 platforms. For ${priceMo}.`,
-      cta1: "Get started",
-      cta2: "See how it works",
-    },
-    direct: {
-      headline: `Post everywhere. Auto-DM your fans. ${price}.`,
-      subtitle:
-        "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually grows your audience.",
-      cta1: "Get started from $4.99/mo",
-      cta2: "See how it works",
-    },
-  } as const;
-}
-
-type HeroVariantKey = "outcome" | "pain" | "identity" | "curiosity" | "direct";
+const AGENT_SETUP_URL =
+  "https://docs.delulu.social/getting-started/agent-setup/";
+const SOURCE_URL = "https://github.com/thegesturs/delulu";
 
 export function Hero() {
-  const parentRef = useRef<HTMLDivElement>(
-    null
-  ) as React.RefObject<HTMLDivElement>;
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const image = isDark ? "/images/app-dark.png" : "/images/app-light.png";
+  const analytics = useAnalytics();
+  const reduceMotion = useReducedMotion();
 
-  const currency = useCurrency();
-  const heroVariants = getHeroVariants(currency);
-
-  const posthog = useAnalytics();
-  const flagValue = posthog?.getFeatureFlag("hero-variant");
-  const variantKey: HeroVariantKey =
-    typeof flagValue === "string" && flagValue in heroVariants
-      ? (flagValue as HeroVariantKey)
-      : "outcome";
-  const variant = heroVariants[variantKey];
+  const capture = (destination: "agent_setup" | "source") => {
+    analytics?.capture("landing_agent_cta_clicked", { destination });
+  };
 
   return (
-    <div
-      className="relative mx-auto flex max-w-7xl flex-col items-center justify-center overflow-hidden px-4 pt-40 md:px-8"
-      ref={parentRef}
+    <section
+      className="relative mx-auto overflow-hidden px-4 pt-32 md:px-8 md:pt-40"
+      id="home"
     >
-      {/* Shader Background */}
-      <div className="absolute inset-0">
-        <GradientBars
-          bars={20}
-          colors={[theme === "dark" ? "#818cf8" : "#4338ca", "transparent"]}
-        />
+      <div aria-hidden="true" className="absolute inset-0">
+        <GradientBars bars={20} colors={["#4338ca", "transparent"]} />
       </div>
 
-      {/* Content */}
       <div className="relative z-20 mx-auto max-w-4xl text-center">
-        {/* Main Heading */}
+        <motion.p
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mb-6 w-fit rounded-full border bg-background/70 px-4 py-2 font-medium text-primary text-sm backdrop-blur"
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        >
+          Open-source social scheduling for AI agents
+        </motion.p>
         <motion.h1
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
-          initial={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Balancer>{variant.headline}</Balancer>
+          <Balancer>Your agent can run your social media.</Balancer>
         </motion.h1>
-
-        {/* Subtitle */}
         <motion.p
           animate={{ opacity: 1, y: 0 }}
-          className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl"
-          initial={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mx-auto mb-10 max-w-3xl text-lg text-muted-foreground md:text-xl"
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Balancer>{variant.subtitle}</Balancer>
+          <Balancer>
+            Give your agent permissioned tools to prepare media, schedule,
+            publish, and handle approvals across 10+ social networks. Use MCP,
+            the CLI, or the API. Run it hosted or self-host it.
+          </Balancer>
         </motion.p>
 
-        {/* CTA Buttons */}
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
-          initial={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mb-6 flex flex-col items-center justify-center gap-3 sm:flex-row"
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
         >
           <Button asChild size="lg">
-            <Link href="https://solulu.delulu.social/sign-in">
-              {variant.cta1}
+            <Link href={AGENT_SETUP_URL} onClick={() => capture("agent_setup")}>
+              Connect your agent
+              <ArrowRight aria-hidden="true" className="ml-2 size-4" />
             </Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="#how-it-works">{variant.cta2}</Link>
+            <Link href={SOURCE_URL} onClick={() => capture("source")}>
+              <Github aria-hidden="true" className="mr-2 size-4" />
+              View on GitHub
+            </Link>
           </Button>
         </motion.div>
-
-        {/* Tiny Reassurance */}
-        <motion.p
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-auto mb-16 max-w-md text-sm text-zinc-500"
-          initial={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <Balancer>
-            We use official APIs from Meta, TikTok, LinkedIn & more. No sketchy
-            workarounds. Your account stays safe — pinky promise.
-          </Balancer>
-        </motion.p>
+        <p className="mx-auto mb-12 max-w-2xl text-muted-foreground text-sm">
+          Your agent gets scoped access. You keep account ownership, approval
+          rules, and the final say on every post.
+        </p>
       </div>
 
-      {/* App Preview */}
       <motion.div
-        animate={{ y: 0, opacity: 1 }}
-        className="relative z-10 mb-[-100px] w-full max-w-5xl"
-        initial={{ y: 60, opacity: 0 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative z-10 mx-auto max-w-6xl pb-20"
+        initial={reduceMotion ? false : { opacity: 0, y: 32 }}
+        transition={{ duration: 0.65, delay: 0.35 }}
       >
-        <DesktopMockup>
-          <Image
-            alt="Delulu Social Dashboard"
-            className="h-full w-full object-contain object-top"
-            height={800}
-            priority
-            src={image}
-            width={1200}
-          />
-          {/* Sarcastic Text Overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              className="rounded-lg bg-black/80 px-6 py-3 text-center text-white backdrop-blur-sm"
-              initial={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-            >
-              <p className="font-medium text-lg">Look, mom, one click.</p>
-            </motion.div>
-          </div>
-        </DesktopMockup>
+        <AgentWorkflowGraphic />
       </motion.div>
-    </div>
+    </section>
   );
 }

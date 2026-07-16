@@ -25,7 +25,7 @@ import {
   PLANS,
   type PublicPlanType,
 } from "@delulu/payments";
-import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Tick01Icon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";

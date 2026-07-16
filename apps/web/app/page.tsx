@@ -6,34 +6,32 @@ import { Suspense } from "react";
 // ISR: the home page contains a blog preview; revalidate hourly.
 export const revalidate = 3600;
 
+import { AgentSections } from "@/components/home/agent-sections";
 import { BlogSection } from "@/components/home/blog-section";
 import CTA from "@/components/home/cta";
 import { FAQ } from "@/components/home/faq";
 import { Hero } from "@/components/home/hero";
-import { HowItWorks } from "@/components/home/how-it-works";
-import { MascotBenefits } from "@/components/home/mascot-benefits";
-import { MascotStruggle } from "@/components/home/mascot-struggle";
 import Pricing from "@/components/home/pricing";
 
 export const generateMetadata = (): Metadata => {
   return createMetadata({
-    title: "Delulu Social \u2014 Post Everywhere + Auto-DM from $4.99/mo",
+    title: "Delulu — Open-Source Social Scheduling for AI Agents",
     description:
-      "Schedule across 8 platforms and auto-DM Instagram commenters. Built for creators who grow. Plans from $4.99/mo with a 14-day guarantee.",
+      "Give your agent permissioned tools to prepare media, schedule, publish, and handle approvals across 10+ social networks. Hosted or self-hosted.",
     alternates: {
       canonical: getWebOrigin(),
     },
     openGraph: {
-      title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
+      title: "Your agent can run your social media",
       description:
-        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
+        "Open-source social scheduling infrastructure for agents. Use MCP, the CLI, or the API across 10+ social networks.",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
+      title: "Your agent can run your social media",
       description:
-        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
+        "Open-source social scheduling infrastructure for agents. Hosted or self-hosted.",
     },
   });
 };
@@ -42,10 +40,7 @@ const Home = () => {
   return (
     <main className="mx-auto max-w-7xl border-x">
       <Hero />
-      <HowItWorks />
-      <MascotStruggle />
-      <MascotBenefits />
-      {/* <MascotSocialProof /> */}
+      <AgentSections />
       <Pricing />
       <Suspense>
         <BlogSection />

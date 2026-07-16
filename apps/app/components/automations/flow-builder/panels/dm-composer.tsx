@@ -6,7 +6,7 @@ import {
   Add01Icon,
   Cancel01Icon,
   Link01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { nanoid } from "nanoid";
 import type { DmButton, SendDmStep } from "../utils/flow-types";
 

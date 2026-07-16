@@ -1,0 +1,21 @@
+---
+title: Self-hosting
+description: Run the supported Community deployment with Docker Compose.
+---
+
+Delulu's Community deployment runs the app, typed Node API, PostgreSQL publisher, migrations, and PostgreSQL with Docker Compose. It is AGPL-3.0-only and does not require a subscription.
+
+The first supported release requires Clerk and Cloudflare R2 credentials, plus an operator-generated key for signing agent OAuth tokens. Generic OIDC and S3-compatible storage are planned portability milestones.
+
+## Quick start
+
+```bash
+cp .env.selfhost.example .env
+docker compose config --quiet
+docker compose up -d --build --wait
+curl "$NEXT_PUBLIC_API_URL/v1/instance"
+```
+
+Set `DELULU_DEPLOYMENT_MODE=self_hosted` and `DELULU_PUBLISH_TRANSPORT=postgres`. The capability endpoint is authoritative; clients should use `GET /v1/instance` instead of guessing from environment variables.
+
+The complete operator guide—including prerequisites, TLS, backups, restores, upgrades, callback URLs, and credential rotation—is in [`docs/self-hosting.md`](https://github.com/delulu-social/delulu/blob/main/docs/self-hosting.md).

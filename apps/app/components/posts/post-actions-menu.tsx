@@ -38,7 +38,7 @@ import {
   RefreshIcon,
   Sent02Icon,
   ViewIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";

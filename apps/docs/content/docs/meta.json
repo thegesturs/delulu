@@ -2,6 +2,7 @@
   "title": "Delulu",
   "pages": [
     "index",
+    "self-hosting",
     "getting-started",
     "guides",
     "cli",

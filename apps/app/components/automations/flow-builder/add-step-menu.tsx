@@ -11,7 +11,7 @@ import {
   Add01Icon,
   FilterIcon,
   MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { useState } from "react";
 
 interface AddStepMenuProps {

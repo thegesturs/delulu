@@ -49,8 +49,7 @@ jobs:
       # Trusted Publishing needs npm >= 11.5.1 (Node 22 ships npm 10.x).
       - name: Upgrade npm for OIDC support
         run: npm install -g npm@latest
-      # CLI dependency subgraph only — never pulls apps/app or the Hugeicons
-      # registry, so no HUGEICONS_TOKEN is needed.
+      # Install only the public CLI dependency subgraph.
       - name: Install (cli subgraph)
         run: pnpm install --frozen-lockfile --filter=delulu-cli...
       - name: Build CLI

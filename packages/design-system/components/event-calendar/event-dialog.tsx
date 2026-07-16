@@ -44,7 +44,7 @@ import { cn } from "@delulu/design-system/lib/utils";
 import {
   Calendar as CalendarHugeIcon,
   Delete01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import { format, isBefore } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "../../providers/icon";

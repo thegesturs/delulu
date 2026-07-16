@@ -7,7 +7,7 @@ import { Icon } from "@delulu/design-system/providers/icon";
 import {
   ArrowLeft02Icon,
   Calendar01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { ReviewActions } from "@/components/posts/review-actions";
 import { ReviewActivity } from "@/components/posts/review-activity";

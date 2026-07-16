@@ -26,7 +26,7 @@ import {
   MailSend01Icon,
   MoreHorizontalIcon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useState } from "react";
 import DeleteAlertDialog from "../alerts/delete-post";

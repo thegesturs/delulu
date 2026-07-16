@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "start": "tsx node.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run --passWithNoTests",
     "test:integration": "vitest run --config vitest.integration.config.ts",
@@ -24,6 +25,7 @@
     "@types/node": "22.14.1",
     "axios": "^1.9.0",
     "dotenv": "^17.2.1",
+    "tsx": "^4.20.3",
     "googleapis": "^150.0.1",
     "nanoid": "^5.1.5",
     "@xdevplatform/xdk": "0.5.0",
