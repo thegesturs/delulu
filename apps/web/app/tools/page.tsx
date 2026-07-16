@@ -1,3 +1,9 @@
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@delulu/design-system/components/ui/card";
 import { type ItemList, JsonLd, type WithContext } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
 import { getWebUrl } from "@delulu/seo/url";
@@ -5,39 +11,43 @@ import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Balancer from "react-wrap-balancer";
-import { ToolCard } from "@/components/tools/tool-card";
-import { getTool, getToolHref } from "@/lib/tools";
+import { ToolCard, ToolIcon } from "@/components/tools/tool-card";
+import { getTool, toolFamilies } from "@/lib/tools";
 
-const featuredTools = [
+const popularTools = [
   getTool("instagram-caption-character-counter"),
   getTool("word-counter"),
-  getTool("bold-text-generator"),
   getTool("youtube-video-trimmer"),
+  getTool("social-media-holiday-calendar"),
+  getTool("social-media-awareness-days-calendar"),
 ].filter((tool) => tool !== undefined);
 
 export const metadata: Metadata = createMetadata({
-  title: "Free Social Media Tools for Captions, Text & Video",
+  title: "Free Social Media Tools for Captions, Calendars & Video",
   description:
-    "Count a caption, format social text, or trim a video now. Free creator tools with no signup and private browser processing where practical.",
+    "Check captions, format social text, find reliable content dates, or trim a video. Free creator tools with no signup required.",
   image: getWebUrl(
-    "/api/og?title=Free%20Social%20Media%20Tools&description=Count%20captions%2C%20format%20text%2C%20and%20trim%20video"
+    "/api/og?title=Free%20Social%20Media%20Tools&description=Plan%20dates%2C%20check%20captions%2C%20format%20text%2C%20and%20trim%20video"
   ),
   alternates: {
     canonical: getWebUrl("/tools"),
   },
-  openGraph: { url: getWebUrl("/tools") },
+  openGraph: {
+    type: "website",
+    url: getWebUrl("/tools"),
+  },
 });
 
 const itemListSchema: WithContext<ItemList> = {
   "@context": "https://schema.org",
   "@type": "ItemList",
   name: "Free social media tools for creators",
-  itemListElement: featuredTools.map((tool, index) => ({
+  itemListElement: toolFamilies.map((family, index) => ({
     "@type": "ListItem",
     position: index + 1,
-    name: tool.title,
-    description: tool.description,
-    url: getWebUrl(getToolHref(tool)),
+    name: family.title,
+    description: family.description,
+    url: getWebUrl(`/tools/${family.slug}`),
   })),
 };
 
@@ -52,27 +62,56 @@ export default function ToolsPage() {
         </h1>
         <p className="mt-5 text-lg text-muted-foreground leading-8">
           <Balancer>
-            Choose what you need to finish: check a caption, format text, or
-            trim a video. Start immediately—no signup required.
+            Choose what you need to finish: check a caption, format text, find a
+            timely date, or trim a video. Start immediately—no signup required.
           </Balancer>
         </p>
       </div>
 
       <section>
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-bold text-2xl tracking-tight">
-            Start with a popular task
-          </h2>
-          <Link
-            className="inline-flex min-h-11 items-center gap-1.5 self-start font-medium text-primary text-sm hover:underline sm:self-auto"
-            href="/tools/text-tools"
-          >
-            See all Caption &amp; Text options
-            <ArrowRight aria-hidden className="size-4" />
-          </Link>
-        </div>
+        <h2 className="mb-5 font-bold text-2xl tracking-tight">
+          Browse by task
+        </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredTools.map((tool) => (
+          {toolFamilies.map((family) => (
+            <Link
+              className="block h-full"
+              href={`/tools/${family.slug}`}
+              key={family.slug}
+            >
+              <Card className="group h-full transition-colors hover:border-primary/60">
+                <CardHeader>
+                  <span className="mb-3 flex size-10 items-center justify-center rounded-lg bg-muted">
+                    <ToolIcon name={family.icon} />
+                  </span>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    {family.title}
+                    <ArrowRight
+                      aria-hidden
+                      className="size-4 opacity-0 transition-opacity group-hover:opacity-100"
+                    />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm leading-6">
+                    {family.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-16">
+        <h2 className="mb-2 font-bold text-2xl tracking-tight">
+          Start with a popular task
+        </h2>
+        <p className="mb-5 text-muted-foreground">
+          Open a frequently used tool and get straight to the work.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {popularTools.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>

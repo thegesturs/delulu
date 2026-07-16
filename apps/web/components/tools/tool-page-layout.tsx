@@ -52,9 +52,11 @@ export function ToolPageLayout({
     description: tool.description,
     url,
     applicationCategory:
-      tool.category === "text"
-        ? "UtilitiesApplication"
-        : "MultimediaApplication",
+      tool.category === "calendar"
+        ? "BusinessApplication"
+        : tool.category === "text"
+          ? "UtilitiesApplication"
+          : "MultimediaApplication",
     operatingSystem: "Web Browser",
     offers: {
       "@type": "Offer",
@@ -201,9 +203,7 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          {tool.family
-            ? `More ${tool.family.title} options`
-            : "Related creator tools"}
+          {tool.family?.relatedHeading ?? "Related creator tools"}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">
@@ -237,7 +237,7 @@ export function ToolPageLayout({
           {tool.family
             ? `See all ${tool.family.title} options`
             : "Find another creator task"}{" "}
-          <ArrowRight className="size-4" />
+          <ArrowRight aria-hidden className="size-4" />
         </Link>
       </section>
     </main>

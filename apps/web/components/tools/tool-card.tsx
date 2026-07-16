@@ -7,6 +7,7 @@ import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import {
   ArrowRight,
+  CalendarDays,
   Hash,
   type LucideIcon,
   Pilcrow,
@@ -17,9 +18,8 @@ import {
 import Link from "next/link";
 import { CATEGORY_LABELS, getToolHref, type Tool } from "@/lib/tools";
 
-// String keys in the tools registry map to icons here so the registry stays
-// server-safe and free of React imports.
 const ICONS: Record<string, LucideIcon> = {
+  calendar: CalendarDays,
   hash: Hash,
   pilcrow: Pilcrow,
   scissors: Scissors,
@@ -34,8 +34,12 @@ const SOCIAL_ICONS: Record<string, SupportedSocialPlatform> = {
   youtube: "YOUTUBE",
 };
 
+export function ToolIcon({ name }: { name: string }) {
+  const Icon = ICONS[name] ?? Wrench;
+  return <Icon aria-hidden className="size-5 text-primary" />;
+}
+
 export function ToolCard({ tool }: { tool: Tool }) {
-  const Icon = ICONS[tool.icon] ?? Wrench;
   const socialIcon = SOCIAL_ICONS[tool.icon];
   const comingSoon = tool.status === "coming-soon";
 
@@ -46,7 +50,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
           {socialIcon ? (
             <SocialIcon size="md" type={socialIcon} />
           ) : (
-            <Icon aria-hidden className="size-5 text-primary" />
+            <ToolIcon name={tool.icon} />
           )}
         </span>
         <span className="text-muted-foreground text-xs uppercase tracking-wide">
@@ -61,7 +65,10 @@ export function ToolCard({ tool }: { tool: Tool }) {
               Soon
             </span>
           ) : (
-            <ArrowRight className="size-4 opacity-0 transition-opacity group-hover:opacity-100" />
+            <ArrowRight
+              aria-hidden
+              className="size-4 opacity-0 transition-opacity group-hover:opacity-100"
+            />
           )}
         </h3>
         <p className="mt-2 text-muted-foreground text-sm leading-6">
@@ -76,7 +83,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   }
 
   return (
-    <Link className="block" href={getToolHref(tool)}>
+    <Link className="block h-full" href={getToolHref(tool)}>
       {inner}
     </Link>
   );

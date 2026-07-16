@@ -2,17 +2,15 @@ import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
 import { fetchArticlePreviews } from "@/lib/articles";
-import { getToolHref, liveTools } from "@/lib/tools";
+import { getToolHref, liveTools, toolFamilies } from "@/lib/tools";
 
-// Static list of known pages to avoid filesystem access in edge runtime
 const pages = ["blogs", "pricing", "contact", "affiliates"];
 const blogs = allBlogs.map((blog) => blog.slug);
 const legals = allLegals.map((legal) => legal.slug);
 
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
-  // Fetch Outrank article slugs from KV (preview index)
   const outrankPreviews = await fetchArticlePreviews();
-  const outrankSlugs = outrankPreviews.map((a) => a.slug);
+  const outrankSlugs = outrankPreviews.map((article) => article.slug);
 
   return [
     {
@@ -39,12 +37,12 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    {
-      url: getWebUrl("/tools/text-tools"),
+    ...toolFamilies.map((family) => ({
+      url: getWebUrl(`/tools/${family.slug}`),
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.75,
-    },
+    })),
     ...liveTools().map((tool) => ({
       url: getWebUrl(getToolHref(tool)),
       lastModified: new Date(),
