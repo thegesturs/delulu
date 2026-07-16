@@ -1,4 +1,14 @@
-import type { Folder, Item, Node, Root } from "fumadocs-core/page-tree";
+import type {
+  Folder,
+  Item,
+  Node,
+  Root,
+  Separator,
+} from "fumadocs-core/page-tree";
+import {
+  SidebarIcon,
+  type SidebarIconKind,
+} from "@/components/docs-navigation";
 
 const pageMatches = (node: Node, prefix: string): boolean => {
   if (node.type === "page") {
@@ -21,12 +31,7 @@ const findFolder = (tree: Root, prefix: string): Folder => {
   if (!folder) {
     throw new Error(`Missing documentation folder for ${prefix}`);
   }
-  return {
-    ...folder,
-    collapsible: false,
-    defaultOpen: true,
-    root: undefined,
-  };
+  return folder;
 };
 
 const findPage = (node: Folder, url: string): Item | undefined => {
@@ -46,6 +51,82 @@ const findPage = (node: Folder, url: string): Item | undefined => {
   }
 };
 
+const iconKindForUrl = (url: string): SidebarIconKind => {
+  if (url === "/") {
+    return "home";
+  }
+  if (url.includes("account")) {
+    return "account";
+  }
+  if (url.includes("workspace")) {
+    return "workspace";
+  }
+  if (url.includes("media")) {
+    return "media";
+  }
+  if (url.includes("publish") || url.includes("lifecycle")) {
+    return "publish";
+  }
+  if (url.includes("review") || url.includes("roles-and-scopes")) {
+    return "review";
+  }
+  if (url.includes("billing")) {
+    return "billing";
+  }
+  if (url.includes("automation")) {
+    return "automation";
+  }
+  if (url.startsWith("/mcp") || url.includes("agent")) {
+    return "agent";
+  }
+  if (url.startsWith("/api-reference") || url.includes("api-quickstart")) {
+    return "api";
+  }
+  if (url.startsWith("/cli") || url.includes("cli-quickstart")) {
+    return "terminal";
+  }
+  if (url.startsWith("/development") || url.includes("configuration")) {
+    return "settings";
+  }
+  return "document";
+};
+
+const decorateItem = (item: Item): Item => ({
+  ...item,
+  icon: <SidebarIcon kind={iconKindForUrl(item.url)} />,
+});
+
+const sectionNodes = (folder: Folder): Node[] => {
+  const separator: Separator = {
+    $id: `${folder.$id ?? String(folder.name)}-separator`,
+    name: folder.name,
+    type: "separator",
+  };
+  return [
+    separator,
+    ...(folder.index
+      ? [
+          decorateItem({
+            ...folder.index,
+            name:
+              folder.index.name === folder.name
+                ? "Overview"
+                : folder.index.name,
+          }),
+        ]
+      : []),
+    ...folder.children.flatMap((node) => {
+      if (node.type === "folder") {
+        return sectionNodes(node);
+      }
+      if (node.type === "page") {
+        return [decorateItem(node)];
+      }
+      return [node];
+    }),
+  ];
+};
+
 const createRoot = ({
   children,
   description,
@@ -62,7 +143,7 @@ const createRoot = ({
   $id: id,
   children,
   description,
-  index,
+  index: decorateItem(index),
   name,
   root: true,
   type: "folder",
@@ -95,21 +176,26 @@ export const organizeDocsTree = (tree: Root): Root => {
         name: "Documentation",
         description: "Setup, workflows, and product concepts.",
         index: home,
-        children: [home, gettingStarted, guides, concepts],
+        children: [
+          decorateItem(home),
+          ...sectionNodes(gettingStarted),
+          ...sectionNodes(guides),
+          ...sectionNodes(concepts),
+        ],
       }),
       createRoot({
         id: "docs-root-cli-agents",
         name: "CLI & Agents",
         description: "Commands and structured agent tools.",
         index: cliIndex,
-        children: [cli, agents],
+        children: [...sectionNodes(cli), ...sectionNodes(agents)],
       }),
       createRoot({
         id: "docs-root-api",
         name: "API Reference",
         description: "REST contracts and local development.",
         index: apiIndex,
-        children: [api, development],
+        children: [...sectionNodes(api), ...sectionNodes(development)],
       }),
     ],
   };

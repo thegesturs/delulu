@@ -40,15 +40,19 @@ const toc: TOCItemType[] = headings.map((heading) => ({
     }}
     client:load
   >
-    <div class="docs-page-heading">
-      <span class="docs-page-kicker">Delulu documentation</span>
-      <h1>{page.data.title}</h1>
-    </div>
-    {page.data.description && (
-      <p class="mb-8 text-lg text-fd-muted-foreground">{page.data.description}</p>
-    )}
-    <div class="prose min-w-0 flex-1">
-      <Content components={{ ...defaultMdxComponents }} />
+    <div class="docs-page-content">
+      <div class="docs-page-heading">
+        <span class="docs-page-kicker">Delulu documentation</span>
+        <h1>{page.data.title}</h1>
+      </div>
+      {page.data.description && (
+        <p class="mb-8 text-lg text-fd-muted-foreground">
+          {page.data.description}
+        </p>
+      )}
+      <div class="prose min-w-0 flex-1">
+        <Content components={{ ...defaultMdxComponents }} />
+      </div>
     </div>
   </Docs>
 </Layout>

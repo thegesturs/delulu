@@ -100,7 +100,7 @@ export function Docs({
         }}
         sidebar={{
           collapsible: false,
-          defaultOpenLevel: 1,
+          defaultOpenLevel: 0,
           prefetch: false,
         }}
         tabMode="navbar"

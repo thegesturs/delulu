@@ -67,6 +67,11 @@ button {
 }
 
 #nd-notebook-layout {
+  grid-template:
+    "header header header"
+    "toc-popover toc-popover toc-popover"
+    "sidebar main toc" 1fr / var(--fd-sidebar-col) minmax(0, 1fr)
+    var(--fd-toc-width) !important;
   min-height: 100dvh;
   overflow-x: clip;
   background: var(--background);
@@ -122,23 +127,22 @@ button {
   box-shadow: inset -1px 0 color-mix(in oklab, var(--border), transparent 30%);
 }
 
-#nd-sidebar a[data-active="true"][style*="padding-inline-start"] {
-  background: transparent;
-  border-radius: 0;
-  color: var(--primary);
-  box-shadow: inset 2px 0 var(--primary);
-}
-
-#nd-sidebar a[data-active="true"][style*="padding-inline-start"]::before {
-  display: none;
-}
-
 #nd-sidebar [data-radix-scroll-area-viewport] > div {
   padding-bottom: 1rem;
 }
 
 #nd-page {
   padding-bottom: 5rem;
+}
+
+.docs-page-content {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+#nd-page[data-full="true"] .docs-page-content {
+  max-width: 1285px;
 }
 
 #nd-toc {
@@ -269,11 +273,9 @@ button {
   font-size: 0.87em;
 }
 
-.prose :where(pre) {
-  overflow: auto;
-  border: 0;
-  border-radius: 0.7rem;
-  box-shadow: var(--docs-surface-shadow);
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after {
+  content: none;
 }
 
 .prose :where(table) {
