@@ -38,3 +38,12 @@ module. Duplicate logic across multiple files is a code smell and should be
 avoided. Don't be afraid to change existing code — don't take shortcuts by
 bolting on local, one-off logic to solve a problem that already has a
 shared solution elsewhere.
+
+## Button Sizing
+
+- Use the design system's default button height and text size for standard
+  actions. Do not create undersized buttons with 11-pixel text, compressed
+  custom padding, or reduced heights.
+- Preserve at least a 44-pixel touch target for buttons and action links on
+  mobile. Use an established design-system size only when the surrounding UI
+  clearly requires a different standard variant.
