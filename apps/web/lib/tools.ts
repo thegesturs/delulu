@@ -7,39 +7,64 @@
  *  - per-tool metadata / page copy
  *
  * Keep this file server-safe (no "use client", no React imports) so it can be
- * imported by `sitemap.ts`, which runs in the Cloudflare Worker. Icons are
- * referenced by string key and resolved in the client `tool-card` component.
+ * imported by `sitemap.ts`, which runs in the Cloudflare Worker. Platform names
+ * stay serializable and are resolved to the shared branded logos by ToolCard.
  */
 
-export type ToolCategory = "video" | "text" | "image" | "seo";
+import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
+import { feedPlannerPages } from "@/app/tools/feed-planners/utils/feed-planner-pages";
+
+export type ToolCategory = "video" | "text" | "image" | "seo" | "planning";
 
 export interface Tool {
   slug: string;
+  href: string;
   title: string;
   /** One-line description used on cards and in meta descriptions. */
   description: string;
+  cta: string;
   category: ToolCategory;
-  /** Icon key mapped to a component in `components/tools/tool-card.tsx`. */
-  icon: string;
+  socialPlatforms?: SupportedSocialPlatform[];
   keywords?: string[];
   status?: "live" | "coming-soon";
+  family?: { title: string; href: string };
 }
 
+export interface ToolFamily {
+  slug: string;
+  href: string;
+  title: string;
+  description: string;
+}
+
+export const toolFamilies: ToolFamily[] = [
+  {
+    slug: "feed-planners",
+    href: "/tools/feed-planners",
+    title: "Feed Planning",
+    description:
+      "Arrange photos and videos in a profile grid or scrolling feed before you publish.",
+  },
+];
+
 export const CATEGORY_LABELS: Record<ToolCategory, string> = {
-  video: "Video",
-  text: "Text & Captions",
-  image: "Image",
-  seo: "SEO",
+  video: "Video Editing",
+  text: "Caption & Text",
+  image: "Image Editing",
+  seo: "Search Optimization",
+  planning: "Feed Planning",
 };
 
 export const tools: Tool[] = [
   {
     slug: "youtube-video-trimmer",
+    href: "/tools/youtube-video-trimmer",
     title: "YouTube Video Trimmer",
     description:
       "Trim any YouTube video or uploaded clip right in your browser — no watermark, no signup, no upload to a server.",
+    cta: "Trim a video",
     category: "video",
-    icon: "scissors",
+    socialPlatforms: ["YOUTUBE"],
     keywords: [
       "youtube video trimmer",
       "trim youtube video online",
@@ -50,6 +75,29 @@ export const tools: Tool[] = [
     ],
     status: "live",
   },
+  ...feedPlannerPages.map(
+    (page): Tool => ({
+      slug: page.slug,
+      href: `/tools/feed-planners/${page.slug}`,
+      title: page.title,
+      description: page.description,
+      cta:
+        page.variant === "grid"
+          ? "Plan an Instagram grid"
+          : "Preview a scrolling feed",
+      category: "planning",
+      socialPlatforms:
+        page.variant === "grid"
+          ? ["INSTAGRAM"]
+          : ["INSTAGRAM", "FACEBOOK", "LINKEDIN"],
+      keywords: page.keywords,
+      status: "live",
+      family: {
+        title: "Feed Planning",
+        href: "/tools/feed-planners",
+      },
+    })
+  ),
 ];
 
 export const getTool = (slug: string): Tool | undefined =>
@@ -57,3 +105,8 @@ export const getTool = (slug: string): Tool | undefined =>
 
 export const liveTools = (): Tool[] =>
   tools.filter((tool) => tool.status !== "coming-soon");
+
+export const featuredTools = (): Tool[] =>
+  tools.filter((tool) =>
+    ["youtube-video-trimmer", "instagram-feed-planner"].includes(tool.slug)
+  );

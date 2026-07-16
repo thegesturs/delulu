@@ -1,9 +1,8 @@
 import {
   type BreadcrumbList,
-  createFAQPageSchema,
   createHowToSchema,
   JsonLd,
-  type SoftwareApplication,
+  type WebApplication,
   type WithContext,
 } from "@delulu/seo/json-ld";
 import { getWebUrl } from "@delulu/seo/url";
@@ -33,6 +32,8 @@ interface ToolPageLayoutProps {
   /** Additional H2 content blocks (why use, formats, privacy, use cases…). */
   sections?: ToolSection[];
   faq: FaqItem[];
+  relatedSlugs?: string[];
+  relatedHeading?: string;
 }
 
 export function ToolPageLayout({
@@ -43,12 +44,14 @@ export function ToolPageLayout({
   howToSteps,
   sections = [],
   faq,
+  relatedSlugs,
+  relatedHeading = "Try another creator task",
 }: ToolPageLayoutProps) {
-  const url = getWebUrl(`/tools/${tool.slug}`);
+  const url = getWebUrl(tool.href);
 
-  const softwareSchema: WithContext<SoftwareApplication> = {
+  const softwareSchema: WithContext<WebApplication> = {
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
+    "@type": "WebApplication",
     name: tool.title,
     description: tool.description,
     url,
@@ -69,22 +72,35 @@ export function ToolPageLayout({
       {
         "@type": "ListItem",
         position: 1,
-        name: "Tools",
+        name: "Free creator tools",
         item: getWebUrl("/tools"),
       },
       {
         "@type": "ListItem",
         position: 2,
-        name: tool.title,
-        item: url,
+        name: tool.family?.title ?? tool.title,
+        item: tool.family ? getWebUrl(tool.family.href) : url,
       },
+      ...(tool.family
+        ? [
+            {
+              "@type": "ListItem" as const,
+              position: 3,
+              name: tool.title,
+              item: url,
+            },
+          ]
+        : []),
     ],
   };
 
   // Related tools = same category, live, excluding this one. Powers internal
   // linking + the "More free tools" block the SEO playbook recommends.
   const related = tools.filter(
-    (t) => t.slug !== tool.slug && t.status !== "coming-soon"
+    (candidate) =>
+      candidate.slug !== tool.slug &&
+      candidate.status !== "coming-soon" &&
+      (!relatedSlugs || relatedSlugs.includes(candidate.slug))
   );
 
   return (
@@ -99,23 +115,23 @@ export function ToolPageLayout({
           steps: howToSteps,
         })}
       />
-      <JsonLd
-        code={createFAQPageSchema({
-          title: tool.title,
-          url,
-          questions: faq,
-        })}
-      />
-
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
         className="mb-6 text-muted-foreground text-sm"
       >
         <Link className="hover:text-foreground" href="/tools">
-          Tools
+          Free creator tools
         </Link>
         <span className="mx-2">/</span>
+        {tool.family && (
+          <>
+            <Link className="hover:text-foreground" href={tool.family.href}>
+              {tool.family.title}
+            </Link>
+            <span className="mx-2">/</span>
+          </>
+        )}
         <span className="text-foreground">{tool.title}</span>
       </nav>
 
@@ -182,16 +198,13 @@ export function ToolPageLayout({
       {/* Related / more tools — internal linking */}
       <section className="mx-auto mt-16 max-w-2xl">
         <h2 className="mb-4 font-bold text-2xl tracking-tight">
-          More free tools
+          {relatedHeading}
         </h2>
         {related.length > 0 ? (
           <ul className="space-y-2">
             {related.map((t) => (
               <li key={t.slug}>
-                <Link
-                  className="text-primary hover:underline"
-                  href={`/tools/${t.slug}`}
-                >
+                <Link className="text-primary hover:underline" href={t.href}>
                   {t.title}
                 </Link>{" "}
                 <span className="text-muted-foreground text-sm">
@@ -202,9 +215,9 @@ export function ToolPageLayout({
           </ul>
         ) : (
           <p className="text-muted-foreground">
-            We're adding more free creator tools.{" "}
+            More ways to prepare a post are on the way.{" "}
             <Link className="text-primary hover:underline" href="/tools">
-              Browse the tools hub
+              Choose another task
             </Link>{" "}
             to see what's new.
           </p>
@@ -213,7 +226,7 @@ export function ToolPageLayout({
           className="mt-6 inline-flex items-center gap-1.5 font-medium text-primary text-sm hover:underline"
           href="/tools"
         >
-          Explore all free tools <ArrowRight className="size-4" />
+          See every creator task <ArrowRight className="size-4" />
         </Link>
       </section>
     </main>

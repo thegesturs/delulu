@@ -2,7 +2,7 @@ import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
 import { fetchArticlePreviews } from "@/lib/articles";
-import { tools } from "@/lib/tools";
+import { toolFamilies, tools } from "@/lib/tools";
 
 // Static list of known pages to avoid filesystem access in edge runtime
 const pages = ["blogs", "pricing", "contact", "affiliates"];
@@ -39,8 +39,14 @@ const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    ...toolFamilies.map((family) => ({
+      url: getWebUrl(family.href),
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
     ...tools.map((tool) => ({
-      url: getWebUrl(`/tools/${tool.slug}`),
+      url: getWebUrl(tool.href),
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.7,

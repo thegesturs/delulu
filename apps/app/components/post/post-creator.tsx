@@ -12,7 +12,7 @@ import { SocialTypes } from "@delulu/validators/post";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import type { EditorMediaDetail } from "@/lib/editor-media";
@@ -43,6 +43,8 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
+  const setPost = useStore((state) => state.setPost);
+  const importedToolDraft = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -130,6 +132,26 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       }
     }
   }, [postId, searchParams, setDateAlongWithTime, setTime]);
+
+  // Public tools can hand off a text-only draft without uploading local media.
+  useEffect(() => {
+    if (postId) {
+      return;
+    }
+
+    const draft = searchParams.get("draft")?.trim().slice(0, 4000);
+    if (!draft || importedToolDraft.current === draft) {
+      return;
+    }
+
+    importedToolDraft.current = draft;
+    setPost((currentPost) => ({
+      ...currentPost,
+      content: currentPost.content.map((contentItem, index) =>
+        index === 0 ? { ...contentItem, text: draft } : contentItem
+      ),
+    }));
+  }, [postId, searchParams, setPost]);
 
   // Clear stale automation configs for new posts
   useEffect(() => {
