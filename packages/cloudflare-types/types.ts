@@ -58,6 +58,10 @@ export interface CloudflareEnv {
   DELULU_ARTICLES_BUCKET: R2Bucket;
   DELULU_ARTICLES_KV: KVNamespace;
   OUTRANK_WEBHOOK_SECRET: string;
+  // YouTube trimmer Lambda (marketing /tools). URL is the SST Function URL;
+  // SECRET is the shared bearer the route sends. Set via `wrangler secret put`.
+  YOUTUBE_TRIMMER_URL?: string;
+  YOUTUBE_TRIMMER_SECRET?: string;
   WORKER_SELF_REFERENCE: Fetcher /* delulu-social */;
   ASSETS: Fetcher;
 }
