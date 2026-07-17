@@ -85,7 +85,7 @@ const iconKindForUrl = (url: string): SidebarIconKind => {
   if (url.startsWith("/cli") || url.includes("cli-quickstart")) {
     return "terminal";
   }
-  if (url.startsWith("/development") || url.includes("configuration")) {
+  if (url.includes("configuration")) {
     return "settings";
   }
   return "document";
@@ -176,7 +176,6 @@ export const organizeDocsTree = (tree: Root): Root => {
   const cli = findFolder(tree, "/cli");
   const agents = findFolder(tree, "/mcp");
   const api = findFolder(tree, "/api-reference");
-  const development = findFolder(tree, "/development");
   const cliIndex = findPage(cli, "/cli/overview");
   const apiIndex = findPage(api, "/api-reference");
 
@@ -210,9 +209,9 @@ export const organizeDocsTree = (tree: Root): Root => {
       createRoot({
         id: "docs-root-api",
         name: "API Reference",
-        description: "REST contracts and local development.",
+        description: "REST contracts and endpoints.",
         index: apiIndex,
-        children: [...sectionNodes(api), ...sectionNodes(development)],
+        children: sectionNodes(api),
       }),
     ],
   };
