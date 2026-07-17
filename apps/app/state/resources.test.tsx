@@ -1,0 +1,225 @@
+import { mutationEffect, resourceEffect } from "@delulu/client";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { Effect } from "effect";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  AppStateProvider,
+  type MutationAtomResult,
+  ResourceBoundary,
+  useMutationAtom,
+  useResourceAtom,
+} from "./resources";
+
+afterEach(cleanup);
+
+describe("Effect Atom resources", () => {
+  it("suspends an initial read and renders its value", async () => {
+    const descriptor = resourceEffect({
+      queryKey: ["test", "read"] as const,
+      effect: () => Effect.sleep("10 millis").pipe(Effect.as("ready")),
+    });
+    const Probe = () => {
+      const query = useResourceAtom(descriptor);
+      return <div>{query.data}</div>;
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary fallback={<div>loading</div>}>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect(screen.getByText("loading")).toBeTruthy();
+    expect(await screen.findByText("ready")).toBeTruthy();
+  });
+
+  it("invalidates matching resources after a successful mutation", async () => {
+    let reads = 0;
+    const query = resourceEffect({
+      queryKey: ["workspace", "one", "posts", "list"] as const,
+      effect: () => Effect.sync(() => ++reads),
+    });
+    const mutation = mutationEffect({
+      mutationKey: ["workspace", "one", "posts"] as const,
+      effect: (_: undefined) => Effect.void,
+    });
+    const Probe = () => {
+      const value = useResourceAtom(query);
+      const write = useMutationAtom(mutation);
+      return (
+        <button onClick={() => write.mutate(undefined)} type="button">
+          {value.data}
+        </button>
+      );
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "1" });
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(screen.getByRole("button").textContent).toBe("2")
+    );
+  });
+
+  it("coalesces duplicate mutation attempts while a write is in flight", async () => {
+    let writes = 0;
+    let release: (() => void) | undefined;
+    const mutation = mutationEffect({
+      effect: (_: undefined) =>
+        Effect.promise(
+          () =>
+            new Promise<void>((resolve) => {
+              writes += 1;
+              release = resolve;
+            })
+        ),
+    });
+    const Probe = () => {
+      const write = useMutationAtom(mutation);
+      return (
+        <button onClick={() => write.mutate(undefined)} type="button">
+          write
+        </button>
+      );
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "write" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(writes).toBe(1));
+    release?.();
+  });
+
+  it("allows concurrent mutation inputs that are not duplicates", async () => {
+    const writes: string[] = [];
+    const mutation = mutationEffect({
+      effect: (value: string) =>
+        Effect.sleep("10 millis").pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              writes.push(value);
+            })
+          )
+        ),
+    });
+    let run: MutationAtomResult<void, string> | undefined;
+    const Probe = () => {
+      run = useMutationAtom(mutation);
+      return null;
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    await Promise.all([run?.mutateAsync("first"), run?.mutateAsync("second")]);
+    expect(writes.sort()).toEqual(["first", "second"]);
+  });
+
+  it("deduplicates structurally identical reads", async () => {
+    let reads = 0;
+    const descriptor = resourceEffect({
+      queryKey: ["workspace", "one", "deduplicated"] as const,
+      effect: () =>
+        Effect.sleep("10 millis").pipe(
+          Effect.tap(() =>
+            Effect.sync(() => {
+              reads += 1;
+            })
+          ),
+          Effect.as("shared")
+        ),
+    });
+    const Probe = () => <div>{useResourceAtom(descriptor).data}</div>;
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect((await screen.findAllByText("shared")).length).toBe(2);
+    expect(reads).toBe(1);
+  });
+
+  it("retries typed failures using the declared policy", async () => {
+    let attempts = 0;
+    const descriptor = resourceEffect({
+      queryKey: ["workspace", "one", "retry"] as const,
+      effect: () =>
+        Effect.suspend(() => {
+          attempts += 1;
+          return attempts === 1
+            ? Effect.fail("temporary")
+            : Effect.succeed("ok");
+        }),
+    });
+    const Probe = () => (
+      <div>{useResourceAtom({ ...descriptor, retry: 1 }).data}</div>
+    );
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect(await screen.findByText("ok")).toBeTruthy();
+    expect(attempts).toBe(2);
+  });
+
+  it("refreshes mounted resources after reconnect", async () => {
+    let reads = 0;
+    const descriptor = resourceEffect({
+      queryKey: ["workspace", "one", "online"] as const,
+      effect: () => Effect.sync(() => ++reads),
+    });
+    const Probe = () => (
+      <div>{useResourceAtom({ ...descriptor, staleTime: 60_000 }).data}</div>
+    );
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect(await screen.findByText("1")).toBeTruthy();
+    window.dispatchEvent(new Event("online"));
+    await waitFor(() => expect(screen.getByText("2")).toBeTruthy());
+  });
+});

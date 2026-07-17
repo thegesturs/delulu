@@ -1,0 +1,56 @@
+---
+title: Account and workspace selectors
+description: How selectors resolve, when aliases are ambiguous, and how to target multiple accounts.
+---
+
+## Canonical account selectors
+
+The stable form is:
+
+```text
+platform:connection-id
+```
+
+Examples:
+
+```text
+linkedin:connection_Aa
+linkedin:connection_aa
+```
+
+Only the platform portion is case-normalized. Connection IDs preserve case.
+
+## Accepted account aliases
+
+Commands that accept `<account>` resolve:
+
+1. Canonical `platform:connection-id`.
+2. Raw connection ID.
+3. Platform, when only one account on that platform exists.
+4. Username, when unique.
+5. `platform@username`, when unique.
+
+Display names are shown to people but are not safe identifiers. Two accounts can have the same display name, and some providers do not expose usernames. An ambiguous alias fails and returns canonical choices.
+
+## Multiple selectors
+
+Repeat `--to`:
+
+```bash
+delulu post "Caption" \
+  --to linkedin:connection_Aa \
+  --to linkedin:connection_aa \
+  --now
+```
+
+Comma-separated values are also split. TOON is an output format, not a selector input format; an agent reads selector rows from TOON and passes each selector through repeated `--to` flags.
+
+## Workspace selectors
+
+`delulu workspace use <selector>` accepts:
+
+- Exact workspace ID.
+- Case-insensitive slug.
+- Case-insensitive name when it matches one membership.
+
+Ambiguous names require the workspace ID.

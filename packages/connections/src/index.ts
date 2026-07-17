@@ -5,6 +5,11 @@
  * (axios/googleapis) — use `@delulu/connections/worker` for that.
  */
 
+export {
+  callbackRedirect,
+  withConnectionClient,
+  withConnectionSuccess,
+} from "./callback-response";
 export * from "./errors";
 export { connectFacebookPage } from "./platforms/facebook/auth";
 export {

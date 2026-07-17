@@ -21,7 +21,6 @@ import {
   TaskDone01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
@@ -32,6 +31,7 @@ import { ReviewQueue } from "@/components/posts/review-queue";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useResourceAtom } from "@/state/resources";
 import type { ConnectionView, PostView } from "@/types/workspace-views";
 
 const statuses = [
@@ -72,7 +72,7 @@ export default function PostsClient() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const posts = useQuery({
+  const posts = useResourceAtom({
     ...resources.posts.list(workspaceId ?? "", {
       limit: 100,
       status: statusFilter === "review" ? undefined : statusFilter,
@@ -81,13 +81,13 @@ export default function PostsClient() {
     staleTime: 30_000,
     retry: 2,
   });
-  const reviewQueue = useQuery({
+  const reviewQueue = useResourceAtom({
     ...resources.reviews.queue(workspaceId ?? "", { limit: 1 }),
     enabled: Boolean(workspaceId) && showReviewTab,
     staleTime: 15_000,
     retry: 2,
   });
-  const connectionsQuery = useQuery({
+  const connectionsQuery = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
     staleTime: 60_000,

@@ -8,11 +8,15 @@ import {
   Comment01Icon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 interface ReviewActivityProps {
   postId: string;
@@ -80,8 +84,8 @@ function timeAgo(timestamp: number): string {
 export function ReviewActivity({ postId }: ReviewActivityProps) {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
-  const activities = useQuery({
+  const registry = useResourceRegistry();
+  const activities = useResourceAtom({
     ...resources.reviews.activity(workspaceId ?? "", postId),
     enabled: Boolean(workspaceId),
     staleTime: 15_000,
@@ -89,13 +93,13 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
   });
   const [newComment, setNewComment] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const addCommentMutation = useMutation({
+  const addCommentMutation = useMutationAtom({
     ...resources.reviews.act(workspaceId ?? "", postId),
     onSuccess: async () => {
       if (!workspaceId) {
         return;
       }
-      await queryClient.invalidateQueries({
+      await registry.invalidateResources({
         queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
       });
     },
@@ -133,12 +137,12 @@ export function ReviewActivity({ postId }: ReviewActivityProps) {
   if (activities.isError) {
     return (
       <div className="py-4 text-destructive text-sm">
-        {activities.error.message}
+        {activities.error?.message ?? "Activity could not be loaded"}
       </div>
     );
   }
 
-  if (activities.data.length === 0) {
+  if (!activities.data || activities.data.length === 0) {
     return null;
   }
 

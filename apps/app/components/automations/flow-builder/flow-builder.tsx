@@ -17,11 +17,6 @@ import {
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
 import {
-  useQueryClient,
-  useMutation as useResourceMutation,
-  useQuery as useResourceQuery,
-} from "@tanstack/react-query";
-import {
   type Connection,
   type Edge,
   type Node,
@@ -34,6 +29,11 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useSubscription } from "@/hooks/use-subscription";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import {
   automationFromResource,
   getApiErrorDetails,
@@ -73,7 +73,7 @@ function FlowBuilderInner({
   const isMobile = useIsMobile();
   const { isFree: isFreePlan } = useSubscription();
   const analytics = useAnalytics();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const { resources } = useApiClient();
   const { canManageSocials } = usePermissions();
   const isNew = !automationId;
@@ -85,14 +85,14 @@ function FlowBuilderInner({
   const loadedUpdatedAtRef = useRef<string | null>(null);
   const submitRef = useRef(false);
 
-  const detailOptions = useMemo(
+  const detailResource = useMemo(
     () => resources.automations.get(scope, automationId ?? "new"),
     [automationId, resources, scope]
   );
-  const automationQuery = useResourceQuery({
-    ...detailOptions,
+  const automationQuery = useResourceAtom({
+    ...detailResource,
     enabled: Boolean(automationId),
-    queryKey: detailOptions.queryKey!,
+    queryKey: detailResource.queryKey!,
   });
   const automation = automationQuery.data
     ? automationFromResource(automationQuery.data)
@@ -101,7 +101,7 @@ function FlowBuilderInner({
     () => resources.connections.list(scope.workspaceId, { limit: 100 }),
     [resources, scope.workspaceId]
   );
-  const connectionsQuery = useResourceQuery({
+  const connectionsQuery = useResourceAtom({
     ...connectionsOptions,
     queryKey: connectionsOptions.queryKey!,
   });
@@ -124,14 +124,16 @@ function FlowBuilderInner({
     () => resources.automations.update(scope, automationId ?? "new"),
     [automationId, resources, scope]
   );
-  const createAutomation = useResourceMutation(createOptions);
-  const updateAutomation = useResourceMutation({
+  const createAutomation = useMutationAtom(createOptions);
+  const updateAutomation = useMutationAtom({
     ...updateOptions,
     onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: detailOptions.queryKey! });
-      const previous = queryClient.getQueryData(detailOptions.queryKey!);
-      queryClient.setQueryData(
-        detailOptions.queryKey!,
+      await registry.beginOptimisticUpdate({
+        queryKey: detailResource.queryKey!,
+      });
+      const previous = registry.getResource(detailResource.queryKey!);
+      registry.setResource(
+        detailResource.queryKey!,
         (current: typeof automationQuery.data) =>
           current ? { ...current, ...payload } : current
       );
@@ -139,7 +141,7 @@ function FlowBuilderInner({
     },
     onError: (_error, _payload, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(detailOptions.queryKey!, context.previous);
+        registry.setResource(detailResource.queryKey!, context.previous);
       }
     },
   });
@@ -571,14 +573,14 @@ function FlowBuilderInner({
         });
 
         toast.success("Automation created");
-        await queryClient.invalidateQueries({
+        await registry.invalidateResources({
           queryKey: resources.automations.list(scope).queryKey,
         });
         router.push(`/automations/${created.id}`);
       } else {
-        const latest = await queryClient.fetchQuery({
-          ...detailOptions,
-          queryKey: detailOptions.queryKey!,
+        const latest = await registry.fetchResource({
+          ...detailResource,
+          queryKey: detailResource.queryKey!,
           staleTime: 0,
         });
         if (
@@ -613,8 +615,10 @@ function FlowBuilderInner({
         toast.success("Automation saved");
         resetDirty(triggers, steps, notes, nodePositions);
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: detailOptions.queryKey! }),
-          queryClient.invalidateQueries({
+          registry.invalidateResources({
+            queryKey: detailResource.queryKey!,
+          }),
+          registry.invalidateResources({
             queryKey: resources.automations.list(scope).queryKey,
           }),
         ]);
@@ -651,10 +655,10 @@ function FlowBuilderInner({
     updateAutomation,
     router,
     resetDirty,
-    queryClient,
+    registry,
     resources,
     scope,
-    detailOptions,
+    detailResource,
   ]);
 
   const handleNodeClick = useCallback(

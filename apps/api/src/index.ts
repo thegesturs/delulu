@@ -12,9 +12,13 @@ import {
   AutomationService,
   AutomationSessionService,
   BillingOwnerTransfers,
+  BillingProviderConfig,
+  BillingProviderService,
   BillingReconciliation,
   BillingService,
   BillingWebhookApplication,
+  CalendarWebhookConfig,
+  CancellationService,
   ClerkAdminService,
   ClerkSyncService,
   ClerkTokenVerifier,
@@ -23,17 +27,21 @@ import {
   DmDispatchService,
   IdentityService,
   JobService,
+  LifecycleService,
   MediaService,
   MembershipService,
+  MessagingService,
   makeAnalyticsCacheLayer,
   makeMemoryAnalyticsCacheLayer,
   OAuthFlowService,
   PooledQuotaReservations,
   PostService,
+  ProductAnalytics,
   QuotaGuard,
   R2Service,
   RateLimiterService,
   ReviewService,
+  SetupService,
   SignedIngress,
   TranscriptionCheckoutConfig,
   TranscriptionCheckoutService,
@@ -58,9 +66,11 @@ import {
   domainConfigLayers,
   type Env,
   type ExecutionContext,
+  postHogConfigLayer,
 } from "./env";
 import { LiveInsightsProviderLive } from "./live-insights";
 import { runMaintenance } from "./maintenance";
+import { messagingProviderLayer } from "./messaging-provider";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -92,6 +102,13 @@ export const makeBaseLayer = (
     transformJson: false,
   });
   const Config = authConfigLayer(env);
+  // Server-side product analytics. Disabled (fully inert) when POSTHOG_KEY is
+  // unset. Flushes buffered events on layer dispose, which upstream runs inside
+  // ctx.waitUntil for both the fetch and scheduled handlers. Defined early so it
+  // can be provided into services that capture events (ClerkSync, billing).
+  const Telemetry = ProductAnalytics.layer.pipe(
+    Layer.provide(postHogConfigLayer(env))
+  );
   const AsToken = AsTokenService.layer;
   const Clerk = overrides.clerk ?? ClerkTokenVerifier.layer;
   const [ClerkAdminConfig, ConnectionConfig, R2Config] =
@@ -123,8 +140,12 @@ export const makeBaseLayer = (
         AutomationKvNamespace.of(env.AUTOMATION_KV)
       )
     : AutomationKvService.memoryLayer();
+  const Messaging = MessagingService.layer.pipe(
+    Layer.provide(messagingProviderLayer(env))
+  );
+  const Lifecycle = LifecycleService.layer.pipe(Layer.provide(Messaging));
   const Connections = ConnectionsService.layer.pipe(
-    Layer.provide([ConnectionState, Cipher, AutomationKvBinding])
+    Layer.provide([ConnectionState, Cipher, AutomationKvBinding, Lifecycle])
   );
   const Admin = AdminService.layer.pipe(Layer.provide([ClerkAdmin, Jobs]));
   const AnalyticsCache = env.EDGE_CACHE_KV
@@ -136,7 +157,33 @@ export const makeBaseLayer = (
   );
   const Billing = BillingService.layer;
   const BillingTransfers = BillingOwnerTransfers.layer;
-  const BillingWebhooks = BillingWebhookApplication.layer;
+  const BillingProviderConfigLayer = Layer.succeed(
+    BillingProviderConfig,
+    BillingProviderConfig.of({
+      apiKey: env.DODO_PAYMENTS_API_KEY ?? "",
+      environment:
+        env.DODO_PAYMENTS_ENVIRONMENT === "live_mode"
+          ? "live_mode"
+          : "test_mode",
+      appBaseUrl: env.APP_BASE_URL ?? "http://localhost:3000",
+    })
+  );
+  const BillingProvider = BillingProviderService.layer.pipe(
+    Layer.provide(BillingProviderConfigLayer)
+  );
+  const Cancellations = CancellationService.layer.pipe(
+    Layer.provide([BillingProvider, BillingProviderConfigLayer, Messaging, R2])
+  );
+  const CalendarConfig = Layer.succeed(
+    CalendarWebhookConfig,
+    CalendarWebhookConfig.of({
+      secret: env.CAL_WEBHOOK_SECRET ?? "",
+      eventSlug: env.CAL_RETENTION_EVENT_SLUG ?? "retention",
+    })
+  );
+  const BillingWebhooks = BillingWebhookApplication.layer.pipe(
+    Layer.provide(Telemetry)
+  );
   const BillingReconcile = BillingReconciliation.layer;
   const Transcriptions = TranscriptionService.layer;
   const TranscriptionCheckoutConfigLayer = Layer.succeed(
@@ -153,6 +200,7 @@ export const makeBaseLayer = (
   const TranscriptionCheckout = TranscriptionCheckoutService.layer.pipe(
     Layer.provide(TranscriptionCheckoutConfigLayer)
   );
+  const Setup = SetupService.layer.pipe(Layer.provide(ClerkAdmin));
   const QuotaReservations = PooledQuotaReservations.layer;
   const AutomationKv = AutomationKvService.layer.pipe(
     Layer.provide(AutomationKvBinding)
@@ -180,10 +228,10 @@ export const makeBaseLayer = (
   );
   const WebhookDeliveries = WebhookDeliveryService.layer;
   const ClerkSync = ClerkSyncService.layer.pipe(
-    Layer.provide(IdentityService.layer)
+    Layer.provide([IdentityService.layer, Telemetry])
   );
   const PaymentSink = PaymentWebhookSinkLive.pipe(
-    Layer.provide(BillingWebhooks)
+    Layer.provide([BillingWebhooks, Messaging, Setup])
   );
   const WebhookSecretConfig = Layer.succeed(
     WebhookSecrets,
@@ -217,14 +265,18 @@ export const makeBaseLayer = (
           session300: env.RL_SESSION_300,
         })
       : RateLimiterService.inMemoryLayer());
+  const OAuthFlow = OAuthFlowService.layer.pipe(
+    Layer.provide(MembershipService.layer)
+  );
 
   return Layer.mergeAll(
     IdentityService.layer,
     MembershipService.layer,
     ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
+    OAuthFlow,
     QuotaGuard.layer,
     RateLimiter,
+    Telemetry,
     AsToken,
     Clerk,
     Config,
@@ -243,11 +295,17 @@ export const makeBaseLayer = (
     Automations,
     AutomationRepair,
     Billing,
+    BillingProvider,
+    Cancellations,
+    CalendarConfig,
+    Messaging,
+    Lifecycle,
     BillingTransfers,
     BillingWebhooks,
     BillingReconcile,
     Transcriptions,
     TranscriptionCheckout,
+    Setup,
     QuotaReservations,
     WebhookVerification,
     WebhookIngress

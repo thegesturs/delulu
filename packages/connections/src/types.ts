@@ -10,6 +10,9 @@ import type { ConnectionStore } from "./services/connection-store";
 /** Every publishable network — excludes the non-publishing sentinels. */
 export type PublishableSocialType = Exclude<SocialType, "DEFAULT" | "LENS">;
 
+/** Browser-based clients that need callback completion context. */
+export type ConnectionClient = "cli" | "mcp";
+
 // ── Meta ──────────────────────────────────────────────────────────────────
 
 export interface PlatformCapabilities {

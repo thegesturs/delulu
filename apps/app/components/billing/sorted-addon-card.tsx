@@ -10,18 +10,18 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Progress } from "@delulu/design-system/components/ui/progress";
-import { useQuery } from "@tanstack/react-query";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useResourceAtom } from "@/state/resources";
 
 export function SortedAddonCard() {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const subscription = useSubscription();
   const options = resources.billing.usage(workspace.workspaceId ?? "");
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,
@@ -52,7 +52,15 @@ export function SortedAddonCard() {
     );
   }
 
-  const isSubscribed = subscription.subscription?.addons.sorted === true;
+  const sortedAddon = subscription.subscription?.addons.sorted;
+  const isSubscribed =
+    sortedAddon === true ||
+    (typeof sortedAddon === "object" &&
+      sortedAddon !== null &&
+      "status" in sortedAddon &&
+      ["active", "trialing", "on_trial"].includes(
+        String((sortedAddon as { status?: unknown }).status)
+      ));
   const used = query.data?.usage.transcriptionsUsed ?? 0;
   const limit = isSubscribed ? 1000 : 10;
 

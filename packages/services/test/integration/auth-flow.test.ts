@@ -73,11 +73,13 @@ beforeAll(async () => {
     })
   );
   const AsToken = AsTokenService.layer.pipe(Layer.provide(Config));
+  const Membership = MembershipService.layer;
+  const OAuthFlow = OAuthFlowService.layer.pipe(Layer.provide(Membership));
   AppLayer = Layer.mergeAll(
     IdentityService.layer,
-    MembershipService.layer,
+    Membership,
     ApiKeyVerifier.layer,
-    OAuthFlowService.layer,
+    OAuthFlow,
     AsToken
   ).pipe(Layer.provide(AsToken), Layer.provideMerge(Pg));
 });
@@ -194,6 +196,7 @@ describe("OAuth 2.1 authorization-code flow", () => {
         codeChallenge: challenge,
         codeChallengeMethod: "S256",
         resource: RESOURCE,
+        workspaceId: null,
       });
 
       const first = yield* flow.exchangeCode({
@@ -257,6 +260,7 @@ describe("OAuth 2.1 authorization-code flow", () => {
           codeChallenge: "challenge",
           codeChallengeMethod: "S256",
           resource: RESOURCE,
+          workspaceId: null,
         })
         .pipe(Effect.flip);
     });

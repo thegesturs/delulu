@@ -16,7 +16,7 @@ export const DatabaseUrl = Config.redacted("DATABASE_URL").pipe(
 export const EncryptionSecret = Config.redacted("ENCRYPTION_SECRET");
 
 /** Migration head the loader asserts before truncating (bump when a migration is added). */
-export const EXPECTED_MIGRATION_HEAD = 6;
+export const EXPECTED_MIGRATION_HEAD = 10;
 
 /** Output directory for the run manifest and report artifacts. */
 export const OUTPUT_DIR = "migration-out";

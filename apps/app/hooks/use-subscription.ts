@@ -1,8 +1,8 @@
 "use client";
 
 import type { PlanType } from "@delulu/payments";
-import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
+import { useResourceAtom } from "@/state/resources";
 import { useOperationsWorkspace } from "./use-operations-workspace";
 
 export interface SubscriptionView {
@@ -12,6 +12,11 @@ export interface SubscriptionView {
   status: string;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
+  billingInterval: string | null;
+  currency: string | null;
+  recurringAmountMinor: number | null;
+  cancelAtPeriodEnd: boolean;
+  canManageBilling: boolean;
   addons: Readonly<Record<string, unknown>>;
 }
 
@@ -31,6 +36,9 @@ export interface UseSubscriptionReturn {
   isLoading: boolean;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  canManageBilling: boolean;
+  currency: string | null;
+  recurringAmountMinor: number | null;
   error: Error | null;
   retry: () => void;
 }
@@ -44,7 +52,7 @@ export function useSubscription(): UseSubscriptionReturn {
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
   const options = resources.billing.subscription(workspace.workspaceId ?? "");
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId,
@@ -53,10 +61,10 @@ export function useSubscription(): UseSubscriptionReturn {
   const planType = toPlanType(subscription?.plan);
   const status = subscription?.status.toUpperCase();
   const billingPeriod =
-    subscription?.addons.billingPeriod === "MONTHLY" ||
-    subscription?.addons.billingPeriod === "YEARLY" ||
-    subscription?.addons.billingPeriod === "LIFETIME"
-      ? subscription.addons.billingPeriod
+    subscription?.billingInterval === "MONTHLY" ||
+    subscription?.billingInterval === "YEARLY" ||
+    subscription?.billingInterval === "LIFETIME"
+      ? subscription.billingInterval
       : null;
 
   return {
@@ -65,18 +73,23 @@ export function useSubscription(): UseSubscriptionReturn {
     billingPeriod,
     isActive: status === "ACTIVE",
     isPastDue: status === "PAST_DUE",
-    isCancelled: status === "CANCELLED",
+    isCancelled:
+      status === "CANCELLED" || status === "EXPIRED" || status === "FAILED",
     isTrialing: status === "TRIALING",
     isFree: planType === "FREE",
     isVibe: planType === "VIBE",
     isEcho: planType === "ECHO",
-    isPaid: planType !== "FREE",
+    isPaid:
+      planType !== "FREE" && (status === "ACTIVE" || status === "TRIALING"),
     isLifetime: billingPeriod === "LIFETIME",
     isLoading: workspace.isLoading || query.isPending,
     currentPeriodEnd: subscription?.currentPeriodEnd
       ? new Date(subscription.currentPeriodEnd)
       : null,
-    cancelAtPeriodEnd: subscription?.addons.cancelAtPeriodEnd === true,
+    cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd === true,
+    canManageBilling: subscription?.canManageBilling === true,
+    currency: subscription?.currency ?? null,
+    recurringAmountMinor: subscription?.recurringAmountMinor ?? null,
     error: workspace.error ?? query.error,
     retry: async () => {
       await (workspace.error ? workspace.retry() : query.refetch());

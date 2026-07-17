@@ -24,6 +24,7 @@ export const POST_SAVED_AS_DRAFT = "post_saved_as_draft";
 export const POST_UPDATED = "post_updated";
 export const POST_DELETED = "post_deleted";
 export const POST_PUBLISHED = "post_published";
+export const POST_PUBLISH_FAILED = "post_publish_failed";
 export const POST_PUBLISH_RETRIED = "post_publish_retried";
 export const POST_RESCHEDULED = "post_rescheduled";
 export const BULK_UPLOAD_SCHEDULED = "bulk_upload_scheduled";
@@ -33,6 +34,15 @@ export const SOCIAL_ACCOUNT_CONNECTED = "social_account_connected";
 export const SOCIAL_ACCOUNT_DISCONNECTED = "social_account_disconnected";
 export const SOCIAL_ACCOUNT_CONNECTION_FAILED =
   "social_account_connection_failed";
+
+// ─── Reviews / Approval Queue ───
+export const REVIEW_ACTIONED = "review_actioned";
+
+// ─── Team / Collaboration ───
+export const MEMBER_INVITED = "member_invited";
+
+// ─── Developer / API Keys ───
+export const API_KEY_CREATED = "api_key_created";
 
 // ─── Automations / Auto DMs ───
 export const AUTOMATION_CREATED = "automation_created";
@@ -54,3 +64,6 @@ export const PAGE_VIEWED = "page_viewed";
 // ─── Retention / Session ───
 export const SESSION_STARTED = "session_started";
 export const APP_OPENED = "app_opened";
+
+// ─── CLI ───
+export const CLI_COMMAND_INVOKED = "cli_command_invoked";

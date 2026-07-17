@@ -1,5 +1,9 @@
 import { UnauthorizedError } from "@delulu/contracts";
 import {
+  SORTED_TEST_PRODUCT_ID,
+  TEST_PRODUCT_IDS,
+} from "@delulu/payments/product-ids";
+import {
   ClerkTokenVerifier,
   deriveChallengeS256,
   RateLimiterService,
@@ -12,6 +16,7 @@ import { makeBaseLayer } from "../src/index";
 const ISSUER = "http://localhost:8787";
 const DEV_SUB = `clerk_e2e_${crypto.randomUUID()}`;
 const API_KEY_PREFIX = /^dsk_/;
+const DEVICE_USER_CODE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
 const WEBHOOK_SECRET_BYTES = new TextEncoder().encode("e2e-webhook-secret");
 const WEBHOOK_SECRET = `whsec_${btoa(
   String.fromCharCode(...WEBHOOK_SECRET_BYTES)
@@ -31,6 +36,7 @@ const toPem = (der: ArrayBuffer): string => {
 };
 
 let handler: (request: Request) => Promise<Response>;
+let personalWorkspaceId = "";
 
 beforeAll(async () => {
   const keyPair = await crypto.subtle.generateKey(
@@ -302,10 +308,11 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       user: { externalId: string };
-      personalWorkspace: { name: string } | null;
+      personalWorkspace: { id: string; name: string } | null;
     };
     expect(body.user.externalId).toBe(DEV_SUB);
     expect(body.personalWorkspace?.name).toBe("Personal");
+    personalWorkspaceId = body.personalWorkspace?.id ?? "";
   });
 
   it("GET /v1/me/workspaces lists the personal workspace with the owner role", async () => {
@@ -320,6 +327,28 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.data[0].isPersonal).toBe(true);
   });
 
+  it("GET /v1/me/overview returns the command-center aggregates", async () => {
+    const res = await get(
+      `/v1/me/overview/${personalWorkspaceId}`,
+      "dev-token"
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      workspace: {
+        id: personalWorkspaceId,
+        name: "Personal",
+        role: "owner",
+      },
+      setup: {
+        onboardingComplete: false,
+        outstandingAction: "connect_account",
+      },
+      accounts: { total: 0, expiringSoon: 0 },
+      publishing: { totalPosts: 0, drafts: 0, failed: 0 },
+      reviews: { pending: 0 },
+    });
+  });
+
   it("serves the M2 workspace admin, API-key, media, and connection-mint contracts", async () => {
     const memberships = await get("/v1/me/workspaces", "dev-token");
     const membershipBody = (await memberships.json()) as {
@@ -330,6 +359,37 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
 
     const workspace = await get(`/v1/workspaces/${workspaceId}`, "dev-token");
     expect(workspace.status).toBe(200);
+
+    // Account connection is an onboarding prerequisite and must be available
+    // before payment is complete.
+    const mint = await postJson(
+      `/v1/workspaces/${workspaceId}/connections/connect/instagram`,
+      {},
+      "dev-token"
+    );
+    expect(mint.status).toBe(200);
+    const mintBody = (await mint.json()) as { url: string };
+    expect(mintBody.url).toContain("state=");
+
+    const current = await get("/v1/me", "dev-token");
+    const currentBody = (await current.json()) as { user: { id: string } };
+    const paid = await postDodoWebhook(`paid_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        payload_type: "Subscription",
+        subscription_id: `sub_${crypto.randomUUID()}`,
+        product_id: "pdt_mPTd8gsQS8YUISdStWURf",
+        status: "active",
+        previous_billing_date: "2026-07-01T00:00:00Z",
+        next_billing_date: "2026-08-01T00:00:00Z",
+        addons: [],
+        customer: {
+          customer_id: `customer_${crypto.randomUUID()}`,
+        },
+        metadata: { billing_owner_user_id: currentBody.user.id },
+      },
+    });
+    expect(paid.status).toBe(200);
 
     const key = await postJson(
       `/v1/workspaces/${workspaceId}/api-keys`,
@@ -356,15 +416,90 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       "dev-token"
     );
     expect(media.status).toBe(200);
+  });
 
-    const mint = await postJson(
-      `/v1/workspaces/${workspaceId}/connections/connect/instagram`,
-      {},
+  it("keeps the base plan when an add-on subscription webhook arrives", async () => {
+    const current = await get("/v1/me", "dev-token");
+    const currentBody = (await current.json()) as { user: { id: string } };
+    const customerId = `customer_${crypto.randomUUID()}`;
+    const base = {
+      payload_type: "Subscription",
+      status: "active",
+      previous_billing_date: "2026-07-01T00:00:00Z",
+      next_billing_date: "2026-08-01T00:00:00Z",
+      addons: [],
+      customer: { customer_id: customerId },
+      metadata: { billing_owner_user_id: currentBody.user.id },
+    };
+
+    const plan = await postDodoWebhook(`plan_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        ...base,
+        subscription_id: `sub_plan_${crypto.randomUUID()}`,
+        product_id: TEST_PRODUCT_IDS.VIBE.monthly,
+      },
+    });
+    expect(plan.status).toBe(200);
+
+    const addon = await postDodoWebhook(`addon_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      created_at: "2026-07-03T00:00:00Z",
+      data: {
+        ...base,
+        subscription_id: `sub_addon_${crypto.randomUUID()}`,
+        product_id: SORTED_TEST_PRODUCT_ID,
+      },
+    });
+    expect(addon.status).toBe(200);
+
+    const renewal = await postDodoWebhook(`renewal_${crypto.randomUUID()}`, {
+      type: "subscription.renewed",
+      data: {
+        ...base,
+        subscription_id: `sub_plan_${crypto.randomUUID()}`,
+        product_id: TEST_PRODUCT_IDS.VIBE.monthly,
+        previous_billing_date: "2026-08-01T00:00:00Z",
+        next_billing_date: "2026-09-01T00:00:00Z",
+      },
+    });
+    expect(renewal.status).toBe(200);
+
+    const unknown = await postDodoWebhook(`unknown_${crypto.randomUUID()}`, {
+      type: "subscription.active",
+      data: {
+        ...base,
+        subscription_id: `sub_unknown_${crypto.randomUUID()}`,
+        product_id: `pdt_unknown_${crypto.randomUUID()}`,
+      },
+    });
+    expect(unknown.status).toBe(200);
+
+    const staleAddon = await postDodoWebhook(
+      `stale_addon_${crypto.randomUUID()}`,
+      {
+        type: "subscription.cancelled",
+        created_at: "2026-07-02T00:00:00Z",
+        data: {
+          ...base,
+          status: "cancelled",
+          subscription_id: `sub_addon_${crypto.randomUUID()}`,
+          product_id: SORTED_TEST_PRODUCT_ID,
+        },
+      }
+    );
+    expect(staleAddon.status).toBe(200);
+
+    const subscription = await get(
+      `/v1/workspaces/${personalWorkspaceId}/billing/subscription`,
       "dev-token"
     );
-    expect(mint.status).toBe(200);
-    const mintBody = (await mint.json()) as { url: string };
-    expect(mintBody.url).toContain("state=");
+    expect(subscription.status).toBe(200);
+    expect(await subscription.json()).toMatchObject({
+      plan: "VIBE",
+      status: "active",
+      addons: { sorted: { status: "active" } },
+    });
   });
 
   it("rejects a garbage bearer with a 401 error envelope", async () => {
@@ -396,12 +531,132 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
   it("serves RFC 8414 metadata and JWKS", async () => {
     const meta = await get("/.well-known/oauth-authorization-server");
     expect(meta.status).toBe(200);
-    const metaBody = (await meta.json()) as { token_endpoint: string };
+    const metaBody = (await meta.json()) as {
+      token_endpoint: string;
+      device_authorization_endpoint: string;
+      agent_auth: { skill: string };
+    };
     expect(metaBody.token_endpoint).toBe(`${ISSUER}/oauth/token`);
+    expect(metaBody.device_authorization_endpoint).toBe(
+      `${ISSUER}/oauth/device/authorize`
+    );
+    expect(metaBody.agent_auth.skill).toBe("http://localhost:3000/auth.md");
 
     const jwks = await get("/.well-known/jwks.json");
     const jwksBody = (await jwks.json()) as { keys: Array<{ alg: string }> };
     expect(jwksBody.keys[0].alg).toBe("ES256");
+  });
+
+  it("runs device authorization from pending approval to a single-use token", async () => {
+    expect(personalWorkspaceId).toBeTruthy();
+    const workspaceId = personalWorkspaceId;
+    const start = await postForm("/oauth/device/authorize", {
+      client_id: "delulu-cli",
+      scope: "posts:read accounts:read",
+      resource: ISSUER,
+      workspace_id: workspaceId,
+    });
+    expect(start.status).toBe(200);
+    const device = (await start.json()) as {
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      verification_uri_complete: string;
+      interval: number;
+    };
+    expect(device.user_code).toMatch(DEVICE_USER_CODE);
+    expect(device.verification_uri).toBe("http://localhost:3000/oauth/device");
+    expect(device.verification_uri_complete).toContain(
+      encodeURIComponent(device.user_code)
+    );
+    expect(
+      new URL(device.verification_uri_complete).searchParams.get("workspace_id")
+    ).toBe(workspaceId);
+
+    const pending = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(pending.status).toBe(400);
+    expect((await pending.json()) as { error: string }).toMatchObject({
+      error: "authorization_pending",
+    });
+
+    const tooFast = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(tooFast.status).toBe(400);
+    expect((await tooFast.json()) as { error: string }).toMatchObject({
+      error: "slow_down",
+    });
+
+    const transaction = await get(
+      `/oauth/device/transaction?user_code=${encodeURIComponent(device.user_code)}`,
+      "dev-token"
+    );
+    expect(transaction.status).toBe(200);
+    expect(await transaction.json()).toMatchObject({
+      clientId: "delulu-cli",
+      scopes: ["posts:read", "accounts:read"],
+      resource: ISSUER,
+    });
+
+    const escalatedApproval = await postJson(
+      "/oauth/device/approve",
+      {
+        user_code: device.user_code,
+        scope: "posts:write",
+        workspace_id: workspaceId,
+      },
+      "dev-token"
+    );
+    expect(escalatedApproval.status).toBe(400);
+    expect(await escalatedApproval.json()).toMatchObject({
+      error: "invalid_request",
+    });
+
+    const approve = await postJson(
+      "/oauth/device/approve",
+      {
+        user_code: device.user_code,
+        scope: "accounts:read",
+        workspace_id: workspaceId,
+      },
+      "dev-token"
+    );
+    expect(approve.status).toBe(200);
+
+    const token = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(token.status).toBe(200);
+    const tokenBody = (await token.json()) as { access_token: string };
+    expect(tokenBody).toHaveProperty("access_token");
+
+    const introspection = await postForm("/oauth/introspect", {
+      token: tokenBody.access_token,
+    });
+    expect(await introspection.json()).toMatchObject({
+      active: true,
+      scopes: ["accounts:read"],
+      aud: ISSUER,
+      workspaceId,
+    });
+
+    const replay = await postForm("/oauth/token", {
+      grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+      device_code: device.device_code,
+      client_id: "delulu-cli",
+    });
+    expect(replay.status).toBe(400);
+    expect((await replay.json()) as { error: string }).toMatchObject({
+      error: "expired_token",
+    });
   });
 
   it("runs the full OAuth code→token→refresh flow and accepts the AS token", async () => {

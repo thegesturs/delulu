@@ -24,7 +24,6 @@ import {
   Settings01Icon,
   UserGroupIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -32,6 +31,7 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { normalizePlatform } from "@/lib/social-platform";
+import { useResourceAtom } from "@/state/resources";
 import {
   postActions,
   useAutomationConfig,
@@ -79,7 +79,7 @@ function addProvider(account: AccountLike) {
 export default function SocialSelector() {
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
-  const socialProviders = useQuery({
+  const socialProviders = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
   });

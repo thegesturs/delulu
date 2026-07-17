@@ -9,7 +9,6 @@ import {
   ArrowRight01Icon,
   MailSend01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DashboardChart } from "@/components/dashboard/dashboard-chart";
@@ -24,6 +23,7 @@ import { PostRow } from "@/components/posts/post-row";
 import { PostViewPreviewDialog } from "@/components/posts/post-view-preview-dialog";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import { useResourceAtom } from "@/state/resources";
 import type { ConnectionView, PostView } from "@/types/workspace-views";
 
 interface OperationalStats {
@@ -63,17 +63,17 @@ export function DashboardContent({
     limit: 100,
     offset: 0,
   });
-  const automations = useQuery({
+  const automations = useResourceAtom({
     ...automationOptions,
     queryKey: automationOptions.queryKey!,
     enabled: Boolean(workspaceId),
   });
-  const postsQuery = useQuery({
+  const postsQuery = useResourceAtom({
     ...resources.posts.list(workspaceId, { limit: 100 }),
     enabled: Boolean(workspaceId),
     staleTime: 30_000,
   });
-  const connectionsQuery = useQuery({
+  const connectionsQuery = useResourceAtom({
     ...resources.connections.list(workspaceId, { limit: 100 }),
     enabled: Boolean(workspaceId),
     staleTime: 60_000,

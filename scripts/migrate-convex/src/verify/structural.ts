@@ -28,6 +28,7 @@ const TABLE_SQL: Record<string, string> = {
   postTargets: "post_targets",
   jobs: "jobs",
   subscriptions: "subscriptions",
+  subscriptionAddons: "subscription_addons",
   transactions: "transactions",
   postReviews: "post_reviews",
   reviewActivity: "review_activity",
@@ -65,6 +66,17 @@ export const checkRowCounts = (
         snap("organizations") + snap("users"),
       ],
       ["subscriptions", manifest.tables.subscriptions, snap("users")],
+      [
+        "subscription_addons",
+        manifest.tables.subscriptionAddons,
+        (snapshot.tables.get("subscriptions") ?? []).filter(
+          (row) =>
+            typeof row === "object" &&
+            row !== null &&
+            "type" in row &&
+            row.type === "addon"
+        ).length,
+      ],
       [
         "posts",
         manifest.tables.posts,

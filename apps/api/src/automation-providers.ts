@@ -1,14 +1,17 @@
-import { TokenCipher } from "@delulu/core";
+import { TokenCipher, type UserId, type WorkspaceId } from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { getPlanFromProductId } from "@delulu/payments";
+import { isSortedProductId } from "@delulu/payments/product-ids";
 import {
   BillingWebhookApplication,
+  MessagingService,
   PaymentWebhookSink,
   ProviderAudienceError,
   ProviderAudienceService,
   ProviderDmError,
   ProviderDmService,
+  SetupService,
 } from "@delulu/services";
 import { Effect, Layer, Predicate, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -239,6 +242,11 @@ const numberField = (value: unknown, key: string): number | undefined =>
     ? value[key]
     : undefined;
 
+const booleanField = (value: unknown, key: string): boolean | undefined =>
+  Predicate.isObject(value) && Predicate.isBoolean(value[key])
+    ? value[key]
+    : undefined;
+
 const objectField = (value: unknown, key: string): object | undefined =>
   Predicate.isObject(value) && Predicate.isObject(value[key])
     ? value[key]
@@ -269,6 +277,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
   PaymentWebhookSink,
   Effect.gen(function* () {
     const billing = yield* BillingWebhookApplication;
+    const setup = yield* SetupService;
+    const messaging = yield* MessagingService;
     const sql = yield* SqlClient.SqlClient;
 
     const resolveBillingOwner = Effect.fn("PaymentWebhook.resolveOwner")(
@@ -307,6 +317,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
             return users[0].id;
           }
         }
+
         return yield* invalidBillingPayload(
           "Payment webhook could not be matched to a billing owner"
         );
@@ -316,7 +327,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
     const normalize = Effect.fn("PaymentWebhook.normalize")(function* (
       eventId: string,
       type: string,
-      rawData: unknown
+      rawData: unknown,
+      occurredAt: string | number | undefined
     ) {
       if (!(type.startsWith("subscription.") || type.startsWith("payment."))) {
         return null;
@@ -328,6 +340,12 @@ export const PaymentWebhookSinkLive = Layer.effect(
         );
       }
       const billingOwnerUserId = yield* resolveBillingOwner(data);
+      const providerOccurredAt =
+        typeof occurredAt === "number"
+          ? new Date(
+              occurredAt < 10_000_000_000 ? occurredAt * 1000 : occurredAt
+            ).toISOString()
+          : (occurredAt ?? null);
       const customer = objectField(data, "customer");
       const customerId = customer
         ? (stringField(customer, "customer_id") ?? null)
@@ -342,10 +360,44 @@ export const PaymentWebhookSinkLive = Layer.effect(
             "Subscription webhook is missing its subscription or product id"
           );
         }
-        const plan = getPlanFromProductId(productId)?.planType ?? productId;
+        if (isSortedProductId(productId)) {
+          return {
+            _tag: "AddonSubscriptionChanged" as const,
+            eventId,
+            providerEventType: type,
+            providerOccurredAt,
+            billingOwnerUserId,
+            providerCustomerId: customerId,
+            providerSubscriptionId: subscriptionId,
+            addon: "sorted" as const,
+            status,
+            currentPeriodStart:
+              stringField(data, "previous_billing_date") ?? null,
+            currentPeriodEnd: stringField(data, "next_billing_date") ?? null,
+            cancelAtPeriodEnd:
+              booleanField(data, "cancel_at_next_billing_date") ?? false,
+          };
+        }
+        const recognizedPlan = getPlanFromProductId(productId);
+        if (!recognizedPlan) {
+          return {
+            _tag: "UnrecognizedSubscriptionChanged" as const,
+            eventId,
+            providerEventType: type,
+            providerOccurredAt,
+            billingOwnerUserId,
+            providerCustomerId: customerId,
+            providerSubscriptionId: subscriptionId,
+            productId,
+            status,
+          };
+        }
+        const plan = recognizedPlan.planType;
         return {
           _tag: "SubscriptionChanged" as const,
           eventId,
+          providerEventType: type,
+          providerOccurredAt,
           billingOwnerUserId,
           providerCustomerId: customerId,
           providerSubscriptionId: subscriptionId,
@@ -354,6 +406,14 @@ export const PaymentWebhookSinkLive = Layer.effect(
           currentPeriodStart:
             stringField(data, "previous_billing_date") ?? null,
           currentPeriodEnd: stringField(data, "next_billing_date") ?? null,
+          billingInterval:
+            stringField(data, "payment_frequency_interval")?.toUpperCase() ??
+            null,
+          currency: stringField(data, "currency") ?? null,
+          recurringAmountMinor:
+            numberField(data, "recurring_pre_tax_amount") ?? null,
+          cancelAtPeriodEnd:
+            booleanField(data, "cancel_at_next_billing_date") ?? false,
           addons: { items: "addons" in data ? data.addons : [] },
         };
       }
@@ -370,6 +430,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
         return {
           _tag: "TransactionChanged" as const,
           eventId,
+          providerEventType: type,
+          providerOccurredAt,
           billingOwnerUserId,
           providerTransactionId: paymentId,
           amountMinor: amount,
@@ -390,7 +452,8 @@ export const PaymentWebhookSinkLive = Layer.effect(
         const candidate = yield* normalize(
           input.eventId,
           input.event.type,
-          input.event.data
+          input.event.data,
+          input.event.created_at ?? input.event.timestamp
         );
         if (candidate === null) {
           return;
@@ -408,7 +471,7 @@ export const PaymentWebhookSinkLive = Layer.effect(
               })
           )
         );
-        yield* billing.apply(event).pipe(
+        const application = yield* billing.apply(event).pipe(
           Effect.mapError(
             (error) =>
               new WebhookIngressError({
@@ -418,6 +481,109 @@ export const PaymentWebhookSinkLive = Layer.effect(
               })
           )
         );
+        const workspaces = yield* sql<{ id: string }>`
+          SELECT id FROM workspaces
+          WHERE billing_owner_user_id = ${event.billingOwnerUserId}`.pipe(
+          Effect.mapError(billingLookupFailed)
+        );
+        yield* Effect.forEach(workspaces, (workspace) =>
+          setup.status(
+            workspace.id as WorkspaceId,
+            event.billingOwnerUserId as UserId
+          )
+        );
+        if ("stale" in application && application.stale) {
+          return;
+        }
+        // Re-run durable outbox writes on provider replay. Their idempotency
+        // keys make this safe and recover a prior attempt that committed the
+        // billing event but failed before enqueueing lifecycle messages.
+        const recipients = yield* sql<{
+          email: string | null;
+        }>`SELECT email FROM users
+          WHERE id = ${event.billingOwnerUserId}`.pipe(
+          Effect.mapError(billingLookupFailed)
+        );
+        const email = recipients[0]?.email;
+        if (!email) {
+          return;
+        }
+        if (event._tag === "SubscriptionChanged") {
+          yield* messaging.identify({
+            userId: event.billingOwnerUserId,
+            email,
+            attributes: {
+              paid_plan: event.plan,
+              subscription_status: event.status,
+              billing_period_end: event.currentPeriodEnd,
+              billing_interval: event.billingInterval,
+              cancellation_pending: event.cancelAtPeriodEnd,
+            },
+            idempotencyKey: `billing:${event.eventId}:identify`,
+          });
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event: event.providerEventType,
+            properties: {
+              plan: event.plan,
+              status: event.status,
+              billing_interval: event.billingInterval,
+              cancellation_pending: event.cancelAtPeriodEnd,
+            },
+            idempotencyKey: `billing:${event.eventId}:subscription`,
+          });
+        } else if (event._tag === "AddonSubscriptionChanged") {
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event: event.providerEventType,
+            properties: {
+              addon: event.addon,
+              status: event.status,
+              cancellation_pending: event.cancelAtPeriodEnd,
+            },
+            idempotencyKey: `billing:${event.eventId}:addon`,
+          });
+        } else if (event._tag === "UnrecognizedSubscriptionChanged") {
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event: event.providerEventType,
+            properties: {
+              product_id: event.productId,
+              status: event.status,
+              recognized_product: false,
+            },
+            idempotencyKey: `billing:${event.eventId}:unrecognized`,
+          });
+        } else {
+          yield* messaging.track({
+            userId: event.billingOwnerUserId,
+            email,
+            event:
+              event.providerEventType === "payment.failed"
+                ? "payment_failed"
+                : "payment_succeeded",
+            properties: {
+              amount_minor: event.amountMinor,
+              currency: event.currency,
+            },
+            idempotencyKey: `billing:${event.eventId}:payment`,
+          });
+          if (event.providerEventType === "payment.failed") {
+            yield* messaging.sendTransactional({
+              userId: event.billingOwnerUserId,
+              email,
+              messageType: "payment_failed",
+              subject: "Action needed: payment failed",
+              html: "<h1>Your payment failed</h1><p>Please update your payment method to keep publishing and automations running.</p>",
+              text: "Your payment failed. Please update your payment method to keep publishing and automations running.",
+              replyTo: "notify@delulu.social",
+              idempotencyKey: `payment-failed:${event.eventId}`,
+            });
+          }
+        }
       }),
     });
   })

@@ -1,8 +1,8 @@
 import type { ApiClient } from "../client.js";
 import { workspaceKeys } from "../keys.js";
-import { effectMutation, effectQuery } from "../query.js";
+import { mutationEffect, resourceEffect } from "../resource.js";
 import {
-  defineResourceOptions,
+  defineResourceEffects,
   type EndpointPayload,
   type EndpointQuery,
 } from "./shared.js";
@@ -24,60 +24,47 @@ const key = (scope: AutomationScope, resource: string, ...parts: unknown[]) =>
     parts,
   });
 
-export const createAutomationOptions = defineResourceOptions(
-  ({ client, runner }) => ({
-    list: (scope: AutomationScope, query: ListQuery = {}) =>
-      effectQuery({
-        queryKey: key(scope, "automations", query),
-        effect: () => client.automations.list({ params: params(scope), query }),
-        runner,
-      }),
-    get: (scope: AutomationScope, id: string) =>
-      effectQuery({
-        queryKey: key(scope, "automations", "detail", id),
-        effect: () =>
-          client.automations.get({ params: { ...params(scope), id } }),
-        runner,
-      }),
-    runs: (scope: AutomationScope, query: RunsQuery = {}) =>
-      effectQuery({
-        queryKey: key(scope, "automation-runs", query),
-        effect: () => client.automations.runs({ params: params(scope), query }),
-        runner,
-      }),
-    inbox: (scope: AutomationScope, query: ListQuery = {}) =>
-      effectQuery({
-        queryKey: key(scope, "automation-inbox", query),
-        effect: () =>
-          client.automations.inbox({ params: params(scope), query }),
-        runner,
-      }),
-    create: (scope: AutomationScope) =>
-      effectMutation({
-        mutationKey: key(scope, "automations"),
-        effect: (
-          payload: EndpointPayload<ApiClient["automations"]["create"]>
-        ) => client.automations.create({ params: params(scope), payload }),
-        runner,
-      }),
-    update: (scope: AutomationScope, id: string) =>
-      effectMutation({
-        mutationKey: key(scope, "automations", "detail", id),
-        effect: (
-          payload: EndpointPayload<ApiClient["automations"]["update"]>
-        ) =>
-          client.automations.update({
-            params: { ...params(scope), id },
-            payload,
-          }),
-        runner,
-      }),
-    remove: (scope: AutomationScope) =>
-      effectMutation({
-        mutationKey: key(scope, "automations"),
-        effect: (id: string) =>
-          client.automations.remove({ params: { ...params(scope), id } }),
-        runner,
-      }),
-  })
-);
+export const createAutomationEffects = defineResourceEffects(({ client }) => ({
+  list: (scope: AutomationScope, query: ListQuery = {}) =>
+    resourceEffect({
+      queryKey: key(scope, "automations", query),
+      effect: () => client.automations.list({ params: params(scope), query }),
+    }),
+  get: (scope: AutomationScope, id: string) =>
+    resourceEffect({
+      queryKey: key(scope, "automations", "detail", id),
+      effect: () =>
+        client.automations.get({ params: { ...params(scope), id } }),
+    }),
+  runs: (scope: AutomationScope, query: RunsQuery = {}) =>
+    resourceEffect({
+      queryKey: key(scope, "automation-runs", query),
+      effect: () => client.automations.runs({ params: params(scope), query }),
+    }),
+  inbox: (scope: AutomationScope, query: ListQuery = {}) =>
+    resourceEffect({
+      queryKey: key(scope, "automation-inbox", query),
+      effect: () => client.automations.inbox({ params: params(scope), query }),
+    }),
+  create: (scope: AutomationScope) =>
+    mutationEffect({
+      mutationKey: key(scope, "automations"),
+      effect: (payload: EndpointPayload<ApiClient["automations"]["create"]>) =>
+        client.automations.create({ params: params(scope), payload }),
+    }),
+  update: (scope: AutomationScope, id: string) =>
+    mutationEffect({
+      mutationKey: key(scope, "automations", "detail", id),
+      effect: (payload: EndpointPayload<ApiClient["automations"]["update"]>) =>
+        client.automations.update({
+          params: { ...params(scope), id },
+          payload,
+        }),
+    }),
+  remove: (scope: AutomationScope) =>
+    mutationEffect({
+      mutationKey: key(scope, "automations"),
+      effect: (id: string) =>
+        client.automations.remove({ params: { ...params(scope), id } }),
+    }),
+}));

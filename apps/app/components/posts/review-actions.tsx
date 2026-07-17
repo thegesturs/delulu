@@ -14,11 +14,11 @@ import {
   CancelCircleIcon,
   Tick01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import { useMutationAtom, useResourceRegistry } from "@/state/resources";
 
 interface ReviewActionsProps {
   postId: string;
@@ -39,25 +39,25 @@ export function ReviewActions({
 
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const queryClient = useQueryClient();
-  const reviewPostMutation = useMutation({
+  const registry = useResourceRegistry();
+  const reviewPostMutation = useMutationAtom({
     ...resources.reviews.act(workspaceId ?? "", postId),
     onSuccess: async () => {
       if (!workspaceId) {
         return;
       }
       await Promise.all([
-        queryClient.invalidateQueries({
+        registry.invalidateResources({
           queryKey: resources.reviews.queue(workspaceId).queryKey,
         }),
-        queryClient.invalidateQueries({
+        registry.invalidateResources({
           queryKey: resources.reviews.forPost(workspaceId, postId).queryKey,
         }),
-        queryClient.invalidateQueries({
+        registry.invalidateResources({
           queryKey: resources.reviews.activity(workspaceId, postId).queryKey,
         }),
-        invalidateWorkspaceResource(queryClient, workspaceId, "posts"),
-        queryClient.invalidateQueries({
+        invalidateWorkspaceResource(registry, workspaceId, "posts"),
+        registry.invalidateResources({
           queryKey: resources.posts.get(workspaceId, postId).queryKey,
         }),
       ]);

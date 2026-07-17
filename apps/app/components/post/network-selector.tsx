@@ -16,18 +16,15 @@ import {
 import { Icon } from "@delulu/design-system/providers/icon";
 import type { SocialType } from "@delulu/validators/post";
 import { ArrowDown01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useShallow } from "zustand/shallow";
 import { getPlatformsInDefault } from "@/lib/platform-rules";
 import { useSelectedSocialProviders, useStore } from "@/store/post";
 import { SocialIcon } from "./sidebar/social-icon";
 
 export function AlternativeContentSelector() {
-  const { post, setPost } = useStore(
-    useShallow((state) => ({
-      post: state.post,
-      setPost: state.setPost,
-    }))
-  );
+  const { post, setPost } = useStore((state) => ({
+    post: state.post,
+    setPost: state.setPost,
+  }));
   const socialProviders = useSelectedSocialProviders();
 
   // Get platforms currently in default

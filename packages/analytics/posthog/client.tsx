@@ -9,11 +9,20 @@ import { keys } from "../keys";
 
 interface PostHogProviderProps {
   readonly children: ReactNode;
+  /**
+   * Surface this provider runs on (`"app" | "web"`). Registered as a PostHog
+   * super-property so every client event is attributable to its surface — the
+   * client-side counterpart to `platform: "api" | "worker" | "cli"` set by the
+   * server, worker, and CLI. This is what makes app-vs-web-vs-CLI comparisons
+   * possible.
+   */
+  readonly platform?: string;
 }
 
-export const PostHogProvider = (
-  properties: Omit<PostHogProviderProps, "client">
-) => {
+export const PostHogProvider = ({
+  platform,
+  ...properties
+}: Omit<PostHogProviderProps, "client">) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -47,6 +56,15 @@ export const PostHogProvider = (
       initPostHog();
     }
   }, [isInitialized]);
+
+  // Stamp the surface on every subsequent event. `register` persists the
+  // super-property, so it survives reloads and applies to the global singleton
+  // regardless of how many providers mount.
+  useEffect(() => {
+    if (isInitialized && platform) {
+      posthog.register({ platform });
+    }
+  }, [isInitialized, platform]);
 
   return <PostHogProviderRaw client={posthog} {...properties} />;
 };

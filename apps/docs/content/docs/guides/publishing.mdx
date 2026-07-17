@@ -1,0 +1,72 @@
+---
+title: How to draft, schedule, and publish
+description: Create posts with explicit delivery intent and inspect their authoritative target states.
+---
+
+## Create a safe draft
+
+Omitting intent defaults to a draft:
+
+```bash
+delulu post "Draft caption" --to linkedin:connection_abc123
+```
+
+`--draft` is equivalent and can be useful in scripts for readability.
+
+## Schedule a post
+
+```bash
+delulu post "Scheduled caption" \
+  --to linkedin:connection_abc123 \
+  --at 2026-08-01T09:00:00+05:30
+```
+
+Use an absolute ISO 8601 timestamp with an offset or `Z`.
+
+## Publish now
+
+```bash
+delulu post "Live caption" \
+  --to linkedin:connection_abc123 \
+  --media ./demo.mp4 \
+  --now
+```
+
+Immediate publishing always requires `--now`. The CLI waits up to 360 seconds unless `--no-wait` is supplied.
+
+## Edit without publishing
+
+```bash
+delulu edit post_abc123 "Revised caption" --draft
+```
+
+Use `--to`, `--media`, `--privacy`, or `--at` to replace those fields. Multi-segment posts must be edited in the web editor.
+
+## Publish an existing draft
+
+```bash
+delulu publish post_abc123 --now
+```
+
+## Retry failed destinations
+
+```bash
+delulu retry post_abc123
+delulu retry post_abc123 --target target_xyz
+```
+
+Retries only failed targets. It does not recreate the post or repeat successful targets.
+
+## Verification
+
+```bash
+delulu show post_abc123
+```
+
+Possible post states are `draft`, `pending_review`, `changes_requested`, `scheduled`, `publishing`, `published`, `partially_failed`, and `failed`.
+
+## Troubleshooting
+
+- Editors route into review instead of direct publishing.
+- Exit code `8` means at least one target failed; inspect the per-target results.
+- Exit code `9` means the accepted operation did not finish before timeout; inspect the returned post ID instead of creating another post.

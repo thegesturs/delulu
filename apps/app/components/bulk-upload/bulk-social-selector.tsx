@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -12,6 +11,7 @@ import { IoCheckmarkCircle } from "react-icons/io5";
 import { SocialIcon } from "@/components/post/sidebar/social-icon";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
+import { useResourceAtom } from "@/state/resources";
 import type { SelectedProvider } from "./bulk-upload-reducer";
 
 interface BulkSocialSelectorProps {
@@ -25,7 +25,7 @@ export function BulkSocialSelector({
 }: BulkSocialSelectorProps) {
   const { workspaceId } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const socialProviders = useQuery({
+  const socialProviders = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
     staleTime: 30_000,

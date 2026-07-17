@@ -158,6 +158,39 @@ describe("runTransform (golden fixture)", () => {
   });
 });
 
+describe("runTransform billing selection", () => {
+  it("keeps the active base plan when the user points at an add-on", async () => {
+    const tables = structuredClone(legacyTables);
+    const alice = tables.users.find(
+      (user) =>
+        typeof user === "object" &&
+        user !== null &&
+        "_id" in user &&
+        user._id === "user_alice"
+    );
+    if (typeof alice !== "object" || alice === null) {
+      throw new Error("fixture user is missing");
+    }
+    (alice as Record<string, unknown>).subscriptionId = "sub_alice_addon";
+
+    const result = await runTransform(
+      await parseSnapshotBuffer(Buffer.from(buildSnapshotZip(tables)))
+    );
+    const subscription = result.ctx.load.subscriptions.find(
+      (row) =>
+        row.billingOwnerUserId === result.ctx.userIdByLegacy.get("user_alice")
+    );
+
+    expect(subscription?.legacyConvexId).toBe("sub_alice_plan");
+    expect(subscription?.plan).toBe("vibe");
+    expect(
+      result.ctx.load.subscriptionAddons.find(
+        (row) => row.baseSubscriptionId === subscription?.id
+      )
+    ).toMatchObject({ addonKey: "sorted", status: "active" });
+  });
+});
+
 describe("runTransform org handling", () => {
   it("drops a post whose org was deleted instead of failing", async () => {
     const withOrphan = {

@@ -1,0 +1,89 @@
+---
+title: MCP overview
+description: Connect hosted agents to Delulu with OAuth, or run the workspace MCP server over stdio or SSE.
+---
+
+Delulu exposes the same setup, account, billing, media, and post operations as structured MCP tools.
+
+## Hosted MCP
+
+Use this remote server URL in a browser-capable MCP client:
+
+```text
+https://solulu.delulu.social/mcp
+```
+
+Most MCP clients accept a server entry shaped like this; use the equivalent remote-server setting if your client uses a different configuration format:
+
+```json
+{
+  "mcpServers": {
+    "delulu": {
+      "url": "https://solulu.delulu.social/mcp"
+    }
+  }
+}
+```
+
+On first use:
+
+1. The MCP client reads the protected-resource metadata.
+2. It opens Delulu sign-in and authorization in your browser.
+3. Sign up or sign in, choose an eligible personal or organization workspace, select scopes, and approve.
+4. Return to the MCP client. It exchanges the authorization code with PKCE and starts the authenticated session.
+5. Call `get_setup_status` to confirm the selected workspace and next required action.
+
+If the browser ceremony is interrupted, reconnect the server and authorize again. The MCP client must store and refresh its own app-issued tokens; never paste a token into its configuration.
+
+The server advertises protected-resource metadata at:
+
+```text
+https://solulu.delulu.social/.well-known/oauth-protected-resource/mcp
+```
+
+The client discovers `https://api.delulu.social` as the authorization server and uses app-issued access tokens. Hosted MCP validates those tokens through the Delulu authorization server; it does not accept identity-provider tokens directly.
+
+## Agent discovery manifest
+
+Agents that begin without MCP configuration can read:
+
+```text
+https://solulu.delulu.social/auth.md
+```
+
+The manifest summarizes device authorization, workspace selection, account connection, checkout, media, and atomic publishing. It contains instructions only and never contains credentials. API clients should still use the machine-readable OAuth metadata as the authority for endpoint URLs and supported grants.
+
+## Local server from this repository
+
+The local package supports stdio by default and SSE with `--sse`. It requires a workspace-bound Delulu API key.
+
+```bash
+DELULU_API_KEY=dsk_... pnpm --filter @delulu/mcp dev
+```
+
+Optional variables:
+
+| Variable | Effect |
+| --- | --- |
+| `DELULU_API_URL` | Override the API base URL. |
+| `DELULU_API_KEY` | Required bearer credential for the local server. |
+| `DELULU_WORKSPACE_ID` | Default workspace when the credential can access several. |
+| `PORT` | SSE port, default `3100`. |
+
+SSE mode exposes `/sse`, `/messages`, and `/health`:
+
+```bash
+DELULU_API_KEY=dsk_... pnpm --filter @delulu/mcp dev -- --sse
+```
+
+## Workspace selection
+
+Tools accept an optional `workspaceId`. If it is omitted, the server uses `DELULU_WORKSPACE_ID`, then a cached single eligible workspace. When multiple workspaces exist and no explicit choice is available, the operation fails instead of selecting the first organization.
+
+## Media limitation
+
+Remote MCP cannot receive arbitrary local filesystem paths. Call `import_media` with a public HTTPS URL, or prepare local media through the CLI and pass the resulting media ID to `create_post`.
+
+## Security model
+
+Every tool call reuses REST domain services. Live membership, role, scope, workspace binding, quota, payer eligibility, and review rules remain authoritative.

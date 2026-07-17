@@ -21,14 +21,16 @@ export type CredentialKind = "session" | "oauth" | "apiKey";
  * identity only — the workspace and live role are resolved separately from the
  * path + Postgres. `scopes` is `"full"` for a trusted first-party session, or a
  * concrete scope list for delegated (OAuth / API-key) credentials. API keys
- * additionally carry a frozen role and a workspace binding.
+ * additionally carry a frozen role. Both API keys and workspace-bound OAuth
+ * tokens carry `boundWorkspaceId` — the single workspace they may act on.
  */
 export interface AuthContext {
   readonly userId: UserId;
   readonly credential: CredentialKind;
   readonly scopes: readonly Scope[] | "full";
   readonly frozenRole?: WorkspaceRole;
-  readonly keyWorkspaceId?: WorkspaceId;
+  /** Workspace this credential is pinned to (API key or bound OAuth token). */
+  readonly boundWorkspaceId?: WorkspaceId;
   readonly apiKeyId?: string;
 }
 

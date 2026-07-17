@@ -1,22 +1,36 @@
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import type { Metadata } from "next";
 import { ToolPageLayout } from "@/components/tools/tool-page-layout";
 import { VideoTrimmer } from "@/components/tools/youtube-video-trimmer/video-trimmer";
 import { getTool } from "@/lib/tools";
 
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
 const tool = getTool("youtube-video-trimmer")!;
 
 const META_DESCRIPTION =
   "Trim YouTube videos online in seconds. Paste a link or upload a file, pick your start and end, preview instantly, and download a clean MP4 — free, no signup, no watermark.";
+const CANONICAL_URL = getWebUrl("/tools/youtube-video-trimmer");
 
 export const metadata: Metadata = createMetadata({
   title: "YouTube Trimmer – Trim YouTube Videos Online Free",
   description: META_DESCRIPTION,
   keywords: tool.keywords,
-  image: `${WEB_URL}/api/og?title=${encodeURIComponent("YouTube Trimmer")}&description=${encodeURIComponent("Trim & cut YouTube videos online — free, in your browser")}`,
+  image: getWebUrl(
+    `/api/og?title=${encodeURIComponent("YouTube Trimmer")}&description=${encodeURIComponent("Trim & cut YouTube videos online — free, in your browser")}`
+  ),
   alternates: {
-    canonical: `${WEB_URL}/tools/youtube-video-trimmer`,
+    canonical: CANONICAL_URL,
+  },
+  openGraph: {
+    title: "YouTube Trimmer – Trim YouTube Videos Online Free | Delulu Social",
+    description: META_DESCRIPTION,
+    type: "website",
+    url: CANONICAL_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "YouTube Trimmer – Trim YouTube Videos Online Free",
+    description: META_DESCRIPTION,
   },
 });
 
@@ -123,7 +137,7 @@ const sections = [
         <li>Trim a screen recording or webinar before reposting it.</li>
         <li>
           Make short vertical clips for Reels, TikTok, and Shorts, then schedule
-          them with <a href="https://delulu.social">Delulu Social</a>.
+          them with <a href="https://www.delulu.social">Delulu Social</a>.
         </li>
       </ul>
     ),

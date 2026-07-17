@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build:cloudflare": "node ../../scripts/run-cloudflare-production-migration.mjs",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@delulu/analytics": "workspace:*",
     "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
     "@delulu/payments": "workspace:*",

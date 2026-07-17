@@ -1,0 +1,41 @@
+---
+title: Publishing lifecycle
+description: How explicit intent, review rules, target jobs, retries, and terminal states fit together.
+---
+
+## The problem
+
+Treating “publish now” as a schedule in the past creates ambiguous state and makes retries dangerous. Treating post creation and publication as separate agent calls can duplicate content when either call times out.
+
+## The approach
+
+```text
+                     editor
+draft ── submit ─────────────► pending_review
+  │                                │ approve
+  │ owner/admin                    ▼
+  ├── schedule ───────────────► scheduled
+  └── publish_now ────────────► publishing
+                                    │
+                          ┌─────────┴─────────┐
+                          ▼                   ▼
+                      published       partially_failed / failed
+                                              │ retry failed target only
+                                              └──────────────► publishing
+```
+
+`create` accepts explicit intent: `draft`, `schedule`, or `publish_now`. The domain service applies role and review rules during that one request. Each social target has its own durable publishing state and idempotent provider key.
+
+## Authoritative states
+
+Post state summarizes its targets and review state. Target state is one of `pending`, `publishing`, `published`, or `failed`. A partially failed post can have both published and failed targets.
+
+## Timeouts
+
+A timeout means the original accepted operation is still authoritative. CLI exit code `9` returns its post ID. The caller inspects that post instead of creating, updating, or scheduling a replacement.
+
+## Trade-offs
+
+- Waiting for terminal state is slower than returning immediately, but prevents agents from claiming publication too early.
+- Per-target state is more data than one post status, but it makes partial failure and safe retry explicit.
+- Atomic create-with-intent narrows flexibility for low-level callers, while removing the common duplicate-publication failure mode.

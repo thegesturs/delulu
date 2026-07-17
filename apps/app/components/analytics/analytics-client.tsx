@@ -1,11 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FeatureGate } from "@/components/feature-gate";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import { useResourceAtom } from "@/state/resources";
 import { AnalyticsContent } from "./analytics-content";
 
 export function AnalyticsClient() {
@@ -16,7 +16,7 @@ export function AnalyticsClient() {
     limit: 100,
     offset: 0,
   });
-  const accounts = useQuery({
+  const accounts = useResourceAtom({
     ...accountOptions,
     queryKey: accountOptions.queryKey!,
     enabled: !!workspace.workspaceId,
@@ -39,7 +39,7 @@ export function AnalyticsClient() {
     selectedProviderId,
     { windowDays: days }
   );
-  const insights = useQuery({
+  const insights = useResourceAtom({
     ...insightOptions,
     queryKey: insightOptions.queryKey!,
     enabled: !!workspace.workspaceId && !!selectedProviderId,

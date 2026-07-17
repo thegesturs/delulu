@@ -1,5 +1,6 @@
 import { createBlogSchema, JsonLd } from "@delulu/seo/json-ld";
 import { createMetadata } from "@delulu/seo/metadata";
+import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs } from "content-collections";
 import type { Metadata } from "next";
 import { BlogCard } from "@/components/blog/blog-card";
@@ -14,13 +15,12 @@ export const metadata: Metadata = createMetadata({
   description:
     "Discover the latest insights, tips, and strategies for social media management, content creation, and digital marketing. Learn how to grow your audience across all major social platforms.",
   alternates: {
-    canonical: `${process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social"}/blogs`,
+    canonical: getWebUrl("/blogs"),
   },
 });
 
 const BlogIndex = async () => {
-  const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "https://delulu.social";
-  const blogUrl = `${baseUrl}/blogs`;
+  const blogUrl = getWebUrl("/blogs");
 
   // Preview shape only — no article bodies. Read from KV (cheap), cached by ISR.
   const outrankPreviews = await fetchArticlePreviews(100);
@@ -41,7 +41,7 @@ const BlogIndex = async () => {
     url: blogUrl,
     posts: allPosts.map((blog) => ({
       title: blog.title,
-      url: `${baseUrl}/blog/${blog.slug}`,
+      url: getWebUrl(`/blog/${blog.slug}`),
       datePublished: blog.date,
       author: blog.author,
     })),

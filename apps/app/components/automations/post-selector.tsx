@@ -13,9 +13,9 @@ import {
   Image02Icon,
   Video02Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { useResourceAtom } from "@/state/resources";
 
 interface PostSelectorProps {
   socialProviderId: string | null;
@@ -34,13 +34,13 @@ export function PostSelector({
   const { resources } = useApiClient();
   const { workspaceId } = useWorkspace();
 
-  const insights = useQuery({
+  const insights = useResourceAtom({
     ...resources.analytics.insights(workspaceId ?? "", socialProviderId ?? "", {
       windowDays: 30,
     }),
     enabled: Boolean(workspaceId && socialProviderId && !isStoryMode),
   });
-  const scheduled = useQuery({
+  const scheduled = useResourceAtom({
     ...resources.posts.list(workspaceId ?? "", {
       status: "scheduled",
       limit: 100,

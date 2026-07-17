@@ -1,0 +1,28 @@
+---
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description ?? "Delulu documentation"} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title === "Delulu" ? title : `${title} · Delulu Docs`}</title>
+    <ClientRouter />
+  </head>
+  <body transition:persist transition:animate="none" transition:name="docs-layout">
+    <slot />
+  </body>
+</html>

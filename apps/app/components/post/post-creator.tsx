@@ -1,5 +1,6 @@
 "use client";
 
+import { resourceEffect } from "@delulu/client";
 import { DottedSeparator } from "@delulu/design-system/components/ui/dotted-separator";
 import {
   Tabs,
@@ -9,15 +10,17 @@ import {
 } from "@delulu/design-system/components/ui/tabs";
 import { cn } from "@delulu/design-system/lib/utils";
 import { SocialTypes } from "@delulu/validators/post";
-import { useQueries, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Effect } from "effect";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import type { EditorMediaDetail } from "@/lib/editor-media";
 import { getSingleProviderInDefault } from "@/lib/platform-rules";
+import { useResourceAtom } from "@/state/resources";
 import {
+  postEditorCommands,
   useAlternativeContent,
   useSelectedSocialProviders,
   useStore,
@@ -40,9 +43,9 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   const socialProviders = useSelectedSocialProviders();
   const [activeModuleId, setActiveModuleId] = useState<string>("global");
   const loadPost = useStore((state) => state.loadPost);
-  const _post = useStore((state) => state.post);
   const setDateAlongWithTime = useStore((state) => state.setDateAlongWithTime);
   const setTime = useStore((state) => state.setTime);
+  const appliedDraftRef = useRef<string | null>(null);
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
 
@@ -53,7 +56,7 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
   );
 
   // Fetch post data if in edit mode
-  const postData = useQuery({
+  const postData = useResourceAtom({
     ...resources.posts.get(workspaceId ?? "", postId ?? ""),
     enabled: Boolean(workspaceId && postId),
   });
@@ -73,21 +76,28 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
       ),
     [postData.data]
   );
-  const mediaResults = useQueries({
-    queries: mediaIds.map((id) => ({
-      ...resources.media.get(workspaceId ?? "", id),
-      enabled: Boolean(workspaceId && postId),
-    })),
-    combine: (results) => ({
-      data: results.flatMap((result) => (result.data ? [result.data] : [])),
-      isPending: results.some((result) => result.isPending),
-      isError: results.some((result) => result.isError),
-    }),
+  const mediaOptions = useMemo(
+    () =>
+      resourceEffect({
+        queryKey: ["workspace", workspaceId, "media", "details", mediaIds],
+        effect: () =>
+          Effect.all(
+            mediaIds.map((id) =>
+              resources.media.get(workspaceId ?? "", id).effect()
+            ),
+            { concurrency: "unbounded" }
+          ),
+      }),
+    [mediaIds, resources, workspaceId]
+  );
+  const mediaResults = useResourceAtom({
+    ...mediaOptions,
+    enabled: Boolean(workspaceId && postId && mediaIds.length > 0),
   });
   const mediaById = useMemo(
     () =>
       new Map(
-        mediaResults.data.map((media) => [
+        (mediaResults.data ?? []).map((media) => [
           media.id,
           media satisfies EditorMediaDetail,
         ])
@@ -113,18 +123,46 @@ export function PostCreator({ postId }: PostCreatorProps = {}) {
     mediaResults.isError,
   ]);
 
-  // Handle scheduledAt query parameter from calendar
+  // Start a clean, editable post from a public tool handoff.
   useEffect(() => {
-    // Only handle scheduledAt if not in edit mode
+    if (postId) {
+      return;
+    }
+
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const fragmentText =
+      fragment.get("source") === "social-preview-tool"
+        ? fragment.get("text")?.trim().slice(0, 5000)
+        : undefined;
+    const draft =
+      fragmentText ??
+      searchParams.get("draft")?.trim().slice(0, 5000) ??
+      searchParams.get("text")?.trim().slice(0, 5000);
+    if (!draft || appliedDraftRef.current === draft) {
+      return;
+    }
+
+    appliedDraftRef.current = draft;
+    postEditorCommands.applyDraftHandoff(draft);
+    if (fragmentText) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.search}`
+      );
+    }
+  }, [postId, searchParams]);
+
+  // Handle scheduledAt query parameter from calendar after any text handoff
+  // has cleared a previous draft.
+  useEffect(() => {
     if (!postId) {
       const scheduledAtParam = searchParams.get("scheduledAt");
       if (scheduledAtParam) {
         const scheduledTime = Number.parseInt(scheduledAtParam, 10);
         if (!Number.isNaN(scheduledTime)) {
           const scheduledDate = new Date(scheduledTime);
-          // Set the date in the store
           setDateAlongWithTime(scheduledDate);
-          // Set the time in HH:mm format
           setTime(format(scheduledDate, "HH:mm"));
         }
       }

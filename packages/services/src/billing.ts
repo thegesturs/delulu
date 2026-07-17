@@ -14,6 +14,10 @@ export interface SubscriptionSummary {
   readonly currentPeriodStart: string | null;
   readonly currentPeriodEnd: string | null;
   readonly addons: Readonly<Record<string, unknown>>;
+  readonly billingInterval: string | null;
+  readonly currency: string | null;
+  readonly recurringAmountMinor: number | null;
+  readonly cancelAtPeriodEnd: boolean;
 }
 
 export interface BillingTransactionSummary {
@@ -57,10 +61,20 @@ export class BillingService extends Context.Service<
       const find = Effect.fn("BillingService.find")(function* (
         billingOwnerUserId: string
       ) {
-        const rows = yield* sql<
-          Record<string, unknown>
-        >`SELECT * FROM subscriptions
-          WHERE billing_owner_user_id = ${billingOwnerUserId}`.pipe(
+        const rows = yield* sql<Record<string, unknown>>`SELECT s.*,
+          COALESCE((
+            SELECT jsonb_object_agg(a.addon_key, jsonb_strip_nulls(jsonb_build_object(
+              'status', a.status,
+              'providerSubscriptionId', a.provider_subscription_id,
+              'currentPeriodStart', a.current_period_start,
+              'currentPeriodEnd', a.current_period_end,
+              'cancelAtPeriodEnd', a.cancel_at_period_end
+            )))
+            FROM subscription_addons a
+            WHERE a.base_subscription_id = s.id
+          ), '{}'::jsonb) AS addons
+          FROM subscriptions s
+          WHERE s.billing_owner_user_id = ${billingOwnerUserId}`.pipe(
           Effect.orDie
         );
         const row = rows[0];
@@ -86,6 +100,14 @@ export class BillingService extends Context.Service<
           ),
           currentPeriodEnd: isoNullable(row.currentPeriodEnd as Date | null),
           addons: (row.addons ?? {}) as Readonly<Record<string, unknown>>,
+          billingInterval:
+            row.billingInterval === null ? null : String(row.billingInterval),
+          currency: row.currency === null ? null : String(row.currency),
+          recurringAmountMinor:
+            row.recurringAmountMinor === null
+              ? null
+              : Number(row.recurringAmountMinor),
+          cancelAtPeriodEnd: Boolean(row.cancelAtPeriodEnd),
         };
       });
       const usage = Effect.fn("BillingService.usage")(function* (

@@ -11,6 +11,7 @@
         ".basehub/**",
         "**/generated/**",
         "storybook-static/**",
+        "dist/**",
         ".react-email/**"
       ]
     },
@@ -20,6 +21,9 @@
     },
     "test": {
       "dependsOn": ["^test"]
+    },
+    "delulu-cli#test": {
+      "dependsOn": ["^test", "@delulu/client#build"]
     },
     "analyze": {
       "dependsOn": ["^analyze"]

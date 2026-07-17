@@ -7,27 +7,31 @@ import {
   ArrowRight01Icon,
   TaskDone01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 
 export function PendingReviews() {
   const { canApprove, isPersonal } = usePermissions();
   const { resources } = useApiClient();
   const workspace = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = workspace.workspaceId ?? "";
   const options = resources.reviews.queue(workspaceId, { limit: 4, offset: 0 });
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!workspace.workspaceId && !isPersonal,
   });
-  const bulkAction = useMutation(resources.reviews.bulkAct(workspaceId));
+  const bulkAction = useMutationAtom(resources.reviews.bulkAct(workspaceId));
 
   if (workspace.error || query.error) {
     return (
@@ -53,7 +57,7 @@ export function PendingReviews() {
             ? { action: "approve" }
             : { action: "reject", reason: "Changes requested from dashboard" },
       });
-      await queryClient.invalidateQueries({ queryKey: options.queryKey! });
+      await registry.invalidateResources({ queryKey: options.queryKey! });
       toast.success(
         action === "approve" ? "Post approved" : "Changes requested"
       );

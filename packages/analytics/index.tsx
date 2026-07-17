@@ -6,12 +6,17 @@ import { VercelAnalytics } from "./vercel";
 
 interface AnalyticsProviderProps {
   readonly children: ReactNode;
+  /** Surface this app runs on (`"app" | "web"`); stamped on every event. */
+  readonly platform?: string;
 }
 
 const { NEXT_PUBLIC_GA_MEASUREMENT_ID } = keys();
 
-export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => (
-  <PostHogProvider>
+export const AnalyticsProvider = ({
+  children,
+  platform,
+}: AnalyticsProviderProps) => (
+  <PostHogProvider platform={platform}>
     {children}
     <VercelAnalytics />
     {NEXT_PUBLIC_GA_MEASUREMENT_ID && (

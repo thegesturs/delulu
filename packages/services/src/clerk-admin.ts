@@ -23,6 +23,10 @@ export class ClerkAdminService extends Context.Service<
       readonly organizationId: string;
       readonly externalUserId: string;
     }) => Effect.Effect<void, ConflictError>;
+    readonly updateUserPublicMetadata: (input: {
+      readonly externalUserId: string;
+      readonly metadata: Readonly<Record<string, unknown>>;
+    }) => Effect.Effect<void, ConflictError>;
   }
 >()("@delulu/services/ClerkAdminService") {
   static readonly layer = Layer.effect(
@@ -120,11 +124,73 @@ export class ClerkAdminService extends Context.Service<
           }
         }
       );
+      const updateUserPublicMetadata = Effect.fn(
+        "ClerkAdminService.updateUserPublicMetadata"
+      )(function* (input: {
+        externalUserId: string;
+        metadata: Readonly<Record<string, unknown>>;
+      }) {
+        if (!config.secretKey) {
+          return yield* new ConflictError({
+            message: "Clerk administration is not configured",
+            resource: "user_metadata",
+          });
+        }
+        const userUrl = `https://api.clerk.com/v1/users/${encodeURIComponent(input.externalUserId)}`;
+        const current = yield* Effect.tryPromise({
+          try: () =>
+            fetch(userUrl, {
+              headers: { authorization: `Bearer ${config.secretKey}` },
+            }),
+          catch: () =>
+            new ConflictError({
+              message: "Unable to contact Clerk",
+              resource: "user_metadata",
+            }),
+        });
+        if (!current.ok) {
+          return yield* new ConflictError({
+            message: `Clerk rejected the user lookup (${current.status})`,
+            resource: "user_metadata",
+          });
+        }
+        const currentBody = (yield* Effect.promise(() => current.json())) as {
+          public_metadata?: Record<string, unknown>;
+        };
+        const response = yield* Effect.tryPromise({
+          try: () =>
+            fetch(userUrl, {
+              method: "PATCH",
+              headers: {
+                authorization: `Bearer ${config.secretKey}`,
+                "content-type": "application/json",
+              },
+              body: JSON.stringify({
+                public_metadata: {
+                  ...(currentBody.public_metadata ?? {}),
+                  ...input.metadata,
+                },
+              }),
+            }),
+          catch: () =>
+            new ConflictError({
+              message: "Unable to contact Clerk",
+              resource: "user_metadata",
+            }),
+        });
+        if (!response.ok) {
+          return yield* new ConflictError({
+            message: `Clerk rejected the metadata update (${response.status})`,
+            resource: "user_metadata",
+          });
+        }
+      });
       return ClerkAdminService.of({
         invite,
         updateMembership: (input) =>
           mutateMembership({ ...input, role: input.role }),
         removeMembership: (input) => mutateMembership(input),
+        updateUserPublicMetadata,
       });
     })
   );

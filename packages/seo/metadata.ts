@@ -1,5 +1,6 @@
 import merge from "lodash.merge";
 import type { Metadata } from "next";
+import { getWebOrigin } from "./url";
 
 type MetadataGenerator = Omit<Metadata, "description" | "title"> & {
   title: string;
@@ -10,12 +11,12 @@ type MetadataGenerator = Omit<Metadata, "description" | "title"> & {
 const applicationName = "Delulu Social";
 const author: Metadata["authors"] = {
   name: "Delulu Social",
-  url: "https://delulu.social/",
+  url: `${getWebOrigin()}/`,
 };
 const publisher = "Delulu Social";
 const twitterHandle = "@delulusocial";
 // const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-const productionUrl = process.env.NEXT_PUBLIC_WEB_URL;
+const productionUrl = getWebOrigin();
 
 export const createMetadata = ({
   title,
@@ -60,9 +61,7 @@ export const createMetadata = ({
       "social media scheduler",
       "social media automation",
     ],
-    metadataBase: productionUrl
-      ? new URL(`${productionUrl}`)
-      : new URL("https://delulu.social"),
+    metadataBase: new URL(productionUrl),
     authors: [author],
     creator: author.name,
     publisher,
@@ -106,7 +105,7 @@ export const createMetadata = ({
       description,
     },
     alternates: {
-      canonical: productionUrl ? `${productionUrl}` : undefined,
+      canonical: productionUrl,
     },
   };
 

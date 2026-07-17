@@ -9,25 +9,29 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Input } from "@delulu/design-system/components/ui/input";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import { OperationsError, OperationsLoading } from "./query-state";
 
 export function WorkspaceSettings() {
   const { resources } = useApiClient();
   const selected = useOperationsWorkspace();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const workspaceId = selected.workspaceId ?? "";
   const options = resources.admin.workspace(workspaceId);
-  const query = useQuery({
+  const query = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
     enabled: !!selected.workspaceId,
   });
-  const update = useMutation(resources.admin.updateWorkspace(workspaceId));
+  const update = useMutationAtom(resources.admin.updateWorkspace(workspaceId));
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
 
@@ -79,7 +83,7 @@ export function WorkspaceSettings() {
                 name: name.trim(),
                 slug: slug.trim() || null,
               });
-              await queryClient.invalidateQueries({
+              await registry.invalidateResources({
                 queryKey: options.queryKey!,
               });
               toast.success("Workspace updated");

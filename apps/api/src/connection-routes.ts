@@ -1,10 +1,29 @@
-import { ConnectionsService } from "@delulu/services";
+import type { UserId, WorkspaceId } from "@delulu/core";
+import {
+  ConnectionStateService,
+  ConnectionsService,
+  SetupService,
+} from "@delulu/services";
 import { Effect, Schema } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 
 export const ConnectionRoutes = HttpRouter.use((router) =>
   Effect.gen(function* () {
     const connections = yield* ConnectionsService;
+    const connectionStates = yield* ConnectionStateService;
+    const setup = yield* SetupService;
+
+    const reconcileFromState = (state: string) =>
+      Effect.gen(function* () {
+        const verified = yield* connectionStates.verify(state);
+        if (!verified.principal.startsWith("u:")) {
+          return;
+        }
+        yield* setup.status(
+          verified.workspaceId as WorkspaceId,
+          verified.principal.slice(2) as UserId
+        );
+      });
     yield* router.add(
       "GET",
       "/v1/connections/callback/:platform",
@@ -21,6 +40,7 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
             errorReason: url.searchParams.get("error_reason"),
           })
           .pipe(
+            Effect.tap(() => reconcileFromState(state)),
             Effect.map(HttpServerResponse.fromWeb),
             Effect.catch((error) =>
               Effect.succeed(
@@ -35,20 +55,21 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
     );
     yield* router.add("POST", "/v1/connections/facebook/complete", (request) =>
       request.text.pipe(
-        Effect.flatMap((raw) =>
-          connections.completeFacebook(
-            Schema.decodeUnknownSync(
-              Schema.fromJsonString(
-                Schema.Struct({
-                  state: Schema.String,
-                  code: Schema.String,
-                  pageId: Schema.String,
-                  pageName: Schema.String,
-                })
-              )
-            )(raw)
-          )
-        ),
+        Effect.flatMap((raw) => {
+          const input = Schema.decodeUnknownSync(
+            Schema.fromJsonString(
+              Schema.Struct({
+                state: Schema.String,
+                code: Schema.String,
+                pageId: Schema.String,
+                pageName: Schema.String,
+              })
+            )
+          )(raw);
+          return connections
+            .completeFacebook(input)
+            .pipe(Effect.tap(() => reconcileFromState(input.state)));
+        }),
         Effect.map((result) => HttpServerResponse.jsonUnsafe(result)),
         Effect.catch(() =>
           Effect.succeed(

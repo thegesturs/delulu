@@ -2,6 +2,12 @@
   "name": "@delulu/analytics",
   "version": "0.0.0",
   "private": true,
+  "exports": {
+    ".": "./index.tsx",
+    "./events": "./events.ts",
+    "./keys": "./keys.ts",
+    "./posthog/client": "./posthog/client.tsx"
+  },
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"

@@ -1,74 +1,123 @@
+import { getWebUrl } from "@delulu/seo/url";
 import { allBlogs, allLegals } from "content-collections";
 import type { MetadataRoute } from "next";
-import { env } from "@/env";
+import { features } from "@/app/features/features";
+import { integrationPages } from "@/app/integrations/_lib/integration-pages";
+import {
+  indexableNewsRoutes,
+  newsRoutePath,
+} from "@/app/tools/news-explorer/utils/config";
+import { hasUsableCachedNews } from "@/app/tools/news-explorer/utils/service";
 import { fetchArticlePreviews } from "@/lib/articles";
-import { tools } from "@/lib/tools";
+import { getToolHref, liveTools, toolFamilies } from "@/lib/tools";
 
-// Static list of known pages to avoid filesystem access in edge runtime
-const pages = ["blogs", "pricing", "contact"];
+const pages = ["blogs", "pricing", "contact", "affiliates"];
 const blogs = allBlogs.map((blog) => blog.slug);
 const legals = allLegals.map((legal) => legal.slug);
 
-const url = new URL(`${env.NEXT_PUBLIC_WEB_URL}`);
-
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => {
-  // Fetch Outrank article slugs from KV (preview index)
   const outrankPreviews = await fetchArticlePreviews();
-  const outrankSlugs = outrankPreviews.map((a) => a.slug);
+  const outrankSlugs = outrankPreviews.map((article) => article.slug);
+  const completeNewsRoutes = (
+    await Promise.all(
+      indexableNewsRoutes().map(async (route) => ({
+        route,
+        complete: await hasUsableCachedNews(route),
+      }))
+    )
+  ).filter(({ complete }) => complete);
 
   return [
     {
-      url: new URL("/", url).href,
+      url: getWebUrl(),
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1,
     },
     {
-      url: new URL("/pricing", url).href,
+      url: getWebUrl("/pricing"),
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
-      url: new URL("/contact", url).href,
+      url: getWebUrl("/contact"),
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: new URL("/tools", url).href,
+      url: getWebUrl("/tools"),
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    ...tools.map((tool) => ({
-      url: new URL(`tools/${tool.slug}`, url).href,
+    {
+      url: getWebUrl("/features"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...features.map((feature) => ({
+      url: getWebUrl(`/features/${feature.slug}`),
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
-      priority: 0.7,
+      priority: 0.8,
+    })),
+    {
+      url: getWebUrl("/integrations"),
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    ...integrationPages.map((integration) => ({
+      url: getWebUrl(`/integrations/${integration.slug}`),
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
+    ...toolFamilies.map((family) => ({
+      url: getWebUrl(`/tools/${family.slug}`),
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    })),
+    ...liveTools()
+      .filter((tool) => tool.family?.slug !== "news-explorer")
+      .map((tool) => ({
+        url: getWebUrl(getToolHref(tool)),
+        lastModified: new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.8,
+      })),
+    ...completeNewsRoutes.map(({ route }) => ({
+      url: getWebUrl(newsRoutePath(route)),
+      lastModified: new Date(),
+      changeFrequency: "hourly" as const,
+      priority: route.country || route.category ? 0.65 : 0.75,
     })),
     ...pages
       .filter((page) => !["pricing", "contact"].includes(page))
       .map((page) => ({
-        url: new URL(page, url).href,
+        url: getWebUrl(`/${page}`),
         lastModified: new Date(),
         changeFrequency: "weekly" as const,
         priority: 0.7,
       })),
     ...blogs.map((blog) => ({
-      url: new URL(`blog/${blog}`, url).href,
+      url: getWebUrl(`/blog/${blog}`),
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
     ...outrankSlugs.map((slug) => ({
-      url: new URL(`blog/${slug}`, url).href,
+      url: getWebUrl(`/blog/${slug}`),
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
     ...legals.map((legal) => ({
-      url: new URL(`legal/${legal}`, url).href,
+      url: getWebUrl(`/legal/${legal}`),
       lastModified: new Date(),
       changeFrequency: "yearly" as const,
       priority: 0.3,

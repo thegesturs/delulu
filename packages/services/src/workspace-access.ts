@@ -85,6 +85,27 @@ export class WorkspaceAccessService extends Context.Service<
             member.value.role,
             input.scope
           );
+          // Connecting an account is part of setup and must remain available
+          // before checkout. Product mutations still require paid access.
+          if (
+            input.scope.endsWith(":write") &&
+            input.scope !== "accounts:write"
+          ) {
+            const subscriptions = yield* sql<{ active: boolean }>`SELECT EXISTS(
+              SELECT 1 FROM subscriptions s
+              WHERE s.billing_owner_user_id = ${workspace.value.billingOwnerUserId}
+                AND s.status IN ('active','trialing')
+                AND NOT EXISTS (SELECT 1 FROM cancellation_requests c
+                  WHERE c.billing_owner_user_id = s.billing_owner_user_id
+                    AND c.status IN ('effective','deleting','deleted'))
+            ) AS active`.pipe(Effect.orDie);
+            if (!subscriptions[0]?.active) {
+              return yield* new ForbiddenError({
+                message:
+                  "An active subscription is required to modify this workspace",
+              });
+            }
+          }
           return {
             workspaceId: workspace.value.id as WorkspaceId,
             memberId: member.value.memberId,

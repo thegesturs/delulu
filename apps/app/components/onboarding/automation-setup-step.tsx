@@ -8,12 +8,12 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { useAutomationWorkspace } from "@/components/automations/automation-resource";
 import { useApiClient } from "@/components/providers/api-client";
+import { useResourceAtom } from "@/state/resources";
 
 function AutomationSetupContent({ workspaceId }: { workspaceId: string }) {
   const { resources } = useApiClient();
@@ -25,7 +25,7 @@ function AutomationSetupContent({ workspaceId }: { workspaceId: string }) {
     () => resources.automations.list(scope),
     [resources, scope]
   );
-  const automationsQuery = useQuery({
+  const automationsQuery = useResourceAtom({
     ...options,
     queryKey: options.queryKey!,
   });

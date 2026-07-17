@@ -8,7 +8,6 @@ import { Card } from "@delulu/design-system/components/ui/card";
 import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import { socialBackgroundColors } from "@delulu/design-system/lib/social-config";
 import { cn } from "@delulu/design-system/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +15,11 @@ import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";
 import { normalizePlatform } from "@/lib/social-platform";
+import {
+  useMutationAtom,
+  useResourceAtom,
+  useResourceRegistry,
+} from "@/state/resources";
 import type { ConnectionView } from "@/types/workspace-views";
 import { AccountActionsMenu } from "./account-actions-menu";
 import { AccountFilters } from "./account-filter";
@@ -77,10 +81,10 @@ export default function ConnectedAccounts() {
   const [filterPlatform, setFilterPlatform] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const analytics = useAnalytics();
-  const queryClient = useQueryClient();
+  const registry = useResourceRegistry();
   const { workspaceId, isPending: isWorkspacePending } = useActiveWorkspace();
   const { resources } = useApiClient();
-  const accounts = useQuery({
+  const accounts = useResourceAtom({
     ...resources.connections.list(workspaceId ?? "", { limit: 100 }),
     enabled: Boolean(workspaceId),
     // Token health changes out-of-band: a connect/disconnect completes on the
@@ -91,13 +95,13 @@ export default function ConnectedAccounts() {
     staleTime: 0,
     retry: 2,
   });
-  const removeConnection = useMutation({
+  const removeConnection = useMutationAtom({
     ...resources.connections.remove(workspaceId ?? ""),
     onSuccess: async () => {
       if (!workspaceId) {
         return;
       }
-      await queryClient.invalidateQueries({
+      await registry.invalidateResources({
         queryKey: resources.connections.list(workspaceId).queryKey,
       });
     },

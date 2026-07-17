@@ -17,11 +17,11 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useApiClient } from "@/components/providers/api-client";
+import { useResourceAtom } from "@/state/resources";
 import {
   automationFromResource,
   getApiErrorDetails,
@@ -46,7 +46,7 @@ function AnalyticsContent({
   scope: AutomationScope;
 }) {
   const { resources } = useApiClient();
-  const detailOptions = useMemo(
+  const detailResource = useMemo(
     () => resources.automations.get(scope, automationId),
     [automationId, resources, scope]
   );
@@ -54,11 +54,11 @@ function AnalyticsContent({
     () => resources.automations.runs(scope, { automationId, limit: 50 }),
     [automationId, resources, scope]
   );
-  const automationQuery = useQuery({
-    ...detailOptions,
-    queryKey: detailOptions.queryKey!,
+  const automationQuery = useResourceAtom({
+    ...detailResource,
+    queryKey: detailResource.queryKey!,
   });
-  const runsQuery = useQuery({
+  const runsQuery = useResourceAtom({
     ...runsOptions,
     queryKey: runsOptions.queryKey!,
   });

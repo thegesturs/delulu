@@ -45,6 +45,7 @@ const TABLE_KEYS: readonly (keyof LoadSet)[] = [
   "postTargets",
   "jobs",
   "subscriptions",
+  "subscriptionAddons",
   "transactions",
   "postReviews",
   "reviewActivity",

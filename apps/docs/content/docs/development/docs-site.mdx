@@ -1,0 +1,57 @@
+---
+title: How to maintain the docs site
+description: Author content, regenerate the API reference, check links and types, and build the static site.
+---
+
+The docs app is Astro with Fumadocs UI. Hand-written content lives in `apps/docs/content/docs`; generated API content and `public/openapi.json` come from `@delulu/contracts`.
+
+## Add a page
+
+Create a Markdown or MDX file with frontmatter:
+
+```md
+---
+title: Page title
+description: One sentence used by navigation and search.
+---
+
+Page content.
+```
+
+Add its slug to the nearest `meta.json` so navigation order is explicit.
+
+## Regenerate API docs
+
+```bash
+pnpm --filter @delulu/docs generate
+```
+
+The generator clears only `content/docs/api-reference/generated`, writes one page per API group, writes group navigation metadata, and exports OpenAPI 3.1 to `public/openapi.json`.
+
+## Preview
+
+```bash
+pnpm --filter @delulu/docs dev
+```
+
+Search uses a static Orama index. The interactive explorer reads the generated OpenAPI document in the browser.
+
+## Verify
+
+```bash
+pnpm --filter @delulu/docs typecheck
+pnpm --filter @delulu/docs test
+```
+
+The test command typechecks, builds, and verifies every generated internal link and anchor. The build output is `apps/docs/dist` and can be deployed to any static host.
+
+## Documentation structure
+
+The site follows four reader needs:
+
+- Tutorials under **Getting started** teach a complete first success.
+- **How-to guides** solve one practical task.
+- CLI, MCP, and API sections are factual references.
+- **Concepts** explain design decisions and trade-offs.
+
+Keep task steps out of reference pages when a dedicated how-to is clearer, and never hand-copy generated endpoint schemas.

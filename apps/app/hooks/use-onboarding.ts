@@ -1,3 +1,11 @@
+import {
+  ONBOARDING_COMPLETED,
+  ONBOARDING_STEP_COMPLETED,
+  ONBOARDING_STEP_SKIPPED,
+  ONBOARDING_SURVEY_COMPLETED,
+  ONBOARDING_TOUR_COMPLETED,
+  ONBOARDING_TOUR_DISMISSED,
+} from "@delulu/analytics/events";
 import { posthog } from "@delulu/analytics/posthog/client";
 import { useUser } from "@delulu/auth";
 import { useEffect, useState } from "react";
@@ -49,7 +57,7 @@ export function useOnboarding() {
 
     try {
       // Track step completion
-      posthog.capture("onboarding_step_completed", {
+      posthog.capture(ONBOARDING_STEP_COMPLETED, {
         step: currentStep,
         stepName,
         accountsConnected,
@@ -93,7 +101,7 @@ export function useOnboarding() {
 
     try {
       // Track skip event
-      posthog.capture("onboarding_step_skipped", {
+      posthog.capture(ONBOARDING_STEP_SKIPPED, {
         step: currentStep,
         stepName,
       });
@@ -162,14 +170,14 @@ export function useOnboarding() {
     try {
       // Track the final step completion
       const currentStepName = getStepName(currentStep);
-      posthog.capture("onboarding_step_completed", {
+      posthog.capture(ONBOARDING_STEP_COMPLETED, {
         step: currentStep,
         stepName: currentStepName,
         accountsConnected,
       });
 
       // Track overall completion
-      posthog.capture("onboarding_completed", {
+      posthog.capture(ONBOARDING_COMPLETED, {
         stepsSkipped: skippedSteps,
         duration:
           Date.now() -
@@ -185,7 +193,7 @@ export function useOnboarding() {
       // Save survey answer if provided
       if (surveyAnswer) {
         await saveSurveyAnswer(surveyAnswer);
-        posthog.capture("onboarding_survey_completed", {
+        posthog.capture(ONBOARDING_SURVEY_COMPLETED, {
           referralSource: surveyAnswer,
         });
       }
@@ -234,8 +242,8 @@ export function useOnboarding() {
   // Complete or dismiss tour
   const handleCompleteTour = async (dismissed = false) => {
     const eventName = dismissed
-      ? "onboarding_tour_dismissed"
-      : "onboarding_tour_completed";
+      ? ONBOARDING_TOUR_DISMISSED
+      : ONBOARDING_TOUR_COMPLETED;
 
     posthog.capture(eventName, {
       lastStep: currentStep,
@@ -276,10 +284,10 @@ export function useOnboarding() {
 function getStepName(step: number): string {
   const stepNames = {
     1: "welcome",
-    2: "connect",
-    3: "automation",
-    4: "survey",
-    5: "pricing",
+    2: "pricing",
+    3: "connect",
+    4: "automation",
+    5: "survey",
   };
   return stepNames[step as keyof typeof stepNames] || "unknown";
 }

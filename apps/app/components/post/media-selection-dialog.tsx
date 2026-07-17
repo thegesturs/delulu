@@ -16,7 +16,6 @@ import {
   Search01Icon,
   VideoIcon,
 } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +27,7 @@ import {
   getDynamicMediaLimits,
   getMediaCountInstruction,
 } from "@/lib/platform-rules";
+import { useResourceAtom } from "@/state/resources";
 
 interface MediaItem {
   id: string;
@@ -240,7 +240,7 @@ export function MediaSelectionDialog({
   const { canAddImages, canAddVideos, remainingImages, remainingVideos } =
     limits;
 
-  const mediaQuery = useQuery({
+  const mediaQuery = useResourceAtom({
     ...resources.media.list(workspaceId ?? "", { limit: 100 }),
     enabled: isOpen && Boolean(workspaceId),
     staleTime: 30_000,

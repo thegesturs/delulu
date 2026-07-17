@@ -11,7 +11,9 @@ import { BillingOwnerTransfers } from "../../src/billing-transfer";
 import { BillingWebhookApplication } from "../../src/billing-webhooks";
 import { AuthConfig } from "../../src/config";
 import { IdentityService } from "../../src/identity";
+import { PostHogConfig, ProductAnalytics } from "../../src/product-analytics";
 import { PooledQuotaReservations } from "../../src/quota-reservations";
+import { provisionPaidSubscription } from "./paid-subscription";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -54,12 +56,27 @@ const Config = Layer.succeed(
   })
 );
 const Reservations = PooledQuotaReservations.layer.pipe(Layer.provide(Config));
+// Disabled telemetry — BillingWebhookApplication now depends on ProductAnalytics
+// (for the "became paid" event). With `enabled: false` it is a no-op.
+const Telemetry = ProductAnalytics.layer.pipe(
+  Layer.provide(
+    Layer.succeed(
+      PostHogConfig,
+      PostHogConfig.of({
+        apiKey: "",
+        host: "https://us.i.posthog.com",
+        environment: "test",
+        enabled: false,
+      })
+    )
+  )
+);
 const AppLayer = Layer.mergeAll(
   IdentityService.layer,
   Analytics,
   BillingService.layer,
   BillingReconciliation.layer,
-  BillingWebhookApplication.layer,
+  BillingWebhookApplication.layer.pipe(Layer.provide(Telemetry)),
   BillingOwnerTransfers.layer,
   Reservations
 ).pipe(Layer.provideMerge(Pg));
@@ -119,7 +136,7 @@ describe("M4 analytics and billing services", () => {
         status: "active",
         currentPeriodStart: "2026-07-01T00:00:00.000Z",
         currentPeriodEnd: "2026-08-01T00:00:00.000Z",
-        addons: { sorted: true },
+        addons: {},
       };
       const first = yield* webhook.apply(event);
       const second = yield* webhook.apply(event);
@@ -157,10 +174,53 @@ describe("M4 analytics and billing services", () => {
     expect(result.first.applied).toBe(true);
     expect(result.second.applied).toBe(false);
     expect(result.subscription.plan).toBe("ECHO");
-    expect(result.subscription.addons).toEqual({ sorted: true });
+    expect(result.subscription.addons).toEqual({});
     expect(result.usage.usage.monthlyPosts).toBe(0);
     expect(result.usage.usage.dmsSent).toBe(0);
     expect(result.transactions.data[0]?.amountMinor).toBe(499);
+  });
+
+  it("does not let an older provider event roll subscription state backward", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const webhook = yield* BillingWebhookApplication;
+      const billing = yield* BillingService;
+      const resolved = yield* identity.resolve({
+        sub: `billing_order_${crypto.randomUUID()}`,
+      });
+      const base = {
+        _tag: "SubscriptionChanged" as const,
+        billingOwnerUserId: resolved.user.id,
+        providerCustomerId: `customer_${crypto.randomUUID()}`,
+        providerSubscriptionId: `subscription_${crypto.randomUUID()}`,
+        plan: "ECHO",
+        currentPeriodStart: "2026-07-01T00:00:00.000Z",
+        currentPeriodEnd: "2026-08-01T00:00:00.000Z",
+      };
+      yield* webhook.apply({
+        ...base,
+        eventId: `event_${crypto.randomUUID()}`,
+        providerEventType: "subscription.active",
+        providerOccurredAt: "2026-07-10T00:00:00.000Z",
+        status: "active",
+      });
+      const stale = yield* webhook.apply({
+        ...base,
+        eventId: `event_${crypto.randomUUID()}`,
+        providerEventType: "subscription.expired",
+        providerOccurredAt: "2026-07-09T00:00:00.000Z",
+        status: "expired",
+      });
+      return {
+        stale,
+        subscription: yield* billing.subscription(resolved.user.id),
+      };
+    });
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.stale.applied).toBe(false);
+    expect(result.subscription.status).toBe("active");
   });
 
   it("reserves pooled quota transactionally before committing usage", async () => {
@@ -171,6 +231,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reservation_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id, "FREE");
       const first = yield* reservations.reserve({
         id: `quota_reservation_${crypto.randomUUID()}`,
         workspaceId: resolved.personalWorkspace!.id,
@@ -207,6 +268,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reservation_race_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id, "FREE");
       return yield* Effect.all(
         Array.from({ length: 20 }, (_, index) =>
           reservations
@@ -243,6 +305,7 @@ describe("M4 analytics and billing services", () => {
       const resolved = yield* identity.resolve({
         sub: `reconcile_${crypto.randomUUID()}`,
       });
+      yield* provisionPaidSubscription(resolved.user.id);
       yield* sql`UPDATE subscriptions SET monthly_posts = 99,
         social_accounts = 88, media_storage_bytes = 77,
         transcriptions_used = 66

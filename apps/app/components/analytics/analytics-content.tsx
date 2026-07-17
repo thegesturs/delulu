@@ -1,6 +1,9 @@
 "use client";
 
-import type { createAnalyticsOptions } from "@delulu/client";
+import type {
+  createAnalyticsEffects,
+  ResourceEffectSuccess,
+} from "@delulu/client";
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import {
@@ -22,13 +25,9 @@ import { AnalyticsStatCards } from "./analytics-stat-cards";
 import { EngagementChart } from "./engagement-chart";
 import { TopPostsList } from "./top-posts-list";
 
-type AnalyticsOptions = ReturnType<typeof createAnalyticsOptions>;
-type InsightQuery = ReturnType<AnalyticsOptions["insights"]>;
-type InsightQueryFunction = Extract<
-  InsightQuery["queryFn"],
-  (...args: never[]) => unknown
->;
-type Insights = Awaited<ReturnType<InsightQueryFunction>>;
+type AnalyticsEffects = ReturnType<typeof createAnalyticsEffects>;
+type InsightResource = ReturnType<AnalyticsEffects["insights"]>;
+type Insights = ResourceEffectSuccess<InsightResource>;
 export type InsightPoint = Insights["current"]["points"][number];
 export type InsightPost = Insights["topPosts"][number];
 

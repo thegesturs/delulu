@@ -18,6 +18,8 @@ export interface SimplePostMedia {
 export interface SimplePostInput {
   readonly caption: string;
   readonly connections: readonly SimplePostConnection[];
+  readonly intent?: "draft" | "schedule" | "publish_now";
+  readonly idempotencyKey?: string;
   readonly mediaIds?: readonly string[];
   readonly media?: readonly SimplePostMedia[];
   readonly scheduledAt?: string | null;
@@ -135,6 +137,8 @@ export const makeSimplePostWrite = (
         connection.settings ?? settingsFor(connection.platform, input.privacy),
       scheduledAt: input.scheduledAt ?? null,
     })),
+    intent: input.intent,
+    externalSubmissionId: input.idempotencyKey,
     source: "api",
   });
 };

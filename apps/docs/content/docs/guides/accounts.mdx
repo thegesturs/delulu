@@ -1,0 +1,57 @@
+---
+title: How to connect multiple social accounts
+description: Connect, identify, target, and disconnect accounts without relying on display names.
+---
+
+## Connect the first account
+
+```bash
+delulu connect linkedin
+```
+
+The CLI opens the provider URL and waits up to 10 minutes by default. Use `--no-wait` to return as soon as the URL is created, or `--timeout <seconds>` to change the wait.
+
+## Connect another account on the same platform
+
+```bash
+delulu connect linkedin --new
+```
+
+`--new` deliberately starts a distinct connection operation instead of replaying the earlier idempotent result.
+
+## Address accounts safely
+
+```bash
+delulu accounts
+```
+
+Each row includes a canonical selector in the form `platform:connection-id`. Canonical selectors remain unique even when two accounts have the same display name or the provider has no username concept.
+
+Target several accounts by repeating `--to`:
+
+```bash
+delulu post "One update, two destinations" \
+  --to linkedin:connection_first \
+  --to linkedin:connection_second \
+  --draft
+```
+
+Comma-separated selectors are also accepted. Friendly selectors such as a platform, username, or `platform@username` work only when they resolve to exactly one account. Ambiguity fails and lists canonical choices.
+
+## Disconnect one account
+
+```bash
+delulu disconnect linkedin:connection_first --yes
+```
+
+Disconnect removes one resolved connection per invocation. Use the canonical selector when names collide.
+
+## Verification
+
+Run `delulu accounts` again. The removed selector must no longer appear.
+
+## Troubleshooting
+
+- Use `--new` only for an intentional second connection.
+- If provider consent finishes but the CLI times out, run `delulu accounts` before starting another connection.
+- A removed membership or changed workspace role can deny connection management even when the OAuth token itself is still valid.

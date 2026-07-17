@@ -1,0 +1,40 @@
+---
+title: Agent authorization model
+description: Why agents receive delegated app credentials while humans keep control of identity and consent.
+---
+
+## The problem
+
+An agent needs enough access to finish setup and publish, but it should never ask a person to paste a password, session cookie, social token, or payment credential into a conversation. Social providers and checkout also require their own human consent.
+
+## The approach
+
+```text
+agent or CLI
+    │ starts device authorization
+    ▼
+Delulu authorization server ── verification URL/code ──► signed-in human
+    │                                                        │
+    │                           workspace + scopes + approve ◄┘
+    ▼
+workspace-bound access token + rotating refresh token
+    │
+    ├── Delulu REST API
+    └── hosted MCP (token introspection, then same REST services)
+```
+
+The existing hosted sign-up/sign-in UI remains the identity ceremony. The pending device transaction survives that journey and returns the human to the approval screen. The app authorization server is the canonical issuer for CLI and hosted MCP credentials.
+
+## Why device authorization
+
+Device authorization works for pasted skills, terminal tools, and agents that cannot safely receive a browser callback. The user visits one URL, sees the requesting client and permissions, and approves explicitly. Authorization code with PKCE remains available for browser-capable clients.
+
+## Trade-offs
+
+- Social consent and checkout still require separate browser visits because those systems own their consent ceremonies.
+- Workspace rebinding requires approval. This adds friction but prevents an agent from silently moving access between organizations.
+- v1 does not trust identity assertions from arbitrary agents and does not create anonymous accounts.
+
+## Credential boundaries
+
+The packaged skill stores no credentials. The CLI credential file is mode `0600`, and machine output never contains access or refresh tokens. Hosted MCP receives bearer tokens through its transport and validates them with the app authorization server.

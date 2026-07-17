@@ -3,10 +3,9 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 export const DEFAULT_API_URL = "https://api.delulu.social";
-export const REDIRECT_URI = "http://127.0.0.1:32123/oauth/callback";
-export const OAUTH_SCOPES = "openid profile email user:org:read";
-const CLERK_KEY_PREFIX = /^pk_(test|live)_/;
-const CLERK_KEY_SUFFIX = /\$/;
+export const REDIRECT_URI = "http://127.0.0.1:32123/callback";
+export const OAUTH_SCOPES =
+  "posts:read posts:write accounts:read accounts:write stats:read media:write billing:write";
 
 export interface Credentials {
   accessToken: string;
@@ -17,6 +16,7 @@ export interface Credentials {
   tokenEndpoint: string;
   authorizationEndpoint: string;
   userinfoEndpoint?: string;
+  scope?: string;
 }
 
 export function credentialsPath() {
@@ -43,9 +43,4 @@ export async function writeCredentials(credentials: Credentials) {
 
 export async function deleteCredentials() {
   await rm(credentialsPath(), { force: true });
-}
-
-export function deriveIssuerFromPublishableKey(publishableKey: string) {
-  const encoded = publishableKey.replace(CLERK_KEY_PREFIX, "");
-  return `https://${Buffer.from(encoded, "base64").toString("utf8").replace(CLERK_KEY_SUFFIX, "")}`;
 }

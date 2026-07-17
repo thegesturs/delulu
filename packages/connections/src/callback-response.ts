@@ -11,3 +11,74 @@ export const callbackRedirect = (location: string): Response => {
     headers: { Location: new URL(location, appBaseUrl()).toString() },
   });
 };
+
+const mapCallbackRedirect = (
+  response: Response,
+  update: (url: URL) => boolean
+): Response => {
+  const location = response.headers.get("Location");
+  if (!(location && response.status >= 300 && response.status < 400)) {
+    return response;
+  }
+
+  const url = new URL(location);
+  if (!update(url)) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set("Location", url.toString());
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+};
+
+/** Preserve the signed initiating client on errors so retries keep context. */
+export const withConnectionClient = (
+  response: Response,
+  client?: "cli" | "mcp"
+): Response => {
+  if (!client) {
+    return response;
+  }
+  return mapCallbackRedirect(response, (url) => {
+    if (url.pathname !== "/socials") {
+      return false;
+    }
+    url.searchParams.set("client", client);
+    return true;
+  });
+};
+
+/**
+ * Add provider/account details to a successful social callback without making
+ * each provider adapter duplicate redirect construction. Error and transfer
+ * redirects are deliberately left untouched.
+ */
+export const withConnectionSuccess = (
+  response: Response,
+  context: {
+    readonly provider: string;
+    readonly username: string;
+    readonly client?: "cli" | "mcp";
+  }
+): Response => {
+  return mapCallbackRedirect(response, (url) => {
+    if (
+      url.pathname !== "/socials" ||
+      url.searchParams.has("error") ||
+      url.searchParams.has("notification")
+    ) {
+      return false;
+    }
+    url.searchParams.set("success", "true");
+    url.searchParams.set("provider", context.provider.toLowerCase());
+    if (context.client) {
+      url.searchParams.set("client", context.client);
+    }
+    url.hash = new URLSearchParams({ username: context.username }).toString();
+    return true;
+  });
+};

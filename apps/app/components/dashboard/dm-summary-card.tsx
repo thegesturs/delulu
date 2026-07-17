@@ -3,10 +3,10 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { MailSend01Icon } from "@hugeicons-pro/core-solid-rounded";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
+import { useResourceAtom } from "@/state/resources";
 
 export function DmSummaryCard() {
   const { resources } = useApiClient();
@@ -17,15 +17,15 @@ export function DmSummaryCard() {
     limit: 100,
     offset: 0,
   });
-  const usageOptions = resources.billing.usage(workspaceId);
-  const automations = useQuery({
+  const usageResource = resources.billing.usage(workspaceId);
+  const automations = useResourceAtom({
     ...automationOptions,
     queryKey: automationOptions.queryKey!,
     enabled: !!workspaceId,
   });
-  const usage = useQuery({
-    ...usageOptions,
-    queryKey: usageOptions.queryKey!,
+  const usage = useResourceAtom({
+    ...usageResource,
+    queryKey: usageResource.queryKey!,
     enabled: !!workspaceId,
   });
   const items = automations.data?.data ?? [];

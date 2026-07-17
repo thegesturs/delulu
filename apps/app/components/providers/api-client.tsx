@@ -4,15 +4,15 @@ import { useAuth } from "@delulu/auth";
 import {
   type ApiClient,
   createApiClient,
-  createResourceOptions,
+  createResourceEffects,
 } from "@delulu/client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
-type ResourceOptions = ReturnType<typeof createResourceOptions>;
+type ResourceEffects = ReturnType<typeof createResourceEffects>;
 
 interface ApiClientContextValue {
   readonly client: ApiClient;
-  readonly resources: ResourceOptions;
+  readonly resources: ResourceEffects;
 }
 
 const ApiClientContext = createContext<ApiClientContextValue | null>(null);
@@ -48,7 +48,7 @@ export function ApiClientProvider({
 
     return {
       client,
-      resources: createResourceOptions({ client }),
+      resources: createResourceEffects({ client }),
     };
   }, [getToken]);
 
