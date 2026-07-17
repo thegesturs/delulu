@@ -106,40 +106,45 @@ describe("automation DM dispatch", () => {
   it.each([
     ["not_sent" as const, "failed", "0"],
     ["unknown" as const, "ambiguous", "1"],
-  ])("records provider %s failures without leaving quota reserved", async (deliveryState, expectedStatus, expectedSent) => {
-    const layer = layerFor(() =>
-      Effect.fail(
-        new ProviderDmError({
-          message: "provider timeout",
-          retryable: true,
-          deliveryState,
-        })
-      )
-    );
-    const program = Effect.gen(function* () {
-      const dispatch = yield* DmDispatchService;
-      const sql = yield* SqlClient.SqlClient;
-      const input = yield* seededInput;
-      const outcome = yield* dispatch.sendOnce(input).pipe(Effect.result);
-      const rows = yield* sql<{
-        status: string;
-        sent: string;
-        reserved: string;
-      }>`SELECT d.status, s.dms_sent::text AS sent,
+  ])(
+    "records provider %s failures without leaving quota reserved",
+    async (deliveryState, expectedStatus, expectedSent) => {
+      const layer = layerFor(() =>
+        Effect.fail(
+          new ProviderDmError({
+            message: "provider timeout",
+            retryable: true,
+            deliveryState,
+          })
+        )
+      );
+      const program = Effect.gen(function* () {
+        const dispatch = yield* DmDispatchService;
+        const sql = yield* SqlClient.SqlClient;
+        const input = yield* seededInput;
+        const outcome = yield* dispatch.sendOnce(input).pipe(Effect.result);
+        const rows = yield* sql<{
+          status: string;
+          sent: string;
+          reserved: string;
+        }>`SELECT d.status, s.dms_sent::text AS sent,
           s.dms_reserved::text AS reserved
           FROM automation_dm_dispatches d
           JOIN automations a ON a.id = d.automation_id
           JOIN workspaces w ON w.id = a.workspace_id
           JOIN subscriptions s ON s.billing_owner_user_id = w.billing_owner_user_id
           WHERE d.event_id = ${input.eventId}`;
-      return { outcome, row: rows[0] };
-    });
-    const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
-    expect(result.outcome._tag).toBe("Failure");
-    expect(result.row).toEqual({
-      status: expectedStatus,
-      sent: expectedSent,
-      reserved: "0",
-    });
-  });
+        return { outcome, row: rows[0] };
+      });
+      const result = await Effect.runPromise(
+        program.pipe(Effect.provide(layer))
+      );
+      expect(result.outcome._tag).toBe("Failure");
+      expect(result.row).toEqual({
+        status: expectedStatus,
+        sent: expectedSent,
+        reserved: "0",
+      });
+    }
+  );
 });

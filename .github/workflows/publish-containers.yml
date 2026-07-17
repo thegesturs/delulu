@@ -6,9 +6,7 @@ on:
     tags: ["v*"]
   pull_request:
     paths:
-      - Dockerfile
-      - compose.yaml
-      - pnpm-lock.yaml
+      - deploy/self-host/**
       - apps/**
       - packages/**
       - .github/workflows/publish-containers.yml
@@ -20,9 +18,12 @@ permissions:
 jobs:
   compose:
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_ENV_FILES: deploy/self-host/.env
+      COMPOSE_FILE: deploy/self-host/compose.yaml
     steps:
       - uses: actions/checkout@v4
-      - run: cp .env.selfhost.example .env
+      - run: cp deploy/self-host/.env.example deploy/self-host/.env
       - run: docker compose config --quiet
 
   image:
@@ -51,6 +52,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: deploy/self-host/Dockerfile
           target: ${{ matrix.target }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -60,13 +62,16 @@ jobs:
 
   smoke:
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_ENV_FILES: deploy/self-host/.env
+      COMPOSE_FILE: deploy/self-host/compose.yaml
     steps:
       - uses: actions/checkout@v4
-      - run: cp .env.selfhost.example .env
+      - run: cp deploy/self-host/.env.example deploy/self-host/.env
       - name: Generate smoke-test OAuth signing key
         run: |
           KEY=$(openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 | openssl pkcs8 -topk8 -nocrypt | openssl base64 -A)
-          sed -i "s|^AS_SIGNING_KEY_BASE64=.*|AS_SIGNING_KEY_BASE64=$KEY|" .env
+          sed -i "s|^AS_SIGNING_KEY_BASE64=.*|AS_SIGNING_KEY_BASE64=$KEY|" deploy/self-host/.env
       - run: docker compose build app api publisher migrate
       - run: docker compose up -d postgres
       - run: docker compose run --rm migrate

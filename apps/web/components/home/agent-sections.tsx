@@ -255,11 +255,12 @@ export function AgentSections() {
           <div className="space-y-3 rounded-2xl border bg-background p-5 font-mono text-sm">
             <p className="text-muted-foreground"># configure, then boot</p>
             <p>
-              <span className="text-primary">$</span> cp .env.selfhost.example
-              .env
+              <span className="text-primary">$</span> cp
+              deploy/self-host/.env.example deploy/self-host/.env
             </p>
             <p>
-              <span className="text-primary">$</span> docker compose up -d
+              <span className="text-primary">$</span> docker compose --env-file
+              deploy/self-host/.env -f deploy/self-host/compose.yaml up -d
             </p>
             <div className="my-4 h-px bg-border" />
             <p className="flex items-center gap-2 text-emerald-500">

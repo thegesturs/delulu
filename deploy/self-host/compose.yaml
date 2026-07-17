@@ -50,6 +50,10 @@ x-runtime-environment: &runtime-environment
   META_APP_SECRET: ${META_APP_SECRET:-}
   META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
 
+x-app-build: &app-build
+  context: ../..
+  dockerfile: deploy/self-host/Dockerfile
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -68,7 +72,7 @@ services:
 
   migrate:
     build:
-      context: .
+      <<: *app-build
       target: migrate
     environment: *runtime-environment
     depends_on:
@@ -78,7 +82,7 @@ services:
 
   api:
     build:
-      context: .
+      <<: *app-build
       target: api
     restart: unless-stopped
     environment:
@@ -97,7 +101,7 @@ services:
 
   publisher:
     build:
-      context: .
+      <<: *app-build
       target: publisher
     restart: unless-stopped
     environment:
@@ -115,7 +119,7 @@ services:
 
   app:
     build:
-      context: .
+      <<: *app-build
       target: app
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}

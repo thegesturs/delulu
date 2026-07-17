@@ -1,5 +1,17 @@
 {
   "title": "Development",
-  "description": "Run the platform and maintain its documentation.",
-  "pages": ["local-setup", "docs-site"]
+  "description": "Run, understand, migrate, and release the platform.",
+  "pages": [
+    "local-setup",
+    "architecture",
+    "api-runtime",
+    "database-and-migrations",
+    "provider-development",
+    "hosted-operations",
+    "email-lifecycle",
+    "analytics-proxy",
+    "browser-extension",
+    "releases",
+    "docs-site"
+  ]
 }

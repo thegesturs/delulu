@@ -10,7 +10,7 @@ and Farcaster.
 [Documentation](https://docs.delulu.social) ·
 [Agent setup](https://docs.delulu.social/getting-started/agent-setup/) ·
 [Hosted app](https://solulu.delulu.social) ·
-[Self-hosting](./docs/self-hosting.md)
+[Self-hosting](https://docs.delulu.social/self-hosting/)
 
 ## Why Delulu
 
@@ -53,18 +53,19 @@ workspaces, reviews, and automations. You pay only for your infrastructure and
 external providers.
 
 ```bash
-cp .env.selfhost.example .env
+cp deploy/self-host/.env.example deploy/self-host/.env
 # Fill the required Clerk, R2, agent-signing, encryption, URL, and provider values.
-docker compose up -d
+docker compose --env-file deploy/self-host/.env \
+  -f deploy/self-host/compose.yaml up -d --build --wait
 ```
 
 The first self-hosted release requires operator-owned Clerk and Cloudflare R2
 projects. Generic OIDC and S3-compatible storage are planned portability work;
 the application services keep those dependencies behind replaceable boundaries.
 
-Read [docs/self-hosting.md](./docs/self-hosting.md) before exposing an instance
-to the internet. It covers required credentials, callbacks, migrations,
-health checks, backups, upgrades, and limitations.
+Read the [self-hosting guide](https://docs.delulu.social/self-hosting/) before
+exposing an instance to the internet. It covers required credentials,
+callbacks, migrations, health checks, backups, upgrades, and limitations.
 
 ## Architecture
 

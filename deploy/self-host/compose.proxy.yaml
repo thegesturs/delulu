@@ -9,7 +9,7 @@ services:
       APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
       API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     depends_on:
       app:

@@ -3,10 +3,7 @@
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  ArrowRight01Icon,
-  TaskDone01Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, TaskDone01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { toast } from "sonner";
 import { OperationsError } from "@/components/operations/query-state";

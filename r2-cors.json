@@ -1,9 +1,0 @@
-[
-  {
-    "AllowedOrigins": ["https://solulu.delulu.social", "https://delulu.social"],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedHeaders": ["*"],
-    "ExposeHeaders": ["ETag", "Content-Type", "Content-Length"],
-    "MaxAgeSeconds": 86400
-  }
-]

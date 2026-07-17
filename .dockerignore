@@ -8,6 +8,6 @@ node_modules
 **/dist
 .env
 .env.*
-!.env.selfhost.example
+!deploy/self-host/.env.example
 coverage
 migration-out

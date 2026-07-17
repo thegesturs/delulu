@@ -1,0 +1,66 @@
+---
+title: Analytics proxy operations
+description: Deploy and verify the hosted Cloudflare fallback proxy for analytics delivery.
+---
+
+The web and app clients try the configured direct analytics host first. When that request is blocked and `NEXT_PUBLIC_POSTHOG_PROXY_HOST` is set, they use the Cloudflare Worker fallback.
+
+```text
+Browser -> metrics.delulu.social -> analytics ingest or static assets
+```
+
+## Deploy the Worker
+
+Create a Cloudflare Worker and use the matching regional ingest and asset hosts for the analytics project:
+
+```js
+const API_HOST = "us.i.posthog.com";
+const ASSET_HOST = "us-assets.i.posthog.com";
+
+async function handleRequest(request, context) {
+  const url = new URL(request.url);
+  const upstreamPath = `${url.pathname}${url.search}`;
+
+  if (url.pathname.startsWith("/static/")) {
+    const cached = await caches.default.match(request);
+    if (cached) return cached;
+
+    const response = await fetch(`https://${ASSET_HOST}${upstreamPath}`);
+    context.waitUntil(caches.default.put(request, response.clone()));
+    return response;
+  }
+
+  const upstream = new Request(request);
+  upstream.headers.delete("cookie");
+  return fetch(`https://${API_HOST}${upstreamPath}`, upstream);
+}
+
+export default {
+  fetch(request, _environment, context) {
+    return handleRequest(request, context);
+  },
+};
+```
+
+Attach the custom domain configured in `NEXT_PUBLIC_POSTHOG_PROXY_HOST` and deploy. For an EU project, use the corresponding EU ingest and asset hosts.
+
+## Configure the clients
+
+Set both public variables on the hosted app and marketing deployments:
+
+```bash
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+NEXT_PUBLIC_POSTHOG_PROXY_HOST=https://metrics.delulu.social
+```
+
+The proxy strips cookie headers and caches only static assets. Do not add secrets to either public variable or log request bodies in the Worker.
+
+## Verify
+
+1. Confirm the direct host and proxy custom domain both return a response.
+2. In browser developer tools, verify normal sessions send events directly.
+3. Block the direct ingest host and verify events switch to the proxy.
+4. Confirm the events arrive in the analytics project with the expected app or web `platform` property.
+5. Watch Worker request, error, and CPU metrics after release.
+
+If events are absent, check the deployed public variables, Worker route, regional upstream hosts, browser console, network response codes, and Worker logs in that order.

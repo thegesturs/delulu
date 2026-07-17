@@ -142,7 +142,7 @@ web_modules/
 # dotenv environment variable files
 .env*
 !/.env.example
-!/.env.selfhost.example
+!deploy/self-host/.env.example
 .dev.vars
 *.dev.vars
 *.vars

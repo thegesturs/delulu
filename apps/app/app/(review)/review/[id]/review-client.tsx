@@ -4,10 +4,7 @@ import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  ArrowLeft02Icon,
-  Calendar01Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, Calendar01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { ReviewActions } from "@/components/posts/review-actions";
 import { ReviewActivity } from "@/components/posts/review-activity";

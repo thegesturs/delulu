@@ -10,10 +10,7 @@ import {
   DialogTitle,
 } from "@delulu/design-system/components/ui/dialog";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  CancelCircleIcon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
+import { CancelCircleIcon, Tick01Icon } from "@hugeicons/core-free-icons";
 import React from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
