@@ -6,46 +6,51 @@ import { Suspense } from "react";
 // ISR: the home page contains a blog preview; revalidate hourly.
 export const revalidate = 3600;
 
-import { AgentSections } from "@/components/home/agent-sections";
 import { BlogSection } from "@/components/home/blog-section";
 import CTA from "@/components/home/cta";
 import { FAQ } from "@/components/home/faq";
 import { Hero } from "@/components/home/hero";
+import { HowItWorks } from "@/components/home/how-it-works";
+import { MascotBenefits } from "@/components/home/mascot-benefits";
+import { MascotStruggle } from "@/components/home/mascot-struggle";
 import Pricing from "@/components/home/pricing";
 
 export const generateMetadata = (): Metadata => {
   return createMetadata({
-    title: "Delulu — Open-Source Social Scheduling for AI Agents",
+    title: "Delulu Social \u2014 Post Everywhere + Auto-DM from $4.99/mo",
     description:
-      "Give your agent permissioned tools to prepare media, schedule, publish, and handle approvals across 10+ social networks. Hosted or self-hosted.",
+      "Schedule across 8 platforms and auto-DM Instagram commenters. Built for creators who grow. Plans from $4.99/mo with a 14-day guarantee.",
     alternates: {
       canonical: getWebOrigin(),
     },
     openGraph: {
-      title: "Your agent can run your social media",
+      title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
       description:
-        "Open-source social scheduling infrastructure for agents. Use MCP, the CLI, or the API across 10+ social networks.",
+        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: "Your agent can run your social media",
+      title: "Delulu Social \u2014 Post Everywhere + Auto-DM for $9.99/mo",
       description:
-        "Open-source social scheduling infrastructure for agents. Hosted or self-hosted.",
+        "The only tool that schedules your posts across 8 platforms AND turns Instagram comments into engaged followers. Built for creators who grow. $9.99/mo.",
     },
   });
 };
 
 const Home = () => {
   return (
-    <main>
+    <main className="mx-auto max-w-7xl border-x">
       <Hero />
-      <AgentSections />
+      <HowItWorks />
+      <MascotStruggle />
+      <MascotBenefits />
+      {/* <MascotSocialProof /> */}
       <Pricing />
-      <FAQ />
       <Suspense>
         <BlogSection />
       </Suspense>
+      <FAQ />
       <CTA />
     </main>
   );

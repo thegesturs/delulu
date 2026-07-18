@@ -1,113 +1,173 @@
 "use client";
-
+import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { useTheme } from "@delulu/design-system";
 import { Button } from "@delulu/design-system/components/ui/button";
-import { cn } from "@delulu/design-system/lib/utils";
-import { ArrowRight, Github } from "lucide-react";
-import { useState } from "react";
-import { LANDING_LINKS } from "@/lib/landing-links";
-import { AgentWorkflowGraphic } from "./agent-workflow-graphic";
-import { ProductPreview } from "./product-preview";
-import { TrackedLandingLink } from "./tracked-landing-link";
+import type { CurrencyCode } from "@delulu/payments";
+import { motion } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import type React from "react";
+import { useRef } from "react";
+import Balancer from "react-wrap-balancer";
+import { useCurrency } from "@/hooks/use-currency";
+import { DesktopMockup } from "./desktop-mockup";
+import { GradientBars } from "./gradient-bars";
 
-const previewTabs = [
-  { label: "Composer", crop: "composer" as const },
-  { label: "Scheduling", crop: "schedule" as const },
-  { label: "Approvals", crop: "full" as const },
-] as const;
+function getHeroVariants(currency: CurrencyCode) {
+  const price = currency === "INR" ? "\u20B9899" : "$9.99";
+  const priceMo = currency === "INR" ? "\u20B9899/mo" : "$9.99/mo";
+  return {
+    outcome: {
+      headline: "Every comment on your post can become a follower.",
+      subtitle: `Delulu auto-replies and DMs anyone who comments a keyword \u2014 turning casual scrollers into real followers. Plus it posts across 8 platforms. One tool. ${priceMo}.`,
+      cta1: "Get started from $4.99/mo",
+      cta2: "See how it works",
+    },
+    pain: {
+      headline: "You post every day. Your audience isn\u2019t growing.",
+      subtitle:
+        "Comments pile up. Followers never come back. You can\u2019t DM everyone manually. Delulu turns every comment into a DM conversation \u2014 automatically \u2014 while posting your content across 8 platforms.",
+      cta1: "Fix my DMs",
+      cta2: "See how it works",
+    },
+    identity: {
+      headline: "Built for creators who grow, not just post.",
+      subtitle: `Delulu isn\u2019t another scheduler. It posts your content across 8 platforms AND auto-DMs anyone who comments on your posts. Scheduling + growth. One tool. ${price}.`,
+      cta1: "Get started from $4.99/mo",
+      cta2: "See how it works",
+    },
+    curiosity: {
+      headline: "What if every Instagram comment became a follower?",
+      subtitle: `Someone comments on your post. Delulu instantly DMs them your link, replies to their comment, and turns a stranger into a fan. Oh, and it also schedules your posts across 8 platforms. For ${priceMo}.`,
+      cta1: "Get started",
+      cta2: "See how it works",
+    },
+    direct: {
+      headline: `Post everywhere. Auto-DM your fans. ${price}.`,
+      subtitle:
+        "Schedule across Instagram, TikTok, LinkedIn, YouTube, and 4 more \u2014 then turn every comment into a DM with your link. One dashboard. One tool that actually grows your audience.",
+      cta1: "Get started from $4.99/mo",
+      cta2: "See how it works",
+    },
+  } as const;
+}
+
+type HeroVariantKey = "outcome" | "pain" | "identity" | "curiosity" | "direct";
 
 export function Hero() {
-  const [activePreview, setActivePreview] = useState(0);
+  const parentRef = useRef<HTMLDivElement>(
+    null
+  ) as React.RefObject<HTMLDivElement>;
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const image = isDark ? "/images/app-dark.png" : "/images/app-light.png";
+
+  const currency = useCurrency();
+  const heroVariants = getHeroVariants(currency);
+
+  const posthog = useAnalytics();
+  const flagValue = posthog?.getFeatureFlag("hero-variant");
+  const variantKey: HeroVariantKey =
+    typeof flagValue === "string" && flagValue in heroVariants
+      ? (flagValue as HeroVariantKey)
+      : "outcome";
+  const variant = heroVariants[variantKey];
 
   return (
-    <section className="landing-grid overflow-hidden" id="home">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-20 pb-14 md:px-6 md:pt-28 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16 lg:pb-20">
-        <div className="max-w-2xl">
-          <div className="mb-7 flex w-fit items-center gap-2 rounded-full bg-background px-3 py-2 text-sm shadow-sm ring-1 ring-foreground/10">
-            <span className="size-2 rounded-full bg-primary" />
-            Open-source scheduling for AI agents
-            <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-              AGPL
-            </span>
-          </div>
+    <div
+      className="relative mx-auto flex max-w-7xl flex-col items-center justify-center overflow-hidden px-4 pt-40 md:px-8"
+      ref={parentRef}
+    >
+      {/* Shader Background */}
+      <div className="absolute inset-0">
+        <GradientBars
+          bars={20}
+          colors={[theme === "dark" ? "#818cf8" : "#4338ca", "transparent"]}
+        />
+      </div>
 
-          <h1 className="font-semibold text-5xl leading-[0.96] tracking-[-0.055em] sm:text-6xl lg:text-[4.75rem]">
-            Your agent can run{" "}
-            <span className="text-primary">your social media.</span>
-          </h1>
+      {/* Content */}
+      <div className="relative z-20 mx-auto max-w-4xl text-center">
+        {/* Main Heading */}
+        <motion.h1
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 font-bold text-5xl text-foreground tracking-tight md:text-7xl"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Balancer>{variant.headline}</Balancer>
+        </motion.h1>
 
-          <p className="mt-8 max-w-xl text-lg text-muted-foreground leading-8">
-            Give your agent permissioned tools to prepare media, schedule,
-            publish, and handle approvals across 10+ social networks. Use MCP,
-            the CLI, or the API. Run it hosted or self-host it.
-          </p>
+        {/* Subtitle */}
+        <motion.p
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Balancer>{variant.subtitle}</Balancer>
+        </motion.p>
 
-          <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-            <Button asChild className="h-12 px-6" size="lg">
-              <TrackedLandingLink
-                destination="agent_setup"
-                href={LANDING_LINKS.agentSetup}
-                surface="hero"
-              >
-                Connect your agent
-                <ArrowRight aria-hidden="true" className="ml-2 size-4" />
-              </TrackedLandingLink>
-            </Button>
-            <Button asChild className="h-12 px-6" size="lg" variant="outline">
-              <TrackedLandingLink
-                destination="source"
-                href={LANDING_LINKS.source}
-                surface="hero"
-              >
-                <Github aria-hidden="true" className="mr-2 size-4" />
-                View on GitHub
-              </TrackedLandingLink>
-            </Button>
-          </div>
+        {/* CTA Buttons */}
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <Button asChild size="lg">
+            <Link href="https://solulu.delulu.social/sign-in">
+              {variant.cta1}
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="#how-it-works">{variant.cta2}</Link>
+          </Button>
+        </motion.div>
 
-          <p className="mt-5 text-muted-foreground text-sm">
-            Hosted when you want it. Self-hosted when you don&apos;t.
-          </p>
-        </div>
+        {/* Tiny Reassurance */}
+        <motion.p
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto mb-16 max-w-md text-sm text-zinc-500"
+          initial={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <Balancer>
+            We use official APIs from Meta, TikTok, LinkedIn & more. No sketchy
+            workarounds. Your account stays safe — pinky promise.
+          </Balancer>
+        </motion.p>
+      </div>
 
-        <div className="min-w-0 lg:-mr-28">
-          <ProductPreview
-            className="rounded-[1.4rem] lg:rounded-[1.75rem]"
-            crop={previewTabs[activePreview]?.crop ?? "full"}
+      {/* App Preview */}
+      <motion.div
+        animate={{ y: 0, opacity: 1 }}
+        className="relative z-10 mb-[-100px] w-full max-w-5xl"
+        initial={{ y: 60, opacity: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+      >
+        <DesktopMockup>
+          <Image
+            alt="Delulu Social Dashboard"
+            className="h-full w-full object-contain object-top"
+            height={800}
             priority
-            sizes="(min-width: 1024px) 56vw, 94vw"
+            src={image}
+            width={1200}
           />
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 pb-14 md:px-6 lg:pb-20">
-        <p className="mb-4 font-mono font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.22em]">
-          One social operating layer
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {previewTabs.map((tab, index) => (
-            <button
-              aria-pressed={activePreview === index}
-              className={cn(
-                "min-h-11 touch-manipulation rounded-full px-4 font-medium text-sm outline-none ring-1 ring-foreground/10 transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                activePreview === index
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-              key={tab.label}
-              onClick={() => setActivePreview(index)}
-              type="button"
+          {/* Sarcastic Text Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <motion.div
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-lg bg-black/80 px-6 py-3 text-center text-white backdrop-blur-sm"
+              initial={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
             >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <p aria-live="polite" className="sr-only">
-          {previewTabs[activePreview]?.label} product preview selected.
-        </p>
-        <div className="mt-10">
-          <AgentWorkflowGraphic />
-        </div>
-      </div>
-    </section>
+              <p className="font-medium text-lg">Look, mom, one click.</p>
+            </motion.div>
+          </div>
+        </DesktopMockup>
+      </motion.div>
+    </div>
   );
 }

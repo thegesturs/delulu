@@ -1,19 +1,22 @@
+import { Card } from "@delulu/design-system/components/ui/card";
 import Link from "next/link";
-import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
-import { LANDING_LINKS } from "@/lib/landing-links";
+import { FaLinkedin, FaTwitter } from "react-icons/fa";
 import { Logo } from "../logo";
 
 export function Footer() {
   const pages = [
-    { title: "Agents", href: "/#agents" },
-    { title: "Product", href: "/#product" },
-    { title: "Open Source", href: "/#open-source" },
-    { title: "Pricing", href: "/#pricing" },
-    { title: "Documentation", href: LANDING_LINKS.docs },
+    { title: "Home", href: "/" },
+    { title: "Create & Plan", href: "/tools" },
+    { title: "Affiliates", href: "/affiliates" },
+    // { title: 'Blogs', href: '/blogs' },
+    // { title: 'Pricing', href: '/pricing' },
+    // { title: 'Blog', href: '/blogs' },
+    // { title: 'Contact', href: '/contact' },
   ];
 
   const socials = [
-    { title: "GitHub", href: LANDING_LINKS.source },
+    // { title: 'Facebook', href: 'https://www.facebook.com/delulu.social' },
+    // { title: 'Instagram', href: 'https://www.instagram.com/delulu.social' },
     { title: "Twitter", href: "https://x.com/delulusocial" },
     {
       title: "LinkedIn",
@@ -28,29 +31,25 @@ export function Footer() {
   ];
 
   return (
-    <footer className="w-full border-t px-5 py-16 sm:px-8 lg:py-20">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-14 lg:grid-cols-[1.25fr_1fr] lg:gap-24">
+    <footer className="mx-auto w-full max-w-7xl border-x border-t px-2 py-2">
+      <Card className="mx-auto max-w-7xl px-8 py-20">
+        <div className="flex flex-col justify-between gap-12 md:flex-row">
           <div className="flex flex-col items-start">
             <Logo />
-            <h2 className="mt-7 max-w-md font-medium text-2xl tracking-tight sm:text-3xl">
-              Open-source social scheduling infrastructure for agents, with
-              humans in control.
+            <h2 className="mt-8 max-w-md font-medium text-2xl">
+              Record your video. Edit captions for each platform. Hit
+              ‘Schedule.’ We handle the rest.”
             </h2>
-            <p className="mt-4 max-w-sm text-muted-foreground leading-7">
-              Connect your agent through MCP, the CLI, or the API. Use our
-              hosted service or run the whole stack yourself.
-            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
-            <div>
-              <h3 className="font-semibold text-sm">Product</h3>
-              <ul className="mt-5 space-y-1">
-                {pages.map((item) => (
-                  <li key={item.title}>
+          <div className="grid grid-cols-1 gap-8 justify-self-end md:grid-cols-4">
+            <div className="space-y-6">
+              <h3 className="font-semibold">Pages</h3>
+              <ul className="space-y-3">
+                {pages.map((item, idx) => (
+                  <li key={idx}>
                     <Link
-                      className="inline-flex min-h-11 items-center text-muted-foreground text-sm transition-colors hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground"
                       href={item.href}
                     >
                       {item.title}
@@ -60,13 +59,13 @@ export function Footer() {
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-semibold text-sm">Community</h3>
-              <ul className="mt-5 space-y-1">
-                {socials.map((item) => (
-                  <li key={item.title}>
+            <div className="space-y-6">
+              <h3 className="font-semibold">Socials</h3>
+              <ul className="space-y-3">
+                {socials.map((item, idx) => (
+                  <li key={idx}>
                     <Link
-                      className="inline-flex min-h-11 items-center text-muted-foreground text-sm transition-colors hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground"
                       href={item.href}
                     >
                       {item.title}
@@ -76,13 +75,13 @@ export function Footer() {
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-semibold text-sm">Legal</h3>
-              <ul className="mt-5 space-y-1">
-                {legal.map((item) => (
-                  <li key={item.title}>
+            <div className="space-y-6">
+              <h3 className="font-semibold">Legal</h3>
+              <ul className="space-y-3">
+                {legal.map((item, idx) => (
+                  <li key={idx}>
                     <Link
-                      className="inline-flex min-h-11 items-center text-muted-foreground text-sm transition-colors hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground"
                       href={item.href}
                     >
                       {item.title}
@@ -94,33 +93,42 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col gap-5 border-t pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-xs flex-col items-center justify-between pt-16 md:flex-row">
           <p className="text-muted-foreground text-sm">© Delulu Social</p>
-          <div className="flex gap-1">
+          <div className="mt-4 flex gap-4 md:mt-0">
             <Link
-              aria-label="Delulu source on GitHub"
-              className="inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              href={LANDING_LINKS.source}
-            >
-              <FaGithub size={20} />
-            </Link>
-            <Link
-              aria-label="Delulu on X"
-              className="inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
               href="https://x.com/delulusocial"
             >
               <FaTwitter size={20} />
             </Link>
             <Link
-              aria-label="Delulu on LinkedIn"
-              className="inline-flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
               href="https://www.linkedin.com/company/delulu-social"
             >
               <FaLinkedin size={20} />
             </Link>
+            {/* <Link
+              href="https://www.facebook.com/delulu.social"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FaGithub size={20} />
+            </Link> */}
+            {/* <Link
+              href="#"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FaFacebook size={20} />
+            </Link> */}
+            {/* <Link
+              href="https://www.instagram.com/delulu.social"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FaInstagram size={20} />
+            </Link> */}
           </div>
         </div>
-      </div>
+      </Card>
     </footer>
   );
 }

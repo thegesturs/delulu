@@ -1,28 +1,5 @@
 @import "@delulu/design-system/styles/globals.css";
 
-html {
-  -webkit-font-smoothing: antialiased;
-}
-
-[id] {
-  scroll-margin-top: 5rem;
-}
-
-.landing-grid {
-  background-image:
-    linear-gradient(
-      color-mix(in oklab, var(--border), transparent 55%) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--border), transparent 55%) 1px,
-      transparent 1px
-    );
-  background-position: center top;
-  background-size: 9rem 9rem;
-}
-
 .shiki {
   background-color: var(--shiki-light-bg);
   color: var(--shiki-light);

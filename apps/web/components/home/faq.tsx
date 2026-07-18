@@ -6,7 +6,7 @@ import {
   PLANS,
 } from "@delulu/payments";
 import { Plus } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { useCurrency } from "@/hooks/use-currency";
 
@@ -24,100 +24,87 @@ function getFaqs(currency: CurrencyCode) {
 
   return [
     {
-      question: "What can an agent actually do with Delulu?",
+      question: "Do I need to connect all my accounts?",
       answer:
-        "An authorized agent can inspect workspaces and accounts, prepare media, create drafts, schedule or publish posts, inspect delivery states, work with reviews, and read usage or analytics. Every action is still constrained by its scopes and your workspace role rules.",
+        "No. Instagram is required for auto-DM automations, but you can connect TikTok, LinkedIn, YouTube, Twitter, Facebook, Pinterest, and Threads whenever you want.",
     },
     {
-      question: "How do I connect my agent?",
+      question: "Is my data safe?",
       answer:
-        "Use the hosted MCP server for browser-capable agents, or install the Delulu CLI and packaged agent skill for local agents. Direct integrations can use the typed REST API. All three surfaces share the same authorization and publishing rules.",
+        "Yes. We use official platform APIs with OAuth — we never store your passwords. You can revoke access anytime.",
     },
     {
-      question: "Can an agent publish without my approval?",
+      question: "Wait, this really replaces ManyChat?",
+      answer: `For Instagram DM automation? Yes. Someone comments a keyword → we send them a DM with your link and reply to their comment. ManyChat's pro plan runs $67/mo. Echo (${echoPrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month.`,
+    },
+    {
+      question: "Is there a free plan?",
+      answer: `No — Delulu is a paid product built for creators who are serious about growth. Plans start at Echo (${echoPrice}). Every plan includes a 14-day money-back guarantee.`,
+    },
+    {
+      question: "How many posts can I schedule?",
+      answer: `Echo (${echoPrice}): ${echo.limits.socialAccounts} social accounts, ${echo.limits.monthlyPosts} posts/month, ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs/month\n\nVibe (${vibePrice}): Unlimited social accounts, unlimited posts, ${formatDmLimit(DM_PLAN_LIMITS.VIBE)} auto-DMs/month\n\nWe count by unique content, not platforms. One post to 5 platforms = 1 post.`,
+    },
+    {
+      question: "What content types do you support?",
       answer:
-        "Only if you grant that access and the workspace allows it. You can restrict scopes, require post review, revoke credentials, or keep the agent draft-only. Delulu checks live permissions again when the operation runs.",
+        "Videos, images, carousels, text posts, and GIFs. Platform formatting happens automatically.",
     },
     {
-      question: "Which social networks are supported?",
+      question: "Can I cancel anytime?",
+      answer: "Yes. No contracts. Cancel in one click from billing, anytime.",
+    },
+    {
+      question: "What if something breaks?",
       answer:
-        "Delulu supports Instagram, Facebook, X, LinkedIn, TikTok, Pinterest, Threads, YouTube, Bluesky, and Farcaster. Available post types and settings still follow each network's official API capabilities.",
-    },
-    {
-      question: "Is self-hosting free?",
-      answer:
-        "Yes. The Community self-hosted edition is available under AGPL-3.0 with core product features unlocked. You pay for your own infrastructure and external services. The first release requires your own Clerk and Cloudflare R2 projects; generic OIDC and S3-compatible storage are planned.",
-    },
-    {
-      question: "Does the agent see my passwords or tokens?",
-      answer:
-        "No social passwords are shared with the agent. Social accounts connect through official OAuth flows, provider tokens are encrypted, and delegated agent credentials stay in the MCP client or the CLI's owner-only credential file.",
-    },
-    {
-      question: "Does Delulu still support social automations?",
-      answer: `Yes. Scheduling is the core agent workflow, and programmable automations remain available, including comment-triggered replies and Instagram DMs. Echo (${echoPrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.ECHO)} auto-DMs each month; Vibe (${vibePrice}) includes ${formatDmLimit(DM_PLAN_LIMITS.VIBE)}.`,
-    },
-    {
-      question: "What is included in hosted plans?",
-      answer: `Hosted plans operate the infrastructure for you. Echo (${echoPrice}) includes ${echo.limits.socialAccounts} accounts and ${echo.limits.monthlyPosts} posts per month. Vibe (${vibePrice}) includes unlimited accounts and posts plus team features. You can cancel from billing at any time.`,
+        "Email swaraj@gesturs.com — we typically respond within 6–12 hours.",
     },
   ];
 }
 
 export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const reduceMotion = useReducedMotion();
   const currency = useCurrency();
   const faqs = getFaqs(currency);
 
   return (
-    <section className="w-full border-t px-4 py-24 md:px-6 lg:py-32">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-14 text-center">
-          <p className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.2em]">
-            Frequently asked
-          </p>
-          <h2 className="mx-auto mt-4 max-w-4xl font-semibold text-4xl tracking-[-0.045em] md:text-6xl">
-            Questions before you hand an agent the calendar?
+    <section className="w-full py-20">
+      <div className="mx-auto max-w-4xl px-4">
+        <div className="mb-12 text-center">
+          <h2 className="mb-4 font-semibold text-4xl">
+            Let's be real. You have{" "}
+            <span className="text-primary">questions</span>.
           </h2>
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-8">
-            The short version: permissions stay explicit, outcomes stay
-            inspectable, and self-hosting is a real option.
+          <p className="mx-auto max-w-3xl text-muted-foreground">
+            Here are the answers before you stress about them:
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-foreground/10">
+        <div className="space-y-4 rounded-[22px] bg-muted p-4">
           {faqs.map((faq, index) => (
             <div
-              className="overflow-hidden border-border/70 border-b last:border-b-0"
+              className="overflow-hidden rounded-[17px] border bg-gradient-to-b from-card via-background to-card shadow-lg"
               key={index}
             >
               <button
-                aria-expanded={openIndex === index}
-                className="flex min-h-16 w-full touch-manipulation items-center gap-3 px-5 py-5 text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-7"
+                className="flex w-full items-center gap-2 px-6 py-5 text-left"
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 type="button"
               >
                 <motion.div
                   animate={{ rotate: openIndex === index ? 45 : 0 }}
                   initial={false}
-                  transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { type: "spring", stiffness: 300, damping: 30 }
-                  }
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 >
                   <Plus className="text-primary" size={20} />
                 </motion.div>
-                <span className="font-medium text-foreground text-lg">
-                  {faq.question}
-                </span>
+                <span className="text-foreground text-lg">{faq.question}</span>
               </button>
-              <AnimatePresence initial={!reduceMotion} mode="sync">
+              <AnimatePresence mode="sync">
                 {openIndex === index && (
                   <motion.div
                     animate="open"
-                    className="overflow-hidden px-5 md:px-7"
+                    className="overflow-hidden px-6"
                     exit="collapsed"
                     initial="collapsed"
                     key={`content-${index}`}
@@ -126,34 +113,26 @@ export function FAQ() {
                         height: "auto",
                         opacity: 1,
                         transition: {
-                          ...(reduceMotion
-                            ? { duration: 0 }
-                            : {
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 40,
-                                mass: 1,
-                              }),
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 40,
+                          mass: 1,
                         },
                       },
                       collapsed: {
                         height: 0,
                         opacity: 0,
                         transition: {
-                          ...(reduceMotion
-                            ? { duration: 0 }
-                            : {
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 40,
-                                mass: 1,
-                              }),
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 40,
+                          mass: 1,
                         },
                       },
                     }}
                   >
-                    <div className="pb-6 pl-8">
-                      <p className="max-w-3xl whitespace-pre-line text-muted-foreground leading-7">
+                    <div className="pb-5">
+                      <p className="whitespace-pre-line text-muted-foreground">
                         {faq.answer}
                       </p>
                     </div>
