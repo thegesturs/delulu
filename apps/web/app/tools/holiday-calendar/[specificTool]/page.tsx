@@ -14,8 +14,6 @@ interface CalendarPageProps {
   params: Promise<{ specificTool: string }>;
 }
 
-export const dynamicParams = false;
-
 export const generateStaticParams = () =>
   holidayCalendarPages.map((page) => ({ specificTool: page.slug }));
 

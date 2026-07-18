@@ -1,5 +1,6 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { ArrowUpRight, Clock, PenLine } from "lucide-react";
+import { ComposerHandoffLink } from "@/components/tools/composer-handoff-link";
 import { createComposerHandoffUrl } from "@/lib/composer-handoff";
 import type { NewsItem } from "./provider";
 import type { NewsResult } from "./service";
@@ -86,10 +87,10 @@ export function NewsExplorer({ initial }: { initial: NewsResult }) {
                     </a>
                   </Button>
                   <Button asChild className="">
-                    <a href={createPostUrl(item)} rel="noopener noreferrer">
+                    <ComposerHandoffLink handoffUrl={createPostUrl(item)}>
                       Create in Delulu
                       <PenLine aria-hidden="true" className="size-4" />
-                    </a>
+                    </ComposerHandoffLink>
                   </Button>
                 </div>
               </article>

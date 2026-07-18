@@ -10,8 +10,6 @@ interface FeatureRouteProps {
   readonly params: Promise<{ readonly feature: string }>;
 }
 
-export const dynamicParams = false;
-
 export function generateStaticParams() {
   return features.map((feature) => ({ feature: feature.slug }));
 }

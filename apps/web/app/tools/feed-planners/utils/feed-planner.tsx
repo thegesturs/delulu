@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ComposerHandoffLink } from "@/components/tools/composer-handoff-link";
 import {
   buildComposerUrl,
   movePlannerItem,
@@ -425,9 +426,9 @@ export function FeedPlanner({ composerUrl, variant }: FeedPlannerProps) {
           disabled={items.length === 0}
         >
           {items.length > 0 ? (
-            <a href={composerHref} rel="noreferrer" target="_blank">
+            <ComposerHandoffLink handoffUrl={composerHref} target="_blank">
               {composerActionLabel} <ExternalLink className="size-4" />
-            </a>
+            </ComposerHandoffLink>
           ) : (
             <span>Add photos to continue</span>
           )}
