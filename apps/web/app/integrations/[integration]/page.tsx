@@ -11,8 +11,6 @@ interface IntegrationPageProps {
   readonly params: Promise<{ integration: string }>;
 }
 
-export const dynamicParams = false;
-
 export const generateStaticParams = () =>
   integrationPages.map((integration) => ({ integration: integration.slug }));
 

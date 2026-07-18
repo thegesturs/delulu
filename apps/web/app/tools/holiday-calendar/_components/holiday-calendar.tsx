@@ -8,6 +8,7 @@ import { Label } from "@delulu/design-system/components/ui/label";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { CalendarDays, Check, Copy, MoveUpRight, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ComposerHandoffLink } from "@/components/tools/composer-handoff-link";
 import { createComposerHandoffUrl } from "@/lib/composer-handoff";
 import {
   buildCalendarPostText,
@@ -402,14 +403,13 @@ export function HolidayCalendar({
                       Share
                     </Button>
                     <Button asChild>
-                      <a
+                      <ComposerHandoffLink
                         aria-label={`Create a post for ${event.name} in Delulu`}
-                        href={composerHref(text)}
-                        rel="noreferrer"
+                        handoffUrl={composerHref(text)}
                       >
                         Create post
                         <MoveUpRight aria-hidden="true" className="size-4" />
-                      </a>
+                      </ComposerHandoffLink>
                     </Button>
                   </footer>
                 </Card>
