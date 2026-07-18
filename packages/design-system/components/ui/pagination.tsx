@@ -4,7 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-} from "@hugeicons/core-free-icons"
+} from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 import { Button, buttonVariants } from "@delulu/design-system/components/ui/button"

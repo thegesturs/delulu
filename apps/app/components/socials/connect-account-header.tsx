@@ -16,7 +16,7 @@ import {
   socialDisplayNames,
 } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Loading03Icon, Plus } from "@hugeicons/core-free-icons";
+import { Loading03Icon, Plus } from "@delulu/icons";
 import { InlineUpgradePrompt } from "@/components/billing/upgrade-prompt";
 import { useApiClient } from "@/components/providers/api-client";
 import { useActiveWorkspace } from "@/hooks/use-active-workspace";

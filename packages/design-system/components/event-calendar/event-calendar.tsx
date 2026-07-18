@@ -29,7 +29,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import {
   addDays,
   addHours,

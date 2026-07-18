@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Icon } from "../../providers/icon"
-import { MoreVertical } from "@hugeicons/core-free-icons"
+import { MoreVertical } from "@delulu/icons"
 import * as ResizablePrimitive from "react-resizable-panels"
 
 import { cn } from "@delulu/design-system/lib/utils"

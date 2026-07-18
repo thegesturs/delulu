@@ -4,7 +4,7 @@ import {
   type CalendarEvent,
   EventItem,
 } from "@delulu/design-system/components/event-calendar";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon } from "@delulu/icons";
 import { format, isSameDay } from "date-fns";
 import { useEffect, useMemo, useRef } from "react";
 import { Icon } from "../../providers/icon";

@@ -19,7 +19,7 @@ import {
   Comment01Icon,
   InstagramIcon,
   UserStoryIcon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import { PostSelector } from "@/components/automations/post-selector";
 import type {
   AutomationConditionOperator,

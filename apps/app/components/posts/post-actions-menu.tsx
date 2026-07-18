@@ -38,7 +38,7 @@ import {
   RefreshIcon,
   Sent02Icon,
   ViewIcon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";

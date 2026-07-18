@@ -10,7 +10,7 @@ import {
 } from "@delulu/design-system/components/ui/select";
 import { Icon } from "@delulu/design-system/providers/icon";
 
-import { Search01Icon } from "@hugeicons/core-free-icons";
+import { Search01Icon } from "@delulu/icons";
 
 interface AccountFiltersProps {
   searchQuery: string;

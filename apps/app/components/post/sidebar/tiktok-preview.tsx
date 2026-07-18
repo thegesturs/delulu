@@ -12,7 +12,7 @@ import {
   Search01Icon,
   ShareIcon,
   UserIcon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import Image from "next/image";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";

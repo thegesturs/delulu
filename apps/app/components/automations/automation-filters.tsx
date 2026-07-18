@@ -10,11 +10,7 @@ import {
   SelectValue,
 } from "@delulu/design-system/components/ui/select";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  GridViewIcon,
-  Menu01Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons";
+import { GridViewIcon, Menu01Icon, Search01Icon } from "@delulu/icons";
 
 interface AutomationFiltersProps {
   searchQuery: string;

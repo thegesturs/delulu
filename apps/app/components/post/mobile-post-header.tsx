@@ -9,7 +9,7 @@ import {
   SheetTrigger,
 } from "@delulu/design-system/components/ui/sheet";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Loading03Icon, Settings01Icon } from "@hugeicons/core-free-icons";
+import { Loading03Icon, Settings01Icon } from "@delulu/icons";
 import { FaBookmark } from "react-icons/fa";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { usePostActions } from "@/hooks/use-post-actions";

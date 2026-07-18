@@ -17,8 +17,8 @@ import {
 } from "@delulu/design-system/components/ui/alert";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { TickDouble01Icon } from "@delulu/icons";
 import { getProductIds } from "@delulu/payments/product-ids";
-import { TickDouble01Icon } from "@hugeicons/core-free-icons";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";

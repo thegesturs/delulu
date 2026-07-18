@@ -19,11 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@delulu/design-system/components/ui/dropdown-menu";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Delete02Icon,
-  MoreVerticalIcon,
-  RefreshIcon,
-} from "@hugeicons/core-free-icons";
+import { Delete02Icon, MoreVerticalIcon, RefreshIcon } from "@delulu/icons";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";

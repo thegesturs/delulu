@@ -16,7 +16,7 @@ import {
   Loading03Icon,
   MailSend01Icon,
   TickDouble01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PageSection, PageShell } from "@/components/layout/page-shell";

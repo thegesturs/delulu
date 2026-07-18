@@ -160,6 +160,9 @@ importers:
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
@@ -184,9 +187,6 @@ importers:
       '@effect/platform-browser':
         specifier: 'catalog:'
         version: 4.0.0-beta.97(effect@4.0.0-beta.97)
-      '@hugeicons/core-free-icons':
-        specifier: ^3.1.0
-        version: 3.1.1
       '@opennextjs/cloudflare':
         specifier: 1.6.0
         version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
@@ -643,6 +643,9 @@ importers:
       '@delulu/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
@@ -658,9 +661,6 @@ importers:
       '@delulu/seo':
         specifier: workspace:*
         version: link:../../packages/seo
-      '@hugeicons/core-free-icons':
-        specifier: ^3.1.1
-        version: 3.1.1
       '@hugeicons/react':
         specifier: ^1.1.4
         version: 1.1.4(react@19.2.7)
@@ -1128,6 +1128,9 @@ importers:
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../analytics
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/observability':
         specifier: workspace:*
         version: link:../observability
@@ -1143,9 +1146,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.1.1(react-hook-form@7.59.0(react@19.2.7))
-      '@hugeicons/core-free-icons':
-        specifier: ^3.1.1
-        version: 3.1.1
       '@hugeicons/react':
         specifier: ^1.1.4
         version: 1.1.4(react@19.2.7)

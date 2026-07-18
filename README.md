@@ -126,6 +126,28 @@ pnpm cli -- --help
 pnpm mcp
 ```
 
+### Icon tiers
+
+Application code imports icons through the neutral `@delulu/icons` package
+alias. Public checkouts, Community builds, and self-hosted images resolve that
+alias to the redistributable free icon set.
+
+Licensed maintainers can use the Pro solid-rounded set in a private hosted
+build without changing application imports:
+
+```bash
+pnpm icons:pro
+# Configure the licensed @hugeicons-pro registry in the private build environment.
+pnpm install --no-frozen-lockfile
+pnpm build
+```
+
+The Pro command changes workspace manifests for that build. Do not commit the
+resulting Pro dependency or lockfile, and never commit the registry token. Run
+`pnpm icons:free && pnpm install` to return to the public Community setup. Only
+developers covered by the appropriate icon license should access or maintain
+the Pro build.
+
 ## Verification
 
 ```bash

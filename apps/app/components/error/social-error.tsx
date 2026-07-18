@@ -3,7 +3,7 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 
-import { AlertTriangle, XCircle } from "@hugeicons/core-free-icons";
+import { AlertTriangle, XCircle } from "@delulu/icons";
 
 interface SocialErrorProps {
   title: string;

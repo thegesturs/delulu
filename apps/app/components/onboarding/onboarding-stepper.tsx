@@ -6,7 +6,7 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Loading03Icon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useApiClient } from "@/components/providers/api-client";

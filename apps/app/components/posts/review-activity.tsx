@@ -7,7 +7,7 @@ import {
   CancelCircleIcon,
   Comment01Icon,
   Tick01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import React from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";

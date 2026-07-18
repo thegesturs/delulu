@@ -19,14 +19,14 @@ import { Separator } from "@delulu/design-system/components/ui/separator";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { DEFAULT_INSTAGRAM_SETTINGS } from "@delulu/validators/constants/settings";
-import type { InstagramSettings } from "@delulu/validators/post";
 import {
   Comment01Icon,
   InformationCircleIcon,
   MailSend01Icon,
   TickDouble01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
+import { DEFAULT_INSTAGRAM_SETTINGS } from "@delulu/validators/constants/settings";
+import type { InstagramSettings } from "@delulu/validators/post";
 import { useCallback } from "react";
 import { SendDmPanel } from "@/components/automations/flow-builder/panels/send-dm-panel";
 import {

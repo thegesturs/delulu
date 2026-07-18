@@ -10,11 +10,7 @@ import {
 } from "@delulu/design-system/components/ui/dialog";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Loading03Icon,
-  Upload01Icon,
-  VideoIcon,
-} from "@hugeicons/core-free-icons";
+import { Loading03Icon, Upload01Icon, VideoIcon } from "@delulu/icons";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

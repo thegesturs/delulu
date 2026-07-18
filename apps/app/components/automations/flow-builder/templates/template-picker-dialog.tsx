@@ -15,7 +15,7 @@ import {
   MailSend01Icon,
   TickDouble01Icon,
   UserStoryIcon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 import { AUTOMATION_TEMPLATES } from "./automation-templates";
 
 const TEMPLATE_ICONS: Record<string, typeof Comment01Icon> = {

@@ -10,7 +10,7 @@ import {
   DocumentAttachmentIcon,
   FireIcon,
   TickDouble01Icon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
 
 interface OperationalStats {
   readonly counts: {

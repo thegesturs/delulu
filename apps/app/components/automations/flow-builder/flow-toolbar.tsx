@@ -5,7 +5,7 @@ import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { ArrowLeft01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, Loading03Icon } from "@delulu/icons";
 import Link from "next/link";
 import type { AutomationMeta } from "./utils/flow-types";
 

@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
 import { Icon } from "../../providers/icon"
-import { Circle } from "@hugeicons/core-free-icons"
+import { Circle } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

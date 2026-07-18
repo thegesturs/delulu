@@ -8,13 +8,9 @@ import { Label } from "@delulu/design-system/components/ui/label";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { Delete01Icon, Image01Icon, PencilEdit01Icon } from "@delulu/icons";
 import type { SocialType } from "@delulu/validators/post";
 import { SocialTypes } from "@delulu/validators/post";
-import {
-  Delete01Icon,
-  Image01Icon,
-  PencilEdit01Icon,
-} from "@hugeicons/core-free-icons";
 import { useCallback, useState } from "react";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { MediaUploader } from "./media-uploader";

@@ -10,12 +10,8 @@ import {
 import { Input } from "@delulu/design-system/components/ui/input";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { Image01Icon, Search01Icon, VideoIcon } from "@delulu/icons";
 import type { SocialType } from "@delulu/validators/post";
-import {
-  Image01Icon,
-  Search01Icon,
-  VideoIcon,
-} from "@hugeicons/core-free-icons";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";

@@ -3,7 +3,7 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Alert01Icon } from "@hugeicons/core-free-icons";
+import { Alert01Icon } from "@delulu/icons";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun } from "@hugeicons/core-free-icons";
+import { Moon, Sun } from "@delulu/icons";
 import { useTheme } from "next-themes";
 import { Button } from "../components/ui/button";
 import {

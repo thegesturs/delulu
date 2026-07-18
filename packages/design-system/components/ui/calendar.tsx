@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Icon } from "../../providers/icon"
-import { ChevronLeft, ChevronRight } from "@hugeicons/core-free-icons"
+import { ChevronLeft, ChevronRight } from "@delulu/icons"
 import { DayPicker } from "react-day-picker"
 
 import { cn } from "@delulu/design-system/lib/utils"

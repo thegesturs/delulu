@@ -3,7 +3,7 @@
 import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
 import { Icon } from "../../providers/icon"
-import { Remove } from "@hugeicons/core-free-icons"
+import { Remove } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

@@ -15,16 +15,12 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { SparklesIcon, Tick01Icon, TickDouble01Icon } from "@delulu/icons";
 import {
   CURRENCY_SYMBOLS,
   LIFETIME_DEAL_ACTIVE,
   LIFETIME_PRICE,
 } from "@delulu/payments";
-import {
-  SparklesIcon,
-  Tick01Icon,
-  TickDouble01Icon,
-} from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";

@@ -14,8 +14,8 @@ import {
   TooltipTrigger,
 } from "@delulu/design-system/components/ui/tooltip";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { ArrowDown01Icon } from "@delulu/icons";
 import type { SocialType } from "@delulu/validators/post";
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { getPlatformsInDefault } from "@/lib/platform-rules";
 import { useSelectedSocialProviders, useStore } from "@/store/post";
 import { SocialIcon } from "./sidebar/social-icon";

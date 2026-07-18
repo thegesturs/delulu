@@ -2,7 +2,7 @@
 
 import { Badge } from "@delulu/design-system/components/ui/badge";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { MailSend01Icon } from "@hugeicons/core-free-icons";
+import { MailSend01Icon } from "@delulu/icons";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import type { SendDmStep } from "../utils/flow-types";
 

@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Icon } from "../../providers/icon"
-import { Cancel } from "@hugeicons/core-free-icons"
+import { Cancel } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import { Icon } from "../../providers/icon"
-import { Search } from "@hugeicons/core-free-icons"
+import { Search } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 import {

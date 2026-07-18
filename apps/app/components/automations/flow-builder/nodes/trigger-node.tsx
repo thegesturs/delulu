@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Comment01Icon } from "@hugeicons/core-free-icons";
+import { Comment01Icon } from "@delulu/icons";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import type { TriggerStep } from "../utils/flow-types";
 

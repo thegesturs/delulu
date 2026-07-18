@@ -15,6 +15,7 @@ import {
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { InformationCircleIcon } from "@delulu/icons";
 import { DEFAULT_TIKTOK_SETTINGS } from "@delulu/validators/constants/settings";
 import {
   type PromotionContentType,
@@ -23,7 +24,6 @@ import {
   type TiktokPrivacyLevels,
   tikTokPrivacyLevels,
 } from "@delulu/validators/post";
-import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

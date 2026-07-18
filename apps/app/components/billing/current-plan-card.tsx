@@ -17,13 +17,13 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { CURRENCY_SYMBOLS, PLANS } from "@delulu/payments";
 import {
   Calendar01Icon,
   CreditCardIcon,
   Link01Icon,
   SparklesIcon,
-} from "@hugeicons/core-free-icons";
+} from "@delulu/icons";
+import { CURRENCY_SYMBOLS, PLANS } from "@delulu/payments";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
