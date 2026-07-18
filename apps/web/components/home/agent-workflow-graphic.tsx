@@ -90,7 +90,18 @@ export function AgentWorkflowGraphic() {
 function FlowArrow({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <div aria-hidden="true" className="flex items-center justify-center py-1">
-      <div className="relative h-px w-12 overflow-hidden bg-border lg:w-10">
+      <div className="relative h-10 w-px overflow-hidden bg-border lg:hidden">
+        <motion.div
+          animate={reduceMotion ? undefined : { y: ["-100%", "200%"] }}
+          className="absolute inset-x-0 h-1/2 bg-primary"
+          transition={{
+            duration: 1.8,
+            ease: "linear",
+            repeat: Number.POSITIVE_INFINITY,
+          }}
+        />
+      </div>
+      <div className="relative hidden h-px w-10 overflow-hidden bg-border lg:block">
         <motion.div
           animate={reduceMotion ? undefined : { x: ["-100%", "100%"] }}
           className="absolute inset-y-0 w-1/2 bg-primary"

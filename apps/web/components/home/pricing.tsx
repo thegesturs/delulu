@@ -13,9 +13,10 @@ import {
   type PublicPlanType,
 } from "@delulu/payments";
 import { Github } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { useCurrency } from "@/hooks/use-currency";
+import { LANDING_LINKS } from "@/lib/landing-links";
+import { TrackedLandingLink } from "./tracked-landing-link";
 
 const PricingCard = ({
   planId,
@@ -50,21 +51,19 @@ const PricingCard = ({
   return (
     <div
       className={cn(
-        "relative flex flex-col gap-3 rounded-[37px] p-4",
-        isHighlighted
-          ? "border border-primary bg-gradient-to-b from-primary/20 via-primary/10 to-primary/5"
-          : "bg-card"
+        "relative flex h-full flex-col rounded-3xl p-3 ring-1 ring-foreground/10",
+        isHighlighted ? "bg-primary/10 ring-primary/40" : "bg-card"
       )}
     >
-      <div className="space-y-8 rounded-[28px] bg-background p-4 px-4 pb-20 shadow-lg">
+      <div className="flex h-full flex-col rounded-[1.1rem] bg-background p-6 shadow-sm md:p-8">
         <div className="flex flex-col">
           <div className="space-y-2">
-            <h3 className="flex w-fit items-center justify-center rounded-full border bg-background px-4 py-1 font-medium text-lg">
+            <h3 className="flex w-fit items-center justify-center rounded-full bg-muted px-4 py-1.5 font-medium text-base ring-1 ring-foreground/10">
               {tier}
             </h3>
             <p className="text-muted-foreground text-sm">{subtitle}</p>
           </div>
-          <div className="mt-4 flex items-baseline">
+          <div className="mt-7 flex items-baseline">
             {isFree ? (
               <span className="font-bold text-4xl">Free Forever</span>
             ) : (
@@ -92,13 +91,19 @@ const PricingCard = ({
 
         <Button
           asChild
-          className="w-full px-6 py-4 font-medium text-md"
+          className="mt-8 h-11 w-full px-6 font-medium"
           variant={isHighlighted ? "default" : "outline"}
         >
-          <Link href="https://solulu.delulu.social/sign-in">{cta}</Link>
+          <TrackedLandingLink
+            destination="hosted_app"
+            href={LANDING_LINKS.app}
+            surface="pricing"
+          >
+            {cta}
+          </TrackedLandingLink>
         </Button>
 
-        <ul className="space-y-4">
+        <ul className="mt-8 space-y-4">
           {features.map((feature, index) => (
             <li className="flex items-center" key={index}>
               <svg
@@ -191,13 +196,16 @@ export default function Pricing() {
   const yearlySavings = getMaxYearlySavingsPercent();
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-24" id="pricing">
+    <section className="border-t px-4 py-24 md:px-6 lg:py-32" id="pricing">
       <div className="mb-16 text-center">
-        <h2 className="mb-4 font-bold text-4xl">
+        <p className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+          Pricing
+        </p>
+        <h2 className="mx-auto mt-4 max-w-4xl font-semibold text-4xl tracking-[-0.045em] md:text-6xl">
           Hosted when you want it.{" "}
           <span className="text-primary">Open source</span> when you don&apos;t.
         </h2>
-        <p className="mx-auto max-w-2xl text-muted-foreground">
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground leading-8">
           Use our managed service or run the Community edition on your own
           infrastructure.
         </p>
@@ -228,7 +236,7 @@ export default function Pricing() {
           </span>
         </div>
       </div>
-      <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-2">
+      <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-2">
         {plans.map((plan) => (
           <PricingCard
             cta="Get Started"
@@ -246,7 +254,7 @@ export default function Pricing() {
           />
         ))}
       </div>
-      <div className="mx-auto mt-4 max-w-4xl rounded-[28px] border bg-card p-6 md:flex md:items-center md:justify-between md:gap-8">
+      <div className="mx-auto mt-5 max-w-5xl rounded-3xl bg-card p-7 ring-1 ring-foreground/10 md:flex md:items-center md:justify-between md:gap-8">
         <div>
           <div className="flex items-center gap-3">
             <h3 className="font-semibold text-2xl">Community self-hosted</h3>
@@ -260,13 +268,21 @@ export default function Pricing() {
             provider costs.
           </p>
         </div>
-        <Button asChild className="mt-5 shrink-0 md:mt-0" variant="outline">
-          <Link href="https://github.com/thegesturs/delulu">
+        <Button
+          asChild
+          className="mt-5 h-11 shrink-0 md:mt-0"
+          variant="outline"
+        >
+          <TrackedLandingLink
+            destination="source"
+            href={LANDING_LINKS.source}
+            surface="community_pricing"
+          >
             <Github aria-hidden="true" className="mr-2 size-4" />
             Self-host free
-          </Link>
+          </TrackedLandingLink>
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

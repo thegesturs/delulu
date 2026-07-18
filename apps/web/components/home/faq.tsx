@@ -6,7 +6,7 @@ import {
   PLANS,
 } from "@delulu/payments";
 import { Plus } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import { useCurrency } from "@/hooks/use-currency";
 
@@ -66,47 +66,58 @@ function getFaqs(currency: CurrencyCode) {
 
 export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const reduceMotion = useReducedMotion();
   const currency = useCurrency();
   const faqs = getFaqs(currency);
 
   return (
-    <section className="w-full py-20">
-      <div className="mx-auto max-w-4xl px-4">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 font-semibold text-4xl">
+    <section className="w-full border-t px-4 py-24 md:px-6 lg:py-32">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-14 text-center">
+          <p className="font-mono font-semibold text-primary text-xs uppercase tracking-[0.2em]">
+            Frequently asked
+          </p>
+          <h2 className="mx-auto mt-4 max-w-4xl font-semibold text-4xl tracking-[-0.045em] md:text-6xl">
             Questions before you hand an agent the calendar?
           </h2>
-          <p className="mx-auto max-w-3xl text-muted-foreground">
+          <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground leading-8">
             The short version: permissions stay explicit, outcomes stay
             inspectable, and self-hosting is a real option.
           </p>
         </div>
 
-        <div className="space-y-4 rounded-[22px] bg-muted p-4">
+        <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-foreground/10">
           {faqs.map((faq, index) => (
             <div
-              className="overflow-hidden rounded-[17px] border bg-gradient-to-b from-card via-background to-card shadow-lg"
+              className="overflow-hidden border-border/70 border-b last:border-b-0"
               key={index}
             >
               <button
-                className="flex w-full items-center gap-2 px-6 py-5 text-left"
+                aria-expanded={openIndex === index}
+                className="flex min-h-16 w-full touch-manipulation items-center gap-3 px-5 py-5 text-left outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-7"
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 type="button"
               >
                 <motion.div
                   animate={{ rotate: openIndex === index ? 45 : 0 }}
                   initial={false}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { type: "spring", stiffness: 300, damping: 30 }
+                  }
                 >
                   <Plus className="text-primary" size={20} />
                 </motion.div>
-                <span className="text-foreground text-lg">{faq.question}</span>
+                <span className="font-medium text-foreground text-lg">
+                  {faq.question}
+                </span>
               </button>
-              <AnimatePresence mode="sync">
+              <AnimatePresence initial={!reduceMotion} mode="sync">
                 {openIndex === index && (
                   <motion.div
                     animate="open"
-                    className="overflow-hidden px-6"
+                    className="overflow-hidden px-5 md:px-7"
                     exit="collapsed"
                     initial="collapsed"
                     key={`content-${index}`}
@@ -115,26 +126,34 @@ export function FAQ() {
                         height: "auto",
                         opacity: 1,
                         transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 40,
-                          mass: 1,
+                          ...(reduceMotion
+                            ? { duration: 0 }
+                            : {
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 40,
+                                mass: 1,
+                              }),
                         },
                       },
                       collapsed: {
                         height: 0,
                         opacity: 0,
                         transition: {
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 40,
-                          mass: 1,
+                          ...(reduceMotion
+                            ? { duration: 0 }
+                            : {
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 40,
+                                mass: 1,
+                              }),
                         },
                       },
                     }}
                   >
-                    <div className="pb-5">
-                      <p className="whitespace-pre-line text-muted-foreground">
+                    <div className="pb-6 pl-8">
+                      <p className="max-w-3xl whitespace-pre-line text-muted-foreground leading-7">
                         {faq.answer}
                       </p>
                     </div>

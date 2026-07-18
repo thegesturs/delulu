@@ -19,18 +19,21 @@ export async function BlogSection() {
   }
 
   return (
-    <section className="w-full border-t px-4 py-20 lg:py-28">
-      <div className="container mx-auto flex flex-col gap-14">
-        <div className="flex flex-col gap-4">
-          <h2 className="max-w-xl font-regular text-3xl tracking-tighter md:text-5xl">
-            Latest from the Blog
+    <section className="w-full border-t px-5 py-24 sm:px-8 lg:py-32">
+      <div className="mx-auto flex max-w-7xl flex-col gap-14">
+        <div className="flex max-w-3xl flex-col gap-5">
+          <p className="font-medium text-primary text-sm uppercase tracking-[0.18em]">
+            From the field
+          </p>
+          <h2 className="font-medium text-4xl tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+            Ideas for handing social to your agent.
           </h2>
-          <p className="max-w-2xl text-lg text-muted-foreground">
-            Tips, strategies, and insights for growing your social media
-            presence.
+          <p className="max-w-2xl text-lg text-muted-foreground leading-8">
+            Practical notes on agent workflows, reliable publishing, and
+            building a social system your team can trust.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {recentPosts.map((blog) => (
             <BlogCardVertical blog={blog} key={blog.slug} />
           ))}

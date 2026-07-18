@@ -38,14 +38,14 @@ export const generateMetadata = (): Metadata => {
 
 const Home = () => {
   return (
-    <main className="mx-auto max-w-7xl border-x">
+    <main>
       <Hero />
       <AgentSections />
       <Pricing />
+      <FAQ />
       <Suspense>
         <BlogSection />
       </Suspense>
-      <FAQ />
       <CTA />
     </main>
   );
