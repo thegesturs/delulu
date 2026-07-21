@@ -25,7 +25,7 @@ export const metadata: Metadata = createMetadata({
   title: "Delulu Social",
   description:
     "Social media management platform for creating and publishing content across multiple social networks",
-  image: "/images/logo.png",
+  image: "/images/logo.webp",
   alternates: {
     canonical: getWebOrigin(),
   },

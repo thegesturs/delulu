@@ -25,6 +25,9 @@ interface JsonLdProps {
   code: WithContext<Thing>;
 }
 
+const getSiteAssetUrl = (pageUrl: string, path: string): string =>
+  new URL(path, new URL(pageUrl).origin).toString();
+
 export const JsonLd = ({ code }: JsonLdProps) => (
   <script
     dangerouslySetInnerHTML={{ __html: JSON.stringify(code) }}
@@ -40,7 +43,7 @@ export const createOrganizationSchema = (
   "@type": "Organization",
   name: "Delulu Social",
   url,
-  logo: `${url}/images/logo.png`,
+  logo: getSiteAssetUrl(url, "/images/logo.webp"),
   description:
     "Social media management platform for creating and publishing content across multiple social networks",
   sameAs: [
@@ -127,7 +130,8 @@ export const createBlogPostingSchema = ({
   headline: title,
   description,
   url,
-  image: image || `${url}/api/og?title=${encodeURIComponent(title)}`,
+  image:
+    image || getSiteAssetUrl(url, `/api/og?title=${encodeURIComponent(title)}`),
   datePublished,
   dateModified: dateModified || datePublished,
   author: {
@@ -140,7 +144,7 @@ export const createBlogPostingSchema = ({
     name: "Delulu Social",
     logo: {
       "@type": "ImageObject",
-      url: `${url}/images/logo.png`,
+      url: getSiteAssetUrl(url, "/images/logo.webp"),
     },
   },
   mainEntityOfPage: {
@@ -178,8 +182,7 @@ export const createBlogSchema = ({
     name: "Delulu Social",
     logo: {
       "@type": "ImageObject",
-      // biome-ignore lint/performance/useTopLevelRegex: URL manipulation, regex used once
-      url: `${url.replace(/\/blogs.*/, "")}/images/logo.png`,
+      url: getSiteAssetUrl(url, "/images/logo.webp"),
     },
   },
   mainEntityOfPage: {
@@ -251,7 +254,7 @@ export const createArticleSchema = ({
     name: "Delulu Social",
     logo: {
       "@type": "ImageObject",
-      url: `${url}/images/logo.png`,
+      url: getSiteAssetUrl(url, "/images/logo.webp"),
     },
   },
   mainEntityOfPage: {
@@ -304,7 +307,8 @@ export const createHowToSchema = ({
   name: title,
   description,
   url,
-  image: image || `${url}/api/og?title=${encodeURIComponent(title)}`,
+  image:
+    image || getSiteAssetUrl(url, `/api/og?title=${encodeURIComponent(title)}`),
   step: steps.map((step, index) => ({
     "@type": "HowToStep",
     position: index + 1,

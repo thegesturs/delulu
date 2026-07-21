@@ -52,7 +52,7 @@ export function createExampleState(
     posts: 142,
     followers: 18_600,
     following: 614,
-    avatarUrl: "/images/logo.png",
+    avatarUrl: "/images/logo.webp",
     mediaUrls: ["/images/delulu/socials.png"],
   };
 }
