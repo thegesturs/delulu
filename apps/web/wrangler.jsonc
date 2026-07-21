@@ -45,6 +45,11 @@
   // Then paste the resulting ids below.
   "r2_buckets": [
     {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "delulu-articles",
+      "preview_bucket_name": "delulu-articles-dev"
+    },
+    {
       "binding": "DELULU_ARTICLES_BUCKET",
       "bucket_name": "delulu-articles",
       "preview_bucket_name": "delulu-articles-dev"
