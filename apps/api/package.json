@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "start:node": "tsx src/node.ts",
     "build:cloudflare": "node ../../scripts/run-cloudflare-production-migration.mjs",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
@@ -18,7 +19,8 @@
     "@delulu/payments": "workspace:*",
     "@delulu/services": "workspace:*",
     "@effect/sql-pg": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "tsx": "^4.20.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260713.1",

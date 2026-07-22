@@ -15,7 +15,7 @@ import {
   Edit01Icon,
   Loading03Icon,
   MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import {
   type Connection,
   type Edge,

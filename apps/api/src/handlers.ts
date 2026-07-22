@@ -3,6 +3,7 @@ import { CurrentAuth } from "@delulu/core";
 import {
   AnalyticsService,
   BillingService,
+  DeploymentConfig,
   IdentityService,
   MembershipService,
   MessagingService,
@@ -25,6 +26,22 @@ export const HealthHandlers = HttpApiBuilder.group(
         yield* sql`SELECT 1`.pipe(Effect.orDie);
         const checkedAt = yield* DateTime.now;
         return { status: "ok" as const, checkedAt };
+      })
+    );
+  })
+);
+
+export const InstanceHandlers = HttpApiBuilder.group(
+  Api,
+  "instance",
+  Effect.fnUntraced(function* (handlers) {
+    const deployment = yield* DeploymentConfig;
+    return handlers.handle("capabilities", () =>
+      Effect.succeed({
+        deploymentMode: deployment.mode,
+        billingEnabled: deployment.mode === "hosted",
+        registrationEnabled: deployment.registrationEnabled,
+        version: deployment.version,
       })
     );
   })

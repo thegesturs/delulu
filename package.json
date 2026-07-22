@@ -1,7 +1,7 @@
 {
   "name": "delulu-social",
   "version": "4.2.16",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-only",
   "bin": {
     "delulu-social": "dist/index.js"
   },
@@ -19,6 +19,16 @@
     "dev:app+api": "turbo dev --filter=app --filter=@delulu/http-api",
     "dev:web+api": "turbo dev --filter=web --filter=@delulu/http-api",
     "dev:mcp+api": "turbo dev --filter=@delulu/mcp --filter=@delulu/http-api",
+    "selfhost:compose": "docker compose --env-file deploy/self-host/.env -f deploy/self-host/compose.yaml",
+    "selfhost:config": "pnpm selfhost:compose config --quiet",
+    "selfhost:up": "pnpm selfhost:compose up -d --build --wait",
+    "selfhost:up:tls": "docker compose --env-file deploy/self-host/.env -f deploy/self-host/compose.yaml -f deploy/self-host/compose.proxy.yaml up -d --build --wait",
+    "selfhost:down": "pnpm selfhost:compose down",
+    "selfhost:ps": "pnpm selfhost:compose ps",
+    "selfhost:logs": "pnpm selfhost:compose logs --since=15m api publisher",
+    "icons:free": "node scripts/configure-icon-tier.mjs free",
+    "icons:pro": "node scripts/configure-icon-tier.mjs pro",
+    "icons:check": "node scripts/check-icon-boundary.mjs",
     "cli": "pnpm --filter=delulu-cli exec tsx src/index.ts",
     "mcp": "pnpm --filter=@delulu/mcp exec tsx src/index.ts",
     "typecheck": "turbo typecheck",

@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Cancel01Icon, Comment01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Cancel01Icon, Comment01Icon } from "@delulu/icons";
 import type { TriggerStep } from "../utils/flow-types";
 
 const TRIGGER_LABELS: Record<string, string> = {

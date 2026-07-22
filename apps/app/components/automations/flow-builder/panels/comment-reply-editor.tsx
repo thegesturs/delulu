@@ -5,7 +5,7 @@ import { Input } from "@delulu/design-system/components/ui/input";
 import { Label } from "@delulu/design-system/components/ui/label";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Add01Icon, Delete02Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, Delete02Icon } from "@delulu/icons";
 import type { CommentReply } from "../utils/flow-types";
 
 interface CommentReplyEditorProps {

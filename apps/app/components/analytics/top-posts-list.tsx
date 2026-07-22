@@ -13,7 +13,7 @@ import {
   Image01Icon,
   Time01Icon,
   ViewIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import type { InsightPost } from "./analytics-content";
 
 interface TopPostsListProps {

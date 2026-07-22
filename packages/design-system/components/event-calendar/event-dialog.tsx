@@ -41,10 +41,7 @@ import {
 } from "@delulu/design-system/components/ui/select";
 import { Textarea } from "@delulu/design-system/components/ui/textarea";
 import { cn } from "@delulu/design-system/lib/utils";
-import {
-  Calendar as CalendarHugeIcon,
-  Delete01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Calendar as CalendarHugeIcon, Delete01Icon } from "@delulu/icons";
 import { format, isBefore } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "../../providers/icon";

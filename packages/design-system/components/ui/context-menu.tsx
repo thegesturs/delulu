@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
 import { Icon } from "../../providers/icon"
-import { Tick, ChevronRight, Circle } from "@hugeicons-pro/core-solid-rounded"
+import { Tick, ChevronRight, Circle } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

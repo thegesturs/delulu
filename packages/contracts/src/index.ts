@@ -3,6 +3,7 @@ import { AnalyticsGroup } from "./analytics";
 import { AutomationsGroup } from "./automations";
 import { BillingGroup } from "./billing";
 import { HealthGroup } from "./health";
+import { InstanceGroup } from "./instance";
 import { MeGroup } from "./me";
 import { TranscriptionsGroup } from "./transcriptions";
 import {
@@ -19,6 +20,7 @@ export * from "./billing";
 export * from "./clerk-webhooks";
 export * from "./errors";
 export * from "./health";
+export * from "./instance";
 export * from "./me";
 export * from "./middleware";
 export * from "./transcriptions";
@@ -36,6 +38,7 @@ export * from "./workspace";
  */
 export const Api = HttpApi.make("deluluApi")
   .add(HealthGroup)
+  .add(InstanceGroup)
   .add(MeGroup)
   .add(PostsGroup)
   .add(ReviewsGroup)

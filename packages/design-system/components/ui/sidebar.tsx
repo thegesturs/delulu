@@ -4,7 +4,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { Icon } from "../../providers/icon"
-import { Menu } from "@hugeicons-pro/core-solid-rounded"
+import { Menu } from "@delulu/icons"
 
 import { useIsMobile } from "@delulu/design-system/hooks/use-mobile"
 import { cn } from "@delulu/design-system/lib/utils"

@@ -1,0 +1,97 @@
+---
+title: Self-hosting
+description: Install, operate, back up, and upgrade the supported Community deployment.
+---
+
+The Community deployment runs the authenticated app, typed Node API, PostgreSQL publisher, migrations, and database with Docker Compose. It does not require a subscription.
+
+The current release requires operator-owned Clerk and Cloudflare R2 projects. Generic OIDC and S3-compatible storage are planned portability work, not current capabilities.
+
+## Prerequisites
+
+- Docker Engine with Compose v2.
+- A Clerk application with its issuer, JWT public key, and secret key.
+- A Cloudflare R2 bucket with API credentials and a public or custom media URL.
+- OpenSSL to generate the stable P-256 key used for agent OAuth tokens.
+- OAuth applications for each social network you enable.
+- Two public HTTPS origins: one for the app and one for the API.
+
+Optional integrations remain inactive when their credentials are absent.
+
+## Install
+
+```bash
+cp deploy/self-host/.env.example deploy/self-host/.env
+# Fill every required value.
+export COMPOSE_FILE=deploy/self-host/compose.yaml
+export COMPOSE_ENV_FILES=deploy/self-host/.env
+docker compose config --quiet
+docker compose up -d --build --wait
+curl https://api.social.example.com/v1/instance
+```
+
+Run the commands from a source checkout. The two `COMPOSE_*` exports apply to
+the current shell and keep the remaining operator commands readable; they do
+not add a Node.js or package-manager dependency.
+
+Configure Clerk for `APP_BASE_URL` and configure every enabled social provider with its callback URL. Never reuse hosted-production credentials for a self-hosted instance.
+
+Generate `AS_SIGNING_KEY_BASE64` once using the command in the environment template, store it in a secrets manager, and include it in backups. Replacing it invalidates agent OAuth access and refresh tokens.
+
+`DELULU_DEPLOYMENT_MODE=self_hosted` enables Community entitlements and disables payment operations. `DELULU_PUBLISH_TRANSPORT=postgres` keeps scheduled publication inside the Compose deployment. Authorization, reviews, retries, operation identity, and safety limits remain active.
+
+`GET /v1/instance` is the authoritative capability response. Clients must use it instead of inferring behavior from environment variables.
+
+## TLS
+
+Set `APP_DOMAIN` and `API_DOMAIN`, then run:
+
+```bash
+export COMPOSE_FILE=deploy/self-host/compose.yaml:deploy/self-host/compose.proxy.yaml
+docker compose up -d --build --wait
+```
+
+## Architecture
+
+- `app`: authenticated Next.js interface.
+- `api`: typed Node API and leader-elected maintenance loop.
+- `publisher`: PostgreSQL-backed due-job leasing and publication.
+- `migrate`: one-shot schema migration before application services start.
+- `postgres`: authoritative state in a persistent volume.
+- `proxy`: optional automatic TLS termination with Caddy.
+
+## Backup and restore
+
+Create an encrypted logical database backup and preserve the environment file separately:
+
+```bash
+docker compose exec -T postgres pg_dump -U delulu -d delulu -Fc > delulu.dump
+```
+
+Restore into a stopped or fresh application database:
+
+```bash
+docker compose stop app api publisher
+docker compose exec -T postgres dropdb -U delulu --if-exists delulu
+docker compose exec -T postgres createdb -U delulu delulu
+docker compose exec -T postgres pg_restore -U delulu -d delulu --clean --if-exists < delulu.dump
+docker compose up -d --build --wait
+```
+
+R2 objects are not included in the database backup. Enable bucket versioning or maintain an independent object backup.
+
+## Upgrade
+
+1. Read the release notes and take a database backup.
+2. Check out the desired release tag or commit.
+3. Run `docker compose build --pull`.
+4. Run `docker compose up -d --wait`; migrations must finish before app services start.
+5. Verify `/v1/instance`, schedule a test post, and inspect `docker compose logs --since=15m api publisher`.
+
+Only roll application images back after checking migration compatibility. Restore the matching database backup when a migration is not backward-compatible.
+
+## Operations
+
+Use `docker compose ps` for health and `docker compose logs --since=15m api publisher` for runtime failures. Keep the agent OAuth signing key stable across upgrades and restores.
+
+Changing `ENCRYPTION_SECRET` without re-encrypting stored tokens makes existing connections unreadable. Rotate Clerk, R2, social-provider, and encryption credentials using each provider's procedure.

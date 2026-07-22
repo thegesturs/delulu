@@ -2,10 +2,7 @@
 
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  ArrowRight01Icon,
-  CreditCardIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { ArrowRight01Icon, CreditCardIcon } from "@delulu/icons";
 
 interface CheckoutButtonProps
   extends Omit<React.ComponentProps<"button">, "onClick" | "disabled"> {

@@ -122,6 +122,18 @@ export const ConflictErrorResponse = envelope(
   { resource: Schema.String }
 );
 
+/** Returned when a deployment intentionally has no payment subsystem. */
+export class BillingDisabled extends Schema.TaggedErrorClass<BillingDisabled>()(
+  "BillingDisabled",
+  { message: Schema.String }
+) {}
+export const BillingDisabledResponse = envelope(
+  BillingDisabled,
+  "BillingDisabled",
+  409,
+  {}
+);
+
 // --- 422 ---------------------------------------------------------------------
 export const ValidationIssue = Schema.Struct({
   path: Schema.String,

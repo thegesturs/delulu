@@ -15,10 +15,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  AlertCircleIcon,
-  Loading03Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { AlertCircleIcon, Loading03Icon } from "@delulu/icons";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer } from "react";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";

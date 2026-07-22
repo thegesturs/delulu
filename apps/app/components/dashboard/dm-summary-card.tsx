@@ -2,7 +2,7 @@
 
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { MailSend01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { MailSend01Icon } from "@delulu/icons";
 import Link from "next/link";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";

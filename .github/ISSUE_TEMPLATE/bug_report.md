@@ -10,8 +10,9 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**next-forge version**
-I am using version ...
+**Delulu version and deployment**
+Commit or release: ...
+Deployment mode: hosted / self-hosted
 
 **To Reproduce**
 Steps to reproduce the behavior:
@@ -23,9 +24,9 @@ Steps to reproduce the behavior:
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Logs or screenshots**
+Remove credentials, tokens, private post content, and customer data first.
 
 **Desktop (please complete the following information):**
- - OS: [e.g. MacOS]
- - Browser [e.g. chrome v130, safari]
+ - OS: [e.g. macOS, Linux]
+ - Browser or agent runtime: ...

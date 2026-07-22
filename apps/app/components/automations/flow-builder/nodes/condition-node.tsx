@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@delulu/design-system/providers/icon";
-import { FilterIcon } from "@hugeicons-pro/core-solid-rounded";
+import { FilterIcon } from "@delulu/icons";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import type { ConditionStep } from "../utils/flow-types";
 

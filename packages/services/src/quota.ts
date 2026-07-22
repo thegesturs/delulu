@@ -7,6 +7,7 @@ import {
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
 import { AuthConfig } from "./config";
+import { EntitlementPolicy } from "./entitlements";
 
 /** The five hard-capped resources (#159), pooled per `billing_owner_user_id`. */
 export type QuotaResource =
@@ -61,6 +62,7 @@ export class QuotaGuard extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const config = yield* AuthConfig;
+      const entitlements = yield* EntitlementPolicy;
 
       const findSubscription = SqlSchema.findOneOption({
         Request: Schema.String,
@@ -90,6 +92,9 @@ export class QuotaGuard extends Context.Service<
 
       const ensure = (check: QuotaCheck) =>
         Effect.gen(function* () {
+          if (yield* entitlements.isCommunity) {
+            return;
+          }
           const subscription = yield* findSubscription(
             check.billingOwnerUserId
           ).pipe(Effect.map(Option.getOrNull), Effect.orDie);
@@ -136,6 +141,9 @@ export class QuotaGuard extends Context.Service<
         readonly delta: number;
       }) =>
         Effect.gen(function* () {
+          if (yield* entitlements.isCommunity) {
+            return;
+          }
           const rows = yield* sql<{
             plan: string;
             current: string;

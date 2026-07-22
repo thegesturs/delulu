@@ -194,10 +194,11 @@ program.hook("preAction", (_root, actionCommand) => {
 program.action(() =>
   run(async ({ client, workspaceId }) => {
     const id = await workspaceId();
-    const overview = await runEffect(
-      client.me.overview({ params: { workspaceId: id } })
-    );
-    return presentOverview(overview);
+    const [overview, instance] = await Promise.all([
+      runEffect(client.me.overview({ params: { workspaceId: id } })),
+      runEffect(client.instance.capabilities()),
+    ]);
+    return presentOverview(overview, instance);
   })
 );
 

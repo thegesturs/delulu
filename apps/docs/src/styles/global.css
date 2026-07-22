@@ -113,6 +113,10 @@ button {
   height: 1rem;
 }
 
+.docs-path-card > div {
+  min-width: 0;
+}
+
 :is(#nd-sidebar, #nd-sidebar-mobile) {
   background: var(--sidebar);
 }
@@ -359,10 +363,6 @@ button {
   padding: 0.875rem;
   background: var(--card);
   box-shadow: var(--docs-surface-shadow);
-}
-
-.docs-path-card > div {
-  min-width: 0;
 }
 
 .docs-path-card h3 {

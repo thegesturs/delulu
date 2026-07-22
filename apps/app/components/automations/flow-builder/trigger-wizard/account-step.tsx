@@ -2,7 +2,7 @@
 
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { InstagramIcon } from "@hugeicons-pro/core-solid-rounded";
+import { InstagramIcon } from "@delulu/icons";
 
 interface SocialProvider {
   _id: string;

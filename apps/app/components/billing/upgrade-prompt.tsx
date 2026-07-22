@@ -9,12 +9,8 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { ArrowRight01Icon, LockIcon, SparklesIcon } from "@delulu/icons";
 import { CURRENCY_SYMBOLS, PLANS, type PlanType } from "@delulu/payments";
-import {
-  ArrowRight01Icon,
-  LockIcon,
-  SparklesIcon,
-} from "@hugeicons-pro/core-solid-rounded";
 import { useCurrency } from "@/hooks/use-currency";
 
 interface UpgradePromptProps {

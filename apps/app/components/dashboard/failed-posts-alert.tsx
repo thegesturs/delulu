@@ -3,11 +3,7 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Alert01Icon,
-  PencilEdit02Icon,
-  RefreshIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Alert01Icon, PencilEdit02Icon, RefreshIcon } from "@delulu/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

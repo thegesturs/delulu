@@ -2,12 +2,12 @@
   "title": "Delulu",
   "pages": [
     "index",
+    "self-hosting",
     "getting-started",
     "guides",
     "cli",
     "mcp",
     "api-reference",
-    "concepts",
-    "development"
+    "concepts"
   ]
 }

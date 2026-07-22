@@ -1,0 +1,7 @@
+{$APP_DOMAIN} {
+  reverse_proxy app:3000
+}
+
+{$API_DOMAIN} {
+  reverse_proxy api:8787
+}

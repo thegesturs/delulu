@@ -18,7 +18,7 @@ import {
   Delete01Icon,
   Edit01Icon,
   MoreHorizontalIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import Link from "next/link";
 import { useState } from "react";
 import DeleteAlertDialog from "../alerts/delete-post";

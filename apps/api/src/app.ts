@@ -18,6 +18,8 @@ import type {
   ClerkTokenVerifier,
   ConnectionStateService,
   ConnectionsService,
+  DeploymentConfig,
+  EntitlementPolicy,
   IdentityService,
   JobService,
   LifecycleService,
@@ -53,7 +55,7 @@ import {
   PostsHandlers,
   ReviewsHandlers,
 } from "./domain-handlers";
-import { HealthHandlers, MeHandlers } from "./handlers";
+import { HealthHandlers, InstanceHandlers, MeHandlers } from "./handlers";
 import { OAuthRoutes } from "./oauth-routes";
 import { TranscriptionHandlers } from "./transcription-handlers";
 import { WebhookRoutes } from "./webhook-routes";
@@ -61,6 +63,8 @@ import { WebhookRoutes } from "./webhook-routes";
 /** Everything the assembled routes need a per-request environment to provide. */
 export type AppServices =
   | SqlClient.SqlClient
+  | DeploymentConfig
+  | EntitlementPolicy
   | AuthConfig
   | ClerkTokenVerifier
   | AsTokenService
@@ -117,6 +121,7 @@ export const buildWebHandler = (
   }).pipe(
     Layer.provide([
       HealthHandlers,
+      InstanceHandlers,
       MeHandlers,
       PostsHandlers,
       ReviewsHandlers,

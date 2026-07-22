@@ -15,15 +15,12 @@ import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import { socialBackgroundColors } from "@delulu/design-system/lib/social-config";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { Settings01Icon, UserGroupIcon } from "@delulu/icons";
 import {
   DEFAULT_INSTAGRAM_SETTINGS,
   DEFAULT_TIKTOK_SETTINGS,
 } from "@delulu/validators/constants/settings";
 import type { SocialType } from "@delulu/validators/post";
-import {
-  Settings01Icon,
-  UserGroupIcon,
-} from "@hugeicons-pro/core-solid-rounded";
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";

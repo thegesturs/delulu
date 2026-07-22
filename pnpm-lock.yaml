@@ -117,6 +117,9 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.0-beta.97
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20260713.1
@@ -157,6 +160,9 @@ importers:
       '@delulu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
@@ -181,9 +187,6 @@ importers:
       '@effect/platform-browser':
         specifier: 'catalog:'
         version: 4.0.0-beta.97(effect@4.0.0-beta.97)
-      '@hugeicons-pro/core-solid-rounded':
-        specifier: ^3.1.0
-        version: 3.1.0
       '@opennextjs/cloudflare':
         specifier: 1.6.0
         version: 1.6.0(wrangler@4.22.0(@cloudflare/workers-types@4.20250710.0)(bufferutil@4.0.9)(utf-8-validate@5.0.10))
@@ -640,6 +643,9 @@ importers:
       '@delulu/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/next-config':
         specifier: workspace:*
         version: link:../../packages/next-config
@@ -655,9 +661,6 @@ importers:
       '@delulu/seo':
         specifier: workspace:*
         version: link:../../packages/seo
-      '@hugeicons-pro/core-solid-rounded':
-        specifier: ^3.1.0
-        version: 3.1.0
       '@hugeicons/react':
         specifier: ^1.1.4
         version: 1.1.4(react@19.2.7)
@@ -1125,6 +1128,9 @@ importers:
       '@delulu/analytics':
         specifier: workspace:*
         version: link:../analytics
+      '@delulu/icons':
+        specifier: npm:@hugeicons/core-free-icons@^3.1.1
+        version: '@hugeicons/core-free-icons@3.1.1'
       '@delulu/observability':
         specifier: workspace:*
         version: link:../observability
@@ -1140,15 +1146,6 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.1.1(react-hook-form@7.59.0(react@19.2.7))
-      '@hugeicons-pro/core-bulk-rounded':
-        specifier: ^3.1.0
-        version: 3.1.0
-      '@hugeicons-pro/core-solid-rounded':
-        specifier: ^3.1.0
-        version: 3.1.0
-      '@hugeicons/core-free-icons':
-        specifier: ^3.1.1
-        version: 3.1.1
       '@hugeicons/react':
         specifier: ^1.1.4
         version: 1.1.4(react@19.2.7)
@@ -1733,6 +1730,9 @@ importers:
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -4877,12 +4877,6 @@ packages:
     resolution: {integrity: sha512-J/NVING3LMAEvexJkyTLjruSm7aOFx7QX21pzkiJfMoNG0wl5aFEjLTl7ay7IQb9EWY6AkrBy7tHL2Alijpdcg==}
     peerDependencies:
       react-hook-form: ^7.55.0
-
-  '@hugeicons-pro/core-bulk-rounded@3.1.0':
-    resolution: {integrity: sha512-/sZcyzr4AibnQ2gq1/0iYj3oOk2a7CMBMM9IUCQH+Mr29jAGUKWoHK835htFYTreZ9JqQx4CrWwnkhjMFpsWhA==}
-
-  '@hugeicons-pro/core-solid-rounded@3.1.0':
-    resolution: {integrity: sha512-OtHo3NEsn3LAWDYlBtaW8wtWhbFaAVOpXSpNmtfSX2Ru+zJVyHS5L3KTXBmJ+fQJ6wMX9EQLgOpBtR08yKJtRw==}
 
   '@hugeicons/core-free-icons@3.1.1':
     resolution: {integrity: sha512-UpS2lUQFi5sKyJSWwM6rO+BnPLvVz1gsyCpPHeZyVuZqi89YH8ksliza4cwaODqKOZyeXmG8juo1ty4QtQofkg==}
@@ -22894,10 +22888,6 @@ snapshots:
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.59.0(react@19.2.7)
-
-  '@hugeicons-pro/core-bulk-rounded@3.1.0': {}
-
-  '@hugeicons-pro/core-solid-rounded@3.1.0': {}
 
   '@hugeicons/core-free-icons@3.1.1': {}
 

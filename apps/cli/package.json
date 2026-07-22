@@ -2,7 +2,7 @@
   "name": "delulu-cli",
   "version": "0.2.0",
   "description": "Command-line interface for Delulu Social.",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "bin": {
     "delulu": "dist/index.js"

@@ -20,7 +20,7 @@ import {
   Loading03Icon,
   TaskDone01Icon,
   TickDouble01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useEffect, useMemo, useState } from "react";

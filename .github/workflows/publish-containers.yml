@@ -1,0 +1,91 @@
+name: Publish containers
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - deploy/self-host/**
+      - apps/**
+      - packages/**
+      - .github/workflows/publish-containers.yml
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_ENV_FILES: deploy/self-host/.env
+      COMPOSE_FILE: deploy/self-host/compose.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp deploy/self-host/.env.example deploy/self-host/.env
+      - run: docker compose config --quiet
+
+  image:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [app, api, publisher, migrate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.target }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/self-host/Dockerfile
+          target: ${{ matrix.target }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE_ENV_FILES: deploy/self-host/.env
+      COMPOSE_FILE: deploy/self-host/compose.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp deploy/self-host/.env.example deploy/self-host/.env
+      - name: Generate smoke-test OAuth signing key
+        run: |
+          KEY=$(openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 | openssl pkcs8 -topk8 -nocrypt | openssl base64 -A)
+          sed -i "s|^AS_SIGNING_KEY_BASE64=.*|AS_SIGNING_KEY_BASE64=$KEY|" deploy/self-host/.env
+      - run: docker compose build app api publisher migrate
+      - run: docker compose up -d postgres
+      - run: docker compose run --rm migrate
+      - run: docker compose up -d api publisher app
+      - run: |
+          for attempt in $(seq 1 30); do
+            curl --fail http://localhost:8787/v1/instance && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - run: docker compose restart postgres
+      - run: docker compose exec -T postgres pg_isready -U delulu -d delulu
+      - run: docker compose exec -T postgres pg_dump -U delulu -d delulu -Fc > /tmp/delulu.dump
+      - run: docker compose exec -T postgres pg_restore --list < /tmp/delulu.dump
+      - if: always()
+        run: docker compose down --volumes

@@ -4,7 +4,7 @@ import {
   Calendar01Icon,
   NeuralNetworkIcon,
   Sent02Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 

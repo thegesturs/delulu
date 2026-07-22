@@ -4,7 +4,7 @@ import * as React from "react"
 import { setHours, setMinutes, getHours, getMinutes } from "date-fns"
 import { formatInTimeZone } from 'date-fns-tz'
 import { Icon } from "../../providers/icon"
-import { Calendar as CalendarHugeIcon } from "@hugeicons-pro/core-solid-rounded"
+import { Calendar as CalendarHugeIcon } from "@delulu/icons"
 import * as chrono from "chrono-node"
 import { motion, AnimatePresence } from "motion/react"
 

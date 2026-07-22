@@ -3,12 +3,6 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
-  CURRENCY_SYMBOLS,
-  type CurrencyCode,
-  LIFETIME_DEAL_ACTIVE,
-  LIFETIME_PRICE,
-} from "@delulu/payments";
-import {
   ArrowDown01Icon,
   BubbleChatIcon,
   Cancel01Icon,
@@ -18,7 +12,13 @@ import {
   SparklesIcon,
   Tick02Icon,
   UserMultipleIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
+import {
+  CURRENCY_SYMBOLS,
+  type CurrencyCode,
+  LIFETIME_DEAL_ACTIVE,
+  LIFETIME_PRICE,
+} from "@delulu/payments";
 import { AnimatePresence, motion, useInView } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";

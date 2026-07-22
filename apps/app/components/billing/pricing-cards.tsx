@@ -18,6 +18,7 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Switch } from "@delulu/design-system/components/ui/switch";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { Tick01Icon } from "@delulu/icons";
 import {
   CURRENCY_SYMBOLS,
   getMaxYearlySavingsPercent,
@@ -25,7 +26,6 @@ import {
   PLANS,
   type PublicPlanType,
 } from "@delulu/payments";
-import { Tick01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";

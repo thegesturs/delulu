@@ -209,6 +209,17 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.status).toBe("ok");
   });
 
+  it("GET /v1/instance reports public hosted capabilities without auth", async () => {
+    const res = await get("/v1/instance");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      deploymentMode: "hosted",
+      billingEnabled: true,
+      registrationEnabled: true,
+      version: "development",
+    });
+  });
+
   it("verifies webhook challenges and rejects invalid signatures", async () => {
     const challenge = await get(
       "/webhooks/meta?hub.mode=subscribe&hub.verify_token=e2e-meta-verify&hub.challenge=verified"

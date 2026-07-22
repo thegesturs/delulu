@@ -5,8 +5,6 @@ import { useAnalytics } from "@delulu/analytics/posthog/client";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import type { MediaType, SocialType } from "@delulu/validators/post";
-import { SocialTypes } from "@delulu/validators/post";
 import {
   Add01Icon,
   Cancel01Icon,
@@ -14,7 +12,9 @@ import {
   FolderLibraryIcon,
   Image01Icon,
   VideoIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
+import type { MediaType, SocialType } from "@delulu/validators/post";
+import { SocialTypes } from "@delulu/validators/post";
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";

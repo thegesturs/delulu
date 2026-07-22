@@ -10,7 +10,7 @@ import {
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
 
-import { Loader } from "@hugeicons-pro/core-solid-rounded";
+import { Loader } from "@delulu/icons";
 
 export default function DeleteAlertDialog({
   open,

@@ -234,7 +234,15 @@ export const presentWorkspaces = (
   };
 };
 
-export const presentOverview = (overview: OverviewLike): CliResult => {
+export const presentOverview = (
+  overview: OverviewLike,
+  instance?: {
+    deploymentMode: "hosted" | "self_hosted";
+    billingEnabled: boolean;
+    registrationEnabled: boolean;
+    version: string;
+  }
+): CliResult => {
   const counts = overview.publishing ?? {};
   const setup = overview.setup ?? {};
   const nextAction =
@@ -274,6 +282,7 @@ export const presentOverview = (overview: OverviewLike): CliResult => {
       publishing: counts.publishing ?? 0,
       failed: (counts.failed ?? 0) + (counts.partiallyFailed ?? 0),
       pendingReviews: overview.reviews?.pending ?? 0,
+      ...(instance ? { instance } : {}),
     },
     next: [nextAction],
   };

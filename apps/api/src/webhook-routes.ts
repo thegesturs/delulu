@@ -1,6 +1,7 @@
 import {
   CalendarWebhookConfig,
   CancellationService,
+  EntitlementPolicy,
   SignedIngress,
   type StandardHeaders,
   verifyCalendarWebhook,
@@ -62,6 +63,7 @@ export const WebhookRoutes = HttpRouter.use(
     const ingress = yield* WebhookIngressService;
     const calendar = yield* CalendarWebhookConfig;
     const cancellations = yield* CancellationService;
+    const entitlements = yield* EntitlementPolicy;
 
     yield* router.add(
       "GET",
@@ -220,6 +222,17 @@ export const WebhookRoutes = HttpRouter.use(
       "POST",
       "/webhooks/dodo",
       Effect.fn("WebhookRoutes.receiveDodo")(function* (request) {
+        if (yield* entitlements.isCommunity) {
+          return HttpServerResponse.jsonUnsafe(
+            {
+              error: {
+                code: "BillingDisabled",
+                message: "Billing is disabled on this self-hosted instance",
+              },
+            },
+            { status: 409 }
+          );
+        }
         return yield* request.text.pipe(
           Effect.flatMap((rawBody) => {
             const headers = standardHeaders(request, "webhook");

@@ -142,6 +142,7 @@ web_modules/
 # dotenv environment variable files
 .env*
 !/.env.example
+!deploy/self-host/.env.example
 .dev.vars
 *.dev.vars
 *.vars
@@ -298,4 +299,5 @@ packages/database/generated
 # Claude Code worktrees
 .claude/worktrees/
 .gstack/
+.grok/
 .seo-cache/

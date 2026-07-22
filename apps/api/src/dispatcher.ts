@@ -1,5 +1,11 @@
 import { MediaId } from "@delulu/core";
-import { ClerkAdminService, JobService, R2Service } from "@delulu/services";
+import {
+  ClerkAdminService,
+  DeploymentConfig,
+  EntitlementPolicy,
+  JobService,
+  R2Service,
+} from "@delulu/services";
 import { Effect, type Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import type { AppServices } from "./app";
@@ -11,12 +17,16 @@ const dispatchProgram = (env: Env) =>
     const r2 = yield* R2Service;
     const sql = yield* SqlClient.SqlClient;
     const clerk = yield* ClerkAdminService;
+    const deployment = yield* DeploymentConfig;
+    const entitlements = yield* EntitlementPolicy;
     const claimed = yield* jobs.claimDue({ limit: 50, leaseSeconds: 120 });
     for (const job of claimed) {
       const result = yield* Effect.gen(function* () {
         switch (job.payload._tag) {
           case "PublishTarget": {
-            const subscriptions = yield* sql<{ active: boolean }>`SELECT EXISTS(
+            const subscriptions = (yield* entitlements.isCommunity)
+              ? [{ active: true }]
+              : yield* sql<{ active: boolean }>`SELECT EXISTS(
               SELECT 1 FROM subscriptions s JOIN workspaces w
                 ON w.billing_owner_user_id = s.billing_owner_user_id
               WHERE w.id = ${job.workspaceId} AND s.status IN ('active','trialing')
@@ -28,6 +38,10 @@ const dispatchProgram = (env: Env) =>
               return yield* Effect.fail(
                 new Error("Subscription is not active")
               );
+            }
+            if (deployment.publishTransport === "postgres") {
+              yield* jobs.markDispatched(job.id);
+              return;
             }
             if (!(env.SQS_INGRESS_URL && env.SQS_INGRESS_SECRET)) {
               return yield* Effect.fail(

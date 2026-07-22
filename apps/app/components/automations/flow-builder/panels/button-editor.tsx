@@ -17,7 +17,7 @@ import {
   Delete02Icon,
   Link01Icon,
   MessageMultiple01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import { nanoid } from "nanoid";
 import type { DmButton } from "../utils/flow-types";
 import { isValidUrl } from "../utils/flow-validation";

@@ -26,7 +26,7 @@ import {
   Key01Icon,
   Loading03Icon,
   Tick01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import React from "react";
 import { toast } from "sonner";
 import { DottedColumns } from "@/components/layout/dotted-columns";

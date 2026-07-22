@@ -3,7 +3,7 @@
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Card, CardContent } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { Add01Icon, Upload01Icon } from "@hugeicons-pro/core-solid-rounded";
+import { Add01Icon, Upload01Icon } from "@delulu/icons";
 import { useRouter } from "next/navigation";
 
 export function QuickActions() {

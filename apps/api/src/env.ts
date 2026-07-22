@@ -25,6 +25,11 @@ export interface Hyperdrive {
 export interface Env {
   readonly DATABASE_URL?: string;
   readonly HYPERDRIVE?: Hyperdrive;
+  readonly DELULU_DEPLOYMENT_MODE?: "hosted" | "self_hosted";
+  readonly DELULU_PUBLISH_TRANSPORT?: "sqs" | "postgres";
+  readonly DELULU_REGISTRATION_ENABLED?: string;
+  readonly DELULU_VERSION?: string;
+  readonly DELULU_COMMUNITY_API_RATE_PER_MINUTE?: string;
 
   readonly CLERK_ISSUER?: string;
   readonly CLERK_JWT_KEY?: string;
@@ -32,6 +37,7 @@ export interface Env {
   readonly API_RESOURCE?: string;
   readonly APP_BASE_URL?: string;
   readonly AS_SIGNING_KEY?: string;
+  readonly AS_SIGNING_KEY_BASE64?: string;
   readonly AS_SIGNING_KID?: string;
   readonly CLERK_SECRET_KEY?: string;
   readonly CONNECTION_STATE_SECRET?: string;
@@ -105,7 +111,15 @@ export const authConfigLayer = (env: Env): Layer.Layer<AuthConfig> =>
       asIssuer: env.AS_ISSUER ?? "http://localhost:8787",
       apiResource: env.API_RESOURCE ?? env.AS_ISSUER ?? "http://localhost:8787",
       appBaseUrl: env.APP_BASE_URL ?? "http://localhost:3000",
-      asSigningKeyPem: env.AS_SIGNING_KEY,
+      asSigningKeyPem:
+        env.AS_SIGNING_KEY ??
+        (env.AS_SIGNING_KEY_BASE64
+          ? new TextDecoder().decode(
+              Uint8Array.from(atob(env.AS_SIGNING_KEY_BASE64), (character) =>
+                character.charCodeAt(0)
+              )
+            )
+          : undefined),
       asSigningKid: env.AS_SIGNING_KID,
     })
   );

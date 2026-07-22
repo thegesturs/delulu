@@ -4,11 +4,7 @@ import { Button } from "@delulu/design-system/components/ui/button";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
-import {
-  Add,
-  ArrowRight01Icon,
-  MailSend01Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+import { Add, ArrowRight01Icon, MailSend01Icon } from "@delulu/icons";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { DashboardChart } from "@/components/dashboard/dashboard-chart";

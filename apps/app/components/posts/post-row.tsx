@@ -2,7 +2,7 @@
 
 import { SocialAvatarStack } from "@delulu/design-system/components/ui/social-avatar-stack";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { DocumentAttachmentIcon } from "@hugeicons-pro/core-solid-rounded";
+import { DocumentAttachmentIcon } from "@delulu/icons";
 import type { ConnectionView, PostView } from "@/types/workspace-views";
 import { PostActionsMenu } from "./post-actions-menu";
 import {

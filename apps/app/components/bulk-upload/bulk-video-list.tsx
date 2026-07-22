@@ -10,7 +10,7 @@ import {
   Cancel01Icon,
   CheckmarkCircle02Icon,
   Loading03Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
 import type { BulkVideo } from "./bulk-upload-reducer";

@@ -17,8 +17,8 @@ import {
 } from "@delulu/design-system/components/ui/alert";
 import { Card } from "@delulu/design-system/components/ui/card";
 import { Icon } from "@delulu/design-system/providers/icon";
+import { TickDouble01Icon } from "@delulu/icons";
 import { getProductIds } from "@delulu/payments/product-ids";
-import { TickDouble01Icon } from "@hugeicons-pro/core-solid-rounded";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -31,7 +31,11 @@ import { DottedColumns } from "@/components/layout/dotted-columns";
 import { PageSection, PageShell } from "@/components/layout/page-shell";
 import { useCurrency } from "@/hooks/use-currency";
 
-export default function BillingClient() {
+export default function BillingClient({
+  community = false,
+}: {
+  community?: boolean;
+}) {
   const currency = useCurrency();
   const productIds = getProductIds(currency);
   const searchParams = useSearchParams();
@@ -56,6 +60,29 @@ export default function BillingClient() {
       });
     }
   }, [status, cancelled]);
+
+  if (community) {
+    return (
+      <PageShell
+        description="This instance is self-hosted. Core product features are unlocked without a payment account."
+        page="Instance"
+        pages={["Settings"]}
+        title="Community instance"
+      >
+        <Card className="space-y-3 p-6">
+          <h2 className="font-semibold text-lg">Billing is disabled</h2>
+          <p className="max-w-2xl text-muted-foreground text-sm">
+            Your operator owns this deployment and its data. Usage is limited
+            only by configured safety controls, infrastructure, and external
+            social-provider costs.
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Plan: Community · Deployment: self-hosted
+          </p>
+        </Card>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

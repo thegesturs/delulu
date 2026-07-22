@@ -29,7 +29,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import {
   addDays,
   addHours,

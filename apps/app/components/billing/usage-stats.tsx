@@ -17,14 +17,14 @@ import {
 } from "@delulu/design-system/components/ui/card";
 import { Progress } from "@delulu/design-system/components/ui/progress";
 import { Icon } from "@delulu/design-system/providers/icon";
-import { PLANS } from "@delulu/payments";
 import {
   AlertCircleIcon,
   BarChartIcon,
   FlashIcon,
   Image01Icon,
   UserMultipleIcon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
+import { PLANS } from "@delulu/payments";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";

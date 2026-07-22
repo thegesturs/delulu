@@ -1,5 +1,0 @@
-{
-  "title": "Development",
-  "description": "Run the platform and maintain its documentation.",
-  "pages": ["local-setup", "docs-site"]
-}

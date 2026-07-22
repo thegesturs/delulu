@@ -3,7 +3,7 @@
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { Icon } from "../../providers/icon"
-import { Cancel } from "@hugeicons-pro/core-solid-rounded"
+import { Cancel } from "@delulu/icons"
 
 import { cn } from "@delulu/design-system/lib/utils"
 

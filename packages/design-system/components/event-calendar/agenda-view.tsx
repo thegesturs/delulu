@@ -6,7 +6,7 @@ import {
   EventItem,
   getAgendaEventsForDay,
 } from "@delulu/design-system/components/event-calendar";
-import { Calendar as CalendarHugeIcon } from "@hugeicons-pro/core-solid-rounded";
+import { Calendar as CalendarHugeIcon } from "@delulu/icons";
 import { addDays, format, isToday } from "date-fns";
 import { useMemo } from "react";
 import { Icon } from "../../providers/icon";

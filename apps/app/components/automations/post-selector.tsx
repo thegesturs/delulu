@@ -12,7 +12,7 @@ import {
   GridIcon,
   Image02Icon,
   Video02Icon,
-} from "@hugeicons-pro/core-solid-rounded";
+} from "@delulu/icons";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useResourceAtom } from "@/state/resources";
