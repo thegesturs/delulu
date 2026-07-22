@@ -238,7 +238,7 @@ export function useFfmpeg() {
       });
       setProgress(-1);
 
-      const bytes = data as Uint8Array;
+      const bytes = Uint8Array.from(data as Uint8Array);
       return new Blob([bytes], { type: "video/mp4" });
     },
     [load]
