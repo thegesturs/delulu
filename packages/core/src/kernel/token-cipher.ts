@@ -25,12 +25,15 @@ const encodeBase64 = (bytes: Uint8Array): string => {
   return btoa(binary);
 };
 
-const decodeBase64 = (value: string): Uint8Array => {
+const decodeBase64 = (value: string): Uint8Array<ArrayBuffer> => {
   const binary = atob(value);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 };
 
-const deriveKey = (secret: string, salt: Uint8Array): Promise<CryptoKey> =>
+const deriveKey = (
+  secret: string,
+  salt: Uint8Array<ArrayBuffer>
+): Promise<CryptoKey> =>
   crypto.subtle
     .importKey("raw", new TextEncoder().encode(secret), "PBKDF2", false, [
       "deriveKey",
