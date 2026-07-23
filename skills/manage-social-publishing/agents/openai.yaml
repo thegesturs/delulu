@@ -1,4 +1,4 @@
 interface:
   display_name: "Manage Social Publishing"
-  short_description: "Set up and manage social publishing."
-  default_prompt: "Set up my social publishing account, connect the requested channels, and help prepare or publish posts."
+  short_description: "Safely manage social publishing end to end."
+  default_prompt: "Use $manage-social-publishing to set up my workspace and safely draft, schedule, publish, or inspect social posts."
