@@ -16,6 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.840.0",
     "@clerk/backend": "^1.25.0",
+    "@delulu/core": "workspace:*",
     "@delulu/services": "workspace:*",
     "@effect/sql-pg": "catalog:",
     "@delulu/typescript-config": "workspace:*",

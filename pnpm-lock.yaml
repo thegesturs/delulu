@@ -1379,6 +1379,9 @@ importers:
       '@clerk/backend':
         specifier: ^1.25.0
         version: 1.34.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(svix@1.68.0)
+      '@delulu/core':
+        specifier: workspace:*
+        version: link:../core
       '@delulu/services':
         specifier: workspace:*
         version: link:../services
