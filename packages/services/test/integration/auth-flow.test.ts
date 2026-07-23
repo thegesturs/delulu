@@ -17,6 +17,7 @@ import {
   Option,
   Redacted,
 } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const ISSUER = "https://api.delulu.test";
@@ -99,6 +100,30 @@ describe("IdentityService JIT provisioning", () => {
     expect(first.user.id).toBe(second.user.id);
     expect(first.personalWorkspace?.id).toBe(second.personalWorkspace?.id);
     expect(first.personalWorkspace?.isPersonal).toBe(true);
+  });
+
+  it("repairs missing personal workspace ownership", async () => {
+    const sub = `clerk_${crypto.randomUUID()}`;
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const membership = yield* MembershipService;
+      const sql = yield* SqlClient.SqlClient;
+      const first = yield* identity.resolve({ sub });
+      const workspaceId = first.personalWorkspace?.id ?? "";
+
+      yield* sql`DELETE FROM workspace_members WHERE workspace_id = ${workspaceId} AND user_id = ${first.user.id}`;
+
+      yield* identity.ensurePersonalWorkspaceOwnership(first.user.id);
+      return yield* membership.resolve({
+        workspaceId,
+        userId: first.user.id,
+      });
+    });
+    const repaired = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+
+    expect(Option.getOrNull(repaired)?.role).toBe("owner");
   });
 });
 

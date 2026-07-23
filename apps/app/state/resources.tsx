@@ -6,6 +6,7 @@ import type {
   ResourceKey,
 } from "@delulu/client";
 import { type ApiClient, ApiClientService } from "@delulu/client";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   RegistryContext,
   scheduleTask,
@@ -242,10 +243,23 @@ class ResourceErrorBoundary extends Component<
 export function ResourceBoundary({
   children,
   fallback = null,
-  renderError = (_error, retry) => (
-    <button onClick={retry} type="button">
-      Try again
-    </button>
+  renderError = (error, retry) => (
+    <div
+      className="m-6 flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-6 py-10 text-center"
+      role="alert"
+    >
+      <div>
+        <p className="font-medium">Unable to load data</p>
+        <p className="mt-1 max-w-md text-muted-foreground text-sm">
+          {error instanceof Error && error.message
+            ? error.message
+            : "An unexpected error occurred while loading this page."}
+        </p>
+      </div>
+      <Button onClick={retry} variant="outline">
+        Retry
+      </Button>
+    </div>
   ),
 }: {
   readonly children: ReactNode;

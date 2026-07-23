@@ -46,6 +46,11 @@ export function WorkspaceProvider({
   const selected = useAtomValue(selectedWorkspaceAtom);
   const [selectionHydrated, setSelectionHydrated] = useState(false);
   const workspaces = memberships.data?.data ?? [];
+  const workspaceId =
+    selected &&
+    workspaces.some((workspace) => workspace.workspaceId === selected)
+      ? selected
+      : null;
 
   useEffect(() => {
     const persisted = localStorage.getItem(STORAGE_KEY);
@@ -71,9 +76,11 @@ export function WorkspaceProvider({
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
-      workspaceId: selected,
+      workspaceId,
       workspaces,
-      isLoading: memberships.isPending,
+      isLoading:
+        memberships.isPending ||
+        (workspaces.length > 0 && workspaceId === null),
       isError: memberships.isError,
       error: memberships.error,
       refetch: memberships.refetch,
@@ -90,7 +97,7 @@ export function WorkspaceProvider({
       memberships.isError,
       memberships.isPending,
       memberships.refetch,
-      selected,
+      workspaceId,
       workspaces,
     ]
   );

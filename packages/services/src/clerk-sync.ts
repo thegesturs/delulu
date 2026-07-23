@@ -83,6 +83,10 @@ export class ClerkSyncService extends Context.Service<
               event.type,
               sql`UPDATE users SET email = ${email}, name = ${name}, image_url = ${event.data.image_url ?? null}, identity_deleted_at = NULL WHERE id = ${resolved.user.id}`
             );
+            yield* execute(
+              event.type,
+              identities.ensurePersonalWorkspaceOwnership(resolved.user.id)
+            );
             // Authoritative signup signal. Clerk emits `user.created` exactly
             // once per new user, so this is more reliable than the client-side
             // `createdAt < 60s` heuristic. We key the person on our internal
