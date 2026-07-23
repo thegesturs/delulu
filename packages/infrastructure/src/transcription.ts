@@ -10,11 +10,10 @@ import {
 } from "effect";
 import Groq from "groq-sdk";
 import { Resource } from "sst";
+import { getTranscriptionDatabaseUrl } from "./transcription-database";
 
 const Pg = PgClient.layer({
-  url: Redacted.make(
-    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
-  ),
+  url: Redacted.make(getTranscriptionDatabaseUrl()),
   maxConnections: 3,
   transformQueryNames: EffectString.camelToSnake,
   transformResultNames: EffectString.snakeToCamel,
