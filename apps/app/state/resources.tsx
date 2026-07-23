@@ -50,6 +50,9 @@ const keyStartsWith = (key: ResourceKey, prefix: ResourceKey): boolean =>
   prefix.length <= key.length &&
   prefix.every((part, index) => keyPartEqual(part, key[index]));
 
+const windowFocusSignal =
+  typeof window === "undefined" ? undefined : Atom.windowFocusSignal;
+
 class ResourceStore {
   readonly runtime;
   readonly resources = new Map<string, ResourceEntry>();
@@ -110,8 +113,8 @@ class ResourceStore {
         Atom.swr({
           staleTime: policy.staleTime,
           revalidateOnMount: true,
-          revalidateOnFocus: true,
-          focusSignal: Atom.windowFocusSignal,
+          revalidateOnFocus: windowFocusSignal !== undefined,
+          focusSignal: windowFocusSignal,
         }),
         Atom.setIdleTTL("5 minutes")
       );
