@@ -30,7 +30,10 @@ export default defineConfig({
         find: /^@delulu\/contracts$/,
         replacement: path.resolve("../../packages/contracts/src/index.ts"),
       },
-      { find: "@delulu", replacement: path.resolve("../../packages") },
+      {
+        find: /^@delulu\/(?!icons(?:\/|$))/,
+        replacement: `${path.resolve("../../packages")}/`,
+      },
       { find: "@", replacement: path.resolve(".") },
     ],
   },

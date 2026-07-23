@@ -6,8 +6,8 @@ vi.mock("@delulu/auth", () => ({
   SignUp: () => <h1>Create an account</h1>,
 }));
 
-test("Sign Up Page", () => {
-  render(<Page />);
+test("Sign Up Page", async () => {
+  render(await Page());
   expect(
     screen.getByRole("heading", {
       level: 1,
