@@ -540,18 +540,24 @@ program
         runEffect(client.billing.subscription({ params: { workspaceId: id } })),
         runEffect(client.billing.usage({ params: { workspaceId: id } })),
       ]);
+      const subscriptionState = subscription ?? {
+        plan: "FREE",
+        status: "inactive",
+        billingInterval: null,
+        currentPeriodEnd: null,
+      };
       return {
         status: "ok",
-        message: `${subscription.plan} ${subscription.status}`,
+        message: `${subscriptionState.plan} ${subscriptionState.status}`,
         summary: {
-          plan: subscription.plan,
-          status: subscription.status,
-          interval: subscription.billingInterval,
-          renews: subscription.currentPeriodEnd,
+          plan: subscriptionState.plan,
+          status: subscriptionState.status,
+          interval: subscriptionState.billingInterval,
+          renews: subscriptionState.currentPeriodEnd,
         },
         data: global.full ? { subscription, usage: usage.usage } : usage.usage,
         next:
-          subscription.status === "active"
+          subscriptionState.status === "active"
             ? ["delulu"]
             : ["delulu subscribe --plan VIBE --interval MONTHLY"],
       };

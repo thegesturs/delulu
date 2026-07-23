@@ -103,7 +103,7 @@ export const BillingGroup = HttpApiGroup.make("billing")
   .add(
     HttpApiEndpoint.get("subscription", "/subscription", {
       params: WorkspacePath,
-      success: SubscriptionResponse,
+      success: Schema.NullOr(SubscriptionResponse),
       error: billingErrors,
     }),
     HttpApiEndpoint.get("usage", "/usage", {

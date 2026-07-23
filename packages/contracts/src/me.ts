@@ -7,7 +7,11 @@ import {
   HttpApiGroup,
   OpenApi,
 } from "effect/unstable/httpapi";
-import { ForbiddenErrorResponse, NotFoundErrorResponse } from "./errors";
+import {
+  ConflictErrorResponse,
+  ForbiddenErrorResponse,
+  NotFoundErrorResponse,
+} from "./errors";
 import { Authentication } from "./middleware";
 
 /** The authenticated user, plus their personal workspace (identity tier). */
@@ -123,6 +127,17 @@ export const MeGroup = HttpApiGroup.make("me")
       }),
       success: Schema.Struct({ updated: Schema.Boolean }),
       error: [ForbiddenErrorResponse, NotFoundErrorResponse],
+    })
+  )
+  .add(
+    HttpApiEndpoint.post("completeSetup", "/setup/:workspaceId/complete", {
+      params: { workspaceId: Schema.String },
+      success: Schema.Struct({ completed: Schema.Boolean }),
+      error: [
+        ForbiddenErrorResponse,
+        NotFoundErrorResponse,
+        ConflictErrorResponse,
+      ],
     })
   )
   .add(

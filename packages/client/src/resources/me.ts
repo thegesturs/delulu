@@ -30,6 +30,11 @@ export const createMeEffects = defineResourceEffects(({ client }) => ({
       effect: (payload: EndpointPayload<ApiClient["me"]["updateSetup"]>) =>
         client.me.updateSetup({ params: { workspaceId }, payload }),
     }),
+  completeSetup: (workspaceId: string) =>
+    mutationEffect({
+      mutationKey: ["me", "setup", workspaceId] as const,
+      effect: () => client.me.completeSetup({ params: { workspaceId } }),
+    }),
   emailPreferences: () =>
     resourceEffect({
       queryKey: ["me", "email-preferences"] as const,

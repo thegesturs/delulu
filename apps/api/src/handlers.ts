@@ -198,6 +198,18 @@ export const MeHandlers = HttpApiBuilder.group(
           return { updated: true };
         })
       )
+      .handle("completeSetup", ({ params }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "accounts:write",
+          });
+          yield* setup.complete(auth.userId);
+          return { completed: true };
+        })
+      )
       .handle("emailPreferences", () =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;
