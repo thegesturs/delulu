@@ -1,5 +1,5 @@
 import { NotFoundError } from "@delulu/contracts";
-import { makeId, TranscriptionId } from "@delulu/core";
+import { makeId, SubscriptionId, TranscriptionId } from "@delulu/core";
 import { SORTED_LIMITS } from "@delulu/payments/product-ids";
 import { Context, DateTime, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -99,29 +99,53 @@ export class TranscriptionService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
 
+      const loadUserContext = Effect.fn("TranscriptionService.loadUserContext")(
+        function* (column: "id" | "external_id", value: string) {
+          return yield* sql<Record<string, unknown>>`
+          SELECT u.id AS user_id, w.id AS workspace_id,
+            s.id AS subscription_id, s.transcriptions_used,
+            s.transcriptions_period_start, s.provider_customer_id,
+            EXISTS (
+              SELECT 1 FROM subscription_addons a
+              WHERE a.base_subscription_id = s.id
+                AND a.addon_key = 'sorted'
+                AND a.status IN ('active', 'trialing', 'on_trial')
+            ) AS is_sorted_active
+          FROM users u
+          JOIN workspaces w ON w.billing_owner_user_id = u.id AND w.is_personal = true
+            AND w.deleted_at IS NULL
+          LEFT JOIN subscriptions s ON s.billing_owner_user_id = w.billing_owner_user_id
+          WHERE (${column} = 'id' AND u.id = ${value})
+             OR (${column} = 'external_id' AND u.external_id = ${value})
+          ORDER BY w.created_at LIMIT 1`.pipe(Effect.orDie);
+        }
+      );
+
       const userContext = Effect.fn("TranscriptionService.userContext")(
         function* (column: "id" | "external_id", value: string) {
-          const rows = yield* sql<Record<string, unknown>>`
-            SELECT u.id AS user_id, w.id AS workspace_id,
-              s.transcriptions_used, s.transcriptions_period_start,
-              s.provider_customer_id,
-              EXISTS (
-                SELECT 1 FROM subscription_addons a
-                WHERE a.base_subscription_id = s.id
-                  AND a.addon_key = 'sorted'
-                  AND a.status IN ('active', 'trialing', 'on_trial')
-              ) AS is_sorted_active
-            FROM users u
-            JOIN workspaces w ON w.billing_owner_user_id = u.id AND w.is_personal = true
-              AND w.deleted_at IS NULL
-            JOIN subscriptions s ON s.billing_owner_user_id = w.billing_owner_user_id
-            WHERE (${column} = 'id' AND u.id = ${value})
-               OR (${column} = 'external_id' AND u.external_id = ${value})
-            ORDER BY w.created_at LIMIT 1`.pipe(Effect.orDie);
-          const row = rows[0];
+          let row = (yield* loadUserContext(column, value))[0];
           if (!row) {
             return yield* new NotFoundError({
-              message: "User subscription context not found",
+              message: "User transcription context not found",
+              resource: "user",
+            });
+          }
+
+          if (!row.subscriptionId) {
+            yield* sql`
+              INSERT INTO subscriptions
+                (id, billing_owner_user_id, plan, status)
+              VALUES
+                (${makeId(SubscriptionId)}, ${String(row.userId)}, 'FREE', 'inactive')
+              ON CONFLICT (billing_owner_user_id) DO NOTHING`.pipe(
+              Effect.orDie
+            );
+            row = (yield* loadUserContext(column, value))[0];
+          }
+
+          if (!row?.subscriptionId) {
+            return yield* new NotFoundError({
+              message: "User transcription context not found",
               resource: "user",
             });
           }
@@ -246,6 +270,7 @@ export class TranscriptionService extends Context.Service<
         readonly language: string;
         readonly durationSeconds: number;
       }) {
+        yield* userContext("external_id", input.externalUserId);
         const result = yield* sql
           .withTransaction(
             Effect.gen(function* () {

@@ -126,7 +126,13 @@ export function initializeGraphQLInterceptor(): void {
   const originalFetch = window.fetch;
 
   window.fetch = async function (...args) {
-    const url = typeof args[0] === "string" ? args[0] : args[0]?.url;
+    const input = args[0];
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input?.url;
 
     // Call original fetch
     const response = await originalFetch.apply(this, args);

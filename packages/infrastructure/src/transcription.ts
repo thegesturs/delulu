@@ -1,6 +1,6 @@
 import { verifyToken } from "@clerk/backend";
 import { SORTED_LIMITS } from "@delulu/payments/product-ids";
-import { TranscriptionService } from "@delulu/services";
+import { IdentityService, TranscriptionService } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
 import {
   String as EffectString,
@@ -20,7 +20,10 @@ const Pg = PgClient.layer({
   transformJson: true,
 });
 const TranscriptionRuntime = ManagedRuntime.make(
-  TranscriptionService.layer.pipe(Layer.provideMerge(Pg), Layer.orDie)
+  Layer.mergeAll(IdentityService.layer, TranscriptionService.layer).pipe(
+    Layer.provideMerge(Pg),
+    Layer.orDie
+  )
 );
 
 // ============================================================================
@@ -88,6 +91,10 @@ export async function handler(event: LambdaEvent) {
     } catch {
       return jsonResponse(401, { error: "Invalid or expired token" });
     }
+
+    await TranscriptionRuntime.runPromise(
+      IdentityService.use((service) => service.resolve({ sub: clerkUserId }))
+    );
 
     // 2. Parse request body
     const body: TranscriptionRequest = JSON.parse(event.body || "{}");
