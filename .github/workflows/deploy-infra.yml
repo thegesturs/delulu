@@ -8,20 +8,14 @@ name: Deploy Infra (SST)
 # This does NOT deploy the Cloudflare API or app workers.
 
 on:
-  # Manual trigger — pick the stage. This is the primary, safe path.
-  workflow_dispatch:
-    inputs:
-      stage:
-        description: SST stage to deploy
-        type: choice
-        default: production
-        options:
-          - production
-          - dev
+  push:
+    branches: [main]
+
 concurrency:
-  # One infra deploy at a time per stage — SST state locks anyway, this just
-  # avoids queued duplicate runs stepping on each other.
-  group: deploy-infra-${{ github.event.inputs.stage || 'production' }}
+  # SST state locks anyway; this keeps consecutive main pushes from running
+  # production deploys concurrently. Finish the active deployment before
+  # starting the next queued revision.
+  group: deploy-infra-production
   cancel-in-progress: false
 
 jobs:
@@ -29,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     # Attach a GitHub Environment so you can require manual approval + scope the
     # OIDC secrets to production. Create it in Settings → Environments.
-    environment: ${{ github.event.inputs.stage || 'production' }}
+    environment: production
     permissions:
       id-token: write # required for AWS OIDC role assumption
       contents: read
     env:
-      STAGE: ${{ github.event.inputs.stage || 'production' }}
+      STAGE: production
     steps:
       - uses: actions/checkout@v4
 
