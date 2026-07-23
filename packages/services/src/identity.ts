@@ -44,6 +44,10 @@ export class IdentityService extends Context.Service<
     ) => Effect.Effect<ResolvedIdentity>;
     /** Load an already-provisioned identity by user id (dies if absent). */
     readonly resolveById: (userId: string) => Effect.Effect<ResolvedIdentity>;
+    /** Restore the invariant that a personal workspace owner is an owner member. */
+    readonly ensurePersonalWorkspaceOwnership: (
+      userId: string
+    ) => Effect.Effect<void>;
   }
 >()("@delulu/services/IdentityService") {
   static readonly layer = Layer.effect(
@@ -85,6 +89,21 @@ export class IdentityService extends Context.Service<
           })),
           Effect.orDie
         );
+
+      const ensurePersonalWorkspaceOwnership = Effect.fn(
+        "IdentityService.ensurePersonalWorkspaceOwnership"
+      )(function* (userId: string) {
+        const workspace = yield* findPersonalWorkspace(userId).pipe(
+          Effect.orDie
+        );
+        if (Option.isNone(workspace)) {
+          return;
+        }
+        yield* sql`INSERT INTO workspace_members (id, workspace_id, user_id, role)
+          VALUES (${makeId(MemberId)}, ${workspace.value.id}, ${userId}, 'owner')
+          ON CONFLICT (workspace_id, user_id)
+          DO UPDATE SET role = 'owner', updated_at = now()`.pipe(Effect.orDie);
+      });
 
       const provision = (
         profile: ClerkProfile
@@ -174,7 +193,12 @@ export class IdentityService extends Context.Service<
           Effect.orDie
         );
 
-      return IdentityService.of({ getByExternalId, resolve, resolveById });
+      return IdentityService.of({
+        getByExternalId,
+        resolve,
+        resolveById,
+        ensurePersonalWorkspaceOwnership,
+      });
     })
   );
 }

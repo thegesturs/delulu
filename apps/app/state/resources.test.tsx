@@ -222,4 +222,41 @@ describe("Effect Atom resources", () => {
     window.dispatchEvent(new Event("online"));
     await waitFor(() => expect(screen.getByText("2")).toBeTruthy());
   });
+
+  it("shows the resource error message and a retry action", async () => {
+    let shouldFail = true;
+    const descriptor = resourceEffect({
+      queryKey: ["test", "forbidden"] as const,
+      effect: () =>
+        shouldFail
+          ? Effect.fail(
+              Object.assign(
+                new Error("You are not a member of this workspace"),
+                {
+                  _tag: "ForbiddenError",
+                }
+              )
+            )
+          : Effect.succeed("recovered"),
+    });
+    const Probe = () => {
+      const query = useResourceAtom({ ...descriptor, retry: 0 });
+      return <div>{query.data}</div>;
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect(
+      await screen.findByText("You are not a member of this workspace")
+    ).toBeTruthy();
+    shouldFail = false;
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("recovered")).toBeTruthy();
+  });
 });
