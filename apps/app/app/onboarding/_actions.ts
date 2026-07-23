@@ -64,67 +64,6 @@ export const updateOnboardingStep = async (data: {
   }
 };
 
-export const completeOnboarding = async () => {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return { error: "Not authenticated" };
-  }
-
-  const client = await clerkClient();
-
-  try {
-    // Get current user to preserve existing metadata
-    const user = await client.users.getUser(userId);
-    const currentMetadata = user.publicMetadata as Record<string, unknown>;
-
-    // Clean up any corrupted array-as-object keys
-    const cleanMetadata = Object.entries(currentMetadata).reduce(
-      (acc, [key, value]) => {
-        if (!Number.isNaN(Number(key))) {
-          return acc;
-        }
-        acc[key] = value;
-        return acc;
-      },
-      {} as Record<string, unknown>
-    );
-
-    // Get current step data and ensure final step is marked as completed
-    const currentStep = (cleanMetadata.currentStep as number) || 4;
-    const currentStepsCompleted =
-      (cleanMetadata.stepsCompleted as string[]) || [];
-    const stepNames = { 1: "welcome", 2: "connect", 3: "pricing", 4: "survey" };
-    const finalStepName =
-      stepNames[currentStep as keyof typeof stepNames] || "pricing";
-
-    // Add final step to completed steps if not already there
-    const allStepsCompleted = Array.from(
-      new Set([...currentStepsCompleted, finalStepName])
-    );
-
-    // Mark onboarding as complete while preserving other metadata
-    const result = await client.users.updateUser(userId, {
-      publicMetadata: {
-        ...cleanMetadata,
-        onboardingComplete: true,
-        completedAt: Date.now(),
-        // Keep step tracking for analytics
-        currentStep,
-        stepsCompleted: allStepsCompleted,
-        skippedSteps: cleanMetadata.skippedSteps || [],
-      },
-    });
-
-    return { success: true, publicMetadata: result.publicMetadata };
-  } catch (error) {
-    console.error("Error completing onboarding:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to complete onboarding";
-    return { error: errorMessage };
-  }
-};
-
 export const completeTour = async (dismissed = false) => {
   const { userId } = await auth();
 

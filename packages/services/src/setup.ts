@@ -1,5 +1,6 @@
+import type { ConflictError } from "@delulu/contracts";
 import type { UserId, WorkspaceId } from "@delulu/core";
-import { isPaidPlan, PAID_PLAN_TYPES } from "@delulu/payments/plans";
+import { isPaidPlan } from "@delulu/payments/plans";
 import { Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 import { ClerkAdminService } from "./clerk-admin";
@@ -31,6 +32,7 @@ export class SetupService extends Context.Service<
       readonly userId: UserId;
       readonly optionalSteps: Readonly<Record<string, OptionalSetupStepState>>;
     }) => Effect.Effect<void>;
+    readonly complete: (userId: UserId) => Effect.Effect<void, ConflictError>;
   }
 >()("@delulu/services/SetupService") {
   static readonly layer = Layer.effect(
@@ -39,6 +41,21 @@ export class SetupService extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       const clerk = yield* ClerkAdminService;
       const entitlements = yield* EntitlementPolicy;
+
+      const syncCompletionMetadata = Effect.fn(
+        "SetupService.syncCompletionMetadata"
+      )(function* (input: { userId: UserId; externalId: string }) {
+        yield* clerk.updateUserPublicMetadata({
+          externalUserId: input.externalId,
+          metadata: {
+            onboardingComplete: true,
+            onboardingSource: "agent_or_web",
+            completedAt: Date.now(),
+          },
+        });
+        yield* sql`UPDATE users SET onboarding_metadata_synced_at = now()
+          WHERE id = ${input.userId}`.pipe(Effect.orDie);
+      });
 
       const status = Effect.fn("SetupService.status")(function* (
         workspaceId: WorkspaceId,
@@ -74,46 +91,17 @@ export class SetupService extends Context.Service<
           isPaidPlan(subscription.plan) &&
           subscription.status.toUpperCase() === "ACTIVE";
         const connectedPlatforms = connections.map((row) => row.platform);
-        const onboardingComplete = connectedPlatforms.length > 0 && paid;
         const user = users[0];
-        const aggregate = community
-          ? [{ complete: connectedPlatforms.length > 0 }]
-          : yield* sql<{ complete: boolean }>`SELECT EXISTS(
-          SELECT 1 FROM workspace_members wm
-          JOIN workspaces w ON w.id = wm.workspace_id
-          WHERE wm.user_id = ${userId} AND w.deleted_at IS NULL
-            AND EXISTS (SELECT 1 FROM connections c
-              WHERE c.workspace_id = w.id)
-            AND EXISTS (SELECT 1 FROM subscriptions s
-              WHERE s.billing_owner_user_id = w.billing_owner_user_id
-                AND upper(s.plan) IN ${sql.in(PAID_PLAN_TYPES)}
-                AND upper(s.status) = 'ACTIVE')
-        ) AS complete`.pipe(Effect.orDie);
-        const userOnboardingComplete = aggregate[0]?.complete ?? false;
+        const onboardingComplete = Boolean(user?.onboardingCompletedAt);
         if (
           user &&
-          (userOnboardingComplete !== Boolean(user.onboardingCompletedAt) ||
-            user.onboardingMetadataSyncedAt === null)
+          onboardingComplete &&
+          user.onboardingMetadataSyncedAt === null
         ) {
-          yield* sql`UPDATE users SET onboarding_completed_at =
-            ${userOnboardingComplete ? new Date() : null},
-            onboarding_metadata_synced_at = NULL WHERE id = ${userId}`.pipe(
-            Effect.orDie
-          );
-          const sync = yield* clerk
-            .updateUserPublicMetadata({
-              externalUserId: user.externalId,
-              metadata: {
-                onboardingComplete: userOnboardingComplete,
-                onboardingSource: "agent_or_web",
-                completedAt: userOnboardingComplete ? Date.now() : null,
-              },
-            })
-            .pipe(Effect.result);
-          if (sync._tag === "Success") {
-            yield* sql`UPDATE users SET onboarding_metadata_synced_at = now()
-              WHERE id = ${userId}`.pipe(Effect.orDie);
-          }
+          yield* syncCompletionMetadata({
+            userId,
+            externalId: user.externalId,
+          }).pipe(Effect.result);
         }
         return {
           workspaceId,
@@ -145,7 +133,26 @@ export class SetupService extends Context.Service<
         }
       );
 
-      return SetupService.of({ status, updateOptionalSteps });
+      const complete = Effect.fn("SetupService.complete")(function* (
+        userId: UserId
+      ) {
+        const users = yield* sql<{ externalId: string }>`
+          UPDATE users SET
+            onboarding_completed_at = COALESCE(onboarding_completed_at, now()),
+            onboarding_metadata_synced_at = NULL
+          WHERE id = ${userId}
+          RETURNING external_id`.pipe(Effect.orDie);
+        const user = users[0];
+        if (!user) {
+          return yield* Effect.die("Authenticated user is not provisioned");
+        }
+        yield* syncCompletionMetadata({
+          userId,
+          externalId: user.externalId,
+        });
+      });
+
+      return SetupService.of({ status, updateOptionalSteps, complete });
     })
   );
 }

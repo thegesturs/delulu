@@ -81,6 +81,7 @@ import { messagingProviderLayer } from "./messaging-provider";
  */
 export interface BaseLayerOverrides {
   readonly clerk?: Layer.Layer<ClerkTokenVerifier>;
+  readonly clerkAdmin?: Layer.Layer<ClerkAdminService>;
   readonly rateLimiter?: Layer.Layer<RateLimiterService>;
 }
 
@@ -129,9 +130,9 @@ export const makeBaseLayer = (
     domainConfigLayers(env);
   const Authorization = AuthorizationService.layer;
   const Jobs = JobService.layer;
-  const ClerkAdmin = ClerkAdminService.layer.pipe(
-    Layer.provide(ClerkAdminConfig)
-  );
+  const ClerkAdmin =
+    overrides.clerkAdmin ??
+    ClerkAdminService.layer.pipe(Layer.provide(ClerkAdminConfig));
   const ConnectionState = ConnectionStateService.layer.pipe(
     Layer.provide(ConnectionConfig)
   );

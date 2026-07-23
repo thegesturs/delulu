@@ -90,9 +90,12 @@ export const BillingHandlers = HttpApiBuilder.group(
               canManageBilling: false,
             };
           }
-          const result = yield* billing.subscription(
-            workspace.billingOwnerUserId
-          );
+          const result = yield* billing
+            .subscription(workspace.billingOwnerUserId)
+            .pipe(Effect.catchTag("NotFoundError", () => Effect.succeed(null)));
+          if (result === null) {
+            return null;
+          }
           return {
             ...result,
             canManageBilling: auth.userId === workspace.billingOwnerUserId,

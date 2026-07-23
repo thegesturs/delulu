@@ -11,15 +11,22 @@ import { useUser } from "@delulu/auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  completeOnboarding,
   completeTour,
   saveSurveyAnswer,
   updateOnboardingStep,
 } from "@/app/onboarding/_actions";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
+import { useMutationAtom } from "@/state/resources";
 import { useOnboardingStore } from "@/store/onboarding";
 
 export function useOnboarding() {
   const { user } = useUser();
+  const { workspaceId } = useWorkspace();
+  const { resources } = useApiClient();
+  const completeSetup = useMutationAtom(
+    resources.me.completeSetup(workspaceId ?? "")
+  );
   const currentStep = useOnboardingStore((s) => s.currentStep);
   const setCurrentStep = useOnboardingStore((s) => s.setCurrentStep);
   const nextStep = useOnboardingStore((s) => s.nextStep);
@@ -168,68 +175,82 @@ export function useOnboarding() {
     setIsLoading(true);
 
     try {
-      // Track the final step completion
       const currentStepName = getStepName(currentStep);
+      if (!workspaceId) {
+        toast.error("Workspace is still loading. Please try again.");
+        return { error: "Workspace is unavailable" };
+      }
+
+      const finalStepsCompleted = Array.from(
+        new Set([...stepsCompleted, currentStepName])
+      );
+      const progress = await updateOnboardingStep({
+        currentStep,
+        stepsCompleted: finalStepsCompleted,
+        skippedSteps,
+      });
+      if (!progress.success) {
+        toast.error(
+          progress.error || "Failed to save progress. Please try again."
+        );
+        return { error: progress.error };
+      }
+
+      const surveySaved = surveyAnswer
+        ? await saveSurveyAnswer(surveyAnswer)
+        : null;
+      await completeSetup.mutateAsync(undefined);
+
       posthog.capture(ONBOARDING_STEP_COMPLETED, {
         step: currentStep,
         stepName: currentStepName,
         accountsConnected,
       });
-
-      // Track overall completion
       posthog.capture(ONBOARDING_COMPLETED, {
         stepsSkipped: skippedSteps,
         duration:
           Date.now() -
           (user?.createdAt ? new Date(user.createdAt).getTime() : Date.now()),
       });
-
-      // Update user properties
       posthog.people?.set({
         onboarding_completed: true,
         onboarding_completion_date: new Date().toISOString(),
       });
-
-      // Save survey answer if provided
-      if (surveyAnswer) {
-        await saveSurveyAnswer(surveyAnswer);
+      if (surveyAnswer && surveySaved?.success) {
         posthog.capture(ONBOARDING_SURVEY_COMPLETED, {
           referralSource: surveyAnswer,
         });
       }
 
-      // Mark onboarding complete in Clerk
-      const result = await completeOnboarding();
-
-      if (result.success) {
-        // Track signup with Affonso for affiliate attribution
-        if (
-          typeof window !== "undefined" &&
-          user?.primaryEmailAddress?.emailAddress &&
-          (window as Record<string, unknown>).Affonso
-        ) {
-          try {
-            (
-              (window as Record<string, unknown>).Affonso as {
-                signup: (email: string) => void;
-              }
-            ).signup(user.primaryEmailAddress.emailAddress);
-          } catch {
-            // Affonso tracking is non-critical
-          }
+      // Track signup with Affonso for affiliate attribution
+      if (
+        typeof window !== "undefined" &&
+        user?.primaryEmailAddress?.emailAddress &&
+        (window as Record<string, unknown>).Affonso
+      ) {
+        try {
+          (
+            (window as Record<string, unknown>).Affonso as {
+              signup: (email: string) => void;
+            }
+          ).signup(user.primaryEmailAddress.emailAddress);
+        } catch {
+          // Affonso tracking is non-critical
         }
-
-        // Reload user data to get updated metadata
-        await user?.reload();
-        toast.success("Welcome to Delulu Social! 🎉");
-        return { success: true };
       }
 
-      // Show error if completion failed
-      toast.error(
-        result.error || "Failed to complete onboarding. Please try again."
-      );
-      return { error: result.error };
+      // Completion is already persisted and mirrored by the API. A transient
+      // client refresh failure must not make the completed flow look failed.
+      try {
+        await user?.reload();
+      } catch (error) {
+        console.error(
+          "Failed to refresh completed onboarding metadata:",
+          error
+        );
+      }
+      toast.success("Welcome to Delulu Social! 🎉");
+      return { success: true };
     } catch (error) {
       console.error("Error completing onboarding:", error);
       toast.error("Failed to complete onboarding. Please try again.");

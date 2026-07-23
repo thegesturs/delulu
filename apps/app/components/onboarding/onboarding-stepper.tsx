@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useOnboarding } from "@/hooks/use-onboarding";
-import { useSubscription } from "@/hooks/use-subscription";
 import { useResourceAtom } from "@/state/resources";
 import { AutomationSetupStep } from "./automation-setup-step";
 import { ConnectAccountsStep } from "./connect-accounts-step";
@@ -31,7 +30,6 @@ export function OnboardingStepper() {
     handleCompleteOnboarding,
     isLoading,
   } = useOnboarding();
-  const { isPaid, isLifetime, isLoading: subLoading } = useSubscription();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
   const accounts = useResourceAtom({
@@ -42,8 +40,6 @@ export function OnboardingStepper() {
   const hasInstagram = accounts.data?.data.some(
     (a) => a.platform === "INSTAGRAM"
   );
-  const hasPaidPlan = isPaid || isLifetime;
-
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === 5;
   const isPricingStep = currentStep === 2;
@@ -52,17 +48,11 @@ export function OnboardingStepper() {
     if (currentStep === 3) {
       return !!hasInstagram;
     }
-    if (isPricingStep) {
-      return hasPaidPlan && !subLoading;
-    }
     return true;
   })();
 
   const handleContinue = async () => {
     if (isLastStep) {
-      if (!hasPaidPlan) {
-        return;
-      }
       const result = await handleCompleteOnboarding();
       if (result.success) {
         router.push("/");
@@ -81,7 +71,10 @@ export function OnboardingStepper() {
 
   const getButtonText = () => {
     if (isLastStep) {
-      return hasPaidPlan ? "Start Using Delulu" : "Choose a plan above";
+      return "Start Using Delulu";
+    }
+    if (isPricingStep) {
+      return "Continue setup";
     }
     if (currentStep === 3) {
       return hasInstagram ? "Continue" : "Connect Instagram to continue";
@@ -152,7 +145,7 @@ export function OnboardingStepper() {
 
             <Button
               className="px-8"
-              disabled={!canContinue || isLoading || subLoading}
+              disabled={!canContinue || isLoading}
               onClick={handleContinue}
               size="lg"
             >

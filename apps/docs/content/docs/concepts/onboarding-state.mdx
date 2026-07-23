@@ -1,16 +1,20 @@
 ---
 title: Onboarding state
-description: Why completion is derived from connections and payment instead of trusting client-side checklists.
+description: How explicit onboarding completion stays separate from account and billing readiness.
 ---
 
-## Required truth
+## Completion truth
 
-Onboarding completes when both conditions are true:
+Onboarding completes when the user finishes the guided web flow or an
+authenticated client calls the setup completion endpoint. Completion does not
+depend on connecting an account or purchasing a subscription.
 
-1. At least one supported social connection exists.
-2. Subscription state is confirmed paid.
+Account callbacks and payment webhooks may refresh setup status, but they never
+reverse explicit onboarding completion.
 
-The order does not matter. Social callbacks and payment webhooks both run reconciliation, so retries and payment-first or connection-first journeys converge on the same result.
+The pricing step remains part of the guided flow, but purchasing is optional
+while onboarding. Hosted users without an active subscription finish the flow
+and are then directed to billing before entering the paid application.
 
 ## Optional steps
 
@@ -18,7 +22,10 @@ Welcome, survey, and automation setup can be marked `completed` or `skipped`. Th
 
 ## Compatibility mirror
 
-The backend owns derived truth and mirrors completion into identity-provider public metadata so existing middleware and browser routing continue to work. Clients should read the authenticated setup-status or workspace-overview response instead of inferring state from metadata or URL query parameters.
+The backend owns completion truth and mirrors it into identity-provider public
+metadata so existing middleware and browser routing continue to work. Clients
+should read the authenticated setup-status or workspace-overview response
+instead of inferring state from metadata or URL query parameters.
 
 ## Outstanding actions
 
@@ -26,6 +33,9 @@ The setup response returns one highest-priority action:
 
 - `connect_account`
 - `complete_payment`
-- no outstanding action when onboarding is complete
+- no outstanding action when account and billing readiness are satisfied
 
-The CLI overview adds operational next actions such as expiring connections, failed publications, pending reviews, active publications, upcoming schedules, and first-post creation.
+These readiness actions are independent of `onboardingComplete`. The CLI
+overview also adds operational next actions such as expiring connections,
+failed publications, pending reviews, active publications, upcoming schedules,
+and first-post creation.

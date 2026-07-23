@@ -4,6 +4,7 @@ import {
   TEST_PRODUCT_IDS,
 } from "@delulu/payments/product-ids";
 import {
+  ClerkAdminService,
   ClerkTokenVerifier,
   deriveChallengeS256,
   RateLimiterService,
@@ -57,6 +58,15 @@ beforeAll(async () => {
     })
   );
   const Limiter = RateLimiterService.inMemoryLayer({ sessionPerMinute: 20 });
+  const ClerkAdmin = Layer.succeed(
+    ClerkAdminService,
+    ClerkAdminService.of({
+      invite: () => Effect.succeed({ id: "invitation_test" }),
+      updateMembership: () => Effect.void,
+      removeMembership: () => Effect.void,
+      updateUserPublicMetadata: () => Effect.void,
+    })
+  );
   const base = makeBaseLayer(
     {
       DATABASE_URL:
@@ -73,7 +83,7 @@ beforeAll(async () => {
       CLERK_WEBHOOK_SECRET: WEBHOOK_SECRET,
       DODO_WEBHOOK_SECRET: WEBHOOK_SECRET,
     },
-    { clerk: Clerk, rateLimiter: Limiter }
+    { clerk: Clerk, clerkAdmin: ClerkAdmin, rateLimiter: Limiter }
   );
 
   handler = buildWebHandler(base, {
@@ -338,6 +348,15 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.data[0].isPersonal).toBe(true);
   });
 
+  it("GET /v1/workspaces/:id/billing/subscription treats a missing subscription as unpaid", async () => {
+    const res = await get(
+      `/v1/workspaces/${personalWorkspaceId}/billing/subscription`,
+      "dev-token"
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toBeNull();
+  });
+
   it("GET /v1/me/overview returns the command-center aggregates", async () => {
     const res = await get(
       `/v1/me/overview/${personalWorkspaceId}`,
@@ -357,6 +376,27 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       accounts: { total: 0, expiringSoon: 0 },
       publishing: { totalPosts: 0, drafts: 0, failed: 0 },
       reviews: { pending: 0 },
+    });
+  });
+
+  it("completes onboarding before payment and keeps it complete", async () => {
+    const complete = await postJson(
+      `/v1/me/setup/${personalWorkspaceId}/complete`,
+      {},
+      "dev-token"
+    );
+    expect(complete.status).toBe(200);
+    expect(await complete.json()).toEqual({ completed: true });
+
+    const setup = await get(`/v1/me/setup/${personalWorkspaceId}`, "dev-token");
+    expect(setup.status).toBe(200);
+    expect(await setup.json()).toMatchObject({
+      onboardingComplete: true,
+      subscription: {
+        plan: "free",
+        status: "inactive",
+        paid: false,
+      },
     });
   });
 
@@ -401,6 +441,16 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       },
     });
     expect(paid.status).toBe(200);
+
+    const setupAfterPayment = await get(
+      `/v1/me/setup/${workspaceId}`,
+      "dev-token"
+    );
+    expect(setupAfterPayment.status).toBe(200);
+    expect(await setupAfterPayment.json()).toMatchObject({
+      onboardingComplete: true,
+      subscription: { paid: true },
+    });
 
     const key = await postJson(
       `/v1/workspaces/${workspaceId}/api-keys`,
