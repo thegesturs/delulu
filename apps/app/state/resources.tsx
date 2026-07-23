@@ -27,6 +27,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 interface ResourcePolicy {
@@ -152,6 +153,7 @@ const ResourceStoreContext = createContext<ResourceStore | null>(null);
 const BoundaryAtomsContext = createContext<Set<Atom.Atom<unknown>> | null>(
   null
 );
+const ClientReadyContext = createContext(false);
 
 export const appRegistry = AtomRegistry.make({
   scheduleTask,
@@ -174,10 +176,12 @@ export function AppStateProvider({
   readonly client?: ApiClient;
 }) {
   const storeRef = useRef<ResourceStore | null>(null);
+  const [clientReady, setClientReady] = useState(false);
   if (!storeRef.current) {
     storeRef.current = new ResourceStore(client);
   }
   useEffect(() => {
+    setClientReady(true);
     const previousOnNodeRemoved = appRegistry.onNodeRemoved;
     appRegistry.onNodeRemoved = (node) => {
       previousOnNodeRemoved?.(node);
@@ -197,7 +201,9 @@ export function AppStateProvider({
   return (
     <RegistryContext.Provider value={appRegistry}>
       <ResourceStoreContext.Provider value={storeRef.current}>
-        {children}
+        <ClientReadyContext.Provider value={clientReady}>
+          {children}
+        </ClientReadyContext.Provider>
       </ResourceStoreContext.Provider>
     </RegistryContext.Provider>
   );
@@ -290,7 +296,8 @@ export function useResourceAtom<A, E>(
   const store = useResourceStore();
   const registry = useContext(RegistryContext);
   const boundaryAtoms = useContext(BoundaryAtomsContext);
-  const enabled = options.enabled ?? true;
+  const clientReady = useContext(ClientReadyContext);
+  const enabled = clientReady && (options.enabled ?? true);
   const atom = (
     enabled
       ? store.query(options, {
