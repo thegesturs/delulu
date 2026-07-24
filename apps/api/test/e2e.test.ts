@@ -492,6 +492,52 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(await moved.json()).toEqual({ confirmed: true });
   });
 
+  it("repairs ownership before moving an account from an older organization workspace", async () => {
+    const sub = `clerk_org_transfer_${crypto.randomUUID()}`;
+    const token = `test-token:${sub}`;
+    const current = await get("/v1/me", token);
+    expect(current.status).toBe(200);
+    const currentBody = (await current.json()) as {
+      personalWorkspace: { id: string } | null;
+    };
+    const destinationWorkspaceId = currentBody.personalWorkspace?.id ?? "";
+    expect(destinationWorkspaceId).toBeTruthy();
+
+    const sourceWorkspaceId = `workspace_${crypto.randomUUID()}`;
+    const connectionId = `connection_${crypto.randomUUID()}`;
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        const users = yield* sql<{
+          id: string;
+        }>`SELECT id FROM users WHERE external_id = ${sub}`;
+        const userId = users[0]?.id ?? "";
+        expect(userId).toBeTruthy();
+        yield* sql`INSERT INTO workspaces
+          (id, name, billing_owner_user_id, is_personal)
+          VALUES (${sourceWorkspaceId}, 'Older organization workspace', ${userId}, false)`;
+        yield* sql`INSERT INTO connections
+          (id, workspace_id, platform, profile_id, access_token, cipher_version)
+          VALUES (
+            ${connectionId},
+            ${sourceWorkspaceId},
+            'THREADS',
+            ${`profile_${crypto.randomUUID()}`},
+            'opaque',
+            'v1'
+          )`;
+      }).pipe(Effect.provide(TestPg))
+    );
+
+    const moved = await postJson(
+      `/v1/workspaces/${destinationWorkspaceId}/connections/${connectionId}/transfer`,
+      { sourceWorkspaceId },
+      token
+    );
+    expect(moved.status).toBe(200);
+    expect(await moved.json()).toEqual({ confirmed: true });
+  });
+
   it("GET /v1/workspaces/:id/billing/subscription treats a missing subscription as unpaid", async () => {
     const res = await get(
       `/v1/workspaces/${personalWorkspaceId}/billing/subscription`,

@@ -44,8 +44,8 @@ export class IdentityService extends Context.Service<
     ) => Effect.Effect<ResolvedIdentity>;
     /** Load an already-provisioned identity by user id (dies if absent). */
     readonly resolveById: (userId: string) => Effect.Effect<ResolvedIdentity>;
-    /** Restore the invariant that a personal workspace owner is an owner member. */
-    readonly ensurePersonalWorkspaceOwnership: (
+    /** Restore owner membership for every active workspace billed to this user. */
+    readonly ensureOwnedWorkspaceMemberships: (
       userId: string
     ) => Effect.Effect<void>;
   }
@@ -90,11 +90,11 @@ export class IdentityService extends Context.Service<
           Effect.orDie
         );
 
-      const ensurePersonalWorkspaceOwnership = Effect.fn(
-        "IdentityService.ensurePersonalWorkspaceOwnership"
+      const ensureOwnedWorkspaceMemberships = Effect.fn(
+        "IdentityService.ensureOwnedWorkspaceMemberships"
       )(function* (userId: string) {
         const ownership = yield* sql<{
-          hasWorkspace: boolean;
+          hasPersonalWorkspace: boolean;
           needsRepair: boolean;
         }>`SELECT
           EXISTS (
@@ -103,7 +103,7 @@ export class IdentityService extends Context.Service<
             WHERE billing_owner_user_id = ${userId}
               AND is_personal = true
               AND deleted_at IS NULL
-          ) AS "hasWorkspace",
+          ) AS "hasPersonalWorkspace",
           EXISTS (
             SELECT 1
             FROM workspaces workspace
@@ -111,11 +111,10 @@ export class IdentityService extends Context.Service<
               ON member.workspace_id = workspace.id
               AND member.user_id = ${userId}
             WHERE workspace.billing_owner_user_id = ${userId}
-              AND workspace.is_personal = true
               AND workspace.deleted_at IS NULL
               AND (member.id IS NULL OR member.role <> 'owner')
           ) AS "needsRepair"`.pipe(Effect.orDie);
-        if (ownership[0]?.hasWorkspace && !ownership[0].needsRepair) {
+        if (ownership[0]?.hasPersonalWorkspace && !ownership[0].needsRepair) {
           return;
         }
         yield* sql
@@ -146,7 +145,6 @@ export class IdentityService extends Context.Service<
                   'owner'
                 FROM workspaces
                 WHERE billing_owner_user_id = ${userId}
-                  AND is_personal = true
                   AND deleted_at IS NULL
                 ON CONFLICT (workspace_id, user_id)
                 DO UPDATE SET role = 'owner', updated_at = now()
@@ -157,7 +155,7 @@ export class IdentityService extends Context.Service<
       });
 
       const repairAndLoadResolved = (user: User) =>
-        ensurePersonalWorkspaceOwnership(user.id).pipe(
+        ensureOwnedWorkspaceMemberships(user.id).pipe(
           Effect.andThen(loadResolved(user))
         );
 
@@ -253,7 +251,7 @@ export class IdentityService extends Context.Service<
         getByExternalId,
         resolve,
         resolveById,
-        ensurePersonalWorkspaceOwnership,
+        ensureOwnedWorkspaceMemberships,
       });
     })
   );

@@ -85,7 +85,7 @@ export class ClerkSyncService extends Context.Service<
             );
             yield* execute(
               event.type,
-              identities.ensurePersonalWorkspaceOwnership(resolved.user.id)
+              identities.ensureOwnedWorkspaceMemberships(resolved.user.id)
             );
             // Authoritative signup signal. Clerk emits `user.created` exactly
             // once per new user, so this is more reliable than the client-side
