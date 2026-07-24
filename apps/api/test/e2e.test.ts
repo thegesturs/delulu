@@ -6,6 +6,8 @@ import {
 import {
   ClerkAdminService,
   ClerkTokenVerifier,
+  ConnectionStateConfig,
+  ConnectionStateService,
   deriveChallengeS256,
   RateLimiterService,
 } from "@delulu/services";
@@ -32,6 +34,14 @@ const TestPg = PgClient.layer({
   transformResultNames: EffectString.snakeToCamel,
   transformJson: true,
 });
+const ConnectionState = ConnectionStateService.layer.pipe(
+  Layer.provide(
+    Layer.succeed(
+      ConnectionStateConfig,
+      ConnectionStateConfig.of({ secret: "e2e-connection-state-secret" })
+    )
+  )
+);
 
 const toPem = (der: ArrayBuffer): string => {
   const bytes = new Uint8Array(der);
@@ -536,6 +546,65 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     );
     expect(moved.status).toBe(200);
     expect(await moved.json()).toEqual({ confirmed: true });
+  });
+
+  it("accepts a provider-verified transfer without source workspace membership", async () => {
+    const sourceSub = `clerk_source_${crypto.randomUUID()}`;
+    const destinationSub = `clerk_destination_${crypto.randomUUID()}`;
+    const sourceToken = `test-token:${sourceSub}`;
+    const destinationToken = `test-token:${destinationSub}`;
+    const sourceResponse = await get("/v1/me", sourceToken);
+    const destinationResponse = await get("/v1/me", destinationToken);
+    expect(sourceResponse.status).toBe(200);
+    expect(destinationResponse.status).toBe(200);
+    const source = (await sourceResponse.json()) as {
+      personalWorkspace: { id: string } | null;
+    };
+    const destination = (await destinationResponse.json()) as {
+      user: { id: string };
+      personalWorkspace: { id: string } | null;
+    };
+    const sourceWorkspaceId = source.personalWorkspace?.id ?? "";
+    const destinationWorkspaceId = destination.personalWorkspace?.id ?? "";
+    const connectionId = `connection_${crypto.randomUUID()}`;
+    expect(sourceWorkspaceId).toBeTruthy();
+    expect(destinationWorkspaceId).toBeTruthy();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* sql`INSERT INTO connections
+          (id, workspace_id, platform, profile_id, access_token, cipher_version)
+          VALUES (
+            ${connectionId},
+            ${sourceWorkspaceId},
+            'INSTAGRAM',
+            ${`profile_${crypto.randomUUID()}`},
+            'opaque',
+            'v1'
+          )`;
+      }).pipe(Effect.provide(TestPg))
+    );
+    const transferToken = await Effect.runPromise(
+      Effect.gen(function* () {
+        const states = yield* ConnectionStateService;
+        return yield* states.mintTransfer({
+          connectionId,
+          sourceWorkspaceId,
+          destinationWorkspaceId,
+          principal: `u:${destination.user.id}`,
+        });
+      }).pipe(Effect.provide(ConnectionState))
+    );
+
+    const moved = await postJson(
+      `/v1/workspaces/${destinationWorkspaceId}/connections/${connectionId}/transfer`,
+      { transferToken },
+      destinationToken
+    );
+    const movedBody = await moved.json();
+    expect(moved.status, JSON.stringify(movedBody)).toBe(200);
+    expect(movedBody).toEqual({ confirmed: true });
   });
 
   it("GET /v1/workspaces/:id/billing/subscription treats a missing subscription as unpaid", async () => {

@@ -378,7 +378,10 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
     }),
     HttpApiEndpoint.post("confirmTransfer", "/:id/transfer", {
       params: ResourcePath,
-      payload: Schema.Struct({ sourceWorkspaceId: Schema.String }),
+      payload: Schema.Struct({
+        sourceWorkspaceId: Schema.optional(Schema.String),
+        transferToken: Schema.optional(Schema.String),
+      }),
       success: Schema.Struct({ confirmed: Schema.Boolean }),
       error: domainErrors,
     })

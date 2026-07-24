@@ -121,6 +121,7 @@ describe("withConnectionReturnTarget", () => {
         platform: "instagram",
         connectionId: "connection/one",
         sourceWorkspaceId: "workspace two",
+        transferToken: "signed.transfer.token",
       }),
       "onboarding-connect"
     );
@@ -132,6 +133,7 @@ describe("withConnectionReturnTarget", () => {
       platform: "instagram",
       connectionId: "connection/one",
       sourceWorkspaceId: "workspace two",
+      transferToken: "signed.transfer.token",
       step: "connect",
     });
   });

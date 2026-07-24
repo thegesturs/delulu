@@ -17,6 +17,7 @@ export const transferRequiredRedirect = (input: {
   readonly platform: string;
   readonly connectionId: string;
   readonly sourceWorkspaceId: string;
+  readonly transferToken?: string;
 }): Response => {
   const params = new URLSearchParams({
     notification: "transfer_required",
@@ -24,6 +25,9 @@ export const transferRequiredRedirect = (input: {
     connectionId: input.connectionId,
     sourceWorkspaceId: input.sourceWorkspaceId,
   });
+  if (input.transferToken) {
+    params.set("transferToken", input.transferToken);
+  }
   return callbackRedirect(`/socials?${params.toString()}`);
 };
 
