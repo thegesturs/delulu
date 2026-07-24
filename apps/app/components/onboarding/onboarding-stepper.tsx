@@ -1,5 +1,6 @@
 "use client";
 
+import { useClerk } from "@delulu/auth";
 import { Logo } from "@delulu/design-system/components/logo";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -44,6 +45,7 @@ export function OnboardingStepper({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signOut } = useClerk();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
   const setup = useResourceAtom({
@@ -76,6 +78,7 @@ export function OnboardingStepper({
     null
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const legacyMigrated = useRef(false);
   const contentRef = useRef<HTMLElement>(null);
@@ -247,8 +250,23 @@ export function OnboardingStepper({
     }
   };
 
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut({ redirectUrl: "/sign-in" });
+    } catch (error) {
+      setIsSigningOut(false);
+      toast.error("Could not log out", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
   const isBusy =
-    updateSetup.isPending || completeSetup.isPending || isRefreshing;
+    updateSetup.isPending ||
+    completeSetup.isPending ||
+    isRefreshing ||
+    isSigningOut;
   const primaryLabel =
     step === "goal"
       ? "Continue"
@@ -288,9 +306,26 @@ export function OnboardingStepper({
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between border-b pb-5">
           <Logo />
-          <span className="text-muted-foreground text-sm">
-            Step {step === "goal" ? 1 : step === "connect" ? 2 : 3} of 3
-          </span>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-muted-foreground text-sm">
+              Step {step === "goal" ? 1 : step === "connect" ? 2 : 3} of 3
+            </span>
+            <Button
+              className="min-h-11 px-3 sm:px-4"
+              disabled={isBusy}
+              onClick={handleSignOut}
+              variant="ghost"
+            >
+              {isSigningOut ? (
+                <Icon
+                  className="animate-spin motion-reduce:animate-none"
+                  icon={Loading03Icon}
+                  size={16}
+                />
+              ) : null}
+              Log out
+            </Button>
+          </div>
         </header>
 
         <div className="py-6">
@@ -311,7 +346,10 @@ export function OnboardingStepper({
           </aside>
 
           <section
+            aria-busy={isSigningOut}
+            aria-label="Onboarding step"
             className="rounded-2xl border bg-background p-5 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-8"
+            inert={isSigningOut}
             ref={contentRef}
             tabIndex={-1}
           >

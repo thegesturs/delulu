@@ -1,5 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingStepper } from "./onboarding-stepper";
 
 const PUBLISH_CONTENT = /publish content/i;
@@ -7,10 +13,13 @@ const CONTINUE = /^continue/i;
 const PUBLISH_FIRST = /where do you want to publish first/i;
 const CREATE_POST = /create your first post/i;
 const CREATE_AUTO_DM = /create your first auto-dm/i;
+const LOG_OUT = /log out/i;
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
+  signOut: vi.fn(),
+  toastError: vi.fn(),
   updateSetup: vi.fn(),
   completeSetup: vi.fn(),
   setupData: {
@@ -25,6 +34,14 @@ const mocks = vi.hoisted(() => ({
     displayName: string | null;
     expiresAt: string | null;
   }>,
+}));
+
+vi.mock("@delulu/auth", () => ({
+  useClerk: () => ({ signOut: mocks.signOut }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: mocks.toastError },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -102,10 +119,15 @@ vi.mock("@/state/resources", () => ({
   },
 }));
 
+afterEach(cleanup);
+
 describe("OnboardingStepper", () => {
   beforeEach(() => {
     mocks.push.mockReset();
     mocks.refresh.mockReset();
+    mocks.signOut.mockReset();
+    mocks.signOut.mockResolvedValue(undefined);
+    mocks.toastError.mockReset();
     mocks.updateSetup.mockReset();
     mocks.updateSetup.mockResolvedValue({ updated: true });
     mocks.completeSetup.mockReset();
@@ -113,6 +135,85 @@ describe("OnboardingStepper", () => {
     mocks.setupData.goal = null;
     mocks.setupData.webStep = "goal";
     mocks.accountsData = [];
+  });
+
+  it("lets the user sign out from every onboarding step", async () => {
+    let view = render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+
+    await waitFor(() =>
+      expect(mocks.signOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" })
+    );
+    view.unmount();
+
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "connect";
+    view = render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(2));
+    view.unmount();
+
+    mocks.setupData.webStep = "ready";
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(3));
+  });
+
+  it("recovers when logout fails", async () => {
+    mocks.signOut.mockRejectedValueOnce(
+      new Error("Session service unavailable")
+    );
+    render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: LOG_OUT }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false)
+    );
+    expect(mocks.toastError).toHaveBeenCalledWith("Could not log out", {
+      description: "Session service unavailable",
+    });
+  });
+
+  it("blocks onboarding interactions while logout is pending", async () => {
+    let finishSignOut: (() => void) | undefined;
+    mocks.signOut.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSignOut = resolve;
+        })
+    );
+    render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+
+    await waitFor(() => {
+      const logout = screen.getByRole("button", {
+        name: LOG_OUT,
+      }) as HTMLButtonElement;
+      expect(logout.disabled).toBe(true);
+      expect(
+        screen
+          .getByRole("region", { name: "Onboarding step" })
+          .hasAttribute("inert")
+      ).toBe(true);
+    });
+
+    finishSignOut?.();
   });
 
   it("saves the selected activation goal and advances to connections", async () => {
