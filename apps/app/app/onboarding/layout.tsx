@@ -19,5 +19,5 @@ export default async function OnboardingLayout({
     redirect("/");
   }
 
-  return <BackendProviders>{children}</BackendProviders>;
+  return <BackendProviders surface="onboarding">{children}</BackendProviders>;
 }

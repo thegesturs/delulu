@@ -1,4 +1,10 @@
-import { ApiKey, ApiKeyId, makeApiKeyRepository, makeId } from "@delulu/core";
+import {
+  ApiKey,
+  ApiKeyId,
+  makeApiKeyRepository,
+  makeId,
+  UserId,
+} from "@delulu/core";
 import {
   ApiKeyVerifier,
   AsTokenService,
@@ -113,7 +119,7 @@ describe("IdentityService JIT provisioning", () => {
 
       yield* sql`DELETE FROM workspace_members WHERE workspace_id = ${workspaceId} AND user_id = ${first.user.id}`;
 
-      yield* identity.ensurePersonalWorkspaceOwnership(first.user.id);
+      yield* identity.resolve({ sub });
       return yield* membership.resolve({
         workspaceId,
         userId: first.user.id,
@@ -124,6 +130,29 @@ describe("IdentityService JIT provisioning", () => {
     );
 
     expect(Option.getOrNull(repaired)?.role).toBe("owner");
+  });
+
+  it("creates a missing personal workspace for an existing Clerk user", async () => {
+    const sub = `clerk_${crypto.randomUUID()}`;
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const membership = yield* MembershipService;
+      const sql = yield* SqlClient.SqlClient;
+      const userId = makeId(UserId);
+      yield* sql`INSERT INTO users (id, external_id)
+        VALUES (${userId}, ${sub})`;
+
+      const resolved = yield* identity.resolve({ sub });
+      const workspaceId = resolved.personalWorkspace?.id ?? "";
+      const member = yield* membership.resolve({ workspaceId, userId });
+      return { resolved, member };
+    });
+    const { resolved, member } = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+
+    expect(resolved.personalWorkspace?.isPersonal).toBe(true);
+    expect(Option.getOrNull(member)?.role).toBe("owner");
   });
 });
 
