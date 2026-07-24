@@ -86,6 +86,7 @@ export function OnboardingStepper({
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [connectionSkipped, setConnectionSkipped] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [planRefreshError, setPlanRefreshError] = useState<string | null>(null);
   const legacyMigrated = useRef(false);
@@ -130,7 +131,7 @@ export function OnboardingStepper({
   const safeStepOverride =
     stepOverride === "plan" &&
     derivedStep !== "plan" &&
-    !connectionLimitUpgradeAllowed
+    !(connectionLimitUpgradeAllowed || connectionSkipped)
       ? null
       : stepOverride;
   const step = safeStepOverride ?? derivedStep;
@@ -287,6 +288,19 @@ export function OnboardingStepper({
     return values[0];
   }, [goal, values]);
 
+  useEffect(() => {
+    if (
+      callback?.kind === "success" &&
+      stepOverride === "connect" &&
+      derivedStep === "ready" &&
+      qualifyingAccount
+    ) {
+      setCallback(null);
+      setStepOverride(null);
+      window.requestAnimationFrame(() => contentRef.current?.focus());
+    }
+  }, [callback, derivedStep, qualifyingAccount, stepOverride]);
+
   const persistGoal = async (nextGoal: OnboardingGoal): Promise<boolean> => {
     try {
       await updateSetup.mutateAsync({ goal: nextGoal });
@@ -301,6 +315,7 @@ export function OnboardingStepper({
   };
 
   const selectGoal = (nextGoal: OnboardingGoal) => {
+    setConnectionSkipped(false);
     setSelectedGoal(nextGoal);
     persistGoal(nextGoal).catch(() => undefined);
   };
@@ -341,6 +356,25 @@ export function OnboardingStepper({
       setStepOverride("plan");
     } catch (error) {
       toast.error("Could not continue to plans", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const skipConnection = async () => {
+    try {
+      await updateSetup.mutateAsync({
+        optionalSteps: {
+          connect: "skipped",
+          ready: "skipped",
+        },
+      });
+      await setup.refetch();
+      setCallback(null);
+      setConnectionSkipped(true);
+      setStepOverride("plan");
+    } catch (error) {
+      toast.error("Could not skip this step", {
         description: error instanceof Error ? error.message : undefined,
       });
     }
@@ -442,7 +476,11 @@ export function OnboardingStepper({
             aria-busy={isSigningOut}
             aria-label="Onboarding step"
             className={`mx-auto w-full rounded-xl border border-border/70 bg-card p-5 shadow-(--shadow-card) outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6 ${
-              step === "plan" ? "max-w-4xl" : "max-w-2xl"
+              step === "plan"
+                ? "max-w-4xl"
+                : step === "connect" || step === "ready"
+                  ? "max-w-3xl"
+                  : "max-w-2xl"
             }`}
             inert={isSigningOut}
             ref={contentRef}
@@ -467,7 +505,7 @@ export function OnboardingStepper({
               />
             ) : null}
             {step === "ready" && goal && qualifyingAccount ? (
-              <ReadyStep account={qualifyingAccount} goal={goal} />
+              <ReadyStep accounts={values} goal={goal} />
             ) : null}
             {step === "plan" ? (
               <PlanStep
@@ -495,7 +533,9 @@ export function OnboardingStepper({
                       step === "plan"
                         ? connectionLimitUpgrade
                           ? "connect"
-                          : "ready"
+                          : qualifyingAccount
+                            ? "ready"
+                            : "connect"
                         : step === "ready"
                           ? "connect"
                           : "goal"
@@ -510,6 +550,16 @@ export function OnboardingStepper({
             </div>
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+              {step === "connect" && !requirementMet ? (
+                <Button
+                  className="min-h-11 shrink-0"
+                  disabled={isBusy}
+                  onClick={skipConnection}
+                  variant="ghost"
+                >
+                  Skip for now
+                </Button>
+              ) : null}
               <Button
                 className="min-h-11 min-w-0 flex-1 sm:min-w-44 sm:max-w-max"
                 disabled={

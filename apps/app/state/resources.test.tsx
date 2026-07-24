@@ -76,6 +76,49 @@ describe("Effect Atom resources", () => {
     );
   });
 
+  it("refetch bypasses stale data and resolves with the fresh response", async () => {
+    let serverValue = "before transfer";
+    let reads = 0;
+    const query = resourceEffect({
+      queryKey: ["workspace", "one", "connections", "list"] as const,
+      effect: () =>
+        Effect.sync(() => {
+          reads += 1;
+          return serverValue;
+        }),
+    });
+    const Probe = () => {
+      const value = useResourceAtom({ ...query, staleTime: 10 * 60_000 });
+      return (
+        <button
+          onClick={async () => {
+            serverValue = "connected account";
+            await value.refetch();
+          }}
+          type="button"
+        >
+          {value.data}
+        </button>
+      );
+    };
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary>
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "before transfer" })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button").textContent).toBe("connected account")
+    );
+    expect(reads).toBe(2);
+  });
+
   it("coalesces duplicate mutation attempts while a write is in flight", async () => {
     let writes = 0;
     let release: (() => void) | undefined;

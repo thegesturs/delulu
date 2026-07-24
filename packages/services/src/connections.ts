@@ -348,6 +348,10 @@ const toOutput = (row: Record<string, unknown>): ConnectionOutput => {
     profileId: String(row.profileId),
     username: row.username === null ? null : String(row.username),
     displayName: row.displayName === null ? null : String(row.displayName),
+    profileImage:
+      row.profileImage === null || row.profileImage === undefined
+        ? null
+        : String(row.profileImage),
     expiresAt,
   };
 };
@@ -435,7 +439,8 @@ export class ConnectionsService extends Context.Service<
       ) {
         const rows = yield* sql<
           Record<string, unknown>
-        >`SELECT id, platform, profile_id, username, display_name, expires_at,
+        >`SELECT id, platform, profile_id, username, display_name,
+            metadata->>'profileImage' AS profile_image, expires_at,
             (refresh_token IS NOT NULL) AS has_refresh,
             metadata->>'refreshTokenExpiresIn' AS refresh_expires_at
           FROM connections WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`.pipe(

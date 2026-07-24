@@ -108,4 +108,57 @@ describe("SetupService", () => {
       paid: true,
     });
   });
+
+  it("allows the connection step to be skipped but still requires payment", async () => {
+    const ClerkAdmin = Layer.succeed(
+      ClerkAdminService,
+      ClerkAdminService.of({
+        invite: () => Effect.succeed({ id: "invitation_test" }),
+        updateMembership: () => Effect.void,
+        removeMembership: () => Effect.void,
+        updateUserPublicMetadata: () => Effect.void,
+      })
+    );
+    const Setup = SetupService.layer.pipe(
+      Layer.provide([ClerkAdmin, Entitlements])
+    );
+    const AppLayer = Layer.mergeAll(IdentityService.layer, Setup).pipe(
+      Layer.provideMerge(Pg)
+    );
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const setup = yield* SetupService;
+      const resolved = yield* identity.resolve({
+        sub: `setup_skip_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace!.id;
+      yield* setup.updateGoal({
+        userId: resolved.user.id,
+        goal: "auto_dm",
+      });
+      yield* setup.updateOptionalSteps({
+        userId: resolved.user.id,
+        optionalSteps: {
+          connect: "skipped",
+          ready: "skipped",
+        },
+      });
+      const skipped = yield* setup.status(workspaceId, resolved.user.id);
+      const unpaid = yield* setup
+        .complete(workspaceId, resolved.user.id)
+        .pipe(Effect.exit);
+      yield* provisionPaidSubscription(resolved.user.id);
+      yield* setup.complete(workspaceId, resolved.user.id);
+      const complete = yield* setup.status(workspaceId, resolved.user.id);
+      return { complete, skipped, unpaid };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.skipped.webStep).toBe("plan");
+    expect(result.skipped.outstandingAction).toBe("complete_payment");
+    expect(result.unpaid._tag).toBe("Failure");
+    expect(result.complete.onboardingComplete).toBe(true);
+  });
 });

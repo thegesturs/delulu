@@ -349,6 +349,7 @@ export const ConnectionView = Schema.Struct({
   profileId: Schema.String,
   username: Schema.NullOr(Schema.String),
   displayName: Schema.NullOr(Schema.String),
+  profileImage: Schema.NullOr(Schema.String),
   expiresAt: Schema.NullOr(Schema.String),
 });
 export const ConnectionsGroup = HttpApiGroup.make("connections")
