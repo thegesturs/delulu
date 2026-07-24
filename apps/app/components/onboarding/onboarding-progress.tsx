@@ -1,63 +1,57 @@
 import { cn } from "@delulu/design-system/lib/utils";
-import { Icon } from "@delulu/design-system/providers/icon";
-import { Tick02Icon } from "@delulu/icons";
 
 interface OnboardingProgressProps {
-  currentStep: "goal" | "connect" | "ready";
+  currentStep: "goal" | "connect" | "ready" | "plan";
+  authoritativeStep?: "goal" | "connect" | "ready" | "plan";
 }
 
 const steps = [
   { id: "goal", label: "Goal" },
   { id: "connect", label: "Connect" },
   { id: "ready", label: "Ready" },
+  { id: "plan", label: "Plan" },
 ] as const;
 
-export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
+export function OnboardingProgress({
+  currentStep,
+  authoritativeStep = currentStep,
+}: OnboardingProgressProps) {
   const currentIndex = steps.findIndex((step) => step.id === currentStep);
+  const authoritativeIndex = steps.findIndex(
+    (step) => step.id === authoritativeStep
+  );
   return (
-    <ol aria-label="Onboarding progress" className="flex items-center">
+    <ol
+      aria-label="Onboarding progress"
+      className="grid grid-cols-4 border-zinc-950/10 border-y-[1.5px] border-dotted dark:border-white/10"
+    >
       {steps.map((step, index) => {
         const isActive = index === currentIndex;
-        const isCompleted = index < currentIndex;
+        const isCompleted = index < authoritativeIndex;
 
         return (
           <li
             aria-current={isActive ? "step" : undefined}
-            className="flex flex-1 items-center last:flex-none"
+            className={cn(
+              "min-w-0 px-2 py-3 sm:px-4",
+              index > 0 &&
+                "border-zinc-950/10 border-l-[1.5px] border-dotted dark:border-white/10",
+              isActive && "bg-muted/45"
+            )}
             key={step.id}
           >
-            <span className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full border font-medium text-xs",
-                  isCompleted &&
-                    "border-primary bg-primary text-primary-foreground",
-                  isActive && "border-primary text-primary",
-                  !(isActive || isCompleted) &&
-                    "border-border text-muted-foreground"
-                )}
-              >
-                {isCompleted ? <Icon icon={Tick02Icon} size={14} /> : index + 1}
-              </span>
-              <span
-                className={cn(
-                  "font-medium text-xs sm:text-sm",
-                  isActive || isCompleted
-                    ? "text-foreground"
+            <span
+              className={cn(
+                "block truncate text-center text-xs sm:text-left",
+                isActive
+                  ? "font-medium text-foreground"
+                  : isCompleted
+                    ? "text-foreground/60"
                     : "text-muted-foreground"
-                )}
-              >
-                {step.label}
-              </span>
+              )}
+            >
+              {step.label}
             </span>
-            {index < steps.length - 1 ? (
-              <span
-                className={cn(
-                  "mx-3 h-px flex-1",
-                  isCompleted ? "bg-primary" : "bg-border"
-                )}
-              />
-            ) : null}
           </li>
         );
       })}

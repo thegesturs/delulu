@@ -1,5 +1,5 @@
 import { Api } from "@delulu/contracts";
-import { CurrentAuth } from "@delulu/core";
+import { CurrentAuth, emptyPooledUsage } from "@delulu/core";
 import {
   AnalyticsService,
   BillingService,
@@ -116,15 +116,7 @@ export const MeHandlers = HttpApiBuilder.group(
                 Effect.catchTag("NotFoundError", () =>
                   Effect.succeed({
                     billingOwnerUserId: access.billingOwnerUserId,
-                    usage: {
-                      socialAccounts: 0,
-                      monthlyPosts: 0,
-                      mediaStorageBytes: 0,
-                      apiRequestsPerMonth: 0,
-                      dmsSent: 0,
-                      dmsSkipped: 0,
-                      transcriptionsUsed: 0,
-                    },
+                    usage: emptyPooledUsage(),
                   })
                 )
               ),
@@ -209,12 +201,12 @@ export const MeHandlers = HttpApiBuilder.group(
       .handle("completeSetup", ({ params }) =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;
-          yield* workspaces.require({
+          const access = yield* workspaces.require({
             workspaceId: params.workspaceId,
             auth,
             scope: "accounts:write",
           });
-          yield* setup.complete(auth.userId);
+          yield* setup.complete(access.workspaceId, auth.userId);
           return { completed: true };
         })
       )

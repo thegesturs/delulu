@@ -59,6 +59,7 @@ export const WebSetupStep = Schema.Literals([
   "goal",
   "connect",
   "ready",
+  "plan",
   "complete",
 ]);
 

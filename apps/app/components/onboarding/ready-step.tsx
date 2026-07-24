@@ -2,8 +2,6 @@
 
 import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
-import { Icon } from "@delulu/design-system/providers/icon";
-import { CheckmarkCircle01Icon } from "@delulu/icons";
 import type { ConnectionView } from "@/types/workspace-views";
 import type { OnboardingGoal } from "./goal-step";
 
@@ -18,24 +16,21 @@ export function ReadyStep({
   return (
     <div className="space-y-7">
       <div className="space-y-3">
-        <div className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10">
-          <Icon
-            className="text-emerald-600"
-            icon={CheckmarkCircle01Icon}
-            size={28}
-          />
-        </div>
-        <p className="font-medium text-emerald-700 text-sm">Setup complete</p>
+        <p className="font-medium text-emerald-700 text-sm">
+          Connection confirmed
+        </p>
         <h1 className="font-semibold text-3xl tracking-tight sm:text-4xl">
           {goal === "auto_dm"
             ? "Your Instagram automation workspace is ready"
             : "You’re ready to publish"}
         </h1>
         <p className="max-w-xl text-muted-foreground leading-relaxed">
-          Your account is connected. Start with the guided workflow or head to
-          the dashboard and explore.
+          Your account is connected and the right workflow is ready. Review the
+          available plans to activate your workspace.
         </p>
       </div>
+
+      <div className="-mx-5 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-6 dark:border-white/10" />
 
       <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
         <span className="flex size-11 items-center justify-center rounded-lg bg-background">

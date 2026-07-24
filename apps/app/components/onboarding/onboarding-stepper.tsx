@@ -1,6 +1,6 @@
 "use client";
 
-import { useClerk } from "@delulu/auth";
+import { useClerk, useSession } from "@delulu/auth";
 import { Logo } from "@delulu/design-system/components/logo";
 import { Button } from "@delulu/design-system/components/ui/button";
 import { Icon } from "@delulu/design-system/providers/icon";
@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
+import { useUsageLimit } from "@/hooks/use-usage-limits";
 import { useMutationAtom, useResourceAtom } from "@/state/resources";
 import {
   ConnectAccountsStep,
@@ -21,9 +22,10 @@ import {
 } from "./connect-accounts-step";
 import { GoalStep, type OnboardingGoal } from "./goal-step";
 import { OnboardingProgress } from "./onboarding-progress";
+import { PlanStep } from "./plan-step";
 import { ReadyStep } from "./ready-step";
 
-type Step = "goal" | "connect" | "ready";
+type Step = "goal" | "connect" | "ready" | "plan";
 
 const callbackErrorMessage = (error: string): string => {
   if (error === "user_denied" || error === "user_cancelled") {
@@ -46,6 +48,7 @@ export function OnboardingStepper({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signOut } = useClerk();
+  const { session } = useSession();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
   const setup = useResourceAtom({
@@ -72,7 +75,11 @@ export function OnboardingStepper({
     serverGoal ?? legacyGoal ?? null
   );
   const [stepOverride, setStepOverride] = useState<Step | null>(
-    searchParams.get("step") === "connect" || legacyGoal ? "connect" : null
+    searchParams.get("step") === "plan"
+      ? "plan"
+      : searchParams.get("step") === "connect" || legacyGoal
+        ? "connect"
+        : null
   );
   const [callback, setCallback] = useState<ConnectionCallbackState | null>(
     null
@@ -80,6 +87,7 @@ export function OnboardingStepper({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [planRefreshError, setPlanRefreshError] = useState<string | null>(null);
   const legacyMigrated = useRef(false);
   const contentRef = useRef<HTMLElement>(null);
   const values = accounts.data?.data ?? [];
@@ -105,12 +113,30 @@ export function OnboardingStepper({
   }, [legacyGoal, serverGoal, setup, updateSetup, workspaceId]);
 
   const derivedStep: Step =
-    setup.data?.webStep === "connect" || setup.data?.webStep === "ready"
+    setup.data?.webStep === "connect" ||
+    setup.data?.webStep === "ready" ||
+    setup.data?.webStep === "plan"
       ? setup.data.webStep
       : "goal";
-  const step = stepOverride ?? derivedStep;
+  const requirementMet =
+    setup.data?.webStep === "ready" || setup.data?.webStep === "plan";
+  const planPaid = setup.data?.subscription.paid === true;
+  const accountLimit = useUsageLimit("socialAccounts", values.length);
+  const connectionLimitUpgradeAllowed =
+    searchParams.get("source") === "connection-limit" &&
+    !accountLimit.allowed &&
+    derivedStep === "connect" &&
+    !requirementMet;
+  const safeStepOverride =
+    stepOverride === "plan" &&
+    derivedStep !== "plan" &&
+    !connectionLimitUpgradeAllowed
+      ? null
+      : stepOverride;
+  const step = safeStepOverride ?? derivedStep;
   const goal = step === "goal" ? selectedGoal : (serverGoal ?? selectedGoal);
-  const requirementMet = setup.data?.webStep === "ready";
+  const connectionLimitUpgrade =
+    step === "plan" && connectionLimitUpgradeAllowed;
 
   const refreshSetup = async () => {
     setIsRefreshing(true);
@@ -201,6 +227,58 @@ export function OnboardingStepper({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const status = searchParams.get("status");
+    const cancelled = searchParams.get("cancelled");
+    if (!(status || cancelled)) {
+      return;
+    }
+    setStepOverride("plan");
+    const refreshPlan = async () => {
+      if (status === "failed" || cancelled === "true") {
+        setPlanRefreshError(
+          status === "failed"
+            ? "Payment failed. Choose a plan to try again."
+            : "Checkout was cancelled. Choose a plan when you’re ready."
+        );
+        return;
+      }
+      if (status !== "succeeded" && status !== "active") {
+        return;
+      }
+      setIsRefreshing(true);
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((resolve) =>
+            window.setTimeout(resolve, 500 * 2 ** attempt)
+          );
+        }
+        const latest = await setup.refetch();
+        if (latest.data?.subscription.paid) {
+          setPlanRefreshError(null);
+          setIsRefreshing(false);
+          return;
+        }
+      }
+      setIsRefreshing(false);
+      setPlanRefreshError(
+        "Payment succeeded, but plan activation is still syncing. Refresh the plan status in a moment."
+      );
+    };
+    refreshPlan().catch((error) => {
+      setIsRefreshing(false);
+      setPlanRefreshError(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh plan status."
+      );
+    });
+    window.history.replaceState(window.history.state, "", "/onboarding");
+    window.requestAnimationFrame(() => contentRef.current?.focus());
+    // Payment callback parameters are consumed once on the full-page return.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const qualifyingAccount = useMemo(() => {
     if (goal === "auto_dm") {
       return values.find((account) => account.platform === "INSTAGRAM");
@@ -241,12 +319,45 @@ export function OnboardingStepper({
     }
     try {
       await completeSetup.mutateAsync(undefined);
+      await session?.reload();
+      session?.clearCache();
+      await session?.getToken({ skipCache: true });
       router.push(destination);
       router.refresh();
     } catch (error) {
       toast.error("Could not finish setup", {
         description: error instanceof Error ? error.message : undefined,
       });
+    }
+  };
+
+  const acknowledgeReady = async () => {
+    try {
+      await updateSetup.mutateAsync({
+        optionalSteps: { ready: "completed" },
+      });
+      await setup.refetch();
+      setStepOverride("plan");
+    } catch (error) {
+      toast.error("Could not continue to plans", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const refreshPlan = async () => {
+    setIsRefreshing(true);
+    setPlanRefreshError(null);
+    try {
+      await setup.refetch();
+    } catch (error) {
+      setPlanRefreshError(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh plan status."
+      );
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -277,78 +388,61 @@ export function OnboardingStepper({
             ? "Connect Instagram to continue"
             : "Connect an account to continue"
         : goal === "auto_dm"
-          ? "Create your first auto-DM"
-          : "Create your first post";
-
-  const context = {
-    goal: {
-      eyebrow: "A focused start",
-      title: "Set up around the outcome you want.",
-      description:
-        "Three short steps, no payment wall. Your choice only changes the recommended starting point.",
-    },
-    connect: {
-      eyebrow: "Official connections",
-      title: "Your credentials stay with the platform.",
-      description:
-        "OAuth sends you to the provider and returns directly here. You can replace or add accounts later.",
-    },
-    ready: {
-      eyebrow: "Ready to go",
-      title: "The setup is done. The real work starts now.",
-      description:
-        "Open the guided workflow or head to your dashboard. Pricing only appears when a paid capability is needed.",
-    },
-  }[step];
+          ? step === "ready"
+            ? "Review plans"
+            : connectionLimitUpgrade && planPaid
+              ? "Return to connections"
+              : planPaid
+                ? "Create your first auto-DM"
+                : "Choose a plan to continue"
+          : step === "ready"
+            ? "Review plans"
+            : connectionLimitUpgrade && planPaid
+              ? "Return to connections"
+              : planPaid
+                ? "Create your first post"
+                : "Choose a plan to continue";
 
   return (
-    <main className="min-h-screen bg-muted/20">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <header className="flex items-center justify-between border-b pb-5">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col border-zinc-950/10 border-x-[1.5px] border-dotted dark:border-white/10">
+        <header className="flex h-16 items-center justify-between px-5 sm:px-6">
           <Logo />
-          <div className="flex items-center gap-2 sm:gap-4">
-            <span className="text-muted-foreground text-sm">
-              Step {step === "goal" ? 1 : step === "connect" ? 2 : 3} of 3
-            </span>
-            <Button
-              className="min-h-11 px-3 sm:px-4"
-              disabled={isBusy}
-              onClick={handleSignOut}
-              variant="ghost"
-            >
-              {isSigningOut ? (
-                <Icon
-                  className="animate-spin motion-reduce:animate-none"
-                  icon={Loading03Icon}
-                  size={16}
-                />
-              ) : null}
-              Log out
-            </Button>
-          </div>
+          <Button
+            className="min-h-11 px-3 sm:px-4"
+            disabled={isBusy}
+            onClick={handleSignOut}
+            variant="ghost"
+          >
+            {isSigningOut ? (
+              <Icon
+                className="animate-spin motion-reduce:animate-none"
+                icon={Loading03Icon}
+                size={16}
+              />
+            ) : null}
+            Log out
+          </Button>
         </header>
 
-        <div className="py-6">
-          <OnboardingProgress currentStep={step} />
+        <div className="border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
+
+        <div className="px-5 py-5 sm:px-6">
+          <OnboardingProgress
+            authoritativeStep={derivedStep}
+            currentStep={step}
+          />
         </div>
 
-        <div className="grid flex-1 gap-8 pb-48 sm:pb-32 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-14 lg:pt-8 lg:pb-10">
-          <aside className="space-y-3 lg:sticky lg:top-8">
-            <p className="font-medium text-primary text-sm">
-              {context.eyebrow}
-            </p>
-            <h2 className="max-w-md font-semibold text-2xl tracking-tight">
-              {context.title}
-            </h2>
-            <p className="max-w-md text-muted-foreground leading-relaxed">
-              {context.description}
-            </p>
-          </aside>
+        <div className="border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
 
+        <div className="flex flex-1 items-start px-5 py-8 pb-28 sm:px-6 sm:py-10 sm:pb-10">
           <section
             aria-busy={isSigningOut}
             aria-label="Onboarding step"
-            className="rounded-2xl border bg-background p-5 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-8"
+            className={`mx-auto w-full rounded-xl border border-border/70 bg-card p-5 shadow-(--shadow-card) outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6 ${
+              step === "plan" ? "max-w-4xl" : "max-w-2xl"
+            }`}
             inert={isSigningOut}
             ref={contentRef}
             tabIndex={-1}
@@ -374,18 +468,37 @@ export function OnboardingStepper({
             {step === "ready" && goal && qualifyingAccount ? (
               <ReadyStep account={qualifyingAccount} goal={goal} />
             ) : null}
+            {step === "plan" ? (
+              <PlanStep
+                connectionUpgrade={connectionLimitUpgrade}
+                isRefreshing={isRefreshing}
+                onDashboard={() => completeAndNavigate("/")}
+                onRefresh={refreshPlan}
+                paid={planPaid}
+                plan={setup.data?.subscription.plan ?? "Selected plan"}
+                refreshError={planRefreshError}
+              />
+            ) : null}
           </section>
         </div>
 
-        <footer className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:static lg:border-t lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
-          <div className="mx-auto flex w-full max-w-6xl flex-col-reverse items-stretch justify-between gap-2 sm:flex-row sm:items-center">
+        <footer className="fixed inset-x-0 bottom-0 z-20 border-zinc-950/10 border-t-[1.5px] border-dotted bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:static sm:bg-transparent sm:px-6 sm:pt-4 sm:pb-5 sm:backdrop-blur-none dark:border-white/10">
+          <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
             <div>
               {step === "goal" ? null : (
                 <Button
                   className="min-h-11 w-full sm:w-auto"
                   disabled={isBusy}
                   onClick={() =>
-                    setStepOverride(step === "ready" ? "connect" : "goal")
+                    setStepOverride(
+                      step === "plan"
+                        ? connectionLimitUpgrade
+                          ? "connect"
+                          : "ready"
+                        : step === "ready"
+                          ? "connect"
+                          : "goal"
+                    )
                   }
                   variant="ghost"
                 >
@@ -395,23 +508,14 @@ export function OnboardingStepper({
               )}
             </div>
 
-            <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
-              {step === "ready" ? (
-                <Button
-                  className="min-h-11 w-full sm:w-auto"
-                  disabled={isBusy}
-                  onClick={() => completeAndNavigate("/")}
-                  variant="ghost"
-                >
-                  Go to dashboard
-                </Button>
-              ) : null}
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
               <Button
-                className="min-h-11 w-full sm:w-auto sm:min-w-44"
+                className="min-h-11 min-w-0 flex-1 sm:min-w-44 sm:max-w-max"
                 disabled={
                   isBusy ||
                   (step === "goal" && !selectedGoal) ||
-                  (step === "connect" && !requirementMet)
+                  (step === "connect" && !requirementMet) ||
+                  (step === "plan" && !planPaid)
                 }
                 onClick={async () => {
                   if (step === "goal") {
@@ -421,6 +525,14 @@ export function OnboardingStepper({
                   if (step === "connect") {
                     setCallback(null);
                     setStepOverride("ready");
+                    return;
+                  }
+                  if (step === "ready") {
+                    await acknowledgeReady();
+                    return;
+                  }
+                  if (connectionLimitUpgrade) {
+                    setStepOverride("connect");
                     return;
                   }
                   await completeAndNavigate(

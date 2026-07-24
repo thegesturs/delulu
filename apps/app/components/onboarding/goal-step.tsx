@@ -1,9 +1,7 @@
 "use client";
 
-import { Button } from "@delulu/design-system/components/ui/button";
 import { cn } from "@delulu/design-system/lib/utils";
-import { Icon } from "@delulu/design-system/providers/icon";
-import { Comment01Icon, PencilEdit01Icon, Tick02Icon } from "@delulu/icons";
+import { DottedColumns } from "@/components/layout/dotted-columns";
 
 export type OnboardingGoal = "publish" | "auto_dm";
 
@@ -12,13 +10,11 @@ const goals = [
     value: "publish" as const,
     title: "Publish content",
     description: "Create once and publish across your social accounts.",
-    icon: PencilEdit01Icon,
   },
   {
     value: "auto_dm" as const,
     title: "Automate Instagram DMs",
     description: "Turn comments and keywords into automatic conversations.",
-    icon: Comment01Icon,
   },
 ];
 
@@ -46,47 +42,55 @@ export function GoalStep({
         </p>
       </div>
 
-      <div aria-label="Setup goal" className="space-y-3" role="radiogroup">
-        {goals.map((goal) => {
-          const isSelected = selected === goal.value;
-          return (
-            <Button
-              aria-checked={isSelected}
-              className={cn(
-                "h-auto min-h-20 w-full justify-start gap-4 whitespace-normal px-4 py-4 text-left",
-                isSelected && "border-primary bg-primary/5"
-              )}
-              disabled={pending}
-              key={goal.value}
-              onClick={() => onSelect(goal.value)}
-              role="radio"
-              variant="outline"
-            >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-                <Icon icon={goal.icon} size={22} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-base">
-                  {goal.title}
-                </span>
-                <span className="mt-1 block text-muted-foreground text-sm">
-                  {goal.description}
-                </span>
-              </span>
-              <span
+      <div className="-mx-5 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-6 dark:border-white/10" />
+
+      <fieldset>
+        <legend className="sr-only">Setup goal</legend>
+        <DottedColumns breakpoint="md" className="gap-y-3">
+          {goals.map((goal) => {
+            const isSelected = selected === goal.value;
+            return (
+              <label
                 className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-full border",
-                  isSelected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-muted-foreground/30"
+                  "flex min-h-28 w-full cursor-pointer items-center justify-start gap-4 whitespace-normal rounded-md border bg-background px-4 py-4 text-left shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-accent-foreground",
+                  isSelected && "border-primary bg-primary/5"
                 )}
+                key={goal.value}
               >
-                {isSelected ? <Icon icon={Tick02Icon} size={14} /> : null}
-              </span>
-            </Button>
-          );
-        })}
-      </div>
+                <input
+                  checked={isSelected}
+                  className="sr-only"
+                  disabled={pending}
+                  name="onboarding-goal"
+                  onChange={() => onSelect(goal.value)}
+                  type="radio"
+                  value={goal.value}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-base">
+                    {goal.title}
+                  </span>
+                  <span className="mt-1 block text-muted-foreground text-sm">
+                    {goal.description}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "flex size-6 shrink-0 items-center justify-center rounded-full border",
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/30"
+                  )}
+                >
+                  {isSelected ? (
+                    <span className="size-2 rounded-full bg-primary-foreground" />
+                  ) : null}
+                </span>
+              </label>
+            );
+          })}
+        </DottedColumns>
+      </fieldset>
     </div>
   );
 }

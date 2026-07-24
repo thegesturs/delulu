@@ -275,6 +275,8 @@ export function ConnectAccountsStep({
         </p>
       </div>
 
+      <div className="-mx-5 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-6 dark:border-white/10" />
+
       {callback?.kind === "success" ? (
         <Alert className="border-emerald-500/25 bg-emerald-500/5" role="status">
           <Icon className="text-emerald-600" icon={CheckmarkCircle01Icon} />
@@ -415,7 +417,9 @@ export function ConnectAccountsStep({
               one. Existing accounts stay usable.
             </p>
             <Button asChild className="mt-2 min-h-11" variant="outline">
-              <Link href="/billing">View upgrade options</Link>
+              <Link href="/onboarding?step=plan&source=connection-limit">
+                View upgrade options
+              </Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -423,15 +427,17 @@ export function ConnectAccountsStep({
 
       {requirementMet ? null : (
         <div className="space-y-3">
-          {eligiblePlatforms
-            .filter((platform) => !connectedPlatforms.has(platform))
-            .map((platform) => (
-              <ConnectPlatformButton
-                blocked={atLimit}
-                key={platform}
-                platform={platform}
-              />
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {eligiblePlatforms
+              .filter((platform) => !connectedPlatforms.has(platform))
+              .map((platform) => (
+                <ConnectPlatformButton
+                  blocked={atLimit}
+                  key={platform}
+                  platform={platform}
+                />
+              ))}
+          </div>
 
           {goal === "publish" ? (
             <Collapsible onOpenChange={setMoreOpen} open={moreOpen}>
@@ -445,7 +451,7 @@ export function ConnectAccountsStep({
                   />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-3">
+              <CollapsibleContent className="grid gap-3 pt-3 sm:grid-cols-2">
                 {additionalPlatforms
                   .filter(
                     (platform) => platform !== "TWITTER" || twitterEnabled

@@ -9,7 +9,9 @@ import {
   deriveChallengeS256,
   RateLimiterService,
 } from "@delulu/services";
-import { Effect, Layer } from "effect";
+import { PgClient } from "@effect/sql-pg";
+import { Effect, String as EffectString, Layer, Redacted } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import { beforeAll, describe, expect, it } from "vitest";
 import { buildWebHandler } from "../src/app";
 import { makeBaseLayer } from "../src/index";
@@ -22,6 +24,14 @@ const WEBHOOK_SECRET_BYTES = new TextEncoder().encode("e2e-webhook-secret");
 const WEBHOOK_SECRET = `whsec_${btoa(
   String.fromCharCode(...WEBHOOK_SECRET_BYTES)
 )}`;
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu";
+const TestPg = PgClient.layer({
+  url: Redacted.make(DATABASE_URL),
+  transformQueryNames: EffectString.camelToSnake,
+  transformResultNames: EffectString.snakeToCamel,
+  transformJson: true,
+});
 
 const toPem = (der: ArrayBuffer): string => {
   const bytes = new Uint8Array(der);
@@ -69,9 +79,7 @@ beforeAll(async () => {
   );
   const base = makeBaseLayer(
     {
-      DATABASE_URL:
-        process.env.DATABASE_URL ??
-        "postgres://delulu:delulu@localhost:5432/delulu",
+      DATABASE_URL,
       AS_ISSUER: ISSUER,
       API_RESOURCE: ISSUER,
       APP_BASE_URL: "http://localhost:3000",
@@ -120,6 +128,29 @@ const postJson = (path: string, body: unknown, token?: string) =>
       },
       body: JSON.stringify(body),
     })
+  );
+
+const patchJson = (path: string, body: unknown, token?: string) =>
+  handler(
+    new Request(`${ISSUER}${path}`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+  );
+
+const seedPublishingConnection = (workspaceId: string) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      yield* sql`INSERT INTO connections
+        (id, workspace_id, platform, profile_id, access_token, cipher_version)
+        VALUES (${`connection_${crypto.randomUUID()}`}, ${workspaceId},
+          'THREADS', ${`profile_${crypto.randomUUID()}`}, 'opaque', 'v1')`;
+    }).pipe(Effect.provide(TestPg))
   );
 
 const webhookSignature = async (
@@ -357,6 +388,26 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(await res.json()).toBeNull();
   });
 
+  it("GET /v1/workspaces/:id/billing/usage returns zero usage without a subscription", async () => {
+    const res = await get(
+      `/v1/workspaces/${personalWorkspaceId}/billing/usage`,
+      "dev-token"
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      billingOwnerUserId: expect.any(String),
+      usage: {
+        socialAccounts: 0,
+        monthlyPosts: 0,
+        mediaStorageBytes: 0,
+        apiRequestsPerMonth: 0,
+        dmsSent: 0,
+        dmsSkipped: 0,
+        transcriptionsUsed: 0,
+      },
+    });
+  });
+
   it("GET /v1/me/overview returns the command-center aggregates", async () => {
     const res = await get(
       `/v1/me/overview/${personalWorkspaceId}`,
@@ -379,19 +430,18 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     });
   });
 
-  it("completes onboarding before payment and keeps it complete", async () => {
+  it("rejects completion before the required activation steps", async () => {
     const complete = await postJson(
       `/v1/me/setup/${personalWorkspaceId}/complete`,
       {},
       "dev-token"
     );
-    expect(complete.status).toBe(200);
-    expect(await complete.json()).toEqual({ completed: true });
+    expect(complete.status).toBe(409);
 
     const setup = await get(`/v1/me/setup/${personalWorkspaceId}`, "dev-token");
     expect(setup.status).toBe(200);
     expect(await setup.json()).toMatchObject({
-      onboardingComplete: true,
+      onboardingComplete: false,
       subscription: {
         plan: "free",
         status: "inactive",
@@ -421,6 +471,25 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(mint.status).toBe(200);
     const mintBody = (await mint.json()) as { url: string };
     expect(mintBody.url).toContain("state=");
+    expect(
+      (
+        await patchJson(
+          `/v1/me/setup/${workspaceId}`,
+          { goal: "publish" },
+          "dev-token"
+        )
+      ).status
+    ).toBe(200);
+    await seedPublishingConnection(workspaceId!);
+    expect(
+      (
+        await patchJson(
+          `/v1/me/setup/${workspaceId}`,
+          { optionalSteps: { ready: "completed" } },
+          "dev-token"
+        )
+      ).status
+    ).toBe(200);
 
     const current = await get("/v1/me", "dev-token");
     const currentBody = (await current.json()) as { user: { id: string } };
@@ -441,6 +510,13 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
       },
     });
     expect(paid.status).toBe(200);
+    const complete = await postJson(
+      `/v1/me/setup/${workspaceId}/complete`,
+      {},
+      "dev-token"
+    );
+    expect(complete.status).toBe(200);
+    expect(await complete.json()).toEqual({ completed: true });
 
     const setupAfterPayment = await get(
       `/v1/me/setup/${workspaceId}`,

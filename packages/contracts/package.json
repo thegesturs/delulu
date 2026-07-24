@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "build": "tsc --noEmit --emitDeclarationOnly false",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {

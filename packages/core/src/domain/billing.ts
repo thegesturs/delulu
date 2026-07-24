@@ -21,6 +21,16 @@ export const PooledUsage = Schema.Struct({
 });
 export type PooledUsage = typeof PooledUsage.Type;
 
+export const emptyPooledUsage = (): PooledUsage => ({
+  socialAccounts: 0,
+  monthlyPosts: 0,
+  mediaStorageBytes: 0,
+  apiRequestsPerMonth: 0,
+  dmsSent: 0,
+  dmsSkipped: 0,
+  transcriptionsUsed: 0,
+});
+
 export const BillingOwnerTransferStatus = Schema.Literals([
   "pending",
   "accepted",
