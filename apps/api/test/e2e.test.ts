@@ -61,10 +61,15 @@ beforeAll(async () => {
   const Clerk = Layer.succeed(
     ClerkTokenVerifier,
     ClerkTokenVerifier.of({
-      verify: (token) =>
-        token === "dev-token"
-          ? Effect.succeed({ sub: DEV_SUB })
-          : Effect.fail(new UnauthorizedError({ message: "bad token" })),
+      verify: (token) => {
+        if (token === "dev-token") {
+          return Effect.succeed({ sub: DEV_SUB });
+        }
+        if (token.startsWith("test-token:")) {
+          return Effect.succeed({ sub: token.slice("test-token:".length) });
+        }
+        return Effect.fail(new UnauthorizedError({ message: "bad token" }));
+      },
     })
   );
   const Limiter = RateLimiterService.inMemoryLayer({ sessionPerMinute: 20 });
@@ -377,6 +382,114 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     expect(body.total).toBeGreaterThanOrEqual(1);
     expect(body.data[0].role).toBe("owner");
     expect(body.data[0].isPersonal).toBe(true);
+  });
+
+  it("repairs a missing personal-workspace membership during session authentication", async () => {
+    const sub = `clerk_repair_${crypto.randomUUID()}`;
+    const token = `test-token:${sub}`;
+    const current = await get("/v1/me", token);
+    expect(current.status).toBe(200);
+    const currentBody = (await current.json()) as {
+      personalWorkspace: { id: string } | null;
+    };
+    const workspaceId = currentBody.personalWorkspace?.id ?? "";
+    expect(workspaceId).toBeTruthy();
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* sql`DELETE FROM workspace_members
+          WHERE workspace_id = ${workspaceId}`;
+      }).pipe(Effect.provide(TestPg))
+    );
+
+    const res = await get("/v1/me/workspaces", token);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: Array<{ workspaceId: string; role: string }>;
+    };
+    expect(body.data).toContainEqual(
+      expect.objectContaining({
+        workspaceId,
+        role: "owner",
+      })
+    );
+  });
+
+  it("adds an organization creator as an owner when its Clerk webhook arrives", async () => {
+    const sub = `clerk_org_creator_${crypto.randomUUID()}`;
+    const token = `test-token:${sub}`;
+    const current = await get("/v1/me", token);
+    expect(current.status).toBe(200);
+    const clerkOrganizationId = `org_${crypto.randomUUID()}`;
+    const created = await postClerkWebhook(`org_${crypto.randomUUID()}`, {
+      type: "organization.created",
+      data: {
+        id: clerkOrganizationId,
+        name: "Creator workspace",
+        slug: `creator-${crypto.randomUUID()}`,
+        created_by: sub,
+      },
+    });
+    expect(created.status).toBe(200);
+
+    const res = await get("/v1/me/workspaces", token);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: Array<{ name: string; role: string }>;
+    };
+    expect(body.data).toContainEqual(
+      expect.objectContaining({
+        name: "Creator workspace",
+        role: "owner",
+      })
+    );
+  });
+
+  it("repairs ownership before moving an account from an older personal workspace", async () => {
+    const sub = `clerk_transfer_${crypto.randomUUID()}`;
+    const token = `test-token:${sub}`;
+    const current = await get("/v1/me", token);
+    expect(current.status).toBe(200);
+    const currentBody = (await current.json()) as {
+      personalWorkspace: { id: string } | null;
+    };
+    const destinationWorkspaceId = currentBody.personalWorkspace?.id ?? "";
+    expect(destinationWorkspaceId).toBeTruthy();
+
+    const sourceWorkspaceId = `workspace_${crypto.randomUUID()}`;
+    const connectionId = `connection_${crypto.randomUUID()}`;
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        const users = yield* sql<{
+          id: string;
+        }>`SELECT id FROM users WHERE external_id = ${sub}`;
+        const userId = users[0]?.id ?? "";
+        expect(userId).toBeTruthy();
+        yield* sql`INSERT INTO workspaces
+          (id, name, billing_owner_user_id, is_personal)
+          VALUES (${sourceWorkspaceId}, 'Older personal workspace', ${userId}, true)`;
+        yield* sql`INSERT INTO connections
+          (id, workspace_id, platform, profile_id, access_token, cipher_version)
+          VALUES (
+            ${connectionId},
+            ${sourceWorkspaceId},
+            'THREADS',
+            ${`profile_${crypto.randomUUID()}`},
+            'opaque',
+            'v1'
+          )`;
+      }).pipe(Effect.provide(TestPg))
+    );
+
+    const moved = await postJson(
+      `/v1/workspaces/${destinationWorkspaceId}/connections/${connectionId}/transfer`,
+      { sourceWorkspaceId },
+      token
+    );
+    expect(moved.status).toBe(200);
+    expect(await moved.json()).toEqual({ confirmed: true });
   });
 
   it("GET /v1/workspaces/:id/billing/subscription treats a missing subscription as unpaid", async () => {

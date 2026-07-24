@@ -93,17 +93,73 @@ export class IdentityService extends Context.Service<
       const ensurePersonalWorkspaceOwnership = Effect.fn(
         "IdentityService.ensurePersonalWorkspaceOwnership"
       )(function* (userId: string) {
-        const workspace = yield* findPersonalWorkspace(userId).pipe(
-          Effect.orDie
-        );
-        if (Option.isNone(workspace)) {
+        const ownership = yield* sql<{
+          hasWorkspace: boolean;
+          needsRepair: boolean;
+        }>`SELECT
+          EXISTS (
+            SELECT 1
+            FROM workspaces
+            WHERE billing_owner_user_id = ${userId}
+              AND is_personal = true
+              AND deleted_at IS NULL
+          ) AS "hasWorkspace",
+          EXISTS (
+            SELECT 1
+            FROM workspaces workspace
+            LEFT JOIN workspace_members member
+              ON member.workspace_id = workspace.id
+              AND member.user_id = ${userId}
+            WHERE workspace.billing_owner_user_id = ${userId}
+              AND workspace.is_personal = true
+              AND workspace.deleted_at IS NULL
+              AND (member.id IS NULL OR member.role <> 'owner')
+          ) AS "needsRepair"`.pipe(Effect.orDie);
+        if (ownership[0]?.hasWorkspace && !ownership[0].needsRepair) {
           return;
         }
-        yield* sql`INSERT INTO workspace_members (id, workspace_id, user_id, role)
-          VALUES (${makeId(MemberId)}, ${workspace.value.id}, ${userId}, 'owner')
-          ON CONFLICT (workspace_id, user_id)
-          DO UPDATE SET role = 'owner', updated_at = now()`.pipe(Effect.orDie);
+        yield* sql
+          .withTransaction(
+            Effect.gen(function* () {
+              yield* sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+              const personalWorkspaces = yield* sql<{
+                id: string;
+              }>`SELECT id FROM workspaces
+                WHERE billing_owner_user_id = ${userId}
+                  AND is_personal = true
+                  AND deleted_at IS NULL`;
+              if (personalWorkspaces.length === 0) {
+                yield* sql`INSERT INTO workspaces
+                  (id, name, billing_owner_user_id, is_personal)
+                  VALUES (${makeId(WorkspaceId)}, 'Personal', ${userId}, true)`;
+              }
+              yield* sql`INSERT INTO workspace_members
+                (id, workspace_id, user_id, role)
+                SELECT
+                  'member_' || substr(
+                    replace(gen_random_uuid()::text, '-', ''),
+                    1,
+                    12
+                  ),
+                  id,
+                  ${userId},
+                  'owner'
+                FROM workspaces
+                WHERE billing_owner_user_id = ${userId}
+                  AND is_personal = true
+                  AND deleted_at IS NULL
+                ON CONFLICT (workspace_id, user_id)
+                DO UPDATE SET role = 'owner', updated_at = now()
+                WHERE workspace_members.role <> 'owner'`;
+            })
+          )
+          .pipe(Effect.orDie);
       });
+
+      const repairAndLoadResolved = (user: User) =>
+        ensurePersonalWorkspaceOwnership(user.id).pipe(
+          Effect.andThen(loadResolved(user))
+        );
 
       const provision = (
         profile: ClerkProfile
@@ -163,7 +219,7 @@ export class IdentityService extends Context.Service<
                   Option.match({
                     onNone: () =>
                       Effect.die("provisioning raced without a winner"),
-                    onSome: loadResolved,
+                    onSome: repairAndLoadResolved,
                   })
                 )
               )
@@ -176,7 +232,7 @@ export class IdentityService extends Context.Service<
           Effect.flatMap(
             Option.match({
               onNone: () => provision(profile),
-              onSome: loadResolved,
+              onSome: repairAndLoadResolved,
             })
           ),
           Effect.orDie
@@ -187,7 +243,7 @@ export class IdentityService extends Context.Service<
           Effect.flatMap(
             Option.match({
               onNone: () => Effect.die(`user ${userId} not found`),
-              onSome: loadResolved,
+              onSome: repairAndLoadResolved,
             })
           ),
           Effect.orDie

@@ -42,15 +42,20 @@ export function WorkspaceProvider({
   readonly children: ReactNode;
 }) {
   const { resources } = useApiClient();
-  const memberships = useResourceAtom(resources.me.workspaces());
+  const memberships = useResourceAtom({
+    ...resources.me.workspaces(),
+    retry: 6,
+    retryDelayMs: 100,
+  });
   const selected = useAtomValue(selectedWorkspaceAtom);
   const [selectionHydrated, setSelectionHydrated] = useState(false);
   const workspaces = memberships.data?.data ?? [];
-  const workspaceId =
+  const selectedWorkspaceId =
     selected &&
     workspaces.some((workspace) => workspace.workspaceId === selected)
       ? selected
       : null;
+  const workspaceId = selectedWorkspaceId ?? workspaces[0]?.workspaceId ?? null;
 
   useEffect(() => {
     const persisted = localStorage.getItem(STORAGE_KEY);
@@ -78,9 +83,7 @@ export function WorkspaceProvider({
     () => ({
       workspaceId,
       workspaces,
-      isLoading:
-        memberships.isPending ||
-        (workspaces.length > 0 && workspaceId === null),
+      isLoading: memberships.isPending,
       isError: memberships.isError,
       error: memberships.error,
       refetch: memberships.refetch,

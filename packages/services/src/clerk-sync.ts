@@ -146,7 +146,33 @@ export class ClerkSyncService extends Context.Service<
             if (existing[0]) {
               yield* execute(
                 event.type,
-                sql`UPDATE workspaces SET name = ${event.data.name}, slug = ${event.data.slug ?? null}, deleted_at = NULL WHERE id = ${existing[0].id}`
+                sql.withTransaction(
+                  Effect.gen(function* () {
+                    yield* sql`UPDATE workspaces SET name = ${event.data.name}, slug = ${event.data.slug ?? null}, deleted_at = NULL WHERE id = ${existing[0].id}`;
+                    if (!event.data.created_by) {
+                      return;
+                    }
+                    const creator = yield* sql<{
+                      id: string;
+                    }>`SELECT id FROM users WHERE external_id = ${event.data.created_by}`;
+                    if (!creator[0]) {
+                      return yield* syncError(
+                        event.type,
+                        "Organization creator is not provisioned yet"
+                      );
+                    }
+                    yield* sql`INSERT INTO workspace_members
+                      (id, workspace_id, user_id, role)
+                      VALUES (
+                        ${makeId(MemberId)},
+                        ${existing[0].id},
+                        ${creator[0].id},
+                        'owner'
+                      )
+                      ON CONFLICT (workspace_id, user_id)
+                      DO UPDATE SET role = 'owner', updated_at = now()`;
+                  })
+                )
               );
               return;
             }
@@ -170,7 +196,46 @@ export class ClerkSyncService extends Context.Service<
             }
             yield* execute(
               event.type,
-              sql`INSERT INTO workspaces (id, name, slug, billing_owner_user_id, parent_org_id, clerk_org_id, is_personal) VALUES (${makeId(WorkspaceId)}, ${event.data.name}, ${event.data.slug ?? null}, ${creator[0].id}, NULL, ${event.data.id}, false) ON CONFLICT (clerk_org_id) DO UPDATE SET name = EXCLUDED.name, slug = EXCLUDED.slug, deleted_at = NULL`
+              sql.withTransaction(
+                Effect.gen(function* () {
+                  const workspaceId = makeId(WorkspaceId);
+                  yield* sql`INSERT INTO workspaces
+                    (id, name, slug, billing_owner_user_id, parent_org_id, clerk_org_id, is_personal)
+                    VALUES (
+                      ${workspaceId},
+                      ${event.data.name},
+                      ${event.data.slug ?? null},
+                      ${creator[0].id},
+                      NULL,
+                      ${event.data.id},
+                      false
+                    )
+                    ON CONFLICT (clerk_org_id)
+                    DO UPDATE SET
+                      name = EXCLUDED.name,
+                      slug = EXCLUDED.slug,
+                      deleted_at = NULL`;
+                  const workspace = yield* sql<{
+                    id: string;
+                  }>`SELECT id FROM workspaces WHERE clerk_org_id = ${event.data.id}`;
+                  if (!workspace[0]) {
+                    return yield* syncError(
+                      event.type,
+                      "Organization workspace was not provisioned"
+                    );
+                  }
+                  yield* sql`INSERT INTO workspace_members
+                    (id, workspace_id, user_id, role)
+                    VALUES (
+                      ${makeId(MemberId)},
+                      ${workspace[0].id},
+                      ${creator[0].id},
+                      'owner'
+                    )
+                    ON CONFLICT (workspace_id, user_id)
+                    DO UPDATE SET role = 'owner', updated_at = now()`;
+                })
+              )
             );
             return;
           }

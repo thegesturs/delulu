@@ -23,12 +23,34 @@ const apiBaseUrl =
     ? "http://localhost:8788"
     : "https://api.delulu.social");
 
+export const resolveAuthenticatedToken = async (
+  getToken: () => Promise<string | null>,
+  options: { attempts?: number; delayMs?: number } = {}
+): Promise<string> => {
+  const attempts = options.attempts ?? 6;
+  const delayMs = options.delayMs ?? 75;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const token = await getToken();
+    if (token) {
+      return token;
+    }
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, delayMs * 2 ** attempt)
+      );
+    }
+  }
+  throw new Error("Your session is still loading. Please try again.");
+};
+
 export function ApiClientProvider({
   children,
+  fallback = null,
 }: {
   readonly children: ReactNode;
+  readonly fallback?: ReactNode;
 }) {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
   const value = useMemo<ApiClientContextValue>(() => {
     if (!apiBaseUrl) {
@@ -37,13 +59,7 @@ export function ApiClientProvider({
 
     const client = createApiClient({
       baseUrl: apiBaseUrl,
-      getToken: async () => {
-        const token = await getToken();
-        if (!token) {
-          throw new Error("No authenticated API token is available");
-        }
-        return token;
-      },
+      getToken: () => resolveAuthenticatedToken(getToken),
     });
 
     return {
@@ -51,6 +67,10 @@ export function ApiClientProvider({
       resources: createResourceEffects({ client }),
     };
   }, [getToken]);
+
+  if (!(isLoaded && isSignedIn)) {
+    return fallback;
+  }
 
   return (
     <ApiClientContext.Provider value={value}>
