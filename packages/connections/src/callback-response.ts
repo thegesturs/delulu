@@ -12,6 +12,21 @@ export const callbackRedirect = (location: string): Response => {
   });
 };
 
+/** Build the canonical transfer prompt redirect for every provider adapter. */
+export const transferRequiredRedirect = (input: {
+  readonly platform: string;
+  readonly connectionId: string;
+  readonly sourceWorkspaceId: string;
+}): Response => {
+  const params = new URLSearchParams({
+    notification: "transfer_required",
+    platform: input.platform.toLowerCase(),
+    connectionId: input.connectionId,
+    sourceWorkspaceId: input.sourceWorkspaceId,
+  });
+  return callbackRedirect(`/socials?${params.toString()}`);
+};
+
 const mapCallbackRedirect = (
   response: Response,
   update: (url: URL) => boolean
@@ -32,6 +47,23 @@ const mapCallbackRedirect = (
     status: response.status,
     statusText: response.statusText,
     headers,
+  });
+};
+
+export const withConnectionReturnTarget = (
+  response: Response,
+  target?: "socials" | "onboarding-connect"
+): Response => {
+  if (!target || target === "socials") {
+    return response;
+  }
+  return mapCallbackRedirect(response, (url) => {
+    if (url.pathname !== "/socials") {
+      return false;
+    }
+    url.pathname = "/onboarding";
+    url.searchParams.set("step", "connect");
+    return true;
   });
 };
 

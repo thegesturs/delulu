@@ -1,6 +1,9 @@
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import { type ConnectionError, networkError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
@@ -148,12 +151,10 @@ export const tiktokAuth: PlatformAuth = {
         fullName: display_name,
         profileImage: avatar_url,
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=tiktok"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "tiktok", ...result });
       }
 
       ctx.onConnected?.({ provider: "tiktok", username });

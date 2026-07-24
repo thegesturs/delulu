@@ -237,9 +237,13 @@ export interface ConnectFacebookPageInput {
   temporaryStore: CallbackContext["temporaryStore"];
 }
 
-export interface ConnectFacebookPageResult {
-  status: "connected" | "transferred";
-}
+export type ConnectFacebookPageResult =
+  | { readonly status: "connected" }
+  | {
+      readonly status: "transfer_required";
+      readonly connectionId: string;
+      readonly sourceWorkspaceId: string;
+    };
 
 /**
  * Finalises a Facebook connection after the user picks a page. Reads the
@@ -282,14 +286,14 @@ export async function connectFacebookPage(
   // Clean up the one-time KV entry once the token has been extracted.
   await facebookPagesKV.delete(key);
 
-  const status = await input.upsert({
+  const result = await input.upsert({
     socialType: "FACEBOOK",
     accessToken: pageAccessToken,
     profileId: input.pageId,
     username: input.pageName,
     fullName: input.pageName,
   });
-  return {
-    status: status === "transfer_required" ? "transferred" : "connected",
-  };
+  return result.status === "transfer_required"
+    ? result
+    : { status: "connected" };
 }

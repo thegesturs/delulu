@@ -1,0 +1,44 @@
+# Local API runtime. Copy to `.dev.vars`; Wrangler serves this worker on 8788.
+DATABASE_URL="postgres://delulu:delulu@localhost:5432/delulu"
+APP_BASE_URL="http://localhost:3000"
+AS_ISSUER="http://localhost:8788"
+API_RESOURCE="http://localhost:8788"
+ENVIRONMENT="development"
+DODO_PAYMENTS_ENVIRONMENT="test_mode"
+
+# Clerk session verification for the Clerk instance used by the local app.
+CLERK_ISSUER="https://your-instance.clerk.accounts.dev"
+CLERK_JWT_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+CLERK_SECRET_KEY=""
+
+# Generate local-only values; never reuse production secrets.
+AS_SIGNING_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+AS_SIGNING_KID="local-dev"
+CONNECTION_STATE_SECRET=""
+ENCRYPTION_SECRET=""
+
+# Provider webhook secrets must match the endpoints registered against your
+# public Cloudflare Tunnel hostname.
+CLERK_WEBHOOK_SECRET=""
+DODO_PAYMENTS_API_KEY=""
+DODO_WEBHOOK_SECRET=""
+META_APP_SECRET=""
+META_VERIFY_TOKEN=""
+CAL_WEBHOOK_SECRET=""
+
+# OAuth callbacks are separate from webhooks and must also return through the
+# public API tunnel during local development.
+TWITTER_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/twitter"
+LINKEDIN_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/linkedin"
+TIKTOK_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/tiktok"
+INSTAGRAM_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/instagram"
+FACEBOOK_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/facebook"
+PINTEREST_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/pinterest"
+YOUTUBE_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/youtube"
+THREADS_CALLBACK_URL="https://your-api-tunnel.example.com/v1/connections/callback/threads"
+
+# Public webhook URLs:
+# https://your-api-tunnel.example.com/webhooks/clerk
+# https://your-api-tunnel.example.com/webhooks/dodo
+# https://your-api-tunnel.example.com/webhooks/meta
+# https://your-api-tunnel.example.com/webhooks/cal

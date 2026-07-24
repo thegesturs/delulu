@@ -1,34 +1,97 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingStepper } from "./onboarding-stepper";
 
-const CONTINUE_SETUP = /continue setup/i;
+const PUBLISH_CONTENT = /publish content/i;
+const CONTINUE = /^continue/i;
+const PUBLISH_FIRST = /where do you want to publish first/i;
+const CREATE_POST = /create your first post/i;
+const CREATE_AUTO_DM = /create your first auto-dm/i;
+const REVIEW_PLANS = /review plans/i;
+const CHOOSE_PLAN = /choose a plan to continue/i;
+const LOG_OUT = /log out/i;
+const VIEW_UPGRADES = /view upgrade options/i;
+const RETURN_TO_CONNECTIONS = /return to connections/i;
+const CONNECT_AUTOMATION_ACCOUNT = /connect the account you’ll automate/i;
+const CHOOSE_FIRST_GOAL = /what do you want to do first/i;
+const CHOOSE_YOUR_PLAN = /choose your plan/i;
+const PLAN_STILL_SYNCING = /plan activation is still syncing/i;
+const CHECKOUT_CANCELLED = /checkout was cancelled/i;
 
 const mocks = vi.hoisted(() => ({
-  handleNextStep: vi.fn(),
   push: vi.fn(),
+  refresh: vi.fn(),
+  signOut: vi.fn(),
+  setupRefetch: vi.fn(),
+  search: "",
+  toastError: vi.fn(),
+  usageAllowed: true,
+  updateSetup: vi.fn(),
+  completeSetup: vi.fn(),
+  setupData: {
+    goal: null as "publish" | "auto_dm" | null,
+    webStep: "goal",
+    subscription: { plan: "free", status: "inactive", paid: false },
+  },
+  accountsData: [] as Array<{
+    id: string;
+    platform: string;
+    profileId: string;
+    username: string | null;
+    displayName: string | null;
+    expiresAt: string | null;
+  }>,
+}));
+
+vi.mock("@delulu/auth", () => ({
+  useClerk: () => ({ signOut: mocks.signOut }),
+  useSession: () => ({
+    session: {
+      clearCache: vi.fn(),
+      getToken: vi.fn(),
+      reload: vi.fn(),
+    },
+  }),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: mocks.toastError },
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mocks.push }),
-}));
-
-vi.mock("@/hooks/use-onboarding", () => ({
-  useOnboarding: () => ({
-    currentStep: 2,
-    handleNextStep: mocks.handleNextStep,
-    handleSkipStep: vi.fn(),
-    handlePreviousStep: vi.fn(),
-    handleCompleteOnboarding: vi.fn(),
-    isLoading: false,
-  }),
+  useRouter: () => ({ push: mocks.push, refresh: mocks.refresh }),
+  useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
 vi.mock("@/components/providers/api-client", () => ({
   useApiClient: () => ({
     resources: {
+      me: {
+        setup: () => ({ queryKey: ["setup"], effect: vi.fn() }),
+        updateSetup: () => ({
+          mutationKey: ["updateSetup"],
+          effect: vi.fn(),
+        }),
+        completeSetup: () => ({
+          mutationKey: ["completeSetup"],
+          effect: vi.fn(),
+        }),
+      },
       connections: {
+        confirmTransfer: () => ({
+          mutationKey: ["confirmTransfer"],
+          effect: vi.fn(),
+        }),
         list: () => ({ queryKey: ["connections"], effect: vi.fn() }),
+        mint: () => ({ mutationKey: ["mint"], effect: vi.fn() }),
+        remove: () => ({ mutationKey: ["remove"], effect: vi.fn() }),
       },
     },
   }),
@@ -38,36 +101,406 @@ vi.mock("@/components/providers/workspace", () => ({
   useWorkspace: () => ({ workspaceId: "workspace_test" }),
 }));
 
-vi.mock("@/state/resources", () => ({
-  useResourceAtom: () => ({ data: { data: [] } }),
+vi.mock("@/hooks/use-usage-limits", () => ({
+  useUsageLimit: () => ({
+    allowed: mocks.usageAllowed,
+    limit: 5,
+    planType: "echo",
+  }),
 }));
 
-vi.mock("./welcome-step", () => ({ WelcomeStep: () => null }));
-vi.mock("./pricing-step", () => ({
-  PricingStep: () => <div>Pricing plans</div>,
+vi.mock("@/hooks/use-feature-flag", () => ({
+  useFeatureFlag: () => true,
 }));
-vi.mock("./connect-accounts-step", () => ({
-  ConnectAccountsStep: () => null,
+
+vi.mock("./plan-step", () => ({
+  PlanStep: ({
+    isRefreshing,
+    paid,
+    refreshError,
+  }: {
+    isRefreshing: boolean;
+    paid: boolean;
+    refreshError: string | null;
+  }) => (
+    <div>
+      <span>
+        {paid
+          ? "Plan active"
+          : isRefreshing
+            ? "Payment confirmed, syncing"
+            : "Choose your plan"}
+      </span>
+      {refreshError ? <span>{refreshError}</span> : null}
+    </div>
+  ),
 }));
-vi.mock("./automation-setup-step", () => ({
-  AutomationSetupStep: () => null,
+
+vi.mock("@/state/resources", () => ({
+  useResourceAtom: (options: { queryKey: string[] }) =>
+    options.queryKey[0] === "setup"
+      ? {
+          data: mocks.setupData,
+          refetch: mocks.setupRefetch,
+        }
+      : {
+          data: { data: mocks.accountsData, total: mocks.accountsData.length },
+          refetch: vi
+            .fn()
+            .mockResolvedValue({ data: { data: mocks.accountsData } }),
+        },
+  useMutationAtom: (options: { mutationKey: string[] }) => {
+    const key = options.mutationKey[0];
+    return {
+      isPending: false,
+      mutateAsync:
+        key === "updateSetup"
+          ? mocks.updateSetup
+          : key === "completeSetup"
+            ? mocks.completeSetup
+            : vi.fn(),
+    };
+  },
 }));
-vi.mock("./survey-step", () => ({ SurveyStep: () => null }));
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe("OnboardingStepper", () => {
   beforeEach(() => {
-    mocks.handleNextStep.mockReset();
+    mocks.push.mockReset();
+    mocks.refresh.mockReset();
+    mocks.signOut.mockReset();
+    mocks.signOut.mockResolvedValue(undefined);
+    mocks.setupRefetch.mockReset();
+    mocks.setupRefetch.mockImplementation(async () => ({
+      data: mocks.setupData,
+    }));
+    mocks.toastError.mockReset();
+    mocks.search = "";
+    mocks.usageAllowed = true;
+    mocks.updateSetup.mockReset();
+    mocks.updateSetup.mockResolvedValue({ updated: true });
+    mocks.completeSetup.mockReset();
+    mocks.completeSetup.mockResolvedValue({ completed: true });
+    mocks.setupData.goal = null;
+    mocks.setupData.webStep = "goal";
+    mocks.setupData.subscription = {
+      plan: "free",
+      status: "inactive",
+      paid: false,
+    };
+    mocks.accountsData = [];
   });
 
-  it("allows an unpaid user to continue past pricing", () => {
+  it("lets the user sign out from every onboarding step", async () => {
+    let view = render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+
+    await waitFor(() =>
+      expect(mocks.signOut).toHaveBeenCalledWith({ redirectUrl: "/sign-in" })
+    );
+    view.unmount();
+
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "connect";
+    view = render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(2));
+    view.unmount();
+
+    mocks.setupData.webStep = "ready";
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(3));
+
+    cleanup();
+    mocks.setupData.webStep = "plan";
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+    await waitFor(() => expect(mocks.signOut).toHaveBeenCalledTimes(4));
+  });
+
+  it("recovers when logout fails", async () => {
+    mocks.signOut.mockRejectedValueOnce(
+      new Error("Session service unavailable")
+    );
     render(<OnboardingStepper />);
 
-    const continueButton = screen.getByRole("button", {
-      name: CONTINUE_SETUP,
-    });
-    expect((continueButton as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
 
-    fireEvent.click(continueButton);
-    expect(mocks.handleNextStep).toHaveBeenCalledOnce();
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: LOG_OUT }) as HTMLButtonElement)
+          .disabled
+      ).toBe(false)
+    );
+    expect(mocks.toastError).toHaveBeenCalledWith("Could not log out", {
+      description: "Session service unavailable",
+    });
+  });
+
+  it("blocks onboarding interactions while logout is pending", async () => {
+    let finishSignOut: (() => void) | undefined;
+    mocks.signOut.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSignOut = resolve;
+        })
+    );
+    render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("button", { name: LOG_OUT }));
+
+    await waitFor(() => {
+      const logout = screen.getByRole("button", {
+        name: LOG_OUT,
+      }) as HTMLButtonElement;
+      expect(logout.disabled).toBe(true);
+      expect(
+        screen
+          .getByRole("region", { name: "Onboarding step" })
+          .hasAttribute("inert")
+      ).toBe(true);
+    });
+
+    finishSignOut?.();
+  });
+
+  it("saves the selected activation goal and advances to connections", async () => {
+    render(<OnboardingStepper />);
+
+    fireEvent.click(screen.getByRole("radio", { name: PUBLISH_CONTENT }));
+
+    await waitFor(() =>
+      expect(mocks.updateSetup).toHaveBeenCalledWith({ goal: "publish" })
+    );
+    fireEvent.click(screen.getByRole("button", { name: CONTINUE }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          name: PUBLISH_FIRST,
+        })
+      ).toBeTruthy()
+    );
+  });
+
+  it("accepts a non-Instagram publishing account and requires a plan", async () => {
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "ready";
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+    mocks.setupData.webStep = "plan";
+    fireEvent.click(screen.getByRole("button", { name: REVIEW_PLANS }));
+
+    await waitFor(() =>
+      expect(mocks.updateSetup).toHaveBeenCalledWith({
+        optionalSteps: { ready: "completed" },
+      })
+    );
+    expect(screen.getByText("Choose your plan")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: CHOOSE_PLAN }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true);
+    expect(mocks.completeSetup).not.toHaveBeenCalled();
+  });
+
+  it("routes account-limit upgrades through the onboarding plan step", () => {
+    mocks.setupData.goal = "auto_dm";
+    mocks.setupData.webStep = "connect";
+    mocks.usageAllowed = false;
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+
+    expect(
+      screen.getByRole("link", { name: VIEW_UPGRADES }).getAttribute("href")
+    ).toBe("/onboarding?step=plan&source=connection-limit");
+  });
+
+  it("returns to connections after a quota upgrade", () => {
+    mocks.search = "step=plan&source=connection-limit";
+    mocks.usageAllowed = false;
+    mocks.setupData.goal = "auto_dm";
+    mocks.setupData.webStep = "connect";
+    mocks.setupData.subscription = {
+      plan: "ECHO",
+      status: "active",
+      paid: true,
+    };
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+    fireEvent.click(
+      screen.getByRole("button", { name: RETURN_TO_CONNECTIONS })
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: CONNECT_AUTOMATION_ACCOUNT,
+      })
+    ).toBeTruthy();
+  });
+
+  it("ignores a direct plan URL before the server reaches that step", () => {
+    mocks.search = "step=plan";
+
+    render(<OnboardingStepper />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: CHOOSE_FIRST_GOAL,
+      })
+    ).toBeTruthy();
+    expect(screen.queryByText(CHOOSE_YOUR_PLAN)).toBeNull();
+  });
+
+  it("reconciles a successful payment callback and cleans its URL", async () => {
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    mocks.search = "step=plan&status=succeeded";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
+    mocks.setupRefetch.mockImplementationOnce(async () => {
+      mocks.setupData.subscription = {
+        plan: "ECHO",
+        status: "active",
+        paid: true,
+      };
+      return { data: mocks.setupData };
+    });
+
+    render(<OnboardingStepper />);
+
+    await waitFor(() => expect(screen.getByText("Plan active")).toBeTruthy());
+    expect(replaceState).toHaveBeenCalledWith(
+      window.history.state,
+      "",
+      "/onboarding"
+    );
+  });
+
+  it("bounds payment reconciliation retries and offers recovery", async () => {
+    vi.useFakeTimers();
+    mocks.search = "step=plan&status=succeeded";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
+
+    render(<OnboardingStepper />);
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(mocks.setupRefetch).toHaveBeenCalledTimes(5);
+    expect(screen.getByText(PLAN_STILL_SYNCING)).toBeTruthy();
+  });
+
+  it("keeps checkout available after a cancelled payment callback", async () => {
+    mocks.search = "step=plan&cancelled=true";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
+
+    render(<OnboardingStepper />);
+
+    await waitFor(() =>
+      expect(screen.getByText(CHECKOUT_CANCELLED)).toBeTruthy()
+    );
+    expect(screen.getByText("Choose your plan")).toBeTruthy();
+  });
+
+  it("opens the composer only after a paid plan is active", async () => {
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
+    mocks.setupData.subscription = {
+      plan: "ECHO",
+      status: "active",
+      paid: true,
+    };
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: CREATE_POST }));
+
+    await waitFor(() => expect(mocks.completeSetup).toHaveBeenCalledOnce());
+    expect(mocks.push).toHaveBeenCalledWith("/post");
+  });
+
+  it("requires Instagram and a paid plan before opening the starter automation", async () => {
+    mocks.setupData.goal = "auto_dm";
+    mocks.setupData.webStep = "plan";
+    mocks.setupData.subscription = {
+      plan: "VIBE",
+      status: "active",
+      paid: true,
+    };
+    mocks.accountsData = [
+      {
+        id: "connection_instagram",
+        platform: "INSTAGRAM",
+        profileId: "profile_instagram",
+        username: "creator",
+        displayName: "Creator",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: CREATE_AUTO_DM }));
+
+    await waitFor(() => expect(mocks.completeSetup).toHaveBeenCalledOnce());
+    expect(mocks.push).toHaveBeenCalledWith(
+      "/automations/new?template=lead-magnet"
+    );
   });
 });

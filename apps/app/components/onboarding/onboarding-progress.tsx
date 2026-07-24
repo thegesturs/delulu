@@ -1,44 +1,60 @@
 import { cn } from "@delulu/design-system/lib/utils";
-import { motion } from "motion/react";
 
 interface OnboardingProgressProps {
-  currentStep: number;
-  totalSteps: number;
+  currentStep: "goal" | "connect" | "ready" | "plan";
+  authoritativeStep?: "goal" | "connect" | "ready" | "plan";
 }
+
+const steps = [
+  { id: "goal", label: "Goal" },
+  { id: "connect", label: "Connect" },
+  { id: "ready", label: "Ready" },
+  { id: "plan", label: "Plan" },
+] as const;
 
 export function OnboardingProgress({
   currentStep,
-  totalSteps = 3,
+  authoritativeStep = currentStep,
 }: OnboardingProgressProps) {
+  const currentIndex = steps.findIndex((step) => step.id === currentStep);
+  const authoritativeIndex = steps.findIndex(
+    (step) => step.id === authoritativeStep
+  );
   return (
-    <div className="flex justify-center gap-3">
-      {Array.from({ length: totalSteps }).map((_, index) => {
-        const step = index + 1;
-        const isActive = step === currentStep;
-        const isCompleted = step < currentStep;
+    <ol
+      aria-label="Onboarding progress"
+      className="grid grid-cols-4 border-zinc-950/10 border-y-[1.5px] border-dotted dark:border-white/10"
+    >
+      {steps.map((step, index) => {
+        const isActive = index === currentIndex;
+        const isCompleted = index < authoritativeIndex;
 
         return (
-          <motion.div
-            animate={{
-              scale: isActive ? 1.2 : 1,
-              opacity: isActive || isCompleted ? 1 : 0.3,
-            }}
+          <li
             aria-current={isActive ? "step" : undefined}
-            aria-label={`Step ${step} of ${totalSteps}`}
             className={cn(
-              "h-2.5 w-2.5 rounded-full",
-              isActive || isCompleted ? "bg-primary" : "bg-foreground"
+              "min-w-0 px-2 py-3 sm:px-4",
+              index > 0 &&
+                "border-zinc-950/10 border-l-[1.5px] border-dotted dark:border-white/10",
+              isActive && "bg-muted/45"
             )}
-            initial={false}
-            key={step}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 30,
-            }}
-          />
+            key={step.id}
+          >
+            <span
+              className={cn(
+                "block truncate text-center text-xs sm:text-left",
+                isActive
+                  ? "font-medium text-foreground"
+                  : isCompleted
+                    ? "text-foreground/60"
+                    : "text-muted-foreground"
+              )}
+            >
+              {step.label}
+            </span>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

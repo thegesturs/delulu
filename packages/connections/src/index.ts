@@ -7,7 +7,9 @@
 
 export {
   callbackRedirect,
+  transferRequiredRedirect,
   withConnectionClient,
+  withConnectionReturnTarget,
   withConnectionSuccess,
 } from "./callback-response";
 export * from "./errors";

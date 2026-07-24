@@ -12,6 +12,7 @@ export type PublishableSocialType = Exclude<SocialType, "DEFAULT" | "LENS">;
 
 /** Browser-based clients that need callback completion context. */
 export type ConnectionClient = "cli" | "mcp";
+export type ConnectionReturnTarget = "socials" | "onboarding-connect";
 
 // ── Meta ──────────────────────────────────────────────────────────────────
 
@@ -67,12 +68,18 @@ export interface CallbackContext {
   /** Optional analytics hook fired on a successful connect. */
   onConnected?: (info: { provider: string; username: string }) => void;
   /** Persist the provider credentials in the authoritative connection store. */
-  upsert: (
-    input: ConnectionUpsertInput
-  ) => Promise<"created" | "updated" | "transfer_required">;
+  upsert: (input: ConnectionUpsertInput) => Promise<ConnectionUpsertResult>;
   /** Short-lived state for callbacks that require a second browser step. */
   temporaryStore: ConnectionTemporaryStore;
 }
+
+export type ConnectionUpsertResult =
+  | { readonly status: "created" | "updated" }
+  | {
+      readonly status: "transfer_required";
+      readonly connectionId: string;
+      readonly sourceWorkspaceId: string;
+    };
 
 export interface ConnectionUpsertInput {
   socialType: PublishableSocialType;

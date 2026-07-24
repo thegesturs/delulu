@@ -1,5 +1,6 @@
 "use client";
 
+import { ReferralPrompt } from "@/components/onboarding/referral-prompt";
 import { OperationsError } from "@/components/operations/query-state";
 import { useApiClient } from "@/components/providers/api-client";
 import { useOperationsWorkspace } from "@/hooks/use-operations-workspace";
@@ -29,9 +30,12 @@ export function DashboardClient() {
   }
 
   return (
-    <DashboardContent
-      dashboardStats={stats.data ?? null}
-      isLoading={workspace.isLoading || stats.isPending}
-    />
+    <>
+      <ReferralPrompt />
+      <DashboardContent
+        dashboardStats={stats.data ?? null}
+        isLoading={workspace.isLoading || stats.isPending}
+      />
+    </>
   );
 }

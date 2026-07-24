@@ -114,8 +114,24 @@ corepack enable
 pnpm install
 pnpm pg:up
 pnpm pg:migrate
+cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev:app+api
 ```
+
+The app runs on `http://localhost:3000` and the API worker runs on
+`http://127.0.0.1:8788`. Point a Cloudflare Tunnel API route at port `8788`,
+then register these public webhook endpoints:
+
+```text
+https://<api-tunnel-host>/webhooks/clerk
+https://<api-tunnel-host>/webhooks/dodo
+https://<api-tunnel-host>/webhooks/meta
+https://<api-tunnel-host>/webhooks/cal
+```
+
+Copy each provider's signing secret into the matching variable documented in
+`apps/api/.dev.vars.example`. OAuth connection callbacks also use the API
+tunnel host under `/v1/connections/callback/:provider`.
 
 Focused surfaces:
 

@@ -1,4 +1,4 @@
-import type { ConflictError } from "@delulu/contracts";
+import { ConflictError } from "@delulu/contracts";
 import type { UserId, WorkspaceId } from "@delulu/core";
 import { isPaidPlan } from "@delulu/payments/plans";
 import { Context, Effect, Layer } from "effect";
@@ -7,6 +7,30 @@ import { ClerkAdminService } from "./clerk-admin";
 import { EntitlementPolicy } from "./entitlements";
 
 export type OptionalSetupStepState = "completed" | "skipped";
+export type OnboardingGoal = "publish" | "auto_dm";
+export type WebSetupStep = "goal" | "connect" | "ready" | "plan" | "complete";
+
+export const deriveWebSetupStep = (
+  goal: OnboardingGoal | null,
+  connectedPlatforms: readonly string[],
+  readyAcknowledged: boolean,
+  onboardingComplete: boolean
+): WebSetupStep => {
+  if (onboardingComplete) {
+    return "complete";
+  }
+  if (!goal) {
+    return "goal";
+  }
+  const requirementMet =
+    goal === "auto_dm"
+      ? connectedPlatforms.includes("INSTAGRAM")
+      : connectedPlatforms.length > 0;
+  if (!requirementMet) {
+    return "connect";
+  }
+  return readyAcknowledged ? "plan" : "ready";
+};
 
 export interface SetupStatus {
   readonly workspaceId: string;
@@ -17,6 +41,8 @@ export interface SetupStatus {
     readonly paid: boolean;
   };
   readonly optionalSteps: Readonly<Record<string, string>>;
+  readonly goal: OnboardingGoal | null;
+  readonly webStep: WebSetupStep;
   readonly outstandingAction: "connect_account" | "complete_payment" | null;
   readonly onboardingComplete: boolean;
 }
@@ -32,7 +58,14 @@ export class SetupService extends Context.Service<
       readonly userId: UserId;
       readonly optionalSteps: Readonly<Record<string, OptionalSetupStepState>>;
     }) => Effect.Effect<void>;
-    readonly complete: (userId: UserId) => Effect.Effect<void, ConflictError>;
+    readonly updateGoal: (input: {
+      readonly userId: UserId;
+      readonly goal: OnboardingGoal;
+    }) => Effect.Effect<void>;
+    readonly complete: (
+      workspaceId: WorkspaceId,
+      userId: UserId
+    ) => Effect.Effect<void, ConflictError>;
   }
 >()("@delulu/services/SetupService") {
   static readonly layer = Layer.effect(
@@ -88,11 +121,27 @@ export class SetupService extends Context.Service<
               status: "inactive",
             });
         const paid =
-          isPaidPlan(subscription.plan) &&
-          subscription.status.toUpperCase() === "ACTIVE";
+          community ||
+          (isPaidPlan(subscription.plan) &&
+            subscription.status.toUpperCase() === "ACTIVE");
         const connectedPlatforms = connections.map((row) => row.platform);
         const user = users[0];
         const onboardingComplete = Boolean(user?.onboardingCompletedAt);
+        const storedGoal = user?.onboardingOptional.goal;
+        const goal: OnboardingGoal | null =
+          storedGoal === "publish" || storedGoal === "auto_dm"
+            ? storedGoal
+            : null;
+        const connectionRequirementMet =
+          goal !== null &&
+          (goal === "auto_dm"
+            ? connectedPlatforms.includes("INSTAGRAM")
+            : connectedPlatforms.length > 0);
+        const optionalSteps = Object.fromEntries(
+          Object.entries(user?.onboardingOptional ?? {}).filter(
+            ([key]) => key !== "goal"
+          )
+        );
         if (
           user &&
           onboardingComplete &&
@@ -111,13 +160,19 @@ export class SetupService extends Context.Service<
             status: subscription.status,
             paid,
           },
-          optionalSteps: user?.onboardingOptional ?? {},
-          outstandingAction:
-            connectedPlatforms.length === 0
-              ? ("connect_account" as const)
-              : paid
-                ? null
-                : ("complete_payment" as const),
+          optionalSteps,
+          goal,
+          webStep: deriveWebSetupStep(
+            goal,
+            connectedPlatforms,
+            optionalSteps.ready === "completed",
+            onboardingComplete
+          ),
+          outstandingAction: connectionRequirementMet
+            ? paid
+              ? null
+              : ("complete_payment" as const)
+            : ("connect_account" as const),
           onboardingComplete,
         };
       });
@@ -133,26 +188,97 @@ export class SetupService extends Context.Service<
         }
       );
 
+      const updateGoal = Effect.fn("SetupService.updateGoal")(
+        function* (input: { userId: UserId; goal: OnboardingGoal }) {
+          yield* sql`UPDATE users SET onboarding_optional =
+          CASE
+            WHEN onboarding_optional->>'goal' = ${input.goal}
+              THEN onboarding_optional
+            ELSE (onboarding_optional - 'ready')
+              || ${JSON.stringify({ goal: input.goal })}::jsonb
+          END
+          WHERE id = ${input.userId}`.pipe(Effect.orDie);
+        }
+      );
+
       const complete = Effect.fn("SetupService.complete")(function* (
+        workspaceId: WorkspaceId,
         userId: UserId
       ) {
-        const users = yield* sql<{ externalId: string }>`
+        const [users, connections, subscriptions] = yield* Effect.all([
+          sql<{
+            externalId: string;
+            onboardingOptional: Record<string, string>;
+          }>`SELECT external_id, onboarding_optional
+            FROM users WHERE id = ${userId}`,
+          sql<{ platform: string }>`SELECT platform FROM connections
+            WHERE workspace_id = ${workspaceId}`,
+          sql<{ plan: string; status: string }>`SELECT s.plan, s.status
+            FROM workspaces w JOIN subscriptions s
+              ON s.billing_owner_user_id = w.billing_owner_user_id
+            WHERE w.id = ${workspaceId}`,
+        ]).pipe(Effect.orDie);
+        const user = users[0];
+        if (!user) {
+          return yield* Effect.die("Authenticated user is not provisioned");
+        }
+        const goalValue = user.onboardingOptional.goal;
+        const goal: OnboardingGoal | null =
+          goalValue === "publish" || goalValue === "auto_dm" ? goalValue : null;
+        if (!goal) {
+          return yield* new ConflictError({
+            message: "Choose an onboarding goal before finishing setup",
+            resource: "onboarding_goal",
+          });
+        }
+        const connectedPlatforms = connections.map((row) => row.platform);
+        const requirementMet =
+          goal === "auto_dm"
+            ? connectedPlatforms.includes("INSTAGRAM")
+            : connectedPlatforms.length > 0;
+        if (!requirementMet) {
+          return yield* new ConflictError({
+            message: "Connect the account required for your goal",
+            resource: "onboarding_connection",
+          });
+        }
+        if (user.onboardingOptional.ready !== "completed") {
+          return yield* new ConflictError({
+            message: "Review your setup before choosing a plan",
+            resource: "onboarding_ready",
+          });
+        }
+        const community = yield* entitlements.isCommunity;
+        const subscription = subscriptions[0];
+        const hasActivePlan =
+          community ||
+          (subscription !== undefined &&
+            isPaidPlan(subscription.plan) &&
+            subscription.status.toUpperCase() === "ACTIVE");
+        if (!hasActivePlan) {
+          return yield* new ConflictError({
+            message: "Choose a plan and complete checkout to finish onboarding",
+            resource: "subscription",
+          });
+        }
+        const updated = yield* sql<{ externalId: string }>`
           UPDATE users SET
             onboarding_completed_at = COALESCE(onboarding_completed_at, now()),
             onboarding_metadata_synced_at = NULL
           WHERE id = ${userId}
           RETURNING external_id`.pipe(Effect.orDie);
-        const user = users[0];
-        if (!user) {
-          return yield* Effect.die("Authenticated user is not provisioned");
-        }
         yield* syncCompletionMetadata({
           userId,
-          externalId: user.externalId,
+          externalId: updated[0]?.externalId ?? user.externalId,
         });
       });
 
-      return SetupService.of({ status, updateOptionalSteps, complete });
+      return SetupService.of({
+        status,
+        updateOptionalSteps,
+        updateGoal,
+        complete,
+      });
     })
   );
 }

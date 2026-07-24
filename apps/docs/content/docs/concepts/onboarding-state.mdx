@@ -6,19 +6,38 @@ description: How explicit onboarding completion stays separate from account and 
 ## Completion truth
 
 Onboarding completes when the user finishes the guided web flow or an
-authenticated client calls the setup completion endpoint. Completion does not
-depend on connecting an account or purchasing a subscription.
+authenticated client calls the setup completion endpoint. The web flow stores
+one goal:
 
-Account callbacks and payment webhooks may refresh setup status, but they never
-reverse explicit onboarding completion.
+- `publish`, which is ready after any supported publishing account connects
+- `auto_dm`, which is ready after an Instagram account connects
 
-The pricing step remains part of the guided flow, but purchasing is optional
-while onboarding. Hosted users without an active subscription finish the flow
-and are then directed to billing before entering the paid application.
+The setup response derives `webStep` as `goal`, `connect`, `ready`, `plan`, or
+`complete` from that saved goal, the authoritative connection list, the saved
+ready acknowledgement, and final completion. Browser clients must not persist a
+separate numeric wizard step.
 
-## Optional steps
+Account callbacks and payment webhooks refresh setup status. Hosted users must
+connect the account required by their goal, review the ready step, and activate
+a paid plan before the completion endpoint succeeds. Community deployments
+satisfy the plan requirement without external checkout. Existing completed
+users remain complete even if their subscription is later absent or inactive.
 
-Welcome, survey, and automation setup can be marked `completed` or `skipped`. They help the product guide users but do not block publishing readiness.
+## Connection returns
+
+Browser connection state can include a signed return target. Account settings
+uses `socials`, while onboarding uses `onboarding-connect` and returns to the
+connection step for success, cancellation, provider errors, and transfer
+confirmation. Clients that omit a return target retain the account-settings
+behavior.
+
+Legacy signed states remain accepted during the callback rollout. Invalid or
+expired state returns a safe browser result page rather than an API error body.
+
+## Optional prompts
+
+Referral attribution is a dismissible post-activation prompt. It does not
+participate in `webStep` and never blocks access to the workspace.
 
 ## Compatibility mirror
 
@@ -35,7 +54,7 @@ The setup response returns one highest-priority action:
 - `complete_payment`
 - no outstanding action when account and billing readiness are satisfied
 
-These readiness actions are independent of `onboardingComplete`. The CLI
-overview also adds operational next actions such as expiring connections,
-failed publications, pending reviews, active publications, upcoming schedules,
-and first-post creation.
+For incomplete hosted users, these readiness actions correspond to the
+connection and required-plan gates. The CLI overview also adds operational next
+actions such as expiring connections, failed publications, pending reviews,
+active publications, upcoming schedules, and first-post creation.

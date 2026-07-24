@@ -6,7 +6,6 @@ import { GlobalSidebar } from "components/layout/sidebar";
 import { UserJotIdentifier } from "components/layout/userjot-identifier";
 import { env } from "env";
 import type { ReactNode } from "react";
-import { PaidSubscriptionGate } from "@/components/billing/paid-subscription-gate";
 import { MobileBottomTabs } from "@/components/layout/mobile-bottom-tabs";
 import { FeatureTour } from "@/components/onboarding/feature-tour";
 import { BackendProviders } from "@/components/providers/backend";
@@ -39,9 +38,6 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
             <StoreProvider>{children}</StoreProvider>
           </ResourceBoundary>
         </GlobalSidebar>
-        <ResourceBoundary>
-          <PaidSubscriptionGate />
-        </ResourceBoundary>
         <PostHogIdentifier />
         <UserJotIdentifier />
         <ResourceBoundary>

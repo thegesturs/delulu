@@ -37,7 +37,11 @@
       "persistent": true
     },
     "@delulu/client#build": {
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"]
+    },
+    "@delulu/contracts#build": {
+      "outputs": []
     },
     "translate": {
       "dependsOn": ["^translate"],

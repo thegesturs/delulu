@@ -1,5 +1,6 @@
 import type { UserId, WorkspaceId } from "@delulu/core";
 import {
+  AuthConfig,
   ConnectionStateService,
   ConnectionsService,
   SetupService,
@@ -12,6 +13,7 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
     const connections = yield* ConnectionsService;
     const connectionStates = yield* ConnectionStateService;
     const setup = yield* SetupService;
+    const config = yield* AuthConfig;
 
     const reconcileFromState = (state: string) =>
       Effect.gen(function* () {
@@ -40,13 +42,18 @@ export const ConnectionRoutes = HttpRouter.use((router) =>
             errorReason: url.searchParams.get("error_reason"),
           })
           .pipe(
-            Effect.tap(() => reconcileFromState(state)),
+            Effect.tap(() =>
+              reconcileFromState(state).pipe(Effect.catch(() => Effect.void))
+            ),
             Effect.map(HttpServerResponse.fromWeb),
             Effect.catch((error) =>
               Effect.succeed(
-                HttpServerResponse.jsonUnsafe(
-                  { error: { code: error._tag, message: error.message } },
-                  { status: error._tag === "NotFoundError" ? 404 : 400 }
+                HttpServerResponse.redirect(
+                  `${config.appBaseUrl}/connection-result?error=${
+                    error._tag === "NotFoundError"
+                      ? "platform_not_found"
+                      : "invalid_state"
+                  }`
                 )
               )
             )

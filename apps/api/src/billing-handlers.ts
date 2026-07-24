@@ -1,5 +1,5 @@
 import { Api, ConflictError, ForbiddenError } from "@delulu/contracts";
-import { CurrentAuth } from "@delulu/core";
+import { CurrentAuth, emptyPooledUsage } from "@delulu/core";
 import {
   BillingOwnerTransfers,
   BillingProviderService,
@@ -105,7 +105,14 @@ export const BillingHandlers = HttpApiBuilder.group(
       .handle("usage", ({ params }) =>
         Effect.gen(function* () {
           const { workspace } = yield* billingAccess(params.workspaceId);
-          return yield* billing.usage(workspace.billingOwnerUserId);
+          return yield* billing.usage(workspace.billingOwnerUserId).pipe(
+            Effect.catchTag("NotFoundError", () =>
+              Effect.succeed({
+                billingOwnerUserId: workspace.billingOwnerUserId,
+                usage: emptyPooledUsage(),
+              })
+            )
+          );
         })
       )
       .handle("transactions", ({ params, query }) =>

@@ -1,12 +1,14 @@
 import { ConflictError } from "@delulu/contracts";
 import { PgClient } from "@effect/sql-pg";
 import { Effect, String as EffectString, Layer, Redacted } from "effect";
+import { SqlClient } from "effect/unstable/sql";
 import { describe, expect, it } from "vitest";
 import { ClerkAdminService } from "../../src/clerk-admin";
 import { DeploymentConfig } from "../../src/deployment";
 import { EntitlementPolicy } from "../../src/entitlements";
 import { IdentityService } from "../../src/identity";
 import { SetupService } from "../../src/setup";
+import { provisionPaidSubscription } from "./paid-subscription";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
@@ -55,30 +57,55 @@ describe("SetupService", () => {
     const program = Effect.gen(function* () {
       const identity = yield* IdentityService;
       const setup = yield* SetupService;
+      const sql = yield* SqlClient.SqlClient;
       const resolved = yield* identity.resolve({
         sub: `setup_${crypto.randomUUID()}`,
       });
       const workspaceId = resolved.personalWorkspace!.id;
+      yield* setup.updateGoal({ userId: resolved.user.id, goal: "publish" });
+      yield* setup.updateOptionalSteps({
+        userId: resolved.user.id,
+        optionalSteps: { ready: "completed" },
+      });
+      yield* setup.updateGoal({ userId: resolved.user.id, goal: "auto_dm" });
+      const switchedGoal = yield* setup.status(workspaceId, resolved.user.id);
+      yield* setup.updateGoal({ userId: resolved.user.id, goal: "publish" });
+      yield* sql`INSERT INTO connections
+        (id, workspace_id, platform, profile_id, access_token, cipher_version)
+        VALUES (${`connection_${crypto.randomUUID()}`}, ${workspaceId},
+          'THREADS', ${`profile_${crypto.randomUUID()}`}, 'opaque', 'v1')`;
+      const resetReady = yield* setup.status(workspaceId, resolved.user.id);
+      yield* setup.updateOptionalSteps({
+        userId: resolved.user.id,
+        optionalSteps: { ready: "completed" },
+      });
 
+      const unpaid = yield* setup
+        .complete(workspaceId, resolved.user.id)
+        .pipe(Effect.exit);
+      yield* provisionPaidSubscription(resolved.user.id);
       const unavailable = yield* setup
-        .complete(resolved.user.id)
+        .complete(workspaceId, resolved.user.id)
         .pipe(Effect.exit);
       metadataAvailable = true;
-      yield* setup.complete(resolved.user.id);
+      yield* setup.complete(workspaceId, resolved.user.id);
       const status = yield* setup.status(workspaceId, resolved.user.id);
 
-      return { unavailable, status };
+      return { resetReady, switchedGoal, unpaid, unavailable, status };
     });
 
     const result = await Effect.runPromise(
       program.pipe(Effect.provide(AppLayer))
     );
+    expect(result.unpaid._tag).toBe("Failure");
     expect(result.unavailable._tag).toBe("Failure");
+    expect(result.switchedGoal.webStep).toBe("connect");
+    expect(result.resetReady.webStep).toBe("ready");
     expect(result.status.onboardingComplete).toBe(true);
     expect(result.status.subscription).toEqual({
-      plan: "free",
-      status: "inactive",
-      paid: false,
+      plan: "ECHO",
+      status: "active",
+      paid: true,
     });
   });
 });

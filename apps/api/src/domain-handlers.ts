@@ -509,7 +509,8 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
             params.platform,
             auth,
             payload.includeInsights,
-            payload.client
+            payload.client,
+            payload.returnTarget
           );
         })
       )
