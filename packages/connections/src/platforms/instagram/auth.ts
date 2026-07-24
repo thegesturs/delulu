@@ -1,6 +1,9 @@
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import { env } from "../../env";
 import type {
   CallbackContext,
@@ -138,7 +141,7 @@ export const instagramAuth: PlatformAuth = {
         fullName: user.name || user.username || "Instagram User",
         profileImage: user.profile_picture_url,
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
       // 5. Subscribe webhooks (best effort)
       await Effect.runPromise(
@@ -148,10 +151,8 @@ export const instagramAuth: PlatformAuth = {
         })
       );
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=instagram"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "instagram", ...result });
       }
 
       ctx.onConnected?.({ provider: "instagram", username: user.username });

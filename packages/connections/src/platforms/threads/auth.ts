@@ -1,5 +1,8 @@
 import { nanoid } from "nanoid";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -146,12 +149,10 @@ export const threadsAuth: PlatformAuth = {
         fullName: user.name,
         profileImage: user.threads_profile_picture_url,
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=threads"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "threads", ...result });
       }
 
       ctx.onConnected?.({ provider: "threads", username: user.username });

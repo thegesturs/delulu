@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   callbackRedirect,
+  transferRequiredRedirect,
   withConnectionClient,
+  withConnectionReturnTarget,
   withConnectionSuccess,
 } from "./callback-response";
 
@@ -86,5 +88,60 @@ describe("callbackRedirect", () => {
     expect(() =>
       callbackRedirect("https://elsewhere.example.com/complete")
     ).toThrow("Callback redirect must be an app-relative path");
+  });
+});
+
+describe("withConnectionReturnTarget", () => {
+  it("returns every socials callback outcome to the onboarding connect step", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+
+    const success = withConnectionReturnTarget(
+      callbackRedirect(
+        "/socials?success=true&provider=instagram#username=creator"
+      ),
+      "onboarding-connect"
+    );
+    const failure = withConnectionReturnTarget(
+      callbackRedirect("/socials?error=user_denied&provider=instagram"),
+      "onboarding-connect"
+    );
+
+    expect(success.headers.get("Location")).toBe(
+      "https://app.example.com/onboarding?success=true&provider=instagram&step=connect#username=creator"
+    );
+    expect(failure.headers.get("Location")).toBe(
+      "https://app.example.com/onboarding?error=user_denied&provider=instagram&step=connect"
+    );
+  });
+
+  it("preserves transfer details when returning to onboarding", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+    const response = withConnectionReturnTarget(
+      transferRequiredRedirect({
+        platform: "instagram",
+        connectionId: "connection/one",
+        sourceWorkspaceId: "workspace two",
+      }),
+      "onboarding-connect"
+    );
+    const location = new URL(response.headers.get("Location") ?? "");
+
+    expect(location.pathname).toBe("/onboarding");
+    expect(Object.fromEntries(location.searchParams)).toEqual({
+      notification: "transfer_required",
+      platform: "instagram",
+      connectionId: "connection/one",
+      sourceWorkspaceId: "workspace two",
+      step: "connect",
+    });
+  });
+
+  it("leaves the account-settings callback unchanged by default", () => {
+    vi.stubEnv("APP_BASE_URL", "https://app.example.com");
+    const response = callbackRedirect("/socials?success=true");
+
+    expect(withConnectionReturnTarget(response).headers.get("Location")).toBe(
+      "https://app.example.com/socials?success=true"
+    );
   });
 });

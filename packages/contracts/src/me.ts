@@ -54,6 +54,14 @@ export const EmailPreferencesResponse = Schema.Struct({
   marketingEnabled: Schema.Boolean,
 });
 
+export const OnboardingGoal = Schema.Literals(["publish", "auto_dm"]);
+export const WebSetupStep = Schema.Literals([
+  "goal",
+  "connect",
+  "ready",
+  "complete",
+]);
+
 export const WorkspaceOverviewResponse = Schema.Struct({
   generatedAt: Schema.String,
   workspace: Schema.Struct({
@@ -108,6 +116,8 @@ export const MeGroup = HttpApiGroup.make("me")
           paid: Schema.Boolean,
         }),
         optionalSteps: Schema.Record(Schema.String, Schema.String),
+        goal: Schema.NullOr(OnboardingGoal),
+        webStep: WebSetupStep,
         outstandingAction: Schema.NullOr(
           Schema.Literals(["connect_account", "complete_payment"])
         ),
@@ -120,10 +130,13 @@ export const MeGroup = HttpApiGroup.make("me")
     HttpApiEndpoint.patch("updateSetup", "/setup/:workspaceId", {
       params: { workspaceId: Schema.String },
       payload: Schema.Struct({
-        optionalSteps: Schema.Record(
-          Schema.String,
-          Schema.Literals(["completed", "skipped"])
+        optionalSteps: Schema.optional(
+          Schema.Record(
+            Schema.String,
+            Schema.Literals(["completed", "skipped"])
+          )
         ),
+        goal: Schema.optional(OnboardingGoal),
       }),
       success: Schema.Struct({ updated: Schema.Boolean }),
       error: [ForbiddenErrorResponse, NotFoundErrorResponse],

@@ -7,6 +7,26 @@ import { ClerkAdminService } from "./clerk-admin";
 import { EntitlementPolicy } from "./entitlements";
 
 export type OptionalSetupStepState = "completed" | "skipped";
+export type OnboardingGoal = "publish" | "auto_dm";
+export type WebSetupStep = "goal" | "connect" | "ready" | "complete";
+
+export const deriveWebSetupStep = (
+  goal: OnboardingGoal | null,
+  connectedPlatforms: readonly string[],
+  onboardingComplete: boolean
+): WebSetupStep => {
+  if (onboardingComplete) {
+    return "complete";
+  }
+  if (!goal) {
+    return "goal";
+  }
+  const requirementMet =
+    goal === "auto_dm"
+      ? connectedPlatforms.includes("INSTAGRAM")
+      : connectedPlatforms.length > 0;
+  return requirementMet ? "ready" : "connect";
+};
 
 export interface SetupStatus {
   readonly workspaceId: string;
@@ -17,6 +37,8 @@ export interface SetupStatus {
     readonly paid: boolean;
   };
   readonly optionalSteps: Readonly<Record<string, string>>;
+  readonly goal: OnboardingGoal | null;
+  readonly webStep: WebSetupStep;
   readonly outstandingAction: "connect_account" | "complete_payment" | null;
   readonly onboardingComplete: boolean;
 }
@@ -31,6 +53,10 @@ export class SetupService extends Context.Service<
     readonly updateOptionalSteps: (input: {
       readonly userId: UserId;
       readonly optionalSteps: Readonly<Record<string, OptionalSetupStepState>>;
+    }) => Effect.Effect<void>;
+    readonly updateGoal: (input: {
+      readonly userId: UserId;
+      readonly goal: OnboardingGoal;
     }) => Effect.Effect<void>;
     readonly complete: (userId: UserId) => Effect.Effect<void, ConflictError>;
   }
@@ -93,6 +119,16 @@ export class SetupService extends Context.Service<
         const connectedPlatforms = connections.map((row) => row.platform);
         const user = users[0];
         const onboardingComplete = Boolean(user?.onboardingCompletedAt);
+        const storedGoal = user?.onboardingOptional.goal;
+        const goal: OnboardingGoal | null =
+          storedGoal === "publish" || storedGoal === "auto_dm"
+            ? storedGoal
+            : null;
+        const optionalSteps = Object.fromEntries(
+          Object.entries(user?.onboardingOptional ?? {}).filter(
+            ([key]) => key !== "goal"
+          )
+        );
         if (
           user &&
           onboardingComplete &&
@@ -111,7 +147,13 @@ export class SetupService extends Context.Service<
             status: subscription.status,
             paid,
           },
-          optionalSteps: user?.onboardingOptional ?? {},
+          optionalSteps,
+          goal,
+          webStep: deriveWebSetupStep(
+            goal,
+            connectedPlatforms,
+            onboardingComplete
+          ),
           outstandingAction:
             connectedPlatforms.length === 0
               ? ("connect_account" as const)
@@ -129,6 +171,14 @@ export class SetupService extends Context.Service<
         }) {
           yield* sql`UPDATE users SET onboarding_optional =
           onboarding_optional || ${JSON.stringify(input.optionalSteps)}::jsonb
+          WHERE id = ${input.userId}`.pipe(Effect.orDie);
+        }
+      );
+
+      const updateGoal = Effect.fn("SetupService.updateGoal")(
+        function* (input: { userId: UserId; goal: OnboardingGoal }) {
+          yield* sql`UPDATE users SET onboarding_optional =
+          onboarding_optional || ${JSON.stringify({ goal: input.goal })}::jsonb
           WHERE id = ${input.userId}`.pipe(Effect.orDie);
         }
       );
@@ -152,7 +202,12 @@ export class SetupService extends Context.Service<
         });
       });
 
-      return SetupService.of({ status, updateOptionalSteps, complete });
+      return SetupService.of({
+        status,
+        updateOptionalSteps,
+        updateGoal,
+        complete,
+      });
     })
   );
 }

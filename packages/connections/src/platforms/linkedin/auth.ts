@@ -1,4 +1,7 @@
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -139,12 +142,10 @@ export const linkedinAuth: PlatformAuth = {
         fullName,
         profileImage: profileImage ?? "/images/user.png",
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=linkedin"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "linkedin", ...result });
       }
 
       ctx.onConnected?.({ provider: "linkedin", username: fullName });

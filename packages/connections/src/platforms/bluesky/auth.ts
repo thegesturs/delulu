@@ -1,4 +1,7 @@
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import type {
   CallbackContext,
   ConnectContext,
@@ -125,12 +128,10 @@ export const blueskyAuth: PlatformAuth = {
         fullName: profileData.displayName || tokenData.handle,
         profileImage: profileData.avatar,
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=bluesky"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "bluesky", ...result });
       }
 
       ctx.onConnected?.({ provider: "bluesky", username: tokenData.handle });

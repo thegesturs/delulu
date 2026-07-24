@@ -1,6 +1,9 @@
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import { type ConnectionError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
@@ -187,13 +190,11 @@ export const youtubeAuth: PlatformAuth = {
           channel.snippet.thumbnails?.default?.url ||
           "",
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
       // Handle different response statuses
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=youtube"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "youtube", ...result });
       }
 
       ctx.onConnected?.({ provider: "youtube", username: channelUsername });

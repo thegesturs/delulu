@@ -6,19 +6,36 @@ description: How explicit onboarding completion stays separate from account and 
 ## Completion truth
 
 Onboarding completes when the user finishes the guided web flow or an
-authenticated client calls the setup completion endpoint. Completion does not
-depend on connecting an account or purchasing a subscription.
+authenticated client calls the setup completion endpoint. The web flow stores
+one goal:
+
+- `publish`, which is ready after any supported publishing account connects
+- `auto_dm`, which is ready after an Instagram account connects
+
+The setup response derives `webStep` as `goal`, `connect`, `ready`, or
+`complete` from that saved goal, the authoritative connection list, and final
+completion. Browser clients must not persist a separate numeric wizard step.
 
 Account callbacks and payment webhooks may refresh setup status, but they never
-reverse explicit onboarding completion.
+reverse explicit onboarding completion. A subscription is not required to
+finish activation or enter the workspace; paid capabilities and account limits
+show upgrade choices at the point they are reached.
 
-The pricing step remains part of the guided flow, but purchasing is optional
-while onboarding. Hosted users without an active subscription finish the flow
-and are then directed to billing before entering the paid application.
+## Connection returns
 
-## Optional steps
+Browser connection state can include a signed return target. Account settings
+uses `socials`, while onboarding uses `onboarding-connect` and returns to the
+connection step for success, cancellation, provider errors, and transfer
+confirmation. Clients that omit a return target retain the account-settings
+behavior.
 
-Welcome, survey, and automation setup can be marked `completed` or `skipped`. They help the product guide users but do not block publishing readiness.
+Legacy signed states remain accepted during the callback rollout. Invalid or
+expired state returns a safe browser result page rather than an API error body.
+
+## Optional prompts
+
+Referral attribution is a dismissible post-activation prompt. It does not
+participate in `webStep` and never blocks access to the workspace.
 
 ## Compatibility mirror
 

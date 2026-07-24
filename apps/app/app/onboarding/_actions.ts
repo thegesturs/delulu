@@ -144,6 +144,27 @@ export const saveSurveyAnswer = async (referralSource: string) => {
   }
 };
 
+export const dismissReferralPrompt = async () => {
+  const { userId } = await auth();
+  if (!userId) {
+    return { error: "Not authenticated" };
+  }
+  const client = await clerkClient();
+  try {
+    const user = await client.users.getUser(userId);
+    await client.users.updateUser(userId, {
+      publicMetadata: {
+        ...(user.publicMetadata as Record<string, unknown>),
+        referralPromptDismissed: true,
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error dismissing referral prompt:", error);
+    return { error: "Failed to dismiss referral prompt" };
+  }
+};
+
 export const resetOnboarding = async () => {
   const { userId } = await auth();
 

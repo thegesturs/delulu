@@ -369,6 +369,9 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
       payload: Schema.Struct({
         includeInsights: Schema.optional(Schema.Boolean),
         client: Schema.optional(Schema.Literals(["cli", "mcp"])),
+        returnTarget: Schema.optional(
+          Schema.Literals(["socials", "onboarding-connect"])
+        ),
       }),
       success: Schema.Struct({ url: Schema.String, expiresIn: Schema.Number }),
       error: domainErrors,

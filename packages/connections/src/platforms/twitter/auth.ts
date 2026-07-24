@@ -1,5 +1,8 @@
 import { Effect } from "effect";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import {
   type ConnectionError,
   fromUnknownHttp,
@@ -154,12 +157,10 @@ export const twitterAuth: PlatformAuth = {
         fullName: userObject.name ?? "",
         profileImage: userObject.profile_image_url ?? "",
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=twitter"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "twitter", ...result });
       }
 
       ctx.onConnected?.({ provider: "twitter", username: userObject.username });

@@ -5,6 +5,7 @@ import {
   SOCIAL_ACCOUNT_CONNECTION_FAILED,
 } from "@delulu/analytics/events";
 import { useAnalytics } from "@delulu/analytics/posthog/client";
+import { Button } from "@delulu/design-system/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,11 @@ const NOTIFICATIONS = {
     description:
       "Your Twitter account was previously connected to a different user and has been successfully transferred to your current account.",
   },
+  transfer_required: {
+    title: "Account already connected",
+    description:
+      "This account belongs to another workspace you can access. Confirm before moving it here.",
+  },
 };
 
 function SocialNotificationsContent() {
@@ -90,6 +96,7 @@ function SocialNotificationsContent() {
   const [callbackUsername, setCallbackUsername] = useState<string | null>(null);
   const [callbackReady, setCallbackReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const analytics = useAnalytics();
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
@@ -104,6 +111,8 @@ function SocialNotificationsContent() {
   const client = searchParams.get("client");
   const callbackClient =
     client === "cli" || client === "mcp" ? client : undefined;
+  const connectionId = searchParams.get("connectionId");
+  const sourceWorkspaceId = searchParams.get("sourceWorkspaceId");
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -159,6 +168,9 @@ function SocialNotificationsContent() {
   const connect = useMutationAtom(
     resources.connections.mint(workspaceId ?? "", provider ?? "TWITTER")
   );
+  const transfer = useMutationAtom(
+    resources.connections.confirmTransfer(workspaceId ?? "", connectionId ?? "")
+  );
 
   if (!visible) {
     return null;
@@ -206,6 +218,60 @@ function SocialNotificationsContent() {
   ) {
     const notificationMessage =
       NOTIFICATIONS[notification as keyof typeof NOTIFICATIONS];
+
+    if (notification === "transfer_required") {
+      return (
+        <Dialog onOpenChange={setVisible} open={visible}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{notificationMessage.title}</DialogTitle>
+              <DialogDescription>
+                {notificationMessage.description}
+              </DialogDescription>
+            </DialogHeader>
+            {transferError ? (
+              <p className="text-destructive text-sm">{transferError}</p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                className="min-h-11"
+                onClick={() => setVisible(false)}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="min-h-11"
+                disabled={
+                  transfer.isPending || !(connectionId && sourceWorkspaceId)
+                }
+                onClick={async () => {
+                  if (!(connectionId && sourceWorkspaceId && workspaceId)) {
+                    return;
+                  }
+                  try {
+                    await transfer.mutateAsync({ sourceWorkspaceId });
+                    await registry.invalidateResources({
+                      queryKey:
+                        resources.connections.list(workspaceId).queryKey,
+                    });
+                    setVisible(false);
+                  } catch (cause) {
+                    setTransferError(
+                      cause instanceof Error
+                        ? cause.message
+                        : "The account could not be moved."
+                    );
+                  }
+                }}
+              >
+                {transfer.isPending ? "Moving…" : "Move account"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
 
     return (
       <div className="mb-6">

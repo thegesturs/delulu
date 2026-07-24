@@ -1,44 +1,66 @@
 import { cn } from "@delulu/design-system/lib/utils";
-import { motion } from "motion/react";
+import { Icon } from "@delulu/design-system/providers/icon";
+import { Tick02Icon } from "@delulu/icons";
 
 interface OnboardingProgressProps {
-  currentStep: number;
-  totalSteps: number;
+  currentStep: "goal" | "connect" | "ready";
 }
 
-export function OnboardingProgress({
-  currentStep,
-  totalSteps = 3,
-}: OnboardingProgressProps) {
+const steps = [
+  { id: "goal", label: "Goal" },
+  { id: "connect", label: "Connect" },
+  { id: "ready", label: "Ready" },
+] as const;
+
+export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
+  const currentIndex = steps.findIndex((step) => step.id === currentStep);
   return (
-    <div className="flex justify-center gap-3">
-      {Array.from({ length: totalSteps }).map((_, index) => {
-        const step = index + 1;
-        const isActive = step === currentStep;
-        const isCompleted = step < currentStep;
+    <ol aria-label="Onboarding progress" className="flex items-center">
+      {steps.map((step, index) => {
+        const isActive = index === currentIndex;
+        const isCompleted = index < currentIndex;
 
         return (
-          <motion.div
-            animate={{
-              scale: isActive ? 1.2 : 1,
-              opacity: isActive || isCompleted ? 1 : 0.3,
-            }}
+          <li
             aria-current={isActive ? "step" : undefined}
-            aria-label={`Step ${step} of ${totalSteps}`}
-            className={cn(
-              "h-2.5 w-2.5 rounded-full",
-              isActive || isCompleted ? "bg-primary" : "bg-foreground"
-            )}
-            initial={false}
-            key={step}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 30,
-            }}
-          />
+            className="flex flex-1 items-center last:flex-none"
+            key={step.id}
+          >
+            <span className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-full border font-medium text-xs",
+                  isCompleted &&
+                    "border-primary bg-primary text-primary-foreground",
+                  isActive && "border-primary text-primary",
+                  !(isActive || isCompleted) &&
+                    "border-border text-muted-foreground"
+                )}
+              >
+                {isCompleted ? <Icon icon={Tick02Icon} size={14} /> : index + 1}
+              </span>
+              <span
+                className={cn(
+                  "font-medium text-xs sm:text-sm",
+                  isActive || isCompleted
+                    ? "text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {step.label}
+              </span>
+            </span>
+            {index < steps.length - 1 ? (
+              <span
+                className={cn(
+                  "mx-3 h-px flex-1",
+                  isCompleted ? "bg-primary" : "bg-border"
+                )}
+              />
+            ) : null}
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

@@ -1,6 +1,9 @@
 import { Effect } from "effect";
 import { nanoid } from "nanoid";
-import { callbackRedirect } from "../../callback-response";
+import {
+  callbackRedirect,
+  transferRequiredRedirect,
+} from "../../callback-response";
 import {
   type ConnectionError,
   fromUnknownHttp,
@@ -108,12 +111,10 @@ export const pinterestAuth: PlatformAuth = {
         fullName: user.username,
         profileImage: user.profile_image,
       } as const;
-      const status = await ctx.upsert(connection);
+      const result = await ctx.upsert(connection);
 
-      if (status === "transfer_required") {
-        return callbackRedirect(
-          "/socials?notification=account_transferred&platform=pinterest"
-        );
+      if (result.status === "transfer_required") {
+        return transferRequiredRedirect({ platform: "pinterest", ...result });
       }
       ctx.onConnected?.({ provider: "pinterest", username: user.username });
       return callbackRedirect("/socials?success=true&provider=pinterest");

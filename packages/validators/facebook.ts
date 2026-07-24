@@ -65,7 +65,9 @@ export const FacebookPageConnectionSchema = z.object({
  * Facebook Page Connection Response Schema
  */
 export const FacebookPageConnectionResponseSchema = z.object({
-  status: z.enum(["connected", "transferred"]),
+  status: z.enum(["connected", "transfer_required"]),
+  connectionId: z.string().optional(),
+  sourceWorkspaceId: z.string().optional(),
 });
 
 // Export TypeScript types derived from Zod schemas

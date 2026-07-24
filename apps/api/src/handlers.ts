@@ -191,10 +191,18 @@ export const MeHandlers = HttpApiBuilder.group(
             auth,
             scope: "accounts:write",
           });
-          yield* setup.updateOptionalSteps({
-            userId: auth.userId,
-            optionalSteps: payload.optionalSteps,
-          });
+          if (payload.optionalSteps) {
+            yield* setup.updateOptionalSteps({
+              userId: auth.userId,
+              optionalSteps: payload.optionalSteps,
+            });
+          }
+          if (payload.goal) {
+            yield* setup.updateGoal({
+              userId: auth.userId,
+              goal: payload.goal,
+            });
+          }
           return { updated: true };
         })
       )
