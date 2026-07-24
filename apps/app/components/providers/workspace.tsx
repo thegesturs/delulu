@@ -42,7 +42,11 @@ export function WorkspaceProvider({
   readonly children: ReactNode;
 }) {
   const { resources } = useApiClient();
-  const memberships = useResourceAtom(resources.me.workspaces());
+  const memberships = useResourceAtom({
+    ...resources.me.workspaces(),
+    retry: 6,
+    retryDelayMs: 100,
+  });
   const selected = useAtomValue(selectedWorkspaceAtom);
   const [selectionHydrated, setSelectionHydrated] = useState(false);
   const workspaces = memberships.data?.data ?? [];

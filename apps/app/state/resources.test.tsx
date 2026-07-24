@@ -200,6 +200,48 @@ describe("Effect Atom resources", () => {
     expect(attempts).toBe(2);
   });
 
+  it("keeps provisioning failures behind the loading state until retry succeeds", async () => {
+    let provisioned = false;
+    setTimeout(() => {
+      provisioned = true;
+    }, 25);
+    const descriptor = resourceEffect({
+      queryKey: ["me", "workspaces", "provisioning"] as const,
+      effect: () =>
+        Effect.suspend(() =>
+          provisioned
+            ? Effect.succeed("ready")
+            : Effect.fail(new Error("Workspace is still being provisioned"))
+        ),
+    });
+    const Probe = () => (
+      <div>
+        {
+          useResourceAtom({
+            ...descriptor,
+            retry: 4,
+            retryDelayMs: 10,
+          }).data
+        }
+      </div>
+    );
+
+    render(
+      <AppStateProvider>
+        <ResourceBoundary
+          fallback={<div>preparing</div>}
+          renderError={() => <div>setup error</div>}
+        >
+          <Probe />
+        </ResourceBoundary>
+      </AppStateProvider>
+    );
+
+    expect(screen.getByText("preparing")).toBeTruthy();
+    expect(await screen.findByText("ready")).toBeTruthy();
+    expect(screen.queryByText("setup error")).toBeNull();
+  });
+
   it("refreshes mounted resources after reconnect", async () => {
     let reads = 0;
     const descriptor = resourceEffect({

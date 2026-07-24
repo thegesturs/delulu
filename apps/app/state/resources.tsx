@@ -16,7 +16,7 @@ import {
 } from "@effect/atom-react";
 import { BrowserKeyValueStore } from "@effect/platform-browser";
 import { captureException } from "@sentry/nextjs";
-import { Cause, Effect, Layer, Option } from "effect";
+import { Cause, Effect, Layer, Option, Schedule } from "effect";
 import { AsyncResult, Atom, AtomRegistry } from "effect/unstable/reactivity";
 import {
   Component,
@@ -34,6 +34,7 @@ import {
 interface ResourcePolicy {
   readonly staleTime: number;
   readonly retry: number;
+  readonly retryDelayMs: number;
 }
 
 interface ResourceEntry<A = unknown, E = unknown> {
@@ -73,7 +74,7 @@ class ResourceStore {
     descriptor: ResourceEffect<A, E>,
     policy: ResourcePolicy
   ): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
-    const id = `${keyId(descriptor.queryKey)}::retry=${policy.retry}`;
+    const id = `${keyId(descriptor.queryKey)}::retry=${policy.retry}:delay=${policy.retryDelayMs}`;
     let entry = this.resources.get(id) as ResourceEntry<A, E> | undefined;
     if (entry) {
       entry.descriptor.current = descriptor;
@@ -81,7 +82,10 @@ class ResourceStore {
       const descriptorRef = { current: descriptor };
       const source = this.runtime.atom(() =>
         Effect.suspend(() => descriptorRef.current.effect()).pipe(
-          Effect.retry({ times: policy.retry })
+          Effect.retry({
+            times: policy.retry,
+            schedule: Schedule.exponential(policy.retryDelayMs),
+          })
         )
       );
       const optimistic = { current: false };
@@ -108,7 +112,7 @@ class ResourceStore {
       this.resources.set(id, entry as ResourceEntry);
     }
 
-    const policyId = `${policy.staleTime}:${policy.retry}`;
+    const policyId = `${policy.staleTime}:${policy.retry}:${policy.retryDelayMs}`;
     let policyAtom = entry.policies.get(policyId);
     if (!policyAtom) {
       policyAtom = entry.atom.pipe(
@@ -288,6 +292,7 @@ export interface ResourceAtomOptions<A, E> extends ResourceEffect<A, E> {
   readonly enabled?: boolean;
   readonly staleTime?: number;
   readonly retry?: number;
+  readonly retryDelayMs?: number;
 }
 
 export interface ResourceAtomResult<A> {
@@ -317,6 +322,7 @@ export function useResourceAtom<A, E>(
       ? store.query(options, {
           staleTime: options.staleTime ?? 30_000,
           retry: options.retry ?? 3,
+          retryDelayMs: options.retryDelayMs ?? 0,
         })
       : disabledAtom
   ) as Atom.Atom<AsyncResult.AsyncResult<A | undefined, E>>;
@@ -508,7 +514,11 @@ export function useResourceRegistry(): ResourceRegistry {
       },
       fetchResource: async <A, E>(options: ResourceEffect<A, E>) => {
         const data = await Effect.runPromise(options.effect());
-        const atom = store.query(options, { staleTime: 0, retry: 0 });
+        const atom = store.query(options, {
+          staleTime: 0,
+          retry: 0,
+          retryDelayMs: 0,
+        });
         const entry = store.exact(options.queryKey)[0];
         if (entry) {
           registry.set(entry.atom, AsyncResult.success(data));
