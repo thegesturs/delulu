@@ -29,6 +29,8 @@ import { LifecycleService } from "./lifecycle";
 
 type ConnectionOutput = typeof ConnectionView.Type;
 const BASE64_PADDING = /=+$/;
+const connectionPrincipal = (auth: AuthContext): string =>
+  auth.apiKeyId ? `k:${auth.apiKeyId}` : `u:${auth.userId}`;
 
 export class ConnectionStateConfig extends Context.Service<
   ConnectionStateConfig,
@@ -42,6 +44,15 @@ export interface VerifiedConnectionState {
   readonly issuedAt: number;
   readonly client?: ConnectionClient;
   readonly returnTarget?: ConnectionReturnTarget;
+}
+
+export interface VerifiedConnectionTransfer {
+  readonly connectionId: string;
+  readonly sourceWorkspaceId: string;
+  readonly destinationWorkspaceId: string;
+  readonly principal: string;
+  readonly nonce: string;
+  readonly issuedAt: number;
 }
 
 const base64Url = (bytes: Uint8Array): string => {
@@ -77,6 +88,15 @@ const ConnectionStatePayload = Schema.Struct({
   returnTarget: Schema.optional(
     Schema.Literals(["socials", "onboarding-connect"])
   ),
+});
+const ConnectionTransferPayload = Schema.Struct({
+  version: Schema.Literal(1),
+  connectionId: Schema.String,
+  sourceWorkspaceId: Schema.String,
+  destinationWorkspaceId: Schema.String,
+  principal: Schema.String,
+  nonce: Schema.String,
+  issuedAt: Schema.Number,
 });
 const sign = async (secret: string, value: string): Promise<string> => {
   const key = await crypto.subtle.importKey(
@@ -117,6 +137,12 @@ export class ConnectionStateService extends Context.Service<
     readonly verify: (
       state: string
     ) => Effect.Effect<VerifiedConnectionState, ConflictError>;
+    readonly mintTransfer: (
+      input: Omit<VerifiedConnectionTransfer, "nonce" | "issuedAt">
+    ) => Effect.Effect<string, ConflictError>;
+    readonly verifyTransfer: (
+      token: string
+    ) => Effect.Effect<VerifiedConnectionTransfer, ConflictError>;
   }
 >()("@delulu/services/ConnectionStateService") {
   static readonly layer = Layer.effect(
@@ -134,9 +160,7 @@ export class ConnectionStateService extends Context.Service<
             if (!config.secret) {
               throw new Error("missing secret");
             }
-            const principal = auth.apiKeyId
-              ? `k:${auth.apiKeyId}`
-              : `u:${auth.userId}`;
+            const principal = connectionPrincipal(auth);
             const nonce = base64Url(crypto.getRandomValues(new Uint8Array(16)));
             const issuedAt = Math.floor(Date.now() / 1000);
             const payload = encodeText(
@@ -227,7 +251,69 @@ export class ConnectionStateService extends Context.Service<
               resource: "connection",
             }),
         });
-      return ConnectionStateService.of({ mint, verify });
+      const mintTransfer = (
+        input: Omit<VerifiedConnectionTransfer, "nonce" | "issuedAt">
+      ) =>
+        Effect.tryPromise({
+          try: async () => {
+            if (!config.secret) {
+              throw new Error("missing secret");
+            }
+            const payload = encodeText(
+              JSON.stringify({
+                version: 1,
+                ...input,
+                nonce: base64Url(crypto.getRandomValues(new Uint8Array(16))),
+                issuedAt: Math.floor(Date.now() / 1000),
+              })
+            );
+            const value = `transfer.v1.${payload}`;
+            return `${value}.${await sign(config.secret, value)}`;
+          },
+          catch: () =>
+            new ConflictError({
+              message: "Connection transfer signing is unavailable",
+              resource: "connection",
+            }),
+        });
+      const verifyTransfer = (token: string) =>
+        Effect.tryPromise({
+          try: async () => {
+            const parts = token.split(".");
+            if (
+              !(
+                parts.length === 4 &&
+                parts[0] === "transfer" &&
+                parts[1] === "v1"
+              )
+            ) {
+              throw new Error("bad transfer token");
+            }
+            const value = parts.slice(0, 3).join(".");
+            const expected = await sign(config.secret, value);
+            if (!equal(parts[3] ?? "", expected)) {
+              throw new Error("invalid transfer token");
+            }
+            const payload = Schema.decodeUnknownSync(ConnectionTransferPayload)(
+              JSON.parse(decodeText(parts[2] ?? ""))
+            );
+            if (Math.abs(Date.now() / 1000 - payload.issuedAt) > 600) {
+              throw new Error("expired transfer token");
+            }
+            return payload;
+          },
+          catch: () =>
+            new ConflictError({
+              message: "Connection transfer is invalid or expired",
+              resource: "connection",
+            }),
+        });
+      return ConnectionStateService.of({
+        mint,
+        verify,
+        mintTransfer,
+        verifyTransfer,
+      });
     })
   );
 }
@@ -296,7 +382,8 @@ export class ConnectionsService extends Context.Service<
     >;
     readonly upsertFromOAuth: (
       workspaceId: WorkspaceId,
-      input: ConnectionUpsertInput
+      input: ConnectionUpsertInput,
+      principal?: string
     ) => Effect.Effect<ConnectionUpsertResult, ConflictError>;
     readonly handleCallback: (input: {
       readonly platform: string;
@@ -310,6 +397,12 @@ export class ConnectionsService extends Context.Service<
       readonly sourceWorkspaceId: WorkspaceId;
       readonly destinationWorkspaceId: WorkspaceId;
     }) => Effect.Effect<void, NotFoundError>;
+    readonly confirmOAuthTransfer: (input: {
+      readonly connectionId: string;
+      readonly destinationWorkspaceId: WorkspaceId;
+      readonly auth: AuthContext;
+      readonly transferToken: string;
+    }) => Effect.Effect<void, ConflictError | NotFoundError>;
     readonly completeFacebook: (input: {
       readonly state: string;
       readonly code: string;
@@ -321,6 +414,7 @@ export class ConnectionsService extends Context.Service<
           readonly status: "transfer_required";
           readonly connectionId: string;
           readonly sourceWorkspaceId: string;
+          readonly transferToken?: string;
         },
       ConflictError
     >;
@@ -411,7 +505,11 @@ export class ConnectionsService extends Context.Service<
         };
       });
       const upsertFromOAuth = Effect.fn("ConnectionsService.upsertFromOAuth")(
-        function* (workspaceId: WorkspaceId, input: ConnectionUpsertInput) {
+        function* (
+          workspaceId: WorkspaceId,
+          input: ConnectionUpsertInput,
+          principal?: string
+        ) {
           const existing = yield* sql<
             Record<string, unknown>
           >`SELECT id, workspace_id FROM connections
@@ -419,13 +517,6 @@ export class ConnectionsService extends Context.Service<
             Effect.orDie
           );
           const row = existing[0];
-          if (row && row.workspaceId !== workspaceId) {
-            return {
-              status: "transfer_required",
-              connectionId: String(row.id),
-              sourceWorkspaceId: String(row.workspaceId),
-            } as const;
-          }
           const access = yield* cipher.encrypt(input.accessToken).pipe(
             Effect.mapError(
               () =>
@@ -452,12 +543,29 @@ export class ConnectionsService extends Context.Service<
             ...input.metadata,
           };
           if (row) {
+            const sourceWorkspaceId = String(row.workspaceId);
             yield* sql`UPDATE connections SET access_token = ${access.ciphertext},
             refresh_token = ${refresh?.ciphertext ?? null}, expires_at = ${input.expiresIn ? new Date(input.expiresIn) : null},
             username = ${input.username ?? null}, display_name = ${input.fullName ?? null},
             metadata = ${JSON.stringify(metadata)}::jsonb WHERE id = ${String(row.id)}`.pipe(
               Effect.orDie
             );
+            if (sourceWorkspaceId !== workspaceId) {
+              const transferToken = principal
+                ? yield* states.mintTransfer({
+                    connectionId: String(row.id),
+                    sourceWorkspaceId,
+                    destinationWorkspaceId: workspaceId,
+                    principal,
+                  })
+                : undefined;
+              return {
+                status: "transfer_required",
+                connectionId: String(row.id),
+                sourceWorkspaceId,
+                ...(transferToken ? { transferToken } : {}),
+              } as const;
+            }
             yield* lifecycle.syncWorkspace({ workspaceId });
             return { status: "updated" } as const;
           }
@@ -520,7 +628,8 @@ export class ConnectionsService extends Context.Service<
                     const status = await Effect.runPromise(
                       upsertFromOAuth(
                         verified.workspaceId as WorkspaceId,
-                        value
+                        value,
+                        verified.principal
                       )
                     );
                     if (status.status !== "transfer_required") {
@@ -581,6 +690,33 @@ export class ConnectionsService extends Context.Service<
           }
         }
       );
+      const confirmOAuthTransfer = Effect.fn(
+        "ConnectionsService.confirmOAuthTransfer"
+      )(function* (input: {
+        readonly connectionId: string;
+        readonly destinationWorkspaceId: WorkspaceId;
+        readonly auth: AuthContext;
+        readonly transferToken: string;
+      }) {
+        const verified = yield* states.verifyTransfer(input.transferToken);
+        if (
+          !(
+            verified.connectionId === input.connectionId &&
+            verified.destinationWorkspaceId === input.destinationWorkspaceId &&
+            verified.principal === connectionPrincipal(input.auth)
+          )
+        ) {
+          return yield* new ConflictError({
+            message: "Connection transfer does not match this request",
+            resource: "connection",
+          });
+        }
+        yield* confirmTransfer({
+          connectionId: input.connectionId,
+          sourceWorkspaceId: verified.sourceWorkspaceId as WorkspaceId,
+          destinationWorkspaceId: input.destinationWorkspaceId,
+        });
+      });
       const completeFacebook = Effect.fn("ConnectionsService.completeFacebook")(
         function* (input: {
           state: string;
@@ -599,7 +735,11 @@ export class ConnectionsService extends Context.Service<
                 temporaryStore,
                 upsert: (value) =>
                   Effect.runPromise(
-                    upsertFromOAuth(verified.workspaceId as WorkspaceId, value)
+                    upsertFromOAuth(
+                      verified.workspaceId as WorkspaceId,
+                      value,
+                      verified.principal
+                    )
                   ),
               }),
             catch: () =>
@@ -617,6 +757,7 @@ export class ConnectionsService extends Context.Service<
         upsertFromOAuth,
         handleCallback,
         confirmTransfer,
+        confirmOAuthTransfer,
         completeFacebook,
       });
     })

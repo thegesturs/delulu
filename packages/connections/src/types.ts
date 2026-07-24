@@ -79,6 +79,7 @@ export type ConnectionUpsertResult =
       readonly status: "transfer_required";
       readonly connectionId: string;
       readonly sourceWorkspaceId: string;
+      readonly transferToken?: string;
     };
 
 export interface ConnectionUpsertInput {

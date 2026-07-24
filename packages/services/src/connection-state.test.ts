@@ -126,6 +126,34 @@ describe("ConnectionStateService", () => {
     expect(verified.returnTarget).toBeUndefined();
   });
 
+  it("round-trips a short-lived OAuth transfer grant and rejects tampering", async () => {
+    const program = Effect.gen(function* () {
+      const service = yield* ConnectionStateService;
+      const token = yield* service.mintTransfer({
+        connectionId: "connection_aaaaaaaaaaaa",
+        sourceWorkspaceId: "workspace_source",
+        destinationWorkspaceId: "workspace_destination",
+        principal: "u:user_aaaaaaaaaaaa",
+      });
+      const verified = yield* service.verifyTransfer(token);
+      const tampered = yield* service
+        .verifyTransfer(`${token.slice(0, -1)}x`)
+        .pipe(Effect.result);
+      return { verified, tampered };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(StateLayer))
+    );
+    expect(result.verified).toMatchObject({
+      connectionId: "connection_aaaaaaaaaaaa",
+      sourceWorkspaceId: "workspace_source",
+      destinationWorkspaceId: "workspace_destination",
+      principal: "u:user_aaaaaaaaaaaa",
+    });
+    expect(result.tampered._tag).toBe("Failure");
+  });
+
   it("rejects expired states and signed payloads with invalid return targets", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-24T00:00:00Z"));
@@ -142,6 +170,17 @@ describe("ConnectionStateService", () => {
           undefined,
           "onboarding-connect"
         );
+      }).pipe(Effect.provide(StateLayer))
+    );
+    const transferToken = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* ConnectionStateService;
+        return yield* service.mintTransfer({
+          connectionId: "connection_aaaaaaaaaaaa",
+          sourceWorkspaceId: "workspace_source",
+          destinationWorkspaceId: "workspace_destination",
+          principal: "u:user_aaaaaaaaaaaa",
+        });
       }).pipe(Effect.provide(StateLayer))
     );
 
@@ -180,8 +219,15 @@ describe("ConnectionStateService", () => {
         return yield* service.verify(state).pipe(Effect.result);
       }).pipe(Effect.provide(StateLayer))
     );
+    const expiredTransfer = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* ConnectionStateService;
+        return yield* service.verifyTransfer(transferToken).pipe(Effect.result);
+      }).pipe(Effect.provide(StateLayer))
+    );
 
     expect(invalidResult._tag).toBe("Failure");
     expect(expiredResult._tag).toBe("Failure");
+    expect(expiredTransfer._tag).toBe("Failure");
   });
 });

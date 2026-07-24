@@ -86,7 +86,7 @@ const NOTIFICATIONS = {
   transfer_required: {
     title: "Account already connected",
     description:
-      "This account belongs to another workspace you can access. Confirm before moving it here.",
+      "You verified this account, but it belongs to another workspace. Confirm before moving it here.",
   },
 };
 
@@ -113,6 +113,7 @@ function SocialNotificationsContent() {
     client === "cli" || client === "mcp" ? client : undefined;
   const connectionId = searchParams.get("connectionId");
   const sourceWorkspaceId = searchParams.get("sourceWorkspaceId");
+  const transferToken = searchParams.get("transferToken");
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -243,14 +244,24 @@ function SocialNotificationsContent() {
               <Button
                 className="min-h-11"
                 disabled={
-                  transfer.isPending || !(connectionId && sourceWorkspaceId)
+                  transfer.isPending ||
+                  !(connectionId && (transferToken || sourceWorkspaceId))
                 }
                 onClick={async () => {
-                  if (!(connectionId && sourceWorkspaceId && workspaceId)) {
+                  if (
+                    !(
+                      connectionId &&
+                      (transferToken || sourceWorkspaceId) &&
+                      workspaceId
+                    )
+                  ) {
                     return;
                   }
                   try {
-                    await transfer.mutateAsync({ sourceWorkspaceId });
+                    await transfer.mutateAsync({
+                      sourceWorkspaceId: sourceWorkspaceId ?? undefined,
+                      transferToken: transferToken ?? undefined,
+                    });
                     await registry.invalidateResources({
                       queryKey:
                         resources.connections.list(workspaceId).queryKey,

@@ -24,6 +24,7 @@ const CHOOSE_FIRST_GOAL = /what do you want to do first/i;
 const CHOOSE_YOUR_PLAN = /choose your plan/i;
 const PLAN_STILL_SYNCING = /plan activation is still syncing/i;
 const CHECKOUT_CANCELLED = /checkout was cancelled/i;
+const MOVE_ACCOUNT = /move account/i;
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -35,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   usageAllowed: true,
   updateSetup: vi.fn(),
   completeSetup: vi.fn(),
+  confirmTransfer: vi.fn(),
   setupData: {
     goal: null as "publish" | "auto_dm" | null,
     webStep: "goal",
@@ -158,7 +160,9 @@ vi.mock("@/state/resources", () => ({
           ? mocks.updateSetup
           : key === "completeSetup"
             ? mocks.completeSetup
-            : vi.fn(),
+            : key === "confirmTransfer"
+              ? mocks.confirmTransfer
+              : vi.fn(),
     };
   },
 }));
@@ -186,6 +190,8 @@ describe("OnboardingStepper", () => {
     mocks.updateSetup.mockResolvedValue({ updated: true });
     mocks.completeSetup.mockReset();
     mocks.completeSetup.mockResolvedValue({ completed: true });
+    mocks.confirmTransfer.mockReset();
+    mocks.confirmTransfer.mockResolvedValue({ confirmed: true });
     mocks.setupData.goal = null;
     mocks.setupData.webStep = "goal";
     mocks.setupData.subscription = {
@@ -383,6 +389,23 @@ describe("OnboardingStepper", () => {
         name: CONNECT_AUTOMATION_ACCOUNT,
       })
     ).toBeTruthy();
+  });
+
+  it("uses the OAuth transfer grant without source workspace membership", async () => {
+    mocks.search =
+      "notification=transfer_required&platform=instagram&connectionId=connection_existing&sourceWorkspaceId=workspace_other&transferToken=signed-transfer-grant&step=connect";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "connect";
+
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: MOVE_ACCOUNT }));
+
+    await waitFor(() =>
+      expect(mocks.confirmTransfer).toHaveBeenCalledWith({
+        sourceWorkspaceId: "workspace_other",
+        transferToken: "signed-transfer-grant",
+      })
+    );
   });
 
   it("ignores a direct plan URL before the server reaches that step", () => {

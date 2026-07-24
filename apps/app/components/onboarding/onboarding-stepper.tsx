@@ -184,6 +184,7 @@ export function OnboardingStepper({
         message: callbackErrorMessage("transfer_required"),
         connectionId: searchParams.get("connectionId") ?? undefined,
         sourceWorkspaceId: searchParams.get("sourceWorkspaceId") ?? undefined,
+        transferToken: searchParams.get("transferToken") ?? undefined,
       });
     } else if (error) {
       setCallback({

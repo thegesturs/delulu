@@ -63,6 +63,7 @@ export interface ConnectionCallbackState {
   readonly message?: string;
   readonly connectionId?: string;
   readonly sourceWorkspaceId?: string;
+  readonly transferToken?: string;
 }
 
 function ConnectPlatformButton({
@@ -353,23 +354,32 @@ export function ConnectAccountsStep({
           <AlertTitle>Move this account to this workspace?</AlertTitle>
           <AlertDescription>
             <p>
-              This account is connected to another workspace you can access.
-              Moving it will disconnect it there.
+              You just verified this account, but it is connected to another
+              workspace. Moving it will disconnect it there.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Button
                 className="min-h-11"
                 disabled={
                   transfer.isPending ||
-                  !(callback.connectionId && callback.sourceWorkspaceId)
+                  !(
+                    callback.connectionId &&
+                    (callback.transferToken || callback.sourceWorkspaceId)
+                  )
                 }
                 onClick={async () => {
-                  if (!(callback.connectionId && callback.sourceWorkspaceId)) {
+                  if (
+                    !(
+                      callback.connectionId &&
+                      (callback.transferToken || callback.sourceWorkspaceId)
+                    )
+                  ) {
                     return;
                   }
                   try {
                     await transfer.mutateAsync({
                       sourceWorkspaceId: callback.sourceWorkspaceId,
+                      transferToken: callback.transferToken,
                     });
                     await onRefresh();
                     setTransferCompleted(true);

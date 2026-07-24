@@ -7,7 +7,7 @@ import {
   POST_UPDATED,
   REVIEW_ACTIONED,
 } from "@delulu/analytics/events";
-import { Api } from "@delulu/contracts";
+import { Api, ConflictError } from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
   AdminService,
@@ -522,6 +522,21 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
             auth,
             scope: "accounts:write",
           });
+          if (payload.transferToken) {
+            yield* connections.confirmOAuthTransfer({
+              connectionId: params.id,
+              destinationWorkspaceId: destination.workspaceId,
+              auth,
+              transferToken: payload.transferToken,
+            });
+            return { confirmed: true };
+          }
+          if (!payload.sourceWorkspaceId) {
+            return yield* new ConflictError({
+              message: "Connection transfer confirmation is missing",
+              resource: "connection",
+            });
+          }
           const source = yield* workspaces.require({
             workspaceId: payload.sourceWorkspaceId,
             auth,

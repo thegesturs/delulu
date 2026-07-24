@@ -567,6 +567,88 @@ describe("M2 PostService and JobService", () => {
     expect(result.total).toBe(1);
   });
 
+  it("moves a connection after the destination user proves provider ownership", async () => {
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const connections = yield* ConnectionsService;
+      const repository = yield* makeConnectionRepository();
+      const source = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      const destination = yield* identity.resolve({
+        sub: `clerk_${crypto.randomUUID()}`,
+      });
+      if (!(source.personalWorkspace && destination.personalWorkspace)) {
+        return yield* Effect.die("missing workspaces");
+      }
+      const profileId = crypto.randomUUID();
+      const connection = yield* repository.insert(
+        Connection.insert.make({
+          id: makeId(ConnectionId),
+          legacyConvexId: null,
+          workspaceId: source.personalWorkspace.id,
+          platform: "INSTAGRAM",
+          profileId,
+          username: "creator",
+          displayName: "Creator",
+          accessToken: "old-opaque",
+          refreshToken: null,
+          cipherVersion: "v1",
+          expiresAt: null,
+          metadata: {},
+        })
+      );
+      const auth = {
+        userId: destination.user.id,
+        credential: "session" as const,
+        scopes: "full" as const,
+      };
+      const result = yield* connections.upsertFromOAuth(
+        destination.personalWorkspace.id,
+        {
+          socialType: "INSTAGRAM",
+          profileId,
+          username: "creator",
+          accessToken: "fresh-provider-token",
+        },
+        `u:${destination.user.id}`
+      );
+      if (!(result.status === "transfer_required" && result.transferToken)) {
+        return yield* Effect.die("missing OAuth transfer grant");
+      }
+      const unauthorized = yield* connections
+        .confirmOAuthTransfer({
+          connectionId: connection.id,
+          destinationWorkspaceId: destination.personalWorkspace.id,
+          auth: {
+            userId: source.user.id,
+            credential: "session",
+            scopes: "full",
+          },
+          transferToken: result.transferToken,
+        })
+        .pipe(Effect.result);
+      yield* connections.confirmOAuthTransfer({
+        connectionId: connection.id,
+        destinationWorkspaceId: destination.personalWorkspace.id,
+        auth,
+        transferToken: result.transferToken,
+      });
+      const list = yield* connections.list(
+        destination.personalWorkspace.id,
+        10,
+        0
+      );
+      return { list, unauthorized };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.unauthorized._tag).toBe("Failure");
+    expect(result.list.total).toBe(1);
+  });
+
   it("re-arms an explicitly rescheduled durable job", async () => {
     const program = Effect.gen(function* () {
       const identity = yield* IdentityService;
