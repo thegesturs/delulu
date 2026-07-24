@@ -574,9 +574,10 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     const res = await get(
       "/v1/connections/callback/instagram?code=fake&state=unsigned"
     );
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string } };
-    expect(body.error.code).toBe("ConflictError");
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(
+      "http://localhost:3000/connection-result?error=invalid_state"
+    );
   });
 
   it("enforces the flat session rate limit (429)", async () => {
