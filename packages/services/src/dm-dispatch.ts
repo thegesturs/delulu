@@ -20,6 +20,12 @@ export class DmDispatchError extends Schema.TaggedErrorClass<DmDispatchError>()(
 export interface ProviderDmInput {
   readonly connectionId: string;
   readonly recipientId: string;
+  /**
+   * The triggering comment ID used for Instagram's first private reply.
+   * Normal conversation messages continue to address the Instagram-scoped
+   * user ID in recipientId.
+   */
+  readonly recipientCommentId?: string;
   readonly message: string;
   readonly buttons: readonly unknown[];
 }

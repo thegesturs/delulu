@@ -279,6 +279,11 @@ export class AutomationEngine extends Context.Service<
             automationId: automation.id,
             connectionId: automation.connectionId,
             recipientId: event.platformUserId,
+            recipientCommentId:
+              event._tag === "CommentReceived" &&
+              event.triggerType === "comment"
+                ? event.eventId
+                : undefined,
             stepId: step.id,
             message: render(step.messageTemplate, event),
             buttons: step.buttons ?? [],

@@ -76,7 +76,19 @@ export class WebhookIngressService extends Context.Service<
         }
         const handled = yield* input.handle(payload).pipe(Effect.result);
         if (handled._tag === "Failure") {
-          yield* deliveries.fail(claim.deliveryId, "Webhook processing failed");
+          const failureMessage =
+            typeof handled.failure === "object" &&
+            handled.failure !== null &&
+            "message" in handled.failure &&
+            typeof handled.failure.message === "string"
+              ? handled.failure.message
+              : "Webhook processing failed";
+          yield* Effect.logError("Webhook processing failed", {
+            provider: input.provider,
+            eventId: input.eventId,
+            failure: failureMessage,
+          });
+          yield* deliveries.fail(claim.deliveryId, failureMessage);
           return yield* new WebhookIngressError({
             reason: "processing_failed",
             message: "Webhook processing failed",

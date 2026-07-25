@@ -12,6 +12,7 @@ import {
   ProviderCommentReplyError,
   ProviderCommentReplyService,
   ProviderDmError,
+  type ProviderDmRequest,
   ProviderDmService,
   SetupService,
 } from "@delulu/services";
@@ -52,6 +53,13 @@ const ProviderSendResponse = Schema.Struct({
   message_id: Schema.optional(Schema.String),
   recipient_id: Schema.optional(Schema.String),
 });
+
+export const instagramDmRecipient = (
+  input: Pick<ProviderDmRequest, "recipientId" | "recipientCommentId">
+) =>
+  input.recipientCommentId
+    ? { comment_id: input.recipientCommentId }
+    : { id: input.recipientId };
 
 export const AutomationProviderLive = Layer.mergeAll(
   Layer.effect(
@@ -110,7 +118,7 @@ export const AutomationProviderLive = Layer.mergeAll(
                 "idempotency-key": input.idempotencyKey,
               },
               body: JSON.stringify({
-                recipient: { id: input.recipientId },
+                recipient: instagramDmRecipient(input),
                 message: {
                   text: `${input.message}${urlSuffix}`,
                   ...(quickReplies.length > 0
