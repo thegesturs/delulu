@@ -322,7 +322,7 @@ export function PricingCards(props: PricingCardsProps) {
 
               <CardFooter className={props.compact ? "px-4" : undefined}>
                 <Button
-                  className="w-full"
+                  className="min-h-11 w-full"
                   disabled={isCurrent || checkout.isPending || portal.isPending}
                   onClick={async () => {
                     try {

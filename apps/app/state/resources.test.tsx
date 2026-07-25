@@ -88,7 +88,7 @@ describe("Effect Atom resources", () => {
         }),
     });
     const Probe = () => {
-      const value = useResourceAtom({ ...query, staleTime: 10 * 60_000 });
+      const value = useResourceAtom({ ...query, staleTime: 1 });
       return (
         <button
           onClick={async () => {
@@ -110,9 +110,11 @@ describe("Effect Atom resources", () => {
       </AppStateProvider>
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "before transfer" })
-    );
+    const button = await screen.findByRole("button", {
+      name: "before transfer",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    fireEvent.click(button);
     await waitFor(() =>
       expect(screen.getByRole("button").textContent).toBe("connected account")
     );

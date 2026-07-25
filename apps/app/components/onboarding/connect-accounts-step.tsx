@@ -222,6 +222,7 @@ function ConnectedAccountRow({
               </AlertDialogCancel>
               <AlertDialogAction
                 className="min-h-11"
+                disabled={remove.isPending}
                 onClick={async () => {
                   try {
                     await remove.mutateAsync(account.id);

@@ -161,4 +161,68 @@ describe("SetupService", () => {
     expect(result.unpaid._tag).toBe("Failure");
     expect(result.complete.onboardingComplete).toBe(true);
   });
+
+  it("requires ready review when an account is connected after skipping", async () => {
+    const ClerkAdmin = Layer.succeed(
+      ClerkAdminService,
+      ClerkAdminService.of({
+        invite: () => Effect.succeed({ id: "invitation_test" }),
+        updateMembership: () => Effect.void,
+        removeMembership: () => Effect.void,
+        updateUserPublicMetadata: () => Effect.void,
+      })
+    );
+    const Setup = SetupService.layer.pipe(
+      Layer.provide([ClerkAdmin, Entitlements])
+    );
+    const AppLayer = Layer.mergeAll(IdentityService.layer, Setup).pipe(
+      Layer.provideMerge(Pg)
+    );
+    const program = Effect.gen(function* () {
+      const identity = yield* IdentityService;
+      const setup = yield* SetupService;
+      const sql = yield* SqlClient.SqlClient;
+      const resolved = yield* identity.resolve({
+        sub: `setup_connect_after_skip_${crypto.randomUUID()}`,
+      });
+      const workspaceId = resolved.personalWorkspace!.id;
+      yield* setup.updateGoal({
+        userId: resolved.user.id,
+        goal: "auto_dm",
+      });
+      yield* setup.updateOptionalSteps({
+        userId: resolved.user.id,
+        optionalSteps: {
+          connect: "skipped",
+          ready: "skipped",
+        },
+      });
+      yield* sql`INSERT INTO connections
+        (id, workspace_id, platform, profile_id, access_token, cipher_version)
+        VALUES (${`connection_${crypto.randomUUID()}`}, ${workspaceId},
+          'INSTAGRAM', ${`profile_${crypto.randomUUID()}`}, 'opaque', 'v1')`;
+      yield* provisionPaidSubscription(resolved.user.id);
+
+      const connected = yield* setup.status(workspaceId, resolved.user.id);
+      const reviewRequired = yield* setup
+        .complete(workspaceId, resolved.user.id)
+        .pipe(Effect.flip);
+      yield* setup.updateOptionalSteps({
+        userId: resolved.user.id,
+        optionalSteps: { ready: "completed" },
+      });
+      yield* setup.complete(workspaceId, resolved.user.id);
+
+      return {
+        connected,
+        reviewRequired,
+      };
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provide(AppLayer))
+    );
+    expect(result.connected.webStep).toBe("ready");
+    expect(result.reviewRequired.resource).toBe("onboarding_ready");
+  });
 });

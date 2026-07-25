@@ -404,7 +404,7 @@ describe("OnboardingStepper", () => {
     ).toBe(true);
   });
 
-  it("shows every supported publishing network directly", () => {
+  it("shows direct supported networks and excludes unavailable networks", () => {
     mocks.setupData.goal = "publish";
     mocks.setupData.webStep = "connect";
 

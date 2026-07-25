@@ -249,10 +249,7 @@ export class SetupService extends Context.Service<
             resource: "onboarding_connection",
           });
         }
-        if (
-          !connectionSkipped &&
-          user.onboardingOptional.ready !== "completed"
-        ) {
+        if (requirementMet && user.onboardingOptional.ready !== "completed") {
           return yield* new ConflictError({
             message: "Review your setup before choosing a plan",
             resource: "onboarding_ready",
