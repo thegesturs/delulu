@@ -556,9 +556,8 @@ function FlowBuilderInner({
           enabled: automationMeta.isActive,
           triggers: triggersToResource(processedTriggers),
           steps,
-          notes: notes.length > 0 ? notes : undefined,
-          nodePositions:
-            Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
+          notes,
+          nodePositions,
         } as never);
 
         analytics.capture(AUTOMATION_CREATED, {
@@ -597,9 +596,8 @@ function FlowBuilderInner({
           enabled: automationMeta.isActive,
           triggers: triggersToResource(processedTriggers),
           steps,
-          notes: notes.length > 0 ? notes : undefined,
-          nodePositions:
-            Object.keys(nodePositions).length > 0 ? nodePositions : undefined,
+          notes,
+          nodePositions,
         } as never);
         loadedUpdatedAtRef.current = updated.updatedAt;
 

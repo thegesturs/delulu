@@ -185,6 +185,9 @@ export class AutomationService extends Context.Service<
       const sql = yield* SqlClient.SqlClient;
       const repo = yield* makeAutomationRepository();
       const kv = yield* AutomationKvService;
+      // Hyperdrive does not invalidate cached SELECTs after writes. A stable
+      // function makes mutable automation reads ineligible for query caching.
+      const freshRead = sql`CURRENT_TIMESTAMP IS NOT NULL`;
 
       const findOne = SqlSchema.findOneOption({
         Request: Schema.Struct({
@@ -195,7 +198,7 @@ export class AutomationService extends Context.Service<
         }),
         Result: Automation,
         execute: ({ workspaceId, id, platform, category }) =>
-          sql`SELECT * FROM automations WHERE workspace_id = ${workspaceId} AND id = ${id} ${platform ? sql`AND platform = ${platform}` : sql``} ${category ? sql`AND category = ${category}` : sql``}`,
+          sql`SELECT * FROM automations WHERE ${freshRead} AND workspace_id = ${workspaceId} AND id = ${id} ${platform ? sql`AND platform = ${platform}` : sql``} ${category ? sql`AND category = ${category}` : sql``}`,
       });
       const get = Effect.fn("AutomationService.get")(function* (
         workspaceId: string,
@@ -224,7 +227,7 @@ export class AutomationService extends Context.Service<
       ) {
         const rows = yield* sql<{
           automationId: AutomationId;
-        }>`SELECT automation_id FROM automation_trigger_index WHERE profile_id = ${profileId} AND media_id = ${mediaId} AND enabled = true ORDER BY automation_id`.pipe(
+        }>`SELECT automation_id FROM automation_trigger_index WHERE ${freshRead} AND profile_id = ${profileId} AND media_id = ${mediaId} AND enabled = true ORDER BY automation_id`.pipe(
           Effect.mapError((cause) =>
             persistenceError("load trigger index", cause)
           )
@@ -291,7 +294,7 @@ export class AutomationService extends Context.Service<
         }),
         Result: Automation,
         execute: ({ workspaceId, limit, offset, platform, category }) =>
-          sql`SELECT * FROM automations WHERE workspace_id = ${workspaceId} ${platform ? sql`AND platform = ${platform}` : sql``} ${category ? sql`AND category = ${category}` : sql``} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
+          sql`SELECT * FROM automations WHERE ${freshRead} AND workspace_id = ${workspaceId} ${platform ? sql`AND platform = ${platform}` : sql``} ${category ? sql`AND category = ${category}` : sql``} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`,
       });
       const list = Effect.fn("AutomationService.list")(function* (
         workspaceId: string,
@@ -309,7 +312,7 @@ export class AutomationService extends Context.Service<
         }).pipe(Effect.mapError((cause) => persistenceError("list", cause)));
         const count = yield* sql<{
           total: string;
-        }>`SELECT count(*)::text AS total FROM automations WHERE workspace_id = ${workspaceId} AND platform = ${platform} AND category = ${category}`.pipe(
+        }>`SELECT count(*)::text AS total FROM automations WHERE ${freshRead} AND workspace_id = ${workspaceId} AND platform = ${platform} AND category = ${category}`.pipe(
           Effect.mapError((cause) => persistenceError("count", cause))
         );
         return { data, total: Number(count[0]?.total ?? 0), limit, offset };
@@ -356,7 +359,8 @@ export class AutomationService extends Context.Service<
                 const existing = yield* sql<
                   Record<string, unknown>
                 >`SELECT * FROM automations
-                    WHERE workspace_id = ${workspaceId}
+                    WHERE ${freshRead}
+                      AND workspace_id = ${workspaceId}
                       AND external_submission_id = ${input.idempotencyKey}
                     LIMIT 1`;
                 if (existing[0]) {
@@ -564,7 +568,7 @@ export class AutomationService extends Context.Service<
         }),
         Result: Automation,
         execute: ({ ids, profileId }) =>
-          sql`SELECT DISTINCT a.* FROM automations a JOIN automation_trigger_index t ON t.automation_id = a.id WHERE a.id IN ${sql.in(ids)} AND a.enabled = true AND t.enabled = true AND t.profile_id = ${profileId}`,
+          sql`SELECT DISTINCT a.* FROM automations a JOIN automation_trigger_index t ON t.automation_id = a.id WHERE ${freshRead} AND a.id IN ${sql.in(ids)} AND a.enabled = true AND t.enabled = true AND t.profile_id = ${profileId}`,
       });
       const findForTrigger = Effect.fn("AutomationService.findForTrigger")(
         function* (profileId: string, mediaId: string) {
@@ -583,7 +587,7 @@ export class AutomationService extends Context.Service<
               }
               const rows = yield* sql<{
                 automationId: AutomationId;
-              }>`SELECT automation_id FROM automation_trigger_index WHERE profile_id = ${profileId} AND media_id = ${targetId} AND enabled = true`.pipe(
+              }>`SELECT automation_id FROM automation_trigger_index WHERE ${freshRead} AND profile_id = ${profileId} AND media_id = ${targetId} AND enabled = true`.pipe(
                 Effect.mapError((cause) =>
                   persistenceError("load trigger fallback", cause)
                 )

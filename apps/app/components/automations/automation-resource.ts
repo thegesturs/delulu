@@ -75,7 +75,8 @@ export const automationFromResource = (
   const automation = input as ResourceAutomationShape;
   return {
     ...automation,
-    triggers: automation.triggers.map((trigger) => ({
+    nodePositions: automation.nodePositions ?? {},
+    triggers: (automation.triggers ?? []).map((trigger) => ({
       ...trigger,
       targetMode:
         trigger.targetMode ??
@@ -89,8 +90,8 @@ export const automationFromResource = (
         : undefined,
       triggerType: triggerFromResource(trigger.triggerType),
     })),
-    steps: [...automation.steps],
-    notes: [...automation.notes],
+    steps: [...(automation.steps ?? [])],
+    notes: [...(automation.notes ?? [])],
   };
 };
 

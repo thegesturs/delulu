@@ -5,40 +5,49 @@ import {
   triggersToResource,
 } from "./automation-resource";
 
+const resource = {
+  id: "aut_1",
+  workspaceId: "ws_1",
+  connectionId: "con_1",
+  platform: "instagram",
+  category: "dm",
+  name: "Replies",
+  description: null,
+  enabled: true,
+  triggers: triggersToResource([
+    {
+      id: "trigger_1",
+      type: "trigger" as const,
+      triggerType: "STORY_REPLY",
+      targetMode: "all" as const,
+      targetPostIds: [],
+    },
+  ]),
+  steps: [],
+  notes: [],
+  nodePositions: {},
+  totalTriggered: 0,
+  totalDmsSent: 0,
+  totalFailed: 0,
+  createdAt: "2026-07-11T00:00:00.000Z",
+  updatedAt: "2026-07-11T00:00:00.000Z",
+};
+
 describe("automation resource adapters", () => {
   it("converts trigger casing at the API boundary", () => {
-    const triggers = triggersToResource([
-      {
-        id: "trigger_1",
-        type: "trigger",
-        triggerType: "STORY_REPLY",
-        targetMode: "all",
-        targetPostIds: [],
-      },
-    ]);
+    expect(resource.triggers[0]?.triggerType).toBe("story_reply");
+    expect(automationFromResource(resource).triggers[0]?.triggerType).toBe(
+      "STORY_REPLY"
+    );
+  });
 
-    expect(triggers[0]?.triggerType).toBe("story_reply");
-    expect(
-      automationFromResource({
-        id: "aut_1",
-        workspaceId: "ws_1",
-        connectionId: "con_1",
-        platform: "instagram",
-        category: "dm",
-        name: "Replies",
-        description: null,
-        enabled: true,
-        triggers,
-        steps: [],
-        notes: [],
-        nodePositions: {},
-        totalTriggered: 0,
-        totalDmsSent: 0,
-        totalFailed: 0,
-        createdAt: "2026-07-11T00:00:00.000Z",
-        updatedAt: "2026-07-11T00:00:00.000Z",
-      }).triggers[0]?.triggerType
-    ).toBe("STORY_REPLY");
+  it("normalizes missing legacy graph metadata", () => {
+    const { nodePositions: _, notes: __, ...legacyResource } = resource;
+
+    expect(automationFromResource(legacyResource as never)).toMatchObject({
+      notes: [],
+      nodePositions: {},
+    });
   });
 
   it("distinguishes tagged domain errors from transport failures", () => {
