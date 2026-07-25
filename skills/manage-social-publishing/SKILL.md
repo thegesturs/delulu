@@ -8,6 +8,19 @@ description: Set up and operate Delulu Social through its agent-first CLI or hos
 Prefer hosted MCP tools when they are available. Otherwise use the `delulu`
 CLI. Never print, paste, log, or manually copy access or refresh tokens.
 
+## Bootstrap the CLI
+
+When hosted MCP tools are unavailable and `delulu` is not on `PATH`:
+
+1. Check `node --version`. The CLI requires Node.js 20 or newer. If the runtime
+   is missing or older, explain the requirement and help the user install or
+   select a compatible Node.js version before continuing.
+2. Run `npm install --global delulu-cli`, then verify `delulu --version`.
+   Do not use `sudo`. If global installation is blocked by permissions, report
+   the error and ask the user how they prefer to manage their Node.js tools.
+3. Continue setup from `delulu`; do not ask the user to repeat their original
+   setup request.
+
 ## Choose the surface
 
 - Use MCP for remote URL media and basic setup, account, post, subscription,

@@ -3,31 +3,44 @@ title: Set up Delulu with an AI agent
 description: Give an agent the Delulu skill, authorize once, and let it guide setup through publication.
 ---
 
-You will install the small agent integration, approve delegated access, and let an agent work through workspace selection, account connection, billing, media, and publishing.
+You will install one small skill, give your agent one setup prompt, approve delegated access in the browser, and let the agent handle the command-line setup.
 
 For a browser-capable hosted agent, configure the [hosted MCP server](/mcp/overview/) instead. It follows the same setup journey with authorization code and PKCE. Agents can also discover the workflow from `https://solulu.delulu.social/auth.md`.
 
-## Step 1: Install agent awareness
+## Step 1: Install the skill
 
-Install the CLI, then add the packaged skill to detected user-level agent locations:
+With Node.js 20 or newer installed, run the Vercel skills command from any
+directory:
 
 ```bash
-npm install --global delulu-cli
-delulu integrate install
-delulu integrate status
+npx skills add thegesturs/delulu \
+  --skill manage-social-publishing \
+  --global \
+  --yes
 ```
 
-The integration contains instructions only. It never copies or stores credentials.
+The command detects supported AI agents and installs the skill at user scope, so
+it is available in any project. You do not need to clone Delulu, install the
+Delulu CLI yourself, or configure credentials. The skill contains instructions
+only and never copies or stores credentials.
 
-## Step 2: Ask the agent to start setup
+Start a new conversation after installation so your agent discovers the skill.
 
-Use a direct request such as:
+## Step 2: Use one setup prompt
+
+Ask your agent:
 
 ```text
 Set up Delulu for me, connect my LinkedIn account, and tell me what remains before I can publish.
 ```
 
-The agent runs `delulu login`. Open the verification URL, sign up or sign in, select a workspace and scopes, and approve. Tokens stay in the CLI credential file with owner-only permissions and never enter the conversation.
+Replace LinkedIn with the social account you want to connect. The skill teaches
+the agent to install the small `delulu` CLI if it is missing, run
+`delulu login`, and continue from the live setup state.
+
+Open the verification URL the agent gives you, sign up or sign in, select a
+workspace and scopes, and approve. Tokens stay in the CLI credential file with
+owner-only permissions and never enter the conversation.
 
 ## Step 3: Complete browser ceremonies
 
@@ -52,7 +65,9 @@ Your agent can operate the same CLI you can inspect yourself. It can prepare med
 
 ## Troubleshooting
 
-- Run `delulu integrate status` if the agent does not discover the skill.
+- Start a new agent conversation after installation; already-running sessions may not discover newly installed skills.
+- Run `npx skills list --global` to confirm that `manage-social-publishing` is installed.
+- Run `npx skills update manage-social-publishing --global` to update the skill.
 - Run `delulu --toon` yourself to inspect the exact machine-readable result.
 - Use `delulu accounts` when two accounts share a display name; agents should pass canonical selectors.
-- Use `delulu integrate remove` to remove the skill files without logging out.
+- Run `npx skills remove manage-social-publishing --global` to remove the skill without logging out of Delulu.

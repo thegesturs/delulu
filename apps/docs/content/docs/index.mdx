@@ -5,6 +5,28 @@ description: Publish, schedule, review, and automate social content from the CLI
 
 Delulu gives people and agents one permission-aware publishing system across connected social accounts. Start with the CLI for the shortest path from sign-in to a confirmed post, use MCP for hosted agents, or integrate directly with the REST API.
 
+## Fastest start: one skill, one prompt
+
+With Node.js 20 or newer installed, add the Delulu skill globally for your
+detected AI agents:
+
+```bash
+npx skills add thegesturs/delulu \
+  --skill manage-social-publishing \
+  --global \
+  --yes
+```
+
+Then start a new agent conversation and ask:
+
+```text
+Set up Delulu for me, connect my LinkedIn account, and tell me what remains before I can publish.
+```
+
+The agent installs the small Delulu CLI if needed and guides the rest of setup.
+You only handle the browser approvals that require human consent. See the
+[agent setup guide](/getting-started/agent-setup/) for details.
+
 ## Choose your path
 
 <div className="docs-path-grid">
@@ -29,7 +51,7 @@ Delulu gives people and agents one permission-aware publishing system across con
     </span>
     <div>
       <h3>Agents & MCP</h3>
-      <p>Let a hosted or local agent guide setup and operate Delulu with structured tools.</p>
+      <p>Install one skill for a local agent, or connect a hosted agent through MCP.</p>
       <a href="/getting-started/agent-setup/">Set up an agent <span aria-hidden="true">→</span></a>
     </div>
   </article>

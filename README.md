@@ -24,15 +24,28 @@ and Farcaster.
   collaboration, and programmable automations.
 - **Open source:** AGPL-3.0 licensed, with a supported Docker Compose deployment.
 
-## Give an agent access
+## Set up with one prompt
 
-For a local agent, install the CLI and its packaged skill:
+With Node.js 20 or newer installed, add the Delulu skill globally for your
+detected AI agents:
 
 ```bash
-npm install --global delulu-cli
-delulu integrate install
-delulu login
+npx skills add thegesturs/delulu \
+  --skill manage-social-publishing \
+  --global \
+  --yes
 ```
+
+Then start a new agent conversation and ask:
+
+```text
+Set up Delulu for me, connect my LinkedIn account, and tell me what remains before I can publish.
+```
+
+The skill teaches the agent to install the small `delulu` CLI if needed, start
+secure browser authorization, and guide you through account connection and
+billing. You do not need to clone this repository or manually configure the
+CLI. The skill contains instructions only—never credentials.
 
 For a browser-capable MCP client, connect:
 
