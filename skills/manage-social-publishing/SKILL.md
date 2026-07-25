@@ -1,6 +1,6 @@
 ---
 name: manage-social-publishing
-description: Set up and operate Delulu Social through its agent-first CLI or hosted MCP tools. Use for account authorization, workspace selection, social account connection or removal, paid onboarding, usage checks, media upload or import, drafting, multi-account publishing, scheduling, listing or inspecting posts, editing, deleting, retrying failed targets, and handling review workflows or publishing results.
+description: Set up and operate Delulu Social through its agent-first CLI or hosted MCP tools. Use for account authorization, workspace selection, social account connection or removal, paid onboarding, usage checks, media upload or import, drafting, multi-account publishing, scheduling, listing or inspecting posts, editing, deleting, retrying failed targets, review workflows, publishing results, and Instagram DM automations.
 ---
 
 # Manage Social Publishing
@@ -26,7 +26,8 @@ When hosted MCP tools are unavailable and `delulu` is not on `PATH`:
 - Use MCP for remote URL media and basic setup, account, post, subscription,
   and usage operations.
 - Use the CLI for local files, account disconnection, per-target retries, review
-  actions, or a complete single-command publishing flow.
+  actions, Instagram DM automations, or a complete single-command publishing
+  flow.
 - Run `delulu help <command>` when syntax or fields are uncertain. Do not guess
   removed commands or unsupported flags.
 
@@ -122,6 +123,37 @@ delulu post "Caption" --to linkedin:connection_123 --to x:connection_456 --now
   only when the user explicitly authorized that deletion or disconnection.
 - Usage: use `delulu usage`, `get_usage`, or `get_subscription`; distinguish
   pooled workspace usage from plan limits.
+
+## Manage Instagram DM automations
+
+1. Resolve the Instagram account with `delulu accounts`. Read existing
+   definitions with `delulu automations` and
+   `delulu automation show <automation-id>` before changing or deleting one.
+2. To target specific media, run
+   `delulu automation posts --account <selector>`. Paginate with the returned
+   cursor and `--after`; add `--stories` when selecting Story IDs. This command
+   lists media rather than opening an interactive picker, so pass chosen IDs to
+   repeated `--post` flags. For a scheduled Delulu post, pass
+   `pending:<post-id>`.
+3. Create the common comment-to-DM flow with
+   `delulu automation create --account <selector> --name <name> --post <id>
+   --keyword <text> --message <text>`. Repeat `--post` for multiple targets or
+   use the mutually exclusive `--all-posts` option for current and future
+   media. Repeat `--comment-reply <text>` for multiple public reply options.
+4. Add `--stories` for a Story Reply trigger. Do not add public comment replies
+   to Story Reply automations. Mention triggers are unavailable.
+5. Common flags create one trigger followed by one DM step. Use
+   `--file <path>` or `--file -` for a validated advanced graph containing
+   conditions, buttons, or multiple steps. Do not combine `--file` with common
+   flags.
+6. Update with `delulu automation update <automation-id>`, or use
+   `enable`/`disable` for status-only changes. Common update flags preserve
+   omitted fields but cannot clear optional fields or change trigger type; use
+   a validated JSON patch for those cases.
+7. Preserve the operation journal and idempotency key on retries. Inspect the
+   returned definition before claiming the automation is active. Run
+   `delulu automation delete <automation-id> --yes` only after the user
+   explicitly authorizes permanent deletion.
 
 ## Handle retries and results
 

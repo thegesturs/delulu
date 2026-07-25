@@ -1,6 +1,6 @@
 ---
 title: CLI commands
-description: Complete delulu-cli 0.2 command and flag reference.
+description: Complete delulu-cli 0.3 command and flag reference.
 ---
 
 ## Global syntax
@@ -236,6 +236,119 @@ delulu review <post-id> \
   [--approve | --reject <reason> | --comment <text> | --submit | --withdraw] \
   [--new]
 ```
+
+## `delulu automations`
+
+List Instagram DM automations with offset pagination.
+
+```bash
+delulu automations [--limit <1-100>] [--offset <number>]
+```
+
+Defaults: limit `20`, offset `0`.
+
+## `delulu automation show`
+
+Inspect an automation's triggers, targeting, steps, status, and counters.
+
+```bash
+delulu automation show <automation-id>
+```
+
+## `delulu automation posts`
+
+List selectable Instagram posts and Reels newest-first.
+
+```bash
+delulu automation posts \
+  --account <selector> \
+  [--stories] \
+  [--limit <1-100>] \
+  [--after <cursor>]
+```
+
+The command returns media IDs to pass to repeated `--post` flags. It does not
+open an interactive terminal picker. Use the returned `nextCursor` with
+`--after` to load another page. Add `--stories` to list Stories instead.
+
+## `delulu automation create`
+
+Create a comment-to-DM or Story Reply automation.
+
+```bash
+delulu automation create \
+  --account <selector> \
+  --name <name> \
+  [--post <media-id> ... | --all-posts] \
+  [--stories] \
+  [--keyword <text>] \
+  [--match <contains|equals|starts_with|ends_with|regex>] \
+  [--case-sensitive] \
+  --message <text> \
+  [--comment-reply <text> ...] \
+  [--disabled] \
+  [--idempotency-key <key>] \
+  [--new]
+```
+
+Targeting is explicit:
+
+- Repeat `--post` to target one or more live media IDs. Use
+  `pending:<post-id>` to target a scheduled Delulu post before publication.
+- Use `--all-posts` for any current or future post or Reel. It cannot be
+  combined with `--post`.
+- Add `--stories` to create a Story Reply trigger. Select Story IDs from
+  `automation posts --stories`, or combine it with `--all-posts`.
+
+Repeat `--comment-reply` to configure multiple possible public replies to a
+matching Instagram comment:
+
+```bash
+delulu automation create \
+  --account instagram@creator \
+  --name "Send the guide" \
+  --post 18000000000000001 \
+  --keyword guide \
+  --message "Here is the guide." \
+  --comment-reply "Sent — check your DMs." \
+  --comment-reply "Just messaged you."
+```
+
+For advanced condition graphs, buttons, or multiple steps, replace the common
+flags with `--file <path>`, or use `--file -` for stdin. The JSON is validated
+against the same API contract used by the application.
+
+## `delulu automation update`
+
+Patch an existing automation.
+
+```bash
+delulu automation update <automation-id> \
+  [--name <name>] \
+  [--post <media-id> ... | --all-posts] \
+  [--keyword <text>] \
+  [--match <operator>] \
+  [--case-sensitive] \
+  [--message <text>] \
+  [--comment-reply <text> ...] \
+  [--enable | --disable] \
+  [--file <path>] \
+  [--new]
+```
+
+Common graph flags support automations with one trigger and one DM step. Use a
+validated JSON patch through `--file` or stdin for advanced graphs, to clear
+optional trigger fields, or to change the trigger type.
+
+## Enable, disable, or delete an automation
+
+```bash
+delulu automation enable <automation-id> [--new]
+delulu automation disable <automation-id> [--new]
+delulu automation delete <automation-id> --yes [--new]
+```
+
+Deletion is permanent and requires `--yes`.
 
 ## `delulu integrate`
 
