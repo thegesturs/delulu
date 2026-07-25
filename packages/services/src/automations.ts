@@ -1,10 +1,16 @@
-import { NotFoundError } from "@delulu/contracts";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "@delulu/contracts";
 import {
   Automation,
   type AutomationNote,
   AutomationPersistenceError,
   type AutomationStep,
   type AutomationTrigger,
+  automationTriggerTargetMode,
+  automationTriggerValidationIssues,
   makeAutomationRepository,
 } from "@delulu/core/domain/automation";
 import {
@@ -19,6 +25,7 @@ import { AutomationKvService } from "./automation-kv";
 
 export interface AutomationWriteInput {
   readonly connectionId: ConnectionId;
+  readonly idempotencyKey?: string;
   readonly platform: "instagram";
   readonly category: string;
   readonly name: string;
@@ -95,6 +102,20 @@ const persistenceError = (operation: string, cause: unknown) =>
     cause,
   });
 
+export const ALL_MEDIA_TRIGGER_ID = "*";
+
+export const automationTriggerIndexIds = (
+  triggers: readonly AutomationTrigger[]
+): string[] => [
+  ...new Set(
+    triggers.flatMap((trigger) =>
+      automationTriggerTargetMode(trigger) === "all"
+        ? [ALL_MEDIA_TRIGGER_ID]
+        : trigger.targetPostIds
+    )
+  ),
+];
+
 export class AutomationService extends Context.Service<
   AutomationService,
   {
@@ -114,12 +135,21 @@ export class AutomationService extends Context.Service<
     readonly create: (
       workspaceId: WorkspaceId,
       input: AutomationWriteInput
-    ) => Effect.Effect<Automation, AutomationPersistenceError>;
+    ) => Effect.Effect<
+      Automation,
+      | AutomationPersistenceError
+      | NotFoundError
+      | ConflictError
+      | ValidationError
+    >;
     readonly update: (
       workspaceId: string,
       id: string,
       patch: AutomationPatchInput
-    ) => Effect.Effect<Automation, AutomationPersistenceError | NotFoundError>;
+    ) => Effect.Effect<
+      Automation,
+      AutomationPersistenceError | NotFoundError | ValidationError
+    >;
     readonly remove: (
       workspaceId: string,
       id: string
@@ -199,13 +229,12 @@ export class AutomationService extends Context.Service<
             persistenceError("load trigger index", cause)
           )
         );
-        const write = yield* kv
-          .putTriggerIds(
-            profileId,
-            mediaId,
-            rows.map((row) => row.automationId)
-          )
-          .pipe(Effect.result);
+        const automationIds = rows.map((row) => row.automationId);
+        const write = yield* (
+          mediaId === ALL_MEDIA_TRIGGER_ID
+            ? kv.putAllTriggerIds(profileId, automationIds)
+            : kv.putTriggerIds(profileId, mediaId, automationIds)
+        ).pipe(Effect.result);
         if (write._tag === "Failure") {
           yield* Effect.logWarning(
             "Automation KV write-through failed",
@@ -230,11 +259,7 @@ export class AutomationService extends Context.Service<
               new Error("Connection not found")
             );
           }
-          const mediaIds = [
-            ...new Set(
-              automation.triggers.flatMap((trigger) => trigger.targetPostIds)
-            ),
-          ];
+          const mediaIds = automationTriggerIndexIds(automation.triggers);
           yield* sql`INSERT INTO automation_trigger_repairs (profile_id, media_id)
             SELECT profile_id, media_id FROM automation_trigger_index
             WHERE automation_id = ${automation.id}
@@ -293,13 +318,59 @@ export class AutomationService extends Context.Service<
         workspaceId: WorkspaceId,
         input: AutomationWriteInput
       ) {
+        const issues = automationTriggerValidationIssues(input.triggers);
+        if (issues.length > 0) {
+          return yield* new ValidationError({
+            message: "Automation triggers are invalid",
+            issues: [...issues],
+          });
+        }
+        const connection = yield* sql<{
+          platform: string;
+        }>`SELECT platform FROM connections
+            WHERE id = ${input.connectionId}
+              AND workspace_id = ${workspaceId}`.pipe(
+          Effect.mapError((cause) =>
+            persistenceError("validate connection", cause)
+          )
+        );
+        if (!connection[0]) {
+          return yield* new NotFoundError({
+            message: "Automation connection not found",
+            resource: "connection",
+          });
+        }
+        if (connection[0].platform !== "INSTAGRAM") {
+          return yield* new ConflictError({
+            message: "DM automations require an Instagram connection",
+            resource: "connection",
+          });
+        }
         const result = yield* sql
           .withTransaction(
             Effect.gen(function* () {
+              if (input.idempotencyKey) {
+                yield* sql`SELECT pg_advisory_xact_lock(
+                  hashtext(${`${workspaceId}:${input.idempotencyKey}`})
+                )`;
+                const existing = yield* sql<
+                  Record<string, unknown>
+                >`SELECT * FROM automations
+                    WHERE workspace_id = ${workspaceId}
+                      AND external_submission_id = ${input.idempotencyKey}
+                    LIMIT 1`;
+                if (existing[0]) {
+                  return {
+                    inserted: Schema.decodeUnknownSync(Automation)(existing[0]),
+                    indexed: null,
+                  };
+                }
+              }
               const inserted = yield* repo.insert(
                 Automation.insert.make({
                   id: makeId(AutomationId),
                   legacyConvexId: null,
+                  externalSubmissionId: input.idempotencyKey ?? null,
                   workspaceId,
                   connectionId: input.connectionId,
                   platform: input.platform,
@@ -322,7 +393,9 @@ export class AutomationService extends Context.Service<
             })
           )
           .pipe(Effect.mapError((cause) => persistenceError("create", cause)));
-        yield* syncPairs(result.indexed.profileId, result.indexed.mediaIds);
+        if (result.indexed) {
+          yield* syncPairs(result.indexed.profileId, result.indexed.mediaIds);
+        }
         return result.inserted;
       });
       const update = Effect.fn("AutomationService.update")(function* (
@@ -337,6 +410,13 @@ export class AutomationService extends Context.Service<
           Effect.mapError((cause) => persistenceError("load connection", cause))
         );
         const nextTriggers = patch.triggers ?? current.triggers;
+        const issues = automationTriggerValidationIssues(nextTriggers);
+        if (issues.length > 0) {
+          return yield* new ValidationError({
+            message: "Automation triggers are invalid",
+            issues: [...issues],
+          });
+        }
         const nextSteps = patch.steps ?? current.steps;
         const nextNotes = patch.notes ?? current.notes;
         const nextPositions = patch.nodePositions ?? current.nodePositions;
@@ -351,7 +431,7 @@ export class AutomationService extends Context.Service<
           )
           .pipe(Effect.mapError((cause) => persistenceError("update", cause)));
         yield* syncPairs(result.indexed.profileId, [
-          ...current.triggers.flatMap((trigger) => trigger.targetPostIds),
+          ...automationTriggerIndexIds(current.triggers),
           ...result.indexed.mediaIds,
         ]);
         if (
@@ -360,7 +440,7 @@ export class AutomationService extends Context.Service<
         ) {
           yield* syncPairs(
             oldConnection[0].profileId,
-            current.triggers.flatMap((trigger) => trigger.targetPostIds)
+            automationTriggerIndexIds(current.triggers)
           );
         }
         return result.updated;
@@ -389,7 +469,7 @@ export class AutomationService extends Context.Service<
         if (connection[0]) {
           yield* syncPairs(
             connection[0].profileId,
-            current.triggers.flatMap((trigger) => trigger.targetPostIds)
+            automationTriggerIndexIds(current.triggers)
           );
         }
       });
@@ -481,54 +561,57 @@ export class AutomationService extends Context.Service<
         Request: Schema.Struct({
           ids: Schema.Array(AutomationId),
           profileId: Schema.String,
-          mediaId: Schema.String,
         }),
         Result: Automation,
-        execute: ({ ids, profileId, mediaId }) =>
-          sql`SELECT a.* FROM automations a JOIN automation_trigger_index t ON t.automation_id = a.id WHERE a.id IN ${sql.in(ids)} AND a.enabled = true AND t.enabled = true AND t.profile_id = ${profileId} AND t.media_id = ${mediaId}`,
+        execute: ({ ids, profileId }) =>
+          sql`SELECT DISTINCT a.* FROM automations a JOIN automation_trigger_index t ON t.automation_id = a.id WHERE a.id IN ${sql.in(ids)} AND a.enabled = true AND t.enabled = true AND t.profile_id = ${profileId}`,
       });
       const findForTrigger = Effect.fn("AutomationService.findForTrigger")(
         function* (profileId: string, mediaId: string) {
-          const cached = yield* kv
-            .getTriggerIds(profileId, mediaId)
-            .pipe(Effect.catch(() => Effect.succeed(null)));
-          if (cached !== null) {
-            return cached.length === 0
-              ? []
-              : yield* loadByIds({
-                  ids: [...cached],
-                  profileId,
-                  mediaId,
-                }).pipe(
-                  Effect.mapError((cause) =>
-                    persistenceError("load cached triggers", cause)
-                  )
-                );
-          }
-          const rows = yield* sql<{
-            automationId: AutomationId;
-          }>`SELECT automation_id FROM automation_trigger_index WHERE profile_id = ${profileId} AND media_id = ${mediaId} AND enabled = true`.pipe(
-            Effect.mapError((cause) =>
-              persistenceError("load trigger fallback", cause)
-            )
+          const loadIds = Effect.fn("AutomationService.loadTriggerIds")(
+            function* (targetId: string) {
+              const cached = yield* (
+                targetId === ALL_MEDIA_TRIGGER_ID
+                  ? kv.getAllTriggerIds(profileId)
+                  : kv.getTriggerIds(profileId, targetId)
+              ).pipe(Effect.catch(() => Effect.succeed(null)));
+              if (
+                cached !== null &&
+                (targetId === ALL_MEDIA_TRIGGER_ID || cached.length > 0)
+              ) {
+                return cached;
+              }
+              const rows = yield* sql<{
+                automationId: AutomationId;
+              }>`SELECT automation_id FROM automation_trigger_index WHERE profile_id = ${profileId} AND media_id = ${targetId} AND enabled = true`.pipe(
+                Effect.mapError((cause) =>
+                  persistenceError("load trigger fallback", cause)
+                )
+              );
+              const automationIds = rows.map((row) => row.automationId);
+              yield* (
+                targetId === ALL_MEDIA_TRIGGER_ID
+                  ? kv.putAllTriggerIds(profileId, automationIds)
+                  : kv.putTriggerIds(profileId, targetId, automationIds)
+              ).pipe(
+                Effect.catch((error) =>
+                  Effect.logWarning("Automation KV repair failed", error)
+                )
+              );
+              return automationIds;
+            }
           );
-          yield* kv
-            .putTriggerIds(
-              profileId,
-              mediaId,
-              rows.map((row) => row.automationId)
-            )
-            .pipe(
-              Effect.catch((error) =>
-                Effect.logWarning("Automation KV repair failed", error)
-              )
-            );
-          return rows.length === 0
+          const ids = [
+            ...new Set([
+              ...(yield* loadIds(mediaId)),
+              ...(yield* loadIds(ALL_MEDIA_TRIGGER_ID)),
+            ]),
+          ];
+          return ids.length === 0
             ? []
             : yield* loadByIds({
-                ids: rows.map((row) => row.automationId),
+                ids,
                 profileId,
-                mediaId,
               }).pipe(
                 Effect.mapError((cause) =>
                   persistenceError("load triggers", cause)

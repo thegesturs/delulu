@@ -384,6 +384,62 @@ const processProgram = (
         if (outcome.status === "PUBLISHED") {
           yield* sql`UPDATE post_targets SET status = 'published', platform_post_id = ${outcome.result.platformPostId},
             platform_post_url = ${outcome.result.platformPostUrl}, posted_at = now(), error = NULL WHERE id = ${message.targetId}`;
+          const pendingAutomations = yield* sql<{
+            id: string;
+            triggers: unknown;
+            enabled: boolean;
+            profileId: string;
+          }>`SELECT a.id, a.triggers, a.enabled, c.profile_id
+              FROM automations a
+              JOIN connections c ON c.id = a.connection_id
+              WHERE a.workspace_id = ${row.workspaceId}
+                AND a.connection_id = ${row.connectionId}
+                AND EXISTS (
+                  SELECT 1
+                  FROM jsonb_array_elements(a.triggers) AS trigger
+                  WHERE (trigger->'pendingPostIds') ? ${row.postId}
+                )`;
+          for (const automation of pendingAutomations) {
+            yield* sql`UPDATE automations
+                SET triggers = (
+                  SELECT jsonb_agg(
+                    CASE
+                      WHEN (trigger->'pendingPostIds') ? ${row.postId}
+                      THEN trigger || jsonb_build_object(
+                        'targetMode', 'specific',
+                        'targetPostIds',
+                          COALESCE(trigger->'targetPostIds', '[]'::jsonb)
+                          || jsonb_build_array(${outcome.result.platformPostId}),
+                        'pendingPostIds',
+                          COALESCE(trigger->'pendingPostIds', '[]'::jsonb)
+                          - ${row.postId}
+                      )
+                      ELSE trigger
+                    END
+                  )
+                  FROM jsonb_array_elements(automations.triggers) AS trigger
+                )
+                WHERE id = ${automation.id}`;
+            yield* sql`INSERT INTO automation_trigger_index
+                (automation_id, connection_id, profile_id, media_id, enabled)
+                VALUES (
+                  ${automation.id},
+                  ${row.connectionId},
+                  ${automation.profileId},
+                  ${outcome.result.platformPostId},
+                  ${automation.enabled}
+                )
+                ON CONFLICT (automation_id, media_id)
+                DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now()`;
+            yield* sql`INSERT INTO automation_trigger_repairs
+                (profile_id, media_id)
+                VALUES (
+                  ${automation.profileId},
+                  ${outcome.result.platformPostId}
+                )
+                ON CONFLICT (profile_id, media_id)
+                DO UPDATE SET requested_at = now()`;
+          }
           yield* sql`UPDATE jobs SET status = 'completed', locked_until = NULL, last_error = NULL WHERE id = ${message.jobId}`;
           if (mediaIds.length > 0) {
             const subscriptions = yield* sql<{

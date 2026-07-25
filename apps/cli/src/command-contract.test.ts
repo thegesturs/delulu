@@ -9,6 +9,8 @@ const commands = [
   "logout",
   "workspace",
   "accounts",
+  "automations",
+  "automation",
   "connect",
   "disconnect",
   "subscribe",

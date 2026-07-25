@@ -77,6 +77,12 @@ export const automationFromResource = (
     ...automation,
     triggers: automation.triggers.map((trigger) => ({
       ...trigger,
+      targetMode:
+        trigger.targetMode ??
+        (trigger.targetPostIds.length === 0 &&
+        (trigger.pendingPostIds?.length ?? 0) === 0
+          ? "all"
+          : "specific"),
       targetPostIds: [...trigger.targetPostIds],
       pendingPostIds: trigger.pendingPostIds
         ? [...trigger.pendingPostIds]

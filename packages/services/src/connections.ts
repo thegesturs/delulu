@@ -6,6 +6,8 @@ import {
   callbackRedirect,
   connectFacebookPage,
   getConnection,
+  type PlatformMediaPage,
+  type PublishableSocialType,
   withConnectionClient,
   withConnectionReturnTarget,
   withConnectionSuccess,
@@ -14,6 +16,7 @@ import {
   ConflictError,
   type ConnectionView,
   NotFoundError,
+  ProviderUnavailableError,
 } from "@delulu/contracts";
 import {
   type AuthContext,
@@ -373,6 +376,16 @@ export class ConnectionsService extends Context.Service<
       workspaceId: WorkspaceId,
       id: string
     ) => Effect.Effect<void, NotFoundError>;
+    readonly listMedia: (input: {
+      readonly workspaceId: WorkspaceId;
+      readonly connectionId: string;
+      readonly kind: "posts" | "stories";
+      readonly limit: number;
+      readonly after?: string;
+    }) => Effect.Effect<
+      PlatformMediaPage,
+      NotFoundError | ConflictError | ProviderUnavailableError
+    >;
     readonly mint: (
       workspaceId: WorkspaceId,
       platform: string,
@@ -479,6 +492,90 @@ export class ConnectionsService extends Context.Service<
           idempotencyKey: `connection-deleted:${id}`,
         });
       });
+      const listMedia = Effect.fn("ConnectionsService.listMedia")(
+        function* (input: {
+          readonly workspaceId: WorkspaceId;
+          readonly connectionId: string;
+          readonly kind: "posts" | "stories";
+          readonly limit: number;
+          readonly after?: string;
+        }) {
+          const rows = yield* sql<{
+            platform: string;
+            profileId: string;
+            accessToken: string;
+            cipherVersion: "v1";
+          }>`SELECT platform, profile_id, access_token, cipher_version
+            FROM connections
+            WHERE id = ${input.connectionId}
+              AND workspace_id = ${input.workspaceId}`.pipe(
+            Effect.mapError(
+              () =>
+                new ProviderUnavailableError({
+                  message: "Unable to load the Instagram connection",
+                  provider: "Instagram",
+                  retryable: true,
+                })
+            )
+          );
+          const row = rows[0];
+          if (!row) {
+            return yield* new NotFoundError({
+              message: "Connection not found",
+              resource: "connection",
+            });
+          }
+          if (row.platform !== "INSTAGRAM") {
+            return yield* new ConflictError({
+              message: "DM automation media is available for Instagram only",
+              resource: "connection",
+            });
+          }
+          const connection = getConnection(
+            row.platform as PublishableSocialType
+          );
+          const query =
+            input.kind === "stories"
+              ? connection.queries?.getStories
+              : connection.queries?.getPosts;
+          if (!query) {
+            return yield* new ConflictError({
+              message: "This connection does not support automation media",
+              resource: "connection",
+            });
+          }
+          const accessToken = yield* cipher
+            .decrypt({
+              ciphertext: row.accessToken,
+              cipherVersion: row.cipherVersion,
+            })
+            .pipe(
+              Effect.mapError(
+                () =>
+                  new ProviderUnavailableError({
+                    message: "Unable to decrypt the Instagram credential",
+                    provider: "Instagram",
+                    retryable: false,
+                  })
+              )
+            );
+          return (yield* query({
+            profileId: row.profileId,
+            accessToken,
+            limit: input.limit,
+            after: input.after,
+          }).pipe(
+            Effect.mapError(
+              (error) =>
+                new ProviderUnavailableError({
+                  message: error.message,
+                  provider: error.provider,
+                  retryable: error.retryable,
+                })
+            )
+          )) as PlatformMediaPage;
+        }
+      );
       const mint = Effect.fn("ConnectionsService.mint")(function* (
         workspaceId: WorkspaceId,
         platform: string,
@@ -757,6 +854,7 @@ export class ConnectionsService extends Context.Service<
       );
       return ConnectionsService.of({
         list,
+        listMedia,
         remove,
         mint,
         upsertFromOAuth,

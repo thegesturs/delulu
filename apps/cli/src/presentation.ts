@@ -29,6 +29,72 @@ interface PageLike<T> {
   readonly offset?: number;
 }
 
+interface AutomationLike {
+  readonly id: string;
+  readonly name: string;
+  readonly enabled: boolean;
+  readonly connectionId: string;
+  readonly triggers: readonly {
+    readonly triggerType: string;
+    readonly targetMode?: string;
+    readonly targetPostIds: readonly string[];
+    readonly pendingPostIds?: readonly string[];
+  }[];
+  readonly totalTriggered?: number;
+  readonly totalDmsSent?: number;
+  readonly totalFailed?: number;
+  readonly [key: string]: unknown;
+}
+
+export const presentAutomations = (
+  page: PageLike<AutomationLike>
+): CliResult => ({
+  status: "ok",
+  message:
+    page.data.length === 0
+      ? "0 automations"
+      : `${page.data.length} automations`,
+  summary: {
+    returned: page.data.length,
+    total: page.total,
+    nextOffset:
+      (page.offset ?? 0) + page.data.length < page.total
+        ? (page.offset ?? 0) + page.data.length
+        : null,
+  },
+  data: page.data.map((automation) => ({
+    id: automation.id,
+    name: automation.name,
+    state: automation.enabled ? "enabled" : "disabled",
+    trigger: automation.triggers[0]?.triggerType ?? null,
+    targeting:
+      automation.triggers[0]?.targetMode ??
+      (automation.triggers[0]?.targetPostIds.length ||
+      automation.triggers[0]?.pendingPostIds?.length
+        ? "specific"
+        : "all"),
+    executions: automation.totalTriggered ?? 0,
+  })),
+  next: ["delulu automation show <id>", "delulu automation create --help"],
+});
+
+export const presentAutomation = (automation: AutomationLike): CliResult => ({
+  status: "ok",
+  message: `${automation.name} is ${automation.enabled ? "enabled" : "disabled"}`,
+  summary: {
+    id: automation.id,
+    connection: automation.connectionId,
+    executions: automation.totalTriggered ?? 0,
+    dmsSent: automation.totalDmsSent ?? 0,
+    failed: automation.totalFailed ?? 0,
+  },
+  data: automation,
+  next: [
+    `delulu automation ${automation.enabled ? "disable" : "enable"} ${automation.id}`,
+    `delulu automation update ${automation.id} --help`,
+  ],
+});
+
 interface AccountLike {
   readonly id: string;
   readonly platform: string;

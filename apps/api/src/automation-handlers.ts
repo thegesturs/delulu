@@ -1,8 +1,14 @@
-import { Api, ConflictError, type NotFoundError } from "@delulu/contracts";
+import {
+  Api,
+  ConflictError,
+  type NotFoundError,
+  type ValidationError,
+} from "@delulu/contracts";
 import { CurrentAuth } from "@delulu/core";
 import {
   type Automation,
   AutomationPersistenceError,
+  automationTriggerTargetMode,
 } from "@delulu/core/domain/automation";
 import { timestampToWire } from "@delulu/core/kernel/time";
 import {
@@ -31,7 +37,10 @@ const view = (automation: Automation) => ({
   name: automation.name,
   description: automation.description,
   enabled: automation.enabled,
-  triggers: automation.triggers,
+  triggers: automation.triggers.map((trigger) => ({
+    ...trigger,
+    targetMode: automationTriggerTargetMode(trigger),
+  })),
   steps: automation.steps,
   notes: automation.notes,
   nodePositions: automation.nodePositions,
@@ -43,8 +52,11 @@ const view = (automation: Automation) => ({
 });
 
 const exposePersistence = <A>(
-  effect: Effect.Effect<A, AutomationPersistenceError | NotFoundError>
-): Effect.Effect<A, ConflictError | NotFoundError> =>
+  effect: Effect.Effect<
+    A,
+    AutomationPersistenceError | NotFoundError | ConflictError | ValidationError
+  >
+): Effect.Effect<A, NotFoundError | ConflictError | ValidationError> =>
   effect.pipe(
     Effect.catchIf(
       (error): error is AutomationPersistenceError =>

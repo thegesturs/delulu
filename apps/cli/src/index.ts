@@ -1,7 +1,17 @@
 #!/usr/bin/env node
-import { type ApiClient, makeSimplePostWrite, runEffect } from "@delulu/client";
+import {
+  type ApiClient,
+  decodeAutomationPatch,
+  decodeAutomationWrite,
+  makeSimplePostWrite,
+  runEffect,
+} from "@delulu/client";
 import { Command, CommanderError } from "commander";
 import { boundWorkspaceId } from "./api.js";
+import {
+  buildCommonAutomation,
+  readAutomationJson,
+} from "./automation-flow.js";
 import { CliError, classifyError } from "./cli-error.js";
 import { deleteCredentials, readCredentials } from "./config.js";
 import { resolveContent } from "./content.js";
@@ -24,6 +34,8 @@ import {
 } from "./post-flow.js";
 import {
   presentAccounts,
+  presentAutomation,
+  presentAutomations,
   presentOverview,
   presentPost,
   presentPosts,
@@ -42,6 +54,7 @@ import {
   trackCommand,
 } from "./telemetry.js";
 import { uploadLocalMedia } from "./upload.js";
+import { CLI_VERSION } from "./version.js";
 
 const program = new Command();
 const TRAILING_SLASH = /\/$/;
@@ -71,6 +84,12 @@ const listAccounts = async (client: ApiClient, workspaceId: string) =>
       })
     )
   ).data;
+
+const automationScope = (workspaceId: string) => ({
+  workspaceId,
+  platform: "instagram" as const,
+  category: "dm",
+});
 
 const addMedia = async (input: {
   readonly client: ApiClient;
@@ -168,7 +187,7 @@ const exitCodes = {
 program
   .name("delulu")
   .description("Publish and manage social content")
-  .version("0.2.0")
+  .version(CLI_VERSION)
   .option("--api-url <url>", "API URL")
   .option("--workspace <id>", "Workspace override")
   .option("--toon", "Force TOON output")
@@ -321,6 +340,384 @@ program
         })
       );
       return presentAccounts(page, global.full);
+    })
+  );
+
+program
+  .command("automations")
+  .description("List Instagram DM automations")
+  .option("--limit <count>", "Number of automations", "20")
+  .option("--offset <count>", "Pagination offset", "0")
+  .action((command) =>
+    run(async ({ client, workspaceId }) => {
+      const limit = positiveInteger(command.limit, "--limit", 100);
+      const offset = Number(command.offset);
+      if (!(Number.isSafeInteger(offset) && offset >= 0)) {
+        throw usageError("--offset must be a non-negative integer");
+      }
+      const id = await workspaceId();
+      return presentAutomations(
+        await runEffect(
+          client.automations.list({
+            params: automationScope(id),
+            query: { limit, offset },
+          })
+        )
+      );
+    })
+  );
+
+const automation = program
+  .command("automation")
+  .description("Manage Instagram DM automations");
+
+automation
+  .command("show <id>")
+  .description("Show complete automation details")
+  .action((automationId) =>
+    run(async ({ client, workspaceId }) => {
+      const id = await workspaceId();
+      return presentAutomation(
+        await runEffect(
+          client.automations.get({
+            params: { ...automationScope(id), id: automationId },
+          })
+        )
+      );
+    })
+  );
+
+automation
+  .command("posts")
+  .description("List selectable Instagram media")
+  .requiredOption("--account <selector>", "Instagram account selector")
+  .option("--stories", "List Stories instead of posts and Reels")
+  .option("--limit <count>", "Number of media items", "25")
+  .option("--after <cursor>", "Continue from a media cursor")
+  .action((command) =>
+    run(async ({ client, workspaceId }) => {
+      const id = await workspaceId();
+      const [account] = resolveAccounts(await listAccounts(client, id), [
+        command.account,
+      ]);
+      if (account?.platform.toLowerCase() !== "instagram") {
+        throw usageError("--account must select an Instagram connection", [
+          "delulu accounts",
+        ]);
+      }
+      const limit = positiveInteger(command.limit, "--limit", 100);
+      const page = await runEffect(
+        client.connections.media({
+          params: { workspaceId: id, id: account.id },
+          query: {
+            kind: command.stories ? "stories" : "posts",
+            limit,
+            ...(command.after ? { after: command.after } : {}),
+          },
+        })
+      );
+      return {
+        status: "ok",
+        message: `${page.data.length} media items`,
+        summary: {
+          account: canonicalAccountSelector(account),
+          nextCursor: page.nextCursor,
+        },
+        data: page.data,
+        next: page.nextCursor
+          ? [
+              `delulu automation posts --account ${canonicalAccountSelector(account)}${command.stories ? " --stories" : ""} --after ${page.nextCursor}`,
+            ]
+          : ["delulu automation create --help"],
+      };
+    })
+  );
+
+automation
+  .command("create")
+  .description("Create an Instagram DM automation")
+  .option("--account <selector>", "Instagram account selector")
+  .option("--name <name>", "Automation name")
+  .option(
+    "--post <id>",
+    "Target a live media id or pending:<post-id>",
+    collect,
+    []
+  )
+  .option("--all-posts", "Target any current or future media")
+  .option("--stories", "Create a Story Reply automation")
+  .option("--keyword <text>", "Required comment or reply text")
+  .option("--match <operator>", "Keyword matching operator", "contains")
+  .option("--case-sensitive", "Match keyword casing")
+  .option("--message <text>", "DM message")
+  .option("--comment-reply <text>", "Public comment reply", collect, [])
+  .option("--disabled", "Create disabled")
+  .option("--file <path>", "Validated API JSON file, or - for stdin")
+  .option("--idempotency-key <key>", "Stable retry key")
+  .option("--new", "Force a new journal operation")
+  .action((command) =>
+    run(async ({ client, workspaceId }) => {
+      const id = await workspaceId();
+      let payload: Record<string, unknown>;
+      if (command.file) {
+        if (
+          command.account ||
+          command.name ||
+          command.post.length > 0 ||
+          command.allPosts ||
+          command.stories ||
+          command.keyword ||
+          command.message ||
+          command.commentReply.length > 0 ||
+          command.disabled
+        ) {
+          throw usageError(
+            "--file cannot be combined with common automation flags"
+          );
+        }
+        payload = decodeAutomationWrite(
+          await readAutomationJson(command.file)
+        ) as Record<string, unknown>;
+      } else {
+        if (!command.account) {
+          throw usageError("--account is required without --file");
+        }
+        const [account] = resolveAccounts(await listAccounts(client, id), [
+          command.account,
+        ]);
+        if (account?.platform.toLowerCase() !== "instagram") {
+          throw usageError("--account must select an Instagram connection");
+        }
+        payload = buildCommonAutomation(account.id, command);
+      }
+      const operation = await prepareOperation({
+        command: "automation create",
+        fingerprintValue: { workspaceId: id, payload },
+        forceNew: command.new,
+        idempotencyKey: command.idempotencyKey,
+      });
+      if (operation.resourceId) {
+        const existing = await runEffect(
+          client.automations.get({
+            params: { ...automationScope(id), id: operation.resourceId },
+          })
+        );
+        return {
+          ...presentAutomation(existing),
+          summary: {
+            ...presentAutomation(existing).summary,
+            replayed: true,
+            operation: operation.operationId,
+          },
+        };
+      }
+      const created = await runEffect(
+        client.automations.create({
+          params: automationScope(id),
+          payload: {
+            ...payload,
+            idempotencyKey: operation.idempotencyKey,
+          } as never,
+        })
+      );
+      await completeOperation(operation.operationId, created.id);
+      return {
+        ...presentAutomation(created),
+        summary: {
+          ...presentAutomation(created).summary,
+          replayed: operation.replayed,
+          operation: operation.operationId,
+        },
+      };
+    })
+  );
+
+automation
+  .command("update <id>")
+  .description("Patch an Instagram DM automation")
+  .option("--name <name>", "New automation name")
+  .option("--post <id>", "Replace targets", collect, [])
+  .option("--all-posts", "Target any current or future media")
+  .option("--keyword <text>", "Replace keyword")
+  .option("--match <operator>", "Keyword matching operator", "contains")
+  .option("--case-sensitive", "Match keyword casing")
+  .option("--message <text>", "Replace DM message")
+  .option("--comment-reply <text>", "Replace public replies", collect, [])
+  .option("--enable", "Enable the automation")
+  .option("--disable", "Disable the automation")
+  .option("--file <path>", "Validated patch JSON file, or - for stdin")
+  .option("--new", "Force a new journal operation")
+  .action((automationId, command) =>
+    run(async ({ client, workspaceId }) => {
+      if (command.enable && command.disable) {
+        throw usageError("--enable and --disable are mutually exclusive");
+      }
+      const id = await workspaceId();
+      let patch: Record<string, unknown>;
+      if (command.file) {
+        if (
+          command.name ||
+          command.post.length > 0 ||
+          command.allPosts ||
+          command.keyword ||
+          command.message ||
+          command.commentReply.length > 0 ||
+          command.enable ||
+          command.disable
+        ) {
+          throw usageError("--file cannot be combined with patch flags");
+        }
+        patch = decodeAutomationPatch(
+          await readAutomationJson(command.file)
+        ) as Record<string, unknown>;
+      } else {
+        const current = await runEffect(
+          client.automations.get({
+            params: { ...automationScope(id), id: automationId },
+          })
+        );
+        patch = {};
+        if (command.name) {
+          patch.name = command.name;
+        }
+        if (command.enable || command.disable) {
+          patch.enabled = Boolean(command.enable);
+        }
+        const changeTargets = command.allPosts || command.post.length > 0;
+        const changeGraph =
+          changeTargets ||
+          command.keyword !== undefined ||
+          command.message !== undefined ||
+          command.commentReply.length > 0;
+        if (changeGraph) {
+          const firstTrigger = current.triggers[0];
+          const firstDm = current.steps.find((step) => step.type === "send_dm");
+          if (
+            current.triggers.length !== 1 ||
+            current.steps.length !== 1 ||
+            !firstTrigger ||
+            !firstDm
+          ) {
+            throw usageError(
+              "Common graph flags only support one-trigger, one-message automations; use --file for advanced graphs"
+            );
+          }
+          const common = buildCommonAutomation(current.connectionId, {
+            name: command.name ?? current.name,
+            post: changeTargets
+              ? command.post
+              : [
+                  ...firstTrigger.targetPostIds,
+                  ...(firstTrigger.pendingPostIds ?? []).map(
+                    (postId) => `pending:${postId}`
+                  ),
+                ],
+            allPosts: changeTargets
+              ? Boolean(command.allPosts)
+              : (firstTrigger.targetMode ??
+                  (firstTrigger.targetPostIds.length === 0 &&
+                  (firstTrigger.pendingPostIds?.length ?? 0) === 0
+                    ? "all"
+                    : "specific")) === "all",
+            stories: firstTrigger.triggerType === "story_reply",
+            keyword: command.keyword ?? firstTrigger.keywordFilter?.value,
+            match:
+              command.keyword === undefined
+                ? firstTrigger.keywordFilter?.operator
+                : command.match,
+            caseSensitive:
+              command.keyword === undefined
+                ? firstTrigger.keywordFilter?.caseSensitive
+                : command.caseSensitive,
+            message: command.message ?? firstDm?.messageTemplate,
+            commentReply:
+              command.commentReply.length > 0
+                ? command.commentReply
+                : firstTrigger.commentReply?.replies,
+            disabled:
+              command.enable || command.disable
+                ? command.disable
+                : !current.enabled,
+          });
+          patch.triggers = common.triggers;
+          patch.steps = common.steps;
+        }
+        if (Object.keys(patch).length === 0) {
+          throw usageError("Provide at least one update flag or --file");
+        }
+      }
+      const operation = await prepareOperation({
+        command: "automation update",
+        fingerprintValue: { workspaceId: id, automationId, patch },
+        forceNew: command.new,
+      });
+      const updated = await runEffect(
+        client.automations.update({
+          params: { ...automationScope(id), id: automationId },
+          payload: patch as never,
+        })
+      );
+      await completeOperation(operation.operationId, updated.id);
+      return presentAutomation(updated);
+    })
+  );
+
+for (const enabled of [true, false] as const) {
+  automation
+    .command(`${enabled ? "enable" : "disable"} <id>`)
+    .description(`${enabled ? "Enable" : "Disable"} an automation`)
+    .option("--new", "Force a new journal operation")
+    .action((automationId, command) =>
+      run(async ({ client, workspaceId }) => {
+        const id = await workspaceId();
+        const operation = await prepareOperation({
+          command: `automation ${enabled ? "enable" : "disable"}`,
+          fingerprintValue: { workspaceId: id, automationId, enabled },
+          forceNew: command.new,
+        });
+        const updated = await runEffect(
+          client.automations.update({
+            params: { ...automationScope(id), id: automationId },
+            payload: { enabled },
+          })
+        );
+        await completeOperation(operation.operationId, updated.id);
+        return presentAutomation(updated);
+      })
+    );
+}
+
+automation
+  .command("delete <id>")
+  .description("Permanently delete an automation")
+  .option("--yes", "Confirm deletion")
+  .option("--new", "Force a new journal operation")
+  .action((automationId, command) =>
+    run(async ({ client, workspaceId }) => {
+      requireConfirmation(
+        Boolean(command.yes),
+        `delulu automation delete ${automationId}`
+      );
+      const id = await workspaceId();
+      const operation = await prepareOperation({
+        command: "automation delete",
+        fingerprintValue: { workspaceId: id, automationId },
+        forceNew: command.new,
+      });
+      if (!operation.resourceId) {
+        await runEffect(
+          client.automations.remove({
+            params: { ...automationScope(id), id: automationId },
+          })
+        );
+        await completeOperation(operation.operationId, automationId);
+      }
+      return {
+        status: "ok",
+        message: "Automation deleted",
+        summary: { id: automationId, replayed: operation.replayed },
+        next: ["delulu automations"],
+      };
     })
   );
 

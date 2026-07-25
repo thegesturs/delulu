@@ -279,6 +279,7 @@ describe("Postgres Model.Class round trips", () => {
         Automation.insert.make({
           id: makeId(AutomationId),
           legacyConvexId: nullable,
+          externalSubmissionId: nullable,
           workspaceId: workspace.id,
           connectionId: connection.id,
           platform: "test",

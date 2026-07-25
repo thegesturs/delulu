@@ -28,10 +28,14 @@ export function validateFlow(
     errors.push("At least one trigger is required");
   }
 
-  // 2. Every trigger must have at least 1 target post
+  // 2. Specific targeting must have at least 1 target post
   for (const trigger of triggers) {
-    if (trigger.targetPostIds.length === 0) {
-      errors.push("Each trigger must have at least one target post selected");
+    if (
+      trigger.targetMode === "specific" &&
+      trigger.targetPostIds.length === 0 &&
+      (trigger.pendingPostIds?.length ?? 0) === 0
+    ) {
+      errors.push("Select at least one target post");
       break;
     }
   }

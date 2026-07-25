@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@delulu/design-system/components/ui/dialog";
 import { useState } from "react";
+import { PostSelectorLoading } from "@/components/automations/post-selector";
+import { ResourceBoundary } from "@/state/resources";
 import type {
   AutomationTriggerType,
   KeywordFilter,
@@ -58,6 +60,7 @@ export function TriggerWizard({
   const [selectedTriggerType, setSelectedTriggerType] =
     useState<AutomationTriggerType | null>(defaultTriggerType ?? null);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
+  const [targetMode, setTargetMode] = useState<"specific" | "all">("specific");
   const [keywordFilter, setKeywordFilter] = useState<KeywordFilter | undefined>(
     undefined
   );
@@ -88,6 +91,7 @@ export function TriggerWizard({
     }
     const trigger = createTrigger({
       triggerType: selectedTriggerType,
+      targetMode,
       targetPostIds: selectedPostIds,
       keywordFilter,
     });
@@ -97,6 +101,7 @@ export function TriggerWizard({
     setSelectedAccountId(currentSocialProviderId || null);
     setSelectedTriggerType(null);
     setSelectedPostIds([]);
+    setTargetMode("specific");
     setKeywordFilter(undefined);
   };
 
@@ -113,7 +118,8 @@ export function TriggerWizard({
   const canProceed =
     (wizardStep === "account" && selectedAccountId) ||
     (wizardStep === "trigger_type" && selectedTriggerType) ||
-    (wizardStep === "posts" && selectedPostIds.length > 0) ||
+    (wizardStep === "posts" &&
+      (targetMode === "all" || selectedPostIds.length > 0)) ||
     wizardStep === "keyword_filter"; // keyword filter is always valid (can skip = "any")
 
   const totalSteps = (skipAccount ? 0 : 1) + 2 + (showKeywordStep ? 1 : 0);
@@ -161,12 +167,16 @@ export function TriggerWizard({
             />
           )}
           {wizardStep === "posts" && selectedAccountId && (
-            <PostSelectorStep
-              onSelectionChange={setSelectedPostIds}
-              selectedPostIds={selectedPostIds}
-              socialProviderId={selectedAccountId}
-              triggerType={selectedTriggerType || undefined}
-            />
+            <ResourceBoundary fallback={<PostSelectorLoading />}>
+              <PostSelectorStep
+                onSelectionChange={setSelectedPostIds}
+                onTargetModeChange={setTargetMode}
+                selectedPostIds={selectedPostIds}
+                socialProviderId={selectedAccountId}
+                targetMode={targetMode}
+                triggerType={selectedTriggerType || undefined}
+              />
+            </ResourceBoundary>
           )}
           {wizardStep === "keyword_filter" && (
             <KeywordFilterStep

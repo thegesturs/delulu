@@ -17,6 +17,22 @@ export const createConnectionEffects = defineResourceEffects(({ client }) => ({
       queryKey: workspaceKeys.list(workspaceId, "connections", query),
       effect: () => client.connections.list({ params: { workspaceId }, query }),
     }),
+  media: (
+    workspaceId: string,
+    id: string,
+    query: EndpointQuery<ApiClient["connections"]["media"]>
+  ) =>
+    resourceEffect({
+      queryKey: workspaceKeys.list(workspaceId, "connection-media", {
+        id,
+        ...query,
+      }),
+      effect: () =>
+        client.connections.media({
+          params: { workspaceId, id },
+          query,
+        }),
+    }),
   remove: (workspaceId: string) =>
     mutationEffect({
       mutationKey: workspaceKeys.resource(workspaceId, "connections"),

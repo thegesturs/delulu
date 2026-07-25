@@ -34,6 +34,7 @@ export interface TriggerStep {
   id: string;
   type: "trigger";
   triggerType: AutomationTriggerType;
+  targetMode: "specific" | "all";
   targetPostIds: string[];
   pendingPostIds?: string[];
   keywordFilter?: KeywordFilter;

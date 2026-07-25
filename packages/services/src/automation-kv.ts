@@ -31,6 +31,8 @@ export const AutomationTriggerCacheValue = Schema.Struct({
 
 export const triggerCacheKey = (profileId: string, mediaId: string) =>
   `automation:trigger:${profileId}:${mediaId}`;
+export const allTriggerCacheKey = (profileId: string) =>
+  `automation:trigger:${profileId}:*`;
 export const sessionCacheKey = (profileId: string, platformUserId: string) =>
   `automation:session:${profileId}:${platformUserId}`;
 
@@ -44,6 +46,13 @@ export class AutomationKvService extends Context.Service<
     readonly putTriggerIds: (
       profileId: string,
       mediaId: string,
+      automationIds: readonly AutomationId[]
+    ) => Effect.Effect<void, AutomationKvError>;
+    readonly getAllTriggerIds: (
+      profileId: string
+    ) => Effect.Effect<readonly AutomationId[] | null, AutomationKvError>;
+    readonly putAllTriggerIds: (
+      profileId: string,
       automationIds: readonly AutomationId[]
     ) => Effect.Effect<void, AutomationKvError>;
     readonly getSession: (
@@ -144,9 +153,25 @@ export class AutomationKvService extends Context.Service<
           automationIds: readonly AutomationId[]
         ) {
           const key = triggerCacheKey(profileId, mediaId);
-          yield* write(key, { automationIds });
+          yield* automationIds.length === 0
+            ? remove(key)
+            : write(key, { automationIds });
         }
       );
+      const getAllTriggerIds = Effect.fn(
+        "AutomationKvService.getAllTriggerIds"
+      )(function* (profileId: string) {
+        const value = yield* read(
+          allTriggerCacheKey(profileId),
+          AutomationTriggerCacheValue
+        );
+        return value?.automationIds ?? null;
+      });
+      const putAllTriggerIds = Effect.fn(
+        "AutomationKvService.putAllTriggerIds"
+      )(function* (profileId: string, automationIds: readonly AutomationId[]) {
+        yield* write(allTriggerCacheKey(profileId), { automationIds });
+      });
       const getSession = Effect.fn("AutomationKvService.getSession")(function* (
         profileId: string,
         platformUserId: string
@@ -181,6 +206,8 @@ export class AutomationKvService extends Context.Service<
       return AutomationKvService.of({
         getTriggerIds,
         putTriggerIds,
+        getAllTriggerIds,
+        putAllTriggerIds,
         getSession,
         putSession,
         removeSession,

@@ -14,6 +14,7 @@ import {
   ConflictErrorResponse,
   ForbiddenErrorResponse,
   NotFoundErrorResponse,
+  ProviderUnavailableErrorResponse,
   ValidationErrorResponse,
 } from "./errors";
 import { Authentication } from "./middleware";
@@ -352,6 +353,19 @@ export const ConnectionView = Schema.Struct({
   profileImage: Schema.NullOr(Schema.String),
   expiresAt: Schema.NullOr(Schema.String),
 });
+export const ConnectionMediaItem = Schema.Struct({
+  id: Schema.String,
+  caption: Schema.NullOr(Schema.String),
+  mediaType: Schema.String,
+  timestamp: Schema.String,
+  permalink: Schema.NullOr(Schema.String),
+  thumbnailUrl: Schema.NullOr(Schema.String),
+  mediaUrl: Schema.NullOr(Schema.String),
+});
+export const ConnectionMediaPage = Schema.Struct({
+  data: Schema.Array(ConnectionMediaItem),
+  nextCursor: Schema.NullOr(Schema.String),
+});
 export const ConnectionsGroup = HttpApiGroup.make("connections")
   .add(
     HttpApiEndpoint.get("list", "/", {
@@ -364,6 +378,16 @@ export const ConnectionsGroup = HttpApiGroup.make("connections")
       params: ResourcePath,
       success: Schema.Struct({ deleted: Schema.Boolean }),
       error: domainErrors,
+    }),
+    HttpApiEndpoint.get("media", "/:id/media", {
+      params: ResourcePath,
+      query: {
+        kind: Schema.Literals(["posts", "stories"]),
+        limit: Schema.optional(Schema.NumberFromString),
+        after: Schema.optional(Schema.String),
+      },
+      success: ConnectionMediaPage,
+      error: [...domainErrors, ProviderUnavailableErrorResponse],
     }),
     HttpApiEndpoint.post("mint", "/connect/:platform", {
       params: { ...WorkspacePath, platform: Schema.String },

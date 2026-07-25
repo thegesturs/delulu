@@ -189,8 +189,16 @@ export function TriggerPanel({
           onSelectionChange={(postIds) =>
             onChange({ ...trigger, targetPostIds: postIds })
           }
+          onTargetModeChange={(targetMode) =>
+            onChange({
+              ...trigger,
+              targetMode,
+              targetPostIds: targetMode === "all" ? [] : trigger.targetPostIds,
+            })
+          }
           selectedPostIds={trigger.targetPostIds}
           socialProviderId={socialProviderId || null}
+          targetMode={trigger.targetMode}
           triggerType={trigger.triggerType}
         />
       </div>

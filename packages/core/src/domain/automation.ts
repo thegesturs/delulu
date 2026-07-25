@@ -15,6 +15,9 @@ export const AutomationTriggerType = Schema.Literals([
   "story_reply",
 ]);
 export type AutomationTriggerType = typeof AutomationTriggerType.Type;
+export const AutomationTriggerTargetMode = Schema.Literals(["specific", "all"]);
+export type AutomationTriggerTargetMode =
+  typeof AutomationTriggerTargetMode.Type;
 
 export const AutomationConditionOperator = Schema.Literals([
   "contains",
@@ -43,6 +46,7 @@ export const AutomationTrigger = Schema.Struct({
   id: Schema.String,
   type: Schema.Literal("trigger"),
   triggerType: AutomationTriggerType,
+  targetMode: Schema.optional(AutomationTriggerTargetMode),
   targetPostIds: Schema.Array(Schema.String),
   pendingPostIds: Schema.optional(Schema.Array(PostId)),
   keywordFilter: Schema.optional(AutomationKeywordFilter),
@@ -50,6 +54,86 @@ export const AutomationTrigger = Schema.Struct({
   nextStepId: Schema.optional(Schema.String),
 });
 export type AutomationTrigger = typeof AutomationTrigger.Type;
+
+export const automationTriggerTargetMode = (
+  trigger: Pick<
+    AutomationTrigger,
+    "targetMode" | "targetPostIds" | "pendingPostIds"
+  >
+): AutomationTriggerTargetMode =>
+  trigger.targetMode ??
+  (trigger.targetPostIds.length === 0 &&
+  (trigger.pendingPostIds?.length ?? 0) === 0
+    ? "all"
+    : "specific");
+
+export const automationTriggerValidationIssues = (
+  triggers: readonly AutomationTrigger[]
+): readonly { readonly path: string; readonly message: string }[] => {
+  if (triggers.length === 0) {
+    return [{ path: "triggers", message: "At least one trigger is required" }];
+  }
+  return triggers.flatMap((trigger, index) => {
+    if (trigger.triggerType === "mention") {
+      return [
+        {
+          path: `triggers.${index}.triggerType`,
+          message: "Mention triggers are not available",
+        },
+      ];
+    }
+    const mode = automationTriggerTargetMode(trigger);
+    const targetCount =
+      trigger.targetPostIds.length + (trigger.pendingPostIds?.length ?? 0);
+    if (mode === "specific" && targetCount === 0) {
+      return [
+        {
+          path: `triggers.${index}`,
+          message:
+            "Specific-post triggers require at least one live or scheduled target",
+        },
+      ];
+    }
+    if (mode === "all" && targetCount > 0) {
+      return [
+        {
+          path: `triggers.${index}`,
+          message: "All-post triggers cannot carry target IDs",
+        },
+      ];
+    }
+    if (
+      trigger.commentReply?.enabled &&
+      trigger.commentReply.replies.every((reply) => reply.trim().length === 0)
+    ) {
+      return [
+        {
+          path: `triggers.${index}.commentReply.replies`,
+          message: "Enabled comment replies require at least one message",
+        },
+      ];
+    }
+    return [];
+  });
+};
+
+export const resolvePendingAutomationTriggers = (
+  triggers: readonly AutomationTrigger[],
+  postId: string,
+  platformMediaId: string
+): AutomationTrigger[] =>
+  triggers.map((trigger) => {
+    if (!trigger.pendingPostIds?.includes(postId as PostId)) {
+      return trigger;
+    }
+    const pendingPostIds = trigger.pendingPostIds.filter((id) => id !== postId);
+    return {
+      ...trigger,
+      targetMode: "specific",
+      targetPostIds: [...new Set([...trigger.targetPostIds, platformMediaId])],
+      pendingPostIds: pendingPostIds.length > 0 ? pendingPostIds : undefined,
+    };
+  });
 
 export const AutomationButton = Schema.Union([
   Schema.Struct({
@@ -100,6 +184,7 @@ export type AutomationNodePositions = typeof AutomationNodePositions.Type;
 
 export class Automation extends Model.Class<Automation>("Automation")({
   ...entityFields(AutomationId),
+  externalSubmissionId: Schema.NullOr(Schema.String),
   workspaceId: WorkspaceId,
   connectionId: ConnectionId,
   platform: Schema.String,

@@ -1,4 +1,4 @@
 interface:
   display_name: "Manage Social Publishing"
-  short_description: "Safely manage social publishing end to end."
-  default_prompt: "Use $manage-social-publishing to set up my workspace and safely draft, schedule, publish, or inspect social posts."
+  short_description: "Safely manage publishing and Instagram DM automations."
+  default_prompt: "Use $manage-social-publishing to set up my workspace and safely draft, schedule, publish, inspect posts, or manage Instagram DM automations."
