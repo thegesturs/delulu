@@ -28,21 +28,21 @@ export function GoalStep({
   onSelect: (goal: OnboardingGoal) => void;
 }) {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="font-medium text-primary text-sm">
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <p className="font-medium text-primary text-xs uppercase tracking-wide">
           Choose your first win
         </p>
-        <h1 className="font-semibold text-3xl tracking-tight sm:text-4xl">
+        <h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
           What do you want to do first?
         </h1>
-        <p className="max-w-xl text-base text-muted-foreground leading-relaxed">
+        <p className="max-w-xl text-muted-foreground text-sm leading-relaxed">
           We&apos;ll tailor setup around this choice. You can use every feature
           later.
         </p>
       </div>
 
-      <div className="-mx-5 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-6 dark:border-white/10" />
+      <div className="-mx-4 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-5 dark:border-white/10" />
 
       <fieldset>
         <legend className="sr-only">Setup goal</legend>
@@ -52,7 +52,7 @@ export function GoalStep({
             return (
               <label
                 className={cn(
-                  "flex min-h-28 w-full cursor-pointer items-center justify-start gap-4 whitespace-normal rounded-md border bg-background px-4 py-4 text-left shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-accent-foreground",
+                  "flex min-h-20 w-full cursor-pointer items-center justify-start gap-3 whitespace-normal rounded-md border bg-background px-3 py-3 text-left shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-accent hover:text-accent-foreground",
                   isSelected && "border-primary bg-primary/5"
                 )}
                 key={goal.value}

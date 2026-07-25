@@ -14,7 +14,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
-import { useUsageLimit } from "@/hooks/use-usage-limits";
 import { useMutationAtom, useResourceAtom } from "@/state/resources";
 import {
   ConnectAccountsStep,
@@ -86,6 +85,7 @@ export function OnboardingStepper({
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [connectionSkipped, setConnectionSkipped] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [planRefreshError, setPlanRefreshError] = useState<string | null>(null);
   const legacyMigrated = useRef(false);
@@ -121,22 +121,12 @@ export function OnboardingStepper({
   const requirementMet =
     setup.data?.webStep === "ready" || setup.data?.webStep === "plan";
   const planPaid = setup.data?.subscription.paid === true;
-  const accountLimit = useUsageLimit("socialAccounts", values.length);
-  const connectionLimitUpgradeAllowed =
-    searchParams.get("source") === "connection-limit" &&
-    !accountLimit.allowed &&
-    derivedStep === "connect" &&
-    !requirementMet;
   const safeStepOverride =
-    stepOverride === "plan" &&
-    derivedStep !== "plan" &&
-    !connectionLimitUpgradeAllowed
+    stepOverride === "plan" && derivedStep !== "plan" && !connectionSkipped
       ? null
       : stepOverride;
   const step = safeStepOverride ?? derivedStep;
   const goal = step === "goal" ? selectedGoal : (serverGoal ?? selectedGoal);
-  const connectionLimitUpgrade =
-    step === "plan" && connectionLimitUpgradeAllowed;
 
   const refreshSetup = async () => {
     setIsRefreshing(true);
@@ -287,6 +277,19 @@ export function OnboardingStepper({
     return values[0];
   }, [goal, values]);
 
+  useEffect(() => {
+    if (
+      callback?.kind === "success" &&
+      stepOverride === "connect" &&
+      derivedStep === "ready" &&
+      qualifyingAccount
+    ) {
+      setCallback(null);
+      setStepOverride(null);
+      window.requestAnimationFrame(() => contentRef.current?.focus());
+    }
+  }, [callback, derivedStep, qualifyingAccount, stepOverride]);
+
   const persistGoal = async (nextGoal: OnboardingGoal): Promise<boolean> => {
     try {
       await updateSetup.mutateAsync({ goal: nextGoal });
@@ -301,6 +304,7 @@ export function OnboardingStepper({
   };
 
   const selectGoal = (nextGoal: OnboardingGoal) => {
+    setConnectionSkipped(false);
     setSelectedGoal(nextGoal);
     persistGoal(nextGoal).catch(() => undefined);
   };
@@ -341,6 +345,25 @@ export function OnboardingStepper({
       setStepOverride("plan");
     } catch (error) {
       toast.error("Could not continue to plans", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    }
+  };
+
+  const skipConnection = async () => {
+    try {
+      await updateSetup.mutateAsync({
+        optionalSteps: {
+          connect: "skipped",
+          ready: "skipped",
+        },
+      });
+      await setup.refetch();
+      setCallback(null);
+      setConnectionSkipped(true);
+      setStepOverride("plan");
+    } catch (error) {
+      toast.error("Could not skip this step", {
         description: error instanceof Error ? error.message : undefined,
       });
     }
@@ -391,23 +414,19 @@ export function OnboardingStepper({
         : goal === "auto_dm"
           ? step === "ready"
             ? "Review plans"
-            : connectionLimitUpgrade && planPaid
-              ? "Return to connections"
-              : planPaid
-                ? "Create your first auto-DM"
-                : "Choose a plan to continue"
+            : planPaid
+              ? "Create your first auto-DM"
+              : "Choose a plan to continue"
           : step === "ready"
             ? "Review plans"
-            : connectionLimitUpgrade && planPaid
-              ? "Return to connections"
-              : planPaid
-                ? "Create your first post"
-                : "Choose a plan to continue";
+            : planPaid
+              ? "Create your first post"
+              : "Choose a plan to continue";
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col border-zinc-950/10 border-x-[1.5px] border-dotted dark:border-white/10">
-        <header className="flex h-16 items-center justify-between px-5 sm:px-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col border-zinc-950/10 border-x-[1.5px] border-dotted dark:border-white/10">
+        <header className="flex h-14 items-center justify-between px-4 sm:px-5">
           <Logo />
           <Button
             className="min-h-11 px-3 sm:px-4"
@@ -428,22 +447,16 @@ export function OnboardingStepper({
 
         <div className="border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
 
-        <div className="px-5 py-5 sm:px-6">
-          <OnboardingProgress
-            authoritativeStep={derivedStep}
-            currentStep={step}
-          />
-        </div>
+        <OnboardingProgress
+          authoritativeStep={derivedStep}
+          currentStep={step}
+        />
 
-        <div className="border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
-
-        <div className="flex flex-1 items-start px-5 py-8 pb-28 sm:px-6 sm:py-10 sm:pb-10">
+        <div className="flex flex-1 items-start px-3 py-3 pb-28 sm:px-4 sm:py-4 sm:pb-4">
           <section
             aria-busy={isSigningOut}
             aria-label="Onboarding step"
-            className={`mx-auto w-full rounded-xl border border-border/70 bg-card p-5 shadow-(--shadow-card) outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6 ${
-              step === "plan" ? "max-w-4xl" : "max-w-2xl"
-            }`}
+            className="mx-auto w-full rounded-lg border border-border/70 bg-card p-4 shadow-(--shadow-card) outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-5"
             inert={isSigningOut}
             ref={contentRef}
             tabIndex={-1}
@@ -467,11 +480,11 @@ export function OnboardingStepper({
               />
             ) : null}
             {step === "ready" && goal && qualifyingAccount ? (
-              <ReadyStep account={qualifyingAccount} goal={goal} />
+              <ReadyStep accounts={values} goal={goal} />
             ) : null}
             {step === "plan" ? (
               <PlanStep
-                connectionUpgrade={connectionLimitUpgrade}
+                accounts={values}
                 isRefreshing={isRefreshing}
                 onDashboard={() => completeAndNavigate("/")}
                 onRefresh={refreshPlan}
@@ -484,7 +497,7 @@ export function OnboardingStepper({
         </div>
 
         <footer className="fixed inset-x-0 bottom-0 z-20 border-zinc-950/10 border-t-[1.5px] border-dotted bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:static sm:bg-transparent sm:px-6 sm:pt-4 sm:pb-5 sm:backdrop-blur-none dark:border-white/10">
-          <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2">
             <div>
               {step === "goal" ? null : (
                 <Button
@@ -493,9 +506,9 @@ export function OnboardingStepper({
                   onClick={() =>
                     setStepOverride(
                       step === "plan"
-                        ? connectionLimitUpgrade
-                          ? "connect"
-                          : "ready"
+                        ? qualifyingAccount
+                          ? "ready"
+                          : "connect"
                         : step === "ready"
                           ? "connect"
                           : "goal"
@@ -510,6 +523,16 @@ export function OnboardingStepper({
             </div>
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+              {step === "connect" && !requirementMet ? (
+                <Button
+                  className="min-h-11 shrink-0"
+                  disabled={isBusy}
+                  onClick={skipConnection}
+                  variant="ghost"
+                >
+                  Skip for now
+                </Button>
+              ) : null}
               <Button
                 className="min-h-11 min-w-0 flex-1 sm:min-w-44 sm:max-w-max"
                 disabled={
@@ -530,10 +553,6 @@ export function OnboardingStepper({
                   }
                   if (step === "ready") {
                     await acknowledgeReady();
-                    return;
-                  }
-                  if (connectionLimitUpgrade) {
-                    setStepOverride("connect");
                     return;
                   }
                   await completeAndNavigate(

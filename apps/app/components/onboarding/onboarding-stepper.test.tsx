@@ -11,20 +11,27 @@ import { OnboardingStepper } from "./onboarding-stepper";
 
 const PUBLISH_CONTENT = /publish content/i;
 const CONTINUE = /^continue/i;
-const PUBLISH_FIRST = /where do you want to publish first/i;
+const PUBLISH_FIRST = /connect your social accounts/i;
 const CREATE_POST = /create your first post/i;
 const CREATE_AUTO_DM = /create your first auto-dm/i;
 const REVIEW_PLANS = /review plans/i;
 const CHOOSE_PLAN = /choose a plan to continue/i;
 const LOG_OUT = /log out/i;
-const VIEW_UPGRADES = /view upgrade options/i;
-const RETURN_TO_CONNECTIONS = /return to connections/i;
-const CONNECT_AUTOMATION_ACCOUNT = /connect the account you’ll automate/i;
 const CHOOSE_FIRST_GOAL = /what do you want to do first/i;
 const CHOOSE_YOUR_PLAN = /choose your plan/i;
 const PLAN_STILL_SYNCING = /plan activation is still syncing/i;
 const CHECKOUT_CANCELLED = /checkout was cancelled/i;
 const MOVE_ACCOUNT = /move account/i;
+const SKIP_FOR_NOW = /skip for now/i;
+const MORE_NETWORKS = /more networks/i;
+const PINTEREST = /pinterest/i;
+const BLUESKY = /bluesky/i;
+const CONNECT_INSTAGRAM = /instagram connect/i;
+const CONNECT_THREADS = /threads connect/i;
+const ADD_ANOTHER_THREADS = /threads add another/i;
+const READY_TO_PUBLISH = /you’re ready to start publishing/i;
+const PLAN_INCLUDES = /plan includes/i;
+const UPGRADE = /upgrade/i;
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -33,7 +40,6 @@ const mocks = vi.hoisted(() => ({
   setupRefetch: vi.fn(),
   search: "",
   toastError: vi.fn(),
-  usageAllowed: true,
   updateSetup: vi.fn(),
   completeSetup: vi.fn(),
   confirmTransfer: vi.fn(),
@@ -48,6 +54,7 @@ const mocks = vi.hoisted(() => ({
     profileId: string;
     username: string | null;
     displayName: string | null;
+    profileImage: string | null;
     expiresAt: string | null;
   }>,
 }));
@@ -103,24 +110,18 @@ vi.mock("@/components/providers/workspace", () => ({
   useWorkspace: () => ({ workspaceId: "workspace_test" }),
 }));
 
-vi.mock("@/hooks/use-usage-limits", () => ({
-  useUsageLimit: () => ({
-    allowed: mocks.usageAllowed,
-    limit: 5,
-    planType: "echo",
-  }),
-}));
-
 vi.mock("@/hooks/use-feature-flag", () => ({
   useFeatureFlag: () => true,
 }));
 
 vi.mock("./plan-step", () => ({
   PlanStep: ({
+    accounts,
     isRefreshing,
     paid,
     refreshError,
   }: {
+    accounts: Array<{ displayName: string | null; username: string | null }>;
     isRefreshing: boolean;
     paid: boolean;
     refreshError: string | null;
@@ -134,6 +135,11 @@ vi.mock("./plan-step", () => ({
             : "Choose your plan"}
       </span>
       {refreshError ? <span>{refreshError}</span> : null}
+      {accounts.map((account) => (
+        <span key={account.username}>
+          {account.displayName ?? account.username}
+        </span>
+      ))}
     </div>
   ),
 }));
@@ -185,7 +191,6 @@ describe("OnboardingStepper", () => {
     }));
     mocks.toastError.mockReset();
     mocks.search = "";
-    mocks.usageAllowed = true;
     mocks.updateSetup.mockReset();
     mocks.updateSetup.mockResolvedValue({ updated: true });
     mocks.completeSetup.mockReset();
@@ -227,6 +232,7 @@ describe("OnboardingStepper", () => {
         profileId: "profile_threads",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];
@@ -315,6 +321,7 @@ describe("OnboardingStepper", () => {
         profileId: "profile_threads",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];
@@ -336,10 +343,9 @@ describe("OnboardingStepper", () => {
     expect(mocks.completeSetup).not.toHaveBeenCalled();
   });
 
-  it("routes account-limit upgrades through the onboarding plan step", () => {
-    mocks.setupData.goal = "auto_dm";
+  it("keeps every connection action available before plan selection", () => {
+    mocks.setupData.goal = "publish";
     mocks.setupData.webStep = "connect";
-    mocks.usageAllowed = false;
     mocks.accountsData = [
       {
         id: "connection_threads",
@@ -347,6 +353,7 @@ describe("OnboardingStepper", () => {
         profileId: "profile_threads",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];
@@ -354,20 +361,68 @@ describe("OnboardingStepper", () => {
     render(<OnboardingStepper />);
 
     expect(
-      screen.getByRole("link", { name: VIEW_UPGRADES }).getAttribute("href")
-    ).toBe("/onboarding?step=plan&source=connection-limit");
+      (
+        screen.getByRole("button", {
+          name: ADD_ANOTHER_THREADS,
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false);
+    expect(
+      (
+        screen.getByRole("button", {
+          name: CONNECT_INSTAGRAM,
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false);
+    expect(screen.queryByText(PLAN_INCLUDES)).toBeNull();
+    expect(screen.queryByText(UPGRADE)).toBeNull();
   });
 
-  it("returns to connections after a quota upgrade", () => {
-    mocks.search = "step=plan&source=connection-limit";
-    mocks.usageAllowed = false;
-    mocks.setupData.goal = "auto_dm";
+  it("lets the user skip connections without making the plan skippable", async () => {
+    mocks.setupData.goal = "publish";
     mocks.setupData.webStep = "connect";
-    mocks.setupData.subscription = {
-      plan: "ECHO",
-      status: "active",
-      paid: true,
-    };
+    mocks.updateSetup.mockImplementationOnce(async () => {
+      mocks.setupData.webStep = "plan";
+      return { updated: true };
+    });
+
+    render(<OnboardingStepper />);
+    fireEvent.click(screen.getByRole("button", { name: SKIP_FOR_NOW }));
+
+    await waitFor(() =>
+      expect(mocks.updateSetup).toHaveBeenCalledWith({
+        optionalSteps: {
+          connect: "skipped",
+          ready: "skipped",
+        },
+      })
+    );
+    expect(await screen.findByText("Choose your plan")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: CHOOSE_PLAN }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true);
+  });
+
+  it("shows direct supported networks and excludes unavailable networks", () => {
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "connect";
+
+    render(<OnboardingStepper />);
+
+    expect(screen.queryByText(MORE_NETWORKS)).toBeNull();
+    expect(screen.queryByText(PINTEREST)).toBeNull();
+    expect(screen.queryByText(BLUESKY)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: CONNECT_INSTAGRAM })
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: CONNECT_THREADS })).toBeTruthy();
+  });
+
+  it("shows connected accounts again on the plan step", () => {
+    mocks.search = "step=plan";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
     mocks.accountsData = [
       {
         id: "connection_threads",
@@ -375,19 +430,37 @@ describe("OnboardingStepper", () => {
         profileId: "profile_threads",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];
 
     render(<OnboardingStepper />);
-    fireEvent.click(
-      screen.getByRole("button", { name: RETURN_TO_CONNECTIONS })
-    );
 
+    expect(screen.getByText("Creator")).toBeTruthy();
+  });
+
+  it("shows connected identity and keeps the platform available for another account", () => {
+    mocks.search = "step=connect";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "ready";
+    mocks.accountsData = [
+      {
+        id: "connection_threads",
+        platform: "THREADS",
+        profileId: "profile_threads",
+        username: "creator",
+        displayName: "Creator",
+        profileImage: "https://images.example.test/creator.jpg",
+        expiresAt: null,
+      },
+    ];
+
+    render(<OnboardingStepper />);
+
+    expect(screen.getByText("@creator")).toBeTruthy();
     expect(
-      screen.getByRole("heading", {
-        name: CONNECT_AUTOMATION_ACCOUNT,
-      })
+      screen.getByRole("button", { name: ADD_ANOTHER_THREADS })
     ).toBeTruthy();
   });
 
@@ -406,6 +479,36 @@ describe("OnboardingStepper", () => {
         transferToken: "signed-transfer-grant",
       })
     );
+  });
+
+  it("leaves the callback connection step as soon as setup reaches ready", async () => {
+    mocks.search =
+      "success=true&provider=threads&step=connect#username=creator";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "connect";
+    mocks.setupRefetch.mockImplementation(async () => {
+      mocks.setupData.webStep = "ready";
+      mocks.accountsData = [
+        {
+          id: "connection_threads",
+          platform: "THREADS",
+          profileId: "profile_threads",
+          username: "creator",
+          displayName: "Creator",
+          profileImage: null,
+          expiresAt: null,
+        },
+      ];
+      return { data: mocks.setupData };
+    });
+
+    render(<OnboardingStepper />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: READY_TO_PUBLISH,
+      })
+    ).toBeTruthy();
   });
 
   it("ignores a direct plan URL before the server reaches that step", () => {
@@ -488,6 +591,7 @@ describe("OnboardingStepper", () => {
         profileId: "profile_threads",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];
@@ -514,6 +618,7 @@ describe("OnboardingStepper", () => {
         profileId: "profile_instagram",
         username: "creator",
         displayName: "Creator",
+        profileImage: null,
         expiresAt: null,
       },
     ];

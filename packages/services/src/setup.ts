@@ -13,10 +13,13 @@ export type WebSetupStep = "goal" | "connect" | "ready" | "plan" | "complete";
 export const deriveWebSetupStep = (
   goal: OnboardingGoal | null,
   connectedPlatforms: readonly string[],
-  readyAcknowledged: boolean,
-  onboardingComplete: boolean
+  progress: {
+    readonly connectionSkipped: boolean;
+    readonly readyAcknowledged: boolean;
+    readonly onboardingComplete: boolean;
+  }
 ): WebSetupStep => {
-  if (onboardingComplete) {
+  if (progress.onboardingComplete) {
     return "complete";
   }
   if (!goal) {
@@ -26,10 +29,13 @@ export const deriveWebSetupStep = (
     goal === "auto_dm"
       ? connectedPlatforms.includes("INSTAGRAM")
       : connectedPlatforms.length > 0;
+  if (progress.connectionSkipped && !requirementMet) {
+    return "plan";
+  }
   if (!requirementMet) {
     return "connect";
   }
-  return readyAcknowledged ? "plan" : "ready";
+  return progress.readyAcknowledged ? "plan" : "ready";
 };
 
 export interface SetupStatus {
@@ -162,17 +168,17 @@ export class SetupService extends Context.Service<
           },
           optionalSteps,
           goal,
-          webStep: deriveWebSetupStep(
-            goal,
-            connectedPlatforms,
-            optionalSteps.ready === "completed",
-            onboardingComplete
-          ),
-          outstandingAction: connectionRequirementMet
-            ? paid
-              ? null
-              : ("complete_payment" as const)
-            : ("connect_account" as const),
+          webStep: deriveWebSetupStep(goal, connectedPlatforms, {
+            connectionSkipped: optionalSteps.connect === "skipped",
+            readyAcknowledged: optionalSteps.ready === "completed",
+            onboardingComplete,
+          }),
+          outstandingAction:
+            connectionRequirementMet || optionalSteps.connect === "skipped"
+              ? paid
+                ? null
+                : ("complete_payment" as const)
+              : ("connect_account" as const),
           onboardingComplete,
         };
       });
@@ -194,7 +200,7 @@ export class SetupService extends Context.Service<
           CASE
             WHEN onboarding_optional->>'goal' = ${input.goal}
               THEN onboarding_optional
-            ELSE (onboarding_optional - 'ready')
+            ELSE (onboarding_optional - 'ready' - 'connect')
               || ${JSON.stringify({ goal: input.goal })}::jsonb
           END
           WHERE id = ${input.userId}`.pipe(Effect.orDie);
@@ -236,13 +242,14 @@ export class SetupService extends Context.Service<
           goal === "auto_dm"
             ? connectedPlatforms.includes("INSTAGRAM")
             : connectedPlatforms.length > 0;
-        if (!requirementMet) {
+        const connectionSkipped = user.onboardingOptional.connect === "skipped";
+        if (!(requirementMet || connectionSkipped)) {
           return yield* new ConflictError({
             message: "Connect the account required for your goal",
             resource: "onboarding_connection",
           });
         }
-        if (user.onboardingOptional.ready !== "completed") {
+        if (requirementMet && user.onboardingOptional.ready !== "completed") {
           return yield* new ConflictError({
             message: "Review your setup before choosing a plan",
             resource: "onboarding_ready",
