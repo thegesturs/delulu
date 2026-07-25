@@ -36,15 +36,29 @@ const connectionCredentials = Effect.fn("AutomationProvider.credentials")(
       accessToken: string;
       cipherVersion: "v1";
     }>`SELECT platform, profile_id, access_token, cipher_version
-        FROM connections WHERE id = ${connectionId} AND deleted_at IS NULL`;
+        FROM connections WHERE id = ${connectionId}`.pipe(
+      Effect.mapError(() => "Automation connection query failed" as const)
+    );
     const row = rows[0];
-    if (row?.platform !== "INSTAGRAM") {
-      return yield* Effect.fail("connection_missing" as const);
+    if (!row) {
+      return yield* Effect.fail("Automation connection was not found" as const);
     }
-    const accessToken = yield* cipher.decrypt({
-      ciphertext: row.accessToken,
-      cipherVersion: row.cipherVersion,
-    });
+    if (row.platform !== "INSTAGRAM") {
+      return yield* Effect.fail(
+        `Automation connection platform was ${row.platform}` as const
+      );
+    }
+    const accessToken = yield* cipher
+      .decrypt({
+        ciphertext: row.accessToken,
+        cipherVersion: row.cipherVersion,
+      })
+      .pipe(
+        Effect.mapError(
+          () =>
+            "Unable to decrypt the automation connection credential" as const
+        )
+      );
     return { profileId: row.profileId, accessToken } satisfies Credentials;
   }
 );
@@ -53,6 +67,40 @@ const ProviderSendResponse = Schema.Struct({
   message_id: Schema.optional(Schema.String),
   recipient_id: Schema.optional(Schema.String),
 });
+
+export const metaProviderErrorMessage = (
+  operation: "DM" | "comment reply",
+  status: number,
+  payload: unknown
+): string => {
+  const error =
+    Predicate.isObject(payload) && Predicate.isObject(payload.error)
+      ? payload.error
+      : null;
+  const message =
+    error && Predicate.isString(error.message)
+      ? `: ${error.message.slice(0, 500)}`
+      : "";
+  const code =
+    error && Predicate.isNumber(error.code) ? ` code=${error.code}` : "";
+  const subcode =
+    error && Predicate.isNumber(error.error_subcode)
+      ? ` subcode=${error.error_subcode}`
+      : "";
+  return `${operation} provider returned ${status}${code}${subcode}${message}`;
+};
+
+const readMetaProviderError = (
+  operation: "DM" | "comment reply",
+  response: Response
+) =>
+  Effect.promise(() =>
+    (response.json() as Promise<unknown>).catch(() => null)
+  ).pipe(
+    Effect.map((payload) =>
+      metaProviderErrorMessage(operation, response.status, payload)
+    )
+  );
 
 export const instagramDmRecipient = (
   input: Pick<ProviderDmRequest, "recipientId" | "recipientCommentId">
@@ -74,9 +122,9 @@ export const AutomationProviderLive = Layer.mergeAll(
           Effect.provideService(SqlClient.SqlClient, sql),
           Effect.provideService(TokenCipher, cipher),
           Effect.mapError(
-            () =>
+            (message) =>
               new ProviderDmError({
-                message: "Unable to load the automation connection",
+                message,
                 retryable: false,
                 deliveryState: "not_sent",
               })
@@ -136,8 +184,15 @@ export const AutomationProviderLive = Layer.mergeAll(
         });
         if (!response.ok) {
           const retryable = response.status === 429 || response.status >= 500;
+          const message = yield* readMetaProviderError("DM", response);
+          yield* Effect.logError("Instagram DM request failed", {
+            connectionId: input.connectionId,
+            status: response.status,
+            retryable,
+            failure: message,
+          });
           return yield* new ProviderDmError({
-            message: `DM provider returned ${response.status}`,
+            message,
             retryable,
             deliveryState: "not_sent",
           });
@@ -188,9 +243,9 @@ export const AutomationProviderLive = Layer.mergeAll(
             Effect.provideService(SqlClient.SqlClient, sql),
             Effect.provideService(TokenCipher, cipher),
             Effect.mapError(
-              () =>
+              (message) =>
                 new ProviderCommentReplyError({
-                  message: "Unable to load the automation connection",
+                  message,
                   retryable: false,
                   deliveryState: "not_sent",
                 })
@@ -214,9 +269,20 @@ export const AutomationProviderLive = Layer.mergeAll(
               }),
           });
           if (!response.ok) {
+            const retryable = response.status === 429 || response.status >= 500;
+            const message = yield* readMetaProviderError(
+              "comment reply",
+              response
+            );
+            yield* Effect.logError("Instagram comment reply request failed", {
+              connectionId: input.connectionId,
+              status: response.status,
+              retryable,
+              failure: message,
+            });
             return yield* new ProviderCommentReplyError({
-              message: `Comment reply provider returned ${response.status}`,
-              retryable: response.status === 429 || response.status >= 500,
+              message,
+              retryable,
               deliveryState: "not_sent",
             });
           }
@@ -263,9 +329,9 @@ export const AutomationProviderLive = Layer.mergeAll(
             Effect.provideService(SqlClient.SqlClient, sql),
             Effect.provideService(TokenCipher, cipher),
             Effect.mapError(
-              () =>
+              (message) =>
                 new ProviderAudienceError({
-                  message: "Unable to load the automation connection",
+                  message,
                   retryable: false,
                 })
             )
