@@ -59,6 +59,10 @@ const windowFocusSignal =
 class ResourceStore {
   readonly runtime;
   readonly resources = new Map<string, ResourceEntry>();
+  readonly refreshTargets = new WeakMap<
+    Atom.Atom<unknown>,
+    Atom.Atom<unknown>
+  >();
 
   constructor(client?: ApiClient) {
     const layer = client
@@ -125,8 +129,17 @@ class ResourceStore {
         Atom.setIdleTTL("5 minutes")
       );
       entry.policies.set(policyId, policyAtom);
+      this.refreshTargets.set(policyAtom, entry.atom);
     }
     return policyAtom;
+  }
+
+  refreshTarget<A, E>(
+    atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>
+  ): Atom.Atom<AsyncResult.AsyncResult<A, E>> {
+    return (this.refreshTargets.get(atom) ?? atom) as Atom.Atom<
+      AsyncResult.AsyncResult<A, E>
+    >;
   }
 
   entries(prefix: ResourceKey): ResourceEntry[] {
@@ -328,13 +341,16 @@ export function useResourceAtom<A, E>(
   ) as Atom.Atom<AsyncResult.AsyncResult<A | undefined, E>>;
   boundaryAtoms?.add(atom);
   const result = useAtomSuspense(atom);
+  const refreshTarget = store.refreshTarget(atom);
   const refresh = useCallback(async () => {
-    registry.refresh(atom);
+    registry.refresh(refreshTarget);
     const settled = await Effect.runPromise(
-      AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true })
+      AtomRegistry.getResult(registry, refreshTarget, {
+        suspendOnWaiting: true,
+      })
     );
     return { data: settled };
-  }, [atom, registry]);
+  }, [refreshTarget, registry]);
   return {
     data: result.value as A | undefined,
     error: null,

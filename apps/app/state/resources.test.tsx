@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { Effect } from "effect";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AppStateProvider,
   type MutationAtomResult,
@@ -16,7 +16,10 @@ import {
   useResourceAtom,
 } from "./resources";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("Effect Atom resources", () => {
   it("suspends an initial read and renders its value", async () => {
@@ -77,6 +80,7 @@ describe("Effect Atom resources", () => {
   });
 
   it("refetch bypasses stale data and resolves with the fresh response", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(0);
     let serverValue = "before transfer";
     let reads = 0;
     const query = resourceEffect({
@@ -113,7 +117,7 @@ describe("Effect Atom resources", () => {
     const button = await screen.findByRole("button", {
       name: "before transfer",
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    now.mockReturnValue(10);
     fireEvent.click(button);
     await waitFor(() =>
       expect(screen.getByRole("button").textContent).toBe("connected account")
