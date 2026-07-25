@@ -54,6 +54,7 @@ import {
   trackCommand,
 } from "./telemetry.js";
 import { uploadLocalMedia } from "./upload.js";
+import { CLI_VERSION } from "./version.js";
 
 const program = new Command();
 const TRAILING_SLASH = /\/$/;
@@ -186,7 +187,7 @@ const exitCodes = {
 program
   .name("delulu")
   .description("Publish and manage social content")
-  .version("0.2.0")
+  .version(CLI_VERSION)
   .option("--api-url <url>", "API URL")
   .option("--workspace <id>", "Workspace override")
   .option("--toon", "Force TOON output")
