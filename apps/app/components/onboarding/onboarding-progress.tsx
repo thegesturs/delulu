@@ -23,7 +23,7 @@ export function OnboardingProgress({
   return (
     <ol
       aria-label="Onboarding progress"
-      className="grid grid-cols-4 border-zinc-950/10 border-y-[1.5px] border-dotted dark:border-white/10"
+      className="grid grid-cols-4 border-zinc-950/10 border-b-[1.5px] border-dotted dark:border-white/10"
     >
       {steps.map((step, index) => {
         const isActive = index === currentIndex;
@@ -33,17 +33,17 @@ export function OnboardingProgress({
           <li
             aria-current={isActive ? "step" : undefined}
             className={cn(
-              "min-w-0 px-2 py-2.5 sm:px-3",
+              "min-w-0 px-2 py-2 sm:px-4",
               index > 0 &&
                 "border-zinc-950/10 border-l-[1.5px] border-dotted dark:border-white/10",
               isActive && "bg-primary/[0.045]"
             )}
             key={step.id}
           >
-            <span className="flex min-w-0 flex-col items-center justify-center gap-1 sm:flex-row sm:justify-start sm:gap-2">
+            <span className="flex min-w-0 items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
               <span
                 className={cn(
-                  "flex size-6 shrink-0 items-center justify-center rounded-full border font-medium text-[11px]",
+                  "flex size-5 shrink-0 items-center justify-center rounded-full border font-medium text-[10px]",
                   isActive &&
                     "border-primary bg-primary text-primary-foreground",
                   isCompleted &&

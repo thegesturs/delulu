@@ -26,7 +26,7 @@ import { SocialIcon } from "@delulu/design-system/components/ui/social-icon";
 import type { SupportedSocialPlatform } from "@delulu/design-system/lib/social-config";
 import { Icon } from "@delulu/design-system/providers/icon";
 import {
-  Add01Icon,
+  ArrowRight01Icon,
   CheckmarkCircle01Icon,
   Loading03Icon,
   RefreshIcon,
@@ -37,7 +37,6 @@ import { toast } from "sonner";
 import { useApiClient } from "@/components/providers/api-client";
 import { useWorkspace } from "@/components/providers/workspace";
 import { useFeatureFlag } from "@/hooks/use-feature-flag";
-import { useUsageLimit } from "@/hooks/use-usage-limits";
 import { useMutationAtom } from "@/state/resources";
 import type { ConnectionView } from "@/types/workspace-views";
 import type { OnboardingGoal } from "./goal-step";
@@ -64,11 +63,9 @@ export interface ConnectionCallbackState {
 
 function ConnectPlatformButton({
   platform,
-  blocked,
   hasConnectedAccount,
 }: {
   platform: SupportedSocialPlatform;
-  blocked: boolean;
   hasConnectedAccount: boolean;
 }) {
   const { workspaceId } = useWorkspace();
@@ -79,8 +76,8 @@ function ConnectPlatformButton({
 
   return (
     <Button
-      className="group min-h-18 w-full justify-start gap-3 rounded-xl border-border/70 bg-background px-3 text-left shadow-xs transition-[background-color,border-color,box-shadow] hover:border-foreground/15 hover:bg-muted/35 hover:shadow-sm"
-      disabled={blocked || connect.isPending || !workspaceId}
+      className="group min-h-11 w-full justify-start gap-2.5 rounded-lg border-border/70 bg-background px-3 text-left shadow-none transition-colors hover:border-foreground/20 hover:bg-muted/35"
+      disabled={connect.isPending || !workspaceId}
       onClick={async () => {
         try {
           const result = await connect.mutateAsync({
@@ -96,33 +93,31 @@ function ConnectPlatformButton({
       }}
       variant="outline"
     >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted/55 ring-1 ring-border/60">
+      <span className="flex size-7 shrink-0 items-center justify-center">
         {connect.isPending ? (
           <Icon
             className="animate-spin motion-reduce:animate-none"
             icon={Loading03Icon}
-            size={20}
+            size={17}
           />
         ) : (
-          <SocialIcon size="md" type={platform} />
+          <SocialIcon size="sm" type={platform} />
         )}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">
-          {platform.charAt(0) + platform.slice(1).toLowerCase()}
-        </span>
-        <span className="mt-0.5 block truncate text-muted-foreground text-xs">
-          {connect.isPending
-            ? "Opening secure connection…"
-            : hasConnectedAccount
-              ? "Add another account"
-              : "Connect account"}
-        </span>
+      <span className="min-w-0 flex-1 truncate font-medium">
+        {platform.charAt(0) + platform.slice(1).toLowerCase()}
+      </span>
+      <span className="shrink-0 text-muted-foreground text-xs">
+        {connect.isPending
+          ? "Opening…"
+          : hasConnectedAccount
+            ? "Add another"
+            : "Connect"}
       </span>
       <Icon
         className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-        icon={Add01Icon}
-        size={16}
+        icon={ArrowRight01Icon}
+        size={14}
       />
     </Button>
   );
@@ -131,11 +126,9 @@ function ConnectPlatformButton({
 function ConnectedAccountRow({
   account,
   onRemoved,
-  replacementRequired,
 }: {
   account: ConnectionView;
   onRemoved: () => Promise<unknown>;
-  replacementRequired: boolean;
 }) {
   const { workspaceId } = useWorkspace();
   const { resources } = useApiClient();
@@ -155,9 +148,9 @@ function ConnectedAccountRow({
     account.platform.charAt(0) + account.platform.slice(1).toLowerCase();
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-xl bg-muted/25 p-3.5 ring-1 ring-border/70">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar className="size-11 ring-1 ring-border/70">
+    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-border/70 bg-background p-2.5 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Avatar className="size-9 ring-1 ring-border/70">
           {account.profileImage ? (
             <AvatarImage
               alt={`${name} profile picture`}
@@ -166,14 +159,14 @@ function ConnectedAccountRow({
           ) : null}
           <AvatarFallback className="bg-background">
             <SocialIcon
-              size="md"
+              size="sm"
               type={account.platform as SupportedSocialPlatform}
             />
           </AvatarFallback>
         </Avatar>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{name}</span>
-          <span className="mt-0.5 block truncate text-muted-foreground text-xs">
+          <span className="block truncate font-medium text-sm">{name}</span>
+          <span className="block truncate text-muted-foreground text-xs">
             {accountHandle}
           </span>
         </span>
@@ -182,9 +175,9 @@ function ConnectedAccountRow({
           {platformName}
         </span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1">
         <Button
-          className="min-h-11 flex-1"
+          className="min-h-11 flex-1 px-3 sm:min-h-9 sm:flex-none"
           disabled={reconnect.isPending || !workspaceId}
           onClick={async () => {
             try {
@@ -199,31 +192,25 @@ function ConnectedAccountRow({
               });
             }
           }}
-          variant="outline"
+          size="sm"
+          variant="ghost"
         >
           {reconnect.isPending ? "Opening…" : "Reconnect"}
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
-              className="min-h-11 flex-1"
+              className="min-h-11 flex-1 px-3 text-muted-foreground sm:min-h-9 sm:flex-none"
               disabled={remove.isPending}
+              size="sm"
               variant="ghost"
             >
-              {remove.isPending
-                ? "Removing…"
-                : replacementRequired
-                  ? "Replace"
-                  : "Disconnect"}
+              {remove.isPending ? "Removing…" : "Disconnect"}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                {replacementRequired
-                  ? `Replace ${name}?`
-                  : `Disconnect ${name}?`}
-              </AlertDialogTitle>
+              <AlertDialogTitle>{`Disconnect ${name}?`}</AlertDialogTitle>
               <AlertDialogDescription>
                 This disconnects the account from this workspace. You can
                 connect its replacement immediately.
@@ -285,8 +272,6 @@ export function ConnectAccountsStep({
       callback?.connectionId ?? ""
     )
   );
-  const limit = useUsageLimit("socialAccounts", accounts.length);
-  const atLimit = !limit.allowed;
   const connectedPlatforms = new Set(
     accounts.map((account) => account.platform.toUpperCase())
   );
@@ -298,24 +283,24 @@ export function ConnectAccountsStep({
         );
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="font-medium text-primary text-sm">
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <p className="font-medium text-primary text-xs uppercase tracking-wide">
           {goal === "auto_dm" ? "Instagram automation" : "Publishing channels"}
         </p>
-        <h1 className="font-semibold text-3xl tracking-tight sm:text-4xl">
+        <h1 className="font-semibold text-2xl tracking-tight sm:text-3xl">
           {goal === "auto_dm"
             ? "Connect the Instagram account you’ll automate"
             : "Connect your social accounts"}
         </h1>
-        <p className="max-w-xl text-muted-foreground leading-relaxed">
+        <p className="max-w-2xl text-muted-foreground text-sm leading-relaxed">
           {goal === "auto_dm"
             ? "Connect one or more Instagram accounts. We use official permissions and never receive your password."
             : "Add every channel you publish from now, or come back and connect more later."}
         </p>
       </div>
 
-      <div className="-mx-5 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-6 dark:border-white/10" />
+      <div className="-mx-4 border-zinc-950/10 border-t-[1.5px] border-dotted sm:-mx-5 dark:border-white/10" />
 
       {callback?.kind === "success" ? (
         <Alert className="border-emerald-500/25 bg-emerald-500/5" role="status">
@@ -442,48 +427,26 @@ export function ConnectAccountsStep({
       ) : null}
 
       {accounts.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between gap-3">
             <p className="font-medium text-sm">Connected accounts</p>
             <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 font-medium text-emerald-700 text-xs dark:text-emerald-400">
               {accounts.length} connected
             </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2">
             {accounts.map((account) => (
               <ConnectedAccountRow
                 account={account}
                 key={account.id}
                 onRemoved={onRefresh}
-                replacementRequired={atLimit && !requirementMet}
               />
             ))}
           </div>
         </div>
       ) : null}
 
-      {atLimit ? (
-        <Alert>
-          <AlertTitle className="whitespace-normal">
-            Your {limit.planType} plan includes {limit.limit} connected{" "}
-            {limit.limit === 1 ? "account" : "accounts"}
-          </AlertTitle>
-          <AlertDescription>
-            <p>
-              {requirementMet
-                ? "You can continue with the accounts above. To add another, disconnect one or upgrade your plan."
-                : "Disconnect an account above to replace it, or upgrade to connect another. Existing accounts stay usable."}
-            </p>
-            <Button asChild className="mt-2 min-h-11" variant="outline">
-              <Link href="/onboarding?step=plan&source=connection-limit">
-                View upgrade options
-              </Link>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="font-medium text-sm">
@@ -494,10 +457,9 @@ export function ConnectAccountsStep({
             </p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {eligiblePlatforms.map((platform) => (
             <ConnectPlatformButton
-              blocked={atLimit}
               hasConnectedAccount={connectedPlatforms.has(platform)}
               key={platform}
               platform={platform}

@@ -17,10 +17,6 @@ const CREATE_AUTO_DM = /create your first auto-dm/i;
 const REVIEW_PLANS = /review plans/i;
 const CHOOSE_PLAN = /choose a plan to continue/i;
 const LOG_OUT = /log out/i;
-const VIEW_UPGRADES = /view upgrade options/i;
-const RETURN_TO_CONNECTIONS = /return to connections/i;
-const CONNECT_AUTOMATION_ACCOUNT =
-  /connect the Instagram account you’ll automate/i;
 const CHOOSE_FIRST_GOAL = /what do you want to do first/i;
 const CHOOSE_YOUR_PLAN = /choose your plan/i;
 const PLAN_STILL_SYNCING = /plan activation is still syncing/i;
@@ -30,10 +26,12 @@ const SKIP_FOR_NOW = /skip for now/i;
 const MORE_NETWORKS = /more networks/i;
 const PINTEREST = /pinterest/i;
 const BLUESKY = /bluesky/i;
-const CONNECT_INSTAGRAM = /instagram connect account/i;
-const CONNECT_THREADS = /threads connect account/i;
-const ADD_ANOTHER_THREADS = /threads add another account/i;
+const CONNECT_INSTAGRAM = /instagram connect/i;
+const CONNECT_THREADS = /threads connect/i;
+const ADD_ANOTHER_THREADS = /threads add another/i;
 const READY_TO_PUBLISH = /you’re ready to start publishing/i;
+const PLAN_INCLUDES = /plan includes/i;
+const UPGRADE = /upgrade/i;
 
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -42,7 +40,6 @@ const mocks = vi.hoisted(() => ({
   setupRefetch: vi.fn(),
   search: "",
   toastError: vi.fn(),
-  usageAllowed: true,
   updateSetup: vi.fn(),
   completeSetup: vi.fn(),
   confirmTransfer: vi.fn(),
@@ -113,24 +110,18 @@ vi.mock("@/components/providers/workspace", () => ({
   useWorkspace: () => ({ workspaceId: "workspace_test" }),
 }));
 
-vi.mock("@/hooks/use-usage-limits", () => ({
-  useUsageLimit: () => ({
-    allowed: mocks.usageAllowed,
-    limit: 5,
-    planType: "echo",
-  }),
-}));
-
 vi.mock("@/hooks/use-feature-flag", () => ({
   useFeatureFlag: () => true,
 }));
 
 vi.mock("./plan-step", () => ({
   PlanStep: ({
+    accounts,
     isRefreshing,
     paid,
     refreshError,
   }: {
+    accounts: Array<{ displayName: string | null; username: string | null }>;
     isRefreshing: boolean;
     paid: boolean;
     refreshError: string | null;
@@ -144,6 +135,11 @@ vi.mock("./plan-step", () => ({
             : "Choose your plan"}
       </span>
       {refreshError ? <span>{refreshError}</span> : null}
+      {accounts.map((account) => (
+        <span key={account.username}>
+          {account.displayName ?? account.username}
+        </span>
+      ))}
     </div>
   ),
 }));
@@ -195,7 +191,6 @@ describe("OnboardingStepper", () => {
     }));
     mocks.toastError.mockReset();
     mocks.search = "";
-    mocks.usageAllowed = true;
     mocks.updateSetup.mockReset();
     mocks.updateSetup.mockResolvedValue({ updated: true });
     mocks.completeSetup.mockReset();
@@ -348,10 +343,9 @@ describe("OnboardingStepper", () => {
     expect(mocks.completeSetup).not.toHaveBeenCalled();
   });
 
-  it("routes account-limit upgrades through the onboarding plan step", () => {
-    mocks.setupData.goal = "auto_dm";
+  it("keeps every connection action available before plan selection", () => {
+    mocks.setupData.goal = "publish";
     mocks.setupData.webStep = "connect";
-    mocks.usageAllowed = false;
     mocks.accountsData = [
       {
         id: "connection_threads",
@@ -367,8 +361,21 @@ describe("OnboardingStepper", () => {
     render(<OnboardingStepper />);
 
     expect(
-      screen.getByRole("link", { name: VIEW_UPGRADES }).getAttribute("href")
-    ).toBe("/onboarding?step=plan&source=connection-limit");
+      (
+        screen.getByRole("button", {
+          name: ADD_ANOTHER_THREADS,
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false);
+    expect(
+      (
+        screen.getByRole("button", {
+          name: CONNECT_INSTAGRAM,
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false);
+    expect(screen.queryByText(PLAN_INCLUDES)).toBeNull();
+    expect(screen.queryByText(UPGRADE)).toBeNull();
   });
 
   it("lets the user skip connections without making the plan skippable", async () => {
@@ -412,16 +419,10 @@ describe("OnboardingStepper", () => {
     expect(screen.getByRole("button", { name: CONNECT_THREADS })).toBeTruthy();
   });
 
-  it("returns to connections after a quota upgrade", () => {
-    mocks.search = "step=plan&source=connection-limit";
-    mocks.usageAllowed = false;
-    mocks.setupData.goal = "auto_dm";
-    mocks.setupData.webStep = "connect";
-    mocks.setupData.subscription = {
-      plan: "ECHO",
-      status: "active",
-      paid: true,
-    };
+  it("shows connected accounts again on the plan step", () => {
+    mocks.search = "step=plan";
+    mocks.setupData.goal = "publish";
+    mocks.setupData.webStep = "plan";
     mocks.accountsData = [
       {
         id: "connection_threads",
@@ -435,15 +436,8 @@ describe("OnboardingStepper", () => {
     ];
 
     render(<OnboardingStepper />);
-    fireEvent.click(
-      screen.getByRole("button", { name: RETURN_TO_CONNECTIONS })
-    );
 
-    expect(
-      screen.getByRole("heading", {
-        name: CONNECT_AUTOMATION_ACCOUNT,
-      })
-    ).toBeTruthy();
+    expect(screen.getByText("Creator")).toBeTruthy();
   });
 
   it("shows connected identity and keeps the platform available for another account", () => {

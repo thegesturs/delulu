@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@delulu/design-system/components/ui/card";
 import { Switch } from "@delulu/design-system/components/ui/switch";
+import { cn } from "@delulu/design-system/lib/utils";
 import { Icon } from "@delulu/design-system/providers/icon";
 import { Tick01Icon } from "@delulu/icons";
 import {
@@ -39,6 +40,7 @@ interface PricingCardsProps {
   productIds?: Record<PublicPlanType, { monthly: string; yearly: string }>;
   onUpgradeSuccess?: () => void;
   checkoutReturnUrl?: string;
+  compact?: boolean;
 }
 
 export function PricingCards(props: PricingCardsProps) {
@@ -96,7 +98,7 @@ export function PricingCards(props: PricingCardsProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", props.compact && "space-y-3")}>
       {/* Billing toggle */}
       <div className="flex items-center justify-center gap-2">
         <span
@@ -120,10 +122,18 @@ export function PricingCards(props: PricingCardsProps) {
       </div>
 
       {/* Full-bleed dotted rule under the heading block, meeting the frame rails. */}
-      <div className="-mx-6 border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10" />
+      <div
+        className={cn(
+          "-mx-6 border-zinc-950/10 border-t-[1.5px] border-dotted dark:border-white/10",
+          props.compact && "-mx-4 sm:-mx-5"
+        )}
+      />
 
       {/* Pricing cards */}
-      <DottedColumns breakpoint="md">
+      <DottedColumns
+        breakpoint="md"
+        className={props.compact ? "gap-x-4 gap-y-3" : undefined}
+      >
         {plans.map((plan) => {
           const price = getPlanPrice(plan.id);
           const monthlyEquivalent = getMonthlyEquivalent(plan.id);
@@ -147,9 +157,11 @@ export function PricingCards(props: PricingCardsProps) {
 
           return (
             <Card
-              className={`relative flex flex-col ${
-                plan.popular ? "border-primary shadow-lg" : ""
-              }`}
+              className={cn(
+                "relative flex flex-col",
+                props.compact && "gap-4 rounded-lg py-4 shadow-sm",
+                plan.popular && "border-primary shadow-lg"
+              )}
               key={plan.id}
             >
               {plan.popular && (
@@ -158,7 +170,7 @@ export function PricingCards(props: PricingCardsProps) {
                 </div>
               )}
 
-              <CardHeader>
+              <CardHeader className={props.compact ? "px-4" : undefined}>
                 <CardTitle className="flex items-center justify-between">
                   {plan.name}
                   {isCurrent && (
@@ -167,16 +179,31 @@ export function PricingCards(props: PricingCardsProps) {
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription className="min-h-[40px]">
+                <CardDescription
+                  className={cn(
+                    "min-h-[40px]",
+                    props.compact && "min-h-0 text-xs"
+                  )}
+                >
                   {plan.description}
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="flex-1 space-y-6">
+              <CardContent
+                className={cn(
+                  "flex-1 space-y-6",
+                  props.compact && "space-y-4 px-4"
+                )}
+              >
                 {/* Pricing */}
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="font-bold text-4xl">
+                    <span
+                      className={cn(
+                        "font-bold text-4xl",
+                        props.compact && "text-3xl"
+                      )}
+                    >
                       {currencySymbol}
                       {currency === "INR"
                         ? price.toLocaleString("en-IN")
@@ -197,7 +224,12 @@ export function PricingCards(props: PricingCardsProps) {
                 </div>
 
                 {/* Features */}
-                <ul className="space-y-2 text-sm">
+                <ul
+                  className={cn(
+                    "space-y-2 text-sm",
+                    props.compact && "space-y-1.5 text-xs"
+                  )}
+                >
                   <li className="flex items-start gap-2">
                     <Icon
                       className="mt-0.5 flex-shrink-0 text-primary"
@@ -288,7 +320,7 @@ export function PricingCards(props: PricingCardsProps) {
                 </ul>
               </CardContent>
 
-              <CardFooter>
+              <CardFooter className={props.compact ? "px-4" : undefined}>
                 <Button
                   className="w-full"
                   disabled={isCurrent || checkout.isPending || portal.isPending}
@@ -323,7 +355,7 @@ export function PricingCards(props: PricingCardsProps) {
                       );
                     }
                   }}
-                  size="lg"
+                  size={props.compact ? "default" : "lg"}
                   variant={plan.popular ? "default" : "outline"}
                 >
                   {getButtonText()}
