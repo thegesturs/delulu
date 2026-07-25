@@ -31,7 +31,10 @@ const standardHeaders = (
   return id && timestamp && signature ? { id, timestamp, signature } : null;
 };
 
-const responseFor = <A>(effect: Effect.Effect<A, unknown>) =>
+const responseFor = <A>(
+  provider: "meta" | "clerk" | "dodo",
+  effect: Effect.Effect<A, unknown>
+) =>
   effect.pipe(
     Effect.map((processed) =>
       HttpServerResponse.jsonUnsafe({
@@ -48,13 +51,34 @@ const responseFor = <A>(effect: Effect.Effect<A, unknown>) =>
         Predicate.isObject(error) && Predicate.isString(error.message)
           ? error.message
           : "Webhook request failed";
-      return Effect.succeed(
-        HttpServerResponse.jsonUnsafe(
-          { error: { code: "WebhookIngressError", message } },
-          { status: retryable ? 503 : 400 }
+      return Effect.logError("Webhook request rejected", {
+        provider,
+        retryable,
+        failure: message,
+      }).pipe(
+        Effect.as(
+          HttpServerResponse.jsonUnsafe(
+            { error: { code: "WebhookIngressError", message } },
+            { status: retryable ? 503 : 400 }
+          )
         )
       );
-    })
+    }),
+    Effect.catchCause((cause) =>
+      Effect.logError("Webhook request defect", { provider, cause }).pipe(
+        Effect.as(
+          HttpServerResponse.jsonUnsafe(
+            {
+              error: {
+                code: "WebhookIngressError",
+                message: "Webhook request failed",
+              },
+            },
+            { status: 503 }
+          )
+        )
+      )
+    )
   );
 
 export const WebhookRoutes = HttpRouter.use(
@@ -191,7 +215,7 @@ export const WebhookRoutes = HttpRouter.use(
                 )
               )
           ),
-          responseFor
+          (effect) => responseFor("meta", effect)
         );
       })
     );
@@ -214,7 +238,7 @@ export const WebhookRoutes = HttpRouter.use(
                 Effect.flatMap(() => ingress.processClerk(headers.id, rawBody))
               );
           }),
-          responseFor
+          (effect) => responseFor("clerk", effect)
         );
       })
     );
@@ -248,7 +272,7 @@ export const WebhookRoutes = HttpRouter.use(
                 Effect.flatMap(() => ingress.processDodo(headers.id, rawBody))
               );
           }),
-          responseFor
+          (effect) => responseFor("dodo", effect)
         );
       })
     );

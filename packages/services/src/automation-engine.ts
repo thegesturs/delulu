@@ -57,6 +57,25 @@ export class AutomationEvaluationError extends Schema.TaggedErrorClass<Automatio
   { eventId: Schema.String, message: Schema.String, retryable: Schema.Boolean }
 ) {}
 
+const evaluationError = (eventId: string, fallback: string, failure: unknown) =>
+  new AutomationEvaluationError({
+    eventId,
+    message:
+      typeof failure === "object" &&
+      failure !== null &&
+      "message" in failure &&
+      typeof failure.message === "string"
+        ? failure.message
+        : fallback,
+    retryable:
+      typeof failure === "object" &&
+      failure !== null &&
+      "retryable" in failure &&
+      typeof failure.retryable === "boolean"
+        ? failure.retryable
+        : true,
+  });
+
 export const keywordMatches = (
   trigger: AutomationTrigger,
   text: string
@@ -229,7 +248,7 @@ export class AutomationEngine extends Context.Service<
           }
           return yield* new AutomationEvaluationError({
             eventId: event.eventId,
-            message: "Unable to reply to the triggering comment",
+            message: result.failure.message,
             retryable: result.failure.retryable,
           });
         }
@@ -337,6 +356,14 @@ export class AutomationEngine extends Context.Service<
           { sent, skipped, stepsVisited },
           null,
           startedAt
+        ).pipe(
+          Effect.catchCause((cause) =>
+            Effect.logError("Automation run recording failed", {
+              automationId: automation.id,
+              eventId: event.eventId,
+              cause,
+            })
+          )
         );
         return { sent, skipped };
       });
@@ -393,11 +420,11 @@ export class AutomationEngine extends Context.Service<
             Effect.mapError((failure) =>
               failure._tag === "AutomationEvaluationError"
                 ? failure
-                : new AutomationEvaluationError({
-                    eventId: event.eventId,
-                    message: "Automation execution failed",
-                    retryable: true,
-                  })
+                : evaluationError(
+                    event.eventId,
+                    "Automation execution failed",
+                    failure
+                  )
             )
           );
           yield* sessions
@@ -454,22 +481,22 @@ export class AutomationEngine extends Context.Service<
             Effect.mapError((failure) =>
               failure._tag === "AutomationEvaluationError"
                 ? failure
-                : new AutomationEvaluationError({
-                    eventId: event.eventId,
-                    message: "Automation execution failed",
-                    retryable: true,
-                  })
+                : evaluationError(
+                    event.eventId,
+                    "Automation execution failed",
+                    failure
+                  )
             )
           );
           yield* replyToCommentOnce(automation, event, trigger).pipe(
             Effect.mapError((failure) =>
               failure instanceof AutomationEvaluationError
                 ? failure
-                : new AutomationEvaluationError({
-                    eventId: event.eventId,
-                    message: "Unable to reserve the triggering comment reply",
-                    retryable: true,
-                  })
+                : evaluationError(
+                    event.eventId,
+                    "Unable to reserve the triggering comment reply",
+                    failure
+                  )
             )
           );
           sent += result.sent;
