@@ -10,6 +10,7 @@ describe("automation command payloads", () => {
       post: ["media_1"],
       keyword: "guide",
       message: "Here you go",
+      commentReply: ["Sent", "Check your DMs"],
     });
     const all = buildCommonAutomation("connection_1", {
       name: "Always reply",
@@ -19,6 +20,10 @@ describe("automation command payloads", () => {
     expect(specific.triggers[0]).toMatchObject({
       targetMode: "specific",
       targetPostIds: ["media_1"],
+      commentReply: {
+        enabled: true,
+        replies: ["Sent", "Check your DMs"],
+      },
     });
     expect(all.triggers[0]).toMatchObject({
       targetMode: "all",
