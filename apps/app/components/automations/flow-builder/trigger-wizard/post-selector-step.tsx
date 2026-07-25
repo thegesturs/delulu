@@ -5,14 +5,18 @@ import type { AutomationTriggerType } from "../utils/flow-types";
 
 interface PostSelectorStepProps {
   socialProviderId: string;
+  targetMode: "specific" | "all";
   selectedPostIds: string[];
+  onTargetModeChange: (mode: "specific" | "all") => void;
   onSelectionChange: (postIds: string[]) => void;
   triggerType?: AutomationTriggerType;
 }
 
 export function PostSelectorStep({
   socialProviderId,
+  targetMode,
   selectedPostIds,
+  onTargetModeChange,
   onSelectionChange,
   triggerType,
 }: PostSelectorStepProps) {
@@ -32,8 +36,10 @@ export function PostSelectorStep({
       </div>
       <PostSelector
         onSelectionChange={onSelectionChange}
+        onTargetModeChange={onTargetModeChange}
         selectedPostIds={selectedPostIds}
         socialProviderId={socialProviderId}
+        targetMode={targetMode}
         triggerType={triggerType}
       />
     </div>

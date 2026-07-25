@@ -153,6 +153,18 @@ export function MobileFlowEditor({
     [trigger, updateTrigger]
   );
 
+  const handleTargetModeChange = useCallback(
+    (targetMode: "specific" | "all") => {
+      if (trigger) {
+        updateTrigger(trigger.id, {
+          targetMode,
+          targetPostIds: targetMode === "all" ? [] : trigger.targetPostIds,
+        });
+      }
+    },
+    [trigger, updateTrigger]
+  );
+
   const handleKeywordChange = useCallback(
     (filter: KeywordFilter | undefined) => {
       if (trigger) {
@@ -198,7 +210,8 @@ export function MobileFlowEditor({
     switch (step) {
       case 1:
         return (
-          !!trigger?.triggerType && (trigger?.targetPostIds?.length ?? 0) > 0
+          !!trigger?.triggerType &&
+          (trigger.targetMode === "all" || trigger.targetPostIds.length > 0)
         );
       case 2:
       case 3:
@@ -294,8 +307,10 @@ export function MobileFlowEditor({
                   <Separator />
                   <PostSelectorStep
                     onSelectionChange={handlePostsChange}
+                    onTargetModeChange={handleTargetModeChange}
                     selectedPostIds={trigger.targetPostIds}
                     socialProviderId={automationMeta.socialProviderId}
+                    targetMode={trigger.targetMode}
                     triggerType={trigger.triggerType}
                   />
                 </>
@@ -360,7 +375,9 @@ export function MobileFlowEditor({
                 <p className="font-semibold">When someone...</p>
                 <p className="text-muted-foreground">
                   {triggerLabel === "Comment"
-                    ? "comments on this specific post"
+                    ? trigger?.targetMode === "all"
+                      ? "comments on any current or future post"
+                      : "comments on a selected post"
                     : triggerLabel === "Story Reply"
                       ? "replies to your story"
                       : "mentions you"}

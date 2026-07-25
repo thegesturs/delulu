@@ -1,6 +1,6 @@
 import type { AutomationTrigger } from "@delulu/core/domain/automation";
 import { describe, expect, it } from "vitest";
-import { keywordMatches } from "./automation-engine";
+import { keywordMatches, triggerTargetsMedia } from "./automation-engine";
 
 const trigger = (
   operator: AutomationTrigger["keywordFilter"] extends infer _
@@ -23,6 +23,21 @@ const trigger = (
 });
 
 describe("automation trigger evaluation", () => {
+  it("targets one selected post or every post according to the explicit mode", () => {
+    expect(triggerTargetsMedia(trigger("always"), "media-1")).toBe(true);
+    expect(triggerTargetsMedia(trigger("always"), "media-2")).toBe(false);
+    expect(
+      triggerTargetsMedia(
+        {
+          ...trigger("always"),
+          targetMode: "all",
+          targetPostIds: [],
+        },
+        "media-2"
+      )
+    ).toBe(true);
+  });
+
   it("matches keyword operators case-insensitively by default", () => {
     expect(
       keywordMatches(trigger("contains", "LINK"), "send link please")

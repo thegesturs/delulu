@@ -187,3 +187,19 @@ export const RateLimitedErrorResponse = envelope(
   429,
   { retryAfter: Schema.Number }
 );
+
+// --- 503 ---------------------------------------------------------------------
+export class ProviderUnavailableError extends Schema.TaggedErrorClass<ProviderUnavailableError>()(
+  "ProviderUnavailableError",
+  {
+    message: Schema.String,
+    provider: Schema.String,
+    retryable: Schema.Boolean,
+  }
+) {}
+export const ProviderUnavailableErrorResponse = envelope(
+  ProviderUnavailableError,
+  "ProviderUnavailableError",
+  503,
+  { provider: Schema.String, retryable: Schema.Boolean }
+);

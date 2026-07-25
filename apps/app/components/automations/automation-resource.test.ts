@@ -12,6 +12,7 @@ describe("automation resource adapters", () => {
         id: "trigger_1",
         type: "trigger",
         triggerType: "STORY_REPLY",
+        targetMode: "all",
         targetPostIds: [],
       },
     ]);

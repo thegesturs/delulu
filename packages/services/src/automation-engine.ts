@@ -3,6 +3,7 @@ import type {
   AutomationStep,
   AutomationTrigger,
 } from "@delulu/core/domain/automation";
+import { automationTriggerTargetMode } from "@delulu/core/domain/automation";
 import type { AutomationEvent } from "@delulu/core/domain/automation-event";
 import {
   type AutomationId,
@@ -28,6 +29,28 @@ export class ProviderAudienceService extends Context.Service<
     }) => Effect.Effect<boolean, ProviderAudienceError>;
   }
 >()("@delulu/services/ProviderAudienceService") {}
+
+export class ProviderCommentReplyError extends Schema.TaggedErrorClass<ProviderCommentReplyError>()(
+  "ProviderCommentReplyError",
+  {
+    message: Schema.String,
+    retryable: Schema.Boolean,
+    deliveryState: Schema.Literals(["not_sent", "unknown"]),
+  }
+) {}
+export class ProviderCommentReplyService extends Context.Service<
+  ProviderCommentReplyService,
+  {
+    readonly reply: (input: {
+      readonly connectionId: string;
+      readonly commentId: string;
+      readonly message: string;
+    }) => Effect.Effect<
+      { readonly responseId: string },
+      ProviderCommentReplyError
+    >;
+  }
+>()("@delulu/services/ProviderCommentReplyService") {}
 
 export class AutomationEvaluationError extends Schema.TaggedErrorClass<AutomationEvaluationError>()(
   "AutomationEvaluationError",
@@ -75,6 +98,13 @@ export const keywordMatches = (
   }
 };
 
+export const triggerTargetsMedia = (
+  trigger: AutomationTrigger,
+  mediaId: string
+): boolean =>
+  automationTriggerTargetMode(trigger) === "all" ||
+  trigger.targetPostIds.includes(mediaId);
+
 const render = (template: string, event: AutomationEvent) =>
   template
     .replaceAll("{{username}}", event.platformUsername ?? "there")
@@ -105,6 +135,7 @@ export class AutomationEngine extends Context.Service<
       const sessions = yield* AutomationSessionService;
       const dispatch = yield* DmDispatchService;
       const audience = yield* ProviderAudienceService;
+      const commentReplies = yield* ProviderCommentReplyService;
 
       const hasEmail = Effect.fn("AutomationEngine.hasEmail")(function* (
         automationId: AutomationId,
@@ -143,6 +174,70 @@ export class AutomationEngine extends Context.Service<
           },
           event.text ?? ""
         );
+      });
+      const replyToCommentOnce = Effect.fn(
+        "AutomationEngine.replyToCommentOnce"
+      )(function* (
+        automation: Automation,
+        event: Extract<AutomationEvent, { _tag: "CommentReceived" }>,
+        trigger: AutomationTrigger
+      ) {
+        if (event.triggerType !== "comment" || !trigger.commentReply?.enabled) {
+          return;
+        }
+        const replies = trigger.commentReply.replies.filter(
+          (reply) => reply.trim().length > 0
+        );
+        if (replies.length === 0) {
+          return;
+        }
+        const reserved = yield* sql<{ status: string }>`
+          INSERT INTO automation_comment_dispatches
+            (provider, event_id, automation_id, status)
+          VALUES ('meta', ${event.eventId}, ${automation.id}, 'reserved')
+          ON CONFLICT (provider, event_id, automation_id) DO NOTHING
+          RETURNING status`;
+        if (!reserved[0]) {
+          return;
+        }
+        const choice =
+          [...event.eventId].reduce(
+            (sum, character) => sum + character.charCodeAt(0),
+            0
+          ) % replies.length;
+        const result = yield* commentReplies
+          .reply({
+            connectionId: automation.connectionId,
+            commentId: event.eventId,
+            message: render(replies[choice] as string, event),
+          })
+          .pipe(Effect.result);
+        if (result._tag === "Failure") {
+          if (
+            result.failure.retryable &&
+            result.failure.deliveryState === "not_sent"
+          ) {
+            yield* sql`DELETE FROM automation_comment_dispatches
+              WHERE provider = 'meta' AND event_id = ${event.eventId}
+                AND automation_id = ${automation.id}`;
+          } else {
+            yield* sql`UPDATE automation_comment_dispatches
+              SET status = ${result.failure.deliveryState === "unknown" ? "ambiguous" : "failed"},
+                  error = ${result.failure.message}, updated_at = now()
+              WHERE provider = 'meta' AND event_id = ${event.eventId}
+                AND automation_id = ${automation.id}`;
+          }
+          return yield* new AutomationEvaluationError({
+            eventId: event.eventId,
+            message: "Unable to reply to the triggering comment",
+            retryable: result.failure.retryable,
+          });
+        }
+        yield* sql`UPDATE automation_comment_dispatches
+          SET status = 'sent', response_id = ${result.success.responseId},
+              error = NULL, updated_at = now()
+          WHERE provider = 'meta' AND event_id = ${event.eventId}
+            AND automation_id = ${automation.id}`;
       });
       const recordRun = Effect.fn("AutomationEngine.recordRun")(function* (
         automation: Automation,
@@ -339,7 +434,7 @@ export class AutomationEngine extends Context.Service<
           const trigger = automation.triggers.find(
             (item) =>
               item.triggerType === event.triggerType &&
-              item.targetPostIds.includes(event.mediaId) &&
+              triggerTargetsMedia(item, event.mediaId) &&
               keywordMatches(item, event.text)
           );
           if (!trigger) {
@@ -357,6 +452,17 @@ export class AutomationEngine extends Context.Service<
                 : new AutomationEvaluationError({
                     eventId: event.eventId,
                     message: "Automation execution failed",
+                    retryable: true,
+                  })
+            )
+          );
+          yield* replyToCommentOnce(automation, event, trigger).pipe(
+            Effect.mapError((failure) =>
+              failure instanceof AutomationEvaluationError
+                ? failure
+                : new AutomationEvaluationError({
+                    eventId: event.eventId,
+                    message: "Unable to reserve the triggering comment reply",
                     retryable: true,
                   })
             )

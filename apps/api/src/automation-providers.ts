@@ -9,6 +9,8 @@ import {
   PaymentWebhookSink,
   ProviderAudienceError,
   ProviderAudienceService,
+  ProviderCommentReplyError,
+  ProviderCommentReplyService,
   ProviderDmError,
   ProviderDmService,
   SetupService,
@@ -163,6 +165,78 @@ export const AutomationProviderLive = Layer.mergeAll(
         return { messageId };
       });
       return ProviderDmService.of({ send });
+    })
+  ),
+  Layer.effect(
+    ProviderCommentReplyService,
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      const cipher = yield* TokenCipher;
+      const reply = Effect.fn("AutomationProvider.replyToComment")(
+        function* (input) {
+          const credentials = yield* connectionCredentials(
+            input.connectionId
+          ).pipe(
+            Effect.provideService(SqlClient.SqlClient, sql),
+            Effect.provideService(TokenCipher, cipher),
+            Effect.mapError(
+              () =>
+                new ProviderCommentReplyError({
+                  message: "Unable to load the automation connection",
+                  retryable: false,
+                  deliveryState: "not_sent",
+                })
+            )
+          );
+          const response = yield* Effect.tryPromise({
+            try: () =>
+              fetch(`${API_BASE}/${input.commentId}/replies`, {
+                method: "POST",
+                headers: {
+                  authorization: `Bearer ${credentials.accessToken}`,
+                  "content-type": "application/json",
+                },
+                body: JSON.stringify({ message: input.message }),
+              }),
+            catch: () =>
+              new ProviderCommentReplyError({
+                message: "Comment reply request failed before confirmation",
+                retryable: true,
+                deliveryState: "unknown",
+              }),
+          });
+          if (!response.ok) {
+            return yield* new ProviderCommentReplyError({
+              message: `Comment reply provider returned ${response.status}`,
+              retryable: response.status === 429 || response.status >= 500,
+              deliveryState: "not_sent",
+            });
+          }
+          const payload = yield* Effect.tryPromise({
+            try: () => response.json() as Promise<unknown>,
+            catch: () =>
+              new ProviderCommentReplyError({
+                message: "Comment reply response was not valid JSON",
+                retryable: true,
+                deliveryState: "unknown",
+              }),
+          });
+          const decoded = yield* Schema.decodeUnknownEffect(
+            Schema.Struct({ id: Schema.String })
+          )(payload).pipe(
+            Effect.mapError(
+              () =>
+                new ProviderCommentReplyError({
+                  message: "Comment reply response was malformed",
+                  retryable: true,
+                  deliveryState: "unknown",
+                })
+            )
+          );
+          return { responseId: decoded.id };
+        }
+      );
+      return ProviderCommentReplyService.of({ reply });
     })
   ),
   Layer.effect(

@@ -1,6 +1,6 @@
 import { decode } from "@toon-format/toon";
 import { describe, expect, it } from "vitest";
-import { CliError } from "./cli-error.js";
+import { CliError, classifyError } from "./cli-error.js";
 import {
   formatError,
   formatResult,
@@ -65,5 +65,19 @@ describe("CLI output", () => {
   it("truncates with an exact omitted-size hint", () => {
     expect(truncateText("abcdefgh", 5)).toBe("abcde… [+3 chars]");
     expect(truncateText("abcdefgh", 5, true)).toBe("abcdefgh");
+  });
+
+  it("classifies provider failures with the retryable exit convention", () => {
+    expect(
+      classifyError({
+        _tag: "ProviderUnavailableError",
+        message: "Instagram is temporarily unavailable",
+        retryable: true,
+      })
+    ).toMatchObject({
+      code: "PROVIDER_UNAVAILABLE",
+      exitCode: 7,
+      retryable: true,
+    });
   });
 });

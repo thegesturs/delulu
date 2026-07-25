@@ -46,9 +46,11 @@ export function TriggerStepCard({
           {TRIGGER_LABELS[trigger.triggerType] || trigger.triggerType}
         </p>
         <p className="text-muted-foreground text-xs">
-          {postCount === 0
-            ? "No posts selected"
-            : `${postCount} post${postCount === 1 ? "" : "s"}`}
+          {trigger.targetMode === "all"
+            ? "Any current or future post"
+            : postCount === 0
+              ? "No posts selected"
+              : `${postCount} post${postCount === 1 ? "" : "s"}`}
         </p>
       </div>
       {canRemove && onRemove && (

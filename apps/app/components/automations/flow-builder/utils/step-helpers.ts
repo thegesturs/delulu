@@ -15,6 +15,7 @@ export function createTrigger(overrides?: Partial<TriggerStep>): TriggerStep {
     id: createId(),
     type: "trigger",
     triggerType: "COMMENT",
+    targetMode: "specific",
     targetPostIds: [],
     ...overrides,
   };

@@ -3,6 +3,7 @@ import {
   AutomationNote,
   AutomationStep,
   AutomationTrigger,
+  AutomationTriggerTargetMode,
 } from "@delulu/core/domain/automation";
 import { ConnectionId } from "@delulu/core/kernel/ids";
 import { Schema } from "effect";
@@ -37,12 +38,16 @@ const Page = <A extends Schema.Top>(item: A) =>
     offset: Schema.Number,
   });
 
-export const AutomationTriggerInput = AutomationTrigger;
+export const AutomationTriggerInput = Schema.Struct({
+  ...AutomationTrigger.fields,
+  targetMode: AutomationTriggerTargetMode,
+});
 export const AutomationStepInput = AutomationStep;
 export const AutomationNoteInput = AutomationNote;
 const NodePositions = AutomationNodePositions;
 export const AutomationWrite = Schema.Struct({
   connectionId: ConnectionId,
+  idempotencyKey: Schema.optional(Schema.String),
   name: Schema.String,
   description: Schema.optional(Schema.NullOr(Schema.String)),
   enabled: Schema.optional(Schema.Boolean),

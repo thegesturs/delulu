@@ -1,3 +1,4 @@
+export * from "./automation-write.js";
 export * from "./client.js";
 export * from "./effect.js";
 export * from "./keys.js";

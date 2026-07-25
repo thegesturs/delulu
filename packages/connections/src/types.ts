@@ -187,7 +187,23 @@ export interface PlatformQueries {
     profileId: string;
     accessToken: string;
     limit?: number;
+    after?: string;
   }) => Effect.Effect<unknown, ConnectionError>;
+}
+
+export interface PlatformMediaItem {
+  readonly id: string;
+  readonly caption: string | null;
+  readonly mediaType: string;
+  readonly timestamp: string;
+  readonly permalink: string | null;
+  readonly thumbnailUrl: string | null;
+  readonly mediaUrl: string | null;
+}
+
+export interface PlatformMediaPage {
+  readonly data: readonly PlatformMediaItem[];
+  readonly nextCursor: string | null;
 }
 
 // ── Publish ─────────────────────────────────────────────────────────────────

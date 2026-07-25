@@ -496,6 +496,23 @@ export const ConnectionsHandlers = HttpApiBuilder.group(
           return { deleted: true };
         })
       )
+      .handle("media", ({ params, query }) =>
+        Effect.gen(function* () {
+          const auth = yield* CurrentAuth;
+          const access = yield* workspaces.require({
+            workspaceId: params.workspaceId,
+            auth,
+            scope: "accounts:read",
+          });
+          return yield* connections.listMedia({
+            workspaceId: access.workspaceId,
+            connectionId: params.id,
+            kind: query.kind,
+            limit: Math.min(100, Math.max(1, query.limit ?? 25)),
+            after: query.after,
+          });
+        })
+      )
       .handle("mint", ({ params, payload }) =>
         Effect.gen(function* () {
           const auth = yield* CurrentAuth;

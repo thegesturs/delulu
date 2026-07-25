@@ -39,7 +39,11 @@ export const classifyError = (error: unknown): CliError => {
   if (error instanceof CliError) {
     return error;
   }
-  const tagged = error as { readonly _tag?: string; readonly code?: string };
+  const tagged = error as {
+    readonly _tag?: string;
+    readonly code?: string;
+    readonly retryable?: boolean;
+  };
   const tag = tagged?._tag ?? tagged?.code ?? "UnexpectedError";
   const message = messageOf(error);
   if (tag === "UnauthorizedError" || AUTH_MESSAGE.test(message)) {
@@ -71,12 +75,22 @@ export const classifyError = (error: unknown): CliError => {
   if (tag === "ConflictError") {
     return new CliError({ code: tag, message, exitCode: 6 });
   }
-  if (tag === "RateLimitedError" || NETWORK_MESSAGE.test(message)) {
+  if (
+    tag === "RateLimitedError" ||
+    tag === "ProviderUnavailableError" ||
+    NETWORK_MESSAGE.test(message)
+  ) {
     return new CliError({
-      code: tag === "RateLimitedError" ? "RATE_LIMITED" : "NETWORK_ERROR",
+      code:
+        tag === "RateLimitedError"
+          ? "RATE_LIMITED"
+          : tag === "ProviderUnavailableError"
+            ? "PROVIDER_UNAVAILABLE"
+            : "NETWORK_ERROR",
       message,
       exitCode: 7,
-      retryable: true,
+      retryable:
+        tag === "ProviderUnavailableError" ? (tagged.retryable ?? true) : true,
     });
   }
   return new CliError({ code: tag, message, exitCode: 1 });
