@@ -67,6 +67,30 @@ describe("automation resource adapters", () => {
     ).toBe(false);
   });
 
+  it("treats reordered node-position keys as the same configuration", () => {
+    const withPositions = {
+      ...resource,
+      nodePositions: {
+        trigger_1: { x: 0, y: 0 },
+        step_1: { x: 200, y: 0 },
+      },
+    };
+    const reordered = {
+      ...withPositions,
+      nodePositions: {
+        step_1: { x: 200, y: 0 },
+        trigger_1: { x: 0, y: 0 },
+      },
+    };
+
+    expect(
+      automationConfigurationChanged(
+        automationFromResource(withPositions),
+        automationFromResource(reordered)
+      )
+    ).toBe(false);
+  });
+
   it("reports another editor when persisted configuration changed", () => {
     expect(
       automationConfigurationChanged(

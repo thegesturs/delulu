@@ -101,6 +101,15 @@ export const triggersToResource = (triggers: readonly TriggerStep[]) =>
     triggerType: triggerToResource(trigger.triggerType),
   }));
 
+const canonicalNodePositions = (
+  positions: AutomationResourceView["nodePositions"]
+) =>
+  Object.fromEntries(
+    Object.entries(positions).sort(([left], [right]) =>
+      left.localeCompare(right)
+    )
+  );
+
 export const automationConfigurationChanged = (
   loaded: AutomationResourceView,
   latest: AutomationResourceView
@@ -113,7 +122,7 @@ export const automationConfigurationChanged = (
     triggers: loaded.triggers,
     steps: loaded.steps,
     notes: loaded.notes,
-    nodePositions: loaded.nodePositions,
+    nodePositions: canonicalNodePositions(loaded.nodePositions),
   }) !==
   JSON.stringify({
     connectionId: latest.connectionId,
@@ -123,7 +132,7 @@ export const automationConfigurationChanged = (
     triggers: latest.triggers,
     steps: latest.steps,
     notes: latest.notes,
-    nodePositions: latest.nodePositions,
+    nodePositions: canonicalNodePositions(latest.nodePositions),
   });
 
 export type ApiErrorKind =

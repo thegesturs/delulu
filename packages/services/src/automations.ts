@@ -9,6 +9,7 @@ import {
   AutomationPersistenceError,
   type AutomationStep,
   type AutomationTrigger,
+  automationStepValidationIssues,
   automationTriggerTargetMode,
   automationTriggerValidationIssues,
   makeAutomationRepository,
@@ -321,10 +322,13 @@ export class AutomationService extends Context.Service<
         workspaceId: WorkspaceId,
         input: AutomationWriteInput
       ) {
-        const issues = automationTriggerValidationIssues(input.triggers);
+        const issues = [
+          ...automationTriggerValidationIssues(input.triggers),
+          ...automationStepValidationIssues(input.steps),
+        ];
         if (issues.length > 0) {
           return yield* new ValidationError({
-            message: "Automation triggers are invalid",
+            message: "Automation configuration is invalid",
             issues: [...issues],
           });
         }
@@ -414,14 +418,17 @@ export class AutomationService extends Context.Service<
           Effect.mapError((cause) => persistenceError("load connection", cause))
         );
         const nextTriggers = patch.triggers ?? current.triggers;
-        const issues = automationTriggerValidationIssues(nextTriggers);
+        const nextSteps = patch.steps ?? current.steps;
+        const issues = [
+          ...automationTriggerValidationIssues(nextTriggers),
+          ...automationStepValidationIssues(nextSteps),
+        ];
         if (issues.length > 0) {
           return yield* new ValidationError({
-            message: "Automation triggers are invalid",
+            message: "Automation configuration is invalid",
             issues: [...issues],
           });
         }
-        const nextSteps = patch.steps ?? current.steps;
         const nextNotes = patch.notes ?? current.notes;
         const nextPositions = patch.nodePositions ?? current.nodePositions;
         const result = yield* sql

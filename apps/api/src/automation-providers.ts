@@ -1,4 +1,9 @@
-import { TokenCipher, type UserId, type WorkspaceId } from "@delulu/core";
+import {
+  automationButtonValidationIssues,
+  TokenCipher,
+  type UserId,
+  type WorkspaceId,
+} from "@delulu/core";
 import { BillingWebhookEvent } from "@delulu/core/domain/billing";
 import { WebhookIngressError } from "@delulu/core/domain/webhook-delivery";
 import { getPlanFromProductId } from "@delulu/payments";
@@ -113,26 +118,14 @@ export const instagramDmMessage = (
   input: Pick<ProviderDmRequest, "message" | "buttons">
 ) => {
   const quickReplies = input.buttons
-    .filter(
-      (button: unknown): button is { title: string; payload: string } =>
-        Predicate.isObject(button) &&
-        button.type === "quick_reply" &&
-        Predicate.isString(button.title) &&
-        Predicate.isString(button.payload)
-    )
+    .filter((button) => button.type === "quick_reply")
     .map((button) => ({
       content_type: "text",
       title: button.title,
       payload: button.payload,
     }));
   const urlButtons = input.buttons
-    .filter(
-      (button: unknown): button is { title: string; url: string } =>
-        Predicate.isObject(button) &&
-        button.type === "url" &&
-        Predicate.isString(button.title) &&
-        Predicate.isString(button.url)
-    )
+    .filter((button) => button.type === "url")
     .map((button) => ({
       type: "web_url" as const,
       title: button.title,
@@ -168,6 +161,14 @@ export const AutomationProviderLive = Layer.mergeAll(
       const sql = yield* SqlClient.SqlClient;
       const cipher = yield* TokenCipher;
       const send = Effect.fn("AutomationProvider.sendDm")(function* (input) {
+        const buttonIssues = automationButtonValidationIssues(input.buttons);
+        if (buttonIssues.length > 0) {
+          return yield* new ProviderDmError({
+            message: buttonIssues[0].message,
+            retryable: false,
+            deliveryState: "not_sent",
+          });
+        }
         const credentials = yield* connectionCredentials(
           input.connectionId
         ).pipe(

@@ -97,4 +97,32 @@ describe("Meta messaging automation events", () => {
       });
     }
   });
+
+  it("ignores outbound message echoes from the connected account", () => {
+    const payload = Schema.decodeUnknownSync(MetaWebhookPayload)({
+      object: "instagram",
+      entry: [
+        {
+          id: "business_1",
+          messaging: [
+            {
+              sender: { id: "business_1" },
+              recipient: { id: "commenter_1" },
+              message: {
+                mid: "message_echo_1",
+                text: "Here is your guide",
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const message = payload.entry[0].messaging?.[0];
+    expect(message).toBeDefined();
+    if (message) {
+      expect(
+        metaMessagingAutomationEvent("business_1", message, "fallback_1")
+      ).toBeNull();
+    }
+  });
 });

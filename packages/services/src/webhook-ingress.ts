@@ -60,7 +60,10 @@ export const metaMessagingAutomationEvent = (
   message: MetaMessagingEvent,
   fallbackEventId: string
 ): AutomationEvent | null => {
-  if (!(message.message || message.postback)) {
+  if (
+    message.sender.id === profileId ||
+    !(message.message || message.postback)
+  ) {
     return null;
   }
   const storyId = message.message?.reply_to?.story?.id;

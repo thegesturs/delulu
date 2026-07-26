@@ -148,6 +148,21 @@ export const AutomationButton = Schema.Union([
     url: Schema.String,
   }),
 ]);
+export type AutomationButton = typeof AutomationButton.Type;
+
+export const automationButtonValidationIssues = (
+  buttons: readonly AutomationButton[],
+  path = "buttons"
+): readonly { readonly path: string; readonly message: string }[] =>
+  buttons.some((button) => button.type === "url") && buttons.length > 3
+    ? [
+        {
+          path,
+          message:
+            "DM steps with URL buttons support at most three combined buttons",
+        },
+      ]
+    : [];
 
 export const AutomationStep = Schema.Union([
   Schema.Struct({
@@ -169,6 +184,18 @@ export const AutomationStep = Schema.Union([
   }),
 ]);
 export type AutomationStep = typeof AutomationStep.Type;
+
+export const automationStepValidationIssues = (
+  steps: readonly AutomationStep[]
+): readonly { readonly path: string; readonly message: string }[] =>
+  steps.flatMap((step, index) =>
+    step.type === "send_dm"
+      ? automationButtonValidationIssues(
+          step.buttons ?? [],
+          `steps.${index}.buttons`
+        )
+      : []
+  );
 
 export const AutomationNote = Schema.Struct({
   id: Schema.String,
