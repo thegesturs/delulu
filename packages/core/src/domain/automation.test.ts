@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   AutomationStep,
   AutomationTrigger,
+  automationButtonValidationIssues,
+  automationStepValidationIssues,
   automationTriggerTargetMode,
   automationTriggerValidationIssues,
   resolvePendingAutomationTriggers,
@@ -112,5 +114,45 @@ describe("automation domain schemas", () => {
         url: "https://example.com",
       })
     ).toThrow();
+  });
+
+  it("limits button templates to three combined actions", () => {
+    const buttons = [
+      { type: "url" as const, title: "Guide", url: "https://example.com" },
+      {
+        type: "quick_reply" as const,
+        title: "One",
+        payload: "one",
+      },
+      {
+        type: "quick_reply" as const,
+        title: "Two",
+        payload: "two",
+      },
+      {
+        type: "quick_reply" as const,
+        title: "Three",
+        payload: "three",
+      },
+    ];
+
+    expect(automationButtonValidationIssues(buttons)).toEqual([
+      expect.objectContaining({ path: "buttons" }),
+    ]);
+    expect(
+      automationStepValidationIssues([
+        {
+          id: "step-1",
+          type: "send_dm",
+          messageTemplate: "Choose",
+          buttons,
+        },
+      ])
+    ).toEqual([expect.objectContaining({ path: "steps.0.buttons" })]);
+    expect(
+      automationButtonValidationIssues(
+        buttons.filter((button) => button.type === "quick_reply")
+      )
+    ).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import type { AutomationId } from "@delulu/core/kernel/ids";
+import type { AutomationButton, AutomationId } from "@delulu/core";
 import { getPlanLimits } from "@delulu/payments/plans";
 import { Context, Effect, Layer, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
@@ -27,7 +27,7 @@ export interface ProviderDmInput {
    */
   readonly recipientCommentId?: string;
   readonly message: string;
-  readonly buttons: readonly unknown[];
+  readonly buttons: readonly AutomationButton[];
 }
 export interface ProviderDmRequest extends ProviderDmInput {
   /** Providers must use this key to make a reclaimed reservation safe to retry. */

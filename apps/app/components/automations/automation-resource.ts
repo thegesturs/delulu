@@ -101,6 +101,40 @@ export const triggersToResource = (triggers: readonly TriggerStep[]) =>
     triggerType: triggerToResource(trigger.triggerType),
   }));
 
+const canonicalNodePositions = (
+  positions: AutomationResourceView["nodePositions"]
+) =>
+  Object.fromEntries(
+    Object.entries(positions).sort(([left], [right]) =>
+      left.localeCompare(right)
+    )
+  );
+
+export const automationConfigurationChanged = (
+  loaded: AutomationResourceView,
+  latest: AutomationResourceView
+): boolean =>
+  JSON.stringify({
+    connectionId: loaded.connectionId,
+    name: loaded.name,
+    description: loaded.description,
+    enabled: loaded.enabled,
+    triggers: loaded.triggers,
+    steps: loaded.steps,
+    notes: loaded.notes,
+    nodePositions: canonicalNodePositions(loaded.nodePositions),
+  }) !==
+  JSON.stringify({
+    connectionId: latest.connectionId,
+    name: latest.name,
+    description: latest.description,
+    enabled: latest.enabled,
+    triggers: latest.triggers,
+    steps: latest.steps,
+    notes: latest.notes,
+    nodePositions: canonicalNodePositions(latest.nodePositions),
+  });
+
 export type ApiErrorKind =
   | "permission"
   | "not-found"

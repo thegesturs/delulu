@@ -27,6 +27,75 @@ const invalidPayload = (provider: string) =>
     retryable: false,
   });
 
+type MetaEntry = (typeof MetaWebhookPayload.Type)["entry"][number];
+type MetaChange = NonNullable<MetaEntry["changes"]>[number];
+type MetaMessagingEvent = NonNullable<MetaEntry["messaging"]>[number];
+
+export const metaCommentAutomationEvent = (
+  profileId: string,
+  change: MetaChange
+): AutomationEvent | null => {
+  const value = change.value;
+  if (
+    !(value.from && value.media) ||
+    value.parent_id !== undefined ||
+    value.from.id === profileId
+  ) {
+    return null;
+  }
+  return {
+    _tag: "CommentReceived",
+    eventId: value.id,
+    profileId,
+    triggerType: change.field === "mentions" ? "mention" : "comment",
+    platformUserId: value.from.id,
+    platformUsername: value.from.username ?? null,
+    mediaId: value.media.id,
+    text: value.text ?? "",
+  };
+};
+
+export const metaMessagingAutomationEvent = (
+  profileId: string,
+  message: MetaMessagingEvent,
+  fallbackEventId: string
+): AutomationEvent | null => {
+  if (
+    message.sender.id === profileId ||
+    !(message.message || message.postback)
+  ) {
+    return null;
+  }
+  const storyId = message.message?.reply_to?.story?.id;
+  if (storyId) {
+    return {
+      _tag: "CommentReceived",
+      eventId:
+        message.message?.mid ??
+        `${profileId}:${message.timestamp ?? fallbackEventId}`,
+      profileId,
+      platformUserId: message.sender.id,
+      platformUsername: null,
+      triggerType: "story_reply",
+      mediaId: storyId,
+      text: message.message?.text ?? "",
+    };
+  }
+  return {
+    _tag: "MessageReceived",
+    eventId:
+      message.message?.mid ??
+      message.postback?.mid ??
+      `${profileId}:${message.timestamp ?? fallbackEventId}`,
+    profileId,
+    platformUserId: message.sender.id,
+    platformUsername: null,
+    text: message.message?.text ?? message.postback?.title,
+    quickReplyPayload:
+      message.message?.quick_reply?.payload ?? message.postback?.payload,
+  };
+};
+
 export class WebhookIngressService extends Context.Service<
   WebhookIngressService,
   {
@@ -110,53 +179,21 @@ export class WebhookIngressService extends Context.Service<
               function* (payload) {
                 for (const entry of payload.entry) {
                   for (const change of entry.changes ?? []) {
-                    const value = change.value;
-                    if (!(value.from && value.media)) {
+                    const event = metaCommentAutomationEvent(entry.id, change);
+                    if (!event) {
                       continue;
                     }
-                    const event: AutomationEvent = {
-                      _tag: "CommentReceived",
-                      eventId: value.id,
-                      profileId: entry.id,
-                      triggerType:
-                        change.field === "mentions" ? "mention" : "comment",
-                      platformUserId: value.from.id,
-                      platformUsername: value.from.username ?? null,
-                      mediaId: value.media.id,
-                      text: value.text ?? "",
-                    };
                     yield* automations.evaluate(event);
                   }
                   for (const message of entry.messaging ?? []) {
-                    if (!message.message) {
+                    const event = metaMessagingAutomationEvent(
+                      entry.id,
+                      message,
+                      eventId
+                    );
+                    if (!event) {
                       continue;
                     }
-                    const storyId = message.message.reply_to?.story?.id;
-                    const event: AutomationEvent = storyId
-                      ? {
-                          _tag: "CommentReceived",
-                          eventId:
-                            message.message.mid ??
-                            `${entry.id}:${message.timestamp ?? eventId}`,
-                          profileId: entry.id,
-                          platformUserId: message.sender.id,
-                          platformUsername: null,
-                          triggerType: "story_reply",
-                          mediaId: storyId,
-                          text: message.message.text ?? "",
-                        }
-                      : {
-                          _tag: "MessageReceived",
-                          eventId:
-                            message.message.mid ??
-                            `${entry.id}:${message.timestamp ?? eventId}`,
-                          profileId: entry.id,
-                          platformUserId: message.sender.id,
-                          platformUsername: null,
-                          text: message.message.text,
-                          quickReplyPayload:
-                            message.message.quick_reply?.payload,
-                        };
                     yield* automations.evaluate(event);
                   }
                 }

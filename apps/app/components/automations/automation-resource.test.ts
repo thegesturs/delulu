@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  automationConfigurationChanged,
   automationFromResource,
   getApiErrorDetails,
   triggersToResource,
@@ -48,6 +49,59 @@ describe("automation resource adapters", () => {
       notes: [],
       nodePositions: {},
     });
+  });
+
+  it("does not report another editor when only execution counters changed", () => {
+    const latest = {
+      ...resource,
+      totalTriggered: 2,
+      totalDmsSent: 2,
+      updatedAt: "2026-07-11T00:05:00.000Z",
+    };
+
+    expect(
+      automationConfigurationChanged(
+        automationFromResource(resource),
+        automationFromResource(latest)
+      )
+    ).toBe(false);
+  });
+
+  it("treats reordered node-position keys as the same configuration", () => {
+    const withPositions = {
+      ...resource,
+      nodePositions: {
+        trigger_1: { x: 0, y: 0 },
+        step_1: { x: 200, y: 0 },
+      },
+    };
+    const reordered = {
+      ...withPositions,
+      nodePositions: {
+        step_1: { x: 200, y: 0 },
+        trigger_1: { x: 0, y: 0 },
+      },
+    };
+
+    expect(
+      automationConfigurationChanged(
+        automationFromResource(withPositions),
+        automationFromResource(reordered)
+      )
+    ).toBe(false);
+  });
+
+  it("reports another editor when persisted configuration changed", () => {
+    expect(
+      automationConfigurationChanged(
+        automationFromResource(resource),
+        automationFromResource({
+          ...resource,
+          name: "Changed elsewhere",
+          updatedAt: "2026-07-11T00:05:00.000Z",
+        })
+      )
+    ).toBe(true);
   });
 
   it("distinguishes tagged domain errors from transport failures", () => {
