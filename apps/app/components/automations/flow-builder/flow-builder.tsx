@@ -35,6 +35,8 @@ import {
   useResourceRegistry,
 } from "@/state/resources";
 import {
+  type AutomationResourceView,
+  automationConfigurationChanged,
   automationFromResource,
   getApiErrorDetails,
   triggersToResource,
@@ -82,7 +84,7 @@ function FlowBuilderInner({
   const [showTriggerWizard, setShowTriggerWizard] = useState(false);
   const initializedRef = useRef(false);
   const templateInitRef = useRef(false);
-  const loadedUpdatedAtRef = useRef<string | null>(null);
+  const loadedAutomationRef = useRef<AutomationResourceView | null>(null);
   const submitRef = useRef(false);
 
   const detailResource = useMemo(
@@ -259,7 +261,7 @@ function FlowBuilderInner({
       automation.notes,
       automation.nodePositions as NodePositions
     );
-    loadedUpdatedAtRef.current = automation.updatedAt;
+    loadedAutomationRef.current = automation;
   }, [
     automation,
     setAutomationMeta,
@@ -582,9 +584,13 @@ function FlowBuilderInner({
           queryKey: detailResource.queryKey!,
           staleTime: 0,
         });
+        const latestAutomation = automationFromResource(latest);
         if (
-          loadedUpdatedAtRef.current &&
-          latest.updatedAt !== loadedUpdatedAtRef.current
+          loadedAutomationRef.current &&
+          automationConfigurationChanged(
+            loadedAutomationRef.current,
+            latestAutomation
+          )
         ) {
           setStaleEditor(true);
           return;
@@ -599,7 +605,7 @@ function FlowBuilderInner({
           notes,
           nodePositions,
         } as never);
-        loadedUpdatedAtRef.current = updated.updatedAt;
+        loadedAutomationRef.current = automationFromResource(updated);
 
         analytics.capture(AUTOMATION_UPDATED, {
           automation_id: automationId,

@@ -4,15 +4,15 @@ import type { PlatformWebhooks } from "../../types";
 import { PROVIDER, WEBHOOK_VERSION } from "./constants";
 
 /**
- * Subscribe the connected Instagram Business account to `comments,messages`
- * webhook fields (drives DM automations). Ported from the callback route's
- * `subscribeToWebhooks` — best effort: a failure is logged, not fatal, so a
- * connect never fails purely because subscription was slow.
+ * Subscribe the connected Instagram Business account to the webhook fields
+ * that drive comment triggers, inbound messages, quick replies, and template
+ * postback buttons. Best effort: a failure is logged, not fatal, so a connect
+ * never fails purely because subscription was slow.
  */
 export const instagramWebhooks: PlatformWebhooks = {
   subscribe: ({ profileId, accessToken }) =>
     Effect.gen(function* () {
-      const url = `https://graph.instagram.com/${WEBHOOK_VERSION}/${profileId}/subscribed_apps?subscribed_fields=comments,messages&access_token=${accessToken}`;
+      const url = `https://graph.instagram.com/${WEBHOOK_VERSION}/${profileId}/subscribed_apps?subscribed_fields=comments,messages,messaging_postbacks&access_token=${accessToken}`;
 
       const response = yield* fetchEffect(PROVIDER, url, {
         method: "POST",

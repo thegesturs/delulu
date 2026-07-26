@@ -4,6 +4,7 @@ const JsonObject = Schema.Record(Schema.String, Schema.Unknown);
 
 export const MetaCommentValue = Schema.Struct({
   id: Schema.String,
+  parent_id: Schema.optional(Schema.String),
   text: Schema.optional(Schema.String),
   from: Schema.optional(
     Schema.Struct({
@@ -44,6 +45,13 @@ export const MetaWebhookPayload = Schema.Struct({
             recipient: Schema.Struct({ id: Schema.String }),
             timestamp: Schema.optional(Schema.Number),
             message: Schema.optional(MetaMessage),
+            postback: Schema.optional(
+              Schema.Struct({
+                mid: Schema.optional(Schema.String),
+                title: Schema.optional(Schema.String),
+                payload: Schema.String,
+              })
+            ),
           })
         )
       ),

@@ -109,6 +109,58 @@ export const instagramDmRecipient = (
     ? { comment_id: input.recipientCommentId }
     : { id: input.recipientId };
 
+export const instagramDmMessage = (
+  input: Pick<ProviderDmRequest, "message" | "buttons">
+) => {
+  const quickReplies = input.buttons
+    .filter(
+      (button: unknown): button is { title: string; payload: string } =>
+        Predicate.isObject(button) &&
+        button.type === "quick_reply" &&
+        Predicate.isString(button.title) &&
+        Predicate.isString(button.payload)
+    )
+    .map((button) => ({
+      content_type: "text",
+      title: button.title,
+      payload: button.payload,
+    }));
+  const urlButtons = input.buttons
+    .filter(
+      (button: unknown): button is { title: string; url: string } =>
+        Predicate.isObject(button) &&
+        button.type === "url" &&
+        Predicate.isString(button.title) &&
+        Predicate.isString(button.url)
+    )
+    .map((button) => ({
+      type: "web_url" as const,
+      title: button.title,
+      url: button.url,
+    }));
+  if (urlButtons.length > 0) {
+    const postbackButtons = quickReplies.map((button) => ({
+      type: "postback" as const,
+      title: button.title,
+      payload: button.payload,
+    }));
+    return {
+      attachment: {
+        type: "template" as const,
+        payload: {
+          template_type: "button" as const,
+          text: input.message,
+          buttons: [...urlButtons, ...postbackButtons],
+        },
+      },
+    };
+  }
+  return {
+    text: input.message,
+    ...(quickReplies.length > 0 ? { quick_replies: quickReplies } : {}),
+  };
+};
+
 export const AutomationProviderLive = Layer.mergeAll(
   Layer.effect(
     ProviderDmService,
@@ -130,32 +182,6 @@ export const AutomationProviderLive = Layer.mergeAll(
               })
           )
         );
-        const quickReplies = input.buttons
-          .filter(
-            (button: unknown): button is { title: string; payload: string } =>
-              Predicate.isObject(button) &&
-              button.type === "quick_reply" &&
-              Predicate.isString(button.title) &&
-              Predicate.isString(button.payload)
-          )
-          .map((button: { title: string; payload: string }) => ({
-            content_type: "text",
-            title: button.title,
-            payload: button.payload,
-          }));
-        const urlSuffix = input.buttons
-          .filter(
-            (button: unknown): button is { title: string; url: string } =>
-              Predicate.isObject(button) &&
-              button.type === "url" &&
-              Predicate.isString(button.title) &&
-              Predicate.isString(button.url)
-          )
-          .map(
-            (button: { title: string; url: string }) =>
-              `\n${button.title}: ${button.url}`
-          )
-          .join("");
         const response = yield* Effect.tryPromise({
           try: () =>
             fetch(`${API_BASE}/${credentials.profileId}/messages`, {
@@ -167,12 +193,7 @@ export const AutomationProviderLive = Layer.mergeAll(
               },
               body: JSON.stringify({
                 recipient: instagramDmRecipient(input),
-                message: {
-                  text: `${input.message}${urlSuffix}`,
-                  ...(quickReplies.length > 0
-                    ? { quick_replies: quickReplies }
-                    : {}),
-                },
+                message: instagramDmMessage(input),
               }),
             }),
           catch: () =>
