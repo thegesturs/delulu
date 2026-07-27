@@ -340,6 +340,7 @@ export function MobileFlowEditor({
             <div>
               {dmStep ? (
                 <DmComposer
+                  commentPrivateReply={trigger?.triggerType === "COMMENT"}
                   isFreePlan={isFreePlan}
                   onChange={handleDmChange}
                   step={dmStep}

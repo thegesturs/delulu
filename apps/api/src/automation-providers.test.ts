@@ -51,6 +51,24 @@ describe("Instagram automation recipients", () => {
     });
   });
 
+  it("renders URL actions as links in a comment-addressed private reply", () => {
+    expect(
+      instagramDmMessage({
+        recipientCommentId: "comment_1",
+        message: "Here is your guide",
+        buttons: [
+          {
+            type: "url",
+            title: "Open guide",
+            url: "https://example.com/guide",
+          },
+        ],
+      })
+    ).toEqual({
+      text: "Here is your guide\n\nOpen guide: https://example.com/guide",
+    });
+  });
+
   it("retains actionable provider codes without logging response payloads", () => {
     expect(
       metaProviderErrorMessage("DM", 400, {

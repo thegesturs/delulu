@@ -177,6 +177,9 @@ export function FlowSidebarPanel({
             )}
             {step.type === "send_dm" && (
               <SendDmPanel
+                commentPrivateReply={triggers.some(
+                  (candidate) => candidate.triggerType === "COMMENT"
+                )}
                 isFreePlan={isFreePlan}
                 onChange={(updated) => onUpdateStep(step.id, updated)}
                 onCreateStepForButton={
