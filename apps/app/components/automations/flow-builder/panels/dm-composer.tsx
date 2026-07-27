@@ -235,8 +235,8 @@ export function DmComposer({
             </p>
             {privateReplyLinks.length > 0 && (
               <div className="mt-2.5 space-y-1 text-sm">
-                {privateReplyLinks.map((button) => (
-                  <p key={button.url}>
+                {privateReplyLinks.map((button, index) => (
+                  <p key={`private-reply-link-${index}`}>
                     {button.title}:{" "}
                     <span className="text-primary underline">{button.url}</span>
                   </p>
