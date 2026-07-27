@@ -23,6 +23,17 @@ const productionMonthlyProductIds = [
   ]),
 ].sort();
 
+const productionBaseProductIds = new Set([
+  ...Object.values(PROD_PRODUCT_IDS).flatMap(({ monthly, yearly }) => [
+    monthly,
+    yearly,
+  ]),
+  ...Object.values(PROD_PRODUCT_IDS_INR).flatMap(({ monthly, yearly }) => [
+    monthly,
+    yearly,
+  ]),
+]);
+
 export interface RecoveryCampaignPreview {
   readonly campaignId: string;
   readonly startsAt: string;
@@ -35,6 +46,7 @@ export interface RecoveryCampaignPreview {
   readonly pendingRecipients: number;
   readonly failedRecipients: number;
   readonly deadRecipients: number;
+  readonly failureReasons: readonly string[];
   readonly activeSubscribers: number;
   readonly optedOut: number;
   readonly missingOrInvalidEmail: number;
@@ -62,7 +74,11 @@ interface RecoveryCampaignAudienceMember {
   readonly name: string | null;
   readonly lifecycleEnabled: boolean;
   readonly deliveryStatus: string | null;
+  readonly deliveryLastError: string | null;
   readonly activeSubscription: boolean;
+  readonly currentPeriodEnd: Date | null;
+  readonly plan: string | null;
+  readonly providerCustomerId: string | null;
   readonly providerSubscriptionId: string | null;
 }
 
@@ -94,7 +110,15 @@ const loadRecoveryCampaignAudience = Effect.fn("loadRecoveryCampaignAudience")(
         u.name,
         COALESCE(p.product_lifecycle_enabled, true) AS lifecycle_enabled,
         d.status AS delivery_status,
-        COALESCE(s.status IN ('active', 'trialing'), false) AS active_subscription,
+        d.last_error AS delivery_last_error,
+        COALESCE(
+          s.status IN ('active', 'trialing')
+            AND upper(s.plan) IN ('ECHO', 'VIBE', 'COMMUNITY'),
+          false
+        ) AS active_subscription,
+        s.current_period_end,
+        s.plan,
+        s.provider_customer_id,
         s.provider_subscription_id
       FROM users u
       LEFT JOIN email_preferences p ON p.user_id = u.id
@@ -118,6 +142,16 @@ export const summarizeRecoveryCampaignAudience = (
   const alreadyQueued = eligible.filter(
     (member) => member.deliveryStatus !== null
   ).length;
+  const failureReasons = [
+    ...new Set(
+      eligible
+        .map((member) => member.deliveryLastError)
+        .filter((reason): reason is string => Boolean(reason))
+        .map((reason) =>
+          reason.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "[email]").slice(0, 500)
+        )
+    ),
+  ];
   return {
     campaignId: RECOVERY_CAMPAIGN.id,
     startsAt: RECOVERY_CAMPAIGN.startsAt,
@@ -139,6 +173,7 @@ export const summarizeRecoveryCampaignAudience = (
     deadRecipients: eligible.filter(
       (member) => member.deliveryStatus === "dead"
     ).length,
+    failureReasons,
     activeSubscribers: eligible.filter((member) => member.activeSubscription)
       .length,
     optedOut: deliverable.filter((member) => !member.lifecycleEnabled).length,
@@ -293,6 +328,22 @@ const ensureRecoveryDiscount = (
       const existing = await findExisting();
       if (existing) {
         if (!isRecoveryDiscountCompatible(existing, usageLimit)) {
+          const currentUsageLimit = existing.usage_limit;
+          if (
+            currentUsageLimit &&
+            currentUsageLimit < usageLimit &&
+            isRecoveryDiscountCompatible(existing, currentUsageLimit)
+          ) {
+            return client.discounts.update(
+              existing.discount_id,
+              { usage_limit: usageLimit },
+              {
+                headers: {
+                  "idempotency-key": `campaign-discount-limit:${RECOVERY_CAMPAIGN.id}:${usageLimit}`,
+                },
+              }
+            );
+          }
           throw new Error(
             `Discount ${RECOVERY_CAMPAIGN.discountCode} exists with incompatible settings`
           );
@@ -334,6 +385,14 @@ const ensureRecoveryDiscount = (
 
 const RECOVERY_EXTENSION_MARKER = "migration_recovery_2026_07";
 
+interface ProviderSubscription {
+  readonly customer: { readonly email: string };
+  readonly metadata: Record<string, string>;
+  readonly next_billing_date: string;
+  readonly product_id: string;
+  readonly subscription_id: string;
+}
+
 export const addCalendarMonths = (isoDate: string, months: number): string => {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
@@ -368,20 +427,68 @@ const extendActiveSubscriptions = (
           (member) => member.lifecycleEnabled && member.activeSubscription
         );
       let extended = 0;
+      let providerSubscriptions: ProviderSubscription[] | undefined;
       for (const recipient of activeRecipients) {
-        if (!recipient.providerSubscriptionId) {
+        let subscription: ProviderSubscription | undefined;
+        if (recipient.providerSubscriptionId) {
+          subscription = await client.subscriptions.retrieve(
+            recipient.providerSubscriptionId
+          );
+        } else {
+          if (recipient.providerCustomerId) {
+            const customerMatches: ProviderSubscription[] = [];
+            for await (const candidate of client.subscriptions.list({
+              customer_id: recipient.providerCustomerId,
+              page_size: 100,
+              status: "active",
+            })) {
+              customerMatches.push(candidate);
+            }
+            if (customerMatches.length === 1) {
+              [subscription] = customerMatches;
+            }
+          }
+          if (!providerSubscriptions) {
+            providerSubscriptions = [];
+            for await (const candidate of client.subscriptions.list({
+              page_size: 100,
+              status: "active",
+            })) {
+              if (productionBaseProductIds.has(candidate.product_id)) {
+                providerSubscriptions.push(candidate);
+              }
+            }
+          }
+          if (!subscription) {
+            const ownerMatches = providerSubscriptions.filter(
+              (candidate) =>
+                candidate.metadata.billing_owner_user_id === recipient.id
+            );
+            const emailMatches = providerSubscriptions.filter(
+              (candidate) =>
+                candidate.customer.email.trim().toLowerCase() ===
+                recipient.email.trim().toLowerCase()
+            );
+            const matches =
+              ownerMatches.length > 0 ? ownerMatches : emailMatches;
+            if (matches.length !== 1) {
+              throw new Error(
+                `Unable to resolve one active provider subscription for user ${recipient.id} (plan=${recipient.plan ?? "unknown"}, currentPeriodEnd=${recipient.currentPeriodEnd?.toISOString() ?? "none"}, hasProviderCustomer=${Boolean(recipient.providerCustomerId)})`
+              );
+            }
+            [subscription] = matches;
+          }
+        }
+        if (!subscription) {
           throw new Error(
-            `Active subscription is missing a provider id for user ${recipient.id}`
+            `Unable to load the active provider subscription for user ${recipient.id}`
           );
         }
-        const subscription = await client.subscriptions.retrieve(
-          recipient.providerSubscriptionId
-        );
         if (subscription.metadata[RECOVERY_EXTENSION_MARKER] === "applied") {
           continue;
         }
         await client.subscriptions.update(
-          recipient.providerSubscriptionId,
+          subscription.subscription_id,
           {
             metadata: {
               ...subscription.metadata,
@@ -394,7 +501,7 @@ const extendActiveSubscriptions = (
           },
           {
             headers: {
-              "idempotency-key": `campaign-extension:${RECOVERY_CAMPAIGN.id}:${recipient.providerSubscriptionId}`,
+              "idempotency-key": `campaign-extension:${RECOVERY_CAMPAIGN.id}:${subscription.subscription_id}`,
             },
           }
         );

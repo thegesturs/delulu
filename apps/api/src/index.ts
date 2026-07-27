@@ -30,7 +30,6 @@ import {
   IdentityService,
   JobService,
   LifecycleService,
-  launchRecoveryCampaign,
   MediaService,
   MembershipService,
   MessagingService,
@@ -43,9 +42,7 @@ import {
   QuotaGuard,
   R2Service,
   RateLimiterService,
-  RECOVERY_CAMPAIGN,
   ReviewService,
-  recoveryCampaignPreview,
   SetupService,
   SignedIngress,
   TranscriptionCheckoutConfig,
@@ -373,84 +370,8 @@ const handleRequest = (
   return run;
 };
 
-export const handleRecoveryCampaignOperation = (
-  request: Request,
-  env: Env
-): Promise<Response> | undefined => {
-  const url = new URL(request.url);
-  const previewRequested =
-    url.pathname === "/__ops/recovery-campaign/preview" &&
-    request.method === "GET";
-  const launchRequested =
-    url.pathname === "/__ops/recovery-campaign/execute" &&
-    request.method === "POST";
-  if (!(previewRequested || launchRequested)) {
-    return;
-  }
-  const token = env.RECOVERY_CAMPAIGN_TOKEN;
-  if (
-    env.DELULU_DEPLOYMENT_MODE === "self_hosted" ||
-    !token ||
-    request.headers.get("authorization") !== `Bearer ${token}`
-  ) {
-    return Promise.resolve(new Response(null, { status: 404 }));
-  }
-  const respond = (operation: Promise<unknown>) =>
-    operation.then(
-      (result) =>
-        Response.json(result, {
-          headers: { "cache-control": "no-store" },
-        }),
-      (error) => {
-        console.error("Recovery campaign operation failed", error);
-        return Response.json(
-          {
-            campaignId: RECOVERY_CAMPAIGN.id,
-            error: "Recovery campaign operation failed",
-          },
-          { status: 500 }
-        );
-      }
-    );
-  if (previewRequested) {
-    return respond(
-      Effect.runPromise(
-        recoveryCampaignPreview().pipe(Effect.provide(makePgLayer(env)))
-      )
-    );
-  }
-  if (request.headers.get("x-recovery-confirmation") !== RECOVERY_CAMPAIGN.id) {
-    return Promise.resolve(
-      Response.json({ error: "Confirmation is missing" }, { status: 400 })
-    );
-  }
-  if (
-    !env.DODO_PAYMENTS_API_KEY ||
-    env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
-  ) {
-    return Promise.resolve(
-      Response.json(
-        { error: "Live billing is not configured" },
-        { status: 503 }
-      )
-    );
-  }
-  return respond(
-    Effect.runPromise(
-      launchRecoveryCampaign({
-        apiKey: env.DODO_PAYMENTS_API_KEY,
-        environment: "live_mode",
-      }).pipe(Effect.provide(makePgLayer(env)))
-    )
-  );
-};
-
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const recoveryOperation = handleRecoveryCampaignOperation(request, env);
-    if (recoveryOperation) {
-      return recoveryOperation;
-    }
     return handleRequest(request, env, ctx);
   },
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
