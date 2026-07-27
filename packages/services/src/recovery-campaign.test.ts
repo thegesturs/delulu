@@ -1,10 +1,12 @@
 import { PROD_PRODUCT_IDS, PROD_PRODUCT_IDS_INR } from "@delulu/payments";
 import { describe, expect, it } from "vitest";
 import {
+  addCalendarMonths,
   isRecoveryDiscountCompatible,
   RECOVERY_CAMPAIGN,
   recoveryCampaignEmail,
   recoveryDiscountSpec,
+  summarizeRecoveryCampaignAudience,
 } from "./recovery-campaign";
 
 describe("recovery campaign offer", () => {
@@ -62,5 +64,74 @@ describe("recovery campaign offer", () => {
     expect(email.text).toContain(RECOVERY_CAMPAIGN.bookingUrl);
     expect(email.html).toContain("&lt;Swaraj");
     expect(email.html).not.toContain('<Swaraj & "friends">');
+  });
+
+  it("tells active subscribers their two free months were applied automatically", () => {
+    const email = recoveryCampaignEmail("Ada", "subscription-extension");
+
+    expect(email.text).toContain("already been applied");
+    expect(email.text).not.toContain(RECOVERY_CAMPAIGN.discountCode);
+    expect(email.html).toContain("active subscription");
+    expect(email.html).not.toContain(RECOVERY_CAMPAIGN.billingUrl);
+  });
+
+  it("extends calendar months without overflowing month-end dates", () => {
+    expect(addCalendarMonths("2026-01-31T10:15:00.000Z", 1)).toBe(
+      "2026-02-28T10:15:00.000Z"
+    );
+    expect(addCalendarMonths("2026-07-27T10:15:00.000Z", 2)).toBe(
+      "2026-09-27T10:15:00.000Z"
+    );
+  });
+
+  it("uses one audience definition for preview and delivery eligibility", () => {
+    const preview = summarizeRecoveryCampaignAudience([
+      {
+        id: "eligible",
+        email: "new-user@delulu.social",
+        name: "New User",
+        lifecycleEnabled: true,
+        deliveryStatus: null,
+        activeSubscription: true,
+        providerSubscriptionId: "sub_active",
+      },
+      {
+        id: "opted-out",
+        email: "quiet@delulu.social",
+        name: null,
+        lifecycleEnabled: false,
+        deliveryStatus: null,
+        activeSubscription: false,
+        providerSubscriptionId: null,
+      },
+      {
+        id: "test-address",
+        email: "fixture@example.com",
+        name: null,
+        lifecycleEnabled: true,
+        deliveryStatus: null,
+        activeSubscription: false,
+        providerSubscriptionId: null,
+      },
+      {
+        id: "sent",
+        email: "sent@delulu.social",
+        name: null,
+        lifecycleEnabled: true,
+        deliveryStatus: "sent",
+        activeSubscription: false,
+        providerSubscriptionId: null,
+      },
+    ]);
+
+    expect(preview).toMatchObject({
+      totalSignups: 4,
+      eligibleRecipients: 2,
+      remainingRecipients: 1,
+      sentRecipients: 1,
+      activeSubscribers: 1,
+      optedOut: 1,
+      missingOrInvalidEmail: 1,
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { PROD_PRODUCT_IDS, PROD_PRODUCT_IDS_INR } from "@delulu/payments";
-import DodoPayments from "dodopayments";
+import DodoPayments, { APIError } from "dodopayments";
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 
@@ -35,6 +35,7 @@ export interface RecoveryCampaignPreview {
   readonly pendingRecipients: number;
   readonly failedRecipients: number;
   readonly deadRecipients: number;
+  readonly activeSubscribers: number;
   readonly optedOut: number;
   readonly missingOrInvalidEmail: number;
 }
@@ -43,6 +44,7 @@ export interface RecoveryCampaignLaunch {
   readonly preview: RecoveryCampaignPreview;
   readonly discountId: string;
   readonly discountCode: string;
+  readonly extendedSubscriptions: number;
   readonly enqueued: number;
 }
 
@@ -50,11 +52,99 @@ export class RecoveryCampaignError extends Schema.TaggedErrorClass<RecoveryCampa
   "RecoveryCampaignError",
   {
     message: Schema.String,
+    retryable: Schema.Boolean,
   }
 ) {}
 
-const asCount = (value: number | string | bigint | undefined): number =>
-  Number(value ?? 0);
+interface RecoveryCampaignAudienceMember {
+  readonly id: string;
+  readonly email: string | null;
+  readonly name: string | null;
+  readonly lifecycleEnabled: boolean;
+  readonly deliveryStatus: string | null;
+  readonly activeSubscription: boolean;
+  readonly providerSubscriptionId: string | null;
+}
+
+const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const hasDeliverableEmail = (
+  member: RecoveryCampaignAudienceMember
+): member is RecoveryCampaignAudienceMember & { readonly email: string } => {
+  const email = member.email?.trim().toLowerCase();
+  return Boolean(
+    email &&
+      EMAIL_ADDRESS.test(email) &&
+      !email.endsWith("@example.com") &&
+      !email.endsWith("@test.com")
+  );
+};
+
+const loadRecoveryCampaignAudience = Effect.fn("loadRecoveryCampaignAudience")(
+  function* (): Effect.fn.Return<
+    readonly RecoveryCampaignAudienceMember[],
+    never,
+    SqlClient.SqlClient
+  > {
+    const sql = yield* SqlClient.SqlClient;
+    const rows = yield* sql<RecoveryCampaignAudienceMember>`
+      SELECT
+        u.id,
+        u.email,
+        u.name,
+        COALESCE(p.product_lifecycle_enabled, true) AS lifecycle_enabled,
+        d.status AS delivery_status,
+        COALESCE(s.status IN ('active', 'trialing'), false) AS active_subscription,
+        s.provider_subscription_id
+      FROM users u
+      LEFT JOIN email_preferences p ON p.user_id = u.id
+      LEFT JOIN subscriptions s ON s.billing_owner_user_id = u.id
+      LEFT JOIN message_deliveries d
+        ON d.idempotency_key =
+          ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || u.id
+      WHERE u.created_at >= ${new Date(RECOVERY_CAMPAIGN.startsAt)}
+        AND u.created_at <= ${new Date(RECOVERY_CAMPAIGN.endsAt)}
+      ORDER BY u.created_at, u.id
+    `.pipe(Effect.orDie);
+    return rows;
+  }
+);
+
+export const summarizeRecoveryCampaignAudience = (
+  audience: readonly RecoveryCampaignAudienceMember[]
+): RecoveryCampaignPreview => {
+  const deliverable = audience.filter(hasDeliverableEmail);
+  const eligible = deliverable.filter((member) => member.lifecycleEnabled);
+  const alreadyQueued = eligible.filter(
+    (member) => member.deliveryStatus !== null
+  ).length;
+  return {
+    campaignId: RECOVERY_CAMPAIGN.id,
+    startsAt: RECOVERY_CAMPAIGN.startsAt,
+    endsAt: RECOVERY_CAMPAIGN.endsAt,
+    totalSignups: audience.length,
+    eligibleRecipients: eligible.length,
+    alreadyQueued,
+    remainingRecipients: Math.max(0, eligible.length - alreadyQueued),
+    sentRecipients: eligible.filter(
+      (member) => member.deliveryStatus === "sent"
+    ).length,
+    pendingRecipients: eligible.filter(
+      (member) =>
+        member.deliveryStatus === "queued" || member.deliveryStatus === "leased"
+    ).length,
+    failedRecipients: eligible.filter(
+      (member) => member.deliveryStatus === "failed"
+    ).length,
+    deadRecipients: eligible.filter(
+      (member) => member.deliveryStatus === "dead"
+    ).length,
+    activeSubscribers: eligible.filter((member) => member.activeSubscription)
+      .length,
+    optedOut: deliverable.filter((member) => !member.lifecycleEnabled).length,
+    missingOrInvalidEmail: audience.length - deliverable.length,
+  };
+};
 
 export const recoveryCampaignPreview = Effect.fn("recoveryCampaignPreview")(
   function* (): Effect.fn.Return<
@@ -62,105 +152,9 @@ export const recoveryCampaignPreview = Effect.fn("recoveryCampaignPreview")(
     never,
     SqlClient.SqlClient
   > {
-    const sql = yield* SqlClient.SqlClient;
-    const rows = yield* sql<{
-      totalSignups: number | string | bigint;
-      eligibleRecipients: number | string | bigint;
-      alreadyQueued: number | string | bigint;
-      sentRecipients: number | string | bigint;
-      pendingRecipients: number | string | bigint;
-      failedRecipients: number | string | bigint;
-      deadRecipients: number | string | bigint;
-      optedOut: number | string | bigint;
-      missingOrInvalidEmail: number | string | bigint;
-    }>`
-      WITH incident_signups AS (
-        SELECT
-          u.id,
-          u.email,
-          COALESCE(p.product_lifecycle_enabled, true) AS lifecycle_enabled,
-          (
-            u.email IS NOT NULL
-            AND btrim(u.email) ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
-            AND lower(u.email) NOT LIKE '%@example.com'
-            AND lower(u.email) NOT LIKE '%@test.com'
-          ) AS has_valid_email
-        FROM users u
-        LEFT JOIN email_preferences p ON p.user_id = u.id
-        WHERE u.created_at >= ${new Date(RECOVERY_CAMPAIGN.startsAt)}
-          AND u.created_at <= ${new Date(RECOVERY_CAMPAIGN.endsAt)}
-      )
-      SELECT
-        count(*) AS total_signups,
-        count(*) FILTER (
-          WHERE lifecycle_enabled AND has_valid_email
-        ) AS eligible_recipients,
-        count(*) FILTER (
-          WHERE lifecycle_enabled
-            AND has_valid_email
-            AND EXISTS (
-              SELECT 1
-              FROM message_deliveries d
-              WHERE d.idempotency_key =
-                ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || incident_signups.id
-            )
-        ) AS already_queued,
-        count(*) FILTER (
-          WHERE EXISTS (
-            SELECT 1 FROM message_deliveries d
-            WHERE d.idempotency_key =
-              ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || incident_signups.id
-              AND d.status = 'sent'
-          )
-        ) AS sent_recipients,
-        count(*) FILTER (
-          WHERE EXISTS (
-            SELECT 1 FROM message_deliveries d
-            WHERE d.idempotency_key =
-              ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || incident_signups.id
-              AND d.status IN ('queued', 'leased')
-          )
-        ) AS pending_recipients,
-        count(*) FILTER (
-          WHERE EXISTS (
-            SELECT 1 FROM message_deliveries d
-            WHERE d.idempotency_key =
-              ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || incident_signups.id
-              AND d.status = 'failed'
-          )
-        ) AS failed_recipients,
-        count(*) FILTER (
-          WHERE EXISTS (
-            SELECT 1 FROM message_deliveries d
-            WHERE d.idempotency_key =
-              ${`campaign:${RECOVERY_CAMPAIGN.id}:`} || incident_signups.id
-              AND d.status = 'dead'
-          )
-        ) AS dead_recipients,
-        count(*) FILTER (
-          WHERE NOT lifecycle_enabled AND has_valid_email
-        ) AS opted_out,
-        count(*) FILTER (WHERE NOT has_valid_email) AS missing_or_invalid_email
-      FROM incident_signups
-    `.pipe(Effect.orDie);
-    const row = rows[0];
-    const eligibleRecipients = asCount(row?.eligibleRecipients);
-    const alreadyQueued = asCount(row?.alreadyQueued);
-    return {
-      campaignId: RECOVERY_CAMPAIGN.id,
-      startsAt: RECOVERY_CAMPAIGN.startsAt,
-      endsAt: RECOVERY_CAMPAIGN.endsAt,
-      totalSignups: asCount(row?.totalSignups),
-      eligibleRecipients,
-      alreadyQueued,
-      remainingRecipients: Math.max(0, eligibleRecipients - alreadyQueued),
-      sentRecipients: asCount(row?.sentRecipients),
-      pendingRecipients: asCount(row?.pendingRecipients),
-      failedRecipients: asCount(row?.failedRecipients),
-      deadRecipients: asCount(row?.deadRecipients),
-      optedOut: asCount(row?.optedOut),
-      missingOrInvalidEmail: asCount(row?.missingOrInvalidEmail),
-    };
+    return summarizeRecoveryCampaignAudience(
+      yield* loadRecoveryCampaignAudience()
+    );
   }
 );
 
@@ -192,18 +186,32 @@ const escapeHtml = (value: string): string =>
 
 const WHITESPACE = /\s+/;
 
-export const recoveryCampaignEmail = (rawFirstName: string | null) => {
+export const recoveryCampaignEmail = (
+  rawFirstName: string | null,
+  offer: "discount" | "subscription-extension" = "discount"
+) => {
   const firstName = rawFirstName?.trim().split(WHITESPACE)[0] || "there";
   const safeFirstName = escapeHtml(firstName);
   const expiry = "August 31, 2026";
   const subject = "We’re sorry — your next 2 months are on us";
+  const offerText =
+    offer === "subscription-extension"
+      ? "To make it right, we’ve moved your next billing date out by two months. There’s nothing you need to do—the two free months have already been applied to your active subscription."
+      : `To make it right, we’d like to give you two months free. Visit ${RECOVERY_CAMPAIGN.billingUrl}, choose a monthly plan, and apply code ${RECOVERY_CAMPAIGN.discountCode} at checkout. The code is valid through ${expiry}.`;
+  const offerHtml =
+    offer === "subscription-extension"
+      ? '<p style="margin:0 0 24px;font-size:16px;line-height:1.6">To make it right, we’ve moved your next billing date out by <strong>two months</strong>. There’s nothing you need to do—the two free months have already been applied to your active subscription.</p>'
+      : `<p style="margin:0 0 18px;font-size:16px;line-height:1.6">To make it right, we’d like to give you <strong>two months free</strong>. Choose a monthly plan and apply this code at checkout:</p>
+        <div style="margin:0 0 12px;padding:18px;text-align:center;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;font-size:22px;font-weight:700;letter-spacing:1px">${RECOVERY_CAMPAIGN.discountCode}</div>
+        <p style="margin:0 0 24px;text-align:center;color:#666;font-size:13px">Valid through ${expiry}</p>
+        <p style="margin:0 0 28px;text-align:center"><a href="${RECOVERY_CAMPAIGN.billingUrl}" style="display:inline-block;padding:13px 22px;background:#171717;color:#fff;text-decoration:none;border-radius:10px;font-weight:600">Claim two months free</a></p>`;
   const text = `Hi ${firstName},
 
 Over the past few weeks, our migration caused more bugs and errors than we consider acceptable. Since you joined during this period, you may not have received the experience we promised.
 
 We’re genuinely sorry.
 
-To make it right, we’d like to give you two months free. Visit ${RECOVERY_CAMPAIGN.billingUrl}, choose a monthly plan, and apply code ${RECOVERY_CAMPAIGN.discountCode} at checkout. The code is valid through ${expiry}.
+${offerText}
 
 If you experienced any issues—or would simply like help getting set up—we’re also happy to offer a complimentary one-on-one call: ${RECOVERY_CAMPAIGN.bookingUrl}
 
@@ -220,10 +228,7 @@ Delulu`;
         <p style="margin:0 0 24px;font-size:16px;line-height:1.6">Hi ${safeFirstName},</p>
         <p style="margin:0 0 18px;font-size:16px;line-height:1.6">Over the past few weeks, our migration caused more bugs and errors than we consider acceptable. Since you joined during this period, you may not have received the experience we promised.</p>
         <p style="margin:0 0 24px;font-size:16px;line-height:1.6"><strong>We’re genuinely sorry.</strong></p>
-        <p style="margin:0 0 18px;font-size:16px;line-height:1.6">To make it right, we’d like to give you <strong>two months free</strong>. Choose a monthly plan and apply this code at checkout:</p>
-        <div style="margin:0 0 12px;padding:18px;text-align:center;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;font-size:22px;font-weight:700;letter-spacing:1px">${RECOVERY_CAMPAIGN.discountCode}</div>
-        <p style="margin:0 0 24px;text-align:center;color:#666;font-size:13px">Valid through ${expiry}</p>
-        <p style="margin:0 0 28px;text-align:center"><a href="${RECOVERY_CAMPAIGN.billingUrl}" style="display:inline-block;padding:13px 22px;background:#171717;color:#fff;text-decoration:none;border-radius:10px;font-weight:600">Claim two months free</a></p>
+        ${offerHtml}
         <p style="margin:0 0 24px;font-size:16px;line-height:1.6">If you experienced any issues—or would simply like help getting set up—we’re also happy to offer a <a href="${RECOVERY_CAMPAIGN.bookingUrl}" style="color:#5b21b6">complimentary one-on-one call</a>.</p>
         <p style="margin:0 0 24px;font-size:16px;line-height:1.6">Thank you for giving us a chance, especially during a rough patch. We’re working hard to make Delulu faster, more reliable, and worthy of your trust.</p>
         <p style="margin:0;font-size:16px;line-height:1.6">— Swaraj<br>Delulu</p>
@@ -276,13 +281,16 @@ const ensureRecoveryDiscount = (
         bearerToken: config.apiKey,
         environment: config.environment,
       });
-      let existing: RecoveryDiscount | undefined;
-      for await (const discount of client.discounts.list({ page_size: 100 })) {
-        if (discount.code === RECOVERY_CAMPAIGN.discountCode) {
-          existing = discount;
-          break;
+      const findExisting = async () => {
+        for await (const discount of client.discounts.list({
+          page_size: 100,
+        })) {
+          if (discount.code === RECOVERY_CAMPAIGN.discountCode) {
+            return discount;
+          }
         }
-      }
+      };
+      const existing = await findExisting();
       if (existing) {
         if (!isRecoveryDiscountCompatible(existing, usageLimit)) {
           throw new Error(
@@ -291,42 +299,140 @@ const ensureRecoveryDiscount = (
         }
         return existing;
       }
-      return client.discounts.create(recoveryDiscountSpec(usageLimit));
+      try {
+        return await client.discounts.create(recoveryDiscountSpec(usageLimit), {
+          headers: {
+            "idempotency-key": `campaign-discount:${RECOVERY_CAMPAIGN.id}`,
+          },
+        });
+      } catch (cause) {
+        const concurrentlyCreated = await findExisting();
+        if (
+          concurrentlyCreated &&
+          isRecoveryDiscountCompatible(concurrentlyCreated, usageLimit)
+        ) {
+          return concurrentlyCreated;
+        }
+        throw cause;
+      }
     },
-    catch: (cause) =>
-      new RecoveryCampaignError({
+    catch: (cause) => {
+      const retryable =
+        cause instanceof APIError &&
+        (cause.status === undefined ||
+          cause.status === 429 ||
+          cause.status >= 500);
+      return new RecoveryCampaignError({
         message:
           cause instanceof Error
             ? cause.message
             : "Unable to create or verify the Dodo discount",
-      }),
+        retryable,
+      });
+    },
+  });
+
+const RECOVERY_EXTENSION_MARKER = "migration_recovery_2026_07";
+
+export const addCalendarMonths = (isoDate: string, months: number): string => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Subscription has an invalid next billing date");
+  }
+  const originalDay = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  date.setUTCDate(Math.min(originalDay, lastDayOfTargetMonth));
+  return date.toISOString();
+};
+
+const extendActiveSubscriptions = (
+  config: {
+    readonly apiKey: string;
+    readonly environment: "test_mode" | "live_mode";
+  },
+  audience: readonly RecoveryCampaignAudienceMember[]
+) =>
+  Effect.tryPromise({
+    try: async () => {
+      const client = new DodoPayments({
+        bearerToken: config.apiKey,
+        environment: config.environment,
+      });
+      const activeRecipients = audience
+        .filter(hasDeliverableEmail)
+        .filter(
+          (member) => member.lifecycleEnabled && member.activeSubscription
+        );
+      let extended = 0;
+      for (const recipient of activeRecipients) {
+        if (!recipient.providerSubscriptionId) {
+          throw new Error(
+            `Active subscription is missing a provider id for user ${recipient.id}`
+          );
+        }
+        const subscription = await client.subscriptions.retrieve(
+          recipient.providerSubscriptionId
+        );
+        if (subscription.metadata[RECOVERY_EXTENSION_MARKER] === "applied") {
+          continue;
+        }
+        await client.subscriptions.update(
+          recipient.providerSubscriptionId,
+          {
+            metadata: {
+              ...subscription.metadata,
+              [RECOVERY_EXTENSION_MARKER]: "applied",
+            },
+            next_billing_date: addCalendarMonths(
+              subscription.next_billing_date,
+              RECOVERY_CAMPAIGN.offerMonths
+            ),
+          },
+          {
+            headers: {
+              "idempotency-key": `campaign-extension:${RECOVERY_CAMPAIGN.id}:${recipient.providerSubscriptionId}`,
+            },
+          }
+        );
+        extended += 1;
+      }
+      return extended;
+    },
+    catch: (cause) => {
+      const retryable =
+        cause instanceof APIError &&
+        (cause.status === undefined ||
+          cause.status === 429 ||
+          cause.status >= 500);
+      return new RecoveryCampaignError({
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Unable to extend active subscriptions",
+        retryable,
+      });
+    },
   });
 
 const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
-  discountId: string
+  discountId: string,
+  audience: readonly RecoveryCampaignAudienceMember[]
 ): Effect.fn.Return<number, never, SqlClient.SqlClient> {
   const sql = yield* SqlClient.SqlClient;
   const idempotencyPrefix = `campaign:${RECOVERY_CAMPAIGN.id}:`;
-  const recipients = yield* sql<{
-    id: string;
-    email: string;
-    name: string | null;
-  }>`
-      SELECT u.id, btrim(u.email) AS email, u.name
-      FROM users u
-      LEFT JOIN email_preferences p ON p.user_id = u.id
-      WHERE u.created_at >= ${new Date(RECOVERY_CAMPAIGN.startsAt)}
-        AND u.created_at <= ${new Date(RECOVERY_CAMPAIGN.endsAt)}
-        AND COALESCE(p.product_lifecycle_enabled, true)
-        AND u.email IS NOT NULL
-        AND btrim(u.email) ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
-        AND lower(u.email) NOT LIKE '%@example.com'
-        AND lower(u.email) NOT LIKE '%@test.com'
-      ORDER BY u.created_at, u.id
-    `.pipe(Effect.orDie);
+  const recipients = audience
+    .filter(hasDeliverableEmail)
+    .filter((member) => member.lifecycleEnabled);
   let enqueued = 0;
   for (const recipient of recipients) {
-    const email = recoveryCampaignEmail(recipient.name);
+    const email = recoveryCampaignEmail(
+      recipient.name,
+      recipient.activeSubscription ? "subscription-extension" : "discount"
+    );
     const rows = yield* sql<{ id: string }>`
         INSERT INTO message_deliveries (
           id,
@@ -378,21 +484,30 @@ export const launchRecoveryCampaign = Effect.fn("launchRecoveryCampaign")(
     RecoveryCampaignError,
     SqlClient.SqlClient
   > {
-    const preview = yield* recoveryCampaignPreview();
+    const audience = yield* loadRecoveryCampaignAudience();
+    const preview = summarizeRecoveryCampaignAudience(audience);
     if (preview.eligibleRecipients === 0) {
       return yield* new RecoveryCampaignError({
         message: "No eligible recipients were found in the incident window",
+        retryable: false,
       });
     }
-    const discount = yield* ensureRecoveryDiscount(
+    const discountRecipients =
+      preview.eligibleRecipients - preview.activeSubscribers;
+    const discount = yield* ensureRecoveryDiscount(config, discountRecipients);
+    const extendedSubscriptions = yield* extendActiveSubscriptions(
       config,
-      preview.eligibleRecipients
+      audience
     );
-    const enqueued = yield* enqueueRecoveryCampaign(discount.discount_id);
+    const enqueued = yield* enqueueRecoveryCampaign(
+      discount.discount_id,
+      audience
+    );
     return {
       preview,
       discountId: discount.discount_id,
       discountCode: discount.code,
+      extendedSubscriptions,
       enqueued,
     };
   }

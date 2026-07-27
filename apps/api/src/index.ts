@@ -373,7 +373,7 @@ const handleRequest = (
   return run;
 };
 
-const handleRecoveryCampaignOperation = (
+export const handleRecoveryCampaignOperation = (
   request: Request,
   env: Env
 ): Promise<Response> | undefined => {
@@ -388,7 +388,11 @@ const handleRecoveryCampaignOperation = (
     return;
   }
   const token = env.RECOVERY_CAMPAIGN_TOKEN;
-  if (!token || request.headers.get("authorization") !== `Bearer ${token}`) {
+  if (
+    env.DELULU_DEPLOYMENT_MODE === "self_hosted" ||
+    !token ||
+    request.headers.get("authorization") !== `Bearer ${token}`
+  ) {
     return Promise.resolve(new Response(null, { status: 404 }));
   }
   const respond = (operation: Promise<unknown>) =>
@@ -416,13 +420,20 @@ const handleRecoveryCampaignOperation = (
     );
   }
   if (request.headers.get("x-recovery-confirmation") !== RECOVERY_CAMPAIGN.id) {
-    return respond(Promise.reject(new Error("Confirmation is missing")));
+    return Promise.resolve(
+      Response.json({ error: "Confirmation is missing" }, { status: 400 })
+    );
   }
   if (
     !env.DODO_PAYMENTS_API_KEY ||
     env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
   ) {
-    return respond(Promise.reject(new Error("Live billing is not configured")));
+    return Promise.resolve(
+      Response.json(
+        { error: "Live billing is not configured" },
+        { status: 503 }
+      )
+    );
   }
   return respond(
     Effect.runPromise(

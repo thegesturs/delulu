@@ -1,0 +1,56 @@
+---
+title: Run the July migration recovery campaign
+description: Preview, launch, and verify the one-off service-recovery email campaign.
+---
+
+This command targets accounts created from July 6 through July 27, 2026
+(Asia/Kolkata). It grants two free months and queues a service-recovery email
+with an optional one-on-one booking link.
+
+## Required configuration
+
+Run the command from a trusted operational environment with:
+
+- `PRODUCTION_DATABASE_URL`: a non-local PostgreSQL connection string for the
+  hosted application database.
+- `DODO_PAYMENTS_API_KEY`: the hosted Dodo API credential.
+- `DODO_PAYMENTS_ENVIRONMENT=live_mode`.
+
+The command is for the hosted incident response only. Do not copy hosted
+credentials into local environment files or run it against a self-hosted
+database.
+
+## Preview
+
+```bash
+pnpm --filter @delulu/http-api campaign:recovery
+```
+
+Preview is read-only. It reports the eligible, opted-out, invalid-email,
+already-queued, pending, sent, failed, and dead recipient counts without
+printing email addresses.
+
+## Launch
+
+```bash
+pnpm --filter @delulu/http-api campaign:recovery \
+  --execute \
+  --confirm=migration-recovery-2026-07
+```
+
+For accounts without an active subscription, launch creates or verifies the
+`DELULU2MONTHS` discount, restricts it to the hosted monthly products, and caps
+usage to that recipient count. For active subscribers, it idempotently moves
+the next billing date out by two calendar months and tells them the credit was
+applied automatically. It then inserts one idempotent transactional delivery
+per eligible account.
+
+Accounts that disabled product-lifecycle email and accounts without a valid
+address are excluded. Re-running the command does not duplicate queued or sent
+messages.
+
+## Verify
+
+Run preview again until all deliveries are `sent`. Investigate any `failed` or
+`dead` delivery in `message_deliveries` before retrying. The code expires after
+August 31, 2026.
