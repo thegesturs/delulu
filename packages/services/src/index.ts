@@ -43,6 +43,7 @@ export * from "./quota";
 export * from "./quota-reservations";
 export * from "./r2";
 export * from "./rate-limiter";
+export * from "./recovery-campaign";
 export * from "./reviews";
 export * from "./setup";
 export * from "./signed-ingress";

@@ -1,0 +1,66 @@
+import { PROD_PRODUCT_IDS, PROD_PRODUCT_IDS_INR } from "@delulu/payments";
+import { describe, expect, it } from "vitest";
+import {
+  isRecoveryDiscountCompatible,
+  RECOVERY_CAMPAIGN,
+  recoveryCampaignEmail,
+  recoveryDiscountSpec,
+} from "./recovery-campaign";
+
+describe("recovery campaign offer", () => {
+  it("grants 100% off for exactly two monthly billing cycles", () => {
+    const spec = recoveryDiscountSpec(42);
+    const monthlyProductIds = [
+      ...new Set([
+        ...Object.values(PROD_PRODUCT_IDS).map(({ monthly }) => monthly),
+        ...Object.values(PROD_PRODUCT_IDS_INR).map(({ monthly }) => monthly),
+      ]),
+    ].sort();
+    const yearlyProductIds = Object.values(PROD_PRODUCT_IDS).map(
+      ({ yearly }) => yearly
+    );
+
+    expect(spec).toMatchObject({
+      amount: 10_000,
+      code: "DELULU2MONTHS",
+      subscription_cycles: 2,
+      type: "percentage",
+      usage_limit: 42,
+    });
+    expect(spec.restricted_to).toEqual(monthlyProductIds);
+    expect(spec.restricted_to).not.toEqual(
+      expect.arrayContaining(yearlyProductIds)
+    );
+  });
+
+  it("only reuses an existing code when every safety limit matches", () => {
+    const compatible = {
+      ...recoveryDiscountSpec(42),
+      discount_id: "dsc_recovery",
+    };
+
+    expect(isRecoveryDiscountCompatible(compatible, 42)).toBe(true);
+    expect(
+      isRecoveryDiscountCompatible(
+        { ...compatible, subscription_cycles: null },
+        42
+      )
+    ).toBe(false);
+    expect(
+      isRecoveryDiscountCompatible(
+        { ...compatible, expires_at: RECOVERY_CAMPAIGN.endsAt },
+        42
+      )
+    ).toBe(false);
+  });
+
+  it("renders the apology, offer, and one-on-one call without trusting names", () => {
+    const email = recoveryCampaignEmail('<Swaraj & "friends">');
+
+    expect(email.subject).toBe("We’re sorry — your next 2 months are on us");
+    expect(email.text).toContain("DELULU2MONTHS");
+    expect(email.text).toContain(RECOVERY_CAMPAIGN.bookingUrl);
+    expect(email.html).toContain("&lt;Swaraj");
+    expect(email.html).not.toContain('<Swaraj & "friends">');
+  });
+});

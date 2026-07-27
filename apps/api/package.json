@@ -7,6 +7,7 @@
     "dev": "wrangler dev",
     "start:node": "tsx src/node.ts",
     "build:cloudflare": "node ../../scripts/run-cloudflare-production-migration.mjs",
+    "campaign:recovery": "tsx src/recovery-campaign.ts",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",

@@ -61,6 +61,7 @@ export interface Env {
   readonly LOOPS_API_KEY?: string;
   readonly CAL_WEBHOOK_SECRET?: string;
   readonly CAL_RETENTION_EVENT_SLUG?: string;
+  readonly RECOVERY_CAMPAIGN_TOKEN?: string;
   readonly EMAIL?: {
     send(input: {
       readonly from: string;

@@ -30,6 +30,7 @@ import {
   IdentityService,
   JobService,
   LifecycleService,
+  launchRecoveryCampaign,
   MediaService,
   MembershipService,
   MessagingService,
@@ -42,7 +43,9 @@ import {
   QuotaGuard,
   R2Service,
   RateLimiterService,
+  RECOVERY_CAMPAIGN,
   ReviewService,
+  recoveryCampaignPreview,
   SetupService,
   SignedIngress,
   TranscriptionCheckoutConfig,
@@ -54,7 +57,7 @@ import {
   WorkspaceAccessService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
-import { String as EffectString, Layer, Redacted } from "effect";
+import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { type AppServices, buildWebHandler } from "./app";
 import {
   AutomationProviderLive,
@@ -85,25 +88,21 @@ export interface BaseLayerOverrides {
   readonly rateLimiter?: Layer.Layer<RateLimiterService>;
 }
 
+export const makePgLayer = (env: Env) =>
+  PgClient.layer({
+    url: Redacted.make(databaseUrl(env)),
+    transformQueryNames: EffectString.camelToSnake,
+    transformResultNames: EffectString.snakeToCamel,
+    transformJson: false,
+  });
+
 export const makeBaseLayer = (
   env: Env,
   overrides: BaseLayerOverrides = {}
 ): Layer.Layer<AppServices> => {
-  const Pg = PgClient.layer({
-    url: Redacted.make(databaseUrl(env)),
-    transformQueryNames: EffectString.camelToSnake,
-    transformResultNames: EffectString.snakeToCamel,
-    // Transform column names only, NOT the keys inside jsonb values. Our jsonb
-    // content graphs (e.g. `automations.node_positions`, `trigger_config`) use
-    // data-derived identifiers — step/note ids — as object keys, and those ids
-    // are nanoids that can contain or end with `_`. Recursively camel-casing
-    // jsonb keys corrupts such maps (`note_gfc_1` -> `noteGfc1`, breaking the
-    // link to the step whose id is still `note_gfc_1`) and outright crashes on
-    // a trailing `_` (`snakeToCamel` reads past the string end). jsonb is
-    // written verbatim (`JSON.stringify(...)::jsonb`), so leaving it verbatim on
-    // read keeps writes and reads symmetric.
-    transformJson: false,
-  });
+  // Transform column names only, NOT keys inside jsonb values. Content graphs
+  // contain data-derived ids that recursive key transforms can corrupt.
+  const Pg = makePgLayer(env);
   const Config = authConfigLayer(env);
   const Deployment = DeploymentConfig.layer({
     mode:
@@ -374,8 +373,73 @@ const handleRequest = (
   return run;
 };
 
+const handleRecoveryCampaignOperation = (
+  request: Request,
+  env: Env
+): Promise<Response> | undefined => {
+  const url = new URL(request.url);
+  const previewRequested =
+    url.pathname === "/__ops/recovery-campaign/preview" &&
+    request.method === "GET";
+  const launchRequested =
+    url.pathname === "/__ops/recovery-campaign/execute" &&
+    request.method === "POST";
+  if (!(previewRequested || launchRequested)) {
+    return;
+  }
+  const token = env.RECOVERY_CAMPAIGN_TOKEN;
+  if (!token || request.headers.get("authorization") !== `Bearer ${token}`) {
+    return Promise.resolve(new Response(null, { status: 404 }));
+  }
+  const respond = (operation: Promise<unknown>) =>
+    operation.then(
+      (result) =>
+        Response.json(result, {
+          headers: { "cache-control": "no-store" },
+        }),
+      (error) => {
+        console.error("Recovery campaign operation failed", error);
+        return Response.json(
+          {
+            campaignId: RECOVERY_CAMPAIGN.id,
+            error: "Recovery campaign operation failed",
+          },
+          { status: 500 }
+        );
+      }
+    );
+  if (previewRequested) {
+    return respond(
+      Effect.runPromise(
+        recoveryCampaignPreview().pipe(Effect.provide(makePgLayer(env)))
+      )
+    );
+  }
+  if (request.headers.get("x-recovery-confirmation") !== RECOVERY_CAMPAIGN.id) {
+    return respond(Promise.reject(new Error("Confirmation is missing")));
+  }
+  if (
+    !env.DODO_PAYMENTS_API_KEY ||
+    env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
+  ) {
+    return respond(Promise.reject(new Error("Live billing is not configured")));
+  }
+  return respond(
+    Effect.runPromise(
+      launchRecoveryCampaign({
+        apiKey: env.DODO_PAYMENTS_API_KEY,
+        environment: "live_mode",
+      }).pipe(Effect.provide(makePgLayer(env)))
+    )
+  );
+};
+
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const recoveryOperation = handleRecoveryCampaignOperation(request, env);
+    if (recoveryOperation) {
+      return recoveryOperation;
+    }
     return handleRequest(request, env, ctx);
   },
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
