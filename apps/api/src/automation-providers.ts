@@ -115,7 +115,7 @@ export const instagramDmRecipient = (
     : { id: input.recipientId };
 
 export const instagramDmMessage = (
-  input: Pick<ProviderDmRequest, "message" | "buttons">
+  input: Pick<ProviderDmRequest, "message" | "buttons" | "recipientCommentId">
 ) => {
   const quickReplies = input.buttons
     .filter((button) => button.type === "quick_reply")
@@ -131,6 +131,12 @@ export const instagramDmMessage = (
       title: button.title,
       url: button.url,
     }));
+  if (input.recipientCommentId && urlButtons.length > 0) {
+    const links = urlButtons
+      .map((button) => `${button.title}: ${button.url}`)
+      .join("\n");
+    return { text: `${input.message.trimEnd()}\n\n${links}` };
+  }
   if (urlButtons.length > 0) {
     const postbackButtons = quickReplies.map((button) => ({
       type: "postback" as const,

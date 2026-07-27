@@ -15,16 +15,31 @@ function renderPreview(template: string): string {
 interface DmComposerProps {
   step: SendDmStep;
   isFreePlan?: boolean;
+  commentPrivateReply?: boolean;
   onChange: (step: SendDmStep) => void;
 }
 
-export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
+export function DmComposer({
+  step,
+  isFreePlan,
+  commentPrivateReply,
+  onChange,
+}: DmComposerProps) {
+  const privateReplyLinks = commentPrivateReply
+    ? (step.buttons ?? []).filter((button) => button.type === "url")
+    : [];
+  const previewButtons = commentPrivateReply
+    ? (step.buttons ?? []).filter((button) => button.type !== "url")
+    : (step.buttons ?? []);
+
   return (
     <div className="space-y-3">
       <div>
         <h3 className="font-semibold text-sm">Compose your DM</h3>
         <p className="text-muted-foreground text-xs">
-          This is exactly how it&apos;ll look in their inbox.
+          {commentPrivateReply
+            ? "Instagram delivers link actions in a comment-triggered first DM as clickable links."
+            : "This is exactly how it'll look in their inbox."}
         </p>
       </div>
 
@@ -218,6 +233,16 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
             <p className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">
               {renderPreview(step.messageTemplate)}
             </p>
+            {privateReplyLinks.length > 0 && (
+              <div className="mt-2.5 space-y-1 text-sm">
+                {privateReplyLinks.map((button) => (
+                  <p key={button.url}>
+                    {button.title}:{" "}
+                    <span className="text-primary underline">{button.url}</span>
+                  </p>
+                ))}
+              </div>
+            )}
             {isFreePlan && (
               <p className="mt-2 border-border border-t pt-2 text-[10px] text-muted-foreground">
                 - - -
@@ -225,9 +250,9 @@ export function DmComposer({ step, isFreePlan, onChange }: DmComposerProps) {
                 Sent via @delulu.social
               </p>
             )}
-            {(step.buttons?.length ?? 0) > 0 && (
+            {previewButtons.length > 0 && (
               <div className="mt-2.5 space-y-1.5">
-                {step.buttons?.map((btn, i) => (
+                {previewButtons.map((btn, i) => (
                   <div
                     className="flex items-center justify-center rounded-lg bg-background/80 px-3 py-2 text-foreground text-sm dark:bg-neutral-700"
                     key={`preview-btn-${i}`}
