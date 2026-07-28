@@ -193,15 +193,21 @@ export const MigrationRecoveryEmail = ({
           }}
         >
           If you ran into migration issues or want help getting set up, we can
-          walk through Delulu Social with you.{" "}
-          <Link
-            href={bookingUrl}
-            style={{ color: emailTheme.primary, fontWeight: 600 }}
-          >
-            Schedule a call
-          </Link>
-          .
+          walk through Delulu Social with you.
         </Text>
+        <Link
+          href={bookingUrl}
+          style={{
+            color: emailTheme.primary,
+            display: "inline-block",
+            fontSize: "14px",
+            fontWeight: 600,
+            lineHeight: "20px",
+            padding: "12px 0",
+          }}
+        >
+          Schedule a call
+        </Link>
       </Section>
 
       <Section
