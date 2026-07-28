@@ -142,6 +142,7 @@ export class BillingProviderService extends Context.Service<
                     },
                     return_url: `${config.appBaseUrl}${input.returnPath ?? "/billing?status=active"}`,
                     show_saved_payment_methods: true,
+                    feature_flags: { allow_discount_code: true },
                   },
                   input.idempotencyKey
                     ? { headers: { "idempotency-key": input.idempotencyKey } }

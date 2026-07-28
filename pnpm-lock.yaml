@@ -105,6 +105,9 @@ importers:
       '@delulu/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@delulu/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -429,37 +432,6 @@ importers:
       wrangler:
         specifier: ^4.110.0
         version: 4.110.0(@cloudflare/workers-types@5.20260713.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-
-  apps/email:
-    dependencies:
-      '@delulu/email':
-        specifier: workspace:*
-        version: link:../../packages/email
-      '@react-email/components':
-        specifier: 0.0.36
-        version: 0.0.36(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react:
-        specifier: catalog:react19
-        version: 19.2.7
-      react-email:
-        specifier: 4.0.7
-        version: 4.0.7(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(utf-8-validate@5.0.10)
-    devDependencies:
-      '@delulu/typescript-config':
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      '@types/node':
-        specifier: 22.14.1
-        version: 22.14.1
-      '@types/react':
-        specifier: catalog:react19
-        version: 19.2.17
-      next:
-        specifier: 15.3.3
-        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
 
   apps/mcp:
     dependencies:
@@ -1333,12 +1305,27 @@ importers:
 
   packages/email:
     dependencies:
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@react-email/components':
         specifier: 0.0.36
         version: 0.0.36(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@react-email/render':
+        specifier: 1.1.2
+        version: 1.1.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.76)
+      dodopayments:
+        specifier: 2.4.3
+        version: 2.4.3
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97
       react:
         specifier: catalog:react19
         version: 19.2.7
@@ -1367,6 +1354,9 @@ importers:
       react-email:
         specifier: 4.0.7
         version: 4.0.7(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(utf-8-validate@5.0.10)
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1443,7 +1433,7 @@ importers:
         version: link:../typescript-config
       next:
         specifier: 15.3.3
-        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/notifications:
     dependencies:
@@ -1586,7 +1576,7 @@ importers:
         version: 19.2.3(@types/react@19.2.17)
       next:
         specifier: 15.3.3
-        version: 15.3.3(@babel/core@7.29.7)(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   packages/services:
     dependencies:
@@ -15658,11 +15648,6 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  prettier@3.6.2:
-    resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
-    engines: {node: '>=14'}
-    hasBin: true
-
   prettier@3.9.5:
     resolution: {integrity: sha512-/FVl766LpUfB5vXgCYOYa0MeV/441Ia99AeICQIQFTY/Nw0roZwULcXpku5i1/m5kt/baz+s4Zogspd839HSMg==}
     engines: {node: '>=14'}
@@ -16074,6 +16059,7 @@ packages:
   recharts@2.15.4:
     resolution: {integrity: sha512-UT/q6fwS3c1dHbXv2uFgYJ9BMFHu3fwnd7AYZaEQhXuYQ4hgsxLvsUXzGdKeZrW5xopzDCvuA2N41WJ88I7zIw==}
     engines: {node: '>=14'}
+    deprecated: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
     peerDependencies:
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -25509,7 +25495,7 @@ snapshots:
   '@react-email/render@1.1.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       html-to-text: 9.0.5
-      prettier: 3.6.2
+      prettier: 3.9.5
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
       react-promise-suspense: 0.3.4
@@ -34772,7 +34758,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
+      styled-jsx: 5.1.6(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.2.4
       '@next/swc-darwin-x64': 15.2.4
@@ -34850,7 +34836,7 @@ snapshots:
       postcss: 8.4.31
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
+      styled-jsx: 5.1.6(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.3.3
       '@next/swc-darwin-x64': 15.3.3
@@ -35707,8 +35693,6 @@ snapshots:
   preact@10.26.9: {}
 
   prettier@3.5.3: {}
-
-  prettier@3.6.2: {}
 
   prettier@3.9.5: {}
 
@@ -37654,6 +37638,11 @@ snapshots:
       react: 19.2.7
     optionalDependencies:
       '@babel/core': 7.29.7
+
+  styled-jsx@5.1.6(react@19.2.7):
+    dependencies:
+      client-only: 0.0.1
+      react: 19.2.7
 
   styled-jsx@5.1.7(@babel/core@7.27.7)(react@19.2.7):
     dependencies:

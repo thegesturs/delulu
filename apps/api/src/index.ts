@@ -1,4 +1,5 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
+import { runScheduledRecoveryCampaign } from "@delulu/email/campaigns/migration-recovery/worker";
 import {
   AdminService,
   AnalyticsService,
@@ -54,7 +55,7 @@ import {
   WorkspaceAccessService,
 } from "@delulu/services";
 import { PgClient } from "@effect/sql-pg";
-import { String as EffectString, Layer, Redacted } from "effect";
+import { Effect, String as EffectString, Layer, Redacted } from "effect";
 import { type AppServices, buildWebHandler } from "./app";
 import {
   AutomationProviderLive,
@@ -72,7 +73,7 @@ import {
 } from "./env";
 import { LiveInsightsProviderLive } from "./live-insights";
 import { runMaintenance } from "./maintenance";
-import { messagingProviderLayer } from "./messaging-provider";
+import { messagingProvidersLayer } from "./messaging-providers";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -85,25 +86,21 @@ export interface BaseLayerOverrides {
   readonly rateLimiter?: Layer.Layer<RateLimiterService>;
 }
 
+export const makePgLayer = (env: Env) =>
+  PgClient.layer({
+    url: Redacted.make(databaseUrl(env)),
+    transformQueryNames: EffectString.camelToSnake,
+    transformResultNames: EffectString.snakeToCamel,
+    transformJson: false,
+  });
+
 export const makeBaseLayer = (
   env: Env,
   overrides: BaseLayerOverrides = {}
 ): Layer.Layer<AppServices> => {
-  const Pg = PgClient.layer({
-    url: Redacted.make(databaseUrl(env)),
-    transformQueryNames: EffectString.camelToSnake,
-    transformResultNames: EffectString.snakeToCamel,
-    // Transform column names only, NOT the keys inside jsonb values. Our jsonb
-    // content graphs (e.g. `automations.node_positions`, `trigger_config`) use
-    // data-derived identifiers — step/note ids — as object keys, and those ids
-    // are nanoids that can contain or end with `_`. Recursively camel-casing
-    // jsonb keys corrupts such maps (`note_gfc_1` -> `noteGfc1`, breaking the
-    // link to the step whose id is still `note_gfc_1`) and outright crashes on
-    // a trailing `_` (`snakeToCamel` reads past the string end). jsonb is
-    // written verbatim (`JSON.stringify(...)::jsonb`), so leaving it verbatim on
-    // read keeps writes and reads symmetric.
-    transformJson: false,
-  });
+  // Transform column names only, NOT keys inside jsonb values. Content graphs
+  // contain data-derived ids that recursive key transforms can corrupt.
+  const Pg = makePgLayer(env);
   const Config = authConfigLayer(env);
   const Deployment = DeploymentConfig.layer({
     mode:
@@ -160,7 +157,7 @@ export const makeBaseLayer = (
       )
     : AutomationKvService.memoryLayer();
   const Messaging = MessagingService.layer.pipe(
-    Layer.provide(messagingProviderLayer(env))
+    Layer.provide(messagingProvidersLayer(env))
   );
   const Lifecycle = LifecycleService.layer.pipe(Layer.provide(Messaging));
   const Connections = ConnectionsService.layer.pipe(
@@ -374,6 +371,45 @@ const handleRequest = (
   return run;
 };
 
+const runRecoveryCampaign = (env: Env): Promise<void> => {
+  if (
+    env.ENVIRONMENT !== "production" ||
+    env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
+  ) {
+    return Promise.resolve();
+  }
+  if (!env.DODO_PAYMENTS_API_KEY) {
+    return Promise.reject(
+      new Error("Recovery campaign requires DODO_PAYMENTS_API_KEY")
+    );
+  }
+  return runScheduledRecoveryCampaign({
+    apiKey: env.DODO_PAYMENTS_API_KEY,
+    environment: env.DODO_PAYMENTS_ENVIRONMENT,
+  }).pipe(
+    Effect.provide(makePgLayer(env)),
+    Effect.tap((result) => {
+      const preview =
+        result.status === "launched"
+          ? result.launch.preview
+          : result.status === "complete"
+            ? result.preview
+            : undefined;
+      return Effect.logInfo("Recovery campaign scheduled run", {
+        status: result.status,
+        eligibleRecipients: preview?.eligibleRecipients,
+        remainingRecipients: preview?.remainingRecipients,
+        sentRecipients: preview?.sentRecipients,
+        pendingRecipients: preview?.pendingRecipients,
+        failedRecipients: preview?.failedRecipients,
+        enqueued: result.status === "launched" ? result.launch.enqueued : 0,
+      });
+    }),
+    Effect.asVoid,
+    Effect.runPromise
+  );
+};
+
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     return handleRequest(request, env, ctx);
@@ -381,9 +417,11 @@ export default {
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
     const layer = makeBaseLayer(env);
     ctx.waitUntil(
-      Promise.all([dispatchDueJobs(env, layer), runMaintenance(layer)]).then(
-        () => undefined
-      )
+      Promise.all([
+        dispatchDueJobs(env, layer),
+        runMaintenance(layer),
+        runRecoveryCampaign(env),
+      ]).then(() => undefined)
     );
   },
 };

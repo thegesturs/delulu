@@ -2,13 +2,52 @@
   "name": "@delulu/email",
   "version": "0.0.0",
   "private": true,
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "require": "./index.ts",
+      "types": "./index.ts"
+    },
+    "./keys": {
+      "import": "./keys.ts",
+      "require": "./keys.ts",
+      "types": "./keys.ts"
+    },
+    "./migration-recovery": {
+      "import": "./renderers/migration-recovery.tsx",
+      "require": "./renderers/migration-recovery.tsx",
+      "types": "./renderers/migration-recovery.tsx"
+    },
+    "./campaigns/migration-recovery/worker": {
+      "import": "./campaigns/migration-recovery/worker.ts",
+      "require": "./campaigns/migration-recovery/worker.ts",
+      "types": "./campaigns/migration-recovery/worker.ts"
+    },
+    "./templates/contact": {
+      "import": "./templates/contact.tsx",
+      "require": "./templates/contact.tsx",
+      "types": "./templates/contact.tsx"
+    },
+    "./templates/migration-recovery": {
+      "import": "./templates/migration-recovery.tsx",
+      "require": "./templates/migration-recovery.tsx",
+      "types": "./templates/migration-recovery.tsx"
+    }
+  },
   "scripts": {
+    "campaign:recovery": "tsx campaigns/migration-recovery/index.ts",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "email dev --dir templates",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@delulu/payments": "workspace:*",
+    "@effect/sql-pg": "catalog:",
     "@react-email/components": "0.0.36",
+    "@react-email/render": "1.1.2",
     "@t3-oss/env-nextjs": "^0.12.0",
+    "dodopayments": "2.4.3",
+    "effect": "catalog:",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",
     "resend": "^4.2.0",
@@ -20,6 +59,7 @@
     "@types/react": "catalog:react19",
     "@types/react-dom": "catalog:react19",
     "react-email": "4.0.7",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
 }

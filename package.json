@@ -39,6 +39,7 @@
     "pg:migration-lint": "pnpm --filter=@delulu/db migration-lint",
     "check:connections-boundary": "tsx scripts/check-connections-boundary.ts",
     "check:backend-cutover": "node scripts/check-backend-cutover.mjs",
+    "campaign:recovery": "pnpm --filter=@delulu/email run campaign:recovery",
     "lint": "ultracite fix",
     "format": "ultracite fix",
     "test": "turbo test",

@@ -63,13 +63,18 @@ export interface Env {
   readonly CAL_RETENTION_EVENT_SLUG?: string;
   readonly EMAIL?: {
     send(input: {
-      readonly from: string;
+      readonly from:
+        | string
+        | {
+            readonly email: string;
+            readonly name?: string;
+          };
       readonly to: string;
       readonly subject: string;
       readonly html: string;
       readonly text: string;
       readonly headers?: Readonly<Record<string, string>>;
-    }): Promise<void>;
+    }): Promise<{ readonly messageId?: string }>;
   };
   readonly POSTHOG_KEY?: string;
   readonly POSTHOG_HOST?: string;

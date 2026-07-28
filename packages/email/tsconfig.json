@@ -1,7 +1,7 @@
 {
   "extends": "@delulu/typescript-config/nextjs.json",
   "compilerOptions": {
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "rootDir": ".",
     "outDir": "dist",
@@ -10,11 +10,17 @@
     "declarationMap": true,
     "noEmit": false,
     "paths": {
-      "@/*": ["./*"],
-      "@delulu/*": ["../../packages/*"]
+      "@/*": ["./*"]
     },
     "strictNullChecks": true
   },
-  "include": ["./*.ts", "./*.tsx", "templates/**/*"],
+  "include": [
+    "./*.ts",
+    "./*.tsx",
+    "campaigns/**/*",
+    "components/**/*",
+    "renderers/**/*",
+    "templates/**/*"
+  ],
   "exclude": ["node_modules"]
 }

@@ -16,6 +16,7 @@
     "@delulu/analytics": "workspace:*",
     "@delulu/contracts": "workspace:*",
     "@delulu/core": "workspace:*",
+    "@delulu/email": "workspace:*",
     "@delulu/payments": "workspace:*",
     "@delulu/services": "workspace:*",
     "@effect/sql-pg": "catalog:",
