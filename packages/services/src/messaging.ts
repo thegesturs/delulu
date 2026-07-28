@@ -26,6 +26,7 @@ export class LifecycleProvider extends Context.Service<
 export interface TransactionalEmailProviderApi {
   readonly name: "cloudflare-email" | "noop";
   readonly send: (input: {
+    readonly from?: string;
     readonly to: string;
     readonly subject: string;
     readonly html: string;
@@ -56,6 +57,7 @@ type DeliveryPayload =
     }
   | {
       readonly kind: "transactional";
+      readonly from?: string;
       readonly to: string;
       readonly subject: string;
       readonly html: string;

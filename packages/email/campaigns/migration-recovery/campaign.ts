@@ -8,7 +8,8 @@ import { renderMigrationRecoveryEmail } from "../../renderers/migration-recovery
 export const RECOVERY_CAMPAIGN = {
   id: "migration-recovery-2026-07",
   eventName: "migrationRecoveryOffer",
-  emailFrom: "Delulu Social <welcome@mail.delulu.social>",
+  emailFromAddress: "welcome@mail.delulu.social",
+  emailFromName: "Delulu Social",
   discountCode: "DELULU2MONTHS",
   discountName: "Migration recovery — two months free",
   billingUrl: "https://solulu.delulu.social/billing",
@@ -246,7 +247,7 @@ export const recoveryCampaignEmailApproval = async (
         bookingUrl,
         discount,
         extension,
-        from: RECOVERY_CAMPAIGN.emailFrom,
+        from: `${RECOVERY_CAMPAIGN.emailFromName} <${RECOVERY_CAMPAIGN.emailFromAddress}>`,
       })
     )
     .digest("hex")
@@ -257,7 +258,7 @@ export const recoveryCampaignEmailApproval = async (
     bookingUrl,
     discountCode: RECOVERY_CAMPAIGN.discountCode,
     expiresOn: offerExpiresOn,
-    from: RECOVERY_CAMPAIGN.emailFrom,
+    from: `${RECOVERY_CAMPAIGN.emailFromName} <${RECOVERY_CAMPAIGN.emailFromAddress}>`,
     subject: discount.subject,
   };
 };
@@ -564,6 +565,7 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
           'queued',
           ${JSON.stringify({
             kind: "transactional",
+            from: RECOVERY_CAMPAIGN.emailFromAddress,
             to: recipient.email,
             subject: email.subject,
             html: email.html,

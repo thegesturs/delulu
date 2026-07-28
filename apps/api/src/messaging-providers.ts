@@ -54,24 +54,30 @@ const transactionalEmailProviderLayer = (env: Env) =>
       name: "cloudflare-email",
       send: (input) =>
         env.EMAIL && env.CLOUDFLARE_EMAIL_FROM
-          ? Effect.tryPromise({
-              try: () =>
-                env.EMAIL!.send({
-                  from: {
-                    email: env.CLOUDFLARE_EMAIL_FROM!,
-                    name: "Delulu Social",
-                  },
-                  to: input.to,
-                  subject: input.subject,
-                  html: input.html,
-                  text: input.text,
-                  headers: {
-                    "x-idempotency-key": input.idempotencyKey,
-                    ...(input.replyTo ? { "reply-to": input.replyTo } : {}),
-                  },
-                }),
-              catch: (cause) => cause,
-            })
+          ? input.from && input.from !== env.CLOUDFLARE_EMAIL_FROM
+            ? Effect.fail(
+                new Error(
+                  `Approved sender ${input.from} does not match the configured transactional sender`
+                )
+              )
+            : Effect.tryPromise({
+                try: () =>
+                  env.EMAIL!.send({
+                    from: {
+                      email: input.from ?? env.CLOUDFLARE_EMAIL_FROM!,
+                      name: "Delulu Social",
+                    },
+                    to: input.to,
+                    subject: input.subject,
+                    html: input.html,
+                    text: input.text,
+                    headers: {
+                      "x-idempotency-key": input.idempotencyKey,
+                      ...(input.replyTo ? { "reply-to": input.replyTo } : {}),
+                    },
+                  }),
+                catch: (cause) => cause,
+              })
           : Effect.fail(new Error("Transactional email is not configured")),
     })
   );
