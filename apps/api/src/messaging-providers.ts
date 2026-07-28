@@ -77,7 +77,17 @@ const transactionalEmailProviderLayer = (env: Env) =>
                     },
                   }),
                 catch: (cause) => cause,
-              })
+              }).pipe(
+                Effect.flatMap((result) =>
+                  result.messageId
+                    ? Effect.succeed(result)
+                    : Effect.fail(
+                        new Error(
+                          "Cloudflare accepted the send call without returning a messageId"
+                        )
+                      )
+                )
+              )
           : Effect.fail(new Error("Transactional email is not configured")),
     })
   );
