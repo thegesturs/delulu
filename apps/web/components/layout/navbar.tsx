@@ -340,17 +340,6 @@ const DesktopNav = () => (
               </Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
-
-          <NavigationMenuItem>
-            <NavigationMenuLink asChild>
-              <Link
-                className={cn(navigationMenuTriggerStyle(), "bg-transparent")}
-                href="/pricing"
-              >
-                Pricing
-              </Link>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
 
@@ -539,14 +528,6 @@ const MobileNav = ({ visible }: { visible: boolean }) => {
                 onClick={() => setOpen(false)}
               >
                 Blog
-              </Link>
-
-              <Link
-                className="flex min-h-14 touch-manipulation items-center border-border border-b font-medium text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                href="/pricing"
-                onClick={() => setOpen(false)}
-              >
-                Pricing
               </Link>
 
               <Button asChild className="mt-4 h-11 w-full">
