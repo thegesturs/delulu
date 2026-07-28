@@ -33,7 +33,6 @@ import {
   Menu,
   Newspaper,
   PanelsTopLeft,
-  PenLine,
   PhoneCall,
   Share2,
   Type,
@@ -250,16 +249,9 @@ const resourcesMenu: MenuSection = {
   label: "Resources",
   description:
     "Guides and support for building a calmer social publishing workflow.",
-  href: "/blogs",
-  cta: "Read the latest guides",
+  href: "https://docs.delulu.social",
+  cta: "Open documentation",
   items: [
-    {
-      name: "Blog",
-      description:
-        "Practical playbooks for publishing, automation, and growth.",
-      href: "/blogs",
-      icon: PenLine,
-    },
     {
       name: "Documentation",
       description:
@@ -342,9 +334,9 @@ const DesktopNav = () => (
             <NavigationMenuLink asChild>
               <Link
                 className={cn(navigationMenuTriggerStyle(), "bg-transparent")}
-                href="/pricing"
+                href="/blogs"
               >
-                Pricing
+                Blog
               </Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
@@ -532,10 +524,10 @@ const MobileNav = ({ visible }: { visible: boolean }) => {
 
               <Link
                 className="flex min-h-14 touch-manipulation items-center border-border border-b font-medium text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                href="/pricing"
+                href="/blogs"
                 onClick={() => setOpen(false)}
               >
-                Pricing
+                Blog
               </Link>
 
               <Button asChild className="mt-4 h-11 w-full">
