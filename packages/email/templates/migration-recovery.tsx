@@ -1,11 +1,4 @@
-import {
-  Button,
-  Heading,
-  Hr,
-  Link,
-  Section,
-  Text,
-} from "@react-email/components";
+import { Heading, Link, Section, Text } from "@react-email/components";
 import React from "react";
 import {
   DeluluEmailLayout,
@@ -29,9 +22,9 @@ export interface MigrationRecoveryEmailProps {
 }
 
 export const migrationRecoveryEmailSubject =
-  "A note from Delulu Social — and 2 months on us";
+  "Delulu Social migration follow-up";
 export const migrationRecoveryEmailPreview =
-  "We’re sorry about the migration issues. Here’s how we’re making it right.";
+  "Details about the recent migration and your account credit.";
 
 export const MigrationRecoveryEmail = ({
   bookingUrl,
@@ -46,57 +39,56 @@ export const MigrationRecoveryEmail = ({
       preferencesUrl={preferencesUrl}
       preview={migrationRecoveryEmailPreview}
     >
-      <Text
+      <Section
         style={{
-          color: emailTheme.primary,
-          fontSize: "12px",
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          margin: "0 0 14px",
-          textTransform: "uppercase",
+          backgroundColor: emailTheme.surface,
+          borderBottom: `1.5px dotted ${emailTheme.dotted}`,
+          padding: "32px 28px 28px",
         }}
       >
-        A note from Delulu Social
-      </Text>
-
-      <Heading
-        as="h1"
-        style={{
-          color: emailTheme.foreground,
-          fontSize: "30px",
-          letterSpacing: "-0.025em",
-          lineHeight: "38px",
-          margin: "0 0 24px",
-        }}
-      >
-        We owe you a better start.
-      </Heading>
-
-      <Text style={paragraph}>Hi {greeting},</Text>
-      <Text style={paragraph}>
-        Over the past few weeks, Delulu Social went through a major migration.
-        It caused more errors and rough edges than it should have—especially for
-        people who had just joined.
-      </Text>
-      <Text style={paragraph}>
-        That wasn’t the experience we wanted you to have, and we’re sorry.
-      </Text>
-      <Text style={paragraph}>
-        To make it right, we’re giving you{" "}
-        <strong>two months of Delulu Social free.</strong>
-      </Text>
-
-      {offer.kind === "discount" ? (
-        <Section
+        <Text
           style={{
-            backgroundColor: "#f0f0ff",
-            border: "1px solid #cfd1ff",
-            borderRadius: "14px",
-            margin: "28px 0",
-            padding: "24px",
-            textAlign: "center",
+            color: emailTheme.primary,
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            margin: "0 0 14px",
+            textTransform: "uppercase",
           }}
         >
+          Service update
+        </Text>
+
+        <Heading
+          as="h1"
+          style={{
+            color: emailTheme.foreground,
+            fontSize: "30px",
+            letterSpacing: "-0.025em",
+            lineHeight: "38px",
+            margin: "0 0 24px",
+          }}
+        >
+          An update on our recent migration.
+        </Heading>
+
+        <Text style={paragraph}>Hi {greeting},</Text>
+        <Text style={paragraph}>
+          Over the past few weeks, Delulu Social went through a major migration
+          that caused stability problems, especially for people who had just
+          joined.
+        </Text>
+        <Text style={paragraph}>
+          That wasn’t the experience we wanted you to have, and we’re sorry.
+        </Text>
+        <Text style={{ ...paragraph, marginBottom: 0 }}>
+          We’ve added a <strong>two-month service credit</strong> for your
+          account.
+        </Text>
+      </Section>
+
+      {offer.kind === "discount" ? (
+        <Section style={panel}>
           <Text
             style={{
               color: emailTheme.muted,
@@ -107,7 +99,7 @@ export const MigrationRecoveryEmail = ({
               textTransform: "uppercase",
             }}
           >
-            Your two-month code
+            Account credit
           </Text>
           <Text
             style={{
@@ -117,7 +109,7 @@ export const MigrationRecoveryEmail = ({
               fontSize: "24px",
               fontWeight: 700,
               letterSpacing: "0.08em",
-              margin: "0 0 8px",
+              margin: "0 0 10px",
             }}
           >
             {offer.discountCode}
@@ -127,37 +119,25 @@ export const MigrationRecoveryEmail = ({
               color: emailTheme.muted,
               fontSize: "13px",
               lineHeight: "20px",
-              margin: "0 0 20px",
+              margin: "0 0 14px",
             }}
           >
-            Valid on a monthly plan through {offer.expiresOn}
+            Use this code on a monthly plan by {offer.expiresOn}.
           </Text>
-          <Button
+          <Link
             href={offer.billingUrl}
             style={{
-              backgroundColor: emailTheme.primary,
-              borderRadius: "10px",
-              color: emailTheme.primaryForeground,
-              display: "inline-block",
-              fontSize: "15px",
-              fontWeight: 700,
-              padding: "14px 22px",
-              textDecoration: "none",
+              color: emailTheme.primary,
+              fontSize: "14px",
+              fontWeight: 600,
+              textDecoration: "underline",
             }}
           >
-            Redeem two free months
-          </Button>
+            Open billing settings
+          </Link>
         </Section>
       ) : (
-        <Section
-          style={{
-            backgroundColor: "#f0f0ff",
-            border: "1px solid #cfd1ff",
-            borderRadius: "14px",
-            margin: "28px 0",
-            padding: "24px",
-          }}
-        >
+        <Section style={panel}>
           <Text
             style={{
               color: emailTheme.foreground,
@@ -167,7 +147,7 @@ export const MigrationRecoveryEmail = ({
               margin: "0 0 8px",
             }}
           >
-            Your two free months are already applied.
+            Your service credit is already applied.
           </Text>
           <Text
             style={{
@@ -185,9 +165,9 @@ export const MigrationRecoveryEmail = ({
 
       <Section
         style={{
-          borderLeft: `3px solid ${emailTheme.primary}`,
-          margin: "0 0 28px",
-          padding: "2px 0 2px 18px",
+          backgroundColor: emailTheme.background,
+          borderBottom: `1.5px dotted ${emailTheme.dotted}`,
+          padding: "24px 28px",
         }}
       >
         <Text
@@ -199,7 +179,7 @@ export const MigrationRecoveryEmail = ({
             margin: "0 0 6px",
           }}
         >
-          Want help getting set up?
+          Need a hand?
         </Text>
         <Text
           style={{
@@ -209,30 +189,43 @@ export const MigrationRecoveryEmail = ({
             margin: 0,
           }}
         >
-          We’re happy to walk through Delulu Social with you one-on-one.{" "}
+          If you ran into migration issues or want help getting set up, we can
+          walk through Delulu Social with you.{" "}
           <Link
             href={bookingUrl}
             style={{ color: emailTheme.primary, fontWeight: 600 }}
           >
-            Book a setup call
+            Schedule a call
           </Link>
           .
         </Text>
       </Section>
 
-      <Hr style={{ borderColor: emailTheme.border, margin: "28px 0" }} />
-      <Text style={paragraph}>
-        Thanks for sticking with us while we make Delulu Social faster, more
-        reliable, and easier to use.
-      </Text>
-      <Text style={{ ...paragraph, marginBottom: 0 }}>
-        — Swaraj
-        <br />
-        Founder, Delulu Social
-      </Text>
+      <Section
+        style={{
+          backgroundColor: emailTheme.surface,
+          padding: "28px",
+        }}
+      >
+        <Text style={paragraph}>
+          Thanks for sticking with us while we make Delulu Social faster, more
+          reliable, and easier to use.
+        </Text>
+        <Text style={{ ...paragraph, marginBottom: 0 }}>
+          — Swaraj
+          <br />
+          Founder, Delulu Social
+        </Text>
+      </Section>
     </DeluluEmailLayout>
   );
 };
+
+const panel = {
+  backgroundColor: emailTheme.surface,
+  borderBottom: `1.5px dotted ${emailTheme.dotted}`,
+  padding: "24px 28px",
+} as const;
 
 const paragraph = {
   color: emailTheme.foreground,
@@ -243,7 +236,7 @@ const paragraph = {
 
 const ExampleMigrationRecoveryEmail = () => (
   <MigrationRecoveryEmail
-    bookingUrl="https://cal.com/your-correct-link"
+    bookingUrl="https://cal.com/swaraj"
     firstName="Swaraj"
     offer={{
       billingUrl: "https://solulu.delulu.social/billing",

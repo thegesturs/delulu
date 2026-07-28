@@ -19,22 +19,22 @@ export const renderMigrationRecoveryEmail = async (
   const html = await render(createElement(MigrationRecoveryEmail, input));
   const text = `Hi ${greeting},
 
-Over the past few weeks, Delulu Social went through a major migration. It caused more errors and rough edges than it should have—especially for people who had just joined.
+Over the past few weeks, Delulu Social went through a major migration that caused stability problems, especially for people who had just joined.
 
 That wasn’t the experience we wanted you to have, and we’re sorry.
 
-To make it right, we’re giving you two months of Delulu Social free.
+We’ve added a two-month service credit for your account.
 
 ${
   input.offer.kind === "discount"
-    ? `Your two-month code: ${input.offer.discountCode}
-Valid on a monthly plan through ${input.offer.expiresOn}
+    ? `Account credit code: ${input.offer.discountCode}
+Use this code on a monthly plan by ${input.offer.expiresOn}.
 
-Redeem your two free months: ${input.offer.billingUrl}`
-    : "Your two free months are already applied. We moved your next billing date out by two months, and you don’t need to do anything."
+Open billing settings: ${input.offer.billingUrl}`
+    : "Your service credit is already applied. We moved your next billing date out by two months, and you don’t need to do anything."
 }
 
-Want help getting set up? We’re happy to walk through Delulu Social with you one-on-one:
+If you ran into migration issues or want help getting set up, we can walk through Delulu Social with you:
 ${input.bookingUrl}
 
 Thanks for sticking with us while we make Delulu Social faster, more reliable, and easier to use.

@@ -4,6 +4,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -21,6 +22,7 @@ interface DeluluEmailLayoutProps {
 const colors = {
   background: "#f9f9fb",
   border: "#e0e0eb",
+  dotted: "rgba(9, 9, 11, 0.1)",
   foreground: "#21212c",
   muted: "#67677e",
   primary: "#474deb",
@@ -49,7 +51,14 @@ export const DeluluEmailLayout = ({
       }}
     >
       <Container style={{ margin: "0 auto", maxWidth: "600px" }}>
-        <Section style={{ marginBottom: "20px", padding: "0 4px" }}>
+        <Section
+          style={{
+            borderBottom: `1.5px dotted ${colors.dotted}`,
+            borderLeft: `1.5px dotted ${colors.dotted}`,
+            borderRight: `1.5px dotted ${colors.dotted}`,
+            padding: "20px 24px",
+          }}
+        >
           <table
             cellPadding="0"
             cellSpacing="0"
@@ -59,21 +68,16 @@ export const DeluluEmailLayout = ({
             <tbody>
               <tr>
                 <td>
-                  <div
+                  <Img
+                    alt="Delulu"
+                    height="32"
+                    src="https://solulu.delulu.social/apple-icon.png"
                     style={{
-                      backgroundColor: colors.primary,
-                      borderRadius: "10px",
-                      color: colors.primaryForeground,
-                      fontSize: "17px",
-                      fontWeight: 700,
-                      height: "36px",
-                      lineHeight: "36px",
-                      textAlign: "center",
-                      width: "36px",
+                      borderRadius: "8px",
+                      display: "block",
                     }}
-                  >
-                    D
-                  </div>
+                    width="32"
+                  />
                 </td>
                 <td
                   style={{
@@ -83,7 +87,7 @@ export const DeluluEmailLayout = ({
                     paddingLeft: "10px",
                   }}
                 >
-                  Delulu Social
+                  Delulu
                 </td>
               </tr>
             </tbody>
@@ -92,17 +96,20 @@ export const DeluluEmailLayout = ({
 
         <Section
           style={{
-            backgroundColor: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: "16px",
-            boxShadow: "0 8px 24px rgba(33, 33, 44, 0.06)",
-            padding: "40px",
+            borderLeft: `1.5px dotted ${colors.dotted}`,
+            borderRight: `1.5px dotted ${colors.dotted}`,
           }}
         >
           {children}
         </Section>
 
-        <Section style={{ padding: "24px 16px 0", textAlign: "center" }}>
+        <Section
+          style={{
+            borderTop: `1.5px dotted ${colors.dotted}`,
+            padding: "24px 16px 0",
+            textAlign: "center",
+          }}
+        >
           <Text
             style={{
               color: colors.muted,
@@ -111,11 +118,12 @@ export const DeluluEmailLayout = ({
               margin: 0,
             }}
           >
-            Delulu Social · Social media, less chaos.
+            Delulu Social
           </Text>
           <Hr
             style={{
-              borderColor: colors.border,
+              border: 0,
+              borderTop: `1.5px dotted ${colors.dotted}`,
               margin: "16px auto",
               maxWidth: "160px",
             }}
