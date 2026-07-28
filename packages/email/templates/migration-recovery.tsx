@@ -10,10 +10,10 @@ export interface MigrationRecoveryEmailProps {
   readonly firstName?: string | null;
   readonly offer:
     | {
-        readonly billingUrl: string;
         readonly discountCode: string;
         readonly expiresOn: string;
         readonly kind: "discount";
+        readonly onboardingUrl: string;
       }
     | {
         readonly kind: "subscription-extension";
@@ -22,9 +22,9 @@ export interface MigrationRecoveryEmailProps {
 }
 
 export const migrationRecoveryEmailSubject =
-  "Delulu Social migration follow-up";
+  "Delulu Social onboarding follow-up";
 export const migrationRecoveryEmailPreview =
-  "Details about the recent migration and your account credit.";
+  "Details about recent onboarding issues and your account credit.";
 
 export const MigrationRecoveryEmail = ({
   bookingUrl,
@@ -56,7 +56,7 @@ export const MigrationRecoveryEmail = ({
             textTransform: "uppercase",
           }}
         >
-          Service update
+          Onboarding update
         </Text>
 
         <Heading
@@ -69,14 +69,13 @@ export const MigrationRecoveryEmail = ({
             margin: "0 0 24px",
           }}
         >
-          An update on our recent migration.
+          An update on the recent onboarding issues.
         </Heading>
 
         <Text style={paragraph}>Hi {greeting},</Text>
         <Text style={paragraph}>
-          Over the past few weeks, Delulu Social went through a major migration
-          that caused stability problems, especially for people who had just
-          joined.
+          Our recent migration introduced major bugs in onboarding, preventing
+          some people who had just joined from completing their setup.
         </Text>
         <Text style={paragraph}>
           That wasn’t the experience we wanted you to have, and we’re sorry.
@@ -125,7 +124,7 @@ export const MigrationRecoveryEmail = ({
             Use this code on a monthly plan by {offer.expiresOn}.
           </Text>
           <Link
-            href={offer.billingUrl}
+            href={offer.onboardingUrl}
             style={{
               color: emailTheme.primary,
               display: "inline-block",
@@ -136,7 +135,7 @@ export const MigrationRecoveryEmail = ({
               textDecoration: "underline",
             }}
           >
-            Open billing settings
+            Finish onboarding
           </Link>
         </Section>
       ) : (
@@ -248,10 +247,10 @@ const ExampleMigrationRecoveryEmail = () => (
     bookingUrl="https://cal.com/swaraj"
     firstName="Swaraj"
     offer={{
-      billingUrl: "https://solulu.delulu.social/billing",
       discountCode: "DELULU2MONTHS",
       expiresOn: "August 31, 2026",
       kind: "discount",
+      onboardingUrl: "https://solulu.delulu.social/onboarding",
     }}
     preferencesUrl="https://solulu.delulu.social/workspace"
   />

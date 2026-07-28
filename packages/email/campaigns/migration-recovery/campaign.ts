@@ -12,7 +12,7 @@ export const RECOVERY_CAMPAIGN = {
   emailFromName: "Delulu Social",
   discountCode: "DELULU2MONTHS",
   discountName: "Migration recovery — two months free",
-  billingUrl: "https://solulu.delulu.social/billing",
+  onboardingUrl: "https://solulu.delulu.social/onboarding",
   preferencesUrl: "https://solulu.delulu.social/workspace",
   startsAt: "2026-07-05T18:30:00.000Z",
   endsAt: "2026-07-27T18:29:59.999Z",
@@ -231,10 +231,10 @@ export const recoveryCampaignEmailApproval = async (
   const discount = await renderMigrationRecoveryEmail({
     ...common,
     offer: {
-      billingUrl: RECOVERY_CAMPAIGN.billingUrl,
       discountCode: RECOVERY_CAMPAIGN.discountCode,
       expiresOn: offerExpiresOn,
       kind: "discount",
+      onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
     },
   });
   const extension = await renderMigrationRecoveryEmail({
@@ -530,10 +530,10 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
     const offer = recipient.activeSubscription
       ? ({ kind: "subscription-extension" } as const)
       : ({
-          billingUrl: RECOVERY_CAMPAIGN.billingUrl,
           discountCode: RECOVERY_CAMPAIGN.discountCode,
           expiresOn: offerExpiresOn,
           kind: "discount",
+          onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
         } as const);
     const email = yield* Effect.promise(() =>
       renderMigrationRecoveryEmail({
