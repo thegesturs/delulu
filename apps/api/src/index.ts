@@ -1,5 +1,8 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
-import { runScheduledRecoveryCampaign } from "@delulu/email/campaigns/migration-recovery/worker";
+import {
+  prepareRecoveryCampaignDeliveryVerification,
+  runScheduledRecoveryCampaign,
+} from "@delulu/email/campaigns/migration-recovery/worker";
 import {
   AdminService,
   AnalyticsService,
@@ -383,31 +386,30 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
       new Error("Recovery campaign requires DODO_PAYMENTS_API_KEY")
     );
   }
-  return runScheduledRecoveryCampaign({
-    apiKey: env.DODO_PAYMENTS_API_KEY,
-    environment: env.DODO_PAYMENTS_ENVIRONMENT,
-  }).pipe(
-    Effect.provide(makePgLayer(env)),
-    Effect.tap((result) => {
-      const preview =
-        result.status === "launched"
-          ? result.launch.preview
-          : result.status === "complete"
-            ? result.preview
-            : undefined;
-      return Effect.logInfo("Recovery campaign scheduled run", {
-        status: result.status,
-        eligibleRecipients: preview?.eligibleRecipients,
-        remainingRecipients: preview?.remainingRecipients,
-        sentRecipients: preview?.sentRecipients,
-        pendingRecipients: preview?.pendingRecipients,
-        failedRecipients: preview?.failedRecipients,
-        enqueued: result.status === "launched" ? result.launch.enqueued : 0,
-      });
-    }),
-    Effect.asVoid,
-    Effect.runPromise
-  );
+  return Effect.gen(function* () {
+    const deliveryVerification =
+      yield* prepareRecoveryCampaignDeliveryVerification();
+    const result = yield* runScheduledRecoveryCampaign({
+      apiKey: env.DODO_PAYMENTS_API_KEY!,
+      environment: "live_mode",
+    });
+    const preview =
+      result.status === "launched"
+        ? result.launch.preview
+        : result.status === "complete"
+          ? result.preview
+          : undefined;
+    yield* Effect.logInfo("Recovery campaign scheduled run", {
+      status: result.status,
+      deliveryVerification,
+      eligibleRecipients: preview?.eligibleRecipients,
+      remainingRecipients: preview?.remainingRecipients,
+      sentRecipients: preview?.sentRecipients,
+      pendingRecipients: preview?.pendingRecipients,
+      failedRecipients: preview?.failedRecipients,
+      enqueued: result.status === "launched" ? result.launch.enqueued : 0,
+    });
+  }).pipe(Effect.provide(makePgLayer(env)), Effect.runPromise);
 };
 
 export default {
