@@ -1,6 +1,7 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
   prepareRecoveryCampaignDeliveryVerification,
+  renderRecoveryCampaignVerificationEmail,
   runScheduledRecoveryCampaign,
 } from "@delulu/email/campaigns/migration-recovery/worker";
 import {
@@ -374,6 +375,55 @@ const handleRequest = (
   return run;
 };
 
+const RECOVERY_VERIFICATION_EMAIL = "rajswaraj.r@gmail.com";
+const RECOVERY_VERIFICATION_KEY =
+  "campaign:migration-recovery-2026-07:cloudflare-verification";
+
+const sendRecoveryCampaignVerification = (env: Env) =>
+  Effect.tryPromise({
+    try: async () => {
+      if (!(env.AUTOMATION_KV && env.EMAIL && env.CLOUDFLARE_EMAIL_FROM)) {
+        throw new Error(
+          "Recovery verification requires KV and Cloudflare Email bindings"
+        );
+      }
+      const existingMessageId = await env.AUTOMATION_KV.get(
+        RECOVERY_VERIFICATION_KEY
+      );
+      if (existingMessageId) {
+        return {
+          status: "already-sent",
+          messageId: existingMessageId,
+        } as const;
+      }
+      const email = await renderRecoveryCampaignVerificationEmail();
+      const response = await env.EMAIL.send({
+        from: {
+          email: env.CLOUDFLARE_EMAIL_FROM,
+          name: "Delulu Social",
+        },
+        to: RECOVERY_VERIFICATION_EMAIL,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        headers: {
+          "x-idempotency-key": RECOVERY_VERIFICATION_KEY,
+        },
+      });
+      if (!response.messageId) {
+        throw new Error(
+          "Cloudflare accepted the verification call without returning a messageId"
+        );
+      }
+      await env.AUTOMATION_KV.put(
+        RECOVERY_VERIFICATION_KEY,
+        response.messageId
+      );
+      return { status: "sent", messageId: response.messageId } as const;
+    },
+    catch: (cause) => cause,
+  });
+
 const runRecoveryCampaign = (env: Env): Promise<void> => {
   if (
     env.ENVIRONMENT !== "production" ||
@@ -389,6 +439,7 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
   return Effect.gen(function* () {
     const deliveryVerification =
       yield* prepareRecoveryCampaignDeliveryVerification();
+    const verificationEmail = yield* sendRecoveryCampaignVerification(env);
     const result = yield* runScheduledRecoveryCampaign({
       apiKey: env.DODO_PAYMENTS_API_KEY!,
       environment: "live_mode",
@@ -402,6 +453,7 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
     yield* Effect.logInfo("Recovery campaign scheduled run", {
       status: result.status,
       deliveryVerification,
+      verificationEmail,
       eligibleRecipients: preview?.eligibleRecipients,
       remainingRecipients: preview?.remainingRecipients,
       sentRecipients: preview?.sentRecipients,

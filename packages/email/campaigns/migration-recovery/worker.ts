@@ -1,7 +1,9 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { renderMigrationRecoveryEmail } from "../../renderers/migration-recovery";
 import {
   launchRecoveryCampaign,
+  RECOVERY_CAMPAIGN,
   recoveryCampaignEmailApproval,
   recoveryCampaignPreview,
 } from "./campaign";
@@ -10,7 +12,19 @@ const BOOKING_URL = "https://cal.com/swaraj";
 const APPROVED_EMAIL_FINGERPRINT = "78078fab7f28a3c3";
 const LAUNCH_EXPIRES_AT = new Date("2026-07-29T18:29:59.999Z");
 const EXPECTED_RECIPIENTS = 18;
-const VERIFICATION_EMAIL = "rajswaraj.r@gmail.com";
+
+export const renderRecoveryCampaignVerificationEmail = () =>
+  renderMigrationRecoveryEmail({
+    bookingUrl: BOOKING_URL,
+    firstName: "Swaraj",
+    offer: {
+      discountCode: RECOVERY_CAMPAIGN.discountCode,
+      expiresOn: "August 31, 2026",
+      kind: "discount",
+      onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
+    },
+    preferencesUrl: RECOVERY_CAMPAIGN.preferencesUrl,
+  });
 
 export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
   "prepareRecoveryCampaignDeliveryVerification"
@@ -19,13 +33,8 @@ export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
   const idempotencyPrefix = "campaign:migration-recovery-2026-07:";
   return yield* sql.withTransaction(
     Effect.gen(function* () {
-      const invalid = yield* sql<{
-        id: string;
-        isVerificationRecipient: boolean;
-      }>`
-        SELECT
-          d.id,
-          lower(u.email) = ${VERIFICATION_EMAIL} AS is_verification_recipient
+      const invalid = yield* sql<{ id: string }>`
+        SELECT d.id
         FROM message_deliveries d
         INNER JOIN users u ON u.id = d.user_id
         WHERE d.idempotency_key LIKE ${`${idempotencyPrefix}%`}
@@ -37,52 +46,35 @@ export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
       if (invalid.length === 0) {
         return { status: "already-prepared" } as const;
       }
-      const verificationRecipients = invalid.filter(
-        ({ isVerificationRecipient }) => isVerificationRecipient
-      ).length;
-      if (
-        invalid.length !== EXPECTED_RECIPIENTS ||
-        verificationRecipients !== 1
-      ) {
+      if (invalid.length !== EXPECTED_RECIPIENTS) {
         return yield* Effect.die(
           new Error(
-            `Refusing recovery delivery reset: expected ${EXPECTED_RECIPIENTS} invalid rows and one verification recipient, found ${invalid.length} and ${verificationRecipients}`
+            `Refusing recovery delivery reset: expected ${EXPECTED_RECIPIENTS} invalid rows, found ${invalid.length}`
           )
         );
       }
 
-      const updated = yield* sql<{
-        status: string;
-      }>`
+      const updated = yield* sql<{ id: string }>`
         UPDATE message_deliveries d
         SET
-          status = CASE
-            WHEN lower(u.email) = ${VERIFICATION_EMAIL} THEN 'queued'
-            ELSE 'held'
-          END,
+          status = 'held',
           attempts = 0,
           next_attempt_at = now(),
           locked_until = NULL,
           sent_at = NULL,
-          last_error = CASE
-            WHEN lower(u.email) = ${VERIFICATION_EMAIL} THEN NULL
-            ELSE 'Held for explicit approval after Cloudflare delivery verification'
-          END,
+          last_error = 'Held for explicit approval after Cloudflare delivery verification',
           provider_response = '{}'::jsonb
         FROM users u
         WHERE u.id = d.user_id
           AND d.idempotency_key LIKE ${`${idempotencyPrefix}%`}
           AND d.status = 'sent'
           AND d.provider_message_id IS NULL
-        RETURNING d.status
+        RETURNING d.id
       `.pipe(Effect.orDie);
 
       return {
         status: "prepared",
-        held: updated.filter(({ status }) => status === "held").length,
-        queuedForVerification: updated.filter(
-          ({ status }) => status === "queued"
-        ).length,
+        held: updated.length,
       } as const;
     })
   );
