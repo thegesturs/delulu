@@ -1,0 +1,22 @@
+{
+  "name": "@delulu/recovery-campaign",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "campaign": "tsx index.ts",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "dependencies": {
+    "@delulu/payments": "workspace:*",
+    "@effect/sql-pg": "catalog:",
+    "dodopayments": "2.4.3",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@delulu/typescript-config": "workspace:*",
+    "@types/node": "22.14.1",
+    "tsx": "^4.20.3",
+    "typescript": "catalog:"
+  }
+}

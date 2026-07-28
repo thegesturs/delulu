@@ -1,19 +1,23 @@
 import { pathToFileURL } from "node:url";
+import { PgClient } from "@effect/sql-pg";
+import { Effect, String as EffectString, Redacted } from "effect";
 import {
   launchRecoveryCampaign,
   RECOVERY_CAMPAIGN,
   recoveryCampaignPreview,
-} from "@delulu/services";
-import { PgClient } from "@effect/sql-pg";
-import { Effect, String as EffectString, Redacted } from "effect";
+} from "./campaign";
 
-export type RecoveryCampaignCommand =
+type RecoveryCampaignCommand =
+  | { readonly mode: "help" }
   | { readonly mode: "preview" }
   | { readonly mode: "execute"; readonly confirmation: string };
 
-export const parseRecoveryCampaignCommand = (
+const parseRecoveryCampaignCommand = (
   args: readonly string[]
 ): RecoveryCampaignCommand => {
+  if (args.includes("--help") || args.includes("-h")) {
+    return { mode: "help" };
+  }
   const execute = args.includes("--execute");
   const confirmation = args
     .find((arg) => arg.startsWith("--confirm="))
@@ -30,7 +34,7 @@ export const parseRecoveryCampaignCommand = (
   return { mode: "execute", confirmation };
 };
 
-export const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): string => {
+const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): string => {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
@@ -58,6 +62,19 @@ export const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): string => {
 
 const run = async () => {
   const command = parseRecoveryCampaignCommand(process.argv.slice(2));
+  if (command.mode === "help") {
+    console.log(`Recovery campaign
+
+Preview:
+  PRODUCTION_DATABASE_URL=postgres://... pnpm campaign:recovery
+
+Execute:
+  PRODUCTION_DATABASE_URL=postgres://... \\
+  DODO_PAYMENTS_API_KEY=... \\
+  DODO_PAYMENTS_ENVIRONMENT=live_mode \\
+  pnpm campaign:recovery -- --execute --confirm=${RECOVERY_CAMPAIGN.id}`);
+    return;
+  }
   const databaseUrl = validateRecoveryCampaignDatabaseUrl(
     process.env.PRODUCTION_DATABASE_URL ?? process.env.DATABASE_URL ?? ""
   );

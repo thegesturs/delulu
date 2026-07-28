@@ -134,7 +134,7 @@ const loadRecoveryCampaignAudience = Effect.fn("loadRecoveryCampaignAudience")(
   }
 );
 
-export const summarizeRecoveryCampaignAudience = (
+const summarizeRecoveryCampaignAudience = (
   audience: readonly RecoveryCampaignAudienceMember[]
 ): RecoveryCampaignPreview => {
   const deliverable = audience.filter(hasDeliverableEmail);
@@ -193,7 +193,7 @@ export const recoveryCampaignPreview = Effect.fn("recoveryCampaignPreview")(
   }
 );
 
-export const recoveryDiscountSpec = (usageLimit: number) => ({
+const recoveryDiscountSpec = (usageLimit: number) => ({
   amount: 10_000,
   code: RECOVERY_CAMPAIGN.discountCode,
   expires_at: RECOVERY_CAMPAIGN.expiresAt,
@@ -221,7 +221,7 @@ const escapeHtml = (value: string): string =>
 
 const WHITESPACE = /\s+/;
 
-export const recoveryCampaignEmail = (
+const recoveryCampaignEmail = (
   rawFirstName: string | null,
   offer: "discount" | "subscription-extension" = "discount"
 ) => {
@@ -285,7 +285,7 @@ interface RecoveryDiscount {
   readonly usage_limit?: number | null;
 }
 
-export const isRecoveryDiscountCompatible = (
+const isRecoveryDiscountCompatible = (
   discount: RecoveryDiscount,
   usageLimit: number
 ): boolean => {
@@ -393,7 +393,7 @@ interface ProviderSubscription {
   readonly subscription_id: string;
 }
 
-export const addCalendarMonths = (isoDate: string, months: number): string => {
+const addCalendarMonths = (isoDate: string, months: number): string => {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
     throw new Error("Subscription has an invalid next billing date");

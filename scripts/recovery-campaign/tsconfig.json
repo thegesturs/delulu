@@ -1,0 +1,11 @@
+{
+  "extends": "@delulu/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@delulu/*": ["../../packages/*"]
+    }
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

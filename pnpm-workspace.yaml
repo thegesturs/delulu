@@ -4,6 +4,7 @@ packages:
   - turbo/*
   - scripts
   - scripts/migrate-convex
+  - scripts/recovery-campaign
 
 catalog:
   '@effect/sql-pg': 4.0.0-beta.97
