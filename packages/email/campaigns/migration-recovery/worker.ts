@@ -80,6 +80,92 @@ export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
   );
 });
 
+export const releaseRecoveryCampaignRecipients = Effect.fn(
+  "releaseRecoveryCampaignRecipients"
+)(function* (verificationMessageId: string) {
+  if (!verificationMessageId.trim()) {
+    return yield* Effect.die(
+      new Error("Recovery campaign release requires a verification message ID")
+    );
+  }
+  const sql = yield* SqlClient.SqlClient;
+  const idempotencyPrefix = "campaign:migration-recovery-2026-07:";
+  return yield* sql.withTransaction(
+    Effect.gen(function* () {
+      const held = yield* sql<{ id: string }>`
+        SELECT id
+        FROM message_deliveries
+        WHERE idempotency_key LIKE ${`${idempotencyPrefix}%`}
+          AND status = 'suppressed'
+          AND provider_message_id IS NULL
+        FOR UPDATE
+      `.pipe(Effect.orDie);
+
+      if (held.length === 0) {
+        return { status: "already-released" } as const;
+      }
+      if (held.length !== EXPECTED_RECIPIENTS) {
+        return yield* Effect.die(
+          new Error(
+            `Refusing recovery campaign release: expected ${EXPECTED_RECIPIENTS} held rows, found ${held.length}`
+          )
+        );
+      }
+
+      const released = yield* sql<{ id: string }>`
+        UPDATE message_deliveries
+        SET
+          status = 'queued',
+          next_attempt_at = now(),
+          last_error = NULL,
+          provider_response = ${JSON.stringify({
+            verificationMessageId,
+          })}::jsonb
+        WHERE idempotency_key LIKE ${`${idempotencyPrefix}%`}
+          AND status = 'suppressed'
+          AND provider_message_id IS NULL
+        RETURNING id
+      `.pipe(Effect.orDie);
+
+      return { status: "released", recipients: released.length } as const;
+    })
+  );
+});
+
+export const recoveryCampaignDeliveryAudit = Effect.fn(
+  "recoveryCampaignDeliveryAudit"
+)(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  const idempotencyPrefix = "campaign:migration-recovery-2026-07:";
+  const rows = yield* sql<{
+    total: number;
+    queued: number;
+    leased: number;
+    sentWithMessageId: number;
+    sentWithoutMessageId: number;
+    failed: number;
+    dead: number;
+    suppressed: number;
+  }>`
+    SELECT
+      count(*)::integer AS total,
+      count(*) FILTER (WHERE status = 'queued')::integer AS queued,
+      count(*) FILTER (WHERE status = 'leased')::integer AS leased,
+      count(*) FILTER (
+        WHERE status = 'sent' AND provider_message_id IS NOT NULL
+      )::integer AS sent_with_message_id,
+      count(*) FILTER (
+        WHERE status = 'sent' AND provider_message_id IS NULL
+      )::integer AS sent_without_message_id,
+      count(*) FILTER (WHERE status = 'failed')::integer AS failed,
+      count(*) FILTER (WHERE status = 'dead')::integer AS dead,
+      count(*) FILTER (WHERE status = 'suppressed')::integer AS suppressed
+    FROM message_deliveries
+    WHERE idempotency_key LIKE ${`${idempotencyPrefix}%`}
+  `.pipe(Effect.orDie);
+  return rows[0];
+});
+
 export const runScheduledRecoveryCampaign = Effect.fn(
   "runScheduledRecoveryCampaign"
 )(function* (config: {
