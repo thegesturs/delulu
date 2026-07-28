@@ -105,8 +105,10 @@ export const DeluluEmailLayout = ({
 
         <Section
           style={{
+            borderLeft: `1.5px dotted ${colors.dotted}`,
+            borderRight: `1.5px dotted ${colors.dotted}`,
             borderTop: `1.5px dotted ${colors.dotted}`,
-            padding: "24px 16px 0",
+            padding: "24px 16px",
             textAlign: "center",
           }}
         >

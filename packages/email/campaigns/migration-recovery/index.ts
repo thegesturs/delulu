@@ -84,24 +84,19 @@ const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): URL => {
 };
 
 const validateBookingUrl = (rawUrl: string): string => {
+  const confirmedBookingUrl = "https://cal.com/swaraj";
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
     throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL is not a valid URL");
   }
-  if (parsed.protocol !== "https:") {
-    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL must use HTTPS");
-  }
-  if (
-    (parsed.hostname !== "cal.com" && !parsed.hostname.endsWith(".cal.com")) ||
-    parsed.pathname.includes("your-correct-link")
-  ) {
+  if (parsed.toString() !== confirmedBookingUrl) {
     throw new Error(
-      "RECOVERY_CAMPAIGN_BOOKING_URL must be the confirmed Cal.com booking URL"
+      `RECOVERY_CAMPAIGN_BOOKING_URL must be exactly ${confirmedBookingUrl}`
     );
   }
-  return parsed.toString();
+  return confirmedBookingUrl;
 };
 
 const run = async () => {
@@ -111,14 +106,14 @@ const run = async () => {
 
 Preview:
   PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' \\
-  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/...' \\
+  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/swaraj' \\
   pnpm campaign:recovery
 
 Execute:
   PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' \\
   DODO_PAYMENTS_API_KEY=... \\
   DODO_PAYMENTS_ENVIRONMENT=live_mode \\
-  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/...' \\
+  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/swaraj' \\
   pnpm campaign:recovery -- --execute --confirm=${RECOVERY_CAMPAIGN.id} \\
     --approve-email=<approval from preview>`);
     return;

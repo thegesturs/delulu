@@ -128,8 +128,11 @@ export const MigrationRecoveryEmail = ({
             href={offer.billingUrl}
             style={{
               color: emailTheme.primary,
+              display: "inline-block",
               fontSize: "14px",
               fontWeight: 600,
+              lineHeight: "20px",
+              padding: "12px 0",
               textDecoration: "underline",
             }}
           >
