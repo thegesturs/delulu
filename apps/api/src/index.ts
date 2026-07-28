@@ -1,6 +1,8 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
   prepareRecoveryCampaignDeliveryVerification,
+  recoveryCampaignDeliveryAudit,
+  releaseRecoveryCampaignRecipients,
   renderRecoveryCampaignVerificationEmail,
   runScheduledRecoveryCampaign,
 } from "@delulu/email/campaigns/migration-recovery/worker";
@@ -440,10 +442,14 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
     const deliveryVerification =
       yield* prepareRecoveryCampaignDeliveryVerification();
     const verificationEmail = yield* sendRecoveryCampaignVerification(env);
+    const release = yield* releaseRecoveryCampaignRecipients(
+      verificationEmail.messageId
+    );
     const result = yield* runScheduledRecoveryCampaign({
       apiKey: env.DODO_PAYMENTS_API_KEY!,
       environment: "live_mode",
     });
+    const deliveryAudit = yield* recoveryCampaignDeliveryAudit();
     const preview =
       result.status === "launched"
         ? result.launch.preview
@@ -454,6 +460,8 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
       status: result.status,
       deliveryVerification,
       verificationEmail,
+      release,
+      deliveryAudit,
       eligibleRecipients: preview?.eligibleRecipients,
       remainingRecipients: preview?.remainingRecipients,
       sentRecipients: preview?.sentRecipients,
