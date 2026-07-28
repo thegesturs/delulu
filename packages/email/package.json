@@ -18,6 +18,11 @@
       "require": "./renderers/migration-recovery.tsx",
       "types": "./renderers/migration-recovery.tsx"
     },
+    "./campaigns/migration-recovery/worker": {
+      "import": "./campaigns/migration-recovery/worker.ts",
+      "require": "./campaigns/migration-recovery/worker.ts",
+      "types": "./campaigns/migration-recovery/worker.ts"
+    },
     "./templates/contact": {
       "import": "./templates/contact.tsx",
       "require": "./templates/contact.tsx",

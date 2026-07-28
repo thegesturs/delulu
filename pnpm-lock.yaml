@@ -105,6 +105,9 @@ importers:
       '@delulu/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@delulu/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@delulu/payments':
         specifier: workspace:*
         version: link:../../packages/payments

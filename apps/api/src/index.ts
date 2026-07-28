@@ -1,4 +1,5 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
+import { runScheduledRecoveryCampaign } from "@delulu/email/campaigns/migration-recovery/worker";
 import {
   AdminService,
   AnalyticsService,
@@ -370,6 +371,45 @@ const handleRequest = (
   return run;
 };
 
+const runRecoveryCampaign = (env: Env): Promise<void> => {
+  if (
+    env.ENVIRONMENT !== "production" ||
+    env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode"
+  ) {
+    return Promise.resolve();
+  }
+  if (!env.DODO_PAYMENTS_API_KEY) {
+    return Promise.reject(
+      new Error("Recovery campaign requires DODO_PAYMENTS_API_KEY")
+    );
+  }
+  return runScheduledRecoveryCampaign({
+    apiKey: env.DODO_PAYMENTS_API_KEY,
+    environment: env.DODO_PAYMENTS_ENVIRONMENT,
+  }).pipe(
+    Effect.provide(makePgLayer(env)),
+    Effect.tap((result) => {
+      const preview =
+        result.status === "launched"
+          ? result.launch.preview
+          : result.status === "complete"
+            ? result.preview
+            : undefined;
+      return Effect.logInfo("Recovery campaign scheduled run", {
+        status: result.status,
+        eligibleRecipients: preview?.eligibleRecipients,
+        remainingRecipients: preview?.remainingRecipients,
+        sentRecipients: preview?.sentRecipients,
+        pendingRecipients: preview?.pendingRecipients,
+        failedRecipients: preview?.failedRecipients,
+        enqueued: result.status === "launched" ? result.launch.enqueued : 0,
+      });
+    }),
+    Effect.asVoid,
+    Effect.runPromise
+  );
+};
+
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     return handleRequest(request, env, ctx);
@@ -377,9 +417,11 @@ export default {
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
     const layer = makeBaseLayer(env);
     ctx.waitUntil(
-      Promise.all([dispatchDueJobs(env, layer), runMaintenance(layer)]).then(
-        () => undefined
-      )
+      Promise.all([
+        dispatchDueJobs(env, layer),
+        runMaintenance(layer),
+        runRecoveryCampaign(env),
+      ]).then(() => undefined)
     );
   },
 };
