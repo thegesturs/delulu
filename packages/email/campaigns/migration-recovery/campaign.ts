@@ -1,12 +1,14 @@
-import { renderMigrationRecoveryEmail } from "@delulu/email/migration-recovery";
+import { createHash } from "node:crypto";
 import { PROD_PRODUCT_IDS, PROD_PRODUCT_IDS_INR } from "@delulu/payments";
 import DodoPayments, { APIError } from "dodopayments";
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/unstable/sql";
+import { renderMigrationRecoveryEmail } from "../../renderers/migration-recovery";
 
 export const RECOVERY_CAMPAIGN = {
   id: "migration-recovery-2026-07",
   eventName: "migrationRecoveryOffer",
+  emailFrom: "Delulu Social <welcome@mail.delulu.social>",
   discountCode: "DELULU2MONTHS",
   discountName: "Migration recovery — two months free",
   billingUrl: "https://solulu.delulu.social/billing",
@@ -59,6 +61,15 @@ export interface RecoveryCampaignLaunch {
   readonly discountCode: string;
   readonly extendedSubscriptions: number;
   readonly enqueued: number;
+}
+
+export interface RecoveryCampaignEmailApproval {
+  readonly approval: string;
+  readonly bookingUrl: string;
+  readonly discountCode: string;
+  readonly expiresOn: string;
+  readonly from: string;
+  readonly subject: string;
 }
 
 export class RecoveryCampaignError extends Schema.TaggedErrorClass<RecoveryCampaignError>()(
@@ -206,6 +217,50 @@ const recoveryDiscountSpec = (usageLimit: number) => ({
 });
 
 const WHITESPACE = /\s+/;
+const offerExpiresOn = "August 31, 2026";
+
+export const recoveryCampaignEmailApproval = async (
+  bookingUrl: string
+): Promise<RecoveryCampaignEmailApproval> => {
+  const common = {
+    bookingUrl,
+    firstName: "{{firstName}}",
+    preferencesUrl: RECOVERY_CAMPAIGN.preferencesUrl,
+  } as const;
+  const discount = await renderMigrationRecoveryEmail({
+    ...common,
+    offer: {
+      billingUrl: RECOVERY_CAMPAIGN.billingUrl,
+      discountCode: RECOVERY_CAMPAIGN.discountCode,
+      expiresOn: offerExpiresOn,
+      kind: "discount",
+    },
+  });
+  const extension = await renderMigrationRecoveryEmail({
+    ...common,
+    offer: { kind: "subscription-extension" },
+  });
+  const approval = createHash("sha256")
+    .update(
+      JSON.stringify({
+        bookingUrl,
+        discount,
+        extension,
+        from: RECOVERY_CAMPAIGN.emailFrom,
+      })
+    )
+    .digest("hex")
+    .slice(0, 16);
+
+  return {
+    approval,
+    bookingUrl,
+    discountCode: RECOVERY_CAMPAIGN.discountCode,
+    expiresOn: offerExpiresOn,
+    from: RECOVERY_CAMPAIGN.emailFrom,
+    subject: discount.subject,
+  };
+};
 
 interface RecoveryDiscount {
   readonly amount: number;
@@ -476,7 +531,7 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
       : ({
           billingUrl: RECOVERY_CAMPAIGN.billingUrl,
           discountCode: RECOVERY_CAMPAIGN.discountCode,
-          expiresOn: "August 31, 2026",
+          expiresOn: offerExpiresOn,
           kind: "discount",
         } as const);
     const email = yield* Effect.promise(() =>

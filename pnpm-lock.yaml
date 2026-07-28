@@ -430,37 +430,6 @@ importers:
         specifier: ^4.110.0
         version: 4.110.0(@cloudflare/workers-types@5.20260713.1)(bufferutil@4.0.9)(utf-8-validate@5.0.10)
 
-  apps/email:
-    dependencies:
-      '@delulu/email':
-        specifier: workspace:*
-        version: link:../../packages/email
-      '@react-email/components':
-        specifier: 0.0.36
-        version: 0.0.36(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react:
-        specifier: catalog:react19
-        version: 19.2.7
-      react-email:
-        specifier: 4.0.7
-        version: 4.0.7(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(utf-8-validate@5.0.10)
-    devDependencies:
-      '@delulu/typescript-config':
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      '@types/node':
-        specifier: 22.14.1
-        version: 22.14.1
-      '@types/react':
-        specifier: catalog:react19
-        version: 19.2.17
-      next:
-        specifier: 15.3.3
-        version: 15.3.3(@opentelemetry/api@1.9.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-
   apps/mcp:
     dependencies:
       '@delulu/client':
@@ -1333,6 +1302,12 @@ importers:
 
   packages/email:
     dependencies:
+      '@delulu/payments':
+        specifier: workspace:*
+        version: link:../payments
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
       '@react-email/components':
         specifier: 0.0.36
         version: 0.0.36(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -1342,6 +1317,12 @@ importers:
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.76)
+      dodopayments:
+        specifier: 2.4.3
+        version: 2.4.3
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.0-beta.97
       react:
         specifier: catalog:react19
         version: 19.2.7
@@ -1370,6 +1351,9 @@ importers:
       react-email:
         specifier: 4.0.7
         version: 4.0.7(@opentelemetry/api@1.9.0)(bufferutil@4.0.9)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(utf-8-validate@5.0.10)
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1792,37 +1776,6 @@ importers:
       vitest:
         specifier: ^3.1.1
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.7.0)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.32.0)(terser@5.43.1)(tsx@4.20.3)(yaml@2.9.0)
-
-  scripts/recovery-campaign:
-    dependencies:
-      '@delulu/email':
-        specifier: workspace:*
-        version: link:../../packages/email
-      '@delulu/payments':
-        specifier: workspace:*
-        version: link:../../packages/payments
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.0-beta.97(effect@4.0.0-beta.97)
-      dodopayments:
-        specifier: 2.4.3
-        version: 2.4.3
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.0-beta.97
-    devDependencies:
-      '@delulu/typescript-config':
-        specifier: workspace:*
-        version: link:../../packages/typescript-config
-      '@types/node':
-        specifier: 22.14.1
-        version: 22.14.1
-      tsx:
-        specifier: ^4.20.3
-        version: 4.20.3
-      typescript:
-        specifier: 'catalog:'
-        version: 5.8.3
 
   turbo/generators: {}
 

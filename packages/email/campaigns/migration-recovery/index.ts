@@ -6,13 +6,18 @@ import { isSqlError } from "effect/unstable/sql/SqlError";
 import {
   launchRecoveryCampaign,
   RECOVERY_CAMPAIGN,
+  recoveryCampaignEmailApproval,
   recoveryCampaignPreview,
 } from "./campaign";
 
 type RecoveryCampaignCommand =
   | { readonly mode: "help" }
   | { readonly mode: "preview" }
-  | { readonly mode: "execute"; readonly confirmation: string };
+  | {
+      readonly mode: "execute";
+      readonly confirmation: string;
+      readonly emailApproval: string;
+    };
 
 const parseRecoveryCampaignCommand = (
   args: readonly string[]
@@ -24,16 +29,26 @@ const parseRecoveryCampaignCommand = (
   const confirmation = args
     .find((arg) => arg.startsWith("--confirm="))
     ?.slice("--confirm=".length);
+  const emailApproval = args
+    .find((arg) => arg.startsWith("--approve-email="))
+    ?.slice("--approve-email=".length);
   if (!execute) {
-    if (confirmation) {
-      throw new Error("--confirm can only be used together with --execute");
+    if (confirmation || emailApproval) {
+      throw new Error(
+        "--confirm and --approve-email can only be used together with --execute"
+      );
     }
     return { mode: "preview" };
   }
   if (confirmation !== RECOVERY_CAMPAIGN.id) {
     throw new Error(`Execution requires --confirm=${RECOVERY_CAMPAIGN.id}`);
   }
-  return { mode: "execute", confirmation };
+  if (!emailApproval) {
+    throw new Error(
+      "Execution requires --approve-email=<approval from the latest preview>"
+    );
+  }
+  return { mode: "execute", confirmation, emailApproval };
 };
 
 const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): URL => {
@@ -79,11 +94,11 @@ const validateBookingUrl = (rawUrl: string): string => {
     throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL must use HTTPS");
   }
   if (
-    parsed.hostname === "example.com" ||
+    (parsed.hostname !== "cal.com" && !parsed.hostname.endsWith(".cal.com")) ||
     parsed.pathname.includes("your-correct-link")
   ) {
     throw new Error(
-      "RECOVERY_CAMPAIGN_BOOKING_URL must be the confirmed booking URL"
+      "RECOVERY_CAMPAIGN_BOOKING_URL must be the confirmed Cal.com booking URL"
     );
   }
   return parsed.toString();
@@ -92,17 +107,20 @@ const validateBookingUrl = (rawUrl: string): string => {
 const run = async () => {
   const command = parseRecoveryCampaignCommand(process.argv.slice(2));
   if (command.mode === "help") {
-    console.log(`Recovery campaign
+    console.log(`Email migration recovery campaign
 
 Preview:
-  PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' pnpm campaign:recovery
+  PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' \\
+  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/...' \\
+  pnpm campaign:recovery
 
 Execute:
   PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' \\
   DODO_PAYMENTS_API_KEY=... \\
   DODO_PAYMENTS_ENVIRONMENT=live_mode \\
   RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/...' \\
-  pnpm campaign:recovery -- --execute --confirm=${RECOVERY_CAMPAIGN.id}`);
+  pnpm campaign:recovery -- --execute --confirm=${RECOVERY_CAMPAIGN.id} \\
+    --approve-email=<approval from preview>`);
     return;
   }
   const rawDatabaseUrl = process.env.PRODUCTION_DATABASE_URL;
@@ -146,12 +164,30 @@ Execute:
     }
   };
 
+  const rawBookingUrl = process.env.RECOVERY_CAMPAIGN_BOOKING_URL;
+  if (!rawBookingUrl) {
+    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL is required");
+  }
+  const bookingUrl = validateBookingUrl(rawBookingUrl);
+  const emailApproval = await recoveryCampaignEmailApproval(bookingUrl);
+
   if (command.mode === "preview") {
     const preview = await runWithDatabase(recoveryCampaignPreview());
-    console.log(JSON.stringify({ mode: command.mode, ...preview }, null, 2));
+    console.log(
+      JSON.stringify(
+        { mode: command.mode, email: emailApproval, audience: preview },
+        null,
+        2
+      )
+    );
     return;
   }
 
+  if (command.emailApproval !== emailApproval.approval) {
+    throw new Error(
+      "The email content or booking URL changed after approval. Run preview again and confirm the new --approve-email value."
+    );
+  }
   if (process.env.DODO_PAYMENTS_ENVIRONMENT !== "live_mode") {
     throw new Error(
       "DODO_PAYMENTS_ENVIRONMENT must be live_mode for execution"
@@ -161,11 +197,6 @@ Execute:
   if (!apiKey) {
     throw new Error("DODO_PAYMENTS_API_KEY is required for execution");
   }
-  const rawBookingUrl = process.env.RECOVERY_CAMPAIGN_BOOKING_URL;
-  if (!rawBookingUrl) {
-    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL is required for execution");
-  }
-  const bookingUrl = validateBookingUrl(rawBookingUrl);
   const launch = await runWithDatabase(
     launchRecoveryCampaign({
       apiKey,

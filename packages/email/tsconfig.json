@@ -10,14 +10,14 @@
     "declarationMap": true,
     "noEmit": false,
     "paths": {
-      "@/*": ["./*"],
-      "@delulu/*": ["../../packages/*"]
+      "@/*": ["./*"]
     },
     "strictNullChecks": true
   },
   "include": [
     "./*.ts",
     "./*.tsx",
+    "campaigns/**/*",
     "components/**/*",
     "renderers/**/*",
     "templates/**/*"
