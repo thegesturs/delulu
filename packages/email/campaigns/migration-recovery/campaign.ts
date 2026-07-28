@@ -219,6 +219,12 @@ const recoveryDiscountSpec = (usageLimit: number) => ({
 
 const WHITESPACE = /\s+/;
 const offerExpiresOn = "August 31, 2026";
+const recoveryDiscountOffer = {
+  discountCode: RECOVERY_CAMPAIGN.discountCode,
+  expiresOn: offerExpiresOn,
+  kind: "discount",
+  onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
+} as const;
 
 export const recoveryCampaignEmailApproval = async (
   bookingUrl: string
@@ -230,12 +236,7 @@ export const recoveryCampaignEmailApproval = async (
   } as const;
   const discount = await renderMigrationRecoveryEmail({
     ...common,
-    offer: {
-      discountCode: RECOVERY_CAMPAIGN.discountCode,
-      expiresOn: offerExpiresOn,
-      kind: "discount",
-      onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
-    },
+    offer: recoveryDiscountOffer,
   });
   const extension = await renderMigrationRecoveryEmail({
     ...common,
@@ -529,12 +530,7 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
     const firstName = recipient.name?.trim().split(WHITESPACE)[0] ?? "there";
     const offer = recipient.activeSubscription
       ? ({ kind: "subscription-extension" } as const)
-      : ({
-          discountCode: RECOVERY_CAMPAIGN.discountCode,
-          expiresOn: offerExpiresOn,
-          kind: "discount",
-          onboardingUrl: RECOVERY_CAMPAIGN.onboardingUrl,
-        } as const);
+      : recoveryDiscountOffer;
     const email = yield* Effect.promise(() =>
       renderMigrationRecoveryEmail({
         bookingUrl,
