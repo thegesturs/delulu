@@ -1,6 +1,5 @@
 import { makeTokenCipher, TokenCipher } from "@delulu/core";
 import {
-  loadStoredRecoveryCampaignEmailSample,
   prepareRecoveryCampaignDeliveryVerification,
   recoveryCampaignDeliveryAudit,
   releaseRecoveryCampaignRecipients,
@@ -381,8 +380,6 @@ const handleRequest = (
 const RECOVERY_VERIFICATION_EMAIL = "rajswaraj.r@gmail.com";
 const RECOVERY_VERIFICATION_KEY =
   "campaign:migration-recovery-2026-07:cloudflare-verification";
-const RECOVERY_STORED_SAMPLE_KEY =
-  "campaign:migration-recovery-2026-07:stored-payload-sample";
 
 const sendRecoveryCampaignVerification = (env: Env) =>
   Effect.tryPromise({
@@ -429,58 +426,6 @@ const sendRecoveryCampaignVerification = (env: Env) =>
     catch: (cause) => cause,
   });
 
-const sendStoredRecoveryCampaignSample = (env: Env) =>
-  Effect.gen(function* () {
-    if (!(env.AUTOMATION_KV && env.EMAIL && env.CLOUDFLARE_EMAIL_FROM)) {
-      return yield* Effect.die(
-        new Error(
-          "Stored recovery sample requires KV and Cloudflare Email bindings"
-        )
-      );
-    }
-    const existingMessageId = yield* Effect.promise(() =>
-      env.AUTOMATION_KV!.get(RECOVERY_STORED_SAMPLE_KEY)
-    );
-    if (existingMessageId) {
-      return {
-        status: "already-sent",
-        messageId: existingMessageId,
-      } as const;
-    }
-    const email = yield* loadStoredRecoveryCampaignEmailSample();
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        env.EMAIL!.send({
-          from: {
-            email: env.CLOUDFLARE_EMAIL_FROM!,
-            name: "Delulu Social",
-          },
-          to: RECOVERY_VERIFICATION_EMAIL,
-          subject: email.subject,
-          html: email.html,
-          text: email.text,
-          headers: {
-            "x-idempotency-key": RECOVERY_STORED_SAMPLE_KEY,
-          },
-        }),
-      catch: (cause) => cause,
-    });
-    if (!response.messageId) {
-      return yield* Effect.die(
-        new Error(
-          "Cloudflare accepted the stored recovery sample without returning a messageId"
-        )
-      );
-    }
-    yield* Effect.promise(() =>
-      env.AUTOMATION_KV!.put(
-        RECOVERY_STORED_SAMPLE_KEY,
-        response.messageId as string
-      )
-    );
-    return { status: "sent", messageId: response.messageId } as const;
-  });
-
 const runRecoveryCampaign = (env: Env): Promise<void> => {
   if (
     env.ENVIRONMENT !== "production" ||
@@ -497,7 +442,6 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
     const deliveryVerification =
       yield* prepareRecoveryCampaignDeliveryVerification();
     const verificationEmail = yield* sendRecoveryCampaignVerification(env);
-    const storedSample = yield* sendStoredRecoveryCampaignSample(env);
     const release = yield* releaseRecoveryCampaignRecipients(
       verificationEmail.messageId
     );
@@ -516,7 +460,6 @@ const runRecoveryCampaign = (env: Env): Promise<void> => {
       status: result.status,
       deliveryVerification,
       verificationEmail,
-      storedSample,
       release,
       deliveryAudit,
       eligibleRecipients: preview?.eligibleRecipients,
