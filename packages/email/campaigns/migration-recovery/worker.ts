@@ -57,7 +57,7 @@ export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
       const updated = yield* sql<{ id: string }>`
         UPDATE message_deliveries d
         SET
-          status = 'held',
+          status = 'suppressed',
           attempts = 0,
           next_attempt_at = now(),
           locked_until = NULL,
