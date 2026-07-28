@@ -3,6 +3,11 @@ import { SqlClient } from "effect/unstable/sql";
 
 export type MessageChannel = "transactional" | "lifecycle";
 
+export interface TransactionalEmailSender {
+  readonly email: string;
+  readonly name: string;
+}
+
 export interface LifecycleProviderApi {
   readonly name: "loops" | "noop";
   readonly identify: (input: {
@@ -26,7 +31,7 @@ export class LifecycleProvider extends Context.Service<
 export interface TransactionalEmailProviderApi {
   readonly name: "cloudflare-email" | "noop";
   readonly send: (input: {
-    readonly from?: string;
+    readonly from?: TransactionalEmailSender;
     readonly to: string;
     readonly subject: string;
     readonly html: string;
@@ -57,7 +62,7 @@ type DeliveryPayload =
     }
   | {
       readonly kind: "transactional";
-      readonly from?: string;
+      readonly from?: TransactionalEmailSender;
       readonly to: string;
       readonly subject: string;
       readonly html: string;

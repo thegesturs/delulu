@@ -565,7 +565,10 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
           'queued',
           ${JSON.stringify({
             kind: "transactional",
-            from: RECOVERY_CAMPAIGN.emailFromAddress,
+            from: {
+              email: RECOVERY_CAMPAIGN.emailFromAddress,
+              name: RECOVERY_CAMPAIGN.emailFromName,
+            },
             to: recipient.email,
             subject: email.subject,
             html: email.html,
