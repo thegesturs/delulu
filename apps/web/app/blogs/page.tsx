@@ -7,8 +7,10 @@ import { BlogCard } from "@/components/blog/blog-card";
 import { fetchArticlePreviews } from "@/lib/articles";
 import { adaptContentCollectionsBlog, adaptOutrankPreview } from "@/types/blog";
 
-// ISR: regenerate at most hourly, serve stale in the meantime.
-export const revalidate = 3600;
+// Article previews live in a request-bound Cloudflare KV namespace. Rendering
+// this route during the build reads the empty preview namespace and freezes an
+// empty listing into the deployment, so resolve the index at request time.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createMetadata({
   title: "Blog",
@@ -22,7 +24,7 @@ export const metadata: Metadata = createMetadata({
 const BlogIndex = async () => {
   const blogUrl = getWebUrl("/blogs");
 
-  // Preview shape only — no article bodies. Read from KV (cheap), cached by ISR.
+  // Preview shape only — no article bodies. Resolve the request-bound KV index.
   const outrankPreviews = await fetchArticlePreviews(100);
 
   // Adapt both sources to unified type
