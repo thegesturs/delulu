@@ -13,6 +13,12 @@ const APPROVED_EMAIL_FINGERPRINT = "78078fab7f28a3c3";
 const LAUNCH_EXPIRES_AT = new Date("2026-07-29T18:29:59.999Z");
 const EXPECTED_RECIPIENTS = 18;
 
+export interface StoredRecoveryCampaignEmail {
+  readonly html: string;
+  readonly subject: string;
+  readonly text: string;
+}
+
 export const renderRecoveryCampaignVerificationEmail = () =>
   renderMigrationRecoveryEmail({
     bookingUrl: BOOKING_URL,
@@ -25,6 +31,33 @@ export const renderRecoveryCampaignVerificationEmail = () =>
     },
     preferencesUrl: RECOVERY_CAMPAIGN.preferencesUrl,
   });
+
+export const loadStoredRecoveryCampaignEmailSample = Effect.fn(
+  "loadStoredRecoveryCampaignEmailSample"
+)(function* () {
+  const sql = yield* SqlClient.SqlClient;
+  const idempotencyPrefix = "campaign:migration-recovery-2026-07:";
+  const rows = yield* sql<StoredRecoveryCampaignEmail>`
+    SELECT
+      payload->>'html' AS html,
+      payload->>'subject' AS subject,
+      payload->>'text' AS text
+    FROM message_deliveries
+    WHERE idempotency_key LIKE ${`${idempotencyPrefix}%`}
+      AND status = 'sent'
+      AND provider_message_id IS NOT NULL
+      AND payload->>'html' LIKE '%DELULU2MONTHS%'
+    ORDER BY created_at, id
+    LIMIT 1
+  `.pipe(Effect.orDie);
+  const sample = rows[0];
+  if (!(sample?.html && sample.subject && sample.text)) {
+    return yield* Effect.die(
+      new Error("No delivered recovery discount email payload was found")
+    );
+  }
+  return sample;
+});
 
 export const prepareRecoveryCampaignDeliveryVerification = Effect.fn(
   "prepareRecoveryCampaignDeliveryVerification"
