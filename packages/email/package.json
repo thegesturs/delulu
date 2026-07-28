@@ -2,12 +2,32 @@
   "name": "@delulu/email",
   "version": "0.0.0",
   "private": true,
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "types": "./index.ts"
+    },
+    "./keys": {
+      "import": "./keys.ts",
+      "types": "./keys.ts"
+    },
+    "./migration-recovery": {
+      "import": "./migration-recovery.ts",
+      "types": "./migration-recovery.ts"
+    },
+    "./templates/contact": {
+      "import": "./templates/contact.tsx",
+      "types": "./templates/contact.tsx"
+    }
+  },
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "email dev --dir templates",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
     "@react-email/components": "0.0.36",
+    "@react-email/render": "1.1.2",
     "@t3-oss/env-nextjs": "^0.12.0",
     "react": "catalog:react19",
     "react-dom": "catalog:react19",

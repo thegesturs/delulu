@@ -1,3 +1,4 @@
+import { renderMigrationRecoveryEmail } from "@delulu/email/migration-recovery";
 import { PROD_PRODUCT_IDS, PROD_PRODUCT_IDS_INR } from "@delulu/payments";
 import DodoPayments, { APIError } from "dodopayments";
 import { Effect, Schema } from "effect";
@@ -8,8 +9,8 @@ export const RECOVERY_CAMPAIGN = {
   eventName: "migrationRecoveryOffer",
   discountCode: "DELULU2MONTHS",
   discountName: "Migration recovery — two months free",
-  bookingUrl: "https://cal.com/swaraj/retention",
   billingUrl: "https://solulu.delulu.social/billing",
+  preferencesUrl: "https://solulu.delulu.social/workspace",
   startsAt: "2026-07-05T18:30:00.000Z",
   endsAt: "2026-07-27T18:29:59.999Z",
   expiresAt: "2026-08-31T23:59:59.999Z",
@@ -204,75 +205,7 @@ const recoveryDiscountSpec = (usageLimit: number) => ({
   usage_limit: usageLimit,
 });
 
-const escapeHtml = (value: string): string =>
-  value.replace(
-    /[&<>"']/g,
-    (character) =>
-      (
-        ({
-          '"': "&quot;",
-          "&": "&amp;",
-          "'": "&#039;",
-          "<": "&lt;",
-          ">": "&gt;",
-        }) as const
-      )[character as '"' | "&" | "'" | "<" | ">"]
-  );
-
 const WHITESPACE = /\s+/;
-
-const recoveryCampaignEmail = (
-  rawFirstName: string | null,
-  offer: "discount" | "subscription-extension" = "discount"
-) => {
-  const firstName = rawFirstName?.trim().split(WHITESPACE)[0] || "there";
-  const safeFirstName = escapeHtml(firstName);
-  const expiry = "August 31, 2026";
-  const subject = "We’re sorry — your next 2 months are on us";
-  const offerText =
-    offer === "subscription-extension"
-      ? "To make it right, we’ve moved your next billing date out by two months. There’s nothing you need to do—the two free months have already been applied to your active subscription."
-      : `To make it right, we’d like to give you two months free. Visit ${RECOVERY_CAMPAIGN.billingUrl}, choose a monthly plan, and apply code ${RECOVERY_CAMPAIGN.discountCode} at checkout. The code is valid through ${expiry}.`;
-  const offerHtml =
-    offer === "subscription-extension"
-      ? '<p style="margin:0 0 24px;font-size:16px;line-height:1.6">To make it right, we’ve moved your next billing date out by <strong>two months</strong>. There’s nothing you need to do—the two free months have already been applied to your active subscription.</p>'
-      : `<p style="margin:0 0 18px;font-size:16px;line-height:1.6">To make it right, we’d like to give you <strong>two months free</strong>. Choose a monthly plan and apply this code at checkout:</p>
-        <div style="margin:0 0 12px;padding:18px;text-align:center;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;font-size:22px;font-weight:700;letter-spacing:1px">${RECOVERY_CAMPAIGN.discountCode}</div>
-        <p style="margin:0 0 24px;text-align:center;color:#666;font-size:13px">Valid through ${expiry}</p>
-        <p style="margin:0 0 28px;text-align:center"><a href="${RECOVERY_CAMPAIGN.billingUrl}" style="display:inline-block;padding:13px 22px;background:#171717;color:#fff;text-decoration:none;border-radius:10px;font-weight:600">Claim two months free</a></p>`;
-  const text = `Hi ${firstName},
-
-Over the past few weeks, our migration caused more bugs and errors than we consider acceptable. Since you joined during this period, you may not have received the experience we promised.
-
-We’re genuinely sorry.
-
-${offerText}
-
-If you experienced any issues—or would simply like help getting set up—we’re also happy to offer a complimentary one-on-one call: ${RECOVERY_CAMPAIGN.bookingUrl}
-
-Thank you for giving us a chance, especially during a rough patch. We’re working hard to make Delulu faster, more reliable, and worthy of your trust.
-
-— Swaraj
-Delulu`;
-  const html = `<!doctype html>
-<html lang="en">
-  <body style="margin:0;background:#f6f6f6;color:#171717;font-family:Arial,sans-serif">
-    <div style="display:none;max-height:0;overflow:hidden">Two months free, plus a one-on-one setup call if you need it.</div>
-    <main style="max-width:600px;margin:0 auto;padding:40px 20px">
-      <div style="background:#ffffff;border:1px solid #e8e8e8;border-radius:16px;padding:36px">
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6">Hi ${safeFirstName},</p>
-        <p style="margin:0 0 18px;font-size:16px;line-height:1.6">Over the past few weeks, our migration caused more bugs and errors than we consider acceptable. Since you joined during this period, you may not have received the experience we promised.</p>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6"><strong>We’re genuinely sorry.</strong></p>
-        ${offerHtml}
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6">If you experienced any issues—or would simply like help getting set up—we’re also happy to offer a <a href="${RECOVERY_CAMPAIGN.bookingUrl}" style="color:#5b21b6">complimentary one-on-one call</a>.</p>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6">Thank you for giving us a chance, especially during a rough patch. We’re working hard to make Delulu faster, more reliable, and worthy of your trust.</p>
-        <p style="margin:0;font-size:16px;line-height:1.6">— Swaraj<br>Delulu</p>
-      </div>
-    </main>
-  </body>
-</html>`;
-  return { html, subject, text };
-};
 
 interface RecoveryDiscount {
   readonly amount: number;
@@ -526,6 +459,7 @@ const extendActiveSubscriptions = (
   });
 
 const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
+  bookingUrl: string,
   discountId: string,
   audience: readonly RecoveryCampaignAudienceMember[]
 ): Effect.fn.Return<number, never, SqlClient.SqlClient> {
@@ -536,9 +470,22 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
     .filter((member) => member.lifecycleEnabled);
   let enqueued = 0;
   for (const recipient of recipients) {
-    const email = recoveryCampaignEmail(
-      recipient.name,
-      recipient.activeSubscription ? "subscription-extension" : "discount"
+    const firstName = recipient.name?.trim().split(WHITESPACE)[0] ?? "there";
+    const offer = recipient.activeSubscription
+      ? ({ kind: "subscription-extension" } as const)
+      : ({
+          billingUrl: RECOVERY_CAMPAIGN.billingUrl,
+          discountCode: RECOVERY_CAMPAIGN.discountCode,
+          expiresOn: "August 31, 2026",
+          kind: "discount",
+        } as const);
+    const email = yield* Effect.promise(() =>
+      renderMigrationRecoveryEmail({
+        bookingUrl,
+        firstName,
+        offer,
+        preferencesUrl: RECOVERY_CAMPAIGN.preferencesUrl,
+      })
     );
     const rows = yield* sql<{ id: string }>`
         INSERT INTO message_deliveries (
@@ -558,7 +505,7 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
           ${idempotencyPrefix + recipient.id},
           'transactional',
           ${RECOVERY_CAMPAIGN.eventName},
-          'cloudflare-loops',
+          'cloudflare-email',
           'queued',
           ${JSON.stringify({
             kind: "transactional",
@@ -585,6 +532,7 @@ const enqueueRecoveryCampaign = Effect.fn("enqueueRecoveryCampaign")(function* (
 export const launchRecoveryCampaign = Effect.fn("launchRecoveryCampaign")(
   function* (config: {
     readonly apiKey: string;
+    readonly bookingUrl: string;
     readonly environment: "test_mode" | "live_mode";
   }): Effect.fn.Return<
     RecoveryCampaignLaunch,
@@ -607,6 +555,7 @@ export const launchRecoveryCampaign = Effect.fn("launchRecoveryCampaign")(
       audience
     );
     const enqueued = yield* enqueueRecoveryCampaign(
+      config.bookingUrl,
       discount.discount_id,
       audience
     );

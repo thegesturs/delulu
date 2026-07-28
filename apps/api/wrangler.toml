@@ -51,7 +51,7 @@ FACEBOOK_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/faceb
 PINTEREST_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/pinterest"
 YOUTUBE_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/youtube"
 THREADS_CALLBACK_URL = "https://api.delulu.social/v1/connections/callback/threads"
-CLOUDFLARE_EMAIL_FROM = "notify@delulu.social"
+CLOUDFLARE_EMAIL_FROM = "welcome@mail.delulu.social"
 CAL_RETENTION_EVENT_SLUG = "retention"
 
 # Secrets (set via `wrangler secret put`):
@@ -80,6 +80,8 @@ CAL_RETENTION_EVENT_SLUG = "retention"
 
 [[send_email]]
 name = "EMAIL"
+remote = true
+allowed_sender_addresses = ["welcome@mail.delulu.social"]
 
 # Postgres via Hyperdrive. In production `id` points at the real Hyperdrive
 # config (fill after `wrangler hyperdrive create`). In local `wrangler dev`,

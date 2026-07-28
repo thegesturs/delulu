@@ -68,6 +68,27 @@ const validateRecoveryCampaignDatabaseUrl = (rawUrl: string): URL => {
   return parsed;
 };
 
+const validateBookingUrl = (rawUrl: string): string => {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL is not a valid URL");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL must use HTTPS");
+  }
+  if (
+    parsed.hostname === "example.com" ||
+    parsed.pathname.includes("your-correct-link")
+  ) {
+    throw new Error(
+      "RECOVERY_CAMPAIGN_BOOKING_URL must be the confirmed booking URL"
+    );
+  }
+  return parsed.toString();
+};
+
 const run = async () => {
   const command = parseRecoveryCampaignCommand(process.argv.slice(2));
   if (command.mode === "help") {
@@ -80,6 +101,7 @@ Execute:
   PRODUCTION_DATABASE_URL='postgres://...?sslmode=require' \\
   DODO_PAYMENTS_API_KEY=... \\
   DODO_PAYMENTS_ENVIRONMENT=live_mode \\
+  RECOVERY_CAMPAIGN_BOOKING_URL='https://cal.com/...' \\
   pnpm campaign:recovery -- --execute --confirm=${RECOVERY_CAMPAIGN.id}`);
     return;
   }
@@ -139,9 +161,15 @@ Execute:
   if (!apiKey) {
     throw new Error("DODO_PAYMENTS_API_KEY is required for execution");
   }
+  const rawBookingUrl = process.env.RECOVERY_CAMPAIGN_BOOKING_URL;
+  if (!rawBookingUrl) {
+    throw new Error("RECOVERY_CAMPAIGN_BOOKING_URL is required for execution");
+  }
+  const bookingUrl = validateBookingUrl(rawBookingUrl);
   const launch = await runWithDatabase(
     launchRecoveryCampaign({
       apiKey,
+      bookingUrl,
       environment: "live_mode",
     })
   );

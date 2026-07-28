@@ -2,6 +2,7 @@
   "extends": "@delulu/typescript-config/base.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "jsx": "react-jsx",
     "paths": {
       "@delulu/*": ["../../packages/*"]
     }

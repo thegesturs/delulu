@@ -1,4 +1,7 @@
-import { MessagingProvider } from "@delulu/services";
+import {
+  LifecycleProvider,
+  TransactionalEmailProvider,
+} from "@delulu/services";
 import { Effect, Layer } from "effect";
 import type { Env } from "./env";
 
@@ -20,12 +23,11 @@ const loopsRequest = (token: string, path: string, body: unknown) =>
     catch: (cause) => cause,
   });
 
-/** Cloudflare owns transactional delivery; Loops receives only lifecycle data. */
-export const messagingProviderLayer = (env: Env) => {
-  return Layer.succeed(
-    MessagingProvider,
-    MessagingProvider.of({
-      name: "cloudflare-loops",
+const lifecycleProviderLayer = (env: Env) =>
+  Layer.succeed(
+    LifecycleProvider,
+    LifecycleProvider.of({
+      name: "loops",
       identify: (input) =>
         env.LOOPS_API_KEY
           ? loopsRequest(env.LOOPS_API_KEY, "/contacts/create", {
@@ -42,12 +44,23 @@ export const messagingProviderLayer = (env: Env) => {
               eventProperties: input.properties,
             })
           : Effect.fail(new Error("Lifecycle provider is not configured")),
-      sendTransactional: (input) =>
+    })
+  );
+
+const transactionalEmailProviderLayer = (env: Env) =>
+  Layer.succeed(
+    TransactionalEmailProvider,
+    TransactionalEmailProvider.of({
+      name: "cloudflare-email",
+      send: (input) =>
         env.EMAIL && env.CLOUDFLARE_EMAIL_FROM
           ? Effect.tryPromise({
               try: () =>
                 env.EMAIL!.send({
-                  from: env.CLOUDFLARE_EMAIL_FROM!,
+                  from: {
+                    email: env.CLOUDFLARE_EMAIL_FROM!,
+                    name: "Delulu Social",
+                  },
                   to: input.to,
                   subject: input.subject,
                   html: input.html,
@@ -58,8 +71,13 @@ export const messagingProviderLayer = (env: Env) => {
                   },
                 }),
               catch: (cause) => cause,
-            }).pipe(Effect.as({}))
+            })
           : Effect.fail(new Error("Transactional email is not configured")),
     })
   );
-};
+
+export const messagingProvidersLayer = (env: Env) =>
+  Layer.mergeAll(
+    lifecycleProviderLayer(env),
+    transactionalEmailProviderLayer(env)
+  );

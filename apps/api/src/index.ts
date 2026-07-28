@@ -72,7 +72,7 @@ import {
 } from "./env";
 import { LiveInsightsProviderLive } from "./live-insights";
 import { runMaintenance } from "./maintenance";
-import { messagingProviderLayer } from "./messaging-provider";
+import { messagingProvidersLayer } from "./messaging-providers";
 
 /**
  * Build the per-request service environment from the Worker `env`. Rate limiting
@@ -156,7 +156,7 @@ export const makeBaseLayer = (
       )
     : AutomationKvService.memoryLayer();
   const Messaging = MessagingService.layer.pipe(
-    Layer.provide(messagingProviderLayer(env))
+    Layer.provide(messagingProvidersLayer(env))
   );
   const Lifecycle = LifecycleService.layer.pipe(Layer.provide(Messaging));
   const Connections = ConnectionsService.layer.pipe(

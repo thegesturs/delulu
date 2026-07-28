@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@delulu/email": "workspace:*",
     "@delulu/payments": "workspace:*",
     "@effect/sql-pg": "catalog:",
     "dodopayments": "2.4.3",

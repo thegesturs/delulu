@@ -3,8 +3,8 @@ import { SqlClient } from "effect/unstable/sql";
 
 export type MessageChannel = "transactional" | "lifecycle";
 
-export interface MessagingProviderApi {
-  readonly name: "cloudflare-loops" | "noop";
+export interface LifecycleProviderApi {
+  readonly name: "loops" | "noop";
   readonly identify: (input: {
     readonly userId: string;
     readonly email: string;
@@ -16,7 +16,16 @@ export interface MessagingProviderApi {
     readonly event: string;
     readonly properties: Readonly<Record<string, unknown>>;
   }) => Effect.Effect<void, unknown>;
-  readonly sendTransactional: (input: {
+}
+
+export class LifecycleProvider extends Context.Service<
+  LifecycleProvider,
+  LifecycleProviderApi
+>()("@delulu/services/LifecycleProvider") {}
+
+export interface TransactionalEmailProviderApi {
+  readonly name: "cloudflare-email" | "noop";
+  readonly send: (input: {
     readonly to: string;
     readonly subject: string;
     readonly html: string;
@@ -26,10 +35,10 @@ export interface MessagingProviderApi {
   }) => Effect.Effect<{ readonly messageId?: string }, unknown>;
 }
 
-export class MessagingProvider extends Context.Service<
-  MessagingProvider,
-  MessagingProviderApi
->()("@delulu/services/MessagingProvider") {}
+export class TransactionalEmailProvider extends Context.Service<
+  TransactionalEmailProvider,
+  TransactionalEmailProviderApi
+>()("@delulu/services/TransactionalEmailProvider") {}
 
 type DeliveryPayload =
   | {
@@ -105,7 +114,8 @@ export class MessagingService extends Context.Service<
     MessagingService,
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
-      const provider = yield* MessagingProvider;
+      const lifecycleProvider = yield* LifecycleProvider;
+      const transactionalEmailProvider = yield* TransactionalEmailProvider;
 
       const ensurePreferences = (userId: string) =>
         sql`INSERT INTO email_preferences (user_id) VALUES (${userId})
@@ -115,6 +125,7 @@ export class MessagingService extends Context.Service<
         idempotencyKey: string;
         channel: MessageChannel;
         messageType: string;
+        provider: "loops" | "cloudflare-email" | "noop";
         payload: DeliveryPayload;
         metadata?: Readonly<Record<string, unknown>>;
         status?: "queued" | "suppressed";
@@ -124,7 +135,7 @@ export class MessagingService extends Context.Service<
           (id, user_id, idempotency_key, channel, message_type, provider, status,
             payload, metadata, suppression_reason)
           VALUES (${`message_${crypto.randomUUID()}`}, ${input.userId}, ${input.idempotencyKey},
-            ${input.channel}, ${input.messageType}, ${provider.name}, ${input.status ?? "queued"},
+            ${input.channel}, ${input.messageType}, ${input.provider}, ${input.status ?? "queued"},
             ${JSON.stringify(input.payload)}::jsonb, ${JSON.stringify(input.metadata ?? {})}::jsonb,
             ${input.suppressionReason ?? null})
           ON CONFLICT (idempotency_key) DO NOTHING`.pipe(
@@ -158,6 +169,7 @@ export class MessagingService extends Context.Service<
             idempotencyKey: input.idempotencyKey ?? randomKey("identify"),
             channel: "lifecycle",
             messageType: "identify",
+            provider: lifecycleProvider.name,
             payload: { kind: "identify", ...input },
           });
         }
@@ -194,6 +206,7 @@ export class MessagingService extends Context.Service<
           idempotencyKey: input.idempotencyKey ?? randomKey(input.event),
           channel: "lifecycle",
           messageType: input.event,
+          provider: lifecycleProvider.name,
           payload,
           status: suppressionReason ? "suppressed" : "queued",
           suppressionReason: suppressionReason ?? undefined,
@@ -228,6 +241,7 @@ export class MessagingService extends Context.Service<
               idempotencyKey: `preferences:${input.userId}:${contact.productLifecycleEnabled}:${contact.marketingEnabled}:${crypto.randomUUID()}`,
               channel: "lifecycle",
               messageType: "preferences_updated",
+              provider: lifecycleProvider.name,
               payload: {
                 kind: "identify",
                 userId: input.userId,
@@ -258,6 +272,7 @@ export class MessagingService extends Context.Service<
             idempotencyKey: input.idempotencyKey,
             channel: "transactional",
             messageType: input.messageType,
+            provider: transactionalEmailProvider.name,
             payload: {
               kind: "transactional",
               to: input.email,
@@ -297,10 +312,10 @@ export class MessagingService extends Context.Service<
             const payload = row.payload as DeliveryPayload;
             const delivery =
               payload.kind === "identify"
-                ? provider.identify(payload)
+                ? lifecycleProvider.identify(payload)
                 : payload.kind === "track"
-                  ? provider.track(payload)
-                  : provider.sendTransactional({
+                  ? lifecycleProvider.track(payload)
+                  : transactionalEmailProvider.send({
                       ...payload,
                       idempotencyKey: row.idempotencyKey,
                     });

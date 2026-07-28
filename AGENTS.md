@@ -30,6 +30,10 @@ Keep behavior predictable under load and during failures (session restarts,
 reconnects, partial streams). If a tradeoff is required, choose correctness
 and robustness over short-term convenience.
 
+If something fails, don't try ugly, stupid fixes yourself. Your job isn't just
+to get shit done; it's to get shit done the right way. If you're blocked,
+fucking ask the user before doing anything else.
+
 ## Maintainability
 
 Long-term maintainability is a core priority. Before adding new
