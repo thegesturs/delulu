@@ -16,7 +16,7 @@ import {
 import { PgClient } from "@effect/sql-pg";
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/unstable/sql";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { processPostgresMessage } from "./postgres-client";
 import { resolveMediaUrls } from "./resolve-media-urls";
@@ -67,6 +67,27 @@ const requiredEnv = (name: string): string => {
     throw new Error(`${name} is required for live publishing`);
   }
   return value;
+};
+
+const selectedCaseNames = (): (typeof REQUIRED_CASES)[number][] => {
+  const configured = process.env.DELULU_LIVE_CASES;
+  if (!configured) {
+    return [...REQUIRED_CASES];
+  }
+  const names = configured
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const unknown = names.filter(
+    (name) => !REQUIRED_CASES.includes(name as (typeof REQUIRED_CASES)[number])
+  );
+  if (unknown.length > 0) {
+    throw new Error(`Unknown live publishing cases: ${unknown.join(", ")}`);
+  }
+  if (names.length === 0) {
+    throw new Error("DELULU_LIVE_CASES must select at least one case");
+  }
+  return [...new Set(names)] as (typeof REQUIRED_CASES)[number][];
 };
 
 const mediaTypes = (entry: LiveCase) =>
@@ -227,9 +248,44 @@ describe("live publishing manifest contract", () => {
   });
 });
 
+describe("live publishing case selection", () => {
+  afterEach(() => {
+    Reflect.deleteProperty(process.env, "DELULU_LIVE_CASES");
+  });
+
+  it("runs the complete matrix when no subset is configured", () => {
+    expect(selectedCaseNames()).toEqual(REQUIRED_CASES);
+  });
+
+  it("deduplicates an explicit subset without adding unselected platforms", () => {
+    process.env.DELULU_LIVE_CASES = "linkedin-pdf,tiktok-video,linkedin-pdf";
+    expect(selectedCaseNames()).toEqual(["linkedin-pdf", "tiktok-video"]);
+  });
+
+  it("rejects empty and unknown selections", () => {
+    process.env.DELULU_LIVE_CASES = " , ";
+    expect(() => selectedCaseNames()).toThrow(
+      "DELULU_LIVE_CASES must select at least one case"
+    );
+    process.env.DELULU_LIVE_CASES = "linkedin-pdf,unknown-case";
+    expect(() => selectedCaseNames()).toThrow(
+      "Unknown live publishing cases: unknown-case"
+    );
+  });
+});
+
 liveDescribe("explicit production-account publishing matrix", () => {
   it("publishes every required format through the persisted worker workflow", async () => {
-    requiredEnv("DELULU_LIVE_ENCRYPTION_SECRET");
+    if (
+      !(
+        process.env.DELULU_LIVE_ENCRYPTION_SECRET ||
+        process.env.ENCRYPTION_SECRET
+      )
+    ) {
+      throw new Error(
+        "DELULU_LIVE_ENCRYPTION_SECRET or ENCRYPTION_SECRET is required for live publishing"
+      );
+    }
     const databaseUrl = requiredEnv("DELULU_LIVE_DATABASE_URL");
     const clerkUserId = requiredEnv("DELULU_LIVE_CLERK_USER_ID");
     const runId = requiredEnv("DELULU_LIVE_RUN_ID");
@@ -237,12 +293,16 @@ liveDescribe("explicit production-account publishing matrix", () => {
       throw new Error("DELULU_LIVE_RUN_ID must be a stable unique identifier");
     }
     const manifest = await loadManifest(requiredEnv("DELULU_LIVE_MANIFEST"));
-    const names = manifest.cases.map((entry) => entry.name).sort();
-    expect(names).toEqual([...REQUIRED_CASES].sort());
-    for (const entry of manifest.cases) {
+    const selected = selectedCaseNames();
+    const cases = manifest.cases.filter((entry) =>
+      selected.includes(entry.name)
+    );
+    const names = cases.map((entry) => entry.name).sort();
+    expect(names).toEqual([...selected].sort());
+    for (const entry of cases) {
       assertCaseShape(entry);
     }
-    await preflightMedia(manifest);
+    await preflightMedia({ cases });
 
     const Pg = PgClient.layer({
       url: Redacted.make(normalizePostgresUrl(databaseUrl)),
@@ -253,7 +313,7 @@ liveDescribe("explicit production-account publishing matrix", () => {
       Effect.gen(function* () {
         const sql = yield* SqlClient.SqlClient;
         const connectionIds = [
-          ...new Set(manifest.cases.map((entry) => entry.connectionId)),
+          ...new Set(cases.map((entry) => entry.connectionId)),
         ];
         const connections = yield* sql<{
           id: string;
@@ -274,7 +334,7 @@ liveDescribe("explicit production-account publishing matrix", () => {
         const allowed = new Map(connections.map((row) => [row.id, row]));
 
         // Finish authorization and format preflight before creating any records.
-        for (const entry of manifest.cases) {
+        for (const entry of cases) {
           const connection = allowed.get(entry.connectionId);
           if (!connection || connection.platform !== entry.platform) {
             throw new Error(
@@ -290,7 +350,7 @@ liveDescribe("explicit production-account publishing matrix", () => {
               jobId: string;
               targetId: string;
             }> = [];
-            for (const entry of manifest.cases) {
+            for (const entry of cases) {
               const connection = allowed.get(entry.connectionId);
               if (!connection) {
                 throw new Error("Authorized connection disappeared");
@@ -425,9 +485,7 @@ liveDescribe("explicit production-account publishing matrix", () => {
             );
           }
           expect(target.platformPostId, item.name).toBeTruthy();
-          const entry = manifest.cases.find(
-            (value) => value.name === item.name
-          );
+          const entry = cases.find((value) => value.name === item.name);
           if (!entry) {
             throw new Error(`Missing manifest case ${item.name}`);
           }
