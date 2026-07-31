@@ -218,6 +218,30 @@
       }
     },
     {
+      "name": "linkedin-video",
+      "platform": "LINKEDIN",
+      "connectionId": "connection_linkedin",
+      "content": {
+        "postId": "replaced-by-live-run",
+        "socialProviderId": "replaced-by-live-run",
+        "content": [
+          {
+            "order": 0,
+            "name": "Video",
+            "text": "Live LinkedIn video verification",
+            "tags": [],
+            "media": [
+              {
+                "mediaType": "VIDEO",
+                "url": "https://media.example.test/video.mp4",
+                "durationSeconds": 10
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "linkedin-pdf",
       "platform": "LINKEDIN",
       "connectionId": "connection_linkedin",

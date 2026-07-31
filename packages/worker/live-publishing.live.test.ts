@@ -34,6 +34,7 @@ const REQUIRED_CASES = [
   "linkedin-pdf",
   "linkedin-ppt",
   "linkedin-image",
+  "linkedin-video",
   "tiktok-video",
   "tiktok-photo-carousel",
 ] as const;
@@ -111,6 +112,7 @@ const assertCaseShape = (entry: LiveCase): void => {
     switch (entry.name) {
       case "instagram-reel":
       case "twitter-video":
+      case "linkedin-video":
       case "tiktok-video":
         return segments === 1 && exact("VIDEO", 1);
       case "instagram-carousel":
@@ -249,11 +251,18 @@ describe("live publishing manifest contract", () => {
 });
 
 describe("live publishing case selection", () => {
+  const configuredLiveCases = process.env.DELULU_LIVE_CASES;
+
   afterEach(() => {
-    Reflect.deleteProperty(process.env, "DELULU_LIVE_CASES");
+    if (configuredLiveCases === undefined) {
+      Reflect.deleteProperty(process.env, "DELULU_LIVE_CASES");
+    } else {
+      process.env.DELULU_LIVE_CASES = configuredLiveCases;
+    }
   });
 
   it("runs the complete matrix when no subset is configured", () => {
+    Reflect.deleteProperty(process.env, "DELULU_LIVE_CASES");
     expect(selectedCaseNames()).toEqual(REQUIRED_CASES);
   });
 
