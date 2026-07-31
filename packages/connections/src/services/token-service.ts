@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type ConnectionError, profileNotFound } from "../errors";
+import { type ConnectionError, profileNotFound, tokenExpired } from "../errors";
 import { getConnection } from "../registry";
 import { ConnectionStore } from "./connection-store";
 
@@ -18,8 +18,9 @@ export const ensureFreshToken = (
 ): Effect.Effect<string, ConnectionError, ConnectionStore> =>
   Effect.gen(function* () {
     const store = yield* ConnectionStore;
-    const provider =
-      yield* store.getSocialProviderWithDecryptedTokens(socialProviderId);
+    const loadProvider = () =>
+      store.getSocialProviderWithDecryptedTokens(socialProviderId);
+    const provider = yield* loadProvider();
 
     if (!provider?.accessToken) {
       return yield* Effect.fail(profileNotFound("token-service"));
@@ -29,35 +30,72 @@ export const ensureFreshToken = (
       provider.expiresIn !== undefined &&
       provider.expiresIn < Date.now() + TWO_HOURS_MS;
 
-    if (!(needsRefresh && provider.refreshToken)) {
+    if (!needsRefresh) {
       return provider.accessToken;
     }
-
-    const connection = getConnection(provider.socialType);
-    const refresh = connection.auth.refreshToken;
-    if (!refresh) {
-      // Platform has no refresh flow (e.g. long-lived Instagram tokens) — use
-      // the existing token; the API call fails loudly if it is actually stale.
-      return provider.accessToken;
+    if (!provider.refreshToken) {
+      return provider.expiresIn !== undefined &&
+        provider.expiresIn <= Date.now()
+        ? yield* Effect.fail(
+            tokenExpired(
+              provider.socialType,
+              "Access token expired and the account must be reconnected"
+            )
+          )
+        : provider.accessToken;
     }
 
-    // Best-effort refresh: if it fails, fall back to the current token rather
-    // than hard-failing the caller (preserves prior TikTok behaviour).
-    const refreshed = yield* refresh({
-      socialProviderId,
-      refreshToken: provider.refreshToken,
-    }).pipe(Effect.option);
+    const refreshCurrentToken = Effect.gen(function* () {
+      // Another worker may have completed the refresh while this worker waited
+      // for the per-connection lock, so always re-read the durable row.
+      const current = yield* loadProvider();
+      if (!current?.accessToken) {
+        return yield* Effect.fail(profileNotFound("token-service"));
+      }
+      const stillNeedsRefresh =
+        current.expiresIn !== undefined &&
+        current.expiresIn < Date.now() + TWO_HOURS_MS;
+      if (!stillNeedsRefresh) {
+        return current.accessToken;
+      }
+      if (!current.refreshToken) {
+        return current.expiresIn !== undefined &&
+          current.expiresIn <= Date.now()
+          ? yield* Effect.fail(
+              tokenExpired(
+                current.socialType,
+                "Access token expired and the account must be reconnected"
+              )
+            )
+          : current.accessToken;
+      }
 
-    if (refreshed._tag === "None") {
-      return provider.accessToken;
-    }
-
-    yield* store.updateSocialProvider({
-      socialProviderId,
-      accessToken: refreshed.value.accessToken,
-      refreshToken: refreshed.value.refreshToken,
-      expiresIn: refreshed.value.expiresIn,
+      const refresh = getConnection(current.socialType).auth.refreshToken;
+      if (!refresh) {
+        return current.expiresIn !== undefined &&
+          current.expiresIn <= Date.now()
+          ? yield* Effect.fail(
+              tokenExpired(
+                current.socialType,
+                "Access token expired and the account must be reconnected"
+              )
+            )
+          : current.accessToken;
+      }
+      const refreshed = yield* refresh({
+        socialProviderId,
+        refreshToken: current.refreshToken,
+      });
+      yield* store.updateSocialProvider({
+        socialProviderId,
+        accessToken: refreshed.accessToken,
+        refreshToken: refreshed.refreshToken,
+        expiresIn: refreshed.expiresIn,
+      });
+      return refreshed.accessToken;
     });
 
-    return refreshed.value.accessToken;
+    return yield* store.withTokenRefreshLock
+      ? store.withTokenRefreshLock(socialProviderId, refreshCurrentToken)
+      : refreshCurrentToken;
   });

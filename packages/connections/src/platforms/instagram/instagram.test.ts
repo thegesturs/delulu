@@ -1,5 +1,6 @@
+import axios from "axios";
 import { Cause, Effect, Exit, Layer } from "effect";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiError, invalidMedia, isConnectionError } from "../../errors";
 import { ConnectionStore } from "../../services/connection-store";
 import { buildSingleContainerParams, instagramPublisher } from "./publish";
@@ -8,6 +9,10 @@ import { instagramRules } from "./rules";
 const media = (mediaType: "IMAGE" | "VIDEO", url = "https://x/y.jpg") => ({
   url,
   mediaType,
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("instagramRules.validate", () => {
@@ -132,5 +137,114 @@ describe("instagramPublisher.publish (Effect DI)", () => {
         expect(error.value.code).toBe("PROFILE_NOT_FOUND");
       }
     }
+  });
+
+  it.each([
+    {
+      name: "single image",
+      media: [media("IMAGE", "https://media.test/photo.jpg")],
+      expectedType: "image_url",
+    },
+    {
+      name: "reel",
+      media: [media("VIDEO", "https://media.test/reel.mp4")],
+      expectedType: "media_type=REELS",
+    },
+  ])("publishes a $name through container processing", async (fixture) => {
+    const Store = Layer.succeed(ConnectionStore, {
+      getSocialProviderWithDecryptedTokens: () =>
+        Effect.succeed({
+          _id: "connection_ig",
+          socialType: "INSTAGRAM" as const,
+          accessToken: "access",
+          profileId: "profile_1",
+        }),
+      updateSocialProvider: () => Effect.void,
+    });
+    const post = vi
+      .spyOn(axios, "post")
+      .mockResolvedValueOnce({ data: { id: "container_1" } })
+      .mockResolvedValueOnce({ data: { id: "media_1" } });
+    vi.spyOn(axios, "get")
+      .mockResolvedValueOnce({ data: { status_code: "FINISHED" } })
+      .mockResolvedValueOnce({
+        data: { permalink: "https://instagram.test/p/media_1" },
+      });
+
+    const result = await Effect.runPromise(
+      instagramPublisher
+        .publish({
+          socialProviderId: "connection_ig",
+          content: {
+            postId: "post_ig",
+            socialProviderId: "connection_ig",
+            content: [
+              {
+                order: 0,
+                name: fixture.name,
+                text: "Instagram test",
+                tags: [],
+                media: fixture.media,
+              },
+            ],
+          },
+        })
+        .pipe(Effect.provide(Store))
+    );
+
+    expect(post.mock.calls[0]?.[0]).toContain(fixture.expectedType);
+    expect(post.mock.calls[1]?.[0]).toContain("/media_publish?");
+    expect(result.platformPostId).toBe("media_1");
+  });
+
+  it("publishes a multi-image carousel with all child IDs", async () => {
+    const Store = Layer.succeed(ConnectionStore, {
+      getSocialProviderWithDecryptedTokens: () =>
+        Effect.succeed({
+          _id: "connection_ig",
+          socialType: "INSTAGRAM" as const,
+          accessToken: "access",
+          profileId: "profile_1",
+        }),
+      updateSocialProvider: () => Effect.void,
+    });
+    const post = vi
+      .spyOn(axios, "post")
+      .mockResolvedValueOnce({ data: { id: "child_1" } })
+      .mockResolvedValueOnce({ data: { id: "child_2" } })
+      .mockResolvedValueOnce({ data: { id: "carousel_1" } })
+      .mockResolvedValueOnce({ data: { id: "media_1" } });
+    vi.spyOn(axios, "get")
+      .mockResolvedValueOnce({ data: { status_code: "FINISHED" } })
+      .mockResolvedValueOnce({
+        data: { permalink: "https://instagram.test/p/media_1" },
+      });
+
+    await Effect.runPromise(
+      instagramPublisher
+        .publish({
+          socialProviderId: "connection_ig",
+          content: {
+            postId: "post_carousel",
+            socialProviderId: "connection_ig",
+            content: [
+              {
+                order: 0,
+                name: "Carousel",
+                text: "Carousel test",
+                tags: [],
+                media: [
+                  media("IMAGE", "https://media.test/one.jpg"),
+                  media("IMAGE", "https://media.test/two.jpg"),
+                ],
+              },
+            ],
+          },
+        })
+        .pipe(Effect.provide(Store))
+    );
+
+    expect(post.mock.calls[2]?.[0]).toContain("media_type=CAROUSEL");
+    expect(post.mock.calls[2]?.[0]).toContain("children=child_1%2Cchild_2");
   });
 });

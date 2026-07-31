@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
   "scripts": {
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "vitest run",
@@ -13,6 +19,7 @@
     "migration-lint": "tsx src/migration-lint.ts"
   },
   "dependencies": {
+    "@delulu/connections": "workspace:*",
     "@delulu/core": "workspace:*",
     "@effect/platform-node": "4.0.0-beta.97",
     "@effect/sql-pg": "catalog:",

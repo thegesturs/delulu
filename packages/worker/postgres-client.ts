@@ -1,9 +1,5 @@
 import { POST_PUBLISH_FAILED, POST_PUBLISHED } from "@delulu/analytics/events";
-import {
-  getConnection,
-  networkError,
-  type SocialProviderTokens,
-} from "@delulu/connections";
+import { getConnection } from "@delulu/connections";
 import { ConnectionStore, runPublish } from "@delulu/connections/worker";
 import {
   JobId,
@@ -14,6 +10,7 @@ import {
   rollupPostStatus,
   TokenCipher,
 } from "@delulu/core";
+import { makePostgresConnectionStore } from "@delulu/db";
 import { getPlanLimits } from "@delulu/payments";
 import type {
   ProviderSetting,
@@ -44,6 +41,7 @@ const Pg = PgClient.layer({
   url: Redacted.make(
     normalizePostgresUrl(
       process.env.DATABASE_URL ??
+        process.env.DELULU_LIVE_DATABASE_URL ??
         "postgres://delulu:delulu@localhost:5432/delulu"
     )
   ),
@@ -54,73 +52,18 @@ const Pg = PgClient.layer({
 });
 const Cipher = Layer.succeed(
   TokenCipher,
-  TokenCipher.of(makeTokenCipher(process.env.ENCRYPTION_SECRET ?? ""))
+  TokenCipher.of(
+    makeTokenCipher(
+      process.env.ENCRYPTION_SECRET ??
+        process.env.DELULU_LIVE_ENCRYPTION_SECRET ??
+        ""
+    )
+  )
 );
 
 const PostgresConnectionStore = Layer.effect(
   ConnectionStore,
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    const cipher = yield* TokenCipher;
-    return ConnectionStore.of({
-      getSocialProviderWithDecryptedTokens: (id) =>
-        Effect.gen(function* () {
-          const rows = yield* sql<
-            Record<string, unknown>
-          >`SELECT id, platform, access_token, refresh_token,
-            cipher_version, profile_id, username, expires_at FROM connections WHERE id = ${id}`;
-          const row = rows[0];
-          if (!row) {
-            return null;
-          }
-          const version = row.cipherVersion as "v1";
-          const accessToken = yield* cipher.decrypt({
-            ciphertext: String(row.accessToken),
-            cipherVersion: version,
-          });
-          const refreshToken =
-            row.refreshToken === null
-              ? undefined
-              : yield* cipher.decrypt({
-                  ciphertext: String(row.refreshToken),
-                  cipherVersion: version,
-                });
-          return {
-            _id: String(row.id),
-            socialType: String(
-              row.platform
-            ) as SocialProviderTokens["socialType"],
-            accessToken,
-            refreshToken,
-            profileId: String(row.profileId),
-            username: row.username === null ? undefined : String(row.username),
-            expiresIn:
-              row.expiresAt === null
-                ? undefined
-                : new Date(row.expiresAt as Date | string).getTime(),
-          } satisfies SocialProviderTokens;
-        }).pipe(
-          Effect.mapError(() => networkError("Postgres", "load connection"))
-        ),
-      updateSocialProvider: (update) =>
-        Effect.gen(function* () {
-          const access = update.accessToken
-            ? yield* cipher.encrypt(update.accessToken)
-            : null;
-          const refresh = update.refreshToken
-            ? yield* cipher.encrypt(update.refreshToken)
-            : null;
-          yield* sql`UPDATE connections SET
-            access_token = COALESCE(${access?.ciphertext ?? null}, access_token),
-            refresh_token = COALESCE(${refresh?.ciphertext ?? null}, refresh_token),
-            expires_at = COALESCE(${update.expiresIn ? new Date(update.expiresIn) : null}, expires_at)
-            WHERE id = ${update.socialProviderId}`;
-        }).pipe(
-          Effect.asVoid,
-          Effect.mapError(() => networkError("Postgres", "update connection"))
-        ),
-    });
-  })
+  makePostgresConnectionStore
 ).pipe(Layer.provide([Pg, Cipher]), Layer.orDie);
 
 const providerSettings = (
@@ -170,7 +113,8 @@ const processProgram = (
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient;
     const rows = yield* sql<Record<string, unknown>>`
-      SELECT t.id, t.post_id, t.connection_id, t.group_id, t.settings, t.status,
+      SELECT t.id, t.post_id, t.connection_id, t.group_id, t.settings,
+             t.provider_state, t.status,
              p.content, p.workspace_id, c.platform
       FROM post_targets t JOIN posts p ON p.id = t.post_id
       JOIN connections c ON c.id = t.connection_id
@@ -294,6 +238,10 @@ const processProgram = (
               ? String(thumbnail.bucketKey)
               : undefined,
             thumbnailTimestamp: reference.thumbnailTimestamp,
+            durationSeconds:
+              media.durationSeconds === null
+                ? undefined
+                : Number(media.durationSeconds),
           };
         }),
       })),
@@ -375,6 +323,18 @@ const processProgram = (
         {
           content: publishInput,
           socialProviderId: String(row.connectionId),
+          providerState: row.providerState as Record<string, unknown>,
+          persistProviderState: async (state) => {
+            const updated = await Effect.runPromise(
+              sql<{ id: string }>`UPDATE post_targets
+                SET provider_state = ${JSON.stringify(state)}::jsonb
+                WHERE id = ${message.targetId} AND status = 'publishing'
+                RETURNING id`
+            );
+            if (updated.length !== 1) {
+              throw new Error("Publish progress lease is no longer active");
+            }
+          },
         },
         PostgresConnectionStore
       )

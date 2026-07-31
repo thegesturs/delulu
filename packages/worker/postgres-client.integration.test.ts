@@ -19,7 +19,7 @@ import { processPostgresMessage } from "./postgres-client";
 
 const Pg = PgClient.layer({
   url: Redacted.make(
-    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5433/delulu"
+    process.env.DATABASE_URL ?? "postgres://delulu:delulu@localhost:5432/delulu"
   ),
 });
 
@@ -165,6 +165,69 @@ describe("Postgres publish worker outcomes", () => {
       }).pipe(Effect.provide(Pg))
     );
     expect(state[0]).toMatchObject({ target: "pending", job: "pending" });
+  });
+
+  it("persists provider progress so a redelivery can resume without duplicates", async () => {
+    const seeded = await seed("first segment\nsecond segment");
+    const body = JSON.stringify({
+      jobId: seeded.jobId,
+      targetId: seeded.targetId,
+    });
+
+    await expect(
+      processPostgresMessage(body, async (_platform, context) => {
+        expect(context.providerState).toEqual({});
+        await context.persistProviderState?.({
+          publishedSegmentIds: ["remote-1"],
+        });
+        return {
+          status: "FAILED",
+          message: "temporary outage after first segment",
+          retryable: true,
+        };
+      })
+    ).rejects.toThrow("Retryable publish failure");
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        yield* sql`UPDATE jobs SET status = 'dispatched' WHERE id = ${seeded.jobId}`;
+      }).pipe(Effect.provide(Pg))
+    );
+
+    await processPostgresMessage(body, async (_platform, context) => {
+      expect(context.providerState).toEqual({
+        publishedSegmentIds: ["remote-1"],
+      });
+      await context.persistProviderState?.({
+        publishedSegmentIds: ["remote-1", "remote-2"],
+      });
+      return {
+        status: "PUBLISHED",
+        result: {
+          platformPostId: "remote-1",
+          platformPostUrl: "https://example.test/remote-1",
+          platformId: "TWITTER",
+          postId: seeded.postId,
+          postedAt: new Date(),
+        },
+      };
+    });
+
+    const state = await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        return yield* sql<{
+          providerState: Record<string, unknown>;
+          status: string;
+        }>`SELECT provider_state AS "providerState", status
+          FROM post_targets WHERE id = ${seeded.targetId}`;
+      }).pipe(Effect.provide(Pg))
+    );
+    expect(state[0]).toMatchObject({
+      providerState: { publishedSegmentIds: ["remote-1", "remote-2"] },
+      status: "published",
+    });
   });
 
   it("does not publish an SQS delivery whose durable job was cancelled", async () => {

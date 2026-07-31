@@ -188,6 +188,7 @@ describe("Postgres Model.Class round trips", () => {
               graduationStrategy: "MANUAL",
             },
           },
+          providerState: {},
           scheduledAt: nullable,
           status: "pending",
           platformPostId: nullable,

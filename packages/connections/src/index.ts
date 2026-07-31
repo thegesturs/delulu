@@ -14,6 +14,7 @@ export {
 } from "./callback-response";
 export * from "./errors";
 export { connectFacebookPage } from "./platforms/facebook/auth";
+export type { TikTokCreatorInfo } from "./platforms/tiktok/queries";
 export {
   connectionRegistry,
   getAllCharacterLimits,

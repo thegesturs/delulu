@@ -77,6 +77,7 @@ export const mediaSchema = z.object({
   thumbnailBucketKey: z.string().optional(),
   thumbnailMediaId: z.string().optional(),
   thumbnailTimestamp: z.number().optional(), // Timestamp in seconds when video frame was extracted
+  durationSeconds: z.number().nonnegative().optional(),
 });
 
 export type MediaType = z.infer<typeof mediaSchema>;
@@ -92,6 +93,7 @@ export const getValidMediaUrls = (media: MediaType[]) => {
         thumbnailBucketUrl: m.thumbnailBucketUrl,
         thumbnailBucketKey: m.thumbnailBucketKey,
         thumbnailTimestamp: m.thumbnailTimestamp,
+        durationSeconds: m.durationSeconds,
         bucketUrl: m.bucketUrl,
         bucketKey: m.bucketKey,
       };

@@ -25,8 +25,11 @@ import {
   tikTokPrivacyLevels,
 } from "@delulu/validators/post";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useApiClient } from "@/components/providers/api-client";
+import { useWorkspace } from "@/components/providers/workspace";
+import { useResourceAtom } from "@/state/resources";
 import { useStore } from "@/store/post";
 import { TikTokConsentBanner } from "./tiktok-consent-banner";
 
@@ -40,12 +43,11 @@ export function TikTokSettingsDisplay({
   providerId,
 }: TikTokSettingsProps) {
   const { setProviderSettings, getProviderSettings } = useStore();
+  const { resources } = useApiClient();
+  const { workspaceId } = useWorkspace();
   const providerSetting = getProviderSettings(providerId);
   const tiktokSettings =
     providerSetting?.type === "TIKTOK" ? providerSetting.settings : undefined;
-
-  // Track if settings have been initialized
-  const isInitialized = useRef(false);
 
   // Add state to track if toggle has been turned on (independent of checkboxes)
   const [commercialToggleOn, setCommercialToggleOn] = useState(false);
@@ -124,60 +126,27 @@ export function TikTokSettingsDisplay({
     tiktokSettings?.promotionContent || promotionContentTypes.NONE
   );
 
-  // Fetch creator info for this provider to show user context
-  // Creator capabilities are not exposed by the locked M4 contract yet.
-  const creatorInfo = {
-    isLoading: false,
-    data: {
-      privacy_level_options: [
-        tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-        tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
-        tikTokPrivacyLevels.SELF_ONLY,
-      ],
-      creator_avatar_url: null,
-      creator_nickname: null,
-      creator_username: null,
-      comment_disabled: false,
-      duet_disabled: false,
-      stitch_disabled: false,
-    },
-  } as const;
+  const creatorInfo = useResourceAtom({
+    ...resources.connections.tiktokCreatorInfo(workspaceId ?? "", providerId),
+    enabled: Boolean(workspaceId && providerId),
+    retry: 1,
+  });
 
   const updateTikTokSettings = useCallback(
     (updates: Partial<TikTokSettings>) => {
-      // Get the default privacy based on available options
-      const defaultPrivacy =
-        (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-        DEFAULT_TIKTOK_SETTINGS.privacy;
-
-      const currentSettings = tiktokSettings || {
+      if (!(tiktokSettings || updates.privacy)) {
+        toast.info("Choose a privacy level before configuring TikTok options");
+        return;
+      }
+      const currentSettings = tiktokSettings ?? {
         ...DEFAULT_TIKTOK_SETTINGS,
-        privacy: defaultPrivacy, // Override privacy with API-provided default
+        privacy: updates.privacy as TiktokPrivacyLevels,
+        allowComments: !creatorInfo.data?.comment_disabled,
+        allowDuet: !creatorInfo.data?.duet_disabled,
+        allowStitch: !creatorInfo.data?.stitch_disabled,
       };
 
       const newSettings = { ...currentSettings, ...updates };
-
-      // ALWAYS ensure privacy is never null or empty
-      if (!newSettings.privacy) {
-        newSettings.privacy = defaultPrivacy;
-      }
-
-      // Enforce business rule: paid partnerships can't be private
-      if (
-        (newSettings.promotionContent === promotionContentTypes.PAID ||
-          newSettings.promotionContent === promotionContentTypes.BOTH) &&
-        newSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
-      ) {
-        // Set to the most public option available
-        newSettings.privacy =
-          (creatorInfo.data
-            ?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-          tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
-        // Notify user about the automatic correction
-        toast.info(
-          "Privacy changed to Public - Branded content cannot be set to private"
-        );
-      }
 
       setProviderSettings(providerId, {
         socialProviderId: providerId,
@@ -185,64 +154,37 @@ export function TikTokSettingsDisplay({
         settings: newSettings,
       });
     },
-    [providerId, setProviderSettings, tiktokSettings, creatorInfo.data]
+    [creatorInfo.data, providerId, setProviderSettings, tiktokSettings]
   );
 
-  // Initialize settings only once when we have creator data
   useEffect(() => {
-    if (!(isInitialized.current || tiktokSettings) && creatorInfo.data) {
-      isInitialized.current = true;
-      const defaultPrivacy =
-        (creatorInfo.data.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-        DEFAULT_TIKTOK_SETTINGS.privacy;
-      updateTikTokSettings({
-        ...DEFAULT_TIKTOK_SETTINGS,
-        privacy: defaultPrivacy,
+    if (!(creatorInfo.data && tiktokSettings)) {
+      return;
+    }
+    const normalized = {
+      ...tiktokSettings,
+      allowComments: creatorInfo.data.comment_disabled
+        ? false
+        : tiktokSettings.allowComments,
+      allowDuet: creatorInfo.data.duet_disabled
+        ? false
+        : tiktokSettings.allowDuet,
+      allowStitch: creatorInfo.data.stitch_disabled
+        ? false
+        : tiktokSettings.allowStitch,
+    };
+    if (
+      normalized.allowComments !== tiktokSettings.allowComments ||
+      normalized.allowDuet !== tiktokSettings.allowDuet ||
+      normalized.allowStitch !== tiktokSettings.allowStitch
+    ) {
+      setProviderSettings(providerId, {
+        socialProviderId: providerId,
+        type: "TIKTOK",
+        settings: normalized,
       });
     }
-  }, [creatorInfo.data, tiktokSettings, updateTikTokSettings]); // Include all dependencies
-
-  // Validate that stored privacy is available in API options
-  useEffect(() => {
-    if (
-      tiktokSettings?.privacy &&
-      creatorInfo.data?.privacy_level_options &&
-      creatorInfo.data.privacy_level_options.length > 0
-    ) {
-      const storedPrivacy = tiktokSettings.privacy;
-      const availableOptions = creatorInfo.data.privacy_level_options;
-
-      // Check if stored privacy is in available options
-      if (!(availableOptions as readonly string[]).includes(storedPrivacy)) {
-        // Stored privacy not available, update to first available option
-        const newPrivacy = availableOptions[0] as TiktokPrivacyLevels;
-        updateTikTokSettings({ privacy: newPrivacy });
-      }
-    }
-  }, [
-    tiktokSettings?.privacy,
-    creatorInfo.data?.privacy_level_options,
-    updateTikTokSettings,
-  ]);
-
-  // Validate paid partnership privacy conflict
-  useEffect(() => {
-    if (
-      tiktokSettings &&
-      (tiktokSettings.promotionContent === promotionContentTypes.PAID ||
-        tiktokSettings.promotionContent === promotionContentTypes.BOTH) &&
-      tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
-    ) {
-      const defaultPrivacy =
-        (creatorInfo.data?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-        tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
-      updateTikTokSettings({ privacy: defaultPrivacy });
-      // Notify user about the automatic correction
-      toast.info(
-        "Privacy changed to Public - Branded content cannot be set to private"
-      );
-    }
-  }, [tiktokSettings, creatorInfo.data, updateTikTokSettings]);
+  }, [creatorInfo.data, providerId, setProviderSettings, tiktokSettings]);
 
   const handlePrivacyChange = (value: TiktokPrivacyLevels) => {
     updateTikTokSettings({ privacy: value });
@@ -281,31 +223,12 @@ export function TikTokSettingsDisplay({
         checked
       );
 
-      // If enabling branded content and current privacy is "Only me", auto-switch to public
-      if (
-        checked &&
-        tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
-      ) {
-        const defaultPrivacy =
-          (creatorInfo.data
-            ?.privacy_level_options?.[0] as TiktokPrivacyLevels) ||
-          tikTokPrivacyLevels.PUBLIC_TO_EVERYONE;
-        updateTikTokSettings({
-          promotionContent: newPromotionContent,
-          privacy: defaultPrivacy,
-        });
-        // Notify user about the privacy change
-        toast.info(
-          "Privacy changed to Public - Branded content cannot be set to private"
-        );
-      } else {
-        updateTikTokSettings({ promotionContent: newPromotionContent });
-      }
+      updateTikTokSettings({ promotionContent: newPromotionContent });
     }
   };
 
   // Show loading state while fetching creator info
-  if (creatorInfo.isLoading && !creatorInfo.data) {
+  if (creatorInfo.isPending && !creatorInfo.data) {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <div className="text-center">
@@ -317,6 +240,20 @@ export function TikTokSettingsDisplay({
           </p>
         </div>
       </div>
+    );
+  }
+  if (
+    creatorInfo.isError ||
+    !creatorInfo.data ||
+    creatorInfo.data.privacy_level_options.length === 0
+  ) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          TikTok creator settings could not be loaded. Reconnect the account or
+          try again before publishing.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -355,25 +292,18 @@ export function TikTokSettingsDisplay({
         <Select
           onValueChange={handlePrivacyChange}
           value={
-            tiktokSettings?.privacy ||
-            creatorInfo.data?.privacy_level_options?.[0] ||
-            tikTokPrivacyLevels.PUBLIC_TO_EVERYONE
+            creatorInfo.data.privacy_level_options.includes(
+              tiktokSettings?.privacy ?? ""
+            )
+              ? tiktokSettings?.privacy
+              : ""
           }
         >
           <SelectTrigger id="tiktok-privacy">
             <SelectValue placeholder="Select privacy level" />
           </SelectTrigger>
           <SelectContent>
-            {/* Use API options if available, otherwise use defaults */}
-            {(creatorInfo.data?.privacy_level_options &&
-            creatorInfo.data.privacy_level_options.length > 0
-              ? creatorInfo.data.privacy_level_options
-              : [
-                  tikTokPrivacyLevels.PUBLIC_TO_EVERYONE,
-                  tikTokPrivacyLevels.MUTUAL_FOLLOW_FRIENDS,
-                  tikTokPrivacyLevels.SELF_ONLY,
-                ]
-            ).map((option: string) => {
+            {creatorInfo.data.privacy_level_options.map((option: string) => {
               const isSelfOnlyDisabled =
                 option === tikTokPrivacyLevels.SELF_ONLY &&
                 (tiktokSettings?.promotionContent ===
@@ -417,7 +347,7 @@ export function TikTokSettingsDisplay({
           <div className="flex items-center space-x-2">
             <Switch
               checked={!(tiktokSettings?.allowComments ?? true)}
-              disabled={creatorInfo.data?.comment_disabled}
+              disabled={!tiktokSettings || creatorInfo.data.comment_disabled}
               id="disable-comments"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowComments: !checked })
@@ -434,7 +364,9 @@ export function TikTokSettingsDisplay({
           <div className="flex items-center space-x-2">
             <Switch
               checked={!(tiktokSettings?.allowDuet ?? true)}
-              disabled={!hasVideo || creatorInfo.data?.duet_disabled}
+              disabled={
+                !(tiktokSettings && hasVideo) || creatorInfo.data.duet_disabled
+              }
               id="disable-duet"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowDuet: !checked })
@@ -459,7 +391,10 @@ export function TikTokSettingsDisplay({
           <div className="flex items-center space-x-2">
             <Switch
               checked={!(tiktokSettings?.allowStitch ?? true)}
-              disabled={!hasVideo || creatorInfo.data?.stitch_disabled}
+              disabled={
+                !(tiktokSettings && hasVideo) ||
+                creatorInfo.data.stitch_disabled
+              }
               id="disable-stitch"
               onCheckedChange={(checked) =>
                 updateTikTokSettings({ allowStitch: !checked })
@@ -497,6 +432,7 @@ export function TikTokSettingsDisplay({
         <div className="flex items-center space-x-2">
           <Switch
             checked={commercialContentState.hasCommercialContent}
+            disabled={!tiktokSettings}
             id="commercial-content-toggle"
             onCheckedChange={handleCommercialContentToggle}
           />
@@ -545,6 +481,7 @@ export function TikTokSettingsDisplay({
               </div>
               <Switch
                 checked={commercialContentState.yourBrand}
+                disabled={!tiktokSettings}
                 id="your-brand"
                 onCheckedChange={handleYourBrandChange}
               />
@@ -570,7 +507,8 @@ export function TikTokSettingsDisplay({
               <Switch
                 checked={commercialContentState.brandedContent}
                 disabled={
-                  tiktokSettings?.privacy === tikTokPrivacyLevels.SELF_ONLY
+                  !tiktokSettings ||
+                  tiktokSettings.privacy === tikTokPrivacyLevels.SELF_ONLY
                 }
                 id="branded-content"
                 onCheckedChange={handleBrandedContentChange}

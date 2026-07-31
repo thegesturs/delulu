@@ -6,6 +6,9 @@ export const CAPTION_LIMIT = 2200;
 /** Max characters TikTok accepts for the post title/caption field. */
 export const TITLE_LIMIT = 150;
 
+/** Maximum photos accepted by TikTok's photo-post endpoint. */
+export const MAX_PHOTOS = 35;
+
 /** OAuth scopes requested on connect (matches connect-url.service TIKTOK). */
 export const SCOPES =
   "user.info.basic,video.publish,video.upload,user.info.profile,video.list";
@@ -16,6 +19,8 @@ export const USER_INFO_URL =
   "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,username";
 export const VIDEO_INIT_URL =
   "https://open.tiktokapis.com/v2/post/publish/video/init/";
+export const PHOTO_INIT_URL =
+  "https://open.tiktokapis.com/v2/post/publish/content/init/";
 export const STATUS_FETCH_URL =
   "https://open.tiktokapis.com/v2/post/publish/status/fetch/";
 export const VIDEO_LIST_URL =

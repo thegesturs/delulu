@@ -4,21 +4,22 @@ import type {
   ValidateInput,
   ValidationResult,
 } from "../../types";
-import { CAPTION_LIMIT } from "./constants";
+import { CAPTION_LIMIT, MAX_PHOTOS } from "./constants";
 
 /**
  * TikTok rules — the TIKTOK slice of the old `platform-rules.ts` plus the
- * publish-time validation the provider used to do inline. TikTok requires
- * exactly one video; no images, no carousel, no mixing.
+ * publish-time validation the provider used to do inline. TikTok accepts
+ * either one video or a photo carousel, but never a mixture of the two.
  */
 export const tiktokRules: PlatformRules = {
   maxLength: CAPTION_LIMIT,
   media: {
-    requiresVideo: true,
+    requiresVideo: false,
     requiresImage: false,
-    requiresEither: false,
-    allowsMultipleImages: false,
+    requiresEither: true,
+    allowsMultipleImages: true,
     allowsMultipleVideos: false,
+    maxImages: MAX_PHOTOS,
   },
   validate(input: ValidateInput): ValidationResult {
     const errors: string[] = [];
@@ -31,14 +32,17 @@ export const tiktokRules: PlatformRules = {
     const videos = valid.filter((m) => m.mediaType === "VIDEO");
     const images = valid.filter((m) => m.mediaType === "IMAGE");
 
-    if (videos.length === 0) {
-      errors.push("TikTok requires exactly one video file");
+    if (videos.length === 0 && images.length === 0) {
+      errors.push("TikTok requires a video or at least one photo");
     }
     if (videos.length > 1) {
       errors.push("TikTok supports only one video per post");
     }
-    if (images.length > 0) {
-      errors.push("TikTok does not support images");
+    if (images.length > MAX_PHOTOS) {
+      errors.push(`TikTok supports at most ${MAX_PHOTOS} photos per post`);
+    }
+    if (videos.length > 0 && images.length > 0) {
+      errors.push("TikTok does not support mixing photos and video");
     }
 
     return { valid: errors.length === 0, errors };

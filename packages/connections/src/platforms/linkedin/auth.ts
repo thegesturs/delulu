@@ -1,43 +1,36 @@
+import { Effect } from "effect";
 import {
   callbackRedirect,
   transferRequiredRedirect,
 } from "../../callback-response";
+import { type ConnectionError, networkError, tokenExpired } from "../../errors";
 import type {
   CallbackContext,
   ConnectContext,
   PlatformAuth,
+  TokenRefreshResult,
 } from "../../types";
 import { LINKEDIN_VERSION } from "./constants";
 
 /**
- * OAuth scopes for LinkedIn — mirrors the connect-url service LINKEDIN block.
- * No `offline.access`/refresh scope, so there is no token-refresh flow.
+ * Least-required member publishing scopes. Identity comes from LinkedIn OIDC;
+ * organization publishing is requested separately when that capability exists.
  */
-const SCOPES = [
-  "r_basicprofile",
-  "r_member_postAnalytics",
-  "w_member_social",
-  "w_organization_social",
-];
+const SCOPES = ["openid", "profile", "w_member_social"];
 
 interface LinkedInResponse {
   access_token: string;
   expires_in: number;
+  refresh_token?: string;
+  refresh_token_expires_in?: number;
 }
 
 interface LinkedInUserResponse {
-  id: string;
-  localizedFirstName: string;
-  localizedLastName: string;
-  profilePicture?: {
-    "displayImage~": {
-      elements: Array<{
-        identifiers: Array<{
-          identifier: string;
-        }>;
-      }>;
-    };
-  };
+  sub: string;
+  name: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
 }
 
 export const linkedinAuth: PlatformAuth = {
@@ -101,20 +94,21 @@ export const linkedinAuth: PlatformAuth = {
         throw new Error("linkedin_token_invalid");
       }
 
-      const { access_token, expires_in } =
-        (await tokenResponse.json()) as LinkedInResponse;
+      const {
+        access_token,
+        expires_in,
+        refresh_token,
+        refresh_token_expires_in,
+      } = (await tokenResponse.json()) as LinkedInResponse;
 
       // 2. Fetch the user profile.
-      const userResponse = await fetch(
-        "https://api.linkedin.com/v2/me?projection=(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))",
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-            "X-Restli-Protocol-Version": "2.0.0",
-            "LinkedIn-Version": LINKEDIN_VERSION,
-          },
-        }
-      );
+      const userResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "X-Restli-Protocol-Version": "2.0.0",
+          "LinkedIn-Version": LINKEDIN_VERSION,
+        },
+      });
 
       if (!userResponse.ok) {
         throw new Error("linkedin_user_fetch_failed");
@@ -127,20 +121,21 @@ export const linkedinAuth: PlatformAuth = {
       // access-token expiry; LinkedIn issues no refresh token here, so this is
       // the genuine re-auth deadline.)
       const fullName =
-        `${userObject.localizedFirstName} ${userObject.localizedLastName}`.trim();
-
-      const profileImage =
-        userObject.profilePicture?.["displayImage~"]?.elements[0]
-          ?.identifiers[0]?.identifier;
+        userObject.name ||
+        `${userObject.given_name ?? ""} ${userObject.family_name ?? ""}`.trim();
 
       // 3. Upsert social provider (per-call client carrying the user's token).
       const connection = {
         socialType: "LINKEDIN",
         accessToken: access_token,
+        refreshToken: refresh_token,
         expiresIn: Date.now() + expires_in * 1000,
-        profileId: userObject.id,
+        refreshTokenExpiresIn: refresh_token_expires_in
+          ? Date.now() + refresh_token_expires_in * 1000
+          : undefined,
+        profileId: userObject.sub,
         fullName,
-        profileImage: profileImage ?? "/images/user.png",
+        profileImage: userObject.picture ?? "/images/user.png",
       } as const;
       const result = await ctx.upsert(connection);
 
@@ -158,5 +153,47 @@ export const linkedinAuth: PlatformAuth = {
         `/socials?error=${errorType}&code=LINKEDIN_ERR&provider=LINKEDIN`
       );
     }
+  },
+
+  refreshToken({
+    refreshToken,
+  }): Effect.Effect<TokenRefreshResult, ConnectionError> {
+    return Effect.gen(function* () {
+      const response = yield* Effect.tryPromise({
+        try: () =>
+          fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "refresh_token",
+              refresh_token: refreshToken,
+              client_id: process.env.LINKEDIN_CLIENT_ID ?? "",
+              client_secret: process.env.LINKEDIN_CLIENT_SECRET ?? "",
+            }),
+          }),
+        catch: () => networkError("LinkedIn", "token refresh"),
+      });
+      if (!response.ok) {
+        return yield* Effect.fail(
+          tokenExpired("LinkedIn", "Failed to refresh LinkedIn access token")
+        );
+      }
+      const data = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<LinkedInResponse>,
+        catch: () => networkError("LinkedIn", "token refresh response"),
+      });
+      if (!data.access_token) {
+        return yield* Effect.fail(
+          tokenExpired("LinkedIn", "LinkedIn returned no access token")
+        );
+      }
+      return {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token ?? refreshToken,
+        expiresIn: Date.now() + data.expires_in * 1000,
+      } satisfies TokenRefreshResult;
+    });
   },
 };

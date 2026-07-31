@@ -2,10 +2,10 @@
 export const PROVIDER = "LinkedIn";
 
 /**
- * LinkedIn REST API version in YYYYMM format. Matches the prior worker provider
- * (`LinkedIn-Version: 202507`) so behaviour is byte-for-byte identical.
+ * LinkedIn REST API version in YYYYMM format. LinkedIn supports each monthly
+ * version for one year; keep this aligned with the current official docs.
  */
-export const LINKEDIN_VERSION = "202507";
+export const LINKEDIN_VERSION = "202607";
 
 /** Character limit for LinkedIn commentary — the LINKEDIN slice of platform-rules. */
 export const CHARACTER_LIMIT = 3000;
