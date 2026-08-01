@@ -448,7 +448,13 @@ liveDescribe("explicit production-account publishing matrix", () => {
               };
               const settings = {
                 platform: entry.platform,
-                values: entry.content.providerSettings?.settings ?? {},
+                values: {
+                  ...(getConnection(entry.platform).settings.defaults as Record<
+                    string,
+                    unknown
+                  >),
+                  ...(entry.content.providerSettings?.settings ?? {}),
+                },
               };
               yield* sql`INSERT INTO posts
                 (id, workspace_id, status, content, created_by_member_id, source,
