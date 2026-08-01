@@ -1,3 +1,4 @@
+import { connectionRegistry } from "@delulu/connections";
 import {
   ConflictError,
   NotFoundError,
@@ -30,6 +31,34 @@ type PostOutput = typeof PostView.Type;
 export const decodePostContentForView = Schema.decodeUnknownSync(
   Schema.Struct({ groups: Schema.Array(PostGroupInput) })
 );
+
+const decodePlatformSettings = Schema.decodeUnknownSync(PlatformSettings);
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+export const decodePostTargetSettingsForView = (
+  value: unknown
+): typeof PlatformSettings.Type => {
+  try {
+    return decodePlatformSettings(value);
+  } catch (error) {
+    if (!(isRecord(value) && typeof value.platform === "string")) {
+      throw error;
+    }
+    const definition =
+      connectionRegistry[value.platform as keyof typeof connectionRegistry];
+    if (!(definition && isRecord(definition.settings.defaults))) {
+      throw error;
+    }
+    return decodePlatformSettings({
+      ...value,
+      values: {
+        ...definition.settings.defaults,
+        ...(isRecord(value.values) ? value.values : {}),
+      },
+    });
+  }
+};
 
 export interface PostActor {
   readonly memberId: string;
@@ -159,8 +188,6 @@ export class PostService extends Context.Service<
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const jobs = yield* JobService;
-      const decodeSettings = Schema.decodeUnknownSync(PlatformSettings);
-
       const hydrate = (
         posts: readonly (typeof PostRow.Type)[],
         targets: readonly (typeof TargetRow.Type)[]
@@ -182,7 +209,7 @@ export class PostService extends Context.Service<
               id: target.id,
               connectionId: target.connectionId,
               groupId: target.groupId,
-              settings: decodeSettings(target.settings),
+              settings: decodePostTargetSettingsForView(target.settings),
               scheduledAt: iso(target.scheduledAt),
               status: target.status as PostOutput["targets"][number]["status"],
               platformPostId: target.platformPostId,
