@@ -636,6 +636,75 @@ describe("apps/api worker (e2e over toWebHandler)", () => {
     });
   });
 
+  it("lists posts when a stored target has incomplete legacy platform settings", async () => {
+    const token = `test-token:clerk_legacy_settings_${crypto.randomUUID()}`;
+    const current = await get("/v1/me", token);
+    expect(current.status).toBe(200);
+    const currentBody = (await current.json()) as {
+      personalWorkspace: { id: string } | null;
+    };
+    const workspaceId = currentBody.personalWorkspace?.id ?? "";
+    expect(workspaceId).toBeTruthy();
+    const postId = `post_${crypto.randomUUID()}`;
+    const groupId = `post_group_${crypto.randomUUID()}`;
+    const targetId = `post_target_${crypto.randomUUID()}`;
+    const connectionId = `connection_${crypto.randomUUID()}`;
+
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const sql = yield* SqlClient.SqlClient;
+        const members = yield* sql<{ id: string }>`SELECT id
+          FROM workspace_members
+          WHERE workspace_id = ${workspaceId} AND role = 'owner'
+          LIMIT 1`;
+        const memberId = members[0]?.id;
+        expect(memberId).toBeTruthy();
+        yield* sql`INSERT INTO connections
+          (id, workspace_id, platform, profile_id, access_token, cipher_version)
+          VALUES (${connectionId}, ${workspaceId}, 'LINKEDIN',
+            ${`profile_${crypto.randomUUID()}`}, 'opaque', 'v1')`;
+        yield* sql`INSERT INTO posts
+          (id, workspace_id, status, content, created_by_member_id, source)
+          VALUES (${postId}, ${workspaceId}, 'published',
+            ${JSON.stringify({
+              groups: [
+                {
+                  id: groupId,
+                  isDefault: true,
+                  segments: [{ text: "Published post", media: [] }],
+                },
+              ],
+            })}::jsonb,
+            ${memberId ?? ""}, 'api')`;
+        yield* sql`INSERT INTO post_targets
+          (id, post_id, connection_id, group_id, settings, status)
+          VALUES (${targetId}, ${postId}, ${connectionId}, ${groupId},
+            ${JSON.stringify({ platform: "LINKEDIN", values: {} })}::jsonb,
+            'published')`;
+      }).pipe(Effect.provide(TestPg))
+    );
+
+    const response = await get(`/v1/workspaces/${workspaceId}/posts`, token);
+    const body = await response.json();
+    expect(response.status, JSON.stringify(body)).toBe(200);
+    expect(body).toMatchObject({
+      data: [
+        expect.objectContaining({
+          id: postId,
+          targets: [
+            expect.objectContaining({
+              id: targetId,
+              settings: {
+                platform: "LINKEDIN",
+                values: { visibility: "PUBLIC" },
+              },
+            }),
+          ],
+        }),
+      ],
+    });
+  });
+
   it("GET /v1/me/overview returns the command-center aggregates", async () => {
     const res = await get(
       `/v1/me/overview/${personalWorkspaceId}`,
